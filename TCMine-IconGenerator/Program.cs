@@ -20,8 +20,8 @@ var serverWww = Path.Combine(root, "TCMine-Server", "wwwroot");
 var serverImages = Path.Combine(root, "TCMine-Server", "wwwroot", "Images");
 
 Directory.CreateDirectory(launcherAssets);
-// Directory.CreateDirectory(serverWww);
-// Directory.CreateDirectory(serverImages);
+Directory.CreateDirectory(serverWww);
+Directory.CreateDirectory(serverImages);
 
 int[] sizes = [16, 32, 48, 64, 128, 256];
 var pngs = sizes.ToDictionary(s => s, Utility.RenderIcon);
@@ -43,7 +43,7 @@ Console.WriteLine("  icon.png · icon.ico · splash.png");
 Utility.WriteIco(Path.Combine(serverWww, "favicon.ico"),
     new Dictionary<int, byte[]> { [16] = pngs[16], [32] = pngs[32], [48] = pngs[48] });
 
-File.WriteAllBytes(Path.Combine(serverImages, "favicon.png"), pngs[32]);
+File.WriteAllBytes(Path.Combine(serverWww, "favicon.png"), pngs[32]);
 File.WriteAllBytes(Path.Combine(serverImages, "logo.png"), pngs[256]);
 File.WriteAllBytes(Path.Combine(serverImages, "og-image.png"), 
     Utility.RenderBanner(

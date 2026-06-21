@@ -5,16 +5,17 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <ApplicationIcon>Assets\avalonia-logo.ico</ApplicationIcon>
         <Title>TCMine Launcher</Title>
         <Authors>Tiny Core</Authors>
         <Description>O TCMine Launcher é um launcher customizado de Minecraft para o servidor TCMine. Funciona como a Steam para o TCMine: instala o jogo, gerencia mods, entra no servidor com um clique.</Description>
         <Copyright>Tiny Core - 2026</Copyright>
         <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Launcher</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/tiny-core/TCMine-Launcher/tree/master?tab=GPL-3.0-1-ov-file</PackageLicenseUrl>
+        <PackageLicenseUrl>https://github.com/tiny-core/TCMine/tree/master?tab=GPL-3.0-1-ov-file</PackageLicenseUrl>
         <RepositoryUrl>https://github.com/tiny-core/TCMine</RepositoryUrl>
         <RepositoryType>Github</RepositoryType>
         <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+        <PackageIcon>Assets\icon.png</PackageIcon>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
       <DocumentationFile>bin\Debug\TCMine-Launcher.xml</DocumentationFile>

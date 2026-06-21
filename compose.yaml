@@ -1,0 +1,13 @@
+﻿services:
+  tcmine-server:
+    image: tcmine-server
+    build:
+      context: .
+      dockerfile: TCMine-Server/Dockerfile
+
+  tcmine-server-1:
+    image: tcmine-server-1
+    build:
+      context: .
+      dockerfile: TCMine-Server/Dockerfile
+
