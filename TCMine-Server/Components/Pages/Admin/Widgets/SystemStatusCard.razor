@@ -1,0 +1,53 @@
+@* Status do sistema: métricas instantâneas do processo + gráfico de uso de memória.
+   Componente AUTOCONTIDO — gere o seu próprio Timer e re-renderiza só a si mesmo a cada 2s,
+   em vez de forçar o re-render da página inteira do dashboard. *@
+
+<MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h6">Status do sistema</MudText>
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="Color.Success" Size="Size.Small"/>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Ao vivo</MudText>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Spacing="2" Class="mb-2">
+        <MudItem xs="6" sm="3">
+            <div class="metric-tile">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
+                <MudText Typo="Typo.h6">@_snapshot.MemoryMb.ToString("0") <span class="metric-unit">MB</span></MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <div class="metric-tile">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Heap (GC)</MudText>
+                <MudText Typo="Typo.h6">@_snapshot.ManagedHeapMb.ToString("0") <span class="metric-unit">MB</span>
+                </MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <div class="metric-tile">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Threads</MudText>
+                <MudText Typo="Typo.h6">@_snapshot.Threads</MudText>
+            </div>
+        </MudItem>
+        <MudItem xs="6" sm="3">
+            <div class="metric-tile">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Uptime</MudText>
+                <MudText Typo="Typo.h6">@Uptime</MudText>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Uso de memória (últimas amostras)</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">pico @PeakMemoryMb.ToString("0") MB</MudText>
+    </MudStack>
+
+    <MudChart T="double"
+              ChartType="ChartType.Line"
+              ChartSeries="@_series"
+              XAxisLabels="@_labels"
+              ChartOptions="@_chartOptions"
+              Width="100%" Height="240px"/>
+</MudPaper>

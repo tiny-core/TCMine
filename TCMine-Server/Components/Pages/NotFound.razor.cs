@@ -18,5 +18,5 @@ public partial class NotFound : ComponentBase
     protected override void OnInitialized()
     {
         Http?.Items[NotFoundResponseMarker.Key] = true;
-    } 
+    }
 }

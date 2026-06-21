@@ -1,0 +1,29 @@
+@page "/admin"
+@layout AdminLayout
+@using TCMine_Server.Components.Pages.Admin.Widgets
+
+@* Composição do dashboard a partir de widgets autocontidos. A página só carrega o agregado
+   uma vez (OnInitializedAsync) e distribui aos widgets; o card de status do sistema gere o
+   seu próprio timer/re-render, então as seções abaixo não re-renderizam de 2 em 2 segundos. *@
+
+<DashboardHeader ServerVersion="@ServerVersion" EnvName="@EnvName" LauncherVersion="@LauncherVersion"/>
+
+<DashboardKpis Data="@_data"/>
+
+<MudGrid Class="mt-2">
+    <MudItem xs="12" md="7">
+        <SystemStatusCard/>
+    </MudItem>
+    <MudItem xs="12" md="5">
+        <RecentActivityCard Activity="@(_data?.RecentActivity)"/>
+    </MudItem>
+</MudGrid>
+
+<MudGrid Class="mt-2">
+    <MudItem xs="12" md="7">
+        <RecentModpacksCard Modpacks="@(_data?.RecentModpacks)"/>
+    </MudItem>
+    <MudItem xs="12" md="5">
+        <ModDistributionCard Data="@_data"/>
+    </MudItem>
+</MudGrid>

@@ -1,0 +1,9 @@
+/* Aperta o espaçamento vertical da timeline para caber mais itens. */
+.dashboard-timeline {
+    padding: 0;
+}
+
+/* ::deep alcança os elementos filhos renderizados pelo MudTimeline (CSS isolation) */
+.dashboard-timeline ::deep .mud-timeline-item {
+    padding-bottom: 12px;
+}

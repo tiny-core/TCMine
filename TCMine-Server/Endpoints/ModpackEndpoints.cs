@@ -119,6 +119,8 @@ public static class ModpackEndpoints
         HttpContext ctx, ServerSettingsService settings, CancellationToken ct)
     {
         var configured = (await settings.GetStoredAsync(ct)).PublicBaseUrl;
-        return !string.IsNullOrWhiteSpace(configured) ? configured.TrimEnd('/') : $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+        return !string.IsNullOrWhiteSpace(configured)
+            ? configured.TrimEnd('/')
+            : $"{ctx.Request.Scheme}://{ctx.Request.Host}";
     }
 }

@@ -1,0 +1,90 @@
+﻿@inherits LayoutComponentBase
+@layout RootLayout
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using TCMine_Server.Components.Shared
+@using Severity = MudBlazor.Severity
+
+@* Shell do painel admin: AppBar no topo + Drawer lateral de navegação.
+   Herda os provedores do MudBlazor via RootLayout.
+   Guarda central de auth: só autenticados veem o shell; o resto vê AccessDenied. *@
+<AuthorizeView>
+    <Authorized>
+        <MudLayout>
+            <MudAppBar Elevation="1">
+                @* Botão de menu — alterna o drawer (útil em telas estreitas) *@
+                <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start"
+                               OnClick="ToggleDrawer"/>
+                <MudText Typo="Typo.h6" Class="ml-2">TCMine Admin</MudText>
+                <MudSpacer/>
+                <MudButton StartIcon="@Icons.Material.Filled.Logout" Color="Color.Inherit" OnClick="Logout">
+                    Sair
+                </MudButton>
+            </MudAppBar>
+
+            <MudDrawer @bind-Open="_drawerOpen" Elevation="1" ClipMode="DrawerClipMode.Always"
+                       Variant="@DrawerVariant.Responsive">
+                <MudDrawerHeader>
+                    <MudText Typo="Typo.subtitle1">Painel</MudText>
+                </MudDrawerHeader>
+                <MudNavMenu>
+                    <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+                        Dashboard
+                    </MudNavLink>
+                    @* Modpacks — import do CurseForge, mods e overrides (Owner/Admin) *@
+                    <AuthorizeView Roles="Owner,Admin" Context="packs">
+                        <MudNavLink Href="/admin/modpacks" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.Inventory2">
+                            Modpacks
+                        </MudNavLink>
+                    </AuthorizeView>
+                    @* Páginas ainda não implementadas — desabilitadas até a camada de dados existir *@
+                    <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Article">Novidades</MudNavLink>
+                    <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.CloudUpload">Releases</MudNavLink>
+                    @* Gestão de usuários e secrets — só o Owner *@
+                    <AuthorizeView Roles="Owner" Context="owner">
+                        <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.People">
+                            Usuários
+                        </MudNavLink>
+                        <MudNavLink Href="/admin/settings" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.Settings">
+                            Configurações
+                        </MudNavLink>
+                    </AuthorizeView>
+                </MudNavMenu>
+            </MudDrawer>
+
+            <MudMainContent>
+                @* Conteúdo centralizado em coluna (consistente com login/setup) *@
+                <MudContainer MaxWidth="MaxWidth.Large" Class="my-6">
+                    @* Aviso global enquanto os secrets não forem configurados *@
+                    @if (_missingSecrets is not null)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-6">
+                            Secrets pendentes: @_missingSecrets.
+                            <AuthorizeView Roles="Owner" Context="cfg">
+                                <MudLink Href="/admin/settings" Class="ml-1">Configurar agora</MudLink>
+                            </AuthorizeView>
+                        </MudAlert>
+                    }
+                    @Body
+                </MudContainer>
+            </MudMainContent>
+        </MudLayout>
+    </Authorized>
+    <NotAuthorized>
+        <CenterScreen>
+            <ErrorScreen Code="403"
+                         Title="Acesso negado"
+                         Message="Você não tem autorização para acessar esta página. Faça login para continuar."
+                         Icon="@Icons.Material.Filled.Lock"
+                         Color="Color.Primary">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/login"
+                           StartIcon="@Icons.Material.Filled.Login" Class="mt-2">
+                    Ir para o login
+                </MudButton>
+            </ErrorScreen>
+        </CenterScreen>
+    </NotAuthorized>
+</AuthorizeView>

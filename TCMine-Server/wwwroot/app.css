@@ -58,6 +58,8 @@
     --color-error-bg: #3A1414;
     --color-info: #38BDF8;
     --color-info-bg: #0D2A38;
+
+    --accent: var(--color-accent-400);
 }
 
 :root[data-theme="light"] {
@@ -81,4 +83,6 @@
     --color-error-bg: #FEF1F1;
     --color-info: #0369A1;
     --color-info-bg: #EFF7FC;
+
+    --accent: var(--color-accent-400);
 }

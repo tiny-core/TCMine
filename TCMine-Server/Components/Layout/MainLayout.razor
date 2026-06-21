@@ -1,12 +1,11 @@
-﻿@inherits LayoutComponentBase
+﻿@using TCMine_Server.Components.Shared
+@inherits LayoutComponentBase
 @layout RootLayout
 
 @* Layout centralizado para telas de página única (login, erro, 404).
    Os provedores do MudBlazor ficam no RootLayout.
    min-height: 100dvh garante a centralização vertical sem depender da cadeia html/body ter
    altura definida (mud-height-full/height:100% colapsaria, já que html/body não têm height). *@
-<MudContainer MaxWidth="MaxWidth.False"
-              Class="d-flex flex-column align-center justify-center"
-              Style="min-height: 100dvh">
-    @Body
-</MudContainer>
+<CenterScreen>
+   @Body
+</CenterScreen>

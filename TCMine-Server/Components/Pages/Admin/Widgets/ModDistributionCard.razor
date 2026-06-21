@@ -1,0 +1,44 @@
+@* Distribuição de mods (cliente vs servidor) + resumo de instâncias. Recebe o agregado (null = carregando). *@
+
+<MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.h6" Class="mb-4">Distribuição de mods</MudText>
+
+    @if (Data is null)
+    {
+        <MudSkeleton Width="100%" Height="60px" Class="mb-3"/>
+        <MudSkeleton Width="100%" Height="60px"/>
+    }
+    else
+    {
+        @* Lado cliente — quantos mods vão para o launcher do jogador *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Computer" Size="Size.Small" Color="Color.Info"/>
+                <MudText Typo="Typo.body2">Lado cliente</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ClientMods</MudText>
+        </MudStack>
+        <MudProgressLinear Color="Color.Info" Value="@ClientShare" Rounded="true" Size="Size.Medium" Class="mb-4"/>
+
+        @* Lado servidor — mods que entram nas instâncias *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Success"/>
+                <MudText Typo="Typo.body2">Lado servidor</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ServerMods</MudText>
+        </MudStack>
+        <MudProgressLinear Color="Color.Success" Value="@ServerShare" Rounded="true" Size="Size.Medium" Class="mb-4"/>
+
+        <MudDivider Class="my-3"/>
+
+        @* Resumo de instâncias gerenciadas *@
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Instâncias rodando</MudText>
+            <MudChip T="string" Size="Size.Small"
+                     Color="@(Data.RunningInstances > 0 ? Color.Success : Color.Default)" Variant="Variant.Text">
+                @Data.RunningInstances / @Data.Instances
+            </MudChip>
+        </MudStack>
+    }
+</MudPaper>

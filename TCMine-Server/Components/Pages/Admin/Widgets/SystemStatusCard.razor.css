@@ -1,0 +1,15 @@
+/* Tiles de métrica instantânea — fundo levemente elevado e arredondado. */
+.metric-tile {
+    background: var(--mud-palette-background-grey);
+    border: 1px solid var(--mud-palette-lines-default);
+    border-radius: 8px;
+    padding: 10px 12px;
+    height: 100%;
+}
+
+/* Unidade ("MB") menor e esmaecida ao lado do número da métrica */
+.metric-unit {
+    font-size: .7em;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+}

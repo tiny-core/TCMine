@@ -74,7 +74,7 @@ builder.Services.AddSingleton<MinecraftVersionService>();
 // Usuários vivem no banco; o login valida a senha (hash) e emite um cookie de autenticação.
 builder.Services.AddScoped<UserService>();
 // Detecção de primeira execução (existe algum usuário?) — singleton com cache.
-builder.Services.AddSingleton<SetupState>(); 
+builder.Services.AddSingleton<SetupState>();
 builder.Services.AddSingleton<IValidator<Login.LoginInput>, Login.InputValidator>();
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -169,7 +169,7 @@ if (!app.Environment.IsDevelopment())
             }
         });
     });
-    
+
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }

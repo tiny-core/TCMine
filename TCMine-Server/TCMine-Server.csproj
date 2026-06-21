@@ -73,17 +73,17 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Blazilla" />
-        <PackageReference Include="FluentValidation" />
-        <PackageReference Include="MudBlazor" />
+        <PackageReference Include="Blazilla"/>
+        <PackageReference Include="FluentValidation"/>
+        <PackageReference Include="MudBlazor"/>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="tcmine-data\modpacks\" />
-      <Folder Include="tcmine-data\mods\" />
-      <Folder Include="tcmine-data\secrets\" />
-      <Folder Include="tcmine-data\servers\" />
-      <Folder Include="tcmine-data\updates\" />
+        <Folder Include="tcmine-data\modpacks\"/>
+        <Folder Include="tcmine-data\mods\"/>
+        <Folder Include="tcmine-data\secrets\"/>
+        <Folder Include="tcmine-data\servers\"/>
+        <Folder Include="tcmine-data\updates\"/>
     </ItemGroup>
 
 </Project>

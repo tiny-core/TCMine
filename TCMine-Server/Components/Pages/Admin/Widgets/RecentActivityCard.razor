@@ -1,0 +1,44 @@
+@using TCMine_Server.Components.Shared
+
+@* Timeline de atividade recente (histórico de overrides). Recebe a lista (null = carregando). *@
+
+<MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.h6" Class="mb-3">Atividade recente</MudText>
+
+    @if (Activity is null)
+    {
+        @for (var i = 0; i < 4; i++)
+        {
+            <MudSkeleton Width="100%" Height="42px" Class="mb-2"/>
+        }
+    }
+    else if (Activity.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8">
+            <MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhuma alteração registrada ainda.</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudTimeline TimelinePosition="TimelinePosition.Start" Class="dashboard-timeline">
+            @foreach (var a in Activity)
+            {
+                <MudTimelineItem Color="@ActivityColor(a.Operation)" Size="Size.Small"
+                                 Icon="@ActivityIcon(a.Operation)">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <MudText Typo="Typo.body2">@ActivityLabel(a.Operation)</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@RelativeTime.Format(a.CreatedAt)</MudText>
+                    </MudStack>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block text-truncate">
+                        @a.ModpackId · @ActivityPath(a)
+                    </MudText>
+                    @if (!string.IsNullOrWhiteSpace(a.Actor))
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Primary">por @a.Actor</MudText>
+                    }
+                </MudTimelineItem>
+            }
+        </MudTimeline>
+    }
+</MudPaper>
