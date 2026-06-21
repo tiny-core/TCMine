@@ -20,20 +20,37 @@ public class OverrideHistoryEntry
 {
     public int Id { get; set; }
 
-    [MaxLength(80)] public string ModpackId { get; set; } = string.Empty;
+    /// <summary>
+    /// Identificador único do modpack ao qual o mod pertence (referência para <see cref="ModpackEntity"/>).
+    /// </summary>
+    public Guid ModpackId { get; set; }
 
+    /// <summary>
+    /// Tipo de operação registrada para esta entrada no histórico de alterações de overrides.
+    /// Refere-se à ação realizada, como edição, movimentação ou exclusão,
+    /// que determinou a necessidade de registro para auditoria ou suporte à funcionalidade de desfazer.
+    /// </summary>
     public OverrideOp Operation { get; set; }
 
-    // Caminho de origem (edição/exclusão = caminho do arquivo; mover = caminho antes de mover)
+    /// <summary>
+    /// Caminho de origem (edição/exclusão = caminho do arquivo; mover = caminho antes de mover)
+    /// </summary>
     [MaxLength(400)] public string? PathBefore { get; set; }
 
-    // Caminho de destino (só para mover)
+    /// <summary>
+    /// Caminho de destino (só para mover)
+    /// </summary>
     [MaxLength(400)] public string? PathAfter { get; set; }
 
-    // Conteúdo de texto anterior (edição/exclusão) — sem MaxLength: coluna de texto longo
+    /// <summary>
+    /// Conteúdo de texto anterior (edição/exclusão) — sem MaxLength: coluna de texto longo
+    /// </summary>
+    // ReSharper disable once EntityFramework.ModelValidation.UnlimitedStringLength
     public string? ContentBefore { get; set; }
 
-    // Quem fez a alteração (username), quando disponível
+    /// <summary>
+    /// Quem fez a alteração (username), quando disponível
+    /// </summary>
     [MaxLength(80)] public string? Actor { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

@@ -15,9 +15,6 @@ public class PlayerConfigEntity
 
     // Slug do modpack oficial a que estas configs pertencem (parte da chave)
     [MaxLength(80)] public string ModpackId { get; set; } = string.Empty;
-
-    // Zip dos arquivos player-owned (relativos à pasta do jogo)
-    public byte[] Data { get; set; } = [];
-
+    
     public DateTime UpdatedAt { get; set; }
 }

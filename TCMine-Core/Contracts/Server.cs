@@ -11,7 +11,7 @@ public record NewsDto(string Tag, string Title, string Data, string Summary);
 /// Representa um resumo de um modpack, incluindo metadados essenciais e estatísticas.
 /// </summary>
 public record ModpackSummaryDto(
-    string Id,
+    Guid Id,
     string Name,
     string Version,
     string Minecraft,

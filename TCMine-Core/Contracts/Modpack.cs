@@ -23,7 +23,7 @@ public record ModDto(
 /// detalhes de mods e informações do servidor.
 /// </summary>
 public record ModpackManifestDto(
-    string Id,
+    Guid Id,
     string Name,
     string Version,
     string Minecraft,

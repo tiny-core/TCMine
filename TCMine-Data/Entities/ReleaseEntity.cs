@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace TCMine.Server.Data.Entities;
+namespace TCMine_Data.Entities;
 
 /// <summary>
 /// Metadados de uma release do launcher. Os artefactos (Setup.exe, .nupkg,

@@ -3,7 +3,7 @@
 namespace TCMine_Data.Entities;
 
 /// <summary>Um servidor anunciado por um modpack (escrito no servers.dat pelo launcher).</summary>
-public abstract class ServerEntryEntity
+public class ServerEntryEntity
 {
     public int Id { get; set; }
 
@@ -13,6 +13,6 @@ public abstract class ServerEntryEntity
 
     public int Port { get; set; } = 25565;
 
-    public string ModpackId { get; set; } = string.Empty;
+    public Guid ModpackId { get; set; }
     public ModpackEntity? Modpack { get; set; }
 }

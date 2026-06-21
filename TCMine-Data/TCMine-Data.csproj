@@ -21,7 +21,15 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="10.0.9"/>
         <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.3.11"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.9"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.9">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.9"/>
         <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.9"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2"/>
@@ -33,6 +41,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\TCMine-Core\TCMine-Core.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Migrations\" />
+      <Folder Include="Migrations\Sqlite\" />
+        <Folder Include="Migrations\Postgres\" />
     </ItemGroup>
 
 </Project>

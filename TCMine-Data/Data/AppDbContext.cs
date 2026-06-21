@@ -1,6 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine_Data.Entities;
-using TCMine.Server.Data.Entities;
 
 namespace TCMine_Data.Data;
 

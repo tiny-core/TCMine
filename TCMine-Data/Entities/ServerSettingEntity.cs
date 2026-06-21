@@ -1,4 +1,6 @@
-namespace TCMine.Server.Data.Entities;
+using System.ComponentModel.DataAnnotations;
+
+namespace TCMine_Data.Entities;
 
 /// <summary>
 /// Configuração da aplicação persistida no banco — linha única (Id == 1).
@@ -17,20 +19,32 @@ public class ServerSettingEntity
     public const int SingletonId = 1;
 
     public int Id { get; set; } = SingletonId;
-
-    // Token da API do CurseForge — CIFRADO em repouso (nunca texto puro no banco)
+    
+    /// <summary>
+    /// Token da API do CurseForge — CIFRADO em repouso (nunca texto puro no banco)
+    /// </summary> 
+    [MaxLength(256)]
     public string? CfApiKeyEncrypted { get; set; }
 
-    // Application (client) ID do app registrado no Azure AD — identificador público
+    /// <summary>
+    /// Application (client) ID do app registrado no Azure AD — identificador público
+    /// </summary>
+    [MaxLength(64)]
     public string? AzureClientId { get; set; }
 
-    // Directory (tenant) ID do Azure AD; "consumers"/"common" para contas pessoais.
-    // Identificador público (como o client id) — NÃO é segredo, fica em texto.
+    /// <summary>
+    /// Directory (tenant) ID do Azure AD; "consumers"/"common" para contas pessoais.
+    /// Identificador público (como o client id) — NÃO é segredo, fica em texto.
+    /// </summary>
+    [MaxLength(64)]
     public string? AzureTenantId { get; set; }
 
-    // URL base pública do servidor (ex.: https://tcmine.net). O launcher é compilado pelo
-    // servidor e aponta para "{PublicBaseUrl}/updates" como feed de update do Velopack.
-    // Identificador público — texto. (Consumidor: build do launcher, mais adiante.)
+    /// <summary>
+    /// URL base pública do servidor (ex.: https://tcmine.net). O launcher é compilado pelo
+    /// servidor e aponta para "{PublicBaseUrl}/updates" como feed de update do Velopack.
+    /// Identificador público — texto. (Consumidor: build do launcher, mais adiante.)
+    /// </summary>
+    [MaxLength(256)]
     public string? PublicBaseUrl { get; set; }
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
