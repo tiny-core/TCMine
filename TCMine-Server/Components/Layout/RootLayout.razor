@@ -1,0 +1,11 @@
+﻿@inherits LayoutComponentBase
+
+@* Layout raiz: concentra os provedores globais do MudBlazor em um único lugar.
+   Tanto MainLayout (telas centralizadas) quanto AdminLayout (shell) herdam deste,
+   garantindo que tema, popovers, diálogos e snackbars existam uma única vez na árvore. *@
+<MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode"/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+@Body

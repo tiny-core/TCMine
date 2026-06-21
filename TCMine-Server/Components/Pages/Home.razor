@@ -1,7 +1,40 @@
 ﻿@page "/"
+@layout PublicLayout
 
-<PageTitle>Home</PageTitle>
+<PageTitle>TCMine Server</PageTitle>
 
-<h1>Hello, world!</h1>
+@* ── Hero ────────────────────────────────────────────────────────────────────────────────────────────────────────── *@
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-16">
+    <MudStack AlignItems="AlignItems.Center" Spacing="4">
+        <MudImage Src="images/logo.png" Width="96" Height="96"/>
+        <MudText Typo="Typo.h2" Align="Align.Center">TCMine</MudText>
+        <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary">
+            Modpacks oficiais, servidores e launcher próprio — tudo num só lugar.
+        </MudText>
 
-Welcome to your new app.
+        @if (LauncherAvailable)
+        {
+            <MudButton Href="/download" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
+                Baixar Launcher para Windows
+            </MudButton>
+            @if (LauncherVersion is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Versão @LauncherVersion</MudText>
+            }
+        }
+        else
+        {
+            @* Sem feed Velopack publicado ainda — botão desabilitado e aviso *@
+            <MudButton Disabled="true" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
+                Launcher em breve
+            </MudButton>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                O instalador ainda não está disponível. Volte em breve.
+            </MudText>
+        }
+    </MudStack>
+</MudContainer>
+
+<MudDivider/>

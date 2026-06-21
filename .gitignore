@@ -15,7 +15,7 @@ artifacts/
 **/publish/
 **/releases/
 *.pubxml.user
-**/data-server
+**/tcmine-data
 TCMine-Server/launcher
 
 # ------ NuGet ------

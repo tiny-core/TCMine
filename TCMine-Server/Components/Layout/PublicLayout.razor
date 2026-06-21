@@ -1,0 +1,9 @@
+﻿@inherits LayoutComponentBase
+@layout RootLayout
+
+@* Layout da página pública (landing): conteúdo flui do topo e rola normalmente —
+   diferente do MainLayout, que centraliza verticalmente telas de página única.
+   Os provedores do MudBlazor vêm do RootLayout. *@
+<div class="public-shell">
+    @Body
+</div>

@@ -1,0 +1,5 @@
+﻿/* Garante que a landing ocupe ao menos a altura da viewport e role a partir do topo */
+.public-shell {
+    min-height: 100vh;
+    width: 100%;
+}
