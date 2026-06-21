@@ -82,12 +82,14 @@ public static class MudThemeFactory
             PrimaryLighten = ColorTokens.Primary.Shade300,
 
             Secondary = ColorTokens.Secondary.Base,
-            SecondaryContrastText = textPrimary,
+            // Âmbar é claro → texto escuro para contraste legível (não o texto claro padrão).
+            SecondaryContrastText = textOnPrimary,
             SecondaryDarken = ColorTokens.Secondary.Active,
             SecondaryLighten = ColorTokens.Secondary.Shade200,
 
             Tertiary = ColorTokens.Accent.Base,
-            TertiaryContrastText = textPrimary,
+            // Azul-céu também é claro → texto escuro para contraste.
+            TertiaryContrastText = textOnPrimary,
             TertiaryDarken = ColorTokens.Accent.Shade700,
             TertiaryLighten = ColorTokens.Accent.Shade400,
 

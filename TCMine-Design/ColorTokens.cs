@@ -21,46 +21,46 @@ public static class ColorTokens
     /// <summary>Escala da cor primária (laranja) — marca TCMine. Igual nos dois temas.</summary>
     public static class Primary
     {
-        public const string Shade50 = "#FFF4EB";
-        public const string Shade100 = "#FFE3CC";
-        public const string Shade200 = "#FFC79A";
-        public const string Shade300 = "#FDA463";
-        public const string Shade400 = "#FB8B3D";
+        public const string Shade50 = "#FFF7ED";
+        public const string Shade100 = "#FFEDD5";
+        public const string Shade200 = "#FED7AA";
+        public const string Shade300 = "#FDBA74";
+        public const string Shade400 = "#FB923C";
         public const string Shade500 = "#F97316"; // base
-        public const string Shade600 = "#DD5E0B";
-        public const string Shade700 = "#B84B06";
-        public const string Shade800 = "#923B07";
-        public const string Shade900 = "#5C2503";
+        public const string Shade600 = "#EA580C";
+        public const string Shade700 = "#C2410C";
+        public const string Shade800 = "#9A3412";
+        public const string Shade900 = "#7C2D12";
 
         public const string Base = Shade500;
         public const string Hover = Shade600;
         public const string Active = Shade700;
     }
 
-    /// <summary>Escala da cor secundária (teal) — ações secundárias e links. Igual nos dois temas.</summary>
+    /// <summary>Escala da cor secundária (âmbar/dourado) — ações secundárias e links. Quente, análoga ao laranja.</summary>
     public static class Secondary
     {
-        public const string Shade50 = "#E6FBF7";
-        public const string Shade100 = "#B8F2E6";
-        public const string Shade200 = "#7FE3CE";
-        public const string Shade400 = "#3FCBAF";
-        public const string Shade500 = "#0D9488"; // base
-        public const string Shade600 = "#0A7A70";
-        public const string Shade700 = "#08615A";
-        public const string Shade900 = "#043330";
+        public const string Shade50 = "#FFFBEB";
+        public const string Shade100 = "#FEF3C7";
+        public const string Shade200 = "#FDE68A";
+        public const string Shade400 = "#FBBF24";
+        public const string Shade500 = "#F59E0B"; // base
+        public const string Shade600 = "#D97706";
+        public const string Shade700 = "#B45309";
+        public const string Shade900 = "#78350F";
 
         public const string Base = Shade500;
         public const string Hover = Shade600;
         public const string Active = Shade700;
     }
 
-    /// <summary>Escala da cor de acento (violeta) — destaques pontuais e badges. Igual nos dois temas.</summary>
+    /// <summary>Escala da cor de acento (azul-céu) — destaques pontuais e badges. O respiro frio da paleta.</summary>
     public static class Accent
     {
-        public const string Shade400 = "#A78BFA";
-        public const string Shade500 = "#8B5CF6"; // base
-        public const string Shade600 = "#7C3AED";
-        public const string Shade700 = "#6D28D9";
+        public const string Shade400 = "#7DD3FC";
+        public const string Shade500 = "#38BDF8"; // base
+        public const string Shade600 = "#0EA5E9";
+        public const string Shade700 = "#0284C7";
 
         public const string Base = Shade500;
         public const string Hover = Shade600;
@@ -84,7 +84,7 @@ public static class ColorTokens
             public const string Primary = "#F5F1ED";
             public const string Secondary = "#B8AFA6";
             public const string Disabled = "#7A716A";
-            public const string OnPrimary = "#2D1500"; // texto escuro sobre Primary.Base
+            public const string OnPrimary = "#2D1500"; // texto escuro sobre Primary.Base (laranja)
         }
 
         public static class Semantic
