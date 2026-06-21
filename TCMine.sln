@@ -13,6 +13,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCMine-Server", "TCMine-Server\TCMine-Server.csproj", "{C106A57F-5FC6-41CF-8E30-80DD75AC636C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TCMine-Data", "TCMine-Data\TCMine-Data.csproj", "{D71A77B1-9011-415D-B787-31F03AB686E7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,5 +37,9 @@ Global
 		{C106A57F-5FC6-41CF-8E30-80DD75AC636C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C106A57F-5FC6-41CF-8E30-80DD75AC636C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C106A57F-5FC6-41CF-8E30-80DD75AC636C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D71A77B1-9011-415D-B787-31F03AB686E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D71A77B1-9011-415D-B787-31F03AB686E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D71A77B1-9011-415D-B787-31F03AB686E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D71A77B1-9011-415D-B787-31F03AB686E7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
