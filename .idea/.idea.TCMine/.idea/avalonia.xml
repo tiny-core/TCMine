@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="TCMine-Launcher/Views/MainWindow.axaml" value="TCMine-Launcher/TCMine-Launcher.csproj" />
+      </map>
+    </option>
+  </component>
+</project>
