@@ -5,8 +5,9 @@
 @using Severity = MudBlazor.Severity
 
 @* Página SSR estática (ver [ExcludeFromInteractiveRouting]): o submit é um POST real,
-   o que permite emitir o cookie de autenticação via HttpContext.SignInAsync. Por isso
-   usa <InputText> nativo (e não MudTextField, que precisa de binding interativo). *@
+   o que permite emitir o cookie de autenticação via HttpContext.SignInAsync. O MudTextField
+   funciona em SSR porque o name="Input.X" é splatado no <input> nativo (UserAttributes),
+   permitindo o binding via [SupplyParameterFromForm]. *@
 <MudGrid Justify="Justify.Center" Class="mt-8">
     <MudItem xs="12" sm="8" md="5" lg="4">
 
@@ -27,24 +28,22 @@
             <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
 
-                <div class="auth-field">
-                    <label for="username">Usuário</label>
-                    <InputText id="username" @bind-Value="Input.Username"
-                               class="auth-input" autocomplete="username"/>
-                    <ValidationMessage For="() => Input.Username"/>
-                </div>
+                <MudStack Spacing="4">
+                    <MudTextField T="string" @bind-Value="Input.Username" For="@(() => Input.Username)"
+                                  name="Input.Username" Label="Usuário" Variant="Variant.Outlined"
+                                  InputType="InputType.Text" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person" autocomplete="username"/>
 
-                <div class="auth-field">
-                    <label for="password">Senha</label>
-                    <InputText id="password" type="password" @bind-Value="Input.Password"
-                               class="auth-input" autocomplete="current-password"/>
-                    <ValidationMessage For="() => Input.Password"/>
-                </div>
+                    <MudTextField T="string" @bind-Value="Input.Password" For="@(() => Input.Password)"
+                                  name="Input.Password" Label="Senha" Variant="Variant.Outlined"
+                                  InputType="InputType.Password" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock" autocomplete="current-password"/>
 
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
-                           FullWidth="true" Size="Size.Large" Class="mt-2">
-                    Entrar
-                </MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                               FullWidth="true" Size="Size.Large" Class="mt-2">
+                        Entrar
+                    </MudButton>
+                </MudStack>
             </EditForm>
         </MudPaper>
     </MudItem>

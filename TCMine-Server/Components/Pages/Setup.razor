@@ -1,0 +1,53 @@
+﻿@page "/Setup"
+@attribute [ExcludeFromInteractiveRouting]
+
+@* Primeira execução: cria o usuário master (Owner). SSR estático ([ExcludeFromInteractiveRouting])
+   para emitir o cookie logo após criar — o code-behind usa HttpContext (SignInAsync) e
+   [SupplyParameterFromForm], que só existem em SSR estático. O middleware de setup garante que
+   esta rota só é acessível enquanto não houver nenhum usuário. *@
+<MudGrid Justify="Justify.Center" Class="mt-8">
+    <MudItem xs="12" sm="8" md="6" lg="5">
+
+        <MudStack AlignItems="AlignItems.Center" Class="mb-6">
+            <MudImage Src="images/logo.png" Width="80" Height="80"/>
+            <MudText Typo="Typo.h5" Align="Align.Center">Bem-vindo ao TCMine Server</MudText>
+            <MudText Typo="Typo.body2" Align="Align.Center" Color="Color.Secondary">
+                Crie o usuário administrador (Owner) para começar.
+            </MudText>
+        </MudStack>
+
+        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+            @* SSR estático: o submit é um POST real. O name="Input.X" é splatado no <input> nativo
+               do MudTextField (UserAttributes), permitindo o binding via [SupplyParameterFromForm]. *@
+            <EditForm Model="Input" method="post" OnValidSubmit="CreateMaster" FormName="setup">
+                <DataAnnotationsValidator/>
+
+                <MudStack Spacing="4">
+                    <MudTextField T="string" @bind-Value="Input.Username" For="@(() => Input.Username)"
+                                  name="Input.Username" Label="Usuário" Variant="Variant.Outlined"
+                                  InputType="InputType.Text" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Person" autocomplete="username"/>
+
+                    <MudTextField T="string" @bind-Value="Input.Password" For="@(() => Input.Password)"
+                                  name="Input.Password" Label="Senha" Variant="Variant.Outlined"
+                                  InputType="InputType.Password" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock" autocomplete="new-password"/>
+
+                    <MudTextField T="string" @bind-Value="Input.Confirm" For="@(() => Input.Confirm)"
+                                  name="Input.Confirm" Label="Confirmar senha" Variant="Variant.Outlined"
+                                  InputType="InputType.Password" Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Lock" autocomplete="new-password"/>
+
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary"
+                               FullWidth="true" Size="Size.Large" Class="mt-2">
+                        Criar e entrar
+                    </MudButton>
+                </MudStack>
+            </EditForm>
+        </MudPaper>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center" Class="mt-4 d-block">
+            Depois de criar a conta, você poderá configurar o token do CurseForge e o Azure.
+        </MudText>
+    </MudItem>
+</MudGrid>
