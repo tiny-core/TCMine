@@ -1,0 +1,15 @@
+﻿@* Tela de erro padronizada: ícone + código + título + mensagem + ação.
+   Base única para 404 (NotFound), 403 (AccessDenied) e 500 (Error).
+   Auto-centralizada (mud-height-full), funciona dentro de qualquer layout. *@
+<MudContainer MaxWidth="MaxWidth.False"
+              Class="d-flex flex-column align-center justify-center mud-height-full">
+    <MudStack AlignItems="AlignItems.Center" Spacing="3" Class="pa-4" Style="max-width: 28rem;">
+        <MudIcon Icon="@Icon" Color="@Color" Style="font-size: 5rem;"/>
+        <MudText Typo="Typo.h2" Color="@Color">@Code</MudText>
+        <MudText Typo="Typo.h5" Align="Align.Center">@Title</MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center" Color="Color.Secondary">@Message</MudText>
+
+        @* Ação(ões) específicas de cada tela: botão, alerta de Request ID, etc. *@
+        @ChildContent
+    </MudStack>
+</MudContainer>

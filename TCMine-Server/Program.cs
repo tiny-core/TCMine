@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using MudBlazor.Services;
+using TCMine_Server;
 using TCMine_Application.Abstractions;
 using TCMine_Infrastructure.FileSystem;
 using TCMine_Infrastructure.Identity;
@@ -173,13 +174,37 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Re-executa /not-found só em navegações de página (GET fora das rotas de API). Importante: o
-// StatusCodePagesWithReExecute re-executa o pipeline com o MÉTODO original — um PUT/POST de API que
-// devolvesse 4xx era re-executado contra /not-found (página só-GET), virando 405. As chamadas do
-// launcher recebem o status code cru; só o navegador (GET de UI) ganha a página 404 estilizada.
+// 404 estilizado para navegações de página: a rota catch-all de NotFound.razor renderiza o corpo
+// (a 200, porque definir 404 no render SSR do Blazor descarta a saída) e marca o HttpContext. Este
+// middleware faz buffer da resposta da página e promove o status a 404 antes de a enviar — assim o
+// corpo é preservado e o status fica correto. Restrito a GET de página: rotas de API (status cru ao
+// launcher), SSE (/events) e ficheiros estáticos ficam de fora (não podem ser bufferizados).
 app.UseWhen(
-    ctx => HttpMethods.IsGet(ctx.Request.Method) && !IsApiPath(ctx.Request.Path),
-    branch => branch.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true));
+    ctx => HttpMethods.IsGet(ctx.Request.Method)
+           && !IsApiPath(ctx.Request.Path)
+           && !IsAssetPath(ctx.Request.Path),
+    branch => branch.Use(async (ctx, next) =>
+    {
+        var originalBody = ctx.Response.Body;
+        using var buffer = new MemoryStream();
+        ctx.Response.Body = buffer;
+        try
+        {
+            await next();
+
+            // A página catch-all marcou o contexto → promove a 404 (resposta ainda em buffer).
+            if (ctx.Items.ContainsKey(NotFoundResponseMarker.Key) && !ctx.Response.HasStarted)
+                ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+
+            ctx.Response.Body = originalBody;
+            buffer.Position = 0;
+            await buffer.CopyToAsync(originalBody);
+        }
+        finally
+        {
+            ctx.Response.Body = originalBody;
+        }
+    }));
 
 app.UseHttpsRedirection();
 
@@ -216,7 +241,13 @@ app.Use(async (ctx, next) =>
                   || path.StartsWith("/favicon", StringComparison.Ordinal)
                   || Path.HasExtension(path);
 
-    if (!isAsset)
+    // Páginas utilitárias do framework têm de renderizar mesmo antes do setup. Sem isto, o
+    // re-execute de /not-found (StatusCodePages) e a página /Error seriam apanhados pelo redirect
+    // para /setup — o fallback de 404 viraria um 302 e nunca apareceria.
+    var isFrameworkPage = path.Equals("/not-found", StringComparison.OrdinalIgnoreCase)
+                          || path.Equals("/Error", StringComparison.OrdinalIgnoreCase);
+
+    if (!isAsset && !isFrameworkPage)
     {
         var setup = ctx.RequestServices.GetRequiredService<SetupState>();
         var initialized = await setup.IsInitializedAsync(ctx.RequestAborted);
@@ -258,11 +289,23 @@ app.Run();
 
 return;
 
-// Rotas de API (consumidas pelo launcher) — ficam de fora da página /not-found estilizada do admin.
+// Rotas de API (consumidas pelo launcher) — devolvem o status cru, fora do buffer de 404 da UI.
 static bool IsApiPath(PathString path)
 {
     return path.StartsWithSegments("/api") || path.StartsWithSegments("/v1") ||
            path.StartsWithSegments("/files") || path.StartsWithSegments("/players") ||
            path.StartsWithSegments("/events") || path.StartsWithSegments("/download") ||
            path.StartsWithSegments("/updates");
+}
+
+// Assets do framework/estáticos — não são bufferizados (poupa cópia e preserva streaming de arquivos).
+static bool IsAssetPath(PathString path)
+{
+    var p = path.Value ?? "/";
+    return p.StartsWith("/_", StringComparison.Ordinal)
+           || p.StartsWith("/css", StringComparison.Ordinal)
+           || p.StartsWith("/js", StringComparison.Ordinal)
+           || p.StartsWith("/images", StringComparison.Ordinal)
+           || p.StartsWith("/favicon", StringComparison.Ordinal)
+           || Path.HasExtension(p);
 }
