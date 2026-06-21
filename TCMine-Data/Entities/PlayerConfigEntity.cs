@@ -15,6 +15,6 @@ public class PlayerConfigEntity
 
     // Slug do modpack oficial a que estas configs pertencem (parte da chave)
     [MaxLength(80)] public string ModpackId { get; set; } = string.Empty;
-    
+
     public DateTime UpdatedAt { get; set; }
 }

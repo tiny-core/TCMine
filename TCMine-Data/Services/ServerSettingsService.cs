@@ -35,7 +35,7 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
 
     // Valores guardados no banco (sem fallback); null = ainda não carregado
     private ServerSettings? _cache;
-    
+
     /// <summary>Valores guardados no banco (descriptografados) — usados pelo formulário admin.</summary>
     public async Task<ServerSettings> GetStoredAsync(CancellationToken ct = default)
     {

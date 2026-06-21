@@ -16,12 +16,14 @@ public class UserEntity
     /// <summary>
     /// Nome de login, único (case-insensitive, na prática — normalizamos para minúsculas)
     /// </summary>
-    [MaxLength(60)] public string Username { get; set; } = string.Empty;
+    [MaxLength(60)]
+    public string Username { get; set; } = string.Empty;
 
     /// <summary>
     /// Hash da senha (formato do PasswordHasher); nunca a senha em texto
     /// </summary>
-    [MaxLength(400)] public string PasswordHash { get; set; } = string.Empty;
+    [MaxLength(400)]
+    public string PasswordHash { get; set; } = string.Empty;
 
     /// <summary>
     /// Obtém ou define a função atribuída ao usuário, definindo suas permissões e nível de acesso dentro do sistema.

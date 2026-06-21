@@ -26,7 +26,7 @@ public static class Utility
     {
         if (!string.IsNullOrWhiteSpace(overridePath))
             return Path.GetFullPath(overridePath);
- 
+
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir is not null)
         {
@@ -36,11 +36,11 @@ public static class Utility
                 return dir.FullName;
             dir = dir.Parent;
         }
- 
+
         throw new DirectoryNotFoundException(
             "Não encontrei a raiz do repositório (.sln). Passa-a como argumento.");
     }
- 
+
     /// <summary>
     /// Renderiza um ícone em forma de quadrado arredondado com um design bordado
     /// e um gráfico de cubo incorporado. O ícone renderizado é retornado como uma imagem PNG
@@ -58,18 +58,18 @@ public static class Utility
         using var bmp = new SKBitmap(s, s, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(bmp);
         canvas.Clear(SKColors.Transparent);
- 
+
         var pad = s * 0.06f;
         var radius = s * 0.22f;
         var tile = new SKRect(pad, pad, s - pad, s - pad);
- 
+
         using (var fill = new SKPaint())
         {
             fill.Color = SKColor.Parse(ColorTokens.Dark.Background.Page);
             fill.IsAntialias = true;
             canvas.DrawRoundRect(tile, radius, radius, fill);
         }
- 
+
         using (var border = new SKPaint())
         {
             border.Color = SKColor.Parse(ColorTokens.Primary.Base);
@@ -80,20 +80,20 @@ public static class Utility
             var inner = new SKRect(tile.Left + bw, tile.Top + bw, tile.Right - bw, tile.Bottom - bw);
             canvas.DrawRoundRect(inner, radius - bw, radius - bw, border);
         }
- 
+
         DrawCube(canvas, s / 2f, s * 0.52f, s * 0.26f);
- 
+
         using var img = SKImage.FromBitmap(bmp);
         using var data = img.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
     }
- 
+
     /// Splash do instalador (fundo da marca + cubo + nome)
     public static byte[] RenderSplash(string fontFamily, string title, string desc, int w, int h)
     {
         using var bmp = new SKBitmap(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(bmp);
- 
+
         using (var bg = new SKPaint())
         {
             bg.IsAntialias = true;
@@ -103,23 +103,23 @@ public static class Utility
                 [0f, 1f], SKShaderTileMode.Clamp);
             canvas.DrawRect(0, 0, w, h, bg);
         }
- 
+
         DrawCube(canvas, w / 2f, h * 0.36f, 48f);
         DrawText(fontFamily, canvas, title, w / 2f, h * 0.70f, 27f, SKColor.Parse(ColorTokens.Dark.Text.Primary), true);
         DrawText(fontFamily, canvas, desc, w / 2f, h * 0.70f + 26f, 13f,
             SKColor.Parse(ColorTokens.Dark.Text.Secondary));
- 
+
         using var img = SKImage.FromBitmap(bmp);
         using var data = img.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
     }
- 
+
     /// Banner social (og-image) do server: fundo da marca + cubo + nome
     public static byte[] RenderBanner(string fontFamily, string title, string desc, int w, int h)
     {
         using var bmp = new SKBitmap(w, h, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var canvas = new SKCanvas(bmp);
- 
+
         using (var bg = new SKPaint())
         {
             bg.IsAntialias = true;
@@ -129,23 +129,23 @@ public static class Utility
                 [0f, 1f], SKShaderTileMode.Clamp);
             canvas.DrawRect(0, 0, w, h, bg);
         }
- 
+
         DrawCube(canvas, w / 2f, h * 0.40f, 90f);
         DrawText(fontFamily, canvas, title, w / 2f, h * 0.74f, 56f, SKColor.Parse(ColorTokens.Dark.Text.Primary), true);
         DrawText(fontFamily, canvas, desc, w / 2f, h * 0.74f + 46f, 26f,
             SKColor.Parse(ColorTokens.Dark.Text.Secondary));
- 
+
         using var img = SKImage.FromBitmap(bmp);
         using var data = img.Encode(SKEncodedImageFormat.Png, 100);
         return data.ToArray();
     }
- 
+
     private static void DrawCube(SKCanvas canvas, float cx, float cy, float w)
     {
         var top = new[] { P(cx, cy - w), P(cx + w, cy - w / 2), P(cx, cy), P(cx - w, cy - w / 2) };
         var left = new[] { P(cx - w, cy - w / 2), P(cx, cy), P(cx, cy + w), P(cx - w, cy + w / 2) };
         var right = new[] { P(cx + w, cy - w / 2), P(cx, cy), P(cx, cy + w), P(cx + w, cy + w / 2) };
- 
+
         // Face de topo: tom claro de destaque (mais próximo do antigo 0xFB923C).
         Face(canvas, top, SKColor.Parse(ColorTokens.Primary.Shade400));
         // Face esquerda: sombra. Não há um shade exato para 0xC2410C no ColorTokens —
@@ -154,8 +154,9 @@ public static class Utility
         // Face direita: cor de marca, igual ao border do ícone.
         Face(canvas, right, SKColor.Parse(ColorTokens.Primary.Base));
     }
- 
-    private static void DrawText(string fontFamily, SKCanvas canvas, string text, float cx, float baseline, float size, SKColor color,
+
+    private static void DrawText(string fontFamily, SKCanvas canvas, string text, float cx, float baseline, float size,
+        SKColor color,
         bool bold = false)
     {
         // SkiaSharp 3.x: o tamanho/tipo de letra vivem no SKFont; o alinhamento passa a
@@ -169,12 +170,12 @@ public static class Utility
         paint.IsAntialias = true;
         canvas.DrawText(text, cx, baseline, SKTextAlign.Center, font, paint);
     }
- 
+
     private static SKPoint P(float x, float y)
     {
         return new SKPoint(x, y);
     }
- 
+
     private static void Face(SKCanvas canvas, SKPoint[] pts, SKColor color)
     {
         using var path = new SKPath();
@@ -187,18 +188,18 @@ public static class Utility
         paint.Style = SKPaintStyle.Fill;
         canvas.DrawPath(path, paint);
     }
- 
+
     /// Escreve um .ico com cada tamanho como PNG embutido (suportado no Windows Vista+).
     public static void WriteIco(string path, Dictionary<int, byte[]> images)
     {
         using var fs = File.Create(path);
         using var w = new BinaryWriter(fs);
- 
+
         var entries = images.OrderBy(kv => kv.Key).ToList();
         w.Write((short)0); // reserved
         w.Write((short)1); // type = icon
         w.Write((short)entries.Count);
- 
+
         var offset = 6 + entries.Count * 16;
         foreach (var (size, bytes) in entries)
         {
@@ -212,7 +213,7 @@ public static class Utility
             w.Write(offset); // offset of image data
             offset += bytes.Length;
         }
- 
+
         foreach (var (_, bytes) in entries)
             w.Write(bytes);
     }

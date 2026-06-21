@@ -35,12 +35,14 @@ public class OverrideHistoryEntry
     /// <summary>
     /// Caminho de origem (edição/exclusão = caminho do arquivo; mover = caminho antes de mover)
     /// </summary>
-    [MaxLength(400)] public string? PathBefore { get; set; }
+    [MaxLength(400)]
+    public string? PathBefore { get; set; }
 
     /// <summary>
     /// Caminho de destino (só para mover)
     /// </summary>
-    [MaxLength(400)] public string? PathAfter { get; set; }
+    [MaxLength(400)]
+    public string? PathAfter { get; set; }
 
     /// <summary>
     /// Conteúdo de texto anterior (edição/exclusão) — sem MaxLength: coluna de texto longo
@@ -51,7 +53,8 @@ public class OverrideHistoryEntry
     /// <summary>
     /// Quem fez a alteração (username), quando disponível
     /// </summary>
-    [MaxLength(80)] public string? Actor { get; set; }
+    [MaxLength(80)]
+    public string? Actor { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

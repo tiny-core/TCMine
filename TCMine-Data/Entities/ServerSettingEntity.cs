@@ -19,7 +19,7 @@ public class ServerSettingEntity
     public const int SingletonId = 1;
 
     public int Id { get; set; } = SingletonId;
-    
+
     /// <summary>
     /// Token da API do CurseForge — CIFRADO em repouso (nunca texto puro no banco)
     /// </summary> 

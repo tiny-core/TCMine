@@ -76,25 +76,26 @@ public static class AvaloniaTheme
         {
             var key = ToResourceKey(name);
             var color = Color.Parse(hex);
- 
+
             resources[key + "Color"] = color;
             resources[key + "Brush"] = new SolidColorBrush(color);
         }
     }
-    
+
     /// <summary>"color-primary-500" → "Primary500"</summary>
     private static string ToResourceKey(string cssVariableName)
     {
         var withoutPrefix = cssVariableName.StartsWith("color-", StringComparison.Ordinal)
             ? cssVariableName["color-".Length..]
             : cssVariableName;
- 
+
         var sb = new StringBuilder();
         foreach (var part in withoutPrefix.Split('-'))
         {
             if (part.Length == 0) continue;
             sb.Append(char.ToUpperInvariant(part[0])).Append(part[1..]);
         }
+
         return sb.ToString();
     }
 }

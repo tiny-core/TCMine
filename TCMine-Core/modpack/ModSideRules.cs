@@ -23,8 +23,14 @@ public enum ModSide
 public static class ModSideRules
 {
     /// <summary>Vai para a instância do cliente (launcher)</summary>
-    public static bool RunsOnClient(ModSide side) => side is ModSide.Both or ModSide.Client;
+    public static bool RunsOnClient(ModSide side)
+    {
+        return side is ModSide.Both or ModSide.Client;
+    }
 
     /// <summary> Vai para a instância de servidor</summary>
-    public static bool RunsOnServer(ModSide side) => side is ModSide.Both or ModSide.Server;
+    public static bool RunsOnServer(ModSide side)
+    {
+        return side is ModSide.Both or ModSide.Server;
+    }
 }

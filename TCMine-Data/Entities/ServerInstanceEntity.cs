@@ -57,7 +57,8 @@ public class ServerInstanceEntity
     /// <summary>
     /// Diretório de trabalho da instância (sob ServerPaths.Servers / {ID})
     /// </summary>
-    [MaxLength(400)] public string Directory { get; set; } = string.Empty;
+    [MaxLength(400)]
+    public string Directory { get; set; } = string.Empty;
 
     /// <summary>
     /// Representa o estado atual de execução de uma instância de servidor Minecraft.

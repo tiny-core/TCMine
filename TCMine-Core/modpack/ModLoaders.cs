@@ -41,12 +41,15 @@ public static class ModLoaders
     }
 
     /// <summary>Nome amigável para a UI.</summary>
-    public static string DisplayName(ModLoader loader) => loader switch
+    public static string DisplayName(ModLoader loader)
     {
-        ModLoader.NeoForge => "NeoForge",
-        ModLoader.Forge => "Forge",
-        ModLoader.Fabric => "Fabric",
-        ModLoader.Quilt => "Quilt",
-        _ => loader.ToString()
-    };
+        return loader switch
+        {
+            ModLoader.NeoForge => "NeoForge",
+            ModLoader.Forge => "Forge",
+            ModLoader.Fabric => "Fabric",
+            ModLoader.Quilt => "Quilt",
+            _ => loader.ToString()
+        };
+    }
 }

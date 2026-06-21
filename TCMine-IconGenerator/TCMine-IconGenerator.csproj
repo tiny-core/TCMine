@@ -18,10 +18,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="SkiaSharp" Version="3.119.4" />
+        <PackageReference Include="SkiaSharp" Version="3.119.4"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\TCMine-Core\TCMine-Core.csproj" />
+        <ProjectReference Include="..\TCMine-Core\TCMine-Core.csproj"/>
     </ItemGroup>
 </Project>

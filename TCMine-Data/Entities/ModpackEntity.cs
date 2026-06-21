@@ -20,7 +20,8 @@ public class ModpackEntity
     /// <summary>
     /// Versão do carregador (ex.: "21.1.77"); separada do tipo p/ exibir e instalar.
     /// </summary>
-    [MaxLength(40)] public string LoaderVersion { get; set; } = string.Empty;
+    [MaxLength(40)]
+    public string LoaderVersion { get; set; } = string.Empty;
 
     /// <summary>
     /// A descrição textual do modpack, fornecendo informações adicionais sobre seu propósito,

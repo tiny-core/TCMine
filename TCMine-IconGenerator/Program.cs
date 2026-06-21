@@ -29,10 +29,10 @@ var pngs = sizes.ToDictionary(s => s, Utility.RenderIcon);
 // ── Launcher ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 File.WriteAllBytes(Path.Combine(launcherAssets, "icon.png"), pngs[256]);
 Utility.WriteIco(Path.Combine(launcherAssets, "icon.ico"), pngs);
-File.WriteAllBytes(Path.Combine(launcherAssets, "splash.png"), 
+File.WriteAllBytes(Path.Combine(launcherAssets, "splash.png"),
     Utility.RenderSplash(
         "Segoe UI",
-        "TCMine Launcher", 
+        "TCMine Launcher",
         "A preparar a instalação…",
         520, 300));
 
@@ -45,10 +45,10 @@ Utility.WriteIco(Path.Combine(serverWww, "favicon.ico"),
 
 File.WriteAllBytes(Path.Combine(serverWww, "favicon.png"), pngs[32]);
 File.WriteAllBytes(Path.Combine(serverImages, "logo.png"), pngs[256]);
-File.WriteAllBytes(Path.Combine(serverImages, "og-image.png"), 
+File.WriteAllBytes(Path.Combine(serverImages, "og-image.png"),
     Utility.RenderBanner(
         "Segoe UI",
-        "TCMine Launcher", 
+        "TCMine Launcher",
         "Descarrega e joga",
         1200, 630));
 

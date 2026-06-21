@@ -44,7 +44,7 @@ public static class ServerPaths
     public static void EnsureCreated(string root, string? subDir = "TCMine-Data")
     {
         root = Path.Combine(root, subDir ?? "TCMine-Data");
-        
+
         Directory.CreateDirectory(Updates(root));
         Directory.CreateDirectory(Secrets(root));
         Directory.CreateDirectory(Servers(root));

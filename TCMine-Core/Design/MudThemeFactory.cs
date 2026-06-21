@@ -34,23 +34,26 @@ namespace TCMine_Core.Design;
 /// </example>
 public static class MudThemeFactory
 {
-     public static MudTheme Create() => new()
+    public static MudTheme Create()
     {
-        PaletteDark = BuildPalette<PaletteDark>(dark: true),
-        PaletteLight = BuildPalette<PaletteLight>(dark: false),
-        LayoutProperties = new LayoutProperties
+        return new MudTheme
         {
-            DefaultBorderRadius = "8px",
-        },
-        Typography = new Typography
-        {
-            Default = new DefaultTypography
+            PaletteDark = BuildPalette<PaletteDark>(true),
+            PaletteLight = BuildPalette<PaletteLight>(false),
+            LayoutProperties = new LayoutProperties
             {
-                FontFamily = ["Inter", "Segoe UI", "sans-serif"],
+                DefaultBorderRadius = "8px"
             },
-        },
-    };
- 
+            Typography = new Typography
+            {
+                Default = new DefaultTypography
+                {
+                    FontFamily = ["Inter", "Segoe UI", "sans-serif"]
+                }
+            }
+        };
+    }
+
     private static TPalette BuildPalette<TPalette>(bool dark) where TPalette : Palette, new()
     {
         var bgPage = dark ? ColorTokens.Dark.Background.Page : ColorTokens.Light.Background.Page;
@@ -58,17 +61,17 @@ public static class MudThemeFactory
         var bgSurface = dark ? ColorTokens.Dark.Background.Surface : ColorTokens.Light.Background.Surface;
         var border = dark ? ColorTokens.Dark.Background.Border : ColorTokens.Light.Background.Border;
         var borderStrong = dark ? ColorTokens.Dark.Background.BorderStrong : ColorTokens.Light.Background.BorderStrong;
- 
+
         var textPrimary = dark ? ColorTokens.Dark.Text.Primary : ColorTokens.Light.Text.Primary;
         var textSecondary = dark ? ColorTokens.Dark.Text.Secondary : ColorTokens.Light.Text.Secondary;
         var textDisabled = dark ? ColorTokens.Dark.Text.Disabled : ColorTokens.Light.Text.Disabled;
         var textOnPrimary = dark ? ColorTokens.Dark.Text.OnPrimary : ColorTokens.Light.Text.OnPrimary;
- 
+
         var success = dark ? ColorTokens.Dark.Semantic.Success : ColorTokens.Light.Semantic.Success;
         var warning = dark ? ColorTokens.Dark.Semantic.Warning : ColorTokens.Light.Semantic.Warning;
         var error = dark ? ColorTokens.Dark.Semantic.Error : ColorTokens.Light.Semantic.Error;
         var info = dark ? ColorTokens.Dark.Semantic.Info : ColorTokens.Light.Semantic.Info;
- 
+
         return new TPalette
         {
             // Marca
@@ -76,45 +79,46 @@ public static class MudThemeFactory
             PrimaryContrastText = textOnPrimary,
             PrimaryDarken = ColorTokens.Primary.Active,
             PrimaryLighten = ColorTokens.Primary.Shade300,
- 
+
             Secondary = ColorTokens.Secondary.Base,
             SecondaryContrastText = textPrimary,
             SecondaryDarken = ColorTokens.Secondary.Active,
             SecondaryLighten = ColorTokens.Secondary.Shade200,
- 
+
             Tertiary = ColorTokens.Accent.Base,
             TertiaryContrastText = textPrimary,
             TertiaryDarken = ColorTokens.Accent.Shade700,
             TertiaryLighten = ColorTokens.Accent.Shade400,
- 
+
             // Fundos e superfícies
             Black = dark ? bgPage : textPrimary,
             Background = bgDefault,
             BackgroundGray = bgSurface,
             Surface = bgSurface,
- 
+
             DrawerBackground = bgDefault,
             DrawerText = textSecondary,
             DrawerIcon = textSecondary,
- 
+
             AppbarBackground = bgSurface,
             AppbarText = textPrimary,
- 
+
             // Texto
             TextPrimary = textPrimary,
             TextSecondary = textSecondary,
             TextDisabled = textDisabled,
- 
+
             // Ações, linhas e divisores
             ActionDefault = textSecondary,
             ActionDisabled = textDisabled,
-            ActionDisabledBackground = dark ? ColorTokens.Dark.Background.Elevated : ColorTokens.Light.Background.Elevated,
+            ActionDisabledBackground =
+                dark ? ColorTokens.Dark.Background.Elevated : ColorTokens.Light.Background.Elevated,
             Divider = border,
             DividerLight = border,
             TableLines = border,
             LinesDefault = border,
             LinesInputs = borderStrong,
- 
+
             // Estados semânticos
             Success = success,
             SuccessContrastText = dark ? bgPage : "#FFFFFF",
@@ -124,8 +128,8 @@ public static class MudThemeFactory
             ErrorContrastText = dark ? bgPage : "#FFFFFF",
             Info = info,
             InfoContrastText = dark ? bgPage : "#FFFFFF",
- 
-            OverlayDark = dark ? "rgba(13,11,9,0.6)" : "rgba(31,27,23,0.5)",
+
+            OverlayDark = dark ? "rgba(13,11,9,0.6)" : "rgba(31,27,23,0.5)"
         };
     }
 }
