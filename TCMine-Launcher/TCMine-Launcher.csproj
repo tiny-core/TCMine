@@ -1,19 +1,11 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
-        <TargetFramework>net10.0</TargetFramework>
-        <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <Title>TCMine Launcher</Title>
-        <Authors>Tiny Core</Authors>
         <Description>O TCMine Launcher é um launcher customizado de Minecraft para o servidor TCMine. Funciona como a Steam para o TCMine: instala o jogo, gerencia mods, entra no servidor com um clique.</Description>
-        <Copyright>Tiny Core - 2026</Copyright>
         <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Launcher</PackageProjectUrl>
-        <PackageLicenseUrl>https://github.com/tiny-core/TCMine/tree/master?tab=GPL-3.0-1-ov-file</PackageLicenseUrl>
-        <RepositoryUrl>https://github.com/tiny-core/TCMine</RepositoryUrl>
-        <RepositoryType>Github</RepositoryType>
-        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
         <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
         <PackageIcon>Assets\icon.png</PackageIcon>
     </PropertyGroup>
@@ -26,22 +18,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\"/>
-        <AvaloniaResource Include="Assets\**"/>
+        <Folder Include="Models\" />
+        <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="12.0.4"/>
-        <PackageReference Include="Avalonia.Themes.Fluent" Version="12.0.4"/>
-        <PackageReference Include="Avalonia.Fonts.Inter" Version="12.0.4"/>
-        <PackageReference Include="AvaloniaUI.DiagnosticsSupport" Version="2.2.1">
+        <PackageReference Include="Avalonia.Desktop" />
+        <PackageReference Include="Avalonia.Themes.Fluent" />
+        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="ReactiveUI.Avalonia" Version="11.3.8"/>
+        <PackageReference Include="ReactiveUI.Avalonia" />
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TCMine-Core\TCMine-Core.csproj"/>
+        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj" />
     </ItemGroup>
 </Project>

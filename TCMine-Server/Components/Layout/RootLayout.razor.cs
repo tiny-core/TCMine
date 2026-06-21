@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using TCMine_Core.Design;
+using TCMine_Server.Theme;
 
 namespace TCMine_Server.Components.Layout;
 

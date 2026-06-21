@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>TCMine_Domain</RootNamespace>
+        <Title>TCMine Domain</Title>
+        <Description>TCMine Domain — o núcleo: entidades, enums e regras de negócio puras, sem dependências externas.</Description>
+        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Domain</PackageProjectUrl>
+    </PropertyGroup>
+
+</Project>

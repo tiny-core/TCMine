@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>TCMine_Application</RootNamespace>
+        <Title>TCMine Application</Title>
+        <Description>TCMine Application — contratos (DTOs), portas (interfaces) e casos de uso puros. Depende só do Domain.</Description>
+        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Application</PackageProjectUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TCMine-Domain\TCMine-Domain.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,10 +1,10 @@
 ﻿using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
-using TCMine_Core.Contracts;
-using TCMine_Core.Infrastructure;
-using TCMine_Core.modpack;
-using TCMine_Data.Data;
-using TCMine_Services.Server;
+using TCMine_Application.Contracts;
+using TCMine_Infrastructure.FileSystem;
+using TCMine_Domain.Modpack;
+using TCMine_Infrastructure.Persistence;
+using TCMine_Infrastructure.Server;
 
 namespace TCMine_Server.Endpoints;
 
@@ -80,8 +80,7 @@ public static class ModpackEndpoints
             var safeName = Path.GetFileName(fileName);
             var path = Path.Combine(ServerPaths.Mods(env.ContentRootPath), fileId.ToString(), safeName);
 
-            if (!File.Exists(path)) return Results.NotFound();
-            return Results.File(path, "application/java-archive", safeName);
+            return !File.Exists(path) ? Results.NotFound() : Results.File(path, "application/java-archive", safeName);
         });
 
         // Bundle de overrides (zip montado sob demanda a partir da pasta extraída)

@@ -1,5 +1,5 @@
 ﻿using SkiaSharp;
-using TCMine_Core.Design;
+using TCMine_Design;
 
 namespace TCMine_IconGenerator;
 
@@ -31,6 +31,7 @@ public static class Utility
         while (dir is not null)
         {
             if (dir.GetFiles("*.sln").Length != 0
+                || dir.GetFiles("*.slnx").Length != 0
                 || (Directory.Exists(Path.Combine(dir.FullName, "TCMine-Launcher"))
                     && Directory.Exists(Path.Combine(dir.FullName, "TCMine-Server"))))
                 return dir.FullName;
@@ -38,7 +39,7 @@ public static class Utility
         }
 
         throw new DirectoryNotFoundException(
-            "Não encontrei a raiz do repositório (.sln). Passa-a como argumento.");
+            "Não encontrei a raiz do repositório (.slnx). Passa-a como argumento.");
     }
 
     /// <summary>

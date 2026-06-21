@@ -1,5 +1,5 @@
-﻿using TCMine_Services.Launcher;
-using TCMine_Services.Minecraft;
+﻿using TCMine_Application.Abstractions;
+using TCMine_Infrastructure.Minecraft;
 
 namespace TCMine_Server.Endpoints;
 
@@ -19,7 +19,7 @@ public static class PlayerConfigEndpoints
     public static void MapPlayerConfigEndpoints(this IEndpointRouteBuilder app)
     {
         app.MapPut("/players/{uuid}/configs/{modpackId}", async (
-            string uuid, string modpackId, HttpContext ctx, PlayerConfigStore store,
+            string uuid, string modpackId, HttpContext ctx, IPlayerConfigRepository store,
             MinecraftAuthService auth, CancellationToken ct) =>
         {
             if (!IsValidKey(uuid) || !IsValidKey(modpackId)) return Results.BadRequest();

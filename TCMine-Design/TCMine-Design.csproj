@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>TCMine_Design</RootNamespace>
+        <Title>TCMine Design</Title>
+        <Description>TCMine Design contém os tokens do design system (cores) partilhados por todas as UIs.</Description>
+        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Design</PackageProjectUrl>
+    </PropertyGroup>
+
+</Project>

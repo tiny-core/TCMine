@@ -1,0 +1,26 @@
+<Project>
+
+    <!--
+      Propriedades comuns a TODOS os projetos da solução. Centralizar aqui evita repetir
+      TargetFramework, metadados de pacote e flags do compilador em cada .csproj.
+      Cada projeto sobrepõe o que for específico (Title, Description, OutputType, etc.).
+    -->
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <!-- Metadados de pacote/empresa partilhados -->
+    <PropertyGroup>
+        <Authors>Jocian de Souza Mendonça</Authors>
+        <Company>Tiny Core</Company>
+        <Copyright>Tiny Core - 2026</Copyright>
+        <RepositoryUrl>https://github.com/tiny-core/TCMine</RepositoryUrl>
+        <RepositoryType>Github</RepositoryType>
+        <PackageLicenseUrl>https://github.com/tiny-core/TCMine/tree/master?tab=GPL-3.0-1-ov-file</PackageLicenseUrl>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    </PropertyGroup>
+
+</Project>

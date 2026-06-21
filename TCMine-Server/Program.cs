@@ -5,17 +5,18 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
 using MudBlazor.Services;
-using TCMine_Core.Infrastructure;
-using TCMine_Core.modpack;
-using TCMine_Data.Authentication;
-using TCMine_Data.Data;
+using TCMine_Application.Abstractions;
+using TCMine_Infrastructure.FileSystem;
+using TCMine_Infrastructure.Identity;
+using TCMine_Server.Authentication;
+using TCMine_Infrastructure.Persistence;
 using TCMine_Server.Components;
 using TCMine_Server.Components.Pages;
 using TCMine_Server.Endpoints;
-using TCMine_Services.CurseForge;
-using TCMine_Services.Launcher;
-using TCMine_Services.Minecraft;
-using TCMine_Services.Server;
+using TCMine_Infrastructure.CurseForge;
+using TCMine_Infrastructure.Launcher;
+using TCMine_Infrastructure.Minecraft;
+using TCMine_Infrastructure.Server;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +33,7 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // ── Diretórios de dados ──────────────────────────────────────────────────────────────────────────────────────────────
-// Toda criação de pastas fica centralizada em ServerPaths (TCMine-Core)
+// Toda criação de pastas fica centralizada em ServerPaths (TCMine-Infrastructure.FileSystem)
 var dataRoot = builder.Environment.ContentRootPath;
 ServerPaths.EnsureCreated(dataRoot);
 
@@ -108,9 +109,8 @@ builder.Services.AddSingleton<LauncherFeedService>();
 builder.Services.AddSingleton<ContentNotifier>();
 
 // ── Configs do jogador (sync entre PCs) ──────────────────────────────────────────────────────────────────────────────
-// Leitura/escrita por (uuid, modpackId). Store é scoped (usa o AppDbContext); a validação do token
-// Minecraft é singleton (cacheia resultados em IMemoryCache; usa o IHttpClientFactory já registado).
-builder.Services.AddScoped<PlayerConfigStore>();
+// Leitura/escrita por (uuid, modpackId) via IPlayerConfigRepository (registrado em AddTcMineDatabase).
+// A validação do token Minecraft é singleton (cacheia em IMemoryCache; usa o IHttpClientFactory).
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<MinecraftAuthService>();
 
@@ -132,6 +132,11 @@ builder.Services.AddRateLimiter(options =>
 // ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
+
+// ── Migrations ───────────────────────────────────────────────────────────────────────────────────────────────────────
+// Aplica as migrations pendentes no boot. Resolve o AppDbContext já registrado (o DI escolheu a
+// subclasse concreta conforme o provider). Sem isto, o schema nunca é criado/atualizado.
+await app.Services.MigrateTcMineDatabaseAsync();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

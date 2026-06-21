@@ -3,7 +3,8 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
-using TCMine_Data.Authentication;
+using TCMine_Infrastructure.Identity;
+using TCMine_Server.Authentication;
 
 namespace TCMine_Server.Components.Pages;
 
