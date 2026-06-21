@@ -64,7 +64,7 @@ public record ImportedModDto(
     string DownloadUrl,
     string Target,
     string? Version);
-    
+
 /// <summary>Linha de modpack para a tabela do painel admin (resumo + contagens).</summary>
 public sealed record ModpackAdminRowDto(
     Guid Id,
@@ -94,8 +94,7 @@ public sealed record DraftImportDto<TModEntryEntity>(
     string LoaderVersion,
     List<TModEntryEntity> Mods,
     byte[]? Overrides);
-    
-    
+
 /// <summary>Uma versão selecionável (Minecraft ou loader) e se é um lançamento estável.</summary>
 public sealed record VersionOptionDto(string Version, bool IsRelease)
 {

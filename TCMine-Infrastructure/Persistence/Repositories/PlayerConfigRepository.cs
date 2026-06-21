@@ -24,16 +24,12 @@ public sealed class PlayerConfigRepository(AppDbContext db) : IPlayerConfigRepos
 
         var now = DateTime.UtcNow;
         if (existing is null)
-        {
             db.PlayerConfigs.Add(new PlayerConfigEntity
             {
                 Uuid = uuid, ModpackId = modpackId, UpdatedAt = now
             });
-        }
         else
-        {
             existing.UpdatedAt = now;
-        }
 
         await db.SaveChangesAsync(ct);
         return now;

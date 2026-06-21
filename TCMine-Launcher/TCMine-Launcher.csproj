@@ -18,22 +18,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\" />
-        <AvaloniaResource Include="Assets\**" />
+        <Folder Include="Models\"/>
+        <AvaloniaResource Include="Assets\**"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" />
-        <PackageReference Include="Avalonia.Themes.Fluent" />
-        <PackageReference Include="Avalonia.Fonts.Inter" />
+        <PackageReference Include="Avalonia.Desktop"/>
+        <PackageReference Include="Avalonia.Themes.Fluent"/>
+        <PackageReference Include="Avalonia.Fonts.Inter"/>
         <PackageReference Include="AvaloniaUI.DiagnosticsSupport">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="ReactiveUI.Avalonia" />
+        <PackageReference Include="ReactiveUI.Avalonia"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj" />
+        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj"/>
     </ItemGroup>
 </Project>

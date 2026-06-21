@@ -8,7 +8,6 @@ using TCMine_Infrastructure.Launcher;
 
 namespace TCMine_Infrastructure.Server;
 
-
 /// <summary>
 /// Fonte de conteúdo do site público (landing) e de estatísticas para o painel: lê os modpacks
 /// publicados (com seus servidores) e contagens diretamente do banco, e reflete o estado do feed

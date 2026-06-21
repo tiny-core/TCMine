@@ -35,13 +35,12 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         if (data is null) return null;
 
         // O arquivo principal costuma vir embutido em latestFiles; senão, resolve por id
-        var main = (data.LatestFiles).FirstOrDefault(f => f.Id == data.MainFileId);
-        
+        var main = data.LatestFiles.FirstOrDefault(f => f.Id == data.MainFileId);
+
         if (main is not null || data.MainFileId <= 0) return main is null ? null : ToDto(main);
-        
+
         var files = await GetFilesAsync([data.MainFileId], ct);
         return files.TryGetValue(data.MainFileId, out var resolved) ? resolved : null;
-
     }
 
     /// <inheritdoc />

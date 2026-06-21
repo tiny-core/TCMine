@@ -61,6 +61,7 @@ public sealed partial class LauncherFeedService(IHostEnvironment env)
         return dash >= 0 ? v[..dash] : v;
     }
 
-    [GeneratedRegex(@"-(?<v>\d+\.\d+\.\d+[0-9A-Za-z.\-]*)-full\.nupkg$", RegexOptions.IgnoreCase | RegexOptions.Compiled, "pt-BR")]
+    [GeneratedRegex(@"-(?<v>\d+\.\d+\.\d+[0-9A-Za-z.\-]*)-full\.nupkg$",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled, "pt-BR")]
     private static partial Regex FullPackageRegex();
 }

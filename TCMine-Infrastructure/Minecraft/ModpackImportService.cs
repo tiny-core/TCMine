@@ -93,7 +93,8 @@ public sealed class ModpackImportService(
     /// <c>Side</c> inferido pelo server pack, + bundle de overrides). A página mescla no rascunho e
     /// só grava no Guardar.
     /// </summary>
-    public async Task<DraftImportDto<ModEntryEntity>> ImportModpackToDraftAsync(long projectId, CancellationToken ct = default)
+    public async Task<DraftImportDto<ModEntryEntity>> ImportModpackToDraftAsync(long projectId,
+        CancellationToken ct = default)
     {
         var imported = await CurseForgeImporter.ImportAsync(projectId, cf, ct)
                        ?? throw new InvalidOperationException(
@@ -156,7 +157,7 @@ public sealed class ModpackImportService(
         var history = await db.OverrideHistory
             .Where(h => h.ModpackId == uid)
             .ToListAsync(ct);
-        
+
         db.OverrideHistory.RemoveRange(history);
 
         await db.SaveChangesAsync(ct);

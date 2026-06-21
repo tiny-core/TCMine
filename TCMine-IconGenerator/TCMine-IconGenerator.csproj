@@ -9,11 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="SkiaSharp" />
+        <PackageReference Include="SkiaSharp"/>
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj" />
+        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj"/>
     </ItemGroup>
 
 </Project>

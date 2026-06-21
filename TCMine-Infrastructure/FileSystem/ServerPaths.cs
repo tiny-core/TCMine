@@ -8,7 +8,7 @@
 public static class ServerPaths
 {
     private const string DataDir = "tcmine-data";
-    
+
     // Arquivos de release do launcher (feed Velopack + Setup.exe)
     public static string Updates(string root)
     {

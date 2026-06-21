@@ -61,7 +61,7 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
             await using var scope = scopeFactory.CreateAsyncScope();
             var store = scope.ServiceProvider.GetRequiredService<IServerSettingsStore>();
 
-            var row = await store.GetAsync(tracking: true, ct);
+            var row = await store.GetAsync(true, ct);
             if (row is null)
             {
                 row = new ServerSettingEntity();
@@ -102,7 +102,7 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
         await using var scope = scopeFactory.CreateAsyncScope();
         var store = scope.ServiceProvider.GetRequiredService<IServerSettingsStore>();
 
-        var row = await store.GetAsync(tracking: false, ct);
+        var row = await store.GetAsync(false, ct);
 
         return row is null
             ? new ServerSettings(null, null, null, null)
