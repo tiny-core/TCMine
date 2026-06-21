@@ -41,9 +41,9 @@ public static class ServerPaths
     /// Cria todos os diretórios necessários para o servidor funcionar.
     /// Seguro chamar múltiplas vezes — não falha se a pasta já existir.
     /// </summary>
-    public static void EnsureCreated(string root, string? subDir = "TCMine-Data")
+    public static void EnsureCreated(string root, string? subDir = "tcmine-data")
     {
-        root = Path.Combine(root, subDir ?? "TCMine-Data");
+        root = Path.Combine(root, subDir ?? "tcmine-data");
 
         Directory.CreateDirectory(Updates(root));
         Directory.CreateDirectory(Secrets(root));

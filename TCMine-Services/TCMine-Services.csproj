@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>TCMine_Services</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Title>TCMine Services</Title>
+        <Authors>Tiny Core</Authors>
+        <Description>TCMine Services é responsavel pelos serviços da app.</Description>
+        <Copyright>Tiny Core - 2026</Copyright>
+        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Services</PackageProjectUrl>
+        <PackageLicenseUrl>https://github.com/tiny-core/TCMine/tree/master?tab=GPL-3.0-1-ov-file</PackageLicenseUrl>
+        <RepositoryUrl>https://github.com/tiny-core/TCMine</RepositoryUrl>
+        <RepositoryType>Github</RepositoryType>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\TCMine-Core\TCMine-Core.csproj" />
+      <ProjectReference Include="..\TCMine-Data\TCMine-Data.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -64,3 +64,40 @@ public record ImportedModDto(
     string DownloadUrl,
     string Target,
     string? Version);
+    
+/// <summary>Linha de modpack para a tabela do painel admin (resumo + contagens).</summary>
+public sealed record ModpackAdminRowDto(
+    Guid Id,
+    string Name,
+    string Version,
+    string Minecraft,
+    ModLoader Loader,
+    string LoaderVersion,
+    int ModCount,
+    int ServerCount,
+    bool IsPublished,
+    bool HasOverrides,
+    DateTime UpdatedAt);
+
+/// <summary>Progresso do download de jars durante o Guardar (mod atual / total + nome).</summary>
+public sealed record SaveProgressDto(int Current, int Total, string FileName);
+
+/// <summary>Um arquivo de override com o seu tamanho (caminho relativo + bytes).</summary>
+public sealed record OverrideFileDto(string Path, long Length);
+
+/// <summary>Resultado de um import de modpack do CF para mesclar no rascunho (metadados + mods + overrides).</summary>
+public sealed record DraftImportDto<TModEntryEntity>(
+    string Name,
+    string Version,
+    string Minecraft,
+    ModLoader Loader,
+    string LoaderVersion,
+    List<TModEntryEntity> Mods,
+    byte[]? Overrides);
+    
+    
+/// <summary>Uma versão selecionável (Minecraft ou loader) e se é um lançamento estável.</summary>
+public sealed record VersionOptionDto(string Version, bool IsRelease)
+{
+    public bool IsStable => IsRelease;
+}

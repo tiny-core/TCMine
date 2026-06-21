@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine_Data.Data;
 using TCMine_Data.Entities;
 
-namespace TCMine_Data.Services;
+namespace TCMine_Services.Server;
 
 /// <summary>Snapshot imutável das settings (valores já descriptografados).</summary>
 public sealed record ServerSettings(
