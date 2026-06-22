@@ -60,3 +60,6 @@ appsettings.*.local.json
 Thumbs.db
 Desktop.ini
 *.log
+TCMine-Docs/concepts
+TCMine-Docs/entities
+TCMine-Docs/sources

@@ -1,0 +1,64 @@
+﻿@page "/admin/settings"
+@layout AdminLayout
+
+@* Alias — FluentValidation e MudBlazor ambos expõem "Severity" (ver _Imports) *@
+
+
+<MudText Typo="Typo.h4" GutterBottom="true">Configurações</MudText>
+<MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">
+    Credenciais de integração usadas pelo servidor. Guardadas no banco — segredos são cifrados em repouso.
+</MudText>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+}
+else
+{
+    @* Coluna constrangida por breakpoints (responsivo) em vez de max-width fixo *@
+    <MudGrid Justify="Justify.Center">
+        <MudItem xs="12" md="8" lg="6">
+            <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+                <MudForm>
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">CurseForge</MudText>
+                    <MudTextField @bind-Value="_form.CfApiKey"
+                                  Label="API key"
+                                  Variant="Variant.Outlined"
+                                  InputType="@(_showCfKey ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showCfKey
+                                                     ? Icons.Material.Filled.VisibilityOff
+                                                     : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="@(() => _showCfKey = !_showCfKey)"
+                                  HelperText="Usada pelo proxy /v1/*."/>
+
+                    <MudText Typo="Typo.subtitle1" Class="mt-6 mb-2">Azure AD (login Microsoft)</MudText>
+                    <MudTextField @bind-Value="_form.AzureClientId"
+                                  Label="Application (client) ID"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Identificador público do app registrado no Azure."/>
+                    <MudTextField @bind-Value="_form.AzureTenantId"
+                                  Class="mt-4"
+                                  Label="Directory (tenant) ID"
+                                  Variant="Variant.Outlined"
+                                  HelperText="Use 'consumers' para contas Microsoft pessoais."/>
+
+                    <MudText Typo="Typo.subtitle1" Class="mt-6 mb-2">Launcher</MudText>
+                    <MudTextField @bind-Value="_form.PublicBaseUrl"
+                                  Label="URL base pública"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="https://tcmine.net"
+                                  HelperText="Domínio embutido no launcher; o feed de update (Velopack) será {URL}/updates."/>
+
+                    <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-6">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Save"
+                                   Disabled="_saving" OnClick="SaveAsync">
+                            @(_saving ? "Salvando…" : "Guardar")
+                        </MudButton>
+                    </MudStack>
+                </MudForm>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}

@@ -1,0 +1,65 @@
+﻿using Microsoft.AspNetCore.Components;
+using MudBlazor;
+using TCMine_Infrastructure.Server;
+
+namespace TCMine_Server.Components.Pages.Admin;
+
+/// <summary>
+/// Página de configurações do servidor (token CurseForge + Azure client/tenant id).
+/// Segue a política de escrita-só-ao-Guardar: o formulário vive em memória e nada é
+/// persistido até o clique em "Guardar".
+///
+/// Nota: por enquanto qualquer admin autenticado acede (a guarda é o &lt;AuthorizeView&gt;
+/// do AdminLayout). Na Etapa C, com usuários e papéis, isto fica restrito ao Owner.
+/// </summary>
+public partial class Settings : ComponentBase
+{
+    [Inject] private ServerSettingsService SettingsService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+
+    // Modelo isolado do formulário — nunca usar a própria Page como modelo
+    private readonly SettingsForm _form = new();
+
+    private bool _loading = true;
+    private bool _saving;
+    private bool _showCfKey; // revela/oculta o token na UI
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Carrega os valores guardados (descriptografados) para edição
+        var stored = await SettingsService.GetStoredAsync();
+        _form.CfApiKey = stored.CfApiKey ?? string.Empty;
+        _form.AzureClientId = stored.AzureClientId ?? string.Empty;
+        _form.AzureTenantId = stored.AzureTenantId ?? string.Empty;
+        _form.PublicBaseUrl = stored.PublicBaseUrl ?? string.Empty;
+        _loading = false;
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            await SettingsService.SaveAsync(new ServerSettings(
+                _form.CfApiKey, _form.AzureClientId, _form.AzureTenantId, _form.PublicBaseUrl));
+            Snackbar.Add("Configurações salvas.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao salvar: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    // Modelo do formulário (mutável; o ServerSettingsService faz o trim/normalização)
+    private sealed class SettingsForm
+    {
+        public string CfApiKey { get; set; } = string.Empty;
+        public string AzureClientId { get; set; } = string.Empty;
+        public string AzureTenantId { get; set; } = string.Empty;
+        public string PublicBaseUrl { get; set; } = string.Empty;
+    }
+}

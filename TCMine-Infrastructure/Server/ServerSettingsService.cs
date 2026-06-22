@@ -35,6 +35,12 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
     // Valores guardados no banco (sem fallback); null = ainda não carregado
     private ServerSettings? _cache;
 
+    /// <summary>
+    /// Disparado após uma gravação bem-sucedida, com o snapshot novo. Permite que a UI
+    /// (ex.: o aviso de secrets pendentes no AdminLayout) reaja sem precisar de reload.
+    /// </summary>
+    public event Action<ServerSettings>? Changed;
+
     /// <summary>Valores guardados no banco (descriptografados) — usados pelo formulário admin.</summary>
     public async Task<ServerSettings> GetStoredAsync(CancellationToken ct = default)
     {
@@ -84,6 +90,9 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
         {
             _gate.Release();
         }
+
+        // Notifica fora do lock para não segurar o gate enquanto os assinantes reagem
+        Changed?.Invoke(_cache);
     }
 
     // ── Getters de conveniência (só o que está no banco) ─────────────────────────
