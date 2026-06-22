@@ -2,9 +2,11 @@
     <Folder Name="/Solution Items/">
         <File Path=".dockerignore" />
         <File Path=".gitignore" />
+        <File Path="CLAUDE.md" />
         <File Path="compose.yaml" />
         <File Path="Directory.Build.props" />
         <File Path="Directory.Packages.props" />
+        <File Path="TCMine-Docs/tools/wikisearch.py" />
     </Folder>
     <Project Path="TCMine-Domain/TCMine-Domain.csproj" />
     <Project Path="TCMine-Application/TCMine-Application.csproj" />

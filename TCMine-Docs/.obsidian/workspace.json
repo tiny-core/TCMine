@@ -1,0 +1,218 @@
+{
+  "main": {
+    "id": "50d8553898bd8f24",
+    "type": "split",
+    "children": [
+      {
+        "id": "7b832db099045271",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "6dc7b1249f4d1ad5",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Visualização em gráfico"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "d4687f259aae6c4d",
+    "type": "split",
+    "children": [
+      {
+        "id": "db6aed8f74c4e486",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "7e2914e082379d36",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de arquivos"
+            }
+          },
+          {
+            "id": "45e77b2a3df7a65f",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Procurar"
+            }
+          },
+          {
+            "id": "d37fb4f8aa236a4b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "right": {
+    "id": "b6354385fcd45cbf",
+    "type": "split",
+    "children": [
+      {
+        "id": "08d6f03624cccd9b",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "9458b67af5380c15",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Links inversos"
+            }
+          },
+          {
+            "id": "3f3c6d0a96888ad7",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Links de saída"
+            }
+          },
+          {
+            "id": "44e11e25fe6b6ff8",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "0636fcec36b8b18f",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas as propriedades"
+            }
+          },
+          {
+            "id": "1569a53ca770090a",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Sumário"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir a troca rápida": false,
+      "graph:Abrir visualização em gráfico": false,
+      "canvas:Criar novo canvas": false,
+      "daily-notes:Abrir a nota de hoje": false,
+      "templates:Inserir modelo": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Criar nova base": false
+    }
+  },
+  "active": "6dc7b1249f4d1ad5",
+  "lastOpenFiles": [
+    "wiki/templates/concept.md",
+    "wiki/templates/entity.md",
+    "wiki/templates/source.md.tmp.17492.34dbccda39a9",
+    "wiki/templates/entity.md.tmp.17492.57d666d787a3",
+    "wiki/templates/concept.md.tmp.17492.38af5a57af58",
+    "wiki/templates/source.md",
+    "wiki/templates/entity.md.tmp.17492.45bdb374c0a7",
+    "wiki/templates/concept.md.tmp.17492.605878097f8b",
+    "wiki/index.md",
+    "entities",
+    "concepts",
+    "wiki/entities/tcmine-server.md",
+    "wiki/log.md",
+    "wiki/sources/2026-06-22-leitura-codigo-vivo.md",
+    "wiki/concepts/secrets-data-protection.md",
+    "raw/code-refs/2026-06-22-leitura-inicial-solucao.md",
+    "wiki/log.md.tmp.13008.1327b4e2d48b",
+    "wiki/index.md.tmp.13008.65072e132758",
+    "wiki/concepts/secrets-data-protection.md.tmp.13008.8c3faf2230a7",
+    "wiki/concepts/player-config-sync.md",
+    "wiki/concepts/setup-auth-cookie.md",
+    "wiki/concepts/persistence-dual-provider.md",
+    "wiki/concepts/curseforge-proxy.md",
+    "wiki/concepts/modpack-mods-locais.md",
+    "wiki/concepts/modside-rules.md",
+    "wiki/concepts/design-tokens.md",
+    "wiki/concepts/clean-architecture.md",
+    "wiki/entities/tcmine-launcher.md",
+    "wiki/entities/tcmine-icongenerator.md",
+    "wiki/entities/tcmine-design.md",
+    "wiki/entities/tcmine-infrastructure.md",
+    "wiki/entities/tcmine-application.md",
+    "wiki/entities/tcmine-domain.md",
+    "wiki/entities/tcmine-solution.md",
+    "tools/README.md"
+  ]
+}
