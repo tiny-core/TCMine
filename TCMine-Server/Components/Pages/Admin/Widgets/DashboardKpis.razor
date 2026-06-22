@@ -3,40 +3,46 @@
 @* Grade de KPIs do dashboard. Recebe o agregado (null = ainda carregando → mostra "—"). *@
 
 <MudGrid>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary"
                   Label="Modpacks"
                   Value="@(Data?.Modpacks.ToString() ?? "—")"
                   Subtitle="@(Data is null ? null : $"{Data.PublishedModpacks} publicados")"/>
     </MudItem>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.Extension" Color="Color.Info"
                   Label="Mods"
                   Value="@(Data?.Mods.ToString() ?? "—")"
                   Subtitle="@(Data is null ? null : $"{Data.ClientMods} cliente · {Data.ServerMods} servidor")"/>
     </MudItem>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.Public" Color="Color.Tertiary"
                   Label="Servidores"
                   Value="@(Data?.Servers.ToString() ?? "—")"
                   Subtitle="anunciados"/>
     </MudItem>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.Dns" Color="Color.Success"
                   Label="Instâncias"
                   Value="@(Data?.Instances.ToString() ?? "—")"
                   Subtitle="@(Data is null ? null : $"{Data.RunningInstances} rodando")"/>
     </MudItem>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.People" Color="Color.Secondary"
                   Label="Usuários"
                   Value="@(Data?.Users.ToString() ?? "—")"
                   Subtitle="do painel"/>
     </MudItem>
-    <MudItem xs="12" sm="6" md="4" lg="2">
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.CloudUpload" Color="Color.Warning"
                   Label="Releases"
                   Value="@(Data?.Releases.ToString() ?? "—")"
                   Subtitle="@(Data?.LatestReleaseVersion is { } v ? $"última v{v}" : "nenhuma")"/>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="3">
+        <StatCard Icon="@Icons.Material.Filled.Newspaper" Color="Color.Warning"
+                  Label="Novidades"
+                  Value="@("—")"
+                  Subtitle="Ultimas novidades"/>
     </MudItem>
 </MudGrid>

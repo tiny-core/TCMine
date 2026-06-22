@@ -2,7 +2,7 @@
    + rótulo e (opcional) subtítulo. Usado na grade de KPIs do Dashboard. *@
 
 @* A var CSS --accent é lida pelo StatCard.razor.css para tingir faixa e ícone conforme a Color *@
-<MudPaper Class="stat-card pa-4" Elevation="0" Outlined="true"
+<MudPaper Class="stat-card pa-4" MinHeight="140px" Elevation="0" Outlined="true"
           Style="@($"--accent: var(--mud-palette-{PaletteVar});")">
     <div class="stat-card__bar"></div>
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
