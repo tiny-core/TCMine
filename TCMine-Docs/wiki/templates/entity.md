@@ -1,52 +1,33 @@
 ---
 type: entity
-title: Nome da entidade
+title: <Nome da Entidade>
 tags: [entity]
-status: stub
-created:
-updated:
+status: stub          # stub | wip | stable
+created: YYYY-MM-DD
+updated: YYYY-MM-DD
 aliases: []
-sources: []
-related: []
+sources: []           # [[sources/...]]
+related: []           # [[entities/...]], [[concepts/...]], [[decisions/...]]
 ---
 
-<!--
-Preencher ao copiar:
-- title: nome da entidade (ex.: TCMine-Server)
-- status: stub | wip | stable
-- created / updated: YYYY-MM-DD
-- aliases: nomes alternativos para [[wikilinks]] e busca
-- sources: ["[[sources/...]]"]
-- related: ["[[entities/...]]", "[[concepts/...]]"]
--->
+# <Nome da Entidade>
 
-# Nome da entidade
-
-> Resumo de uma frase: o que esta entidade é e por que importa.
+> Resumo de uma linha do que é esta entidade.
 
 ## Visão geral
 
-Descrição em PT-BR. Identificadores de código, caminhos e nomes próprios
-permanecem em inglês/as-is: `TCMine-Design`, `ColorTokens.cs`, `RenderMode`.
-
 ## Responsabilidades / Escopo
-
-- ...
 
 ## Decisões e estado atual
 
-- **[YYYY-MM-DD]** Decisão tomada e seu motivo. Fonte: [[sources/...]].
+<!-- Entradas datadas; para decisões com trade-offs, criar página em decisions/ e linkar. -->
 
 ## Relações
 
-- Depende de [[entities/...]]
-- Implementa o conceito [[concepts/...]]
-
 ## Pontos em aberto
 
-- [ ] ...
+- [ ]
 
 ## Referências
 
-- Código: ver nota em `raw/code-refs/<arquivo>.md`
-- Fontes externas: [[sources/...]]
+<!-- Código: caminhos lidos. Fontes: [[sources/...]]. -->

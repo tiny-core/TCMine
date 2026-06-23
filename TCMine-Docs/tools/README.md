@@ -50,10 +50,10 @@ O caminho é relativo à raiz de `TCMine-Docs/`, então pode ser aberto direto.
 
 ### Como o agente usa
 
-No **query workflow** (ver `../CLAUDE.md`), o agente roda este script para
-localizar páginas relevantes em vez de ler `wiki/index.md` linearmente. O
-`index.md` continua sendo o catálogo curado para humanos; o `wikisearch.py` é o
-atalho de recuperação para o agente.
+No **query workflow** (ver `../../CLAUDE.md`, na raiz do repositório), o agente
+roda este script para localizar páginas relevantes em vez de ler
+`wiki/index.md` linearmente. O `index.md` continua sendo o catálogo curado para
+humanos; o `wikisearch.py` é o atalho de recuperação para o agente.
 
 ### Notas de implementação
 

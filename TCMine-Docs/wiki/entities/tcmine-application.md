@@ -1,76 +1,72 @@
 ---
 type: entity
 title: TCMine-Application
-tags: [entity, tcmine, application, clean-architecture]
+tags: [entity, tcmine, application, clean-architecture, modpack]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [TCMine-Application, camada de aplicação]
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [TCMine-Application, Application, casos de uso]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-domain]]"
-  - "[[concepts/clean-architecture]]"
-  - "[[concepts/modpack-mods-locais]]"
-  - "[[concepts/curseforge-proxy]]"
+  - "[[entities/tcmine-infrastructure]]"
+  - "[[concepts/shared-domain-logic]]"
+  - "[[concepts/dtos-as-records]]"
 ---
 
 # TCMine-Application
 
-> Camada de aplicação: **portas** (interfaces), **contratos** (DTOs) e **lógica
-> pura** de modpack compartilhada por servidor e launcher.
+> Camada de aplicação: **portas** (interfaces), **contratos** (DTOs `record`) e
+> **lógica pura de modpack** compartilhada por servidor e launcher. Depende só de
+> [[entities/tcmine-domain]].
 
 ## Visão geral
 
-`TCMine-Application` (namespace `TCMine_Application`) define o que a aplicação
-precisa do mundo externo (via interfaces implementadas na Infrastructure) e
-concentra a lógica **neutra de framework** — sobretudo a montagem/mesclagem de
-modpacks que os dois lados (servidor e launcher) usam idêntica.
+`TCMine-Application` (namespace `TCMine_Application`) define *o que* a aplicação
+faz sem dizer *como* a infraestrutura o realiza. As implementações concretas
+ficam em [[entities/tcmine-infrastructure]]; servidor e launcher injetam a sua
+própria versão das portas.
 
 ## Responsabilidades / Escopo
 
-- **Abstractions** (portas): `ICurseForgeApi` (operações que o importador precisa
-  do CurseForge — o servidor implementa com a key, o cliente sobre o proxy),
+- **Portas (`Abstractions/`):** `ICurseForgeApi` (o servidor implementa com a API
+  direta + key; o cliente, sobre o proxy — ver [[concepts/curseforge-proxy]]),
   `IUserRepository`, `IPlayerConfigRepository`, `IServerSettingsStore`.
-- **Contracts** (DTOs):
-  - CurseForge: `CfManifestDto` e parentes, `CfFileRefDto`, `CfModRefDto`,
-    `CfSearchResultDto`.
-  - Modpack: `ModDto`, `ModpackManifestDto`, `ImportedModpackDto`/`ImportedModDto`,
-    `ModpackAdminRowDto`, `DraftImportDto<T>`, `MergeResultDto<T>`, `SaveProgressDto`,
-    `OverrideFileDto`, `VersionOptionDto`.
-  - Server: `NewsDto`, `ModpackSummaryDto`, `ServerDto`, `ReleaseDto`.
-- **Identity**: `UserInfo` — forma serializável da identidade persistida entre
-  prerender e circuito Blazor (`FromPrincipal`/`ToPrincipal`).
-- **Modpack** (lógica pura, `static`/`abstract`):
-  - `CurseForgeImporter` — lê `manifest.json` do zip, resolve arquivos/mods via
-    `ICurseForgeApi`, devolve `ImportedModpackDto` + overrides. Inclui
-    `ImportSingleAsync`, `InferSide` (lado a partir do server pack),
-    `ClassToTarget` (classId CF → mod/resourcepack/shaderpack), `ResolveDownloadUrl`.
-  - `ModSetMerge` — mescla listas de mods por chave (id CF): novos adicionados,
-    existentes atualizados, ausentes mantidos; preserva ordem.
+- **Contratos (`Contracts/`):** DTOs imutáveis como `record` — `ModDto`,
+  `ModpackManifestDto`, `ImportedModpackDto`/`ImportedModDto`, `MergeResultDto<T>`,
+  `ModpackAdminRowDto`, `SaveProgressDto`, `OverrideFileDto`, `DraftImportDto<T>`,
+  `VersionOptionDto`, além dos contratos de CurseForge e Server. Ver
+  [[concepts/dtos-as-records]].
+- **Lógica de modpack (`Modpack/`):**
+  - `CurseForgeImporter` (abstrato, **puro**): lê `manifest.json` do `.zip`,
+    resolve arquivos/mods via `ICurseForgeApi`, monta `ImportedModpackDto` +
+    bundle de overrides. `InferSide` deduz o `ModSide` a partir do *server pack*
+    (mod presente no pack ⇒ `Both`; ausente ⇒ `Client`). `ClassToTarget` mapeia
+    classe CF → pasta (`mod`/`resourcepack`/`shaderpack`).
+  - `ModSetMerge.Merge`: mescla (não substitui) listas de mods por chave
+    (id do mod), preservando ordem — ver [[concepts/shared-domain-logic]].
+- **Identity (`Identity/`):** `UserInfo`.
 
 ## Decisões e estado atual
 
-- **[2026-06-22]** Acesso ao CurseForge é uma **porta** (`ICurseForgeApi`): servidor
-  usa API direta (key + POST em lote), launcher usa o proxy — ver
-  [[concepts/curseforge-proxy]].
-- **[2026-06-22]** `CurseForgeImporter` é **lógica pura compartilhada** (abstrata,
-  sem estado): a mesma montagem roda no admin e no launcher.
-- **[2026-06-22]** `InferSide`: mod presente no server pack ⇒ `Both`; ausente ⇒
-  `Client`; sem server pack ⇒ `Both` (admin ajusta). Ver [[concepts/modside-rules]].
+- **[2026-06-23]** A lógica de import/merge é **estática e pura** (sem I/O
+  direto), recebendo o acesso ao CurseForge por injeção — por isso roda igual no
+  servidor (key) e no cliente (proxy).
+- **[2026-06-23]** Os DTOs de fio são `record` imutáveis; ver
+  [[concepts/dtos-as-records]].
 
 ## Relações
 
-- Depende de [[entities/tcmine-domain]].
-- Implementada por [[entities/tcmine-infrastructure]] (repositórios, CF client).
-- Consumida por [[entities/tcmine-server]] (e futuramente pelo [[entities/tcmine-launcher]]).
+- Implementada por [[entities/tcmine-infrastructure]]; consumida por
+  [[entities/tcmine-server]] e [[entities/tcmine-launcher]].
 
 ## Pontos em aberto
 
-- [ ] Consumo da camada pelo launcher (hoje só o servidor a usa de fato).
+- [ ] Documentar `Contracts/Server.cs` e `Contracts/CurseForge.cs` em detalhe.
 
 ## Referências
 
-- Código: `raw/code-refs/2026-06-22-leitura-inicial-solucao.md`
-- Fonte: [[sources/2026-06-22-leitura-codigo-vivo]]
+- Código: `TCMine-Application/Abstractions/`, `Contracts/`, `Modpack/`
+- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]

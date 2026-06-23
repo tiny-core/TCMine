@@ -1,60 +1,65 @@
 ---
 type: concept
-title: Secrets cifrados via Data Protection
-tags: [concept, seguranca, secrets, data-protection, settings]
-status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [secrets, Data Protection, settings de runtime, CF token cifrado]
+title: Segredos cifrados via Data Protection
+tags: [concept, segurança, secrets, data-protection]
+status: stable
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [secrets, Data Protection, token cifrado, ServerSettingsService]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
-  - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-infrastructure]]"
-  - "[[entities/tcmine-domain]]"
+  - "[[entities/tcmine-server]]"
   - "[[concepts/curseforge-proxy]]"
+  - "[[concepts/setup-auth-cookie]]"
 ---
 
-# Secrets cifrados via Data Protection
+# Segredos cifrados via Data Protection
 
-> Os segredos de runtime (token CurseForge) ficam **cifrados em repouso** no banco
-> via ASP.NET Data Protection; identificadores públicos (Azure ids, base URL) em texto.
+> Segredos de runtime (token CurseForge) ficam no banco **cifrados** via ASP.NET
+> Data Protection; configurados pelo painel, **não** por variáveis de ambiente.
 
 ## O que é
 
-`ServerSettingEntity` é a **linha única** (Id==1) de settings de runtime, editável
-pelo painel admin. O `CfApiKeyEncrypted` é cifrado; `AzureClientId`/`AzureTenantId`/
-`PublicBaseUrl` são identificadores públicos em texto. `ServerSettingsService`
-(singleton com cache) cifra/decifra com Data Protection e serve leituras quentes.
+`ServerSettingsService` ([[entities/tcmine-infrastructure]]) lê/grava a linha única
+`ServerSettingEntity` (`Id == 1`). O token do CurseForge é protegido com um
+`IDataProtector` (`protector "TCMine.ServerSettings.v1"`); os identificadores
+Azure (`AzureClientId`/`AzureTenantId`) e `PublicBaseUrl` são públicos e ficam em
+texto.
 
 ## Por que importa para o TCMine
 
-- A key do CurseForge é necessária ao proxy ([[concepts/curseforge-proxy]]) a cada
-  requisição — daí o cache — mas **nunca deve estar em texto** no banco.
-- As chaves de Data Protection ficam em **disco** (`tcmine-data/secrets`), com
-  `SetApplicationName("TCMine-Server")`, para sobreviver a restart e ao Docker
-  (imune a corrupção de env vars pelo Compose).
-- Decisão de projeto: secrets configurados **pelo painel**, não por env var; sem
-  fallback para ambiente. Antes de o Owner preencher, getters devolvem null
-  ("não configurado").
+O token CF nunca pode estar em texto puro no banco nem vazar para o cliente (casa
+com [[concepts/curseforge-proxy]]). E configurá-lo pelo painel (em vez de env
+vars) permite trocá-lo em runtime, sem reiniciar nem editar arquivos.
 
 ## Detalhes / Variações
 
-- Protector nomeado `TCMine.ServerSettings.v1`.
-- Como o `AppDbContext` é scoped e o serviço é singleton, abre escopo curto via
-  `IServiceScopeFactory`.
-- `GetStoredAsync` (valores decifrados) alimenta o formulário admin.
+- **Chaves de Data Protection** persistidas em `tcmine-data/secrets`
+  (sobrevivem a restart/Docker); `SetApplicationName("TCMine-Server")` isola o
+  escopo de proteção.
+- **Cache quente:** o serviço é singleton com cache (o proxy CF lê a key a cada
+  request); como o `AppDbContext` é scoped, abre um escopo curto via
+  `IServiceScopeFactory` para tocar o banco. Evento `Changed` avisa a UI após
+  gravar.
+- **Sem fallback para env vars:** os valores vêm só do banco; antes de o Owner
+  preencher, getters devolvem `null` → consumidores tratam como "não configurado".
+- **Robustez:** se a chave de proteção foi rotacionada/perdida, `Unprotect`
+  trata como vazio em vez de quebrar.
 
 ## Aplicação concreta
 
-- `TCMine-Infrastructure/Server/ServerSettingsService.cs`,
-  `Program.cs` (`AddDataProtection().PersistKeysToFileSystem(...)`);
-  `ServerSettingEntity` em [[entities/tcmine-domain]].
+- `TCMine-Infrastructure/Server/ServerSettingsService.cs`;
+  `TCMine-Domain/Entities/ServerSettingEntity.cs`;
+  `TCMine-Server/Program.cs` (`AddDataProtection().PersistKeysToFileSystem(...)`).
 
 ## Contradições / debates conhecidos
 
-- (nenhum até agora)
+- Bootstrap do banco (provider/connection string) é a **exceção**: fica fora do
+  banco (env `DB_PROVIDER`/`DB_CONNECTION` ou `appsettings.local.json`), porque é
+  necessário *antes* de o banco existir.
 
 ## Referências
 
-- [[sources/2026-06-22-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]]

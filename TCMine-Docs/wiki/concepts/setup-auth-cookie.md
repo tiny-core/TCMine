@@ -1,64 +1,67 @@
 ---
 type: concept
-title: Primeira execução, setup e autenticação por cookie
-tags: [concept, auth, setup, cookie, identidade, roles]
-status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [setup, primeira execução, auth cookie, UserRole, login]
+title: Setup inicial e autenticação por cookie
+tags: [concept, auth, setup, roles, segurança]
+status: stable
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [setup, auth cookie, primeira execução, Owner, papéis]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-infrastructure]]"
   - "[[entities/tcmine-domain]]"
+  - "[[concepts/secrets-data-protection]]"
 ---
 
-# Primeira execução, setup e autenticação por cookie
+# Setup inicial e autenticação por cookie
 
-> Sem usuários, o servidor força `/setup` para criar o **Owner**. Depois, login por
-> **cookie** com papéis `Owner/Admin/Operator/Viewer`.
+> Sem usuário, o servidor força `/setup` para criar o `Owner`; depois, login emite
+> um **cookie** (`tcmine_auth`) e os componentes Blazor leem a identidade dele.
 
 ## O que é
 
-Fluxo de identidade do painel admin:
-
-1. **Primeira execução** — `SetupState` (singleton com cache) detecta "existe
-   algum usuário?". Enquanto não, um middleware redireciona qualquer rota (exceto
-   assets e páginas de framework) para `/setup`. Após inicializado, `/setup` deixa
-   de existir (volta a `/login`).
-2. **Setup** — cria o primeiro usuário com papel `Owner` (controla usuários e
-   secrets). Senha nunca em texto: `PasswordHash` PBKDF2 (`UserService`).
-3. **Login/cookie** — valida o hash e emite o cookie `tcmine_auth` (HttpOnly,
-   SameSite=Lax, 7 dias, sliding). `AuthClaims` monta o `ClaimsPrincipal`.
-4. **Estado no Blazor** — `PersistingAuthenticationStateProvider` lê a identidade
-   do cookie no prerender e a persiste para o circuito interativo (substituiu o
-   estado em memória, que se perdia no F5).
+Identidade baseada em **usuários no banco** + **cookie de autenticação**.
+Substituiu a antiga senha única `ADMIN_PASSWORD` e o estado de auth em memória
+(perdido no F5).
 
 ## Por que importa para o TCMine
 
-Substitui a antiga senha única (`ADMIN_PASSWORD`) por **usuários reais com papéis**.
-`UserRole`: `Owner` > `Admin` (conteúdo) > `Operator` (start/stop de servidores) >
-`Viewer` (leitura). Regras protetoras: não remover/rebaixar o último Owner ativo.
+Permite múltiplos operadores com papéis distintos, sessões persistentes (sobrevivem
+ao refresh) e uma porta de entrada segura para gerir conteúdo e segredos.
 
 ## Detalhes / Variações
 
-- Login/logout fazem navegação com **reload SSR completo**, reiniciando o circuito
-  e relendo o cookie — sem revalidação contínua.
-- `AccessDeniedPath = /admin` (o `AdminLayout` mostra a tela 403, sem esquema próprio).
-- `/auth/logout` limpa o cookie (GET, por simplicidade).
+- **Primeira execução:** `SetupState` (singleton com cache `volatile`) checa
+  `AnyUsersExistAsync`; enquanto não há usuário, um middleware redireciona tudo
+  (exceto assets, `/setup`, `/Error`, `/not-found`) para `/setup`. Após criado,
+  `/setup` deixa de existir (volta a `/login`).
+- **Papéis** (`UserRole`, [[entities/tcmine-domain]]): `Owner` > `Admin` >
+  `Operator` > `Viewer`. `UserService` protege o **último Owner ativo** contra
+  remoção/rebaixamento/desativação (`CountActiveOwnersAsync`).
+- **Senhas:** hash via `PasswordHasher<UserEntity>` (**PBKDF2**), com rehash
+  automático (`SuccessRehashNeeded`). Login é case-insensitive (normalizado para
+  minúsculas).
+- **Cookie:** `tcmine_auth`, `HttpOnly`, `SameSite=Lax`, expira em 7 dias com
+  `SlidingExpiration`. `AuthClaims` monta o `ClaimsPrincipal` (NameIdentifier,
+  Name, Role).
+- **Blazor:** `PersistingAuthenticationStateProvider` lê `HttpContext.User` no
+  prerender e o persiste (`PersistentComponentState`); no circuito interativo,
+  restaura a identidade — assim `<AuthorizeView>` funciona em Dashboard/Settings.
+  Login/logout fazem reload SSR completo.
 
 ## Aplicação concreta
 
-- `TCMine-Server/Program.cs` (cookie + middleware de setup),
-  `Authentication/` (`AuthClaims`, `PersistingAuthenticationStateProvider`),
-  páginas `Login`/`Setup`; `SetupState`/`UserService`/`UserRepository` em
-  [[entities/tcmine-infrastructure]]; `UserEntity`/`UserRole` em [[entities/tcmine-domain]].
+- `TCMine-Infrastructure/Identity/{UserService,SetupState}.cs`;
+  `TCMine-Server/Authentication/{AuthClaims,PersistingAuthenticationStateProvider}.cs`;
+  `TCMine-Server/Program.cs` (cookie + middleware de primeira execução).
 
 ## Contradições / debates conhecidos
 
-- (nenhum até agora)
+- A página `Admin/Settings` (segredos) hoje aceita **qualquer admin autenticado**;
+  restringi-la ao `Owner` é pendência registrada no código.
 
 ## Referências
 
-- [[sources/2026-06-22-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]]

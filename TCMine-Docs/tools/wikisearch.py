@@ -16,7 +16,7 @@ Saída (padrão): uma linha por resultado:
     <score>  <caminho-relativo>  —  <título>  [tags]
 
 O agente normalmente invoca este script no início do query workflow em vez de
-ler ``wiki/index.md`` linearmente. Veja TCMine-Docs/CLAUDE.md.
+ler ``wiki/index.md`` linearmente. Veja o CLAUDE.md na raiz do repositório.
 """
 from __future__ import annotations
 
@@ -136,6 +136,13 @@ def bm25_search(docs: list[Doc], query: str, tag: str | None) -> list[tuple[floa
 
 
 def main(argv: list[str] | None = None) -> int:
+    # No Windows o stdout pode não ser UTF-8 (manglaria acentos PT-BR e "—"). Força UTF-8
+    # quando possível — best-effort, pois nem todo stream suporta reconfigure.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
+
     parser = argparse.ArgumentParser(description="Busca BM25 local sobre o wiki TCMine-Docs.")
     parser.add_argument("query", nargs="*", help="termos de busca")
     parser.add_argument("-n", "--limit", type=int, default=10, help="número máximo de resultados")

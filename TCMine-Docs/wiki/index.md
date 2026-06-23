@@ -2,14 +2,15 @@
 type: index
 title: Índice do Wiki TCMine-Docs
 tags: [index]
-updated: 2026-06-22
+updated: 2026-06-23
 ---
 
 # Índice do Wiki
 
-Catálogo curado de todas as páginas do wiki. É o mecanismo de recuperação
-leve desta base (junto com `tools/wikisearch.py`). **Toda página nova deve ser
-listada aqui** na seção correspondente, com um resumo de uma linha.
+Catálogo curado de **todas** as páginas do wiki. É o mecanismo de recuperação
+leve desta base: o **primeiro arquivo lido** ao responder uma pergunta ou antes
+de implementar algo. **Toda página nova deve ser listada aqui** na seção
+correspondente, com um resumo de uma linha.
 
 > Convenção: cada item é `- [[caminho/slug]] — resumo de uma linha (tags)`.
 
@@ -17,34 +18,43 @@ listada aqui** na seção correspondente, com um resumo de uma linha.
 
 > Projetos, componentes e artefatos concretos do ecossistema TCMine.
 
-- [[entities/tcmine-solution]] — visão geral da solução: 7 projetos em Clean Architecture .NET 10 (overview, arquitetura)
+- [[entities/tcmine-solution]] — visão geral: 7 projetos em Clean Architecture .NET 10 (overview, arquitetura)
 - [[entities/tcmine-domain]] — entidades, enums e regras puras de domínio (domain, clean-architecture)
-- [[entities/tcmine-application]] — portas, contratos (DTOs) e lógica pura de modpack (application)
-- [[entities/tcmine-infrastructure]] — EF Core, CurseForge, filesystem e serviços (infrastructure, ef-core)
-- [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`) (design-system, theming)
+- [[entities/tcmine-application]] — portas, contratos (DTOs `record`) e lógica pura de modpack (application)
+- [[entities/tcmine-infrastructure]] — EF Core dual-provider, CurseForge, filesystem, serviços (infrastructure, ef-core)
+- [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`), fonte única de cor (design-system, theming)
 - [[entities/tcmine-server]] — Blazor Server + Minimal API: backend + painel admin (blazor, backend)
-- [[entities/tcmine-launcher]] — app desktop Avalonia, "a Steam do TCMine" (avalonia, launcher)
+- [[entities/tcmine-launcher]] — app desktop Avalonia (scaffolded), "a Steam do TCMine" (avalonia, launcher)
 - [[entities/tcmine-icongenerator]] — gera ícones/assets para launcher e servidor (tooling, assets)
 
 ## Conceitos (`wiki/concepts/`)
 
-> Ideias, padrões e decisões transversais (design tokens, render modes, etc.).
+> Ideias, padrões e convenções transversais.
 
-- [[concepts/clean-architecture]] — Domain → Application → Infrastructure, dependências para dentro (arquitetura)
-- [[concepts/design-tokens]] — `ColorTokens` como fonte única para CSS, MudBlazor e Avalonia (design-system, theming)
-- [[concepts/modside-rules]] — filtragem única cliente/servidor compartilhada no core (modpack, domain)
-- [[concepts/modpack-mods-locais]] — jars servidos pelo próprio servidor, não pelo CurseForge (modpack, download)
-- [[concepts/curseforge-proxy]] — CurseForge via proxy `/v1`; a key nunca sai do servidor (curseforge, segurança)
+- [[concepts/clean-architecture]] — Domain ← Application ← Infrastructure, dependências para dentro (arquitetura)
+- [[concepts/shared-domain-logic]] — o que cliente/servidor decidem igual vive no core, sem duplicar (arquitetura, modpack)
+- [[concepts/modside-rules]] — `ModSide`/`ModSideRules`: fonte única de filtragem cliente/servidor (modpack, domain)
+- [[concepts/dtos-as-records]] — DTOs de fio são `record` imutáveis, nunca classes (convenção, dtos)
+- [[concepts/design-tokens]] — `ColorTokens` como fonte única de cor para CSS, MudBlazor e Avalonia (design-system, theming)
+- [[concepts/curseforge-proxy]] — CurseForge via proxy `/v1`; a `x-api-key` nunca sai do servidor (curseforge, segurança)
+- [[concepts/modpack-mods-locais]] — jars servidos pelo próprio servidor, manifesto reescrito (modpack, download)
+- [[concepts/sse-content-sync]] — `/events` empurra um contador de versão; launcher recarrega o catálogo (sse, sync)
+- [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner, auth por cookie e papéis (auth, setup, roles)
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
-- [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner e auth por cookie (auth, setup, roles)
-- [[concepts/persistence-dual-provider]] — SQLite/Postgres com `AppDbContext` abstrato + migrations por provider (ef-core, persistência)
-- [[concepts/player-config-sync]] — sync de configs do jogador entre PCs por `(uuid, modpackId)` (player-config, sync)
+- [[concepts/player-config-sync]] — sync de configs por `(uuid, modpackId)` com token Minecraft (player-config, sync)
+
+## Decisões (`wiki/decisions/`)
+
+> Registros de decisão de arquitetura (ADR): contexto → decisão → consequências.
+
+- [[decisions/persistence-dual-provider]] — SQLite/Postgres com `AppDbContext` abstrato + migrations por provider (ef-core, persistência)
+- [[decisions/central-package-management]] — uma versão por pacote NuGet em toda a solução (build, nuget)
 
 ## Fontes / Resumos (`wiki/sources/`)
 
 > Uma página por fonte ingerida de `raw/` ou da leitura de código vivo.
 
-- [[sources/2026-06-22-leitura-codigo-vivo]] — leitura inicial completa da solução TCMine (code-ref, arquitetura)
+- [[sources/2026-06-23-leitura-codigo-vivo]] — leitura inicial dos 7 projetos da solução (code, arquitetura)
 
 ## Sínteses e páginas derivadas
 
@@ -56,13 +66,12 @@ _(nenhuma página ainda)_
 
 ### Mapa rápido dos projetos da solução (referência)
 
-Entidades-âncora que provavelmente ganharão páginas. Caminhos relativos à raiz
-da solução (`P:\TCMine\`), irmã de `TCMine-Docs/`.
+Caminhos relativos à raiz da solução (`P:\TCMine\`), irmã de `TCMine-Docs/`.
 
-- `TCMine-Domain/` — camada de domínio (Clean Architecture). → [[entities/tcmine-domain]]
-- `TCMine-Application/` — casos de uso / regras de aplicação. → [[entities/tcmine-application]]
-- `TCMine-Infrastructure/` — implementações de infraestrutura. → [[entities/tcmine-infrastructure]]
-- `TCMine-Design/` — design system compartilhado (`ColorTokens.cs`, tokens). → [[entities/tcmine-design]]
-- `TCMine-Server/` — app Blazor (Server). → [[entities/tcmine-server]]
-- `TCMine-Launcher/` — app Avalonia (desktop). → [[entities/tcmine-launcher]]
-- `TCMine-IconGenerator/` — geração de ícones/assets. → [[entities/tcmine-icongenerator]]
+- `TCMine-Domain/` → [[entities/tcmine-domain]]
+- `TCMine-Application/` → [[entities/tcmine-application]]
+- `TCMine-Infrastructure/` → [[entities/tcmine-infrastructure]]
+- `TCMine-Design/` → [[entities/tcmine-design]]
+- `TCMine-Server/` → [[entities/tcmine-server]]
+- `TCMine-Launcher/` → [[entities/tcmine-launcher]]
+- `TCMine-IconGenerator/` → [[entities/tcmine-icongenerator]]

@@ -1,63 +1,59 @@
 ---
 type: concept
 title: Mods servidos pelo próprio servidor
-tags: [concept, modpack, mods, download, curseforge]
-status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [project-modpack-mods-locais, mods locais, serving de jars, cache de mods]
+tags: [concept, modpack, download, manifesto]
+status: stable
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [mods locais, jars servidos pelo servidor, manifesto reescrito]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-launcher]]"
-  - "[[entities/tcmine-domain]]"
-  - "[[concepts/curseforge-proxy]]"
   - "[[concepts/modside-rules]]"
+  - "[[concepts/curseforge-proxy]]"
 ---
 
 # Mods servidos pelo próprio servidor
 
-> O launcher baixa os jars **do servidor TCMine** (`/files/{fileId}/{fileName}`),
-> nunca direto do CurseForge. O servidor baixa do CF uma vez e mantém um cache.
-
-> Nota: o código referencia este conceito como `project-modpack-mods-locais`
-> (ver comentários em `ModEntryEntity` e `ModpackEndpoints`).
+> O launcher baixa os jars **do servidor TCMine**, não do CurseForge: o manifesto
+> reescreve a URL de cada mod para `/files/{fileId}/{fileName}`.
 
 ## O que é
 
-Princípio de distribuição: os arquivos `.jar` dos mods são **hospedados pelo
-servidor**. Ao gerar o manifesto detalhado, o servidor **reescreve a URL** de cada
-mod para `{baseUrl}/files/{fileId}/{fileName}`. O launcher baixa daqui.
+Os endpoints de modpack ([[entities/tcmine-server]] → `ModpackEndpoints`) entregam
+ao launcher um manifesto cujos downloads apontam para o próprio servidor, que
+mantém um cache compartilhado dos jars em `tcmine-data/mods/{fileId}/{fileName}`.
 
 ## Por que importa para o TCMine
 
-- **Confiabilidade/velocidade**: o cache de jars fica sob `tcmine-data/mods/{fileId}/`
-  (compartilhado por todos os modpacks que usam o mesmo arquivo — dedup por `fileId`).
-- **Integridade**: `ModEntryEntity` guarda `Sha1`/`FileLength` (preenchidos quando
-  o servidor baixa), para o launcher verificar.
-- **Independência do CF no cliente**: o `DownloadUrl` de origem (CurseForge) **só o
-  servidor usa**; o cliente não toca o CF para baixar (ver também
-  [[concepts/curseforge-proxy]] para a parte de busca/resolução).
+- Controle e estabilidade: a disponibilidade dos jars não depende do CDN do
+  CurseForge nem expõe o cliente ao CF (casa com [[concepts/curseforge-proxy]]).
+- Consistência: todos os jogadores baixam exatamente o mesmo arquivo cacheado.
 
 ## Detalhes / Variações
 
-- `GET /files/{fileId}/{fileName}` serve do cache; `Path.GetFileName` neutraliza
-  path traversal; content-type `application/java-archive`.
-- `GET /api/modpacks/{uid}` reescreve URLs e filtra por `RunsOnClient`
-  ([[concepts/modside-rules]]).
-- `GET /api/modpacks/{uid}/overrides.zip` empacota a pasta `overrides` editável em disco.
-- A `baseUrl` vem de `PublicBaseUrl` (canônico atrás de proxy) ou da requisição.
+- **`/api/modpacks`** — catálogo (só `IsPublished`), com contagem de mods do
+  **lado cliente**.
+- **`/api/modpacks/{uid:guid}`** — manifesto detalhado: filtra os mods com
+  `ModSideRules.RunsOnClient` (ver [[concepts/modside-rules]]) e reescreve a URL
+  para `{baseUrl}/files/{fileId}/{fileName}`. O `baseUrl` vem do `PublicBaseUrl`
+  configurado (canônico atrás de proxy reverso) ou é derivado da requisição.
+- **`/files/{fileId:long}/{fileName}`** — serve o jar do cache
+  (`application/java-archive`); `Path.GetFileName` neutraliza path traversal.
+- **`/api/modpacks/{uid}/overrides.zip`** — re-empacota sob demanda a pasta
+  `tcmine-data/modpacks/{uid}/overrides` (fonte editável pelo painel).
 
 ## Aplicação concreta
 
-- `TCMine-Server/Endpoints/ModpackEndpoints.cs`; cache em
-  `ServerPaths.Mods(...)`; `ModEntryEntity` em [[entities/tcmine-domain]].
+- `TCMine-Server/Endpoints/ModpackEndpoints.cs`;
+  `TCMine-Infrastructure/FileSystem/ServerPaths.cs` (`Mods`, `Modpacks`).
 
 ## Contradições / debates conhecidos
 
-- (nenhum até agora)
+- O preenchimento do cache de jars (download a partir do CF no import) é feito
+  pelo `ModpackImportService` — ainda a aprofundar nesta wiki.
 
 ## Referências
 
-- [[sources/2026-06-22-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]]

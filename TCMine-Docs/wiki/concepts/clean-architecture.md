@@ -1,60 +1,65 @@
 ---
 type: concept
-title: Clean Architecture (no TCMine)
-tags: [concept, arquitetura, clean-architecture, dotnet]
-status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [Clean Architecture, camadas, arquitetura limpa]
+title: Clean Architecture
+tags: [concept, arquitetura, clean-architecture]
+status: stable
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [clean architecture, camadas, arquitetura limpa]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
+  - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-domain]]"
   - "[[entities/tcmine-application]]"
   - "[[entities/tcmine-infrastructure]]"
-  - "[[entities/tcmine-server]]"
+  - "[[concepts/shared-domain-logic]]"
 ---
 
-# Clean Architecture (no TCMine)
+# Clean Architecture
 
-> O TCMine separa o core em **Domain → Application → Infrastructure**, com
-> dependências apontando para dentro; o servidor é só a camada de entrega.
+> O TCMine organiza o core em três camadas com **dependências apontando para
+> dentro**: Domain ← Application ← Infrastructure.
 
 ## O que é
 
-Padrão de organização em camadas concêntricas: o **domínio** (regras e entidades)
-não conhece nada de fora; a **aplicação** define portas (interfaces) e casos de
-uso; a **infraestrutura** implementa as portas com frameworks concretos; e a
-camada de entrega (web/desktop) só orquestra.
+Padrão arquitetural em que as regras de negócio (centro) não dependem de
+detalhes de infraestrutura (borda). As setas de dependência apontam sempre para
+o centro: a borda conhece o centro, nunca o contrário.
 
 ## Por que importa para o TCMine
 
-Permite **compartilhar a lógica de domínio** entre servidor e launcher sem
-acoplar a frameworks. Mapeamento concreto na solução:
-
-- [[entities/tcmine-domain]] — entidades, enums e regras puras (sem EF/ASP.NET).
-- [[entities/tcmine-application]] — portas (`ICurseForgeApi`, `IUserRepository`,
-  `IPlayerConfigRepository`, `IServerSettingsStore`), DTOs e lógica pura
-  (`CurseForgeImporter`, `ModSetMerge`).
-- [[entities/tcmine-infrastructure]] — EF Core, CurseForge, filesystem, serviços.
-- [[entities/tcmine-server]] — entrega (Blazor + Minimal API), só compõe as camadas.
+Dois apps muito diferentes — [[entities/tcmine-server]] (web) e
+[[entities/tcmine-launcher]] (desktop) — precisam decidir várias coisas **igual**
+(filtro por lado, parse de loader, merge de mods, import do CurseForge). Pondo
+essa lógica no core, ela não é duplicada nem diverge entre os dois lados (ver
+[[concepts/shared-domain-logic]]).
 
 ## Detalhes / Variações
 
-- O DI resolve a porta para a implementação concreta (ex.: `ICurseForgeApi` →
-  `CurseForgeApiClient`; `AppDbContext` abstrato → subclasse por provider).
-- Lógica que **os dois lados** precisam idêntica (filtro de `ModSide`, parse de
-  loader, merge de mods) fica no core, não duplicada — ver [[concepts/modside-rules]].
+- **[[entities/tcmine-domain]]** — entidades, enums e regras puras. Sem EF/ASP.NET.
+- **[[entities/tcmine-application]]** — **portas** (interfaces) e **contratos**
+  (DTOs `record`) + lógica pura. Depende só de Domain.
+- **[[entities/tcmine-infrastructure]]** — implementações concretas (EF Core,
+  CurseForge, filesystem). Depende de Domain + Application.
+- **Entrega** ([[entities/tcmine-server]], [[entities/tcmine-launcher]]) compõe a
+  raiz: registra a Infrastructure no DI e expõe a UI/endpoints.
+
+A inversão de dependência aparece concretamente nas portas: `ICurseForgeApi`,
+`IUserRepository`, `IPlayerConfigRepository`, `IServerSettingsStore` vivem na
+Application; as implementações, na Infrastructure; o DI faz a ligação.
 
 ## Aplicação concreta
 
-- Onde está: estrutura de pastas/projetos da solução; `Program.cs` do servidor
-  faz o wiring; `AddTcMineDatabase` resolve a infraestrutura de dados.
+- O DI mapeia portas → implementações (ex.: `AddTcMineDatabase` registra
+  `IUserRepository → UserRepository`). Serviços dependem da abstração.
 
 ## Contradições / debates conhecidos
 
-- (nenhum até agora)
+- As `Entities/` do Domain são também as entidades EF (POCOs), com o mapeamento
+  em `AppDbContext` (Infrastructure). Pragmatismo aceito: o Domain não referencia
+  EF, mas as classes são compartilhadas como modelo de persistência.
 
 ## Referências
 
-- [[sources/2026-06-22-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]]

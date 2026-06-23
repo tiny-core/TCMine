@@ -3,74 +3,69 @@ type: entity
 title: TCMine-Domain
 tags: [entity, tcmine, domain, clean-architecture]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [TCMine-Domain, camada de domínio]
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [TCMine-Domain, domínio, Domain]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-solution]]"
+  - "[[entities/tcmine-application]]"
+  - "[[entities/tcmine-infrastructure]]"
   - "[[concepts/clean-architecture]]"
-  - "[[concepts/modside-rules]]"
 ---
 
 # TCMine-Domain
 
-> Camada mais interna da Clean Architecture: entidades e regras de domínio,
-> sem dependências de framework.
+> Camada mais interna da Clean Architecture: entidades, enums e regras **puras**
+> de domínio. Sem dependência de EF Core ou ASP.NET.
 
 ## Visão geral
 
-`TCMine-Domain` (namespace `TCMine_Domain`) guarda as **entidades persistidas**,
-os **enums de domínio** e as **regras puras** que servidor e launcher
-compartilham. Não referencia EF Core nem ASP.NET — é o núcleo estável.
+`TCMine-Domain` (namespace `TCMine_Domain`) guarda o modelo de domínio do TCMine
+e as regras que não dependem de infraestrutura. É referenciado por todas as
+outras camadas e não referencia nenhuma (a não ser `System.ComponentModel.
+DataAnnotations` para anotações como `[MaxLength]`).
 
 ## Responsabilidades / Escopo
 
-- **Entities** (`Entities/`):
-  - `ModpackEntity` — modpack oficial (slug = `Id` Guid): nome, versão, `Minecraft`,
-    `ModLoader` + `LoaderVersion`, descrição, `IsPublished`, `RecommendedRamMb`,
-    `HasOverrides`, `UpdatedAt`; coleções `Mods` e `Servers`.
-  - `ModEntryEntity` — um mod CurseForge de um modpack: `CurseModId`/`FileId`,
-    `Name`/`Version`/`FileName`, `DownloadUrl` (origem CF, só o servidor usa),
-    `Sha1`/`FileLength` (integridade), `Target` (mod/resourcepack/shaderpack) e
-    `Side` (`ModSide`).
-  - `ServerEntryEntity` — servidor anunciado por um modpack (vai para `servers.dat`).
-  - `ServerInstanceEntity` — instância de servidor Minecraft gerenciada (status,
-    Pid, RAM, porta…). **Hoje só persistência**; orquestração virá depois.
-  - `UserEntity` — usuário do painel (login, `PasswordHash` PBKDF2, `UserRole`,
-    `IsActive`, `LastLoginAt`).
-  - `ServerSettingEntity` — linha única (Id==1) de settings de runtime (CF token
-    cifrado, Azure client/tenant id, `PublicBaseUrl`).
-  - `PlayerConfigEntity` — configs do jogador por `(Uuid, ModpackId)`, last-write-wins.
-  - `NewsEntity`, `ReleaseEntity`, `OverrideHistoryEntry` (trilha de auditoria/undo dos overrides).
-- **Identity** (`Identity/UserRole.cs`): enum `UserRole` — `Owner` > `Admin` >
-  `Operator` > `Viewer`.
-- **Modpack** (`Modpack/`):
-  - `ModLoader` (`NeoForge`/`Forge`/`Fabric`/`Quilt`) + helpers `ModLoaders`
-    (`ParseId`, `DisplayName`).
-  - `ModSide` (`Both`/`Client`/`Server`) + `ModSideRules` (`RunsOnClient`/`RunsOnServer`)
-    — ver [[concepts/modside-rules]].
+- **Entidades (`Entities/`):** `NewsEntity`, `ModpackEntity`, `ModEntryEntity`,
+  `ServerEntryEntity`, `ReleaseEntity`, `PlayerConfigEntity`, `ServerSettingEntity`,
+  `UserEntity`, `ServerInstanceEntity`, `OverrideHistoryEntry`. São POCOs; o
+  mapeamento EF (chaves, conversões, cascatas) é feito em
+  [[entities/tcmine-infrastructure]] (`AppDbContext.OnModelCreating`), não aqui.
+  - `ModpackEntity`: `Id` é `Guid`; tem `Name`/`Version`/`Minecraft`/`Loader`/
+    `LoaderVersion`/`Description`/`IsPublished`/`RecommendedRamMb`/`HasOverrides`/
+    `UpdatedAt`, e listas `Mods` + `Servers`.
+- **Modpack (`Modpack/`):**
+  - `ModSide` (`Both`/`Client`/`Server`, default `Both`) + `ModSideRules`
+    (`RunsOnClient`/`RunsOnServer`) — a fonte única de filtragem por lado, ver
+    [[concepts/modside-rules]].
+  - `ModLoader` (`NeoForge`/`Forge`/`Fabric`/`Quilt`) + `ModLoaders.ParseId`
+    (interpreta `"neoforge-21.1.77"` → tipo+versão; prefixo desconhecido →
+    NeoForge) e `DisplayName`.
+- **Identity (`Identity/`):** `UserRole` (`Owner` > `Admin` > `Operator` >
+  `Viewer`), guardado como texto no banco — ver [[concepts/setup-auth-cookie]].
 
 ## Decisões e estado atual
 
-- **[2026-06-22]** `UserRole` e `ModLoader` guardados como **string** no banco
-  (mapeamento no `AppDbContext`): legível e estável a reordenações do enum.
-- **[2026-06-22]** O projeto **não fica preso ao NeoForge** — `ModLoader` é
-  multi-loader desde o domínio.
-- **[2026-06-22]** `ModSide` é dimensão de domínio **compartilhada** (não duplicada
-  nos dois lados), distinta de `Target` (pasta destino no cliente).
+- **[2026-06-23]** Enums críticos (`ModSide`, `ModLoader`, `UserRole`) são
+  persistidos como **string** (conversão em `AppDbContext`) — legível no banco e
+  estável a reordenações do enum.
+- **[2026-06-23]** O projeto **não fica preso ao NeoForge**: o loader é uma
+  dimensão de primeira classe do domínio.
 
 ## Relações
 
-- É a base de [[entities/tcmine-application]] e [[entities/tcmine-infrastructure]].
-- Implementa [[concepts/clean-architecture]] (camada interna) e [[concepts/modside-rules]].
+- Base de [[entities/tcmine-application]] e [[entities/tcmine-infrastructure]].
+- Concretiza [[concepts/clean-architecture]] (camada interna).
 
 ## Pontos em aberto
 
-- [ ] Orquestração de `ServerInstanceEntity` (campos de runtime hoje só refletem último estado conhecido).
+- [ ] Documentar as demais entidades (`ServerInstanceEntity`, `ReleaseEntity`,
+      `OverrideHistoryEntry`) quando forem aprofundadas.
 
 ## Referências
 
-- Código: `raw/code-refs/2026-06-22-leitura-inicial-solucao.md`
-- Fonte: [[sources/2026-06-22-leitura-codigo-vivo]]
+- Código: `TCMine-Domain/Entities/`, `TCMine-Domain/Modpack/`, `TCMine-Domain/Identity/`
+- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]

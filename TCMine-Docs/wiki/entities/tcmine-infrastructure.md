@@ -1,81 +1,86 @@
 ---
 type: entity
 title: TCMine-Infrastructure
-tags: [entity, tcmine, infrastructure, ef-core, clean-architecture]
+tags: [entity, tcmine, infrastructure, ef-core, curseforge]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [TCMine-Infrastructure, camada de infraestrutura]
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [TCMine-Infrastructure, Infrastructure, Infra]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-application]]"
-  - "[[concepts/persistence-dual-provider]]"
+  - "[[entities/tcmine-server]]"
+  - "[[decisions/persistence-dual-provider]]"
   - "[[concepts/curseforge-proxy]]"
-  - "[[concepts/setup-auth-cookie]]"
-  - "[[concepts/player-config-sync]]"
+  - "[[concepts/secrets-data-protection]]"
 ---
 
 # TCMine-Infrastructure
 
-> Implementações concretas das portas da Application: EF Core (SQLite/Postgres),
-> CurseForge, filesystem, identidade, serviços de servidor e Minecraft.
+> Implementações concretas das portas da [[entities/tcmine-application]]: EF Core
+> (SQLite/Postgres), cliente CurseForge, filesystem, identidade e serviços de
+> servidor/Minecraft.
 
 ## Visão geral
 
-`TCMine-Infrastructure` (namespace `TCMine_Infrastructure`) liga a aplicação ao
-mundo real: banco de dados, sistema de arquivos, APIs externas (CurseForge,
-Mojang) e serviços com estado. Implementa as interfaces de
-[[entities/tcmine-application]].
+`TCMine-Infrastructure` (namespace `TCMine_Infrastructure`) é a camada externa
+que toca o mundo (banco, rede, disco). Depende de Domain + Application; o servidor
+a registra no DI.
 
 ## Responsabilidades / Escopo
 
-- **Persistence** — `AppDbContext` **abstrato** (DbSets de todas as entidades,
-  `OnModelCreating`) com subclasses concretas `SqliteAppDbContext` /
-  `PostgresAppDbContext`, cada uma com suas migrations; `DatabaseOptions`,
-  `DatabaseServiceCollectionExtensions` (`AddTcMineDatabase`/`MigrateTcMineDatabaseAsync`),
-  `DesignTimeDbContextFactories`; repositórios (`UserRepository`,
-  `PlayerConfigRepository`, `ServerSettingsStore`). Ver
-  [[concepts/persistence-dual-provider]].
-- **FileSystem** — `ServerPaths`: centraliza os diretórios sob `tcmine-data/`
-  (`updates`, `secrets`, `servers`, `modpacks`, `mods`) e garante que existem.
-- **Identity** — `UserService` (hash de senha, normalização do login),
-  `SetupState` (detecção de primeira execução, singleton com cache).
-- **Server** — `ServerSettingsService` (settings de runtime, secrets cifrados via
-  Data Protection, cache), `ContentCatalog`, `ContentNotifier` (SSE),
-  `SystemMetricsService`.
-- **CurseForge** — `CurseForgeApiClient` (implementa `ICurseForgeApi` com a key direta).
-- **Launcher** — `LauncherFeedService` (inspeciona `tcmine-data/updates` para o feed Velopack).
-- **Minecraft** — `MinecraftAuthService` (valida token Mojang, fail-open),
-  `MinecraftVersionService` (versões oficiais para os seletores),
-  `ModpackImportService` (baixa jars, infere `Side`, persiste).
+- **Persistence (`Persistence/`):** banco **dual-provider** — `AppDbContext`
+  **abstrato**, com `SqliteAppDbContext`/`PostgresAppDbContext` concretos e
+  **migrations próprias por provider**. `AddTcMineDatabase` escolhe o provider
+  (env `DB_PROVIDER`/`DB_CONNECTION` > seção `Database` > default SQLite) e mapeia
+  a base abstrata → concreta; `MigrateTcMineDatabaseAsync` aplica migrations no
+  boot. SQLite default: `Data Source=data-server/tcmine.db`. Repositórios:
+  `UserRepository`, `PlayerConfigRepository`, `ServerSettingsStore`. Ver
+  [[decisions/persistence-dual-provider]].
+  - `OnModelCreating` concentra: `Username` único; chave composta de
+    `PlayerConfigEntity` `(Uuid, ModpackId)`; `ServerSettingEntity` linha única
+    (`Id == 1`, `ValueGeneratedNever`); cascatas modpack→mods/servers; enums como
+    texto; `ServerInstance` com `Restrict` no FK do modpack.
+- **CurseForge (`CurseForge/`):** `CurseForgeApiClient` implementa `ICurseForgeApi`,
+  falando direto com `api.curseforge.com` e injetando a `x-api-key` (lida das
+  settings cifradas) **por requisição**. Busca de mods/modpacks (game 432),
+  resolução de arquivos em lote. Ver [[concepts/curseforge-proxy]].
+- **FileSystem (`FileSystem/`):** `ServerPaths` centraliza `tcmine-data/`
+  (`updates`, `secrets`, `servers`, `modpacks`, `mods`), criados no boot.
+- **Identity (`Identity/`):** `UserService` (login, hash de senha),
+  `SetupState` (detecção de primeira execução) — ver [[concepts/setup-auth-cookie]].
+- **Minecraft (`Minecraft/`):** `MinecraftAuthService` (valida token Minecraft,
+  cacheia), `MinecraftVersionService` (versões oficiais MC+loaders),
+  `ModpackImportService` (baixa jars, infere Side, persiste).
+- **Server (`Server/`):** `ContentCatalog` (catálogo em memória), `ContentNotifier`
+  (SSE de sync — ver [[concepts/sse-content-sync]]), `SystemMetricsService`,
+  `ServerSettingsService` (settings de runtime cifradas — ver
+  [[concepts/secrets-data-protection]]).
+- **Launcher (`Launcher/`):** `LauncherFeedService` (inspeciona `tcmine-data/
+  updates` para o feed Velopack).
 
 ## Decisões e estado atual
 
-- **[2026-06-22]** `AppDbContext` **abstrato** porque o EF Core tem um snapshot de
-  modelo por tipo de contexto e migrations SQLite≠Postgres não são intercambiáveis;
-  os serviços dependem só da base, o DI resolve a concreta.
-- **[2026-06-22]** Config de **bootstrap** do banco (provider/connection) fica
-  fora do banco; demais settings (CF token, Azure) vivem no banco cifradas.
-- **[2026-06-22]** `MinecraftAuthService` é **fail-open**: se a Mojang cair,
-  autoriza (são settings de jogo, sem segredos); só nega com 401/403 ou UUID
-  divergente. Cache ~10 min.
-- **[2026-06-22]** `ServerSettingsService` é singleton com cache; como o context é
-  scoped, abre escopo curto via `IServiceScopeFactory`.
+- **[2026-06-23]** `ServerSettingsService` é **singleton com cache** (leitura
+  quente: o proxy CF consulta a cada request) e abre escopo curto via
+  `IServiceScopeFactory` para tocar o `AppDbContext` (que é scoped). Segredos
+  cifrados com Data Protection (`protector "TCMine.ServerSettings.v1"`); evento
+  `Changed` notifica a UI. **Sem fallback para env vars** — settings vêm só do banco.
 
 ## Relações
 
-- Implementa as portas de [[entities/tcmine-application]] sobre [[entities/tcmine-domain]].
-- Consumida por [[entities/tcmine-server]] (registro no `Program.cs`).
-- Materializa [[concepts/persistence-dual-provider]], [[concepts/player-config-sync]],
-  [[concepts/setup-auth-cookie]].
+- Implementa as portas de [[entities/tcmine-application]]; registrada por
+  [[entities/tcmine-server]].
 
 ## Pontos em aberto
 
-- [ ] Orquestração real de instâncias de servidor (processo Java) ainda não implementada.
+- [ ] Detalhar `ModpackImportService`, `MinecraftAuthService` e a orquestração de
+      `ServerInstance` (ainda modelada, não operada).
 
 ## Referências
 
-- Código: `raw/code-refs/2026-06-22-leitura-inicial-solucao.md`
-- Fonte: [[sources/2026-06-22-leitura-codigo-vivo]]
+- Código: `TCMine-Infrastructure/Persistence/`, `CurseForge/`, `FileSystem/`,
+  `Identity/`, `Minecraft/`, `Server/`, `Launcher/`
+- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]

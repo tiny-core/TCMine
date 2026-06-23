@@ -1,15 +1,14 @@
 ---
 type: entity
 title: TCMine (solução)
-tags: [entity, tcmine, arquitetura, overview]
+tags: [entity, tcmine, overview, arquitetura]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [TCMine, solução TCMine, ecossistema TCMine]
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [TCMine, solução, TCMine.slnx]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
-  - "[[concepts/clean-architecture]]"
   - "[[entities/tcmine-domain]]"
   - "[[entities/tcmine-application]]"
   - "[[entities/tcmine-infrastructure]]"
@@ -21,57 +20,68 @@ related:
 
 # TCMine (solução)
 
-> Ecossistema de **launcher + servidor de Minecraft modded** em .NET 10 —
-> launcher desktop tipo "Steam do TCMine" + backend que serve modpacks, mods e updates.
+> Solução **.NET 10** (`TCMine.slnx`) em **Clean Architecture**: um servidor
+> Blazor + Minimal API, um launcher desktop Avalonia, uma core compartilhada e
+> ferramentas de apoio. "A Steam do TCMine".
 
 ## Visão geral
 
-A solução (`TCMine.slnx`, em `P:\TCMine\`) reúne sete projetos sob **.NET 10**,
-organizados em **Clean Architecture** ([[concepts/clean-architecture]]). A ideia
-central: um **launcher** (`TCMine-Launcher`) que instala o Minecraft, gerencia
-mods e entra no servidor com um clique; e um **servidor** (`TCMine-Server`) que é
-ao mesmo tempo backend do launcher (API) e painel admin (Blazor Server) para
-gerenciar modpacks, usuários, releases e settings.
+`TCMine` é um ecossistema para distribuir e jogar modpacks de Minecraft: o
+**servidor** publica catálogo/manifestos de modpacks e serve os jars; o
+**launcher** desktop instala e atualiza as instâncias do jogador. A lógica que
+os dois lados precisam decidir igual vive no **core** compartilhado.
 
-Metadados de pacote (`Directory.Build.props`): Author *Jocian de Souza Mendonça*,
-Company *Tiny Core*, repo `https://github.com/tiny-core/TCMine`, licença GPL-3.0.
+São **7 projetos**, organizados em camadas com dependências apontando para
+dentro:
 
-## Projetos da solução
+**Core**
+- [[entities/tcmine-domain]] — entidades, enums e regras puras de domínio.
+- [[entities/tcmine-application]] — portas (interfaces), contratos (DTOs `record`) e lógica pura de modpack.
+- [[entities/tcmine-infrastructure]] — EF Core (SQLite/Postgres), CurseForge, filesystem, identidade e serviços.
 
-| Projeto | Papel | Página |
-|---|---|---|
-| `TCMine-Domain` | Entidades e regras de domínio | [[entities/tcmine-domain]] |
-| `TCMine-Application` | Portas (interfaces), contratos (DTOs), lógica pura | [[entities/tcmine-application]] |
-| `TCMine-Infrastructure` | EF Core, CurseForge, FileSystem, serviços | [[entities/tcmine-infrastructure]] |
-| `TCMine-Design` | Design system compartilhado (`ColorTokens`) | [[entities/tcmine-design]] |
-| `TCMine-Server` | Blazor Server + Minimal API (backend + admin) | [[entities/tcmine-server]] |
-| `TCMine-Launcher` | App desktop Avalonia | [[entities/tcmine-launcher]] |
-| `TCMine-IconGenerator` | Gera ícones/assets para launcher e servidor | [[entities/tcmine-icongenerator]] |
+**Entrega e suporte**
+- [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`), fonte única de cor.
+- [[entities/tcmine-server]] — ASP.NET Core (Minimal API + Blazor Server): backend do launcher + painel admin.
+- [[entities/tcmine-launcher]] — app desktop Avalonia (MVVM + ReactiveUI).
+- [[entities/tcmine-icongenerator]] — console SkiaSharp que gera ícones/assets.
+
+## Responsabilidades / Escopo
+
+- **Build/props compartilhados:** `Directory.Build.props` fixa `net10.0`,
+  `Nullable`/`ImplicitUsings`/`LangVersion latest` e metadados (Authors: Jocian
+  de Souza Mendonça; Company: Tiny Core; licença GPL-3.0; repo `tiny-core/TCMine`).
+- **Central Package Management:** `Directory.Packages.props` centraliza todas as
+  versões NuGet — ver [[decisions/central-package-management]].
+- **Stack por projeto** (versões atuais): EF Core 10.0.9 (SQLite + Npgsql
+  Postgres 10.0.2), MudBlazor 9.5.0, Avalonia 12.0.4 + ReactiveUI.Avalonia
+  11.3.8, SkiaSharp 3.119.4, FluentValidation 12.1.1, Blazilla 2.4.0.
 
 ## Decisões e estado atual
 
-- **[2026-06-22]** **Central Package Management** (`Directory.Packages.props`):
-  uma única versão de cada pacote NuGet em toda a solução; `.csproj` referenciam
-  só o `Include`.
-- **[2026-06-22]** **TargetFramework `net10.0`** com `Nullable` e `ImplicitUsings`
-  habilitados em todos os projetos (via `Directory.Build.props`).
-- **[2026-06-22]** Princípio: **lógica de modpack compartilhada** servidor↔launcher
-  vive no core (ver [[concepts/modside-rules]], [[concepts/modpack-mods-locais]]).
-- **[2026-06-22]** Docker: `compose.yaml` define o serviço `tcmine-server`
-  (Dockerfile em `TCMine-Server/`).
+- **[2026-06-23]** Decisões arquiteturais transversais (cada uma com página própria
+  conforme forem aprofundadas): [[concepts/clean-architecture]],
+  [[concepts/shared-domain-logic]], [[concepts/dtos-as-records]],
+  [[decisions/persistence-dual-provider]], [[concepts/curseforge-proxy]],
+  [[concepts/modpack-mods-locais]], [[concepts/sse-content-sync]],
+  [[concepts/setup-auth-cookie]], [[concepts/player-config-sync]],
+  [[concepts/secrets-data-protection]], [[concepts/design-tokens]].
+- **[2026-06-23]** Estado: servidor com backend + painel admin (Dashboard,
+  Settings) funcionais; launcher ainda **scaffolded** (ver
+  [[entities/tcmine-launcher]]); orquestração de instâncias de servidor Minecraft
+  **modelada** (entidades + paths) mas ainda não operada.
 
 ## Relações
 
-- Compõe-se de todas as entidades de projeto acima.
-- Implementa [[concepts/clean-architecture]].
+- Existe um projeto de **referência** (implementação completa v1.2.0) em
+  `P:\TCMine-Launcher-bk` — usado como guia, reescrevendo limpo (ver `CLAUDE.md`).
 
 ## Pontos em aberto
 
-- [ ] Orquestração de instâncias de servidor Minecraft (start/stop, processo Java) — só persistência hoje (`ServerInstanceEntity`).
-- [ ] Build do launcher pelo próprio servidor + feed Velopack (`/updates`) — entidade `ReleaseEntity` já existe.
-- [ ] Conteúdo da UI do launcher (Avalonia) ainda mínimo (`MainWindow` placeholder).
+- [ ] Páginas de `concepts/` e `decisions/` para as decisões listadas acima.
+- [ ] CRUD admin de modpacks/usuários/releases além de Dashboard/Settings.
+- [ ] Implementar a UI e o fluxo real do launcher.
 
 ## Referências
 
-- Código: `raw/code-refs/2026-06-22-leitura-inicial-solucao.md`
-- Fonte: [[sources/2026-06-22-leitura-codigo-vivo]]
+- Código: `TCMine.slnx`, `Directory.Build.props`, `Directory.Packages.props`
+- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]

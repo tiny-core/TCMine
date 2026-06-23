@@ -3,88 +3,95 @@ type: entity
 title: TCMine-Server
 tags: [entity, tcmine, blazor, minimal-api, backend, admin]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
+created: 2026-06-23
+updated: 2026-06-23
 aliases: [TCMine-Server, servidor, backend, painel admin]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-infrastructure]]"
   - "[[entities/tcmine-design]]"
+  - "[[entities/tcmine-launcher]]"
   - "[[concepts/setup-auth-cookie]]"
-  - "[[concepts/modpack-mods-locais]]"
   - "[[concepts/curseforge-proxy]]"
+  - "[[concepts/modpack-mods-locais]]"
+  - "[[concepts/sse-content-sync]]"
   - "[[concepts/player-config-sync]]"
 ---
 
 # TCMine-Server
 
 > ASP.NET Core **.NET 10**: Minimal API (backend que o launcher consome) +
-> Blazor Server (painel admin). É o ponto central do ecossistema.
+> Blazor Server (painel admin com MudBlazor). É o ponto central do ecossistema.
 
 ## Visão geral
 
-`TCMine-Server` (namespace `TCMine_Server`) é o backend e o painel de gestão.
-Serve o **catálogo/manifesto de modpacks** e os **jars** ao launcher, faz **proxy
-do CurseForge**, **sync de conteúdo via SSE**, **sync de configs do jogador**, e
-oferece a UI admin (Blazor Server + MudBlazor) para gerenciar tudo.
+`TCMine-Server` (namespace `TCMine_Server`) serve o catálogo/manifesto de
+modpacks e os jars ao launcher, faz proxy do CurseForge, sync de conteúdo via
+SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
 
 ## Responsabilidades / Escopo
 
-- **Bootstrap (`Program.cs`)**: Razor Components interativos + MudBlazor; Data
-  Protection (chaves em `tcmine-data/secrets`); EF Core via `AddTcMineDatabase`;
-  migrations no boot; HttpClient nomeado do CurseForge; auth por cookie
-  (`tcmine_auth`, 7 dias, sliding); rate limiter por IP (política `configs`);
-  middleware de **primeira execução** (redireciona a `/setup`) e de **404
-  estilizado** (buffer da resposta de página + promove status a 404).
-- **Endpoints** (Minimal API, consumidos pelo launcher):
-  - `/api/modpacks` (catálogo, só publicados) e `/api/modpacks/{uid}` (manifesto
-    detalhado, **só mods do lado cliente**, URLs reescritas para o servidor).
-  - `/files/{fileId}/{fileName}` — serving dos jars do cache (ver
-    [[concepts/modpack-mods-locais]]).
-  - `/api/modpacks/{uid}/overrides.zip` — bundle de overrides sob demanda.
-  - `/v1/{**path}` — **proxy CurseForge** ([[concepts/curseforge-proxy]]).
-  - `/events` — SSE de sync de conteúdo.
-  - `/players/{uuid}/configs/{modpackId}` — PUT de configs do jogador
-    ([[concepts/player-config-sync]]).
-  - `/download` — Setup.exe mais recente do launcher; `/updates` — feed Velopack (estático).
-  - `/auth/logout`.
-- **Authentication**: `AuthClaims` (monta o `ClaimsPrincipal`),
+- **Bootstrap (`Program.cs`):** Razor Components interativos + MudBlazor;
+  `appsettings.local.json` + env; `ServerPaths.EnsureCreated`; `AddTcMineDatabase`
+  + migrations no boot; **Data Protection** (chaves em `tcmine-data/secrets`,
+  app name `TCMine-Server`); `ServerSettingsService` (singleton); HttpClient
+  nomeado do CurseForge + `ICurseForgeApi`/`CurseForgeApiClient` (scoped);
+  `ModpackImportService`; `MinecraftVersionService`/`MinecraftAuthService`;
+  `UserService` + `SetupState`; **cookie auth** (`tcmine_auth`, 7 dias, sliding,
+  `/login`, `/auth/logout`, AccessDenied → `/admin`); `ContentCatalog`/
+  `SystemMetricsService`/`LauncherFeedService`/`ContentNotifier` (singletons);
+  `MemoryCache`; **rate limiter** por IP (política `configs`, 30/min).
+- **Pipeline:** exception handler → `/Error` (prod); **middleware de 404
+  estilizado** (a catch-all `NotFound.razor` renderiza o corpo a 200 e marca o
+  `HttpContext`; o middleware faz buffer e promove a 404 — API/SSE/assets ficam de
+  fora); HTTPS redirect; static files de `/updates` (feed Velopack); rate limiter;
+  auth/authorization/antiforgery; **middleware de primeira execução** (sem usuário
+  → `/setup`); `MapRazorComponents<App>` interativo; `/auth/logout`.
+- **Endpoints (Minimal API):** `MapModpackEndpoints` (catálogo + manifesto +
+  serving de jars/overrides), `MapCurseForgeProxy` (`/v1/*` — ver
+  [[concepts/curseforge-proxy]]), `MapEventsEndpoint` (`/events`, SSE — ver
+  [[concepts/sse-content-sync]]), `MapPlayerConfigEndpoints`
+  (`/players/{uuid}/configs/{modpackId}` — ver [[concepts/player-config-sync]]),
+  `MapLauncherFeedEndpoints` (download/feed).
+- **Authentication (`Authentication/`):** `AuthClaims`,
   `PersistingAuthenticationStateProvider` (identidade do cookie persistida do
   prerender para o circuito).
-- **Components** (Blazor): layouts (`RootLayout`/`AdminLayout`/`PublicLayout`/
-  `MainLayout`), páginas (`Home`, `Login`, `Setup`, `Error`, `NotFound`,
-  `Admin/Dashboard`), widgets do dashboard (`DashboardKpis`, `SystemStatusCard`,
+- **Components (Blazor):** layouts (`RootLayout`/`AdminLayout`/`PublicLayout`/
+  `MainLayout`); páginas `Home`, `Login`, `Setup`, `Error`, `NotFound`,
+  `Admin/Dashboard` (+ widgets: `DashboardKpis`, `SystemStatusCard`,
   `RecentActivityCard`, `RecentModpacksCard`, `ModDistributionCard`,
-  `DashboardHeader`), shared (`StatCard`, `CenterScreen`, `ErrorScreen`,
-  `RelativeTime`).
-- **Theme**: `MudThemeFactory.Create()` constrói o `MudTheme` (PaletteDark +
-  PaletteLight) a partir de [[entities/tcmine-design]].
+  `DashboardHeader`), `Admin/Settings` (token CF + Azure ids + `PublicBaseUrl`);
+  shared (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`).
+- **Theme (`Theme/`):** `MudThemeFactory.Create()` monta o `MudTheme`
+  (PaletteDark + PaletteLight, radius 8px, fonte Inter) a partir de
+  [[entities/tcmine-design]].
 
 ## Decisões e estado atual
 
-- **[2026-06-22]** Auth por **cookie** + `PersistingAuthenticationStateProvider`
-  (substituiu estado em memória perdido no F5); login/logout fazem reload SSR
-  completo. Ver [[concepts/setup-auth-cookie]].
-- **[2026-06-22]** Manifesto público é **filtrado para o lado cliente** e reescreve
-  URLs dos mods para `/files/...` — launcher nunca baixa do CurseForge.
-- **[2026-06-22]** **404 estilizado**: a `NotFound.razor` (catch-all) renderiza o
-  corpo a 200 e marca o `HttpContext`; um middleware promove a 404 (rotas de API/
-  SSE/assets ficam de fora).
-- **[2026-06-22]** `BlazorDisableThrowNavigationException=true`; Docker target Linux.
+- **[2026-06-23]** Auth por **cookie** + `PersistingAuthenticationStateProvider`;
+  primeira execução força `/setup` do `Owner`. Ver [[concepts/setup-auth-cookie]].
+- **[2026-06-23]** `Admin/Settings` segue **escrita-só-ao-Guardar**; é onde o
+  token CurseForge e os ids Azure são configurados (cifrados via
+  `ServerSettingsService`). Hoje qualquer admin autenticado acede; restrição ao
+  Owner é pendência.
+- **[2026-06-23]** **404 estilizado** via render a 200 + promoção por middleware
+  (rotas de API/SSE/assets excluídas).
 
 ## Relações
 
-- Depende de [[entities/tcmine-infrastructure]], [[entities/tcmine-application]], [[entities/tcmine-design]].
-- Serve o [[entities/tcmine-launcher]].
+- Depende de [[entities/tcmine-infrastructure]], [[entities/tcmine-application]],
+  [[entities/tcmine-design]]. Serve o [[entities/tcmine-launcher]].
 
 ## Pontos em aberto
 
-- [ ] Páginas admin de CRUD de modpacks/usuários/releases além do Dashboard.
+- [ ] CRUD admin de modpacks/usuários/releases além de Dashboard/Settings.
+- [ ] Restringir `Settings` ao papel `Owner`.
 - [ ] Orquestração de instâncias de servidor Minecraft.
 
 ## Referências
 
-- Código: `TCMine-Server/Program.cs`, `Endpoints/`, `Authentication/`, `Components/`, `Theme/`
-- Fonte: [[sources/2026-06-22-leitura-codigo-vivo]]
+- Código: `TCMine-Server/Program.cs`, `Endpoints/`, `Authentication/`,
+  `Components/`, `Theme/MudThemeFactory.cs`
+- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]

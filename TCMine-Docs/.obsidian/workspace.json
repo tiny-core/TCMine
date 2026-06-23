@@ -1,14 +1,14 @@
 {
   "main": {
-    "id": "50d8553898bd8f24",
+    "id": "de7d84c96c11da0d",
     "type": "split",
     "children": [
       {
-        "id": "7b832db099045271",
+        "id": "3e748e0d8fd0d2f0",
         "type": "tabs",
         "children": [
           {
-            "id": "6dc7b1249f4d1ad5",
+            "id": "8947e91c445fbed4",
             "type": "leaf",
             "state": {
               "type": "graph",
@@ -23,15 +23,15 @@
     "direction": "vertical"
   },
   "left": {
-    "id": "d4687f259aae6c4d",
+    "id": "b38960942f344abc",
     "type": "split",
     "children": [
       {
-        "id": "db6aed8f74c4e486",
+        "id": "212224b689449821",
         "type": "tabs",
         "children": [
           {
-            "id": "7e2914e082379d36",
+            "id": "3141130c781a6d49",
             "type": "leaf",
             "state": {
               "type": "file-explorer",
@@ -44,7 +44,7 @@
             }
           },
           {
-            "id": "45e77b2a3df7a65f",
+            "id": "94e5e1c1cd8411cd",
             "type": "leaf",
             "state": {
               "type": "search",
@@ -61,7 +61,7 @@
             }
           },
           {
-            "id": "d37fb4f8aa236a4b",
+            "id": "6f4ceff454fb871a",
             "type": "leaf",
             "state": {
               "type": "bookmarks",
@@ -74,19 +74,18 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300,
-    "collapsed": true
+    "width": 240.5
   },
   "right": {
-    "id": "b6354385fcd45cbf",
+    "id": "40bbecf6f8451634",
     "type": "split",
     "children": [
       {
-        "id": "08d6f03624cccd9b",
+        "id": "52160eaaab678a78",
         "type": "tabs",
         "children": [
           {
-            "id": "9458b67af5380c15",
+            "id": "c36aa463e5c9cbcd",
             "type": "leaf",
             "state": {
               "type": "backlink",
@@ -104,7 +103,7 @@
             }
           },
           {
-            "id": "3f3c6d0a96888ad7",
+            "id": "a66591ee5e3fdbdf",
             "type": "leaf",
             "state": {
               "type": "outgoing-link",
@@ -117,7 +116,7 @@
             }
           },
           {
-            "id": "44e11e25fe6b6ff8",
+            "id": "62532027f43395c2",
             "type": "leaf",
             "state": {
               "type": "tag",
@@ -132,7 +131,7 @@
             }
           },
           {
-            "id": "0636fcec36b8b18f",
+            "id": "435398c0e89e367c",
             "type": "leaf",
             "state": {
               "type": "all-properties",
@@ -146,7 +145,7 @@
             }
           },
           {
-            "id": "1569a53ca770090a",
+            "id": "a349abd7a0f071ee",
             "type": "leaf",
             "state": {
               "type": "outline",
@@ -177,42 +176,42 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "6dc7b1249f4d1ad5",
+  "active": "8947e91c445fbed4",
   "lastOpenFiles": [
-    "wiki/log.md",
     "wiki/entities/tcmine-server.md",
-    "concepts",
-    "sources",
-    "entities",
-    "wiki/templates/concept.md",
-    "wiki/templates/entity.md",
-    "wiki/templates/source.md.tmp.17492.34dbccda39a9",
-    "wiki/templates/entity.md.tmp.17492.57d666d787a3",
-    "wiki/templates/concept.md.tmp.17492.38af5a57af58",
-    "wiki/templates/source.md",
-    "wiki/templates/entity.md.tmp.17492.45bdb374c0a7",
-    "wiki/templates/concept.md.tmp.17492.605878097f8b",
-    "wiki/index.md",
-    "wiki/sources/2026-06-22-leitura-codigo-vivo.md",
+    "wiki/sources/2026-06-23-leitura-codigo-vivo.md.tmp.4880.cac5450cc043",
+    "wiki/log.md.tmp.4880.b7fd2edf59dc",
+    "wiki/index.md.tmp.4880.e3aac11dce44",
+    "wiki/decisions/central-package-management.md",
+    "wiki/decisions/central-package-management.md.tmp.4880.bd88db2da7a4",
+    "wiki/decisions/persistence-dual-provider.md",
+    "wiki/decisions/persistence-dual-provider.md.tmp.4880.37335279731a",
+    "wiki/concepts/dtos-as-records.md",
+    "wiki/concepts/dtos-as-records.md.tmp.4880.91098aac9d04",
     "wiki/concepts/secrets-data-protection.md",
-    "raw/code-refs/2026-06-22-leitura-inicial-solucao.md",
-    "wiki/log.md.tmp.13008.1327b4e2d48b",
-    "wiki/index.md.tmp.13008.65072e132758",
+    "wiki/concepts/secrets-data-protection.md.tmp.4880.66b2d39569c9",
     "wiki/concepts/player-config-sync.md",
+    "wiki/concepts/player-config-sync.md.tmp.4880.17eeacc97eb9",
     "wiki/concepts/setup-auth-cookie.md",
-    "wiki/concepts/persistence-dual-provider.md",
-    "wiki/concepts/curseforge-proxy.md",
+    "wiki/concepts/setup-auth-cookie.md.tmp.4880.9348b741320a",
+    "wiki/concepts/sse-content-sync.md",
+    "wiki/concepts/sse-content-sync.md.tmp.4880.0b30908a24fd",
     "wiki/concepts/modpack-mods-locais.md",
+    "wiki/concepts/curseforge-proxy.md",
     "wiki/concepts/modside-rules.md",
+    "wiki/concepts/shared-domain-logic.md",
     "wiki/concepts/design-tokens.md",
     "wiki/concepts/clean-architecture.md",
-    "wiki/entities/tcmine-launcher.md",
+    "wiki/index.md",
+    "wiki/sources/2026-06-23-leitura-codigo-vivo.md",
     "wiki/entities/tcmine-icongenerator.md",
+    "wiki/entities/tcmine-launcher.md",
     "wiki/entities/tcmine-design.md",
     "wiki/entities/tcmine-infrastructure.md",
     "wiki/entities/tcmine-application.md",
     "wiki/entities/tcmine-domain.md",
     "wiki/entities/tcmine-solution.md",
-    "tools/README.md"
+    "tools/README.md",
+    "wiki/templates/concept.md"
   ]
 }

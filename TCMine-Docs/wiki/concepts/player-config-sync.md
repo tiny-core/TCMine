@@ -1,60 +1,61 @@
 ---
 type: concept
-title: Sync de configs do jogador entre PCs
-tags: [concept, player-config, sync, minecraft, mojang]
+title: Sync de configs do jogador
+tags: [concept, player-config, sync, minecraft, auth]
 status: wip
-created: 2026-06-22
-updated: 2026-06-22
-aliases: [configs do jogador, player config sync, sync entre PCs]
+created: 2026-06-23
+updated: 2026-06-23
+aliases: [player config sync, configs do jogador, sync entre PCs]
 sources:
-  - "[[sources/2026-06-22-leitura-codigo-vivo]]"
+  - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-infrastructure]]"
-  - "[[entities/tcmine-domain]]"
+  - "[[concepts/setup-auth-cookie]]"
 ---
 
-# Sync de configs do jogador entre PCs
+# Sync de configs do jogador
 
-> Settings de jogo (keybinds, shader/texturas, minimapa) guardadas por
-> `(Uuid, ModpackId)` como um zip, repostas quando o jogador entra noutro PC.
+> As configs de jogo do jogador sincronizam entre PCs por `(uuid, modpackId)`,
+> autenticadas com o **token Minecraft** do próprio jogador.
 
 ## O que é
 
-`PlayerConfigEntity` guarda, por jogador (UUID do Minecraft) e modpack, um zip de
-configs. Endpoint `/players/{uuid}/configs/{modpackId}`:
-
-- **GET (leitura)**: aberto — são settings de jogo, sem segredos.
-- **PUT (escrita)**: exige `Authorization: Bearer <token Minecraft>` que pertença
-  ao UUID, validado contra a Mojang por `MinecraftAuthService`. Limitado por taxa
-  (política `configs`: 30/min por IP). Corpo até 25 MB.
-
-Política de resolução de conflito: **last-write-wins** por `UpdatedAt`.
+`MapPlayerConfigEndpoints` ([[entities/tcmine-server]]) expõe a escrita das
+configs do jogador como um blob (zip), chaveado por `(uuid, modpackId)` —
+`PlayerConfigEntity` tem chave composta exatamente nesses dois campos.
 
 ## Por que importa para o TCMine
 
-Reproduz a conveniência de um launcher moderno: o jogador troca de máquina e
-recupera suas preferências de jogo sem reconfigurar. Como a chave é o UUID e o
-conteúdo são só settings, o risco é baixo — daí a leitura aberta e o
-`MinecraftAuthService` ser **fail-open** (autoriza se a Mojang cair; só nega com
-401/403 ou UUID divergente).
+O jogador troca de PC e reencontra suas configs/keybinds/options por modpack, sem
+precisar de conta no painel — a identidade é a própria conta Minecraft.
 
 ## Detalhes / Variações
 
-- Validação de chave defensiva (alfanumérico/`-`/`_`, ≤80 chars).
-- Cache do resultado de auth ~10 min (não bate na Mojang a cada PUT).
-- `IPlayerConfigRepository.UpsertAsync` devolve o instante da gravação.
+- **`PUT /players/{uuid}/configs/{modpackId}`** — exige `Authorization: Bearer
+  <token>` (access token Minecraft) que **pertença ao UUID**, validado pelo
+  `MinecraftAuthService`. Corpo limitado a **25 MB**; persistido via
+  `IPlayerConfigRepository.UpsertAsync`, devolvendo `updatedAt`. Limitado por taxa
+  (política `configs`, 30/min por IP).
+- **Validação do token (`MinecraftAuthService`):** consulta o perfil na Mojang
+  (`api.minecraftservices.com/minecraft/profile`), compara o `id` com o UUID
+  (normalizado: minúsculas, sem hífens), e **cacheia** ~10 min. Comportamento
+  **fail-open**: se a Mojang estiver indisponível (5xx/rede), **autoriza** — são
+  settings de jogo, sem segredos; só **nega** em 401/403 confirmado ou UUID
+  divergente.
 
 ## Aplicação concreta
 
 - `TCMine-Server/Endpoints/PlayerConfigEndpoints.cs`;
-  `MinecraftAuthService`/`PlayerConfigRepository` em [[entities/tcmine-infrastructure]];
-  `PlayerConfigEntity` em [[entities/tcmine-domain]].
+  `TCMine-Infrastructure/Minecraft/MinecraftAuthService.cs`;
+  `TCMine-Infrastructure/Persistence/Repositories/PlayerConfigRepository.cs`.
 
 ## Contradições / debates conhecidos
 
-- (nenhum até agora)
+- O endpoint atual implementa só o **PUT** (escrita). A **leitura** (GET) é
+  descrita como aberta no comentário do código, mas **não há rota GET** neste
+  arquivo — ainda pendente (ou servida por outro caminho a confirmar).
 
 ## Referências
 
-- [[sources/2026-06-22-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]]
