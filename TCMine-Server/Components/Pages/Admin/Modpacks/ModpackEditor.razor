@@ -1,0 +1,337 @@
+@page "/admin/modpacks/new"
+@page "/admin/modpacks/{Id}"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Domain.Modpack
+@using TCMine_Domain.Entities
+
+@* Editor de modpack: metadados, mods, overrides e servidores. Escrita-só-ao-Guardar para o
+   formulário; overrides gravam direto em disco (ver ModpackEditor.Overrides.cs). *@
+
+@if (_loading)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="py-12">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+    </MudStack>
+}
+else
+{
+    @* Cabeçalho: voltar + título + ação Guardar *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/admin/modpacks"/>
+            <div>
+                <MudText Typo="Typo.h5">
+                    @(_isNew ? "Novo modpack" : _draft.Name)
+                </MudText>
+                @if (!_isNew)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@_draft.Id</MudText>
+                }
+            </div>
+        </MudStack>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            @if (_saving && _saveTotal > 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@_saveStatus</MudText>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Save" Disabled="_saving" OnClick="SaveAsync">
+                @(_saving ? "Guardando…" : "Guardar")
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    @if (_saving && _saveTotal > 0)
+    {
+        <MudProgressLinear Color="Color.Primary" Value="@(_saveTotal == 0 ? 0 : 100.0 * _saveCurrent / _saveTotal)"
+                           Class="mb-4" Rounded="true"/>
+    }
+
+    @if (!_cfConfigured)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+            Token do CurseForge não configurado — busca e import indisponíveis.
+            <MudLink Href="/admin/settings" Class="ml-1">Configurar</MudLink>
+        </MudAlert>
+    }
+
+    <MudTabs Elevation="0" Outlined="true" ApplyEffectsToContainer="true" PanelClass="pa-4" Rounded="true">
+
+        @* ── Detalhes ─────────────────────────────────────────────────────────────────── *@
+        <MudTabPanel Text="Detalhes" Icon="@Icons.Material.Filled.Info">
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_draft.Name" Label="Nome" Variant="Variant.Outlined"
+                                  Required="true" MaxLength="120"/>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_draft.Version" Label="Versão do modpack"
+                                  Variant="Variant.Outlined" MaxLength="40"/>
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudAutocomplete T="string" Label="Minecraft" Variant="Variant.Outlined"
+                                     Value="_draft.Minecraft" ValueChanged="OnMinecraftChanged"
+                                     SearchFunc="SearchMcAsync" CoerceText="true" CoerceValue="true"
+                                     ResetValueOnEmptyText="false" Clearable="true"/>
+                    <MudSwitch T="bool" @bind-Value="_mcReleasesOnly" Color="Color.Primary" Size="Size.Small"
+                               Class="mt-1" Label="Só releases"/>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="ModLoader" Label="Loader" Variant="Variant.Outlined"
+                               Value="_draft.Loader" ValueChanged="OnLoaderChanged">
+                        @foreach (var l in Enum.GetValues<ModLoader>())
+                        {
+                            <MudSelectItem T="ModLoader" Value="l">@ModLoaders.DisplayName(l)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudAutocomplete T="string" Label="Versão do loader" Variant="Variant.Outlined"
+                                     @bind-Value="_draft.LoaderVersion"
+                                     SearchFunc="SearchLoaderAsync" CoerceText="true" CoerceValue="true"
+                                     ResetValueOnEmptyText="false" Clearable="true"/>
+                    <MudSwitch T="bool" @bind-Value="_loaderReleasesOnly" Color="Color.Primary" Size="Size.Small"
+                               Class="mt-1" Label="Só releases"/>
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_draft.Description" Label="Descrição"
+                                  Variant="Variant.Outlined" Lines="4" MaxLength="2000"/>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="int?" @bind-Value="_draft.RecommendedRamMb"
+                                     Label="RAM recomendada (MB)" Variant="Variant.Outlined"
+                                     Min="0" Step="512" Clearable="true"/>
+                </MudItem>
+                <MudItem xs="12" md="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="_draft.IsPublished" Color="Color.Success"
+                               Label="Publicado (visível no launcher)"/>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        @* ── Mods ─────────────────────────────────────────────────────────────────────── *@
+        <MudTabPanel Text="@($"Mods ({_draft.Mods.Count})")" Icon="@Icons.Material.Filled.Extension">
+            <MudStack Row="true" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="!_cfConfigured"
+                           StartIcon="@Icons.Material.Filled.Search" OnClick="SearchModsAsync">
+                    Buscar no CurseForge
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="!_cfConfigured"
+                           StartIcon="@Icons.Material.Filled.Download" OnClick="ImportModpackAsync">
+                    Importar modpack
+                </MudButton>
+                <MudFileUpload T="IBrowserFile" Accept=".jar" FilesChanged="UploadJarAsync"
+                               MaximumFileCount="1">
+                    <ActivatorContent>
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
+                            Enviar jar
+                        </MudButton>
+                    </ActivatorContent>
+                </MudFileUpload>
+            </MudStack>
+
+            @if (_draft.Mods.Count == 0)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                    <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Nenhum mod ainda. Busque no CurseForge, importe um modpack ou envie um jar.
+                    </MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudTable Items="_draft.Mods" Hover="true" Dense="true" Elevation="0"
+                          T="ModEntryEntity" FixedHeader="true" Height="50vh">
+                    <HeaderContent>
+                        <MudTh>Nome</MudTh>
+                        <MudTh>Versão</MudTh>
+                        <MudTh>Destino</MudTh>
+                        <MudTh>Lado</MudTh>
+                        <MudTh>Origem</MudTh>
+                        <MudTh/>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Nome">
+                            <MudText Typo="Typo.body2">@context.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@context.FileName</MudText>
+                        </MudTd>
+                        <MudTd DataLabel="Versão">@context.Version</MudTd>
+                        <MudTd DataLabel="Destino">
+                            <MudSelect T="string" @bind-Value="context.Target" Dense="true" Margin="Margin.Dense"
+                                       Variant="Variant.Outlined" Style="min-width:140px">
+                                @foreach (var t in Targets)
+                                {
+                                    <MudSelectItem T="string" Value="t">@t</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Lado">
+                            <MudSelect T="ModSide" @bind-Value="context.Side" Dense="true" Margin="Margin.Dense"
+                                       Variant="Variant.Outlined" Style="min-width:120px">
+                                <MudSelectItem T="ModSide" Value="ModSide.Both">Ambos</MudSelectItem>
+                                <MudSelectItem T="ModSide" Value="ModSide.Client">Cliente</MudSelectItem>
+                                <MudSelectItem T="ModSide" Value="ModSide.Server">Servidor</MudSelectItem>
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Origem">
+                            @if (context.CurseModId > 0)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                         Icon="@Icons.Material.Filled.Cloud">CurseForge</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                         Icon="@Icons.Material.Filled.UploadFile">Manual</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align:right">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => RemoveMod(context))"/>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            }
+        </MudTabPanel>
+
+        @* ── Overrides ────────────────────────────────────────────────────────────────── *@
+        <MudTabPanel Text="Overrides" Icon="@Icons.Material.Filled.Folder">
+            @if (_isNew)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Guarde o modpack primeiro para editar overrides.
+                </MudAlert>
+            }
+            else
+            {
+                @if (_pendingOverrides is not null)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
+                        Há overrides importados pendentes. Clique em <b>Guardar</b> para extraí-los e editá-los aqui.
+                    </MudAlert>
+                }
+
+                @* Painel próprio (árvore + Monaco) — recriado por @key a cada save p/ refletir o disco *@
+                <OverridesPanel ModpackId="_draft.Id" @key="_overridesVersion"/>
+            }
+        </MudTabPanel>
+
+        @* ── Novidades (newsletter por modpack) ─────────────────────────────────────────── *@
+        <MudTabPanel Text="Novidades" Icon="@Icons.Material.Filled.Newspaper">
+            @if (_isNew)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                    Guarde o modpack primeiro para publicar novidades.
+                </MudAlert>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mb-4"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="NewNewsAsync">
+                    Nova novidade
+                </MudButton>
+
+                @if (_news is null)
+                {
+                    <MudSkeleton Width="100%" Height="80px" Class="mb-2"/>
+                    <MudSkeleton Width="100%" Height="80px"/>
+                }
+                else if (_news.Count == 0)
+                {
+                    <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                        <MudIcon Icon="@Icons.Material.Filled.Newspaper" Size="Size.Large" Color="Color.Secondary"/>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            Nenhuma novidade publicada para este modpack.
+                        </MudText>
+                    </MudStack>
+                }
+                else
+                {
+                    @foreach (var n in _news)
+                    {
+                        <MudPaper Outlined="true" Elevation="0" Class="pa-3 mb-2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <div class="flex-grow-1">
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        @if (!string.IsNullOrWhiteSpace(n.Tag))
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                                     Variant="Variant.Text">@n.Tag</MudChip>
+                                        }
+                                        <MudText Typo="Typo.subtitle2">@n.Title</MudText>
+                                        @if (!n.IsPublished)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Color="Color.Default"
+                                                     Variant="Variant.Outlined">Rascunho</MudChip>
+                                        }
+                                    </MudStack>
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary">@n.Summary</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @n.PublishedAt.ToString("dd/MM/yyyy")
+                                    </MudText>
+                                </div>
+                                <MudStack Row="true" Spacing="0">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                                   OnClick="@(() => EditNewsAsync(n))"/>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                                   Color="Color.Error" OnClick="@(() => DeleteNewsAsync(n))"/>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    }
+                }
+            }
+        </MudTabPanel>
+
+        @* ── Servidores ───────────────────────────────────────────────────────────────── *@
+        <MudTabPanel Text="@($"Servidores ({_draft.Servers.Count})")" Icon="@Icons.Material.Filled.Dns">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Class="mb-4"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="AddServer">
+                Adicionar servidor
+            </MudButton>
+
+            @if (_draft.Servers.Count == 0)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Large" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        Nenhum servidor anunciado. Os adicionados aqui entram no servers.dat do launcher.
+                    </MudText>
+                </MudStack>
+            }
+            else
+            {
+                @foreach (var s in _draft.Servers)
+                {
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-3 mb-2">
+                        <MudGrid Spacing="2" AlignItems="Center">
+                            <MudItem xs="12" md="4">
+                                <MudTextField @bind-Value="s.Name" Label="Nome" Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" MaxLength="120"/>
+                            </MudItem>
+                            <MudItem xs="8" md="5">
+                                <MudTextField @bind-Value="s.Address" Label="Endereço" Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" MaxLength="200"/>
+                            </MudItem>
+                            <MudItem xs="3" md="2">
+                                <MudNumericField T="int" @bind-Value="s.Port" Label="Porta"
+                                                 Variant="Variant.Outlined" Margin="Margin.Dense"
+                                                 Min="1" Max="65535"/>
+                            </MudItem>
+                            <MudItem xs="1" Class="d-flex justify-end">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                               OnClick="@(() => RemoveServer(s))"/>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
+                }
+            }
+        </MudTabPanel>
+    </MudTabs>
+}

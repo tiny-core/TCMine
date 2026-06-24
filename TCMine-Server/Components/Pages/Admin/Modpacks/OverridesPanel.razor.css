@@ -1,0 +1,7 @@
+/* O BlazorMonaco renderiza <div class="monaco-editor-container"> sem altura própria.
+   Como é um componente filho (DOM sem o atributo de escopo), precisamos de ::deep
+   para alcançá-lo e fazê-lo preencher o container de altura fixa (editor-host). */
+.editor-host ::deep .monaco-editor-container {
+    height: 100%;
+    width: 100%;
+}

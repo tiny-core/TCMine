@@ -28,6 +28,84 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-24] meta | Nova regra: sem monolitos (dividir em arquivos menores)
+
+- **Fonte:** instrução do usuário nesta sessão.
+- **Páginas afetadas:** `CLAUDE.md` (Parte I, nova seção "Tamanho e
+  responsabilidade dos arquivos"); aplicada já em [[concepts/modpack-admin-editor]].
+- **Resumo:** adicionada regra obrigatória — **nunca criar monolitos; sempre
+  dividir em arquivos menores com responsabilidade própria** (componentes Blazor
+  por aba/seção, diálogos em arquivos próprios, partials por área, lógica de
+  negócio fora da UI). Aplicada na hora ao refatorar a aba de overrides para o
+  componente `OverridesPanel` + `OverrideTreeBuilder`.
+- **Pendências:** revisitar outros arquivos grandes do servidor conforme forem
+  tocados. Nada commitado (regra §11).
+
+## [2026-06-24] ingest | Modpacks: import bloqueante, DataGrid virtualizado, MudTreeView, fix Monaco
+
+- **Fonte:** código vivo escrito nesta sessão (ajustes pedidos pelo usuário).
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]] (onde vive, overrides,
+  Monaco, BlazorMonaco 3.4.0), [[sources/2026-06-24-modpack-admin-ui]] (a manter).
+- **Resumo:** (1) **import de modpack** agora abre `ImportProgressDialog` — modal
+  de feedback **bloqueante** (sem fechar/ESC/backdrop) fechado por código ao
+  terminar; (2) lista de modpacks migrada de `MudTable` para **`MudDataGrid`
+  virtualizado** (`Virtualize`, `FixedHeader`, `Height`); (3) lista de overrides
+  virou **`MudTreeView`** (árvore hierárquica via `OverrideTreeBuilder`); (4)
+  **corrigido** o Monaco não abrir o arquivo — o `StandaloneCodeEditor` era
+  renderizado só após a seleção (ref `null` no `SetValue`); agora fica sempre
+  montado e aplica conteúdo pendente no `OnDidInit`. Aba de overrides extraída
+  para `OverridesPanel` (regra sem-monolitos). BlazorMonaco bumpado p/ **3.4.0**.
+  Build da solução: 0 erros.
+- **Pendências:**
+  - Mover arquivo/pasta de override na UI (serviço já suporta; árvore ainda só
+    seleciona/edita/apaga).
+  - UI do feed global de notícias. Nada commitado (regra §11).
+
+## [2026-06-24] decisao | Newsletter por modpack — FK opcional em NewsEntity
+
+- **Fonte:** decisão do usuário nesta sessão (escolha entre FK opcional / FK
+  obrigatória / adiar) — optou por **FK opcional**.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]] (seção Newsletter +
+  abas + políticas de escrita), [[entities/tcmine-server]] (pendência fechada).
+- **Resumo:** resolvido o gatilho §5 deixado em aberto. `NewsEntity.ModpackId`
+  agora é `Guid?` (null = notícia global; preenchido = do modpack), com
+  relacionamento `OnDelete(Cascade)` e índice em `ModpackId`. Migration
+  `NewsModpackFk` gerada e verificada nos **dois** providers (SQLite TEXT /
+  Postgres uuid) — contém só coluna + índice + FK (o snapshot já tinha o resto do
+  modelo de modpack). Adicionados `ModpackNewsService` (CRUD direto no banco com
+  `ContentNotifier.Bump()`), a aba **Novidades** no editor e o `NewsEditDialog`.
+  Build da solução: 0 erros. Corrigido também um `continue` colado por engano na
+  linha 1 do `ModpackEditor.razor`.
+- **Pendências:**
+  - UI para o **feed global** de notícias (FK nula) — ainda não existe.
+  - Aplicar a migration ao banco de dev no próximo `dotnet run` (auto no boot).
+  - Nada commitado (regra §11) — código + docs tocados; usuário decide o commit.
+
+## [2026-06-24] ingest | UI admin de modpacks + BlazorMonaco
+
+- **Fonte:** código vivo escrito nesta sessão ([[sources/2026-06-24-modpack-admin-ui]]);
+  base no `ModpackImportService` já existente ([[entities/tcmine-infrastructure]]).
+- **Páginas afetadas:** criado [[concepts/modpack-admin-editor]] e
+  [[sources/2026-06-24-modpack-admin-ui]]; atualizado [[entities/tcmine-server]]
+  (componentes, decisões, pendências, frontmatter); `index.md` atualizado.
+- **Resumo:** entregue a camada Blazor de criação/edição de modpacks em
+  `TCMine-Server/Components/Pages/Admin/Modpacks/` — lista (`Modpacks.razor`),
+  editor em abas (`ModpackEditor` + parcial `.Overrides.cs`) e 4 diálogos. Cobre
+  busca/import CurseForge, upload de jar, marcação `Side`/`Target` por mod, e
+  edição de overrides com **BlazorMonaco 3.3.0** (adicionado à gestão central de
+  pacotes, 3 scripts no `App.razor`). Confirmada a API da v3.3.0 contra a fonte
+  oficial (`StandaloneCodeEditor`, `Global.SetModelLanguage(IJSRuntime,...)`).
+  Build da solução: 0 erros. Mistura deliberada de duas políticas de escrita:
+  rascunho-só-ao-Guardar (metadados/mods/servidores) vs. disco-imediato
+  (overrides, com histórico/desfazer).
+- **Pendências:**
+  - **Newsletter por modpack** (pedida): contradiz o `NewsEntity` global —
+    gatilho §5 (contradição + impacto amplo). Adiada à decisão do usuário sobre o
+    modelo (FK em `NewsEntity` vs. entidade nova) + migrations nos dois providers.
+  - Expor mover arquivo/pasta de override na UI (serviço já suporta).
+  - Restringir `Settings` ao `Owner`; criar instância de servidor a partir do modpack.
+  - Nada commitado (regra §11) — docs e código tocados; usuário decide o commit.
+
 ## [2026-06-23] ingest | Conceitos e decisões transversais (batch)
 
 - **Fonte:** mesma leitura de código vivo ([[sources/2026-06-23-leitura-codigo-vivo]]),

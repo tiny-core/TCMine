@@ -66,6 +66,9 @@ builder.Services.AddScoped<ICurseForgeApi>(sp => sp.GetRequiredService<CurseForg
 // Import e manutenção de modpacks (baixa jars, infere Side, persiste). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<ModpackImportService>();
 
+// Newsletter por modpack (CRUD direto no banco). Scoped: usa o AppDbContext.
+builder.Services.AddScoped<ModpackNewsService>();
+
 // Versões oficiais (Minecraft + loaders) para os seletores do editor. Singleton: só usa
 // IHttpClientFactory + cache em memória, sem estado por requisição.
 builder.Services.AddSingleton<MinecraftVersionService>();

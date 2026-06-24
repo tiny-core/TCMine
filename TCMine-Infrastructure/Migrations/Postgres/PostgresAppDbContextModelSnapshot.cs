@@ -146,6 +146,9 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("ModpackId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("PublishedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -165,6 +168,8 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                         .HasColumnType("character varying(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ModpackId");
 
                     b.ToTable("News");
                 });
@@ -428,6 +433,14 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                         .IsRequired();
 
                     b.Navigation("Modpack");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.NewsEntity", b =>
+                {
+                    b.HasOne("TCMine_Domain.Entities.ModpackEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ServerEntryEntity", b =>

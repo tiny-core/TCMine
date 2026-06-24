@@ -1,0 +1,132 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Application.Contracts
+@using TCMine_Domain.Modpack
+@inject TCMine_Infrastructure.Minecraft.ModpackImportService Service
+
+@* Busca de mods no CurseForge (proxy do servidor). Seleção múltipla: o admin marca vários
+   resultados e confirma; devolve a lista de modIds escolhidos para o editor resolver/baixar. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <MudTextField @bind-Value="_query" Immediate="true" Placeholder="Nome do mod…"
+                          Variant="Variant.Outlined" Margin="Margin.Dense" Class="flex-grow-1"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          OnKeyUp="OnKeyUp" Clearable="true"/>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
+                       Disabled="_loading">Buscar</MudButton>
+        </MudStack>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary">
+            Filtrando por Minecraft @GameVersion · @ModLoaders.DisplayName(Loader)
+        </MudText>
+
+        <div style="min-height:320px; max-height:50vh; overflow-y:auto;" class="mt-2">
+            @if (_loading)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+                </MudStack>
+            }
+            else if (_results is null)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                    <MudIcon Icon="@Icons.Material.Filled.TravelExplore" Size="Size.Large" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Busque um mod pelo nome.</MudText>
+                </MudStack>
+            }
+            else if (_results.Count == 0)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                    <MudIcon Icon="@Icons.Material.Filled.SearchOff" Size="Size.Large" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum resultado.</MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudList T="long" SelectedValues="_selected" SelectionMode="SelectionMode.MultiSelection"
+                         SelectedValuesChanged="OnSelectionChanged" Dense="false">
+                    @foreach (var r in _results)
+                    {
+                        <MudListItem T="long" Value="r.Id">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                @if (!string.IsNullOrEmpty(r.LogoUrl))
+                                {
+                                    <MudAvatar Rounded="true" Size="Size.Medium">
+                                        <MudImage Src="@r.LogoUrl" Width="40" Height="40"/>
+                                    </MudAvatar>
+                                }
+                                else
+                                {
+                                    <MudAvatar Rounded="true" Size="Size.Medium" Color="Color.Primary">
+                                        <MudIcon Icon="@Icons.Material.Filled.Extension"/>
+                                    </MudAvatar>
+                                }
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.body1">@r.Name</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary"
+                                             Style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
+                                        @r.Summary
+                                    </MudText>
+                                </div>
+                            </MudStack>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
+            @_selected.Count selecionado(s)
+        </MudText>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
+                   Disabled="_selected.Count == 0">
+            Adicionar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string? GameVersion { get; set; }
+    [Parameter] public ModLoader Loader { get; set; }
+
+    private string _query = string.Empty;
+    private bool _loading;
+    private List<CfSearchResultDto>? _results;
+    private IReadOnlyCollection<long> _selected = new HashSet<long>();
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await SearchAsync();
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_query)) return;
+        _loading = true;
+        try
+        {
+            _results = await Service.SearchModsAsync(_query, GameVersion);
+        }
+        catch (Exception)
+        {
+            _results = [];
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnSelectionChanged(IReadOnlyCollection<long> values)
+    {
+        _selected = values;
+    }
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected.ToList()));
+    private void Cancel() => MudDialog.Cancel();
+}

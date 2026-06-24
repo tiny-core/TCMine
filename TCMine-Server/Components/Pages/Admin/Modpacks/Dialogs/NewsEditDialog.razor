@@ -1,0 +1,77 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Domain.Entities
+
+@* Formulário de criar/editar uma novidade do modpack. Devolve um NewsEntity (destacado);
+   a persistência fica com o editor (ModpackEditor.News.cs). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="4">
+                <MudTextField @bind-Value="_model.Tag" Label="Tag" Variant="Variant.Outlined"
+                              MaxLength="40" Placeholder="ex.: Atualização"/>
+            </MudItem>
+            <MudItem xs="12" sm="8">
+                <MudTextField @bind-Value="_model.Title" Label="Título" Variant="Variant.Outlined"
+                              Required="true" MaxLength="200"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Summary" Label="Resumo" Variant="Variant.Outlined"
+                              Lines="4" MaxLength="1000"/>
+            </MudItem>
+            <MudItem xs="12" sm="7">
+                <MudDatePicker @bind-Date="_publishedDate" Label="Publicado em" Variant="Variant.Outlined"/>
+            </MudItem>
+            <MudItem xs="12" sm="5" Class="d-flex align-center">
+                <MudSwitch T="bool" @bind-Value="_model.IsPublished" Color="Color.Success"
+                           Label="Publicado"/>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
+                   Disabled="string.IsNullOrWhiteSpace(_model.Title)">
+            Salvar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    // null = criar; preenchido = editar (não mutamos o original até confirmar)
+    [Parameter] public NewsEntity? Entry { get; set; }
+
+    private readonly NewsEntity _model = new();
+    private DateTime? _publishedDate;
+
+    protected override void OnInitialized()
+    {
+        if (Entry is not null)
+        {
+            _model.Id = Entry.Id;
+            _model.ModpackId = Entry.ModpackId;
+            _model.Tag = Entry.Tag;
+            _model.Title = Entry.Title;
+            _model.Summary = Entry.Summary;
+            _model.PublishedAt = Entry.PublishedAt;
+            _model.IsPublished = Entry.IsPublished;
+        }
+        else
+        {
+            _model.PublishedAt = DateTime.UtcNow;
+        }
+
+        _publishedDate = _model.PublishedAt;
+    }
+
+    private void Confirm()
+    {
+        // Mantém a hora original; o date picker só ajusta a data
+        _model.PublishedAt = _publishedDate ?? DateTime.UtcNow;
+        MudDialog.Close(DialogResult.Ok(_model));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+}

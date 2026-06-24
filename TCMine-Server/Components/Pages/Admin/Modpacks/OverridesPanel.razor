@@ -1,0 +1,94 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
+@using Microsoft.AspNetCore.Components.Forms
+
+@* Árvore de overrides (MudTreeView) + editor Monaco sempre montado. Ações nos botões do topo
+   e no cabeçalho do editor (a árvore só seleciona). Ver OverridesPanel.razor.cs. *@
+
+<MudStack Row="true" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.NoteAdd" OnClick="NewFileAsync">
+        Novo arquivo
+    </MudButton>
+    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileAsync" MaximumFileCount="1">
+        <ActivatorContent>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
+                Enviar arquivo
+            </MudButton>
+        </ActivatorContent>
+    </MudFileUpload>
+    <MudSpacer/>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"
+               Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer</MudButton>
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History"
+               OnClick="ShowHistoryAsync">Histórico</MudButton>
+</MudStack>
+
+<MudGrid>
+    @* Árvore de arquivos *@
+    <MudItem xs="12" md="4">
+        <MudPaper Outlined="true" Elevation="0" Style="max-height:60vh; overflow:auto; min-height:60vh;">
+            @if (_treeItems.Count == 0)
+            {
+                <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                    <MudIcon Icon="@Icons.Material.Filled.FolderOff" Color="Color.Secondary"/>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sem overrides.</MudText>
+                </MudStack>
+            }
+            else
+            {
+                <MudTreeView T="string" Items="_treeItems" Hover="true" Dense="true"
+                             SelectedValue="_selected" SelectedValueChanged="OnSelectedChanged"
+                             SelectionMode="SelectionMode.SingleSelection" ExpandOnClick="true">
+                    <ItemTemplate>
+                        <MudTreeViewItem T="string" Items="@context.Children" Value="@context.Value"
+                                         Text="@context.Text" Icon="@context.Icon"
+                                         Expandable="@context.Expandable"/>
+                    </ItemTemplate>
+                </MudTreeView>
+            }
+        </MudPaper>
+    </MudItem>
+
+    @* Editor — sempre montado; overlay cobre quando nada selecionado ou binário *@
+    <MudItem xs="12" md="8">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+            <MudText Typo="Typo.subtitle2">
+                @(_selected ?? "Nenhum arquivo selecionado") @(_dirty ? "•" : "")
+            </MudText>
+            <MudStack Row="true" Spacing="1">
+                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Delete" Disabled="_selected is null"
+                           OnClick="DeleteSelectedAsync">
+                    Apagar
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.Save" Disabled="!_dirty || _binary"
+                           OnClick="SaveFileAsync">
+                    Salvar arquivo
+                </MudButton>
+            </MudStack>
+        </MudStack>
+
+        <div class="editor-host"
+             style="position:relative; height:55vh; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden;">
+            <StandaloneCodeEditor @ref="_editor" ConstructionOptions="EditorOptions"
+                                  OnDidInit="OnEditorInitAsync"
+                                  OnDidChangeModelContent="@(_ => OnContentChanged())"/>
+
+            @if (_selected is null || _binary)
+            {
+                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
+                    <MudStack AlignItems="AlignItems.Center">
+                        <MudIcon Icon="@(_binary ? Icons.Material.Filled.Lock : Icons.Material.Filled.Edit)"
+                                 Size="Size.Large" Color="Color.Secondary"/>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(_binary
+                                ? $"{_selected} é binário — não editável como texto."
+                                : "Selecione um arquivo na árvore para editar.")
+                        </MudText>
+                    </MudStack>
+                </div>
+            }
+        </div>
+    </MudItem>
+</MudGrid>

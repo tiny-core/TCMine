@@ -72,6 +72,17 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
         b.Entity<ModEntryEntity>()
             .Property(x => x.Side).HasConversion<string>().HasMaxLength(10);
 
+        b.Entity<NewsEntity>(e =>
+        {
+            // Notícia por modpack (FK opcional): null = global. Índice cobre o filtro do feed.
+            e.HasIndex(n => n.ModpackId);
+            // Apagar o modpack apaga as notícias dele; as globais (null) ficam intactas
+            e.HasOne<ModpackEntity>()
+                .WithMany()
+                .HasForeignKey(n => n.ModpackId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         b.Entity<OverrideHistoryEntry>(e =>
         {
             e.HasKey(h => h.Id);

@@ -76,6 +76,7 @@
         <PackageReference Include="Blazilla"/>
         <PackageReference Include="FluentValidation"/>
         <PackageReference Include="MudBlazor"/>
+        <PackageReference Include="BlazorMonaco"/>
     </ItemGroup>
 
     <ItemGroup>

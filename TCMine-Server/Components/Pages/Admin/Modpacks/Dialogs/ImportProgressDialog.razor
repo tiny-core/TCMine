@@ -1,0 +1,22 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+
+@* Modal de feedback bloqueante durante o import de um modpack. Não tem botões nem permite
+   fechar (sem backdrop click / sem ESC): segura o usuário até o editor fechar a modal por código
+   ao terminar o import. O texto é atualizável via parâmetro Message. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudStack AlignItems="AlignItems.Center" Class="py-6" Spacing="4">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large"/>
+            <div style="text-align:center">
+                <MudText Typo="Typo.subtitle1">@Title</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Message</MudText>
+            </div>
+        </MudStack>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    [Parameter] public string Title { get; set; } = "Importando modpack…";
+    [Parameter] public string Message { get; set; } = "Baixando o manifesto e resolvendo os mods. Aguarde.";
+}

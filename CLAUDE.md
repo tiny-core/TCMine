@@ -33,6 +33,23 @@ collection.AddSingleton<SystemMetricsService>();
 > A mesma regra de idioma vale para a wiki — prosa em PT-BR, código/paths/nomes
 > próprios em inglês (ver Parte II §4).
 
+## Tamanho e responsabilidade dos arquivos (sem monolitos)
+
+**Nunca crie monolitos. Sempre divida em arquivos menores, cada um com a sua
+própria responsabilidade.**
+
+- Uma classe/componente = **uma responsabilidade clara**. Se um arquivo começa a
+  acumular preocupações distintas, **extraia** (componente, serviço, partial).
+- **Componentes Blazor:** páginas orquestram; o conteúdo de cada aba/seção/painel
+  vai para o **seu próprio componente** (ex.: `OverridesPanel.razor`,
+  `ModsPanel.razor`). Diálogos sempre em arquivos próprios.
+- **Code-behind:** prefira `partial class` por área (`.razor.cs`,
+  `.Overrides.cs`, …) a um único arquivo gigante.
+- **Lógica de negócio não vive na UI:** vai para serviços (Infrastructure) ou
+  para o core (Domain/Application).
+- Regra prática: se você hesita em ler o arquivo inteiro de uma vez, ele já está
+  grande demais — quebre antes de continuar.
+
 ## Projeto de referência
 
 O backup em `P:\TCMine-Launcher-bk` contém a implementação completa (v1.2.0).

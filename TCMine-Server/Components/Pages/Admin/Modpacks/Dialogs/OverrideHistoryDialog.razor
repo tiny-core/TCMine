@@ -1,0 +1,119 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Domain.Entities
+@using TCMine_Server.Components.Shared
+@inject TCMine_Infrastructure.Minecraft.ModpackImportService Service
+@inject ISnackbar Snackbar
+
+@* Histórico de alterações de overrides + desfazer até um ponto. Como o histórico é uma pilha,
+   desfazer uma entrada antiga desfaz também as mais novas (avisado na UI). *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_entries is null)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary"/>
+            </MudStack>
+        }
+        else if (_entries.Count == 0)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                <MudIcon Icon="@Icons.Material.Filled.History" Size="Size.Large" Color="Color.Secondary"/>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Sem histórico de alterações.</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudTimeline TimelinePosition="TimelinePosition.Start" Class="pa-2">
+                @foreach (var (e, i) in _entries.Select((e, i) => (e, i)))
+                {
+                    <MudTimelineItem Color="@ColorFor(e.Operation)" Size="Size.Small">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudText Typo="Typo.body2">@Describe(e)</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @RelativeTime.Format(e.CreatedAt)@(string.IsNullOrEmpty(e.Actor) ? "" : $" · {e.Actor}")
+                                </MudText>
+                            </div>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Undo" Disabled="_working"
+                                       OnClick="@(() => UndoToAsync(e.Id))">
+                                @(i == 0 ? "Desfazer" : "Desfazer até aqui")
+                            </MudButton>
+                        </MudStack>
+                    </MudTimelineItem>
+                }
+            </MudTimeline>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public Guid ModpackId { get; set; }
+
+    private List<OverrideHistoryEntry>? _entries;
+    private bool _working;
+    private bool _changed; // houve desfazer? (o editor refresca ao fechar)
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _entries = await Service.GetHistoryAsync(ModpackId);
+    }
+
+    private async Task UndoToAsync(int entryId)
+    {
+        _working = true;
+        try
+        {
+            var count = await Service.UndoToAsync(ModpackId, entryId);
+            if (count > 0)
+            {
+                _changed = true;
+                Snackbar.Add($"{count} ação(ões) desfeita(s).", Severity.Success);
+            }
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao desfazer: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _working = false;
+        }
+    }
+
+    private void Close()
+    {
+        if (_changed) MudDialog.Close(DialogResult.Ok(true));
+        else MudDialog.Cancel();
+    }
+
+    private static Color ColorFor(OverrideOp op) => op switch
+    {
+        OverrideOp.Edit => Color.Info,
+        OverrideOp.DeleteFile => Color.Error,
+        OverrideOp.MoveFile or OverrideOp.MoveFolder => Color.Warning,
+        _ => Color.Default
+    };
+
+    private static string Describe(OverrideHistoryEntry e) => e.Operation switch
+    {
+        OverrideOp.Edit => $"Editou {e.PathBefore}",
+        OverrideOp.DeleteFile => $"Apagou {e.PathBefore}",
+        OverrideOp.MoveFile => $"Moveu {e.PathBefore} → {e.PathAfter}",
+        OverrideOp.MoveFolder => $"Moveu pasta {e.PathBefore} → {e.PathAfter}",
+        _ => e.Operation.ToString()
+    };
+}

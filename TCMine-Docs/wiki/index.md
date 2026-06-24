@@ -2,7 +2,7 @@
 type: index
 title: Índice do Wiki TCMine-Docs
 tags: [index]
-updated: 2026-06-23
+updated: 2026-06-24
 ---
 
 # Índice do Wiki
@@ -38,6 +38,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/design-tokens]] — `ColorTokens` como fonte única de cor para CSS, MudBlazor e Avalonia (design-system, theming)
 - [[concepts/curseforge-proxy]] — CurseForge via proxy `/v1`; a `x-api-key` nunca sai do servidor (curseforge, segurança)
 - [[concepts/modpack-mods-locais]] — jars servidos pelo próprio servidor, manifesto reescrito (modpack, download)
+- [[concepts/modpack-admin-editor]] — UI Blazor de criar/editar modpack: mods, import CF, overrides com Monaco (modpack, admin, blazor)
 - [[concepts/sse-content-sync]] — `/events` empurra um contador de versão; launcher recarrega o catálogo (sse, sync)
 - [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner, auth por cookie e papéis (auth, setup, roles)
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
@@ -55,6 +56,7 @@ correspondente, com um resumo de uma linha.
 > Uma página por fonte ingerida de `raw/` ou da leitura de código vivo.
 
 - [[sources/2026-06-23-leitura-codigo-vivo]] — leitura inicial dos 7 projetos da solução (code, arquitetura)
+- [[sources/2026-06-24-modpack-admin-ui]] — construção da UI admin de modpacks + BlazorMonaco (code, modpack, admin)
 
 ## Sínteses e páginas derivadas
 

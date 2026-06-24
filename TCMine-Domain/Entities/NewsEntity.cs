@@ -6,6 +6,13 @@ public class NewsEntity
 {
     public int Id { get; set; }
 
+    /// <summary>
+    /// Modpack ao qual esta notícia pertence. <c>null</c> = notícia <b>global</b> (do servidor,
+    /// não atrelada a nenhum modpack). Permite que cada modpack tenha a sua própria newsletter
+    /// sem perder o feed global. Apagar o modpack apaga as suas notícias em cascata.
+    /// </summary>
+    public Guid? ModpackId { get; set; }
+
     [MaxLength(40)] public string Tag { get; set; } = string.Empty;
     [MaxLength(200)] public string Title { get; set; } = string.Empty;
 

@@ -1,0 +1,42 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+
+@* Diálogo simples de entrada de um caminho relativo de override (criar arquivo / mover). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_value" Label="@Label" Variant="Variant.Outlined"
+                      Immediate="true" AutoFocus="true" OnKeyUp="OnKeyUp"
+                      HelperText="Use barras para subpastas, ex.: config/mod/settings.toml"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
+                   Disabled="string.IsNullOrWhiteSpace(_value)">
+            Confirmar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public string Title { get; set; } = "Caminho";
+    [Parameter] public string Label { get; set; } = "Caminho";
+    [Parameter] public string? Initial { get; set; }
+
+    private string _value = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _value = Initial ?? string.Empty;
+    }
+
+    private async Task OnKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_value)) Confirm();
+        await Task.CompletedTask;
+    }
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(_value.Trim()));
+    private void Cancel() => MudDialog.Cancel();
+}
