@@ -5,3 +5,15 @@
     height: 100%;
     width: 100%;
 }
+
+/* Linha de item da árvore de overrides (arrastável) */
+.ovr-node {
+    border-radius: 4px;
+    padding: 1px 2px;
+}
+
+/* Alvo de drop destacado durante o arraste */
+.ovr-drop {
+    outline: 2px dashed var(--mud-palette-primary);
+    background: var(--mud-palette-action-default-hover);
+}

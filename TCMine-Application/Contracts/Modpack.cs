@@ -103,6 +103,13 @@ public sealed record ModFileRowDto(
 /// <summary>Um arquivo de override com o seu tamanho (caminho relativo + bytes).</summary>
 public sealed record OverrideFileDto(string Path, long Length);
 
+/// <summary>
+/// Um item (arquivo ou pasta) num **nível** da árvore de overrides — para carregamento preguiçoso
+/// (só os filhos diretos de uma pasta). <c>Path</c> é o caminho relativo completo; <c>Name</c> é o
+/// segmento exibido; <c>IsFolder</c> distingue pasta de arquivo.
+/// </summary>
+public sealed record OverrideNodeDto(string Path, string Name, bool IsFolder);
+
 /// <summary>Resultado de um import de modpack do CF para mesclar no rascunho (metadados + mods + overrides).</summary>
 public sealed record DraftImportDto<TModEntryEntity>(
     string Name,

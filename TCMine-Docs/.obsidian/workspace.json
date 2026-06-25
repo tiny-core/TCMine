@@ -176,12 +176,18 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "8947e91c445fbed4",
+  "active": "3141130c781a6d49",
   "lastOpenFiles": [
+    "Sem título.canvas",
+    "wiki/entities/tcmine-server.md",
+    "wiki/sources/2026-06-25-busy-overlay.md",
+    "wiki/entities/tcmine-infrastructure.md",
+    "wiki/entities/tcmine-application.md",
+    "wiki/log.md.tmp.19352.bc0f5c983827",
+    "wiki/log.md.tmp.19352.49f9950454f7",
     "wiki/log.md.tmp.13752.74a2ab30efe8",
     "wiki/log.md.tmp.13752.079356098402",
     "wiki/concepts/modpack-admin-editor.md.tmp.13752.7b6d84237984",
-    "wiki/sources/2026-06-25-busy-overlay.md",
     "wiki/concepts/async-feedback-overlay.md.tmp.13752.f9f3606bec61",
     "wiki/sources/2026-06-24-modpack-admin-ui.md",
     "wiki/sources/2026-06-23-leitura-codigo-vivo.md",
@@ -191,11 +197,7 @@
     "wiki/entities/tcmine-server.md.tmp.13752.b1c11b35c54c",
     "wiki/entities/tcmine-server.md.tmp.13752.dad785482580",
     "wiki/index.md.tmp.13752.604108896683",
-    "wiki/index.md.tmp.13752.87dfecc990a5",
-    "wiki/sources/2026-06-25-busy-overlay.md.tmp.13752.be0a9ddc9028",
     "wiki/concepts/async-feedback-overlay.md",
-    "wiki/concepts/async-feedback-overlay.md.tmp.13752.f1c28cc9978b",
-    "wiki/entities/tcmine-server.md",
     "wiki/decisions/central-package-management.md",
     "wiki/decisions/persistence-dual-provider.md",
     "wiki/concepts/dtos-as-records.md",
@@ -211,8 +213,6 @@
     "wiki/concepts/clean-architecture.md",
     "wiki/entities/tcmine-icongenerator.md",
     "wiki/entities/tcmine-launcher.md",
-    "wiki/entities/tcmine-design.md",
-    "wiki/entities/tcmine-infrastructure.md",
-    "wiki/entities/tcmine-application.md"
+    "wiki/entities/tcmine-design.md"
   ]
 }

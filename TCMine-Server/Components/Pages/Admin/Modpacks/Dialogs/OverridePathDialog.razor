@@ -11,7 +11,7 @@
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
-                   Disabled="string.IsNullOrWhiteSpace(_value)">
+                   Disabled="@(!AllowEmpty && string.IsNullOrWhiteSpace(_value))">
             Confirmar
         </MudButton>
     </DialogActions>
@@ -24,6 +24,9 @@
     [Parameter] public string Label { get; set; } = "Caminho";
     [Parameter] public string? Initial { get; set; }
 
+    // Permite confirmar com o campo vazio (ex.: mover para a raiz dos overrides)
+    [Parameter] public bool AllowEmpty { get; set; }
+
     private string _value = string.Empty;
 
     protected override void OnInitialized()
@@ -33,7 +36,7 @@
 
     private async Task OnKeyUp(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_value)) Confirm();
+        if (e.Key == "Enter" && (AllowEmpty || !string.IsNullOrWhiteSpace(_value))) Confirm();
         await Task.CompletedTask;
     }
 

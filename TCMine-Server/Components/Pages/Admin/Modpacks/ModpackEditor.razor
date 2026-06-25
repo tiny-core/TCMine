@@ -151,7 +151,8 @@ else
             else
             {
                 <MudTable Items="_mods" Hover="true" Dense="true" Elevation="0"
-                          T="ModEntryEntity" FixedHeader="true" Height="50vh">
+                          T="ModEntryEntity" FixedHeader="true" Height="50vh"
+                          RowsPerPage="25">
                     <HeaderContent>
                         <MudTh>Nome</MudTh>
                         <MudTh>Versão</MudTh>
@@ -202,6 +203,9 @@ else
                                            OnClick="@(() => RemoveMod(context))"/>
                         </MudTd>
                     </RowTemplate>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }"/>
+                    </PagerContent>
                 </MudTable>
             }
         </MudTabPanel>

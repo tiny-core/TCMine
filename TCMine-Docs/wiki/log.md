@@ -28,6 +28,81 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] fix | Arquivos apareciam como pasta (chevron) no lazy loading
+
+- **Fonte:** relato do usuário; código `OverridesPanel.razor`.
+- **Resumo:** no modo lazy, todo nó mostrava chevron e arquivos não abriam para editar.
+  Causa: o `MudTreeViewItem` recebia `Expandable` — que **não é parâmetro** dele (era
+  ignorado como atributo HTML, daí o aviso MUD0002) — então o chevron seguia o padrão
+  `CanExpand=true`. Trocado para **`CanExpand="@node.Expandable"`** (false em arquivo,
+  true em pasta): arquivos perdem o chevron; pastas expandem via `ServerData`. Aviso
+  MUD0002 também resolvido. **Abrir no editor:** o `BodyContent` customizado não dispara
+  a seleção do `MudTreeView`, então o clique no nome passou a ser tratado por um
+  `@onclick` próprio (`OnNodeClick` → abre arquivo / ignora pasta), setando `_selected`
+  para o highlight.
+
+## [2026-06-25] ingest | Lazy loading da árvore de overrides (ServerData)
+
+- **Fonte:** pedido do usuário; código `ModpackImportService.cs` (`ListOverrideChildren`), `OverridesPanel.razor(.cs)`, `OverrideTreeBuilder.cs`, `Contracts/Modpack.cs`.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** a árvore deixou de montar tudo de uma vez (`ListOverrideFiles` recursivo
+  + `OverrideTreeBuilder.Build`). Agora a **raiz** é semeada em `Items` (no init) e os
+  **filhos diretos** de cada pasta vêm do **`MudTreeView.ServerData`** ao expandir, via
+  novo `ListOverrideChildren(uid, folder)` (um nível) + DTO `OverrideNodeDto`.
+  _(Correção: o `ServerData(null)` automático não semeava a raiz — a primeira tentativa,
+  só-ServerData, não carregava nada; semear `Items` resolveu.)_ `_fileSet`
+  vira incremental (preenchido ao abrir cada pasta) — a detecção arquivo×pasta e a
+  seleção/edição continuam válidas para nós visíveis. Mudanças estruturais resetam a
+  árvore (bump `_treeKey`) para o `ServerData` reler; o Save (só conteúdo) não reseta.
+  Removidos `Build`/`Sort` do `OverrideTreeBuilder` (sobra só `FileIcon`). Build limpo.
+- **Pendências:** nenhuma. (Com lazy loading, operações estruturais colapsam a árvore
+  para a raiz — comportamento esperado.)
+
+## [2026-06-25] fix | Árvore de overrides não atualizava após desfazer
+
+- **Fonte:** relato do usuário; código `OverridesPanel.razor(.cs)`.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** após "Desfazer" (e reverter pelo histórico) a árvore não refletia o
+  novo estado — o `Service.UndoLastAsync` revertia em disco e `ReloadAsync` relê, mas
+  a reconciliação **in-place** do `MudTreeView` não reflete bem a volta dos nós aos
+  caminhos anteriores. Corrigido com um `@key` (`_treeKey`) bumpado em
+  `ReloadAsync(forceTreeRebuild: true)` no desfazer/histórico, forçando a árvore a
+  reconstruir. As demais operações (novo/upload/apagar/mover) seguem com update
+  in-place (preservam a expansão).
+- **Pendências:** nenhuma.
+
+## [2026-06-25] ingest | Drag-and-drop para mover overrides na árvore
+
+- **Fonte:** pedido do usuário; código `TCMine-Server/Components/Pages/Admin/Modpacks/OverridesPanel.razor(.cs/.css)`, `wwwroot/js/overrides-dnd.js`, `Components/App.razor`.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** além do botão de mover, a árvore de overrides agora suporta
+  **drag-and-drop** (eventos HTML5 `draggable`/`ondragstart`/`ondragover:preventDefault`/
+  `ondrop`). Soltar sobre pasta move pra dentro; sobre arquivo move pra pasta-pai; na
+  área vazia da `MudPaper` move pra raiz. Payload em memória (`_dragPath`),
+  `stopPropagation` no drop dos itens pra não duplicar com o drop da raiz. Botão e DnD
+  compartilham `MoveToFolderAsync`.
+- **Correção (destaque com delay):** o highlight do alvo era via `@ondragenter`
+  (Blazor Server) — cada evento ia ao servidor e voltava, causando **atraso grande**.
+  Movido para **JS client-side** (`wwwroot/js/overrides-dnd.js`, delegação no
+  `document` togglando `.ovr-drop`), instantâneo; só `@ondrop`/`@ondragstart` seguem no
+  servidor (uma vez por arraste). Build sem erros/avisos novos.
+- **Pendências:** nenhuma.
+
+## [2026-06-25] ingest | Paginação nas listas de mods + botão de mover na árvore de overrides
+
+- **Fonte:** pedido do usuário; código `TCMine-Server/Components/Pages/Admin/Modpacks/{ModpackEditor.razor,OverridesPanel.razor,OverridesPanel.razor.cs}`, `Admin/Mods/Mods.razor`, `Dialogs/OverridePathDialog.razor`.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** (1) **Paginação**: a `MudTable` de mods do editor ganhou `MudTablePager`
+  (25/50/100) e a `MudDataGrid` de "todos os mods" trocou `Virtualize` por
+  `MudDataGridPager` (25/50/100). (2) **Mover na árvore de overrides**: `MudTreeView`
+  com `ExpandOnClick=false` e `BodyContent` por item — três ações: chevron expande
+  (pasta), nome abre no editor, botão à direita move (`stopPropagation` para não
+  selecionar). O move reusa o `OverridePathDialog` (novo parâmetro `AllowEmpty` p/
+  destino raiz) e chama `MoveOverrideAsync`/`MoveOverrideFolderAsync` (que já existiam,
+  com histórico/desfazer) sob o `BusyService`. Build sem erros novos.
+- **Pendências:** nenhuma. (Aviso pré-existente `MudForm.Validate` obsoleto no
+  `UserEditDialog` segue de fora deste escopo.)
+
 ## [2026-06-25] ingest | Marcador de mod órfão + página "todos os mods" com badges
 
 - **Fonte:** pedido do usuário; código `TCMine-Infrastructure/Minecraft/ModpackImportService.cs`, `TCMine-Server/Components/Pages/Admin/Mods/`.

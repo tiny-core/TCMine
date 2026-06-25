@@ -46,7 +46,8 @@
     else
     {
         <MudDataGrid T="ModFileRowDto" Items="_rows" Hover="true" Dense="true" Elevation="0"
-                     Virtualize="true" FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter">
+                     FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter"
+                     RowsPerPage="25">
             <ToolBarContent>
                 <MudTextField @bind-Value="_search" Placeholder="Filtrar por nome ou arquivo…"
                               Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
@@ -115,6 +116,9 @@
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
+            <PagerContent>
+                <MudDataGridPager T="ModFileRowDto" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
         </MudDataGrid>
     }
 </MudPaper>

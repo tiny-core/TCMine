@@ -593,6 +593,34 @@ public sealed class ModpackImportService(
             .ToList();
     }
 
+    /// <summary>
+    /// Lista os **filhos diretos** (um nível) de uma pasta de overrides — para o carregamento
+    /// preguiçoso da árvore. <paramref name="relativeFolder"/> vazio = raiz. Pastas primeiro, depois
+    /// arquivos, cada grupo em ordem alfabética. Não recursivo.
+    /// </summary>
+    public IReadOnlyList<OverrideNodeDto> ListOverrideChildren(Guid uid, string relativeFolder)
+    {
+        // Raiz usa OverridesDir direto (SafeOverridePath recusa caminho vazio); subpastas são validadas
+        var dir = string.IsNullOrEmpty(relativeFolder)
+            ? OverridesDir(uid)
+            : SafeOverridePath(uid, relativeFolder);
+        if (dir is null || !Directory.Exists(dir)) return [];
+
+        var prefix = string.IsNullOrEmpty(relativeFolder) ? "" : relativeFolder.TrimEnd('/') + "/";
+
+        var folders = Directory.EnumerateDirectories(dir)
+            .Select(d => Path.GetFileName(d))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => new OverrideNodeDto(prefix + name, name, true));
+
+        var files = Directory.EnumerateFiles(dir)
+            .Select(f => Path.GetFileName(f))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => new OverrideNodeDto(prefix + name, name, false));
+
+        return folders.Concat(files).ToList();
+    }
+
     /// <summary>Lê o conteúdo de texto de um arquivo de override (null se não existir/for inválido).</summary>
     public async Task<string?> ReadOverrideAsync(Guid uid, string relativePath, CancellationToken ct = default)
     {

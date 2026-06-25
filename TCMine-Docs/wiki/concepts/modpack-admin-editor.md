@@ -47,13 +47,32 @@ componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
 1. **Detalhes** — nome, versão, Minecraft + loader + versão do loader (seletores
    `MudAutocomplete` alimentados pelo `MinecraftVersionService`, com texto livre
    no fallback), descrição, RAM recomendada, switch de publicado.
-2. **Mods** — tabela com `Target` (mod/resourcepack/shaderpack) e `Side`
-   (Ambos/Cliente/Servidor — ver [[concepts/modside-rules]]) **editáveis** por
-   linha. Três formas de adicionar: busca no CurseForge, import de modpack
-   inteiro e upload manual de `.jar` (`FileId` sintético negativo).
+2. **Mods** — `MudTable` **paginada** (`MudTablePager`, 25/50/100) com `Target`
+   (mod/resourcepack/shaderpack) e `Side` (Ambos/Cliente/Servidor — ver
+   [[concepts/modside-rules]]) **editáveis** por linha. Três formas de adicionar:
+   busca no CurseForge, import de modpack inteiro e upload manual de `.jar`
+   (`FileId` sintético negativo).
 3. **Overrides** — **`MudTreeView`** (árvore de pastas/arquivos) + editor
-   **Monaco** (ver abaixo). Import mostra um **modal de feedback bloqueante**
-   (`ImportProgressDialog`) que impede interação até terminar.
+   **Monaco** (ver abaixo). **Carregamento preguiçoso**: a **raiz** é semeada em
+   `Items` (carregada no init) e os **filhos diretos** de cada pasta vêm do
+   `MudTreeView.ServerData` ao expandir (`ModpackImportService.ListOverrideChildren`
+   — um nível, não-recursivo). _(O `ServerData(null)` automático não semeava a raiz
+   de forma confiável; por isso `Items` semeia o topo.)_
+   `_fileSet` é populado incrementalmente conforme as pastas abrem; mudanças
+   estruturais resetam a árvore (bump no `@key`) para o `ServerData` reler. Import
+   mostra um **modal de feedback bloqueante** (`ImportProgressDialog`) até terminar.
+   **Três ações por item** (`ExpandOnClick=false`): o **chevron** (pasta) expande;
+   clicar no **nome** seleciona e abre o arquivo no editor; o **botão à direita**
+   (`BodyContent` + `stopPropagation`) **move** o item via `OverridePathDialog`
+   (destino vazio = raiz). Há também **drag-and-drop**: arrastar um item e soltar
+   sobre uma **pasta** move pra dentro dela, sobre um **arquivo** move pra pasta-pai,
+   e na **área vazia** da árvore move pra raiz. O **destaque do alvo** (`.ovr-drop`)
+   é feito por **JS client-side** (`wwwroot/js/overrides-dnd.js`, delegação no
+   `document`) — em Blazor Server, fazê-lo via `@ondragenter` tinha um **delay**
+   grande (round-trip por evento); o `@ondrop`/`@ondragstart` seguem no servidor (uma
+   vez por arraste). Botão e DnD chamam o mesmo núcleo
+   (`MoveToFolderAsync`) → `MoveOverrideAsync`/`MoveOverrideFolderAsync` (já com
+   histórico/desfazer; o serviço recusa mover uma pasta pra dentro de si mesma).
 4. **Novidades** — newsletter **por modpack** (CRUD direto via `ModpackNewsService`).
 5. **Servidores** — entradas (nome/endereço/porta) que o launcher escreve no
    `servers.dat`.

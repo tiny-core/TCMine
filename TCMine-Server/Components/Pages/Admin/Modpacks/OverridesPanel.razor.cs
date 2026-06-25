@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.JSInterop;
 using MudBlazor;
+using TCMine_Application.Contracts;
 using TCMine_Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Services;
@@ -28,8 +29,8 @@ public partial class OverridesPanel : ComponentBase
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
 
-    private List<TreeItemData<string>> _treeItems = [];
     private HashSet<string> _fileSet = [];
+    private List<TreeItemData<string>> _treeItems = []; // nível raiz (semente); filhos vêm do ServerData
     private string? _selected;
     private bool _dirty;
     private bool _binary;
@@ -42,18 +43,66 @@ public partial class OverridesPanel : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        await Busy.RunAsync("Carregando overrides…", ReloadAsync);
+        await Busy.RunAsync("Carregando overrides…", () => ReloadAsync(forceTreeRebuild: true));
     }
 
-    private async Task ReloadAsync()
+    // @key do MudTreeView: bumpar reinstancia a árvore. Com lazy loading os filhos já expandidos ficam
+    // em cache no componente, então toda mudança estrutural (criar/enviar/apagar/mover/desfazer) reseta
+    // a árvore para refletir o disco.
+    private int _treeKey;
+
+    // Carregador preguiçoso dos FILHOS (ServerData): chamado ao expandir uma pasta. A raiz é semeada
+    // por _treeItems (Items). Mantém _fileSet (arquivos carregados) p/ seleção/edição e detecção
+    // arquivo×pasta dos nós visíveis.
+    private Task<IReadOnlyCollection<TreeItemData<string>>> LoadTreeAsync(string? parentPath)
     {
-        var files = Service.ListOverrideFiles(ModpackId);
-        _fileSet = files.Select(f => f.Path).ToHashSet();
-        _treeItems = OverrideTreeBuilder.Build(files);
+        var children = Service.ListOverrideChildren(ModpackId, parentPath ?? string.Empty);
+        foreach (var c in children)
+            if (!c.IsFolder)
+                _fileSet.Add(c.Path);
+
+        IReadOnlyCollection<TreeItemData<string>> items = children.Select(ToTreeItem).ToList();
+        return Task.FromResult(items);
+    }
+
+    // Converte um item de nível (DTO) num nó do MudTreeView. Pastas ficam expansíveis (ServerData
+    // carrega os filhos ao abrir); arquivos não.
+    private static TreeItemData<string> ToTreeItem(OverrideNodeDto node)
+    {
+        return new TreeItemData<string>
+        {
+            Value = node.Path,
+            Text = node.Name,
+            Icon = node.IsFolder ? Icons.Material.Filled.Folder : OverrideTreeBuilder.FileIcon(node.Name),
+            Expandable = node.IsFolder
+        };
+    }
+
+    // Recarrega o estado do painel. forceTreeRebuild recarrega a raiz e reseta a árvore (@key).
+    private async Task ReloadAsync(bool forceTreeRebuild = false)
+    {
         _hasHistory = await Service.GetLastHistoryAsync(ModpackId) is not null;
+        if (!forceTreeRebuild) return;
+
+        _fileSet = [];
+        var root = Service.ListOverrideChildren(ModpackId, string.Empty);
+        foreach (var c in root)
+            if (!c.IsFolder)
+                _fileSet.Add(c.Path);
+
+        _treeItems = root.Select(ToTreeItem).ToList();
+        _treeKey++;
     }
 
     // ── Seleção / edição ─────────────────────────────────────────────────────────────────────────
+
+    // Clique no nome do nó: arquivo abre no editor; pasta não faz nada (só o chevron expande).
+    private async Task OnNodeClick(ITreeItemData<string> node)
+    {
+        if (node.Expandable) return; // pasta
+        _selected = node.Value; // reflete a seleção (highlight) já que não passamos pela seleção do tree
+        await OnSelectedChanged(node.Value);
+    }
 
     private async Task OnSelectedChanged(string? value)
     {
@@ -147,14 +196,112 @@ public partial class OverridesPanel : ComponentBase
             await Busy.RunAsync("Criando override…", async () =>
             {
                 await Service.CreateOverrideAsync(ModpackId, path);
-                await ReloadAsync();
-                await OnSelectedChanged(path.Replace('\\', '/'));
+                // Abre o novo arquivo no editor (garante no _fileSet, pois a árvore vai resetar p/ raiz)
+                var rel = path.Replace('\\', '/');
+                _fileSet.Add(rel);
+                await OnSelectedChanged(rel);
+                await ReloadAsync(forceTreeRebuild: true);
             });
             Snackbar.Add("Override criado.", Severity.Success);
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Falha ao criar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Move um arquivo ou pasta para outra pasta de destino (escolhida no diálogo; vazio = raiz).
+    // Acionado pelo botão à direita de cada item da árvore (alternativa ao drag-and-drop).
+    private async Task MoveNodeAsync(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return;
+
+        var lastSlash = path.LastIndexOf('/');
+        var currentParent = lastSlash >= 0 ? path[..lastSlash] : string.Empty;
+
+        var parameters = new DialogParameters<OverridePathDialog>
+        {
+            { x => x.Title, "Mover" },
+            { x => x.Label, "Pasta de destino (vazio = raiz)" },
+            { x => x.Initial, currentParent },
+            { x => x.AllowEmpty, true }
+        };
+        var isFolder = !_fileSet.Contains(path);
+        var dialog = await DialogService.ShowAsync<OverridePathDialog>(
+            isFolder ? "Mover pasta" : "Mover arquivo", parameters);
+        var result = await dialog.Result;
+        // Destino vazio é válido (raiz); só aborta em cancelamento
+        if (result is null || result.Canceled || result.Data is not string targetFolder) return;
+
+        await MoveToFolderAsync(path, targetFolder);
+    }
+
+    // ── Drag-and-drop (mover arrastando) ─────────────────────────────────────────────────────────
+    // Payload mantido em memória (mesmo circuito) — não precisa serializar no DataTransfer.
+
+    private string? _dragPath; // item sendo arrastado (o destaque do alvo é feito no JS, client-side)
+
+    private void OnDragStart(string? path)
+    {
+        _dragPath = path;
+    }
+
+    private void OnDragEnd()
+    {
+        _dragPath = null;
+    }
+
+    // Soltou sobre um nó: pasta ⇒ move para dentro dela; arquivo ⇒ move para a pasta-pai dele
+    private async Task OnDropOnNode(string? nodePath)
+    {
+        var src = _dragPath;
+        OnDragEnd();
+        if (string.IsNullOrEmpty(src) || string.IsNullOrEmpty(nodePath) || src == nodePath) return;
+
+        string targetFolder;
+        if (_fileSet.Contains(nodePath))
+        {
+            var slash = nodePath.LastIndexOf('/');
+            targetFolder = slash >= 0 ? nodePath[..slash] : string.Empty;
+        }
+        else
+        {
+            targetFolder = nodePath; // é uma pasta
+        }
+
+        await MoveToFolderAsync(src, targetFolder);
+    }
+
+    // Soltou na área vazia da árvore ⇒ move para a raiz
+    private async Task OnDropOnRoot()
+    {
+        var src = _dragPath;
+        OnDragEnd();
+        if (string.IsNullOrEmpty(src)) return;
+        await MoveToFolderAsync(src, string.Empty);
+    }
+
+    // Núcleo do move (compartilhado pelo botão e pelo drag-and-drop). Arquivo vs pasta pelo _fileSet.
+    private async Task MoveToFolderAsync(string sourcePath, string targetFolder)
+    {
+        var isFolder = !_fileSet.Contains(sourcePath);
+        try
+        {
+            await Busy.RunAsync("Movendo…", async () =>
+            {
+                if (isFolder)
+                    await Service.MoveOverrideFolderAsync(ModpackId, sourcePath, targetFolder);
+                else
+                    await Service.MoveOverrideAsync(ModpackId, sourcePath, targetFolder);
+
+                _selected = null; // o caminho mudou; limpa a seleção
+                await ReloadAsync(forceTreeRebuild: true);
+            });
+            Snackbar.Add(isFolder ? "Pasta movida." : "Arquivo movido.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao mover: {ex.Message}", Severity.Error);
         }
     }
 
@@ -167,7 +314,7 @@ public partial class OverridesPanel : ComponentBase
                 // 20 MB por arquivo de override (configs/resourcepacks costumam ser pequenos)
                 await using var stream = file.OpenReadStream(20 * 1024 * 1024);
                 await Service.UploadOverrideAsync(ModpackId, file.Name, stream);
-                await ReloadAsync();
+                await ReloadAsync(forceTreeRebuild: true);
             });
             Snackbar.Add($"\"{file.Name}\" enviado.", Severity.Success);
         }
@@ -191,7 +338,7 @@ public partial class OverridesPanel : ComponentBase
             {
                 await Service.DeleteOverrideAsync(ModpackId, _selected);
                 _selected = null;
-                await ReloadAsync();
+                await ReloadAsync(forceTreeRebuild: true);
             });
             Snackbar.Add("Override apagado.", Severity.Success);
         }
@@ -213,7 +360,7 @@ public partial class OverridesPanel : ComponentBase
                 if (result is not null)
                 {
                     _selected = null;
-                    await ReloadAsync();
+                    await ReloadAsync(forceTreeRebuild: true);
                 }
 
                 return result;
@@ -244,7 +391,8 @@ public partial class OverridesPanel : ComponentBase
         if (result is not null && !result.Canceled)
         {
             _selected = null;
-            await Busy.RunAsync("Atualizando overrides…", ReloadAsync);
+            // O diálogo de histórico pode ter revertido várias ações — reconstrói a árvore
+            await Busy.RunAsync("Atualizando overrides…", () => ReloadAsync(forceTreeRebuild: true));
         }
     }
 
