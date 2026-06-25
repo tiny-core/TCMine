@@ -129,14 +129,33 @@ public sealed class ModpackImportService(
             .ToListAsync(ct);
     }
 
-    /// <summary>Carrega o modpack destacado (mods + servidores) para edição como rascunho, ou null.</summary>
+    /// <summary>Carrega o modpack destacado (vínculos de mod + arquivo + servidores) para edição, ou null.</summary>
     public async Task<ModpackEntity?> GetForEditAsync(Guid uid, CancellationToken ct = default)
     {
         return await db.Modpacks
             .AsNoTracking()
-            .Include(m => m.Mods)
+            .Include(m => m.Mods).ThenInclude(mm => mm.ModFile)
             .Include(m => m.Servers)
             .FirstOrDefaultAsync(m => m.Id == uid, ct);
+    }
+
+    /// <summary>
+    /// Achata os vínculos de um modpack carregado em <see cref="ModEntryEntity"/> (modelo do editor),
+    /// juntando os campos do <see cref="ModFileEntity"/> com os atributos por-modpack. Respeita a ordem.
+    /// </summary>
+    public static List<ModEntryEntity> FlattenMods(ModpackEntity pack)
+    {
+        return pack.Mods
+            .Where(mm => mm.ModFile is not null)
+            .OrderBy(mm => mm.SortOrder)
+            .Select(mm => new ModEntryEntity
+            {
+                CurseModId = mm.ModFile!.CurseModId, FileId = mm.FileId, Name = mm.ModFile.Name,
+                Version = mm.ModFile.Version, FileName = mm.ModFile.FileName,
+                DownloadUrl = mm.ModFile.DownloadUrl, Sha1 = mm.ModFile.Sha1,
+                FileLength = mm.ModFile.FileLength, Target = mm.Target, Side = mm.Side
+            })
+            .ToList();
     }
 
     /// <summary>Existe um modpack com este slug? (validação ao criar um novo)</summary>
@@ -173,16 +192,24 @@ public sealed class ModpackImportService(
     // ── Persistência (escrita-só-ao-Guardar) ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Persiste o rascunho: cria/atualiza o modpack, reconcilia mods e servidores (o formulário é a
-    /// fonte da verdade), garante o cache de jars ainda sem hash e extrai overrides pendentes.
+    /// Persiste o rascunho: cria/atualiza o modpack, reconcilia servidores e os vínculos de mod
+    /// (o formulário é a fonte da verdade), faz upsert dos arquivos compartilhados
+    /// (<see cref="ModFileEntity"/>), garante o cache de jars ainda sem hash e extrai overrides
+    /// pendentes. <paramref name="mods"/> é a lista plana do editor (ver <see cref="FlattenMods"/>).
     /// </summary>
     public async Task SaveAsync(
-        ModpackEntity draft, byte[]? pendingOverrides = null,
+        ModpackEntity draft, IReadOnlyList<ModEntryEntity> mods, byte[]? pendingOverrides = null,
         IProgress<SaveProgressDto>? progress = null, CancellationToken ct = default)
     {
+        // Dedup defensivo por FileId (a junção tem PK composta ModpackId+FileId); preserva a ordem
+        var desired = mods
+            .GroupBy(m => m.FileId)
+            .Select(g => g.Last())
+            .ToList();
+
         // Baixa os jars ainda sem hash (vindos do import ou da busca, que não baixam na hora).
         // Reporta o progresso para a UI antes de cada download.
-        var pending = draft.Mods
+        var pending = desired
             .Where(m => string.IsNullOrWhiteSpace(m.Sha1) && !string.IsNullOrWhiteSpace(m.DownloadUrl))
             .ToList();
 
@@ -218,15 +245,37 @@ public sealed class ModpackImportService(
         tracked.RecommendedRamMb = draft.RecommendedRamMb;
         tracked.UpdatedAt = DateTime.UtcNow; // marca a alteração para sync incremental do launcher
 
-        // Reconcilia as listas: substitui pelo estado do formulário (recria entidades destacadas)
-        db.Mods.RemoveRange(tracked.Mods);
-        db.Servers.RemoveRange(tracked.Servers);
-        tracked.Mods = draft.Mods.Select(x => new ModEntryEntity
+        // Upsert dos arquivos compartilhados (um por FileId, reusados entre modpacks)
+        await UpsertModFilesAsync(desired, ct);
+
+        // Reconcilia os vínculos do modpack in-place (evita delete+insert da mesma PK composta):
+        // atualiza os que ficam, remove os que saíram, adiciona os novos — com a ordem do formulário.
+        var desiredIds = desired.Select(m => m.FileId).ToHashSet();
+        foreach (var link in tracked.Mods.Where(l => !desiredIds.Contains(l.FileId)).ToList())
+            db.ModpackMods.Remove(link);
+
+        var current = tracked.Mods.ToDictionary(l => l.FileId);
+        for (var i = 0; i < desired.Count; i++)
         {
-            CurseModId = x.CurseModId, FileId = x.FileId, Name = x.Name, Version = x.Version,
-            FileName = x.FileName, DownloadUrl = x.DownloadUrl, Target = x.Target,
-            Side = x.Side, Sha1 = x.Sha1, FileLength = x.FileLength
-        }).ToList();
+            var m = desired[i];
+            if (current.TryGetValue(m.FileId, out var link))
+            {
+                link.Side = m.Side;
+                link.Target = m.Target;
+                link.SortOrder = i;
+            }
+            else
+            {
+                tracked.Mods.Add(new ModpackModEntity
+                {
+                    ModpackId = tracked.Id, FileId = m.FileId,
+                    Side = m.Side, Target = m.Target, SortOrder = i
+                });
+            }
+        }
+
+        // Servidores: substitui pelo estado do formulário (entidades destacadas, sem chave própria)
+        db.Servers.RemoveRange(tracked.Servers);
         tracked.Servers = draft.Servers.Select(x => new ServerEntryEntity
         {
             Name = x.Name, Address = x.Address, Port = x.Port
@@ -241,6 +290,41 @@ public sealed class ModpackImportService(
 
         // Avisa os launchers ligados (SSE) que o catálogo mudou
         notifier.Bump();
+    }
+
+    // Cria ou atualiza os ModFile dos mods desejados (identidade = FileId). A última gravação vence
+    // nos metadados — o jar em si é imutável por FileId, então isto só atualiza nome/versão/hash.
+    private async Task UpsertModFilesAsync(IReadOnlyList<ModEntryEntity> desired, CancellationToken ct)
+    {
+        var ids = desired.Select(m => m.FileId).ToList();
+        var existing = await db.ModFiles
+            .Where(f => ids.Contains(f.FileId))
+            .ToDictionaryAsync(f => f.FileId, ct);
+
+        foreach (var m in desired)
+        {
+            if (existing.TryGetValue(m.FileId, out var file))
+            {
+                file.CurseModId = m.CurseModId;
+                file.Name = m.Name;
+                file.Version = m.Version;
+                file.FileName = m.FileName;
+                file.DownloadUrl = m.DownloadUrl;
+                file.Sha1 = m.Sha1;
+                file.FileLength = m.FileLength;
+            }
+            else
+            {
+                var created = new ModFileEntity
+                {
+                    FileId = m.FileId, CurseModId = m.CurseModId, Name = m.Name, Version = m.Version,
+                    FileName = m.FileName, DownloadUrl = m.DownloadUrl, Sha1 = m.Sha1,
+                    FileLength = m.FileLength
+                };
+                db.ModFiles.Add(created);
+                existing[m.FileId] = created; // evita duplicar se houver repetição na lista
+            }
+        }
     }
 
     // ── Cache de jars (SHA-1 + tamanho) ──────────────────────────────────────────────────────

@@ -28,6 +28,22 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] decisao | Mods em N:N (ModFile + ModpackMod) em vez de FK 1:N
+
+- **Fonte:** [[sources/2026-06-25-mods-many-to-many]] (pergunta do usuário sobre o schema + refactor no código vivo).
+- **Páginas afetadas:** [[decisions/mods-many-to-many]] (nova), [[sources/2026-06-25-mods-many-to-many]] (nova), [[concepts/modpack-mods-locais]], [[entities/tcmine-domain]], [[entities/tcmine-infrastructure]], `index.md`.
+- **Resumo:** o usuário notou que a FK `ModpackId` em `Mods` duplicava linhas do
+  mesmo arquivo entre modpacks. Normalizado para **N:N**: `ModFileEntity` (PK
+  `FileId`, metadados uma vez) + `ModpackModEntity` (junção `(ModpackId, FileId)`
+  com `Side`/`Target`/`SortOrder`, por-modpack). `ModEntryEntity` virou modelo plano
+  (não-EF) de rascunho/import; `SaveAsync` faz upsert de `ModFile` + reconcile dos
+  vínculos; `FlattenMods` reidrata o editor. Manifesto, `ContentCatalog` (counts) e o
+  editor Blazor ajustados. Migrations `ModsManyToMany` geradas nos dois providers.
+  Build da solução limpo.
+- **Pendências:** migration **destrutiva** (dropa `Mods` — dados de mod perdidos no
+  migrate; jars no cache repovoam via re-save) — avisar antes de aplicar em dados
+  reais. GC de `ModFile` órfão fica como trabalho futuro.
+
 ## [2026-06-25] ingest | Overlay aparece primeiro, troca de aba com feedback e fix do MudFileUpload
 
 - **Fonte:** pedido do usuário nesta sessão; código `TCMine-Server/Services/BusyService.cs`, `Components/Pages/Admin/Modpacks/{ModpackEditor.razor,ModpackEditor.razor.cs,OverridesPanel.razor}`.

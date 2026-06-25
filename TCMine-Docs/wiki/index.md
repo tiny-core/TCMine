@@ -51,6 +51,7 @@ correspondente, com um resumo de uma linha.
 
 - [[decisions/persistence-dual-provider]] — SQLite/Postgres com `AppDbContext` abstrato + migrations por provider (ef-core, persistência)
 - [[decisions/central-package-management]] — uma versão por pacote NuGet em toda a solução (build, nuget)
+- [[decisions/mods-many-to-many]] — mods em N:N (`ModFile` + `ModpackMod`) em vez de FK 1:N (ef-core, modpack)
 
 ## Fontes / Resumos (`wiki/sources/`)
 
@@ -59,6 +60,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-23-leitura-codigo-vivo]] — leitura inicial dos 7 projetos da solução (code, arquitetura)
 - [[sources/2026-06-24-modpack-admin-ui]] — construção da UI admin de modpacks + BlazorMonaco (code, modpack, admin)
 - [[sources/2026-06-25-busy-overlay]] — overlay bloqueante de feedback async no painel (code, blazor, ux)
+- [[sources/2026-06-25-mods-many-to-many]] — normalização de mods em N:N (code, ef-core, modpack)
 
 ## Sínteses e páginas derivadas
 

@@ -49,10 +49,20 @@ mantém um cache compartilhado dos jars em `tcmine-data/mods/{fileId}/{fileName}
 - `TCMine-Server/Endpoints/ModpackEndpoints.cs`;
   `TCMine-Infrastructure/FileSystem/ServerPaths.cs` (`Mods`, `Modpacks`).
 
+## Modelo de dados (N:N)
+
+Desde 2026-06-25 os mods são **normalizados** (ver [[decisions/mods-many-to-many]]):
+um `ModFileEntity` por arquivo (PK `FileId`, metadados uma vez) + a junção
+`ModpackModEntity` (`(ModpackId, FileId)` com `Side`/`Target`/`SortOrder`). O jar
+em disco já era compartilhado; agora os metadados também. O `ModEntryEntity` é só
+um modelo plano de rascunho/import (não-EF).
+
 ## Contradições / debates conhecidos
 
 - O preenchimento do cache de jars (download a partir do CF no import) é feito
   pelo `ModpackImportService` — ainda a aprofundar nesta wiki.
+- `ModFile` órfão (sem vínculo em nenhum modpack) não é coletado automaticamente —
+  GC futuro (ver [[decisions/mods-many-to-many]]).
 
 ## Referências
 

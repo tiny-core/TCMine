@@ -61,7 +61,9 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
         // Contagens-base de conteúdo
         var modpacks = await db.Modpacks.CountAsync(ct);
         var published = await db.Modpacks.CountAsync(m => m.IsPublished, ct);
-        var mods = await db.Mods.CountAsync(ct);
+        // "Mods" = arquivos únicos (compartilhados entre modpacks); a distribuição abaixo conta
+        // os vínculos por-modpack (um mesmo arquivo em 2 packs conta 2x na distribuição).
+        var mods = await db.ModFiles.CountAsync(ct);
         var servers = await db.Servers.CountAsync(ct);
         var users = await db.Users.CountAsync(ct);
 
@@ -69,9 +71,9 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
         var globalNews = await db.News.CountAsync(n => n.IsPublished && n.ModpackId == null, ct);
         var modpackNews = await db.News.CountAsync(n => n.IsPublished && n.ModpackId != null, ct);
 
-        // Distribuição de mods por lado — "Both" conta para cliente e servidor (regra do manifesto)
-        var clientMods = await db.Mods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Client, ct);
-        var serverMods = await db.Mods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Server, ct);
+        // Distribuição de mods por lado (sobre os vínculos por-modpack) — "Both" conta para os dois
+        var clientMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Client, ct);
+        var serverMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Server, ct);
 
         // Instâncias de servidor gerenciadas e quantas estão de pé agora
         var instances = await db.ServerInstances.CountAsync(ct);

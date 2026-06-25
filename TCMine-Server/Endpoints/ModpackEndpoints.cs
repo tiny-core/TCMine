@@ -44,7 +44,7 @@ public static class ModpackEndpoints
         {
             var pack = await db.Modpacks
                 .AsNoTracking()
-                .Include(m => m.Mods)
+                .Include(m => m.Mods).ThenInclude(mm => mm.ModFile)
                 .Include(m => m.Servers)
                 .FirstOrDefaultAsync(m => m.Id == uid && m.IsPublished, ct);
 
@@ -52,13 +52,15 @@ public static class ModpackEndpoints
 
             var baseUrl = await ResolveBaseUrlAsync(ctx, settings, ct);
 
-            // Só os mods que rodam no cliente entram no manifesto do launcher
+            // Só os mods que rodam no cliente entram no manifesto do launcher. Cada vínculo carrega
+            // o lado/destino (por-modpack); os metadados do arquivo vêm do ModFile compartilhado.
             var mods = pack.Mods
-                .Where(m => ModSideRules.RunsOnClient(m.Side))
+                .Where(m => ModSideRules.RunsOnClient(m.Side) && m.ModFile is not null)
+                .OrderBy(m => m.SortOrder)
                 .Select(m => new ModDto(
-                    m.CurseModId, m.FileId, m.Name, m.FileName,
-                    $"{baseUrl}/files/{m.FileId}/{Uri.EscapeDataString(m.FileName)}",
-                    m.Target, m.Version))
+                    m.ModFile!.CurseModId, m.FileId, m.ModFile.Name, m.ModFile.FileName,
+                    $"{baseUrl}/files/{m.FileId}/{Uri.EscapeDataString(m.ModFile.FileName)}",
+                    m.Target, m.ModFile.Version))
                 .ToList();
 
             var servers = pack.Servers

@@ -4,7 +4,7 @@ title: TCMine-Domain
 tags: [entity, tcmine, domain, clean-architecture]
 status: wip
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-06-25
 aliases: [TCMine-Domain, domínio, Domain]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
@@ -13,6 +13,7 @@ related:
   - "[[entities/tcmine-application]]"
   - "[[entities/tcmine-infrastructure]]"
   - "[[concepts/clean-architecture]]"
+  - "[[decisions/mods-many-to-many]]"
 ---
 
 # TCMine-Domain
@@ -29,14 +30,18 @@ DataAnnotations` para anotações como `[MaxLength]`).
 
 ## Responsabilidades / Escopo
 
-- **Entidades (`Entities/`):** `NewsEntity`, `ModpackEntity`, `ModEntryEntity`,
-  `ServerEntryEntity`, `ReleaseEntity`, `PlayerConfigEntity`, `ServerSettingEntity`,
-  `UserEntity`, `ServerInstanceEntity`, `OverrideHistoryEntry`. São POCOs; o
-  mapeamento EF (chaves, conversões, cascatas) é feito em
+- **Entidades (`Entities/`):** `NewsEntity`, `ModpackEntity`, `ModFileEntity`,
+  `ModpackModEntity`, `ServerEntryEntity`, `ReleaseEntity`, `PlayerConfigEntity`,
+  `ServerSettingEntity`, `UserEntity`, `ServerInstanceEntity`, `OverrideHistoryEntry`.
+  São POCOs; o mapeamento EF (chaves, conversões, cascatas) é feito em
   [[entities/tcmine-infrastructure]] (`AppDbContext.OnModelCreating`), não aqui.
   - `ModpackEntity`: `Id` é `Guid`; tem `Name`/`Version`/`Minecraft`/`Loader`/
     `LoaderVersion`/`Description`/`IsPublished`/`RecommendedRamMb`/`HasOverrides`/
-    `UpdatedAt`, e listas `Mods` + `Servers`.
+    `UpdatedAt`, e listas `Mods` (vínculos `ModpackModEntity`) + `Servers`.
+  - **Mods em N:N** (ver [[decisions/mods-many-to-many]]): `ModFileEntity` (PK
+    `FileId`, metadados do arquivo uma vez) + `ModpackModEntity` (junção
+    `(ModpackId, FileId)` com `Side`/`Target`/`SortOrder`). `ModEntryEntity` **não**
+    é entidade EF — é o modelo plano de rascunho/import do editor.
 - **Modpack (`Modpack/`):**
   - `ModSide` (`Both`/`Client`/`Server`, default `Both`) + `ModSideRules`
     (`RunsOnClient`/`RunsOnServer`) — a fonte única de filtragem por lado, ver

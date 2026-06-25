@@ -20,7 +20,10 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
 
     public DbSet<NewsEntity> News => Set<NewsEntity>();
     public DbSet<ModpackEntity> Modpacks => Set<ModpackEntity>();
-    public DbSet<ModEntryEntity> Mods => Set<ModEntryEntity>();
+
+    // Arquivos de mod (um por FileId, compartilhados entre modpacks) + a junção N:N com os modpacks
+    public DbSet<ModFileEntity> ModFiles => Set<ModFileEntity>();
+    public DbSet<ModpackModEntity> ModpackMods => Set<ModpackModEntity>();
     public DbSet<ServerEntryEntity> Servers => Set<ServerEntryEntity>();
     public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
     public DbSet<PlayerConfigEntity> PlayerConfigs => Set<PlayerConfigEntity>();
@@ -56,7 +59,7 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
             // Loader guardado como texto ("NeoForge"/"Forge"/"Fabric"/"Quilt") — legível no banco
             e.Property(m => m.Loader).HasConversion<string>().HasMaxLength(20);
 
-            // Apagar o modpack apaga os seus mods e servidores em cascata
+            // Apagar o modpack apaga os vínculos de mod e servidores em cascata
             e.HasMany(m => m.Mods)
                 .WithOne(x => x.Modpack!)
                 .HasForeignKey(x => x.ModpackId)
@@ -68,9 +71,28 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Lado do mod guardado como texto ("Both"/"Client"/"Server") — legível no banco
-        b.Entity<ModEntryEntity>()
-            .Property(x => x.Side).HasConversion<string>().HasMaxLength(10);
+        // Arquivo de mod: PK natural = FileId (id do CF, ou negativo p/ uploads); nunca gerado pelo banco
+        b.Entity<ModFileEntity>(e =>
+        {
+            e.HasKey(f => f.FileId);
+            e.Property(f => f.FileId).ValueGeneratedNever();
+        });
+
+        // Junção modpack↔arquivo: PK composta + atributos por-modpack (Side/Target/ordem)
+        b.Entity<ModpackModEntity>(e =>
+        {
+            e.HasKey(x => new { x.ModpackId, x.FileId });
+
+            // Lado guardado como texto ("Both"/"Client"/"Server") — legível no banco
+            e.Property(x => x.Side).HasConversion<string>().HasMaxLength(10);
+
+            // Restrict: dropar um arquivo de um modpack não apaga o arquivo compartilhado (pode estar
+            // em outros packs). Órfãos ficam no banco/cache, como já era a política dos jars.
+            e.HasOne(x => x.ModFile)
+                .WithMany(f => f.ModpackLinks)
+                .HasForeignKey(x => x.FileId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
 
         b.Entity<NewsEntity>(e =>
         {

@@ -35,6 +35,11 @@ public partial class ModpackEditor : ComponentBase
 
     // Rascunho destacado: a fonte da verdade do formulário até o Guardar
     private ModpackEntity _draft = new();
+
+    // Mods do rascunho como lista plana (campos do arquivo + Side/Target por-modpack). A persistência
+    // decompõe isto em ModFile (compartilhado) + ModpackMod (junção) no SaveAsync.
+    private List<ModEntryEntity> _mods = [];
+
     private bool _isNew;
     private bool _loading = true;
     private bool _cfConfigured;
@@ -84,6 +89,7 @@ public partial class ModpackEditor : ComponentBase
                     Loader = ModLoader.NeoForge,
                     IsPublished = false
                 };
+                _mods = [];
             }
             else if (Guid.TryParse(Id, out var uid))
             {
@@ -96,6 +102,8 @@ public partial class ModpackEditor : ComponentBase
 
                 _isNew = false;
                 _draft = existing;
+                // Achata os vínculos+arquivos no modelo plano que o editor edita
+                _mods = ModpackImportService.FlattenMods(existing);
                 await ReloadNewsAsync();
             }
             else
@@ -298,7 +306,7 @@ public partial class ModpackEditor : ComponentBase
     // Mescla um mod no rascunho por FileId (mesma versão = atualiza; novo = adiciona). Devolve true se adicionou.
     private bool MergeMod(ModEntryEntity entry)
     {
-        var existing = _draft.Mods.FirstOrDefault(m => m.FileId == entry.FileId);
+        var existing = _mods.FirstOrDefault(m => m.FileId == entry.FileId);
         if (existing is not null)
         {
             // Preserva o Side/Target já ajustado pelo admin; só atualiza o que veio resolvido
@@ -309,13 +317,13 @@ public partial class ModpackEditor : ComponentBase
             return false;
         }
 
-        _draft.Mods.Add(entry);
+        _mods.Add(entry);
         return true;
     }
 
     private void RemoveMod(ModEntryEntity mod)
     {
-        _draft.Mods.Remove(mod);
+        _mods.Remove(mod);
     }
 
     // ── Servidores ───────────────────────────────────────────────────────────────────────────────
@@ -355,7 +363,7 @@ public partial class ModpackEditor : ComponentBase
 
         try
         {
-            await Service.SaveAsync(_draft, _pendingOverrides, progress);
+            await Service.SaveAsync(_draft, _mods, _pendingOverrides, progress);
             _pendingOverrides = null; // já extraído
             var wasNew = _isNew;
             _isNew = false;

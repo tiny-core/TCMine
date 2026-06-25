@@ -118,7 +118,7 @@ else
         </MudTabPanel>
 
         @* ── Mods ─────────────────────────────────────────────────────────────────────── *@
-        <MudTabPanel Text="@($"Mods ({_draft.Mods.Count})")" Icon="@Icons.Material.Filled.Extension">
+        <MudTabPanel Text="@($"Mods ({_mods.Count})")" Icon="@Icons.Material.Filled.Extension">
             <MudStack Row="true" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap">
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="!_cfConfigured"
                            StartIcon="@Icons.Material.Filled.Search" OnClick="SearchModsAsync">
@@ -139,7 +139,7 @@ else
                 </MudFileUpload>
             </MudStack>
 
-            @if (_draft.Mods.Count == 0)
+            @if (_mods.Count == 0)
             {
                 <MudStack AlignItems="AlignItems.Center" Class="py-12">
                     <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary"/>
@@ -150,7 +150,7 @@ else
             }
             else
             {
-                <MudTable Items="_draft.Mods" Hover="true" Dense="true" Elevation="0"
+                <MudTable Items="_mods" Hover="true" Dense="true" Elevation="0"
                           T="ModEntryEntity" FixedHeader="true" Height="50vh">
                     <HeaderContent>
                         <MudTh>Nome</MudTh>

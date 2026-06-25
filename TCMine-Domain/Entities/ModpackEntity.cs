@@ -52,11 +52,12 @@ public class ModpackEntity
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Lista de mods associados a um modpack. Contém entradas que representam cada mod
-    /// individual, incluindo informações como ID do CurseForge, a versão do mod e a URL de download.
-    /// A exclusão de um modpack resulta na exclusão em cascata de todos os seus mods no banco de dados.
+    /// Vínculos com os mods deste modpack (junção N:N — ver <see cref="ModpackModEntity"/>). Cada
+    /// vínculo aponta para um <see cref="ModFileEntity"/> compartilhado e carrega os atributos
+    /// por-modpack (Side/Target). Apagar o modpack apaga os vínculos em cascata; os arquivos
+    /// (ModFile) permanecem, pois podem ser usados por outros modpacks.
     /// </summary>
-    public List<ModEntryEntity> Mods { get; set; } = [];
+    public List<ModpackModEntity> Mods { get; set; } = [];
 
     /// <summary>
     /// Lista de servidores associados ao modpack. Estes servidores são anunciados no arquivo

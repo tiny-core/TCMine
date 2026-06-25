@@ -4,7 +4,7 @@ title: TCMine-Infrastructure
 tags: [entity, tcmine, infrastructure, ef-core, curseforge]
 status: wip
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-06-25
 aliases: [TCMine-Infrastructure, Infrastructure, Infra]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
@@ -13,6 +13,7 @@ related:
   - "[[entities/tcmine-application]]"
   - "[[entities/tcmine-server]]"
   - "[[decisions/persistence-dual-provider]]"
+  - "[[decisions/mods-many-to-many]]"
   - "[[concepts/curseforge-proxy]]"
   - "[[concepts/secrets-data-protection]]"
 ---
@@ -42,7 +43,10 @@ a registra no DI.
   - `OnModelCreating` concentra: `Username` único; chave composta de
     `PlayerConfigEntity` `(Uuid, ModpackId)`; `ServerSettingEntity` linha única
     (`Id == 1`, `ValueGeneratedNever`); cascatas modpack→mods/servers; enums como
-    texto; `ServerInstance` com `Restrict` no FK do modpack.
+    texto; `ServerInstance` com `Restrict` no FK do modpack. **Mods em N:N**
+    (migration `ModsManyToMany`): `ModFileEntity` (PK `FileId`) + junção
+    `ModpackModEntity` `(ModpackId, FileId)` — cascade no modpack, `Restrict` no
+    arquivo. Ver [[decisions/mods-many-to-many]].
 - **CurseForge (`CurseForge/`):** `CurseForgeApiClient` implementa `ICurseForgeApi`,
   falando direto com `api.curseforge.com` e injetando a `x-api-key` (lida das
   settings cifradas) **por requisição**. Busca de mods/modpacks (game 432),

@@ -17,10 +17,9 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.9");
 
-            modelBuilder.Entity("TCMine_Domain.Entities.ModEntryEntity", b =>
+            modelBuilder.Entity("TCMine_Domain.Entities.ModFileEntity", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
+                    b.Property<long>("FileId")
                         .HasColumnType("INTEGER");
 
                     b.Property<long>("CurseModId")
@@ -31,18 +30,12 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<long>("FileId")
-                        .HasColumnType("INTEGER");
-
                     b.Property<long>("FileLength")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(260)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("ModpackId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -54,25 +47,13 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Side")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Target")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Version")
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
-                    b.HasKey("Id");
+                    b.HasKey("FileId");
 
-                    b.HasIndex("ModpackId");
-
-                    b.ToTable("Mods");
+                    b.ToTable("ModFiles");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ModpackEntity", b =>
@@ -126,6 +107,34 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.HasKey("Id");
 
                     b.ToTable("Modpacks");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.ModpackModEntity", b =>
+                {
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("FileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Side")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ModpackId", "FileId");
+
+                    b.HasIndex("FileId");
+
+                    b.ToTable("ModpackMods");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.NewsEntity", b =>
@@ -409,13 +418,21 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("TCMine_Domain.Entities.ModEntryEntity", b =>
+            modelBuilder.Entity("TCMine_Domain.Entities.ModpackModEntity", b =>
                 {
+                    b.HasOne("TCMine_Domain.Entities.ModFileEntity", "ModFile")
+                        .WithMany("ModpackLinks")
+                        .HasForeignKey("FileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("TCMine_Domain.Entities.ModpackEntity", "Modpack")
                         .WithMany("Mods")
                         .HasForeignKey("ModpackId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ModFile");
 
                     b.Navigation("Modpack");
                 });
@@ -448,6 +465,11 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .IsRequired();
 
                     b.Navigation("Modpack");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.ModFileEntity", b =>
+                {
+                    b.Navigation("ModpackLinks");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ModpackEntity", b =>

@@ -1,73 +1,53 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using TCMine_Domain.Modpack;
 
 namespace TCMine_Domain.Entities;
 
-/// <summary>Um mod (CurseForge) pertencente a um modpack.</summary>
+/// <summary>
+/// Modelo **plano** de um mod dentro de um modpack — usado como rascunho do editor e como item de
+/// import. Junta os campos do arquivo (<see cref="ModFileEntity"/>) com os atributos por-modpack
+/// (<c>Side</c>/<c>Target</c>) numa única estrutura conveniente para a UI. **Não** é uma entidade EF:
+/// a persistência decompõe isto em <see cref="ModFileEntity"/> (compartilhado) + <see cref="ModpackModEntity"/>
+/// (junção). Ver wiki: decisions/mods-many-to-many.
+/// </summary>
 public class ModEntryEntity
 {
-    public int Id { get; set; }
-
-    /// <summary>ID do mod no CurseForge (serializado como "modId" no manifesto público)</summary>
+    /// <summary>ID do mod no CurseForge (serializado como "modId" no manifesto público).</summary>
     public long CurseModId { get; set; }
 
-    /// <summary>
-    /// ID do arquivo (serializado como "fileId" no manifesto público) relacionado ao mod no CurseForge.
-    /// Usado para identificar de forma única a versão específica do mod associada ao modpack.
-    /// </summary>
+    /// <summary>ID do arquivo no CurseForge (serializado como "fileId"); identidade do arquivo.</summary>
     public long FileId { get; set; }
 
     [MaxLength(200)] public string Name { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Versão legível do arquivo (CurseForge DisplayName)
-    /// </summary>
+    /// <summary>Versão legível do arquivo (CurseForge DisplayName).</summary>
     [MaxLength(80)]
     public string? Version { get; set; }
 
-    /// <summary>
-    /// Nome do arquivo associado ao mod (serializado como "fileName" no manifesto público).
-    /// </summary>
+    /// <summary>Nome do arquivo (serializado como "fileName" no manifesto público).</summary>
     [MaxLength(260)]
     public string FileName { get; set; } = string.Empty;
 
     /// <summary>
-    /// URL de origem no CurseForge — usada pelo servidor para baixar o jar uma vez.
-    /// O launcher NÃO usa esta URL: baixa o jar do próprio servidor (ver project-modpack-mods-locais).
+    /// URL de origem no CurseForge — usada pelo servidor para baixar o jar uma vez. O launcher NÃO
+    /// usa esta URL: baixa o jar do próprio servidor (ver [[concepts/modpack-mods-locais]]).
     /// </summary>
     [MaxLength(500)]
     public string DownloadUrl { get; set; } = string.Empty;
 
-    /// <summary>
-    /// SHA-1 e tamanho do jar baixado — para o launcher verificar integridade e para dedup do cache.
-    /// Preenchidos quando o servidor baixa o arquivo (o CF não fornece hash no CfFileRefDto).
-    /// </summary>
+    /// <summary>SHA-1 e tamanho do jar — para o launcher verificar integridade e dedup do cache.</summary>
     [MaxLength(40)]
     public string? Sha1 { get; set; }
 
     public long FileLength { get; set; }
 
-    /// <summary>
-    /// Destino no cliente: "mod", "resourcepack" ou "shaderpack"
-    /// </summary>
+    /// <summary>Destino no cliente: "mod", "resourcepack" ou "shaderpack" (por-modpack).</summary>
     [MaxLength(20)]
     public string Target { get; set; } = "mod";
 
     /// <summary>
     /// Lado em que o mod roda — filtra o que vai para o cliente (launcher) vs servidor.
-    /// Regra compartilhada em TCMine.Core.modpack.ModSideRules.
+    /// Regra compartilhada em <see cref="ModSideRules"/>. Por-modpack.
     /// </summary>
     public ModSide Side { get; set; } = ModSide.Both;
-
-    /// <summary>
-    /// Identificador único do modpack ao qual o mod pertence (referência para <see cref="ModpackEntity"/>).
-    /// </summary>
-    public Guid ModpackId { get; set; }
-
-    /// <summary>
-    /// O modpack ao qual este mod pertence, representado por uma instância de <see cref="ModpackEntity"/>.
-    /// Relacionamento de chave estrangeira entre mods e modpacks. Apagar um modpack resultará na exclusão em cascata
-    /// de todos os mods associados.
-    /// </summary>
-    public ModpackEntity? Modpack { get; set; }
 }
