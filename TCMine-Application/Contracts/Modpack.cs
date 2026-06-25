@@ -82,6 +82,24 @@ public sealed record ModpackAdminRowDto(
 /// <summary>Progresso do download de jars durante o Guardar (mod atual / total + nome).</summary>
 public sealed record SaveProgressDto(int Current, int Total, string FileName);
 
+/// <summary>Badge de um modpack onde um arquivo de mod está presente (id + nome).</summary>
+public sealed record ModpackBadgeDto(Guid Id, string Name);
+
+/// <summary>
+/// Linha da página "todos os mods" do painel: um <c>ModFile</c> (arquivo único) com os modpacks
+/// em que aparece. <c>IsOrphan</c> = sem vínculo com nenhum modpack; <c>IsManual</c> = upload (sem
+/// origem CurseForge).
+/// </summary>
+public sealed record ModFileRowDto(
+    long FileId,
+    string Name,
+    string? Version,
+    string FileName,
+    long FileLength,
+    bool IsManual,
+    bool IsOrphan,
+    IReadOnlyList<ModpackBadgeDto> Modpacks);
+
 /// <summary>Um arquivo de override com o seu tamanho (caminho relativo + bytes).</summary>
 public sealed record OverrideFileDto(string Path, long Length);
 

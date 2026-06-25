@@ -58,8 +58,14 @@ Normalizar em N:N:
 - **−** Refactor amplo (Domain, EF, manifesto, `ContentCatalog`, editor) +
   **migration destrutiva** nos dois providers (a tabela `Mods` é dropada; dados de
   mod existentes se perdem, mas os jars no cache permitem repovoar via re-save).
-- **Órfãos:** `ModFile` sem nenhum vínculo não é apagado automaticamente (como já
-  era a política do cache de jars) — eventual GC fica como trabalho futuro.
+- **Órfãos:** `ModFile` sem nenhum vínculo recebe um **marcador** `OrphanedAt`
+  (UTC), mantido no `SaveAsync`/`DeleteAsync` via `MarkOrphansAsync`. Não é apagado
+  automaticamente (a política do cache de jars é preservá-los); a limpeza é manual,
+  pela página de mods (`DeleteOrphanFileAsync`, só para órfãos — remove o `ModFile`
+  e o jar do cache).
+- **Página "todos os mods"** (`/admin/mods`, Owner/Admin): lista os `ModFile` com
+  badges dos modpacks em que cada um aparece, marca os órfãos e permite apagá-los.
+  Ver [[entities/tcmine-server]].
 - **Dashboard:** KPI "Mods" passa a contar **arquivos únicos** (`ModFiles`); a
   distribuição cliente/servidor conta **vínculos** (`ModpackMods`).
 

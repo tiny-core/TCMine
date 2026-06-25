@@ -129,6 +129,48 @@ public sealed class ModpackImportService(
             .ToListAsync(ct);
     }
 
+    /// <summary>
+    /// Todos os arquivos de mod do servidor (um por FileId) com os modpacks em que aparecem — para a
+    /// página "todos os mods". Órfão = sem nenhum vínculo. Ordenado por nome.
+    /// </summary>
+    public async Task<List<ModFileRowDto>> ListModFilesAsync(CancellationToken ct = default)
+    {
+        return await db.ModFiles
+            .AsNoTracking()
+            .OrderBy(f => f.Name)
+            .Select(f => new ModFileRowDto(
+                f.FileId, f.Name, f.Version, f.FileName, f.FileLength,
+                f.CurseModId <= 0, // upload manual (sem origem CurseForge)
+                !f.ModpackLinks.Any(), // órfão = sem vínculo (preciso mesmo se o marcador atrasar)
+                f.ModpackLinks
+                    .OrderBy(l => l.Modpack!.Name)
+                    .Select(l => new ModpackBadgeDto(l.ModpackId, l.Modpack!.Name))
+                    .ToList()))
+            .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Remove um arquivo de mod **órfão** (sem vínculos) do banco e o jar do cache de disco. Recusa
+    /// se ainda houver algum modpack usando-o (proteção contra quebrar um pack).
+    /// </summary>
+    public async Task<bool> DeleteOrphanFileAsync(long fileId, CancellationToken ct = default)
+    {
+        var stillLinked = await db.ModpackMods.AnyAsync(l => l.FileId == fileId, ct);
+        if (stillLinked) return false;
+
+        var file = await db.ModFiles.FirstOrDefaultAsync(f => f.FileId == fileId, ct);
+        if (file is null) return false;
+
+        db.ModFiles.Remove(file);
+        await db.SaveChangesAsync(ct);
+
+        // Remove o jar do cache compartilhado (data-server/mods/{fileId}/)
+        var dir = Path.Combine(ServerPaths.Mods(_root), fileId.ToString());
+        if (Directory.Exists(dir)) Directory.Delete(dir, true);
+
+        return true;
+    }
+
     /// <summary>Carrega o modpack destacado (vínculos de mod + arquivo + servidores) para edição, ou null.</summary>
     public async Task<ModpackEntity?> GetForEditAsync(Guid uid, CancellationToken ct = default)
     {
@@ -170,6 +212,12 @@ public sealed class ModpackImportService(
         var pack = await db.Modpacks.FirstOrDefaultAsync(m => m.Id == uid, ct);
         if (pack is null) return;
 
+        // Arquivos vinculados a este modpack — candidatos a órfão após a remoção (cascade)
+        var affectedFileIds = await db.ModpackMods
+            .Where(l => l.ModpackId == uid)
+            .Select(l => l.FileId)
+            .ToListAsync(ct);
+
         db.Modpacks.Remove(pack);
 
         // Histórico de overrides não tem FK para o modpack (chaveado só pelo slug) — limpa manualmente
@@ -180,6 +228,9 @@ public sealed class ModpackImportService(
         db.OverrideHistory.RemoveRange(history);
 
         await db.SaveChangesAsync(ct);
+
+        // Marca como órfãos os arquivos que ficaram sem nenhum modpack após a remoção
+        await MarkOrphansAsync(affectedFileIds, ct);
 
         // Jars ficam no cache (compartilhado entre modpacks); só os overrides do slug são removidos
         var dir = Path.Combine(ServerPaths.Modpacks(_root), uid.ToString());
@@ -251,6 +302,8 @@ public sealed class ModpackImportService(
         // Reconcilia os vínculos do modpack in-place (evita delete+insert da mesma PK composta):
         // atualiza os que ficam, remove os que saíram, adiciona os novos — com a ordem do formulário.
         var desiredIds = desired.Select(m => m.FileId).ToHashSet();
+        // Arquivos que saíram deste modpack — candidatos a virar órfãos (se nenhum outro pack usar)
+        var removedIds = tracked.Mods.Select(l => l.FileId).Where(id => !desiredIds.Contains(id)).ToList();
         foreach (var link in tracked.Mods.Where(l => !desiredIds.Contains(l.FileId)).ToList())
             db.ModpackMods.Remove(link);
 
@@ -288,6 +341,9 @@ public sealed class ModpackImportService(
 
         await db.SaveChangesAsync(ct);
 
+        // Atualiza o marcador de órfão dos arquivos que saíram (agora que os vínculos estão gravados)
+        await MarkOrphansAsync(removedIds, ct);
+
         // Avisa os launchers ligados (SSE) que o catálogo mudou
         notifier.Bump();
     }
@@ -302,7 +358,6 @@ public sealed class ModpackImportService(
             .ToDictionaryAsync(f => f.FileId, ct);
 
         foreach (var m in desired)
-        {
             if (existing.TryGetValue(m.FileId, out var file))
             {
                 file.CurseModId = m.CurseModId;
@@ -312,6 +367,7 @@ public sealed class ModpackImportService(
                 file.DownloadUrl = m.DownloadUrl;
                 file.Sha1 = m.Sha1;
                 file.FileLength = m.FileLength;
+                file.OrphanedAt = null; // está sendo vinculado a este modpack — não é órfão
             }
             else
             {
@@ -324,7 +380,39 @@ public sealed class ModpackImportService(
                 db.ModFiles.Add(created);
                 existing[m.FileId] = created; // evita duplicar se houver repetição na lista
             }
-        }
+    }
+
+    // Recalcula o marcador de órfão dos arquivos dados: sem nenhum vínculo restante ⇒ OrphanedAt = agora
+    // (se ainda não marcado); com vínculo ⇒ limpa. Persiste se algo mudou.
+    private async Task MarkOrphansAsync(IReadOnlyCollection<long> fileIds, CancellationToken ct)
+    {
+        if (fileIds.Count == 0) return;
+
+        var linkedIds = await db.ModpackMods
+            .Where(l => fileIds.Contains(l.FileId))
+            .Select(l => l.FileId)
+            .Distinct()
+            .ToListAsync(ct);
+        var linked = linkedIds.ToHashSet();
+
+        var files = await db.ModFiles
+            .Where(f => fileIds.Contains(f.FileId))
+            .ToListAsync(ct);
+
+        var changed = false;
+        foreach (var file in files)
+            if (!linked.Contains(file.FileId) && file.OrphanedAt is null)
+            {
+                file.OrphanedAt = DateTime.UtcNow;
+                changed = true;
+            }
+            else if (linked.Contains(file.FileId) && file.OrphanedAt is not null)
+            {
+                file.OrphanedAt = null;
+                changed = true;
+            }
+
+        if (changed) await db.SaveChangesAsync(ct);
     }
 
     // ── Cache de jars (SHA-1 + tamanho) ──────────────────────────────────────────────────────

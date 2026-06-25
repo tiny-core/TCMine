@@ -43,6 +43,9 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("OrphanedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Sha1")
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");

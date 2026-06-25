@@ -46,6 +46,13 @@ public class ModFileEntity
 
     public long FileLength { get; set; }
 
+    /// <summary>
+    /// Marcador de **órfão**: preenchido (UTC) quando o arquivo deixa de estar vinculado a qualquer
+    /// modpack; <c>null</c> enquanto houver ao menos um vínculo. O jar permanece no cache de disco —
+    /// este marcador serve para identificar candidatos a limpeza (GC) e exibir na lista de mods.
+    /// </summary>
+    public DateTime? OrphanedAt { get; set; }
+
     /// <summary>Vínculos deste arquivo com os modpacks que o usam.</summary>
     public List<ModpackModEntity> ModpackLinks { get; set; } = [];
 }

@@ -28,6 +28,21 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] ingest | Marcador de mod órfão + página "todos os mods" com badges
+
+- **Fonte:** pedido do usuário; código `TCMine-Infrastructure/Minecraft/ModpackImportService.cs`, `TCMine-Server/Components/Pages/Admin/Mods/`.
+- **Páginas afetadas:** [[decisions/mods-many-to-many]], [[entities/tcmine-server]], [[entities/tcmine-infrastructure]].
+- **Resumo:** complementos da normalização N:N. (1) **Marcador de órfão**:
+  `ModFileEntity.OrphanedAt` (UTC), mantido por `MarkOrphansAsync` no `SaveAsync`
+  (arquivos que saíram do pack) e no `DeleteAsync` (ao apagar modpack); limpo quando
+  o arquivo é revinculado. Migration `ModFileOrphanMarker` nos dois providers. (2)
+  **Página `/admin/mods`** (Owner/Admin): `MudDataGrid` com todos os `ModFile`,
+  coluna de **badges dos modpacks** em que aparecem, chip de origem (CF/Manual),
+  filtro textual + switch "só órfãos", e apagar (`DeleteOrphanFileAsync`, só órfãos —
+  remove o `ModFile` e o jar do cache). Link no menu do `AdminLayout`. Build limpo.
+- **Pendências:** nenhuma; GC de órfãos agora é manual pela página (automatizar no
+  futuro, se desejado).
+
 ## [2026-06-25] decisao | Mods em N:N (ModFile + ModpackMod) em vez de FK 1:N
 
 - **Fonte:** [[sources/2026-06-25-mods-many-to-many]] (pergunta do usuário sobre o schema + refactor no código vivo).

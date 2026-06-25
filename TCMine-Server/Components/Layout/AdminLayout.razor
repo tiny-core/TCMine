@@ -37,6 +37,11 @@
                                     Icon="@Icons.Material.Filled.Inventory2">
                             Modpacks
                         </MudNavLink>
+                        @* Catálogo de todos os mods do servidor + badges dos modpacks *@
+                        <MudNavLink Href="/admin/mods" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.Extension">
+                            Mods
+                        </MudNavLink>
                     </AuthorizeView>
                     @* Páginas ainda não implementadas — desabilitadas até a camada de dados existir *@
                     <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Article">Novidades</MudNavLink>

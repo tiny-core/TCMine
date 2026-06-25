@@ -1,0 +1,120 @@
+@page "/admin/mods"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Application.Contracts
+
+@* Catálogo de todos os arquivos de mod do servidor (um por FileId, compartilhados entre modpacks).
+   Cada linha mostra os modpacks em que o mod aparece (badges) e marca os órfãos (sem vínculo). *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h4">Mods</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Todos os arquivos de mod no servidor e em quais modpacks estão.
+        </MudText>
+    </div>
+    @if (_rows is not null)
+    {
+        <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@_rows.Count arquivo(s)</MudText>
+            @if (_orphanCount > 0)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
+                         Icon="@Icons.Material.Filled.LinkOff">@_orphanCount órfão(s)
+                </MudChip>
+            }
+        </MudStack>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true">
+    @* Durante o carregamento o BusyOverlay global cobre a tela; aqui não renderizamos nada. *@
+    @if (_rows is null)
+    {
+    }
+    else if (_rows.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-12">
+            <MudIcon Icon="@Icons.Material.Filled.Extension" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.h6">Nenhum mod ainda</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Adicione mods a um modpack para vê-los aqui.
+            </MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="ModFileRowDto" Items="_rows" Hover="true" Dense="true" Elevation="0"
+                     Virtualize="true" FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_search" Placeholder="Filtrar por nome ou arquivo…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+                <MudSpacer/>
+                <MudSwitch T="bool" @bind-Value="_onlyOrphans" Color="Color.Warning" Label="Só órfãos"/>
+            </ToolBarContent>
+            <Columns>
+                <TemplateColumn Title="Nome" Sortable="true" SortBy="x => x.Name">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Small" Color="Color.Primary"/>
+                            <div>
+                                <MudText Typo="Typo.body2">@context.Item.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Item.FileName</MudText>
+                            </div>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.Version" Title="Versão"/>
+                <TemplateColumn Title="Tamanho" Sortable="true" SortBy="x => x.FileLength">
+                    <CellTemplate>@FormatSize(context.Item.FileLength)</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Origem" Sortable="true" SortBy="x => x.IsManual">
+                    <CellTemplate>
+                        @if (context.Item.IsManual)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                                     Icon="@Icons.Material.Filled.UploadFile">Manual
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                                     Icon="@Icons.Material.Filled.Cloud">CurseForge
+                            </MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Modpacks" Sortable="false">
+                    <CellTemplate>
+                        @if (context.Item.IsOrphan)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.LinkOff">Órfão
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <div class="d-flex flex-wrap" style="gap:4px">
+                                @foreach (var pack in context.Item.Modpacks)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
+                                             OnClick="@(() => OpenModpack(pack.Id))">@pack.Name</MudChip>
+                                }
+                            </div>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                    <CellTemplate>
+                        @* Só dá para apagar arquivos órfãos (apagar um em uso quebraria o modpack) *@
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@(!context.Item.IsOrphan)"
+                                       OnClick="@(() => DeleteOrphanAsync(context.Item))"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    }
+</MudPaper>

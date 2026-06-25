@@ -44,9 +44,11 @@ a registra no DI.
     `PlayerConfigEntity` `(Uuid, ModpackId)`; `ServerSettingEntity` linha única
     (`Id == 1`, `ValueGeneratedNever`); cascatas modpack→mods/servers; enums como
     texto; `ServerInstance` com `Restrict` no FK do modpack. **Mods em N:N**
-    (migration `ModsManyToMany`): `ModFileEntity` (PK `FileId`) + junção
-    `ModpackModEntity` `(ModpackId, FileId)` — cascade no modpack, `Restrict` no
-    arquivo. Ver [[decisions/mods-many-to-many]].
+    (migrations `ModsManyToMany` + `ModFileOrphanMarker`): `ModFileEntity` (PK
+    `FileId`, com `OrphanedAt` para marcar órfãos) + junção `ModpackModEntity`
+    `(ModpackId, FileId)` — cascade no modpack, `Restrict` no arquivo. O
+    `ModpackImportService` mantém o marcador (`MarkOrphansAsync`) e faz GC de órfãos
+    (`DeleteOrphanFileAsync`). Ver [[decisions/mods-many-to-many]].
 - **CurseForge (`CurseForge/`):** `CurseForgeApiClient` implementa `ICurseForgeApi`,
   falando direto com `api.curseforge.com` e injetando a `x-api-key` (lida das
   settings cifradas) **por requisição**. Busca de mods/modpacks (game 432),
