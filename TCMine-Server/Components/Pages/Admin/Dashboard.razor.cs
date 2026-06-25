@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
 using TCMine_Infrastructure.Server;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin;
 
@@ -17,6 +18,8 @@ public partial class Dashboard : ComponentBase
     // Conteúdo do banco (agregado do dashboard) + estado do feed do launcher
     [Inject] private ContentCatalog Catalog { get; set; } = null!;
 
+    [Inject] private BusyService Busy { get; set; } = null!;
+
     // Agregado carregado no OnInitializedAsync (null enquanto não chega → widgets mostram skeletons)
     private DashboardData? _data;
 
@@ -31,6 +34,6 @@ public partial class Dashboard : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        _data = await Catalog.GetDashboardAsync();
+        await Busy.RunAsync("Carregando dashboard…", async () => { _data = await Catalog.GetDashboardAsync(); });
     }
 }

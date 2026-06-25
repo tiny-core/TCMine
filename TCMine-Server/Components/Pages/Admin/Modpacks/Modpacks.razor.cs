@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
@@ -16,15 +17,19 @@ public partial class Modpacks : ComponentBase
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
-    // null = carregando (mostra skeletons); lista vazia = estado vazio
+    // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
     private List<ModpackAdminRowDto>? _rows;
     private bool _cfConfigured = true;
 
     protected override async Task OnInitializedAsync()
     {
-        _cfConfigured = await Service.IsCfConfiguredAsync();
-        _rows = await Service.ListAsync();
+        await Busy.RunAsync("Carregando modpacks…", async () =>
+        {
+            _cfConfigured = await Service.IsCfConfiguredAsync();
+            _rows = await Service.ListAsync();
+        });
     }
 
     private void Edit(ModpackAdminRowDto row)
@@ -43,7 +48,7 @@ public partial class Modpacks : ComponentBase
 
         try
         {
-            await Service.DeleteAsync(row.Id);
+            await Busy.RunAsync("Apagando modpack…", () => Service.DeleteAsync(row.Id));
             _rows?.Remove(row);
             Snackbar.Add("Modpack apagado.", Severity.Success);
         }

@@ -1,0 +1,12 @@
+@* Overlay bloqueante global de feedback. Renderizado uma única vez no layout; reage ao BusyService.
+   MudOverlay não fecha por clique no backdrop nem por ESC (AutoClose padrão = false) e não tem botão
+   de fechar — é deliberadamente não-fechável: o usuário espera a operação terminar. *@
+
+<MudOverlay Visible="Busy.IsBusy" DarkBackground="true" ZIndex="9999">
+    <MudPaper Class="pa-8" Elevation="8">
+        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large"/>
+            <MudText Typo="Typo.body1">@(Busy.Message ?? "Processando…")</MudText>
+        </MudStack>
+    </MudPaper>
+</MudOverlay>

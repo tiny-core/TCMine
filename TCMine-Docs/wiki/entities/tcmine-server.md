@@ -68,7 +68,10 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   `Admin/Modpacks/` (lista + editor em abas + diálogos — ver
   [[concepts/modpack-admin-editor]]); `Admin/Users/` (gestão de usuários +
   `UserEditDialog`, só Owner — ver [[concepts/setup-auth-cookie]]); shared
-  (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`).
+  (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`, `BusyOverlay` — ver
+  [[concepts/async-feedback-overlay]]).
+- **Services (`Services/`):** `BusyService` — estado de "ocupado" por circuito que
+  alimenta o `BusyOverlay` no `RootLayout` (ver [[concepts/async-feedback-overlay]]).
 - **UI — pacotes:** MudBlazor (admin) + **BlazorMonaco** (editor de overrides;
   versão central, 3 scripts de setup no `App.razor`).
 - **Theme (`Theme/`):** `MudThemeFactory.Create()` monta o `MudTheme`
@@ -91,6 +94,10 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   `ModpackImportService`, com busca/import CurseForge, upload de jar, marcação de
   `Side`/`Target` por mod e edição de overrides com **BlazorMonaco**. Restrito a
   `Owner,Admin`. Ver [[concepts/modpack-admin-editor]].
+- **[2026-06-25]** **Overlay bloqueante de feedback async**: `BusyService` (scoped)
+  + `BusyOverlay` (no `RootLayout`) cobrem a tela com um modal não-fechável durante
+  toda operação async do painel; skeletons das listas removidos. Convenção no
+  `CLAUDE.md`. Ver [[concepts/async-feedback-overlay]].
 - **[2026-06-25]** **Gestão de usuários** (`/admin/users`, só `Owner`): página
   `Admin/Users/Users` + `UserEditDialog` para criar/editar (login, papel, ativo,
   senha opcional na edição). `UserService` ganhou `UpdateAsync` e guardas reais do

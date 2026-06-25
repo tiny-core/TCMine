@@ -10,11 +10,12 @@
         Novo arquivo
     </MudButton>
     <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileAsync" MaximumFileCount="1">
-        <ActivatorContent>
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
+        <CustomContent Context="upload">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile"
+                       OnClick="@(() => upload.OpenFilePickerAsync())">
                 Enviar arquivo
             </MudButton>
-        </ActivatorContent>
+        </CustomContent>
     </MudFileUpload>
     <MudSpacer/>
     <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"

@@ -28,6 +28,41 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] ingest | Overlay aparece primeiro, troca de aba com feedback e fix do MudFileUpload
+
+- **Fonte:** pedido do usuário nesta sessão; código `TCMine-Server/Services/BusyService.cs`, `Components/Pages/Admin/Modpacks/{ModpackEditor.razor,ModpackEditor.razor.cs,OverridesPanel.razor}`.
+- **Páginas afetadas:** [[concepts/async-feedback-overlay]], [[concepts/modpack-admin-editor]].
+- **Resumo:** três ajustes finos. (1) `BusyService.RunAsync` agora faz
+  `Begin` → **`await Task.Yield()`** → operação, garantindo que o overlay seja
+  enviado ao cliente **antes** do trabalho (a modal é a primeira coisa visível). (2)
+  **Troca de aba do `ModpackEditor`** passou a mostrar o overlay: `MudTabs`
+  controlado (`ActivePanelIndex="_activeTab"`) + `OnPreviewInteraction` que cancela a
+  ativação nativa e a refaz dentro de `Busy.RunAsync` — resolve o travamento das abas
+  Mods/Overrides com muitos itens (o clique parecia morto). (3) Corrigido o
+  `MudFileUpload`: `ActivatorContent` (legado, sinalizado pelo Rider) → **`CustomContent`**
+  com `context.OpenFilePickerAsync()`, no `ModpackEditor` e no `OverridesPanel`.
+- **Pendências:** nenhuma. Verificado em runtime (funciona). Para robustez, a troca de
+  aba agora é conduzida via `@ref` + `MudTabs.ActivatePanelAsync(target, false)` dentro
+  do `Busy.RunAsync` (com guard `_switchingTab` contra reentrância), além do resync do
+  parâmetro `ActivePanelIndex` — dois caminhos garantindo a troca sob o overlay.
+
+## [2026-06-25] ingest | Overlay bloqueante de feedback em toda operação async do painel
+
+- **Fonte:** pedido do usuário nesta sessão; [[sources/2026-06-25-busy-overlay]] (código vivo `TCMine-Server/Services/BusyService.cs`, `Components/Shared/BusyOverlay.razor` e consumidores em `Components/Pages/Admin/`).
+- **Páginas afetadas:** [[concepts/async-feedback-overlay]] (nova), [[sources/2026-06-25-busy-overlay]] (nova), [[entities/tcmine-server]]; `CLAUDE.md` (Parte I).
+- **Resumo:** o usuário pediu um **modal não-fechável** de feedback em toda operação
+  async/banco (atual e futura). Implementado como `BusyService` (scoped, contador de
+  operações) + `BusyOverlay` (`MudOverlay` único no `RootLayout`), com helper
+  `Busy.RunAsync("msg", op)`. Aplicado a loads e mutações de Users, Modpacks,
+  ModpackEditor (+News, +Overrides), Settings e Dashboard; skeletons das listas
+  removidos. Por escolha do usuário, o escopo é "toda operação async", com exceções
+  de UX (refresh recorrente do `SystemStatusCard`, buscas internas de diálogos,
+  fluxos com progresso dedicado import/Save, micro-leituras de seleção). Convenção
+  registrada no `CLAUDE.md` (Parte I, nova seção "Feedback de operações async").
+- **Pendências:** os skeletons dos widgets do dashboard foram mantidos (são
+  fallbacks por parâmetro; o overlay já cobre o load da página) — reavaliar se
+  vale removê-los também.
+
 ## [2026-06-25] ingest | Settings restrito ao Owner + run config de watch mode no Rider
 
 - **Fonte:** pedido do usuário nesta sessão; código `TCMine-Server/Components/Pages/Admin/Settings.razor` e `.run/TCMine-Server (watch).run.xml`.

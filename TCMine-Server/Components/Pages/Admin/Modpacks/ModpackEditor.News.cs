@@ -43,12 +43,15 @@ public partial class ModpackEditor
 
         try
         {
-            if (entry is null)
-                await NewsService.CreateAsync(_draft.Id, draft);
-            else
-                await NewsService.UpdateAsync(draft);
+            await Busy.RunAsync("Salvando novidade…", async () =>
+            {
+                if (entry is null)
+                    await NewsService.CreateAsync(_draft.Id, draft);
+                else
+                    await NewsService.UpdateAsync(draft);
 
-            await ReloadNewsAsync();
+                await ReloadNewsAsync();
+            });
             Snackbar.Add("Novidade salva.", Severity.Success);
         }
         catch (Exception ex)
@@ -65,8 +68,11 @@ public partial class ModpackEditor
 
         try
         {
-            await NewsService.DeleteAsync(entry.Id);
-            await ReloadNewsAsync();
+            await Busy.RunAsync("Apagando novidade…", async () =>
+            {
+                await NewsService.DeleteAsync(entry.Id);
+                await ReloadNewsAsync();
+            });
             Snackbar.Add("Novidade apagada.", Severity.Success);
         }
         catch (Exception ex)

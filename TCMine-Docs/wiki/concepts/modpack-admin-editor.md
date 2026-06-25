@@ -58,6 +58,15 @@ componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
 5. **Servidores** — entradas (nome/endereço/porta) que o launcher escreve no
    `servers.dat`.
 
+> **Troca de aba com feedback:** abas pesadas (Mods/Overrides com muitos itens)
+> travam o render; a troca passa por `OnPreviewInteraction` (cancela + refaz a
+> ativação sob o overlay) para a modal aparecer antes do render — ver
+> [[concepts/async-feedback-overlay]].
+>
+> **Upload (MudBlazor 9.5):** o ativador do `MudFileUpload` usa **`CustomContent`**
+> com `context.OpenFilePickerAsync()` (o `ActivatorContent` legado não é a API
+> documentada e o Rider o sinaliza como inexistente).
+
 ## Duas políticas de escrita (importante)
 
 O editor mistura **deliberadamente** dois modelos de persistência:

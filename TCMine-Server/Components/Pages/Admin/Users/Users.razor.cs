@@ -6,6 +6,7 @@ using TCMine_Domain.Entities;
 using TCMine_Domain.Identity;
 using TCMine_Infrastructure.Identity;
 using TCMine_Server.Components.Pages.Admin.Users.Dialogs;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Users;
 
@@ -20,6 +21,7 @@ public partial class Users : ComponentBase
     [Inject] private UserService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
     [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = null!;
 
     // null = carregando (mostra skeletons); lista vazia = estado vazio
@@ -34,10 +36,11 @@ public partial class Users : ComponentBase
         if (Guid.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
             _currentUserId = id;
 
-        await LoadAsync();
+        await Busy.RunAsync("Carregando usuários…", ReloadAsync);
     }
 
-    private async Task LoadAsync()
+    // Recarrega a lista sem overlay próprio — quem chama decide o envelope de feedback
+    private async Task ReloadAsync()
     {
         _rows = await Service.GetAllAsync();
     }
@@ -50,10 +53,13 @@ public partial class Users : ComponentBase
 
         try
         {
-            // Senha obrigatória na criação — o diálogo já valida, fallback defensivo aqui
-            await Service.CreateAsync(form.Username, form.NewPassword ?? string.Empty, form.Role);
+            await Busy.RunAsync("Criando usuário…", async () =>
+            {
+                // Senha obrigatória na criação — o diálogo já valida, fallback defensivo aqui
+                await Service.CreateAsync(form.Username, form.NewPassword ?? string.Empty, form.Role);
+                await ReloadAsync();
+            });
             Snackbar.Add($"Usuário \"{form.Username}\" criado.", Severity.Success);
-            await LoadAsync();
         }
         catch (Exception ex)
         {
@@ -70,9 +76,12 @@ public partial class Users : ComponentBase
 
         try
         {
-            await Service.UpdateAsync(user.Id, form.Username, form.Role, form.IsActive, form.NewPassword);
+            await Busy.RunAsync("Salvando usuário…", async () =>
+            {
+                await Service.UpdateAsync(user.Id, form.Username, form.Role, form.IsActive, form.NewPassword);
+                await ReloadAsync();
+            });
             Snackbar.Add("Usuário atualizado.", Severity.Success);
-            await LoadAsync();
         }
         catch (Exception ex)
         {
@@ -84,9 +93,12 @@ public partial class Users : ComponentBase
     {
         try
         {
-            await Service.SetActiveAsync(user.Id, !user.IsActive);
+            await Busy.RunAsync(user.IsActive ? "Desativando usuário…" : "Ativando usuário…", async () =>
+            {
+                await Service.SetActiveAsync(user.Id, !user.IsActive);
+                await ReloadAsync();
+            });
             Snackbar.Add(user.IsActive ? "Usuário desativado." : "Usuário ativado.", Severity.Success);
-            await LoadAsync();
         }
         catch (Exception ex)
         {
@@ -105,9 +117,12 @@ public partial class Users : ComponentBase
 
         try
         {
-            await Service.DeleteAsync(user.Id);
+            await Busy.RunAsync("Removendo usuário…", async () =>
+            {
+                await Service.DeleteAsync(user.Id);
+                await ReloadAsync();
+            });
             Snackbar.Add("Usuário removido.", Severity.Success);
-            await LoadAsync();
         }
         catch (Exception ex)
         {

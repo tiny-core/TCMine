@@ -9,7 +9,7 @@ namespace TCMine_Launcher.Theme;
 /// Aplica a paleta de <see cref="ColorTokens"/> como recursos Avalonia (Color + SolidColorBrush)
 /// no dicionário de recursos da aplicação do TCMine-Launcher.
 /// Não duplica valores: lê diretamente de <see cref="ColorTokens.ToCssVariables"/>, a mesma
-/// fonte usada pela versão CSS (admin Blazor) e pelo MudBlazor (<see cref="MudThemeFactory"/>).
+/// fonte usada pela versão CSS (admin Blazor) e pelo MudBlazor (<c>TCMine-Server</c> → <c>Theme</c> → <c>MudThemeFactory</c>).
 /// <para>
 /// As chaves de recurso geradas são as MESMAS para dark e light — só o valor muda.
 /// Isto permite chamar <see cref="ApplyTheme"/> outra vez ao alternar o tema em runtime,

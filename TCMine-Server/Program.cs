@@ -14,6 +14,7 @@ using TCMine_Infrastructure.Persistence;
 using TCMine_Server.Components;
 using TCMine_Server.Components.Pages;
 using TCMine_Server.Endpoints;
+using TCMine_Server.Services;
 using TCMine_Infrastructure.CurseForge;
 using TCMine_Infrastructure.Launcher;
 using TCMine_Infrastructure.Minecraft;
@@ -76,6 +77,8 @@ builder.Services.AddSingleton<MinecraftVersionService>();
 // ── Usuários e autenticação por cookie ───────────────────────────────────────────────────────────────────────────────
 // Usuários vivem no banco; o login valida a senha (hash) e emite um cookie de autenticação.
 builder.Services.AddScoped<UserService>();
+// Estado de "ocupado" do circuito: feedback bloqueante das operações async (ver BusyOverlay).
+builder.Services.AddScoped<BusyService>();
 // Detecção de primeira execução (existe algum usuário?) — singleton com cache.
 builder.Services.AddSingleton<SetupState>();
 builder.Services.AddSingleton<IValidator<Login.LoginInput>, Login.InputValidator>();

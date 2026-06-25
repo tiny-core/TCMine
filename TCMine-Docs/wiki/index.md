@@ -43,6 +43,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner, auth por cookie e papéis (auth, setup, roles)
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
 - [[concepts/player-config-sync]] — sync de configs por `(uuid, modpackId)` com token Minecraft (player-config, sync)
+- [[concepts/async-feedback-overlay]] — modal não-fechável (`BusyService`/`BusyOverlay`) em toda operação async do painel (blazor, ux, feedback)
 
 ## Decisões (`wiki/decisions/`)
 
@@ -57,6 +58,7 @@ correspondente, com um resumo de uma linha.
 
 - [[sources/2026-06-23-leitura-codigo-vivo]] — leitura inicial dos 7 projetos da solução (code, arquitetura)
 - [[sources/2026-06-24-modpack-admin-ui]] — construção da UI admin de modpacks + BlazorMonaco (code, modpack, admin)
+- [[sources/2026-06-25-busy-overlay]] — overlay bloqueante de feedback async no painel (code, blazor, ux)
 
 ## Sínteses e páginas derivadas
 

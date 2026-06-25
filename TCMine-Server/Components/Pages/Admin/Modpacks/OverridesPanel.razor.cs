@@ -5,6 +5,7 @@ using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine_Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
@@ -25,6 +26,7 @@ public partial class OverridesPanel : ComponentBase
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     private List<TreeItemData<string>> _treeItems = [];
     private HashSet<string> _fileSet = [];
@@ -40,7 +42,7 @@ public partial class OverridesPanel : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        await ReloadAsync();
+        await Busy.RunAsync("Carregando overrides…", ReloadAsync);
     }
 
     private async Task ReloadAsync()
@@ -112,9 +114,12 @@ public partial class OverridesPanel : ComponentBase
         try
         {
             var content = await _editor.GetValue();
-            await Service.WriteOverrideAsync(ModpackId, _selected, content);
-            _dirty = false;
-            await ReloadAsync();
+            await Busy.RunAsync("Salvando override…", async () =>
+            {
+                await Service.WriteOverrideAsync(ModpackId, _selected, content);
+                _dirty = false;
+                await ReloadAsync();
+            });
             Snackbar.Add("Override salvo.", Severity.Success);
         }
         catch (Exception ex)
@@ -139,9 +144,12 @@ public partial class OverridesPanel : ComponentBase
 
         try
         {
-            await Service.CreateOverrideAsync(ModpackId, path);
-            await ReloadAsync();
-            await OnSelectedChanged(path.Replace('\\', '/'));
+            await Busy.RunAsync("Criando override…", async () =>
+            {
+                await Service.CreateOverrideAsync(ModpackId, path);
+                await ReloadAsync();
+                await OnSelectedChanged(path.Replace('\\', '/'));
+            });
             Snackbar.Add("Override criado.", Severity.Success);
         }
         catch (Exception ex)
@@ -154,10 +162,13 @@ public partial class OverridesPanel : ComponentBase
     {
         try
         {
-            // 20 MB por arquivo de override (configs/resourcepacks costumam ser pequenos)
-            await using var stream = file.OpenReadStream(20 * 1024 * 1024);
-            await Service.UploadOverrideAsync(ModpackId, file.Name, stream);
-            await ReloadAsync();
+            await Busy.RunAsync("Enviando override…", async () =>
+            {
+                // 20 MB por arquivo de override (configs/resourcepacks costumam ser pequenos)
+                await using var stream = file.OpenReadStream(20 * 1024 * 1024);
+                await Service.UploadOverrideAsync(ModpackId, file.Name, stream);
+                await ReloadAsync();
+            });
             Snackbar.Add($"\"{file.Name}\" enviado.", Severity.Success);
         }
         catch (Exception ex)
@@ -176,9 +187,12 @@ public partial class OverridesPanel : ComponentBase
 
         try
         {
-            await Service.DeleteOverrideAsync(ModpackId, _selected);
-            _selected = null;
-            await ReloadAsync();
+            await Busy.RunAsync("Apagando override…", async () =>
+            {
+                await Service.DeleteOverrideAsync(ModpackId, _selected);
+                _selected = null;
+                await ReloadAsync();
+            });
             Snackbar.Add("Override apagado.", Severity.Success);
         }
         catch (Exception ex)
@@ -193,15 +207,24 @@ public partial class OverridesPanel : ComponentBase
     {
         try
         {
-            var undone = await Service.UndoLastAsync(ModpackId);
+            var undone = await Busy.RunAsync("Desfazendo…", async () =>
+            {
+                var result = await Service.UndoLastAsync(ModpackId);
+                if (result is not null)
+                {
+                    _selected = null;
+                    await ReloadAsync();
+                }
+
+                return result;
+            });
+
             if (undone is null)
             {
                 Snackbar.Add("Nada para desfazer.", Severity.Info);
                 return;
             }
 
-            _selected = null;
-            await ReloadAsync();
             Snackbar.Add("Última ação desfeita.", Severity.Success);
         }
         catch (Exception ex)
@@ -221,7 +244,7 @@ public partial class OverridesPanel : ComponentBase
         if (result is not null && !result.Canceled)
         {
             _selected = null;
-            await ReloadAsync();
+            await Busy.RunAsync("Atualizando overrides…", ReloadAsync);
         }
     }
 

@@ -7,6 +7,7 @@ using TCMine_Domain.Entities;
 using TCMine_Domain.Modpack;
 using TCMine_Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
@@ -30,12 +31,22 @@ public partial class ModpackEditor : ComponentBase
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     // Rascunho destacado: a fonte da verdade do formulário até o Guardar
     private ModpackEntity _draft = new();
     private bool _isNew;
     private bool _loading = true;
     private bool _cfConfigured;
+
+    // Aba ativa (controlada): a troca passa pelo OnTabPreview para mostrar o overlay antes do render
+    private int _activeTab;
+
+    // Referência ao MudTabs para conduzir a troca explicitamente (não depender só do resync do param)
+    private MudTabs _tabs = null!;
+
+    // Evita reentrância caso ActivatePanelAsync redispare o OnPreviewInteraction
+    private bool _switchingTab;
 
     // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
     private byte[]? _pendingOverrides;
@@ -57,43 +68,80 @@ public partial class ModpackEditor : ComponentBase
 
     protected override async Task OnParametersSetAsync()
     {
-        _loading = true;
-        _cfConfigured = await Service.IsCfConfiguredAsync();
+        await Busy.RunAsync("Carregando modpack…", async () =>
+        {
+            _loading = true;
+            _cfConfigured = await Service.IsCfConfiguredAsync();
 
-        if (string.IsNullOrEmpty(Id) || Id.Equals("new", StringComparison.OrdinalIgnoreCase))
-        {
-            _isNew = true;
-            _draft = new ModpackEntity
+            if (string.IsNullOrEmpty(Id) || Id.Equals("new", StringComparison.OrdinalIgnoreCase))
             {
-                Id = Guid.NewGuid(),
-                Name = string.Empty,
-                Version = "1.0.0",
-                Loader = ModLoader.NeoForge,
-                IsPublished = false
-            };
-        }
-        else if (Guid.TryParse(Id, out var uid))
-        {
-            var existing = await Service.GetForEditAsync(uid);
-            if (existing is null)
+                _isNew = true;
+                _draft = new ModpackEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = string.Empty,
+                    Version = "1.0.0",
+                    Loader = ModLoader.NeoForge,
+                    IsPublished = false
+                };
+            }
+            else if (Guid.TryParse(Id, out var uid))
+            {
+                var existing = await Service.GetForEditAsync(uid);
+                if (existing is null)
+                {
+                    Nav.NavigateTo("/admin/modpacks");
+                    return;
+                }
+
+                _isNew = false;
+                _draft = existing;
+                await ReloadNewsAsync();
+            }
+            else
             {
                 Nav.NavigateTo("/admin/modpacks");
                 return;
             }
 
-            _isNew = false;
-            _draft = existing;
-            await ReloadNewsAsync();
-        }
-        else
-        {
-            Nav.NavigateTo("/admin/modpacks");
-            return;
-        }
+            _mcVersions = await Versions.GetMinecraftVersionsAsync();
+            await ReloadLoaderVersionsAsync();
+            _loading = false;
+        });
+    }
 
-        _mcVersions = await Versions.GetMinecraftVersionsAsync();
-        await ReloadLoaderVersionsAsync();
-        _loading = false;
+    // Intercepta a troca de aba: cancela a ativação nativa e a refaz sob o overlay, para que a modal
+    // apareça ANTES do render pesado do painel (Mods/Overrides com muitos itens travam a thread de
+    // render — sem isso, o clique parece não responder). Programático (mudar _activeTab) não dispara
+    // este preview de novo, então não há loop.
+    private async Task OnTabPreview(TabInteractionEventArgs args)
+    {
+        // Ignora não-ativações, a reentrância da nossa própria ActivatePanelAsync e cliques na aba atual
+        if (args.InteractionType != TabInteractionType.Activate || _switchingTab || args.PanelIndex == _activeTab)
+            return;
+
+        args.Cancel = true; // nós conduzimos a troca, sob o overlay
+        var target = args.PanelIndex;
+
+        await Busy.RunAsync("Carregando aba…", async () =>
+        {
+            _activeTab = target;
+            _switchingTab = true;
+            try
+            {
+                // Troca explícita pela API do MudTabs — rede de segurança caso o resync do parâmetro
+                // ActivePanelIndex não baste por si só após o Cancel
+                await _tabs.ActivatePanelAsync(target, false);
+            }
+            finally
+            {
+                _switchingTab = false;
+            }
+
+            StateHasChanged();
+            // Deixa o painel pesado renderizar com o overlay já visível
+            await Task.Yield();
+        });
     }
 
     // ── Versões ────────────────────────────────────────────────────────────────────────────────
@@ -101,13 +149,13 @@ public partial class ModpackEditor : ComponentBase
     private async Task OnMinecraftChanged(string value)
     {
         _draft.Minecraft = value;
-        await ReloadLoaderVersionsAsync();
+        await Busy.RunAsync("Carregando versões…", ReloadLoaderVersionsAsync);
     }
 
     private async Task OnLoaderChanged(ModLoader value)
     {
         _draft.Loader = value;
-        await ReloadLoaderVersionsAsync();
+        await Busy.RunAsync("Carregando versões…", ReloadLoaderVersionsAsync);
     }
 
     private async Task ReloadLoaderVersionsAsync()
@@ -160,16 +208,19 @@ public partial class ModpackEditor : ComponentBase
             return;
 
         var added = 0;
-        foreach (var modId in modIds)
-            try
-            {
-                var entry = await Service.AddFromSearchAsync(modId, _draft.Minecraft, _draft.Loader);
-                if (MergeMod(entry)) added++;
-            }
-            catch (Exception ex)
-            {
-                Snackbar.Add($"Falha ao adicionar mod {modId}: {ex.Message}", Severity.Error);
-            }
+        await Busy.RunAsync("Adicionando mods…", async () =>
+        {
+            foreach (var modId in modIds)
+                try
+                {
+                    var entry = await Service.AddFromSearchAsync(modId, _draft.Minecraft, _draft.Loader);
+                    if (MergeMod(entry)) added++;
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Falha ao adicionar mod {modId}: {ex.Message}", Severity.Error);
+                }
+        });
 
         if (added > 0) Snackbar.Add($"{added} mod(s) adicionado(s).", Severity.Success);
     }
@@ -226,14 +277,17 @@ public partial class ModpackEditor : ComponentBase
     {
         try
         {
-            // 50 MB de teto por jar — generoso, mas evita esgotar memória num upload acidental
-            await using var stream = file.OpenReadStream(50 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
+            await Busy.RunAsync("Enviando arquivo…", async () =>
+            {
+                // 50 MB de teto por jar — generoso, mas evita esgotar memória num upload acidental
+                await using var stream = file.OpenReadStream(50 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
 
-            var entry = await Service.AddUploadedModAsync(file.Name, ms.ToArray());
-            MergeMod(entry);
-            Snackbar.Add($"\"{entry.FileName}\" enviado.", Severity.Success);
+                var entry = await Service.AddUploadedModAsync(file.Name, ms.ToArray());
+                MergeMod(entry);
+                Snackbar.Add($"\"{entry.FileName}\" enviado.", Severity.Success);
+            });
         }
         catch (Exception ex)
         {

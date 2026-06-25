@@ -43,12 +43,39 @@ própria responsabilidade.**
 - **Componentes Blazor:** páginas orquestram; o conteúdo de cada aba/seção/painel
   vai para o **seu próprio componente** (ex.: `OverridesPanel.razor`,
   `ModsPanel.razor`). Diálogos sempre em arquivos próprios.
-- **Code-behind:** prefira `partial class` por área (`.razor.cs`,
-  `.Overrides.cs`, …) a um único arquivo gigante.
+- **Code-behind (sempre):** o `.razor` carrega **só markup**; toda a lógica vai
+  para um **code-behind aninhado** (`partial class` em `Foo.razor.cs`), **mesmo
+  para componentes pequenos** — evite blocos `@code` inline no `.razor`. Diretivas
+  de tipo/DI (`@inject`, `@implements`, `@namespace`) também migram para a
+  `partial class` (`[Inject]`, `: IDisposable`, `namespace`); no `.razor` ficam só
+  as diretivas de markup (`@page`, `@layout`, `@attribute`, `@using` de tipos
+  usados no markup). Para áreas grandes, divida o code-behind por preocupação
+  (`.razor.cs`, `.Overrides.cs`, `.News.cs`, …).
 - **Lógica de negócio não vive na UI:** vai para serviços (Infrastructure) ou
   para o core (Domain/Application).
 - Regra prática: se você hesita em ler o arquivo inteiro de uma vez, ele já está
   grande demais — quebre antes de continuar.
+
+## Feedback de operações async (servidor Blazor)
+
+**Toda operação assíncrona disparada pelo usuário** no painel admin — gravações no
+banco, chamadas a serviços, uploads, carregamentos de página — **deve dar feedback
+bloqueante** via `BusyService` (`TCMine-Server/Services/BusyService.cs`).
+
+- Injete `BusyService Busy` e envolva a operação:
+  `await Busy.RunAsync("Mensagem…", async () => { /* ... */ });`. Um único
+  `BusyOverlay` (no `RootLayout`) reage ao estado e cobre a tela com um modal
+  **não-fechável** (sem ESC, sem clique no backdrop, sem botão de fechar).
+- O `try/catch` + `Snackbar` continua na página: o overlay é só o feedback
+  *durante* a operação; o resultado (sucesso/erro) vai pro snackbar. `RunAsync`
+  libera o overlay no `finally`, então exceções propagam normalmente.
+- **Substitui os skeletons** de carregamento nas páginas (o overlay cobre o load).
+- **Exceções (mantêm feedback próprio, não use o overlay):** refreshes recorrentes
+  em background (ex.: `SystemStatusCard`), buscas/listas internas de diálogos (onde
+  o usuário ainda interage, ex.: busca CurseForge), e fluxos com progresso dedicado
+  (import e Save do `ModpackEditor`, que têm modais de progresso próprios).
+- Para micro-leituras interativas (ex.: clicar num arquivo da árvore de overrides),
+  não envolva — o overlay piscaria a cada clique.
 
 ## Projeto de referência
 

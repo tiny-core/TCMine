@@ -23,14 +23,9 @@
 </MudStack>
 
 <MudPaper Elevation="0" Outlined="true">
+    @* Durante o carregamento o BusyOverlay global cobre a tela; aqui não renderizamos nada. *@
     @if (_rows is null)
     {
-        <div class="pa-4">
-            @for (var i = 0; i < 5; i++)
-            {
-                <MudSkeleton Width="100%" Height="56px"/>
-            }
-        </div>
     }
     else if (_rows.Count == 0)
     {

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Infrastructure.Server;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin;
 
@@ -16,6 +17,7 @@ public partial class Settings : ComponentBase
 {
     [Inject] private ServerSettingsService SettingsService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     // Modelo isolado do formulário — nunca usar a própria Page como modelo
     private readonly SettingsForm _form = new();
@@ -26,13 +28,16 @@ public partial class Settings : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        // Carrega os valores guardados (descriptografados) para edição
-        var stored = await SettingsService.GetStoredAsync();
-        _form.CfApiKey = stored.CfApiKey ?? string.Empty;
-        _form.AzureClientId = stored.AzureClientId ?? string.Empty;
-        _form.AzureTenantId = stored.AzureTenantId ?? string.Empty;
-        _form.PublicBaseUrl = stored.PublicBaseUrl ?? string.Empty;
-        _loading = false;
+        await Busy.RunAsync("Carregando configurações…", async () =>
+        {
+            // Carrega os valores guardados (descriptografados) para edição
+            var stored = await SettingsService.GetStoredAsync();
+            _form.CfApiKey = stored.CfApiKey ?? string.Empty;
+            _form.AzureClientId = stored.AzureClientId ?? string.Empty;
+            _form.AzureTenantId = stored.AzureTenantId ?? string.Empty;
+            _form.PublicBaseUrl = stored.PublicBaseUrl ?? string.Empty;
+            _loading = false;
+        });
     }
 
     private async Task SaveAsync()
@@ -40,8 +45,8 @@ public partial class Settings : ComponentBase
         _saving = true;
         try
         {
-            await SettingsService.SaveAsync(new ServerSettings(
-                _form.CfApiKey, _form.AzureClientId, _form.AzureTenantId, _form.PublicBaseUrl));
+            await Busy.RunAsync("Salvando configurações…", () => SettingsService.SaveAsync(new ServerSettings(
+                _form.CfApiKey, _form.AzureClientId, _form.AzureTenantId, _form.PublicBaseUrl)));
             Snackbar.Add("Configurações salvas.", Severity.Success);
         }
         catch (Exception ex)
