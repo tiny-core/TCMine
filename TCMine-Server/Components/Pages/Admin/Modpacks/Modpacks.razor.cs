@@ -37,7 +37,7 @@ public partial class Modpacks : ComponentBase
         var ok = await DialogService.ShowMessageBoxAsync(
             "Apagar modpack",
             $"Apagar \"{row.Name}\"? Os mods continuam no cache compartilhado, mas os overrides deste modpack serão removidos.",
-            yesText: "Apagar", cancelText: "Cancelar");
+            "Apagar", cancelText: "Cancelar");
 
         if (ok != true) return;
 

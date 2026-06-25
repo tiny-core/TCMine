@@ -60,7 +60,7 @@ public partial class ModpackEditor
     private async Task DeleteNewsAsync(NewsEntity entry)
     {
         var ok = await DialogService.ShowMessageBoxAsync(
-            "Apagar novidade", $"Apagar \"{entry.Title}\"?", yesText: "Apagar", cancelText: "Cancelar");
+            "Apagar novidade", $"Apagar \"{entry.Title}\"?", "Apagar", cancelText: "Cancelar");
         if (ok != true) return;
 
         try

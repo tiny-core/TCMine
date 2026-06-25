@@ -100,20 +100,27 @@
         else MudDialog.Cancel();
     }
 
-    private static Color ColorFor(OverrideOp op) => op switch
+    private static Color ColorFor(OverrideOp op)
     {
-        OverrideOp.Edit => Color.Info,
-        OverrideOp.DeleteFile => Color.Error,
-        OverrideOp.MoveFile or OverrideOp.MoveFolder => Color.Warning,
-        _ => Color.Default
-    };
+        return op switch
+        {
+            OverrideOp.Edit => Color.Info,
+            OverrideOp.DeleteFile => Color.Error,
+            OverrideOp.MoveFile or OverrideOp.MoveFolder => Color.Warning,
+            _ => Color.Default
+        };
+    }
 
-    private static string Describe(OverrideHistoryEntry e) => e.Operation switch
+    private static string Describe(OverrideHistoryEntry e)
     {
-        OverrideOp.Edit => $"Editou {e.PathBefore}",
-        OverrideOp.DeleteFile => $"Apagou {e.PathBefore}",
-        OverrideOp.MoveFile => $"Moveu {e.PathBefore} → {e.PathAfter}",
-        OverrideOp.MoveFolder => $"Moveu pasta {e.PathBefore} → {e.PathAfter}",
-        _ => e.Operation.ToString()
-    };
+        return e.Operation switch
+        {
+            OverrideOp.Edit => $"Editou {e.PathBefore}",
+            OverrideOp.DeleteFile => $"Apagou {e.PathBefore}",
+            OverrideOp.MoveFile => $"Moveu {e.PathBefore} → {e.PathAfter}",
+            OverrideOp.MoveFolder => $"Moveu pasta {e.PathBefore} → {e.PathAfter}",
+            _ => e.Operation.ToString()
+        };
+    }
+
 }

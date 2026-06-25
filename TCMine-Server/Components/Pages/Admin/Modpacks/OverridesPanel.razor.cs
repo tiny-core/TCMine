@@ -171,7 +171,7 @@ public partial class OverridesPanel : ComponentBase
         if (_selected is null) return;
 
         var ok = await DialogService.ShowMessageBoxAsync(
-            "Apagar override", $"Apagar \"{_selected}\"?", yesText: "Apagar", cancelText: "Cancelar");
+            "Apagar override", $"Apagar \"{_selected}\"?", "Apagar", cancelText: "Cancelar");
         if (ok != true) return;
 
         try

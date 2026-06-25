@@ -1,0 +1,20 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Roda o servidor em watch mode (hot reload): salvar um arquivo recompila/recarrega
+       sem reiniciar manualmente. dotnet watch é uma ferramenta de linha de comando, então
+       a config é um Shell Script executado no terminal integrado do Rider. -->
+  <configuration default="false" name="TCMine-Server (watch)" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="dotnet watch run --launch-profile https" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/TCMine-Server" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="powershell.exe" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

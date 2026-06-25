@@ -65,6 +65,10 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
         var servers = await db.Servers.CountAsync(ct);
         var users = await db.Users.CountAsync(ct);
 
+        // Novidades: globais (sem modpack) vs. atreladas a um modpack — só as publicadas
+        var globalNews = await db.News.CountAsync(n => n.IsPublished && n.ModpackId == null, ct);
+        var modpackNews = await db.News.CountAsync(n => n.IsPublished && n.ModpackId != null, ct);
+
         // Distribuição de mods por lado — "Both" conta para cliente e servidor (regra do manifesto)
         var clientMods = await db.Mods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Client, ct);
         var serverMods = await db.Mods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Server, ct);
@@ -97,7 +101,10 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
             .OrderByDescending(h => h.CreatedAt)
             .Take(6)
             .Select(h => new ActivityItem(
-                h.ModpackId, h.Operation, h.PathBefore, h.PathAfter, h.Actor, h.CreatedAt))
+                h.ModpackId,
+                // Nome do modpack via sub consulta (não há navigation property); null se já foi excluído
+                db.Modpacks.Where(m => m.Id == h.ModpackId).Select(m => m.Name).FirstOrDefault(),
+                h.Operation, h.PathBefore, h.PathAfter, h.Actor, h.CreatedAt))
             .ToListAsync(ct);
 
         return new DashboardData(
@@ -108,6 +115,8 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
             serverMods,
             servers,
             users,
+            globalNews,
+            modpackNews,
             instances,
             runningInstances,
             releases,
@@ -132,6 +141,8 @@ public sealed record DashboardData(
     int ServerMods,
     int Servers,
     int Users,
+    int GlobalNews,
+    int ModpackNews,
     int Instances,
     int RunningInstances,
     int Releases,
@@ -153,6 +164,7 @@ public sealed record RecentModpack(
 /// <summary>Item da timeline de "atividade recente" (uma entrada do histórico de overrides).</summary>
 public sealed record ActivityItem(
     Guid ModpackId,
+    string? ModpackName,
     OverrideOp Operation,
     string? PathBefore,
     string? PathAfter,

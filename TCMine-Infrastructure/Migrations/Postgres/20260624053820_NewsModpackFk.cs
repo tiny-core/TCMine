@@ -3,48 +3,47 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TCMine_Infrastructure.Migrations.Postgres
+namespace TCMine_Infrastructure.Migrations.Postgres;
+
+/// <inheritdoc />
+public partial class NewsModpackFk : Migration
 {
     /// <inheritdoc />
-    public partial class NewsModpackFk : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<Guid>(
-                name: "ModpackId",
-                table: "News",
-                type: "uuid",
-                nullable: true);
+        migrationBuilder.AddColumn<Guid>(
+            "ModpackId",
+            "News",
+            "uuid",
+            nullable: true);
 
-            migrationBuilder.CreateIndex(
-                name: "IX_News_ModpackId",
-                table: "News",
-                column: "ModpackId");
+        migrationBuilder.CreateIndex(
+            "IX_News_ModpackId",
+            "News",
+            "ModpackId");
 
-            migrationBuilder.AddForeignKey(
-                name: "FK_News_Modpacks_ModpackId",
-                table: "News",
-                column: "ModpackId",
-                principalTable: "Modpacks",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
-        }
+        migrationBuilder.AddForeignKey(
+            "FK_News_Modpacks_ModpackId",
+            "News",
+            "ModpackId",
+            "Modpacks",
+            principalColumn: "Id",
+            onDelete: ReferentialAction.Cascade);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropForeignKey(
-                name: "FK_News_Modpacks_ModpackId",
-                table: "News");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropForeignKey(
+            "FK_News_Modpacks_ModpackId",
+            "News");
 
-            migrationBuilder.DropIndex(
-                name: "IX_News_ModpackId",
-                table: "News");
+        migrationBuilder.DropIndex(
+            "IX_News_ModpackId",
+            "News");
 
-            migrationBuilder.DropColumn(
-                name: "ModpackId",
-                table: "News");
-        }
+        migrationBuilder.DropColumn(
+            "ModpackId",
+            "News");
     }
 }

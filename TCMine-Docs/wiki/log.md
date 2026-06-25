@@ -28,6 +28,51 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] ingest | Settings restrito ao Owner + run config de watch mode no Rider
+
+- **Fonte:** pedido do usuário nesta sessão; código `TCMine-Server/Components/Pages/Admin/Settings.razor` e `.run/TCMine-Server (watch).run.xml`.
+- **Páginas afetadas:** [[entities/tcmine-server]], [[concepts/setup-auth-cookie]].
+- **Resumo:** dois itens. (1) **Segurança:** `Admin/Settings` ganhou
+  `@attribute [Authorize(Roles = "Owner")]` — antes só o link do menu era
+  só-Owner, mas a página era acessível por URL direta a qualquer autenticado
+  (resolve a contradição registrada em [[concepts/setup-auth-cookie]]). (2)
+  **DX:** criado run config compartilhável `.run/TCMine-Server (watch).run.xml`
+  (tipo Shell Script, roda `dotnet watch run --launch-profile https` no terminal)
+  para desenvolver com hot reload sem reiniciar o servidor a cada mudança. `.run/`
+  não é ignorado pelo git (ao contrário de `.idea/`), então a config é versionável.
+- **Pendências:** nenhuma para estes itens.
+
+## [2026-06-25] ingest | Gestão de usuários (/admin/users) + regra de economia de tokens na wiki
+
+- **Fonte:** pedido do usuário nesta sessão; código vivo `TCMine-Server/Components/Pages/Admin/Users/` e `TCMine-Infrastructure/Identity/UserService.cs`.
+- **Páginas afetadas:** [[entities/tcmine-server]], [[concepts/setup-auth-cookie]]; `CLAUDE.md` (§8).
+- **Resumo:** entregue a tela de **gestão de usuários** do painel (`/admin/users`,
+  só `Owner`): página `Admin/Users/Users` (lista, toggle de ativo, remover) +
+  `UserEditDialog` (criar/editar — login, papel, ativo, senha opcional na edição).
+  `UserService` ganhou `UpdateAsync` e passou a **aplicar de fato** a proteção do
+  último Owner ativo em `Update`/`SetActive`/`Delete` (antes só existia
+  `CountActiveOwnersAsync`, sem uso), além de checar unicidade do login em
+  `Create`/`Update`. Também adicionada ao `CLAUDE.md` (§8) a regra de **usar
+  `tools/wikisearch.py`** ao mexer na wiki, para economizar tokens.
+- **Pendências:** a nota antiga em [[concepts/setup-auth-cookie]] diz que `Settings`
+  aceita qualquer admin, mas o `AdminLayout` já restringe o link ao Owner — revisar
+  se o `[Authorize]` da página acompanha. CRUD de releases ainda pendente.
+
+## [2026-06-25] ingest | Dashboard: nome do modpack na atividade + KPIs de novidades separados
+
+- **Fonte:** pedido do usuário nesta sessão; código vivo `TCMine-Server/Components/Pages/Admin/Widgets/` e `TCMine-Infrastructure/Server/ContentCatalog.cs`.
+- **Páginas afetadas:** [[entities/tcmine-server]].
+- **Resumo:** dois ajustes no dashboard admin. (1) `RecentActivityCard` mostra o
+  **nome do modpack** em vez do `Guid` — `ActivityItem` ganhou `ModpackName`,
+  preenchido por subconsulta em `ContentCatalog` (não há navigation property em
+  `OverrideHistoryEntry`); UI cai para o id quando o modpack foi excluído. (2) O
+  KPI único de "Novidades" em `DashboardKpis` virou **dois**: *Novidades globais*
+  (`News.ModpackId == null`) e *Novidades de modpacks* (`ModpackId != null`),
+  alimentados pelos novos campos `GlobalNews`/`ModpackNews` de `DashboardData`
+  (só notícias publicadas).
+- **Pendências:** decidir se contagens devem incluir notícias não publicadas; o
+  dashboard ainda não tem página/conceito próprio na wiki.
+
 ## [2026-06-24] meta | Nova regra: sem monolitos (dividir em arquivos menores)
 
 - **Fonte:** instrução do usuário nesta sessão.

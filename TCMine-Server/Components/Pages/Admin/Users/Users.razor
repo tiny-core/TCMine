@@ -1,0 +1,105 @@
+@page "/admin/users"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Domain.Entities
+@using TCMine_Domain.Identity
+@using TCMine_Server.Components.Shared
+
+@* Gestão de usuários do painel (só Owner). Lista, cria, edita, ativa/desativa e remove.
+   O formulário vive no UserEditDialog; esta página orquestra e fala com o UserService. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h4">Usuários</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Quem acessa o painel e com qual papel.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.PersonAdd" OnClick="CreateAsync">
+        Novo usuário
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true">
+    @if (_rows is null)
+    {
+        <div class="pa-4">
+            @for (var i = 0; i < 5; i++)
+            {
+                <MudSkeleton Width="100%" Height="56px"/>
+            }
+        </div>
+    }
+    else if (_rows.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-12">
+            <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.h6">Nenhum usuário ainda</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="UserEntity" Items="_rows" Hover="true" Dense="true" Elevation="0" Filterable="false">
+            <Columns>
+                <TemplateColumn Title="Login" Sortable="true" SortBy="x => x.Username">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Size="Size.Small"
+                                     Color="Color.Primary"/>
+                            <MudText Typo="Typo.body2">@context.Item.Username</MudText>
+                            @if (context.Item.Id == _currentUserId)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Info">você
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Papel" Sortable="true" SortBy="x => x.Role">
+                    <CellTemplate>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@RoleColor(context.Item.Role)">@context.Item.Role</MudChip>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsActive" CellStyle="text-align:center">
+                    <CellTemplate>
+                        @if (context.Item.IsActive)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Ativo
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                Inativo
+                            </MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Criado" Sortable="true" SortBy="x => x.CreatedAt">
+                    <CellTemplate>@RelativeTime.Format(context.Item.CreatedAt)</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Último login" Sortable="true" SortBy="x => x.LastLoginAt ?? DateTime.MinValue">
+                    <CellTemplate>
+                        @(context.Item.LastLoginAt is { } at ? RelativeTime.Format(at) : "nunca")
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => EditAsync(context.Item))"/>
+                        <MudIconButton
+                            Icon="@(context.Item.IsActive ? Icons.Material.Filled.Block : Icons.Material.Filled.Check)"
+                            Size="Size.Small"
+                            OnClick="@(() => ToggleActiveAsync(context.Item))"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       Disabled="@(context.Item.Id == _currentUserId)"
+                                       OnClick="@(() => DeleteAsync(context.Item))"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    }
+</MudPaper>

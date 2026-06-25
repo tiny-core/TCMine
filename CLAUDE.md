@@ -98,6 +98,7 @@ projeto ganhará uma página em `TCMine-Docs/wiki/entities/` conforme for
 documentado — consulte a wiki para o detalhe vivo de cada um.
 
 **Core (dependências apontando para dentro):**
+
 - **TCMine-Domain** — entidades, enums e regras puras de domínio (sem EF/ASP.NET).
 - **TCMine-Application** — portas (interfaces), contratos (DTOs `record`) e
   lógica pura de modpack (`CurseForgeImporter`, `ModSetMerge`).
@@ -105,6 +106,7 @@ documentado — consulte a wiki para o detalhe vivo de cada um.
   identidade e serviços de servidor/Minecraft.
 
 **Entrega e suporte:**
+
 - **TCMine-Design** — design system compartilhado (`ColorTokens`), fonte única
   de cor para CSS/Blazor, MudBlazor e Avalonia.
 - **TCMine-Server** — ASP.NET Core (Minimal API + Blazor Server): backend do
@@ -147,7 +149,7 @@ documentado — consulte a wiki para o detalhe vivo de cada um.
 - **Antes de qualquer implementação**, consulte a wiki (`TCMine-Docs/wiki/`,
   começando por `index.md`) para entender decisões e contexto já registrados
   sobre o componente/área em que vai mexer.
-- **Depois de qualquer decisão de arquitetura, implementação relevante ou
+- **Após qualquer decisão de arquitetura, implementação relevante ou
   mudança de rumo**, escreva isso de volta na wiki (página de
   entity/concept/decision), atualize o `index.md` e adicione uma entrada no
   `log.md`.
@@ -169,11 +171,11 @@ resumos, sinalizando contradições, fortalecendo a síntese. A wiki é um artef
 
 ## 2. Modelo de três camadas (separação rígida)
 
-| Camada | Caminho | Regra |
-|---|---|---|
-| Fontes imutáveis | `raw/` | Read-only. **Nunca edite arquivos aqui.** |
-| A wiki | `wiki/` | Você é o dono. O usuário lê; você escreve. |
-| O schema | `CLAUDE.md` (este arquivo) | Convenções + workflows. Evolua deliberadamente. |
+| Camada           | Caminho                    | Regra                                           |
+|------------------|----------------------------|-------------------------------------------------|
+| Fontes imutáveis | `raw/`                     | Read-only. **Nunca edite arquivos aqui.**       |
+| A wiki           | `wiki/`                    | Você é o dono. O usuário lê; você escreve.      |
+| O schema         | `CLAUDE.md` (este arquivo) | Convenções + workflows. Evolua deliberadamente. |
 
 ## 3. Estrutura de diretórios
 
@@ -291,6 +293,12 @@ wiki vazia, o check é no-op — registre mentalmente "wiki vazia" e siga.
 
 ## 8. Query workflow
 
+> **Economia de tokens (regra geral):** ao **mexer na wiki** — responder, ingerir
+> ou fazer o health-check — **prefira `tools/wikisearch.py`** para localizar as
+> páginas relevantes em vez de ler `index.md` por inteiro ou abrir várias páginas
+> "no escuro". A busca BM25 aponta os arquivos certos; só então abra os que
+> importam. Vale para **todo** workflow desta Parte II, não só o query.
+
 Ao responder perguntas contra a wiki:
 
 1. **Localize.** Rode `python TCMine-Docs/tools/wikisearch.py "termos da pergunta"`
@@ -333,9 +341,9 @@ Portanto:
   tipo: `aliases`/`sources`/`related` (entity, concept),
   `deciders`/`supersedes`/`superseded-by` (decision),
   `source-type`/`origin`/`feeds` (source). Datas em `YYYY-MM-DD`.
-  - `status`: `stub` | `wip` | `stable` (entity/concept);
-    `proposta` | `aceita` | `substituída` | `descontinuada` (decision);
-    `ingested` (source).
+    - `status`: `stub` | `wip` | `stable` (entity/concept);
+      `proposta` | `aceita` | `substituída` | `descontinuada` (decision);
+      `ingested` (source).
 - **Wikilinks** `[[path/slug]]` para todas as referências cruzadas (graph view +
   backlinks). Prefira linkar **por caminho**: `[[entities/tcmine-server]]`.
 - **Imagens**: `![[raw/assets/...]]` (ver §6).
@@ -361,7 +369,7 @@ Em `wiki/templates/`. **Copie e preencha** (não edite os templates no lugar):
 
 - [ ] Ler a fonte (ou o código vivo) por inteiro.
 - [ ] Avaliar os gatilhos de confirmação (§5); se algum disparar, **perguntar
-      antes de escrever**.
+  antes de escrever**.
 - [ ] Criar/atualizar páginas de `entities/`, `concepts/`, `decisions/`.
 - [ ] Criar a página `sources/`.
 - [ ] Adicionar `[[wikilinks]]` bidirecionais.

@@ -183,12 +183,14 @@ else
                             @if (context.CurseModId > 0)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                                         Icon="@Icons.Material.Filled.Cloud">CurseForge</MudChip>
+                                         Icon="@Icons.Material.Filled.Cloud">CurseForge
+                                </MudChip>
                             }
                             else
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
-                                         Icon="@Icons.Material.Filled.UploadFile">Manual</MudChip>
+                                         Icon="@Icons.Material.Filled.UploadFile">Manual
+                                </MudChip>
                             }
                         </MudTd>
                         <MudTd Style="text-align:right">
@@ -268,7 +270,8 @@ else
                                         @if (!n.IsPublished)
                                         {
                                             <MudChip T="string" Size="Size.Small" Color="Color.Default"
-                                                     Variant="Variant.Outlined">Rascunho</MudChip>
+                                                     Variant="Variant.Outlined">Rascunho
+                                            </MudChip>
                                         }
                                     </MudStack>
                                     <MudText Typo="Typo.body2" Color="Color.Secondary">@n.Summary</MudText>

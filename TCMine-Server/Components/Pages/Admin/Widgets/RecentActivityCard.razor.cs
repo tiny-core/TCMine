@@ -43,6 +43,12 @@ public partial class RecentActivityCard : ComponentBase
         return op == OverrideOp.DeleteFile ? Color.Error : Color.Primary;
     }
 
+    // Nome do modpack; cai para o id quando o modpack já foi excluído (nome indisponível)
+    private static string ActivityModpack(ActivityItem a)
+    {
+        return string.IsNullOrWhiteSpace(a.ModpackName) ? a.ModpackId.ToString() : a.ModpackName;
+    }
+
     // Caminho mais relevante (destino quando há, senão a origem)
     private static string ActivityPath(ActivityItem a)
     {

@@ -18,9 +18,11 @@
     </MudFileUpload>
     <MudSpacer/>
     <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"
-               Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer</MudButton>
+               Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer
+    </MudButton>
     <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History"
-               OnClick="ShowHistoryAsync">Histórico</MudButton>
+               OnClick="ShowHistoryAsync">Histórico
+    </MudButton>
 </MudStack>
 
 <MudGrid>
@@ -77,7 +79,8 @@
 
             @if (_selected is null || _binary)
             {
-                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
+                <div
+                    style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
                     <MudStack AlignItems="AlignItems.Center">
                         <MudIcon Icon="@(_binary ? Icons.Material.Filled.Lock : Icons.Material.Filled.Edit)"
                                  Size="Size.Large" Color="Color.Secondary"/>

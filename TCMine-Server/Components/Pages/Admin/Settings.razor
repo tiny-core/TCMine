@@ -1,8 +1,7 @@
 ﻿@page "/admin/settings"
 @layout AdminLayout
-
-@* Alias — FluentValidation e MudBlazor ambos expõem "Severity" (ver _Imports) *@
-
+@attribute [Authorize(Roles = "Owner")]
+@using Microsoft.AspNetCore.Authorization
 
 <MudText Typo="Typo.h4" GutterBottom="true">Configurações</MudText>
 <MudText Typo="Typo.body1" Color="Color.Secondary" Class="mb-6">

@@ -89,15 +89,20 @@
                         }
                     </CellTemplate>
                 </TemplateColumn>
-                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished" CellStyle="text-align:center">
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished"
+                                CellStyle="text-align:center">
                     <CellTemplate>
                         @if (context.Item.IsPublished)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                Publicado
+                            </MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                Rascunho
+                            </MudChip>
                         }
                     </CellTemplate>
                 </TemplateColumn>

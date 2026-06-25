@@ -1,0 +1,121 @@
+@namespace TCMine_Server.Components.Pages.Admin.Users.Dialogs
+@using TCMine_Domain.Entities
+@using TCMine_Domain.Identity
+
+@* Formulário de criar/editar um usuário do painel. Devolve um UserFormResult; a persistência
+   (hash, unicidade do login, proteção do último Owner) fica com o UserService, chamado pela página.
+   Na criação a senha é obrigatória; na edição é opcional (preencher = redefinir). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_username" Label="Login" Variant="Variant.Outlined"
+                          Required="true" RequiredError="O login é necessário"
+                          MaxLength="60" Immediate="true"
+                          HelperText="Usado para entrar — normalizado para minúsculas."/>
+
+            <MudSelect @bind-Value="_role" Label="Papel" Variant="Variant.Outlined" Class="mt-4">
+                @foreach (var role in Enum.GetValues<UserRole>())
+                {
+                    <MudSelectItem Value="role">@RoleLabel(role)</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_password" Label="@(IsEdit ? "Nova senha (opcional)" : "Senha")"
+                          Variant="Variant.Outlined" Class="mt-4"
+                          InputType="InputType.Password" MaxLength="200"
+                          Required="@(!IsEdit)" RequiredError="A senha é necessária"
+                          Validation="@(new Func<string, string?>(ValidatePassword))"
+                          HelperText="@(IsEdit ? "Deixe em branco para manter a senha atual." : "Mínimo de 8 caracteres.")"/>
+
+            <MudTextField @bind-Value="_confirm" Label="Confirmar senha" Variant="Variant.Outlined" Class="mt-4"
+                          InputType="InputType.Password" MaxLength="200"
+                          Validation="@(new Func<string, string?>(ValidateConfirm))"/>
+
+            @if (IsEdit)
+            {
+                <MudSwitch T="bool" @bind-Value="_isActive" Color="Color.Success" Class="mt-4"
+                           Label="Ativo (conta inativa não consegue entrar)"/>
+            }
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm">
+            @(IsEdit ? "Salvar" : "Criar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
+
+    // null = criar; preenchido = editar (não mutamos o original — devolvemos um resultado)
+    [Parameter] public UserEntity? User { get; set; }
+
+    private MudForm _form = null!;
+    private string _username = string.Empty;
+    private UserRole _role = UserRole.Viewer;
+    private string _password = string.Empty;
+    private string _confirm = string.Empty;
+    private bool _isActive = true;
+
+    private bool IsEdit => User is not null;
+
+    protected override void OnInitialized()
+    {
+        if (User is not null)
+        {
+            _username = User.Username;
+            _role = User.Role;
+            _isActive = User.IsActive;
+        }
+    }
+
+    // Senha: obrigatória só na criação; quando informada, mínimo de 8 caracteres
+    private string? ValidatePassword(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return IsEdit ? null : "A senha é necessária";
+        return value.Length < 8 ? "Mínimo de 8 caracteres" : null;
+    }
+
+    // Confirmação só importa quando há senha digitada
+    private string? ValidateConfirm(string value)
+    {
+        if (string.IsNullOrEmpty(_password)) return null;
+        return value == _password ? null : "As senhas não coincidem";
+    }
+
+    private async Task Confirm()
+    {
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        // Senha vazia na edição = manter a atual (null sinaliza isso ao serviço)
+        var newPassword = string.IsNullOrEmpty(_password) ? null : _password;
+        MudDialog.Close(DialogResult.Ok(new UserFormResult(_username.Trim(), _role, _isActive, newPassword)));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    // Rótulo legível de cada papel
+    private static string RoleLabel(UserRole role)
+    {
+        return role switch
+        {
+            UserRole.Owner => "Owner — controle total (usuários e secrets)",
+            UserRole.Admin => "Admin — gerencia conteúdo",
+            UserRole.Operator => "Operator — opera servidores",
+            UserRole.Viewer => "Viewer — somente leitura",
+            _ => role.ToString()
+        };
+    }
+
+    /// <summary>Resultado do formulário entregue à página para persistir via UserService.</summary>
+    public sealed record UserFormResult(string Username, UserRole Role, bool IsActive, string? NewPassword);
+
+}

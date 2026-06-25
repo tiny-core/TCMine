@@ -40,9 +40,15 @@
                   Subtitle="@(Data?.LatestReleaseVersion is { } v ? $"última v{v}" : "nenhuma")"/>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
+        <StatCard Icon="@Icons.Material.Filled.Public" Color="Color.Warning"
+                  Label="Novidades globais"
+                  Value="@(Data?.GlobalNews.ToString() ?? "—")"
+                  Subtitle="do servidor"/>
+    </MudItem>
+    <MudItem xs="12" sm="6" md="4" lg="3">
         <StatCard Icon="@Icons.Material.Filled.Newspaper" Color="Color.Warning"
-                  Label="Novidades"
-                  Value="@("—")"
-                  Subtitle="Ultimas novidades"/>
+                  Label="Novidades de modpacks"
+                  Value="@(Data?.ModpackNews.ToString() ?? "—")"
+                  Subtitle="atreladas a modpacks"/>
     </MudItem>
 </MudGrid>

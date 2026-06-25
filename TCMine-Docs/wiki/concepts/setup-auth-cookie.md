@@ -4,7 +4,7 @@ title: Setup inicial e autenticação por cookie
 tags: [concept, auth, setup, roles, segurança]
 status: stable
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-06-25
 aliases: [setup, auth cookie, primeira execução, Owner, papéis]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
@@ -39,7 +39,13 @@ ao refresh) e uma porta de entrada segura para gerir conteúdo e segredos.
   `/setup` deixa de existir (volta a `/login`).
 - **Papéis** (`UserRole`, [[entities/tcmine-domain]]): `Owner` > `Admin` >
   `Operator` > `Viewer`. `UserService` protege o **último Owner ativo** contra
-  remoção/rebaixamento/desativação (`CountActiveOwnersAsync`).
+  remoção/rebaixamento/desativação (`CountActiveOwnersAsync`) — a guarda é aplicada
+  em `UpdateAsync`/`SetActiveAsync`/`DeleteAsync` (lança `InvalidOperationException`).
+- **Gestão de usuários** (`/admin/users`, **só Owner**): página
+  `Admin/Users/Users` lista todos e abre o `UserEditDialog` para **criar** (login,
+  papel, senha) e **editar** (login, papel, ativo, senha opcional = redefinir);
+  ainda toggle de ativo e remoção. A UI desabilita a auto-remoção; o serviço é a
+  fonte da verdade das regras (unicidade do login, último Owner).
 - **Senhas:** hash via `PasswordHasher<UserEntity>` (**PBKDF2**), com rehash
   automático (`SuccessRehashNeeded`). Login é case-insensitive (normalizado para
   minúsculas).
@@ -55,12 +61,15 @@ ao refresh) e uma porta de entrada segura para gerir conteúdo e segredos.
 
 - `TCMine-Infrastructure/Identity/{UserService,SetupState}.cs`;
   `TCMine-Server/Authentication/{AuthClaims,PersistingAuthenticationStateProvider}.cs`;
-  `TCMine-Server/Program.cs` (cookie + middleware de primeira execução).
+  `TCMine-Server/Program.cs` (cookie + middleware de primeira execução);
+  `TCMine-Server/Components/Pages/Admin/Users/` (página de gestão + `UserEditDialog`).
 
 ## Contradições / debates conhecidos
 
-- A página `Admin/Settings` (segredos) hoje aceita **qualquer admin autenticado**;
-  restringi-la ao `Owner` é pendência registrada no código.
+- _(resolvido em 2026-06-25)_ A página `Admin/Settings` (segredos) era acessível por
+  URL a qualquer autenticado — o link no menu já era só-Owner, mas a página não tinha
+  `[Authorize]`. Agora carrega `@attribute [Authorize(Roles = "Owner")]`, alinhada à
+  página de usuários.
 
 ## Referências
 

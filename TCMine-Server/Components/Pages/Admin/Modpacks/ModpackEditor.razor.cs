@@ -161,7 +161,6 @@ public partial class ModpackEditor : ComponentBase
 
         var added = 0;
         foreach (var modId in modIds)
-        {
             try
             {
                 var entry = await Service.AddFromSearchAsync(modId, _draft.Minecraft, _draft.Loader);
@@ -171,7 +170,6 @@ public partial class ModpackEditor : ComponentBase
             {
                 Snackbar.Add($"Falha ao adicionar mod {modId}: {ex.Message}", Severity.Error);
             }
-        }
 
         if (added > 0) Snackbar.Add($"{added} mod(s) adicionado(s).", Severity.Success);
     }
@@ -313,10 +311,8 @@ public partial class ModpackEditor : ComponentBase
             _overridesVersion++;
 
             if (wasNew)
-            {
                 // Navega para a rota canônica do modpack já gravado (habilita a aba de overrides)
                 Nav.NavigateTo($"/admin/modpacks/{_draft.Id}");
-            }
         }
         catch (Exception ex)
         {

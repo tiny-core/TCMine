@@ -14,7 +14,8 @@
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                           OnKeyUp="OnKeyUp" Clearable="true"/>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchAsync"
-                       Disabled="_loading">Buscar</MudButton>
+                       Disabled="_loading">Buscar
+            </MudButton>
         </MudStack>
 
         <MudText Typo="Typo.caption" Color="Color.Secondary">
@@ -127,6 +128,14 @@
         _selected = values;
     }
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(_selected.ToList()));
-    private void Cancel() => MudDialog.Cancel();
+    private void Confirm()
+    {
+        MudDialog.Close(DialogResult.Ok(_selected.ToList()));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
 }

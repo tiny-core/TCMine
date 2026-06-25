@@ -37,6 +37,14 @@
         await Task.CompletedTask;
     }
 
-    private void Confirm() => MudDialog.Close(DialogResult.Ok(_value.Trim()));
-    private void Cancel() => MudDialog.Cancel();
+    private void Confirm()
+    {
+        MudDialog.Close(DialogResult.Ok(_value.Trim()));
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
 }

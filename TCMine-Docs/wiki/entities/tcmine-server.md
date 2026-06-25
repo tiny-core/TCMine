@@ -4,7 +4,7 @@ title: TCMine-Server
 tags: [entity, tcmine, blazor, minimal-api, backend, admin]
 status: wip
 created: 2026-06-23
-updated: 2026-06-24
+updated: 2026-06-25
 aliases: [TCMine-Server, servidor, backend, painel admin]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
@@ -66,8 +66,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   `RecentActivityCard`, `RecentModpacksCard`, `ModDistributionCard`,
   `DashboardHeader`), `Admin/Settings` (token CF + Azure ids + `PublicBaseUrl`);
   `Admin/Modpacks/` (lista + editor em abas + diálogos — ver
-  [[concepts/modpack-admin-editor]]); shared (`StatCard`, `CenterScreen`,
-  `ErrorScreen`, `RelativeTime`).
+  [[concepts/modpack-admin-editor]]); `Admin/Users/` (gestão de usuários +
+  `UserEditDialog`, só Owner — ver [[concepts/setup-auth-cookie]]); shared
+  (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`).
 - **UI — pacotes:** MudBlazor (admin) + **BlazorMonaco** (editor de overrides;
   versão central, 3 scripts de setup no `App.razor`).
 - **Theme (`Theme/`):** `MudThemeFactory.Create()` monta o `MudTheme`
@@ -80,8 +81,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   primeira execução força `/setup` do `Owner`. Ver [[concepts/setup-auth-cookie]].
 - **[2026-06-23]** `Admin/Settings` segue **escrita-só-ao-Guardar**; é onde o
   token CurseForge e os ids Azure são configurados (cifrados via
-  `ServerSettingsService`). Hoje qualquer admin autenticado acede; restrição ao
-  Owner é pendência.
+  `ServerSettingsService`). **[2026-06-25]** restrita ao `Owner` via
+  `@attribute [Authorize(Roles = "Owner")]` (antes só o link do menu escondia; a
+  página era acessível por URL).
 - **[2026-06-23]** **404 estilizado** via render a 200 + promoção por middleware
   (rotas de API/SSE/assets excluídas).
 - **[2026-06-24]** **UI admin de modpacks** entregue (`Admin/Modpacks/`): lista +
@@ -89,6 +91,18 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   `ModpackImportService`, com busca/import CurseForge, upload de jar, marcação de
   `Side`/`Target` por mod e edição de overrides com **BlazorMonaco**. Restrito a
   `Owner,Admin`. Ver [[concepts/modpack-admin-editor]].
+- **[2026-06-25]** **Gestão de usuários** (`/admin/users`, só `Owner`): página
+  `Admin/Users/Users` + `UserEditDialog` para criar/editar (login, papel, ativo,
+  senha opcional na edição). `UserService` ganhou `UpdateAsync` e guardas reais do
+  **último Owner ativo** em `Update`/`SetActive`/`Delete` (antes só havia a contagem,
+  sem aplicá-la). Ver [[concepts/setup-auth-cookie]].
+- **[2026-06-25]** **Dashboard refinado**: o card "Atividade recente"
+  (`RecentActivityCard`) passa a exibir o **nome do modpack** em vez do `Guid`
+  (subconsulta em `ContentCatalog`, pois `OverrideHistoryEntry` não tem navigation
+  property; cai para o id quando o modpack já foi excluído). E o KPI único de
+  "Novidades" (`DashboardKpis`) virou **dois**: *Novidades globais*
+  (`News.ModpackId == null`) e *Novidades de modpacks* (`ModpackId != null`),
+  ambos contando só publicadas, a partir do agregado `DashboardData`.
 
 ## Relações
 
@@ -97,8 +111,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
 
 ## Pontos em aberto
 
-- [x] CRUD admin de **modpacks** (2026-06-24). Falta CRUD de usuários/releases.
-- [ ] Restringir `Settings` ao papel `Owner`.
+- [x] CRUD admin de **modpacks** (2026-06-24).
+- [x] CRUD de **usuários** (2026-06-25) — `/admin/users` (só Owner). Falta CRUD de releases.
+- [x] Restringir `Settings` ao papel `Owner` (2026-06-25).
 - [x] **Newsletter por modpack** (2026-06-24) — `NewsEntity.ModpackId` (FK
   opcional, null = global) + migration `NewsModpackFk` nos dois providers + aba
   Novidades. Falta UI para o feed global. Ver [[concepts/modpack-admin-editor]].

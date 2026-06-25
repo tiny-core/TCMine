@@ -31,7 +31,7 @@
                         <MudText Typo="Typo.caption" Color="Color.Secondary">@RelativeTime.Format(a.CreatedAt)</MudText>
                     </MudStack>
                     <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block text-truncate">
-                        @a.ModpackId · @ActivityPath(a)
+                        @ActivityModpack(a) · @ActivityPath(a)
                     </MudText>
                     @if (!string.IsNullOrWhiteSpace(a.Actor))
                     {
