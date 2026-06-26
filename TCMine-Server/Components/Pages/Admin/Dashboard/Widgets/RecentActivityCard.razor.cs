@@ -3,7 +3,7 @@ using MudBlazor;
 using TCMine_Domain.Entities;
 using TCMine_Infrastructure.Server;
 
-namespace TCMine_Server.Components.Pages.Admin.Widgets;
+namespace TCMine_Server.Components.Pages.Admin.Dashboard.Widgets;
 
 /// <summary>Card da timeline de atividade recente. Apenas apresentação — recebe a lista por parâmetro.</summary>
 public partial class RecentActivityCard : ComponentBase

@@ -1,0 +1,57 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
+
+@* Aba "Servidores" do editor: lista paginada de servidores anunciados (nome/endereço/porta),
+   editáveis inline. Add/remove operam direto na lista (por referência). Ver ServersPanel.razor.cs. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Entram no <code>servers.dat</code> do launcher.
+    </MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="Add">
+        Adicionar servidor
+    </MudButton>
+</MudStack>
+
+@if (Servers.Count == 0)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="py-12">
+        <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Large" Color="Color.Secondary"/>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Nenhum servidor anunciado.
+        </MudText>
+    </MudStack>
+}
+else
+{
+    @foreach (var s in Paged)
+    {
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3 mb-2">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="s.Name" Label="Nome" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="120"/>
+                </MudItem>
+                <MudItem xs="8" md="5">
+                    <MudTextField @bind-Value="s.Address" Label="Endereço" Variant="Variant.Outlined"
+                                  Margin="Margin.Dense" MaxLength="200"/>
+                </MudItem>
+                <MudItem xs="3" md="2">
+                    <MudNumericField T="int" @bind-Value="s.Port" Label="Porta"
+                                     Variant="Variant.Outlined" Margin="Margin.Dense" Min="1" Max="65535"/>
+                </MudItem>
+                <MudItem xs="1" Class="d-flex justify-end">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   OnClick="@(() => Remove(s))"/>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
+
+    @if (PageCount > 1)
+    {
+        <div class="d-flex justify-center mt-3">
+            <MudPagination Count="PageCount" @bind-Selected="_page" Color="Color.Primary"/>
+        </div>
+    }
+}

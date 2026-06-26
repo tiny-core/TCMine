@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
@@ -12,25 +11,22 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Editor de um modpack (criar ou editar). Segue a política de escrita-só-ao-Guardar para os
-/// metadados, mods e servidores: tudo vive num rascunho destacado (<see cref="_draft"/>) em memória
-/// e só o botão Guardar persiste (baixando os jars com progresso).
+/// Editor de um modpack (criar ou editar). **Orquestra** as abas — cada uma é um componente próprio
+/// (<see cref="DetailsPanel"/>, <see cref="ModsPanel"/>, <see cref="OverridesPanel"/>,
+/// <see cref="NewsPanel"/>, <see cref="ServersPanel"/>). Mantém o rascunho destacado (<see cref="_draft"/>
+/// + <see cref="_mods"/>) e a política de escrita-só-ao-Guardar para metadados, mods e servidores.
 ///
-/// Exceção deliberada: a edição de <b>overrides</b> grava direto em disco (o
-/// <see cref="ModpackImportService"/> já trabalha assim, com histórico/desfazer). Por isso a aba de
-/// overrides só fica disponível depois do primeiro Guardar — antes disso o modpack ainda não tem
-/// pasta no disco e os overrides de um import ficam pendentes até serem extraídos no Guardar.
+/// Exceção: overrides e novidades gravam direto no disco/banco (têm seus próprios serviços), por isso
+/// só ficam disponíveis depois do primeiro Guardar — antes disso o modpack ainda não existe.
 /// </summary>
 public partial class ModpackEditor : ComponentBase
 {
     [Parameter] public string? Id { get; set; }
 
     [Inject] private ModpackImportService Service { get; set; } = null!;
-    [Inject] private MinecraftVersionService Versions { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
-    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
 
     // Rascunho destacado: a fonte da verdade do formulário até o Guardar
@@ -46,12 +42,8 @@ public partial class ModpackEditor : ComponentBase
 
     // Aba ativa (controlada): a troca passa pelo OnTabPreview para mostrar o overlay antes do render
     private int _activeTab;
-
-    // Referência ao MudTabs para conduzir a troca explicitamente (não depender só do resync do param)
     private MudTabs _tabs = null!;
-
-    // Evita reentrância caso ActivatePanelAsync redispare o OnPreviewInteraction
-    private bool _switchingTab;
+    private bool _switchingTab; // evita reentrância caso ActivatePanelAsync redispare o OnPreviewInteraction
 
     // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
     private byte[]? _pendingOverrides;
@@ -64,12 +56,6 @@ public partial class ModpackEditor : ComponentBase
     private string _saveStatus = string.Empty;
     private int _saveCurrent;
     private int _saveTotal;
-
-    // Seletores de versão (preenchidos por endpoints oficiais; podem vir vazios → texto livre)
-    private IReadOnlyList<VersionOptionDto> _mcVersions = [];
-    private IReadOnlyList<VersionOptionDto> _loaderVersions = [];
-
-    private bool Exists => !_isNew;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -104,7 +90,6 @@ public partial class ModpackEditor : ComponentBase
                 _draft = existing;
                 // Achata os vínculos+arquivos no modelo plano que o editor edita
                 _mods = ModpackImportService.FlattenMods(existing);
-                await ReloadNewsAsync();
             }
             else
             {
@@ -112,19 +97,15 @@ public partial class ModpackEditor : ComponentBase
                 return;
             }
 
-            _mcVersions = await Versions.GetMinecraftVersionsAsync();
-            await ReloadLoaderVersionsAsync();
             _loading = false;
         });
     }
 
     // Intercepta a troca de aba: cancela a ativação nativa e a refaz sob o overlay, para que a modal
     // apareça ANTES do render pesado do painel (Mods/Overrides com muitos itens travam a thread de
-    // render — sem isso, o clique parece não responder). Programático (mudar _activeTab) não dispara
-    // este preview de novo, então não há loop.
+    // render). Programático (mudar _activeTab) não dispara este preview de novo, então não há loop.
     private async Task OnTabPreview(TabInteractionEventArgs args)
     {
-        // Ignora não-ativações, a reentrância da nossa própria ActivatePanelAsync e cliques na aba atual
         if (args.InteractionType != TabInteractionType.Activate || _switchingTab || args.PanelIndex == _activeTab)
             return;
 
@@ -137,8 +118,6 @@ public partial class ModpackEditor : ComponentBase
             _switchingTab = true;
             try
             {
-                // Troca explícita pela API do MudTabs — rede de segurança caso o resync do parâmetro
-                // ActivePanelIndex não baste por si só após o Cancel
                 await _tabs.ActivatePanelAsync(target, false);
             }
             finally
@@ -147,59 +126,11 @@ public partial class ModpackEditor : ComponentBase
             }
 
             StateHasChanged();
-            // Deixa o painel pesado renderizar com o overlay já visível
-            await Task.Yield();
+            await Task.Yield(); // deixa o painel pesado renderizar com o overlay já visível
         });
     }
 
-    // ── Versões ────────────────────────────────────────────────────────────────────────────────
-
-    private async Task OnMinecraftChanged(string value)
-    {
-        _draft.Minecraft = value;
-        await Busy.RunAsync("Carregando versões…", ReloadLoaderVersionsAsync);
-    }
-
-    private async Task OnLoaderChanged(ModLoader value)
-    {
-        _draft.Loader = value;
-        await Busy.RunAsync("Carregando versões…", ReloadLoaderVersionsAsync);
-    }
-
-    private async Task ReloadLoaderVersionsAsync()
-    {
-        _loaderVersions = await Versions.GetLoaderVersionsAsync(_draft.Loader, _draft.Minecraft);
-    }
-
-    // Destinos possíveis de um arquivo no cliente (pasta de instalação)
-    private static readonly string[] Targets = ["mod", "resourcepack", "shaderpack"];
-
-    // Mostrar só lançamentos estáveis (oculta snapshots/beta/rc) — ligado por padrão
-    private bool _mcReleasesOnly = true;
-    private bool _loaderReleasesOnly = true;
-
-    // SearchFunc do MudAutocomplete: filtra as versões e devolve texto livre quando não há lista
-    private Task<IEnumerable<string>> SearchMcAsync(string value, CancellationToken ct)
-    {
-        return Task.FromResult(Filter(_mcVersions, value, _mcReleasesOnly));
-    }
-
-    private Task<IEnumerable<string>> SearchLoaderAsync(string value, CancellationToken ct)
-    {
-        return Task.FromResult(Filter(_loaderVersions, value, _loaderReleasesOnly));
-    }
-
-    private static IEnumerable<string> Filter(IReadOnlyList<VersionOptionDto> opts, string? value, bool releasesOnly)
-    {
-        IEnumerable<VersionOptionDto> q = opts;
-        if (releasesOnly)
-            q = q.Where(o => o.IsRelease);
-        if (!string.IsNullOrWhiteSpace(value))
-            q = q.Where(o => o.Version.Contains(value, StringComparison.OrdinalIgnoreCase));
-        return q.Take(100).Select(o => o.Version);
-    }
-
-    // ── Mods ───────────────────────────────────────────────────────────────────────────────────
+    // ── Mods (ações disparadas pelo ModsPanel) ───────────────────────────────────────────────────
 
     private async Task SearchModsAsync()
     {
@@ -265,7 +196,6 @@ public partial class ModpackEditor : ComponentBase
             if (imported.Overrides is { Length: > 0 })
                 _pendingOverrides = imported.Overrides;
 
-            await ReloadLoaderVersionsAsync();
             Snackbar.Add(
                 $"Importado: {added} mod(s) novo(s)." +
                 (_pendingOverrides is not null ? " Overrides serão extraídos ao Guardar." : ""),
@@ -303,7 +233,7 @@ public partial class ModpackEditor : ComponentBase
         }
     }
 
-    // Mescla um mod no rascunho por FileId (mesma versão = atualiza; novo = adiciona). Devolve true se adicionou.
+    // Mescla um mod no rascunho por FileId (mesma versão = atualiza; novo = adiciona). True se adicionou.
     private bool MergeMod(ModEntryEntity entry)
     {
         var existing = _mods.FirstOrDefault(m => m.FileId == entry.FileId);
@@ -324,18 +254,6 @@ public partial class ModpackEditor : ComponentBase
     private void RemoveMod(ModEntryEntity mod)
     {
         _mods.Remove(mod);
-    }
-
-    // ── Servidores ───────────────────────────────────────────────────────────────────────────────
-
-    private void AddServer()
-    {
-        _draft.Servers.Add(new ServerEntryEntity { Name = "Novo servidor", Address = "", Port = 25565 });
-    }
-
-    private void RemoveServer(ServerEntryEntity server)
-    {
-        _draft.Servers.Remove(server);
     }
 
     // ── Guardar ────────────────────────────────────────────────────────────────────────────────
@@ -373,7 +291,7 @@ public partial class ModpackEditor : ComponentBase
             _overridesVersion++;
 
             if (wasNew)
-                // Navega para a rota canônica do modpack já gravado (habilita a aba de overrides)
+                // Navega para a rota canônica do modpack já gravado (habilita overrides/novidades)
                 Nav.NavigateTo($"/admin/modpacks/{_draft.Id}");
         }
         catch (Exception ex)

@@ -8,19 +8,40 @@ using TCMine_Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Services;
 
-namespace TCMine_Server.Components.Pages.Admin.Modpacks;
+namespace TCMine_Server.Components.Pages.Admin.Modpacks.Panels;
 
 /// <summary>
-/// Painel de edição de overrides de um modpack: árvore de arquivos (<c>MudTreeView</c>) +
-/// editor Monaco. Componente próprio (responsabilidade única) — vive separado do editor de
-/// metadados. Grava direto no disco via <see cref="ModpackImportService"/> (com histórico/desfazer).
-///
-/// O editor Monaco fica <b>sempre montado</b>: assim o seu <c>@ref</c> existe quando selecionamos
-/// um arquivo. Se a seleção acontecer antes do init do editor, o conteúdo fica pendente e é aplicado
-/// no <see cref="OnEditorInitAsync"/>.
+///     Painel de edição de overrides de um modpack: árvore de arquivos (<c>MudTreeView</c>) +
+///     editor Monaco. Componente próprio (responsabilidade única) — vive separado do editor de
+///     metadados. Grava direto no disco via <see cref="ModpackImportService" /> (com histórico/desfazer).
+///     O editor Monaco fica <b>sempre montado</b>: assim o seu <c>@ref</c> existe quando selecionamos
+///     um arquivo. Se a seleção acontecer antes do init do editor, o conteúdo fica pendente e é aplicado
+///     no <see cref="OnEditorInitAsync" />.
 /// </summary>
 public partial class OverridesPanel : ComponentBase
 {
+    private bool _binary;
+    private bool _dirty;
+
+    // ── Drag-and-drop (mover arrastando) ─────────────────────────────────────────────────────────
+    // Payload mantido em memória (mesmo circuito) — não precisa serializar no DataTransfer.
+
+    private string? _dragPath; // item sendo arrastado (o destaque do alvo é feito no JS, client-side)
+
+    private StandaloneCodeEditor? _editor;
+    private bool _editorReady;
+
+    private HashSet<string> _fileSet = [];
+    private bool _hasHistory;
+    private string? _pendingContent;
+    private string? _pendingLang;
+    private string? _selected;
+    private List<TreeItemData<string>> _treeItems = []; // nível raiz (semente); filhos vêm do ServerData
+
+    // @key do MudTreeView: bumpar reinstancia a árvore. Com lazy loading os filhos já expandidos ficam
+    // em cache no componente, então toda mudança estrutural (criar/enviar/apagar/mover/desfazer) reseta
+    // a árvore para refletir o disco.
+    private int _treeKey;
     [Parameter] public Guid ModpackId { get; set; }
 
     [Inject] private ModpackImportService Service { get; set; } = null!;
@@ -29,27 +50,10 @@ public partial class OverridesPanel : ComponentBase
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
 
-    private HashSet<string> _fileSet = [];
-    private List<TreeItemData<string>> _treeItems = []; // nível raiz (semente); filhos vêm do ServerData
-    private string? _selected;
-    private bool _dirty;
-    private bool _binary;
-    private bool _hasHistory;
-
-    private StandaloneCodeEditor? _editor;
-    private bool _editorReady;
-    private string? _pendingContent;
-    private string? _pendingLang;
-
     protected override async Task OnInitializedAsync()
     {
-        await Busy.RunAsync("Carregando overrides…", () => ReloadAsync(forceTreeRebuild: true));
+        await Busy.RunAsync("Carregando overrides…", () => ReloadAsync(true));
     }
-
-    // @key do MudTreeView: bumpar reinstancia a árvore. Com lazy loading os filhos já expandidos ficam
-    // em cache no componente, então toda mudança estrutural (criar/enviar/apagar/mover/desfazer) reseta
-    // a árvore para refletir o disco.
-    private int _treeKey;
 
     // Carregador preguiçoso dos FILHOS (ServerData): chamado ao expandir uma pasta. A raiz é semeada
     // por _treeItems (Items). Mantém _fileSet (arquivos carregados) p/ seleção/edição e detecção
@@ -200,7 +204,7 @@ public partial class OverridesPanel : ComponentBase
                 var rel = path.Replace('\\', '/');
                 _fileSet.Add(rel);
                 await OnSelectedChanged(rel);
-                await ReloadAsync(forceTreeRebuild: true);
+                await ReloadAsync(true);
             });
             Snackbar.Add("Override criado.", Severity.Success);
         }
@@ -235,11 +239,6 @@ public partial class OverridesPanel : ComponentBase
 
         await MoveToFolderAsync(path, targetFolder);
     }
-
-    // ── Drag-and-drop (mover arrastando) ─────────────────────────────────────────────────────────
-    // Payload mantido em memória (mesmo circuito) — não precisa serializar no DataTransfer.
-
-    private string? _dragPath; // item sendo arrastado (o destaque do alvo é feito no JS, client-side)
 
     private void OnDragStart(string? path)
     {
@@ -295,7 +294,7 @@ public partial class OverridesPanel : ComponentBase
                     await Service.MoveOverrideAsync(ModpackId, sourcePath, targetFolder);
 
                 _selected = null; // o caminho mudou; limpa a seleção
-                await ReloadAsync(forceTreeRebuild: true);
+                await ReloadAsync(true);
             });
             Snackbar.Add(isFolder ? "Pasta movida." : "Arquivo movido.", Severity.Success);
         }
@@ -314,7 +313,7 @@ public partial class OverridesPanel : ComponentBase
                 // 20 MB por arquivo de override (configs/resourcepacks costumam ser pequenos)
                 await using var stream = file.OpenReadStream(20 * 1024 * 1024);
                 await Service.UploadOverrideAsync(ModpackId, file.Name, stream);
-                await ReloadAsync(forceTreeRebuild: true);
+                await ReloadAsync(true);
             });
             Snackbar.Add($"\"{file.Name}\" enviado.", Severity.Success);
         }
@@ -338,7 +337,7 @@ public partial class OverridesPanel : ComponentBase
             {
                 await Service.DeleteOverrideAsync(ModpackId, _selected);
                 _selected = null;
-                await ReloadAsync(forceTreeRebuild: true);
+                await ReloadAsync(true);
             });
             Snackbar.Add("Override apagado.", Severity.Success);
         }
@@ -360,7 +359,7 @@ public partial class OverridesPanel : ComponentBase
                 if (result is not null)
                 {
                     _selected = null;
-                    await ReloadAsync(forceTreeRebuild: true);
+                    await ReloadAsync(true);
                 }
 
                 return result;
@@ -392,7 +391,7 @@ public partial class OverridesPanel : ComponentBase
         {
             _selected = null;
             // O diálogo de histórico pode ter revertido várias ações — reconstrói a árvore
-            await Busy.RunAsync("Atualizando overrides…", () => ReloadAsync(forceTreeRebuild: true));
+            await Busy.RunAsync("Atualizando overrides…", () => ReloadAsync(true));
         }
     }
 

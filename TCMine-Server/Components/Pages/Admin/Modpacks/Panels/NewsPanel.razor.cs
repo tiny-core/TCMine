@@ -3,37 +3,53 @@ using MudBlazor;
 using TCMine_Domain.Entities;
 using TCMine_Infrastructure.Server;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Parte do editor dedicada à <b>newsletter do modpack</b>. Como os overrides, grava direto no banco
-/// (conteúdo independente do rascunho), por isso só fica disponível depois do primeiro Guardar —
-/// antes disso o modpack ainda não existe para amarrar a FK.
+/// Aba "Novidades" do <see cref="ModpackEditor"/>: newsletter por modpack. Self-contained — carrega
+/// a lista do <see cref="ModpackNewsService"/> e faz o CRUD direto (grava na hora, fora da política
+/// de escrita-só-ao-Guardar). Só é renderizado depois do primeiro Guardar (o editor garante o id).
 /// </summary>
-public partial class ModpackEditor
+public partial class NewsPanel : ComponentBase
 {
-    [Inject] private ModpackNewsService NewsService { get; set; } = null!;
+    [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 
+    [Inject] private ModpackNewsService NewsService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
+
+    // null = carregando (BusyOverlay cobre); lista vazia = sem novidades
     private List<NewsEntity>? _news;
 
-    private async Task ReloadNewsAsync()
+    private const int PageSize = 5;
+    private int _page = 1;
+
+    private int PageCount => Math.Max(1, ((_news?.Count ?? 0) + PageSize - 1) / PageSize);
+    private IEnumerable<NewsEntity> Paged => (_news ?? []).Skip((_page - 1) * PageSize).Take(PageSize);
+
+    protected override async Task OnInitializedAsync()
     {
-        _news = await NewsService.ListForModpackAsync(_draft.Id);
+        await Busy.RunAsync("Carregando novidades…", ReloadAsync);
     }
 
-    private async Task NewNewsAsync()
+    private async Task ReloadAsync()
     {
-        await EditNewsAsync(null);
+        _news = await NewsService.ListForModpackAsync(ModpackId);
+        if (_page > PageCount) _page = PageCount;
+    }
+
+    private Task NewAsync()
+    {
+        return EditAsync(null);
     }
 
     // Cria (entry == null) ou edita uma notícia via diálogo; persiste no confirmar.
-    private async Task EditNewsAsync(NewsEntity? entry)
+    private async Task EditAsync(NewsEntity? entry)
     {
-        var parameters = new DialogParameters<NewsEditDialog>
-        {
-            { x => x.Entry, entry }
-        };
+        var parameters = new DialogParameters<NewsEditDialog> { { x => x.Entry, entry } };
         var dialog = await DialogService.ShowAsync<NewsEditDialog>(
             entry is null ? "Nova novidade" : "Editar novidade", parameters,
             new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true });
@@ -46,11 +62,11 @@ public partial class ModpackEditor
             await Busy.RunAsync("Salvando novidade…", async () =>
             {
                 if (entry is null)
-                    await NewsService.CreateAsync(_draft.Id, draft);
+                    await NewsService.CreateAsync(ModpackId, draft);
                 else
                     await NewsService.UpdateAsync(draft);
 
-                await ReloadNewsAsync();
+                await ReloadAsync();
             });
             Snackbar.Add("Novidade salva.", Severity.Success);
         }
@@ -60,7 +76,7 @@ public partial class ModpackEditor
         }
     }
 
-    private async Task DeleteNewsAsync(NewsEntity entry)
+    private async Task DeleteAsync(NewsEntity entry)
     {
         var ok = await DialogService.ShowMessageBoxAsync(
             "Apagar novidade", $"Apagar \"{entry.Title}\"?", "Apagar", cancelText: "Cancelar");
@@ -71,7 +87,7 @@ public partial class ModpackEditor
             await Busy.RunAsync("Apagando novidade…", async () =>
             {
                 await NewsService.DeleteAsync(entry.Id);
-                await ReloadNewsAsync();
+                await ReloadAsync();
             });
             Snackbar.Add("Novidade apagada.", Severity.Success);
         }

@@ -1,0 +1,101 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
+@using Microsoft.AspNetCore.Components.Forms
+@using TCMine_Domain.Entities
+@using TCMine_Domain.Modpack
+
+@* Aba "Mods" do editor: toolbar de adicionar (CurseForge/import/upload) + tabela paginada com filtro.
+   Apresentacional — as ações disparam EventCallbacks; a lógica vive no ModpackEditor. *@
+
+<MudStack Row="true" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="!CfConfigured"
+               StartIcon="@Icons.Material.Filled.Search" OnClick="@(() => OnSearchCf.InvokeAsync())">
+        Buscar no CurseForge
+    </MudButton>
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Disabled="!CfConfigured"
+               StartIcon="@Icons.Material.Filled.Download" OnClick="@(() => OnImport.InvokeAsync())">
+        Importar modpack
+    </MudButton>
+    <MudFileUpload T="IBrowserFile" Accept=".jar" MaximumFileCount="1"
+                   FilesChanged="@(file => OnUploadJar.InvokeAsync(file))">
+        <CustomContent Context="up">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile"
+                       OnClick="@(() => up.OpenFilePickerAsync())">
+                Enviar jar
+            </MudButton>
+        </CustomContent>
+    </MudFileUpload>
+    <MudSpacer/>
+    @if (Mods.Count > 0)
+    {
+        <MudTextField @bind-Value="_filter" Placeholder="Filtrar mods…" Immediate="true" Clearable="true"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Margin="Margin.Dense" Class="mt-0" Style="max-width:260px"/>
+    }
+</MudStack>
+
+@if (Mods.Count == 0)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="py-12">
+        <MudIcon Icon="@Icons.Material.Filled.Extension" Size="Size.Large" Color="Color.Secondary"/>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Nenhum mod ainda. Busque no CurseForge, importe um modpack ou envie um jar.
+        </MudText>
+    </MudStack>
+}
+else
+{
+    <MudTable Items="Filtered" Hover="true" Dense="true" Elevation="0" T="ModEntryEntity"
+              FixedHeader="true" Height="50vh" RowsPerPage="25">
+        <HeaderContent>
+            <MudTh>Nome</MudTh>
+            <MudTh>Versão</MudTh>
+            <MudTh>Destino</MudTh>
+            <MudTh>Lado</MudTh>
+            <MudTh>Origem</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nome">
+                <MudText Typo="Typo.body2">@context.Name</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.FileName</MudText>
+            </MudTd>
+            <MudTd DataLabel="Versão">@context.Version</MudTd>
+            <MudTd DataLabel="Destino">
+                <MudSelect T="string" @bind-Value="context.Target" Dense="true" Margin="Margin.Dense"
+                           Variant="Variant.Outlined" Style="min-width:140px">
+                    @foreach (var t in Targets)
+                    {
+                        <MudSelectItem T="string" Value="t">@t</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudTd>
+            <MudTd DataLabel="Lado">
+                <MudSelect T="ModSide" @bind-Value="context.Side" Dense="true" Margin="Margin.Dense"
+                           Variant="Variant.Outlined" Style="min-width:120px">
+                    <MudSelectItem T="ModSide" Value="ModSide.Both">Ambos</MudSelectItem>
+                    <MudSelectItem T="ModSide" Value="ModSide.Client">Cliente</MudSelectItem>
+                    <MudSelectItem T="ModSide" Value="ModSide.Server">Servidor</MudSelectItem>
+                </MudSelect>
+            </MudTd>
+            <MudTd DataLabel="Origem">
+                @if (context.CurseModId > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
+                             Icon="@Icons.Material.Filled.Cloud">CurseForge</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default"
+                             Icon="@Icons.Material.Filled.UploadFile">Manual</MudChip>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => OnRemove.InvokeAsync(context))"/>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }"/>
+        </PagerContent>
+    </MudTable>
+}

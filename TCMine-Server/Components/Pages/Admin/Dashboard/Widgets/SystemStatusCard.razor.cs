@@ -2,35 +2,39 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Infrastructure.Server;
 
-namespace TCMine_Server.Components.Pages.Admin.Widgets;
+namespace TCMine_Server.Components.Pages.Admin.Dashboard.Widgets;
 
 /// <summary>
-/// Card de status do sistema. Encapsula a amostragem periódica das métricas do processo
-/// (memória/heap/threads/uptime) e o histórico do gráfico. Por gerir o próprio
-/// <see cref="Timer"/>, isola o re-render de 2 em 2 segundos — a página do dashboard não
-/// re-renderiza (as outras seções têm dados imutáveis carregados uma única vez).
+///     Card de status do sistema. Encapsula a amostragem periódica das métricas do processo
+///     (memória/heap/threads/uptime) e o histórico do gráfico. Por gerir o próprio
+///     <see cref="Timer" />, isola o re-render de 2 em 2 segundos — a página do dashboard não
+///     re-renderiza (as outras seções têm dados imutáveis carregados uma única vez).
 /// </summary>
 public partial class SystemStatusCard : ComponentBase, IDisposable
 {
-    [Inject] private SystemMetricsService Metrics { get; set; } = null!;
-
     // Janela deslizante das últimas amostras de memória (MB)
     private const int MaxPoints = 30;
-    private readonly List<double> _memHistory = [];
-
-    private List<ChartSeries<double>> _series = [];
-    private string[] _labels = [];
 
     // Série única → legenda redundante (o rótulo já está no cabeçalho do card)
     private readonly ChartOptions _chartOptions = new() { ShowLegend = false };
+    private readonly List<double> _memHistory = [];
+    private string[] _labels = [];
+
+    private List<ChartSeries<double>> _series = [];
 
     private SystemSnapshot _snapshot;
     private Timer? _timer;
+    [Inject] private SystemMetricsService Metrics { get; set; } = null!;
 
     private string Uptime => FormatUptime(_snapshot.Uptime);
 
     // Pico de memória da janela atual — contextualiza o valor instantâneo
     private double PeakMemoryMb => _memHistory.Count == 0 ? 0 : _memHistory.Max();
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
 
     protected override void OnInitialized()
     {
@@ -67,10 +71,5 @@ public partial class SystemStatusCard : ComponentBase, IDisposable
             : t.TotalHours >= 1
                 ? $"{(int)t.TotalHours}h {t.Minutes}m"
                 : $"{t.Minutes}m {t.Seconds}s";
-    }
-
-    public void Dispose()
-    {
-        _timer?.Dispose();
     }
 }

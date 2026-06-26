@@ -1,0 +1,64 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
+
+@* Aba "Novidades" do editor: newsletter por modpack (CRUD direto via ModpackNewsService). Lista
+   paginada. Self-contained — carrega e persiste por conta própria. Ver NewsPanel.razor.cs. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <MudText Typo="Typo.body2" Color="Color.Secondary">
+        Publicadas na página deste modpack.
+    </MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
+        Nova novidade
+    </MudButton>
+</MudStack>
+
+@if (_news is null)
+{
+    @* O BusyOverlay cobre o carregamento *@
+}
+else if (_news.Count == 0)
+{
+    <MudStack AlignItems="AlignItems.Center" Class="py-12">
+        <MudIcon Icon="@Icons.Material.Filled.Newspaper" Size="Size.Large" Color="Color.Secondary"/>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Nenhuma novidade publicada para este modpack.
+        </MudText>
+    </MudStack>
+}
+else
+{
+    @foreach (var n in Paged)
+    {
+        <MudPaper Outlined="true" Elevation="0" Class="pa-3 mb-2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <div class="flex-grow-1">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        @if (!string.IsNullOrWhiteSpace(n.Tag))
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@n.Tag</MudChip>
+                        }
+                        <MudText Typo="Typo.subtitle2">@n.Title</MudText>
+                        @if (!n.IsPublished)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                        }
+                    </MudStack>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@n.Summary</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">@n.PublishedAt.ToString("dd/MM/yyyy")</MudText>
+                </div>
+                <MudStack Row="true" Spacing="0">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => EditAsync(n))"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                   OnClick="@(() => DeleteAsync(n))"/>
+                </MudStack>
+            </MudStack>
+        </MudPaper>
+    }
+
+    @* Sempre visível (mesmo com 1 página) para a aba ter o controle de paginação presente *@
+    <div class="d-flex justify-center mt-3">
+        <MudPagination Count="PageCount" @bind-Selected="_page" Color="Color.Primary"/>
+    </div>
+}

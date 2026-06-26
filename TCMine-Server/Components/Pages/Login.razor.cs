@@ -20,12 +20,18 @@ public partial class Login : ComponentBase
     // HttpContext cascateia em SSR estático — necessário para SignInAsync
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
-    // Dados do formulário, preenchidos a partir do POST. Inicializado para o EditForm ter um Model
+    // Dados do formulário, preenchidos a partir do POST. Sem inicializador inline (BL0008): o binder
+    // pode sobrescrevê-lo com null no POST. Inicializa no OnInitialized para o EditForm ter um Model
     // não-nulo já no GET (sem isto, EditForm lança "requires a Model or EditContext").
-    [SupplyParameterFromForm] public LoginInput Input { get; set; } = new();
+    [SupplyParameterFromForm] public LoginInput Input { get; set; } = null!;
 
     // Marca falha de credenciais para reexibir o formulário com alerta (sem redirect)
     private bool _failed;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new LoginInput();
+    }
 
     private async Task LoginUser()
     {

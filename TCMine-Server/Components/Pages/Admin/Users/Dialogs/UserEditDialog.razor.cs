@@ -54,7 +54,7 @@ public partial class UserEditDialog : ComponentBase
 
     private async Task Confirm()
     {
-        await _form.Validate();
+        await _form.ValidateAsync();
         if (!_form.IsValid) return;
 
         // Senha vazia na edição = manter a atual (null sinaliza isso ao serviço)

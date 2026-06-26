@@ -28,6 +28,20 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] ingest | Refactor do ModpackEditor em componentes por aba + paginação
+
+- **Fonte:** pedido do usuário; código `TCMine-Server/Components/Pages/Admin/Modpacks/` (`ModpackEditor.razor(.cs)`, novo `Panels/`).
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** o `ModpackEditor` (markup monolítico de ~350 linhas) foi decomposto: cada
+  aba virou um componente em `Panels/` — `DetailsPanel` (metadados + versões,
+  self-contained no `MinecraftVersionService`), `ModsPanel` (toolbar + tabela paginada
+  + filtro; ações via `EventCallback`), `ServersPanel` (lista paginada editável),
+  `NewsPanel` (newsletter self-contained no `ModpackNewsService`, paginada; substitui o
+  antigo `ModpackEditor.News.cs`, removido). O editor agora **orquestra**: segura
+  `_draft`/`_mods`, Guardar, troca de aba; cabeçalho moderno com chips de status. Todas
+  as listas ganharam **paginação** (Mods/News/Servers). Build limpo, sem avisos novos.
+- **Pendências:** nenhuma.
+
 ## [2026-06-25] fix | Arquivos apareciam como pasta (chevron) no lazy loading
 
 - **Fonte:** relato do usuário; código `OverridesPanel.razor`.

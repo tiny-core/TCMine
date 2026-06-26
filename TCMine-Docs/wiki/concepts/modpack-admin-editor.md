@@ -28,11 +28,18 @@ related:
   - `Modpacks.razor` (+ `.razor.cs`) — rota `/admin/modpacks`: catálogo (lista
     em **`MudDataGrid` virtualizado** — leve com muitos modpacks). Restrito a
     `Owner,Admin`.
-  - `ModpackEditor.razor` (+ `.razor.cs` + `.News.cs`) — rotas
-    `/admin/modpacks/new` e `/admin/modpacks/{Id}`: o editor em abas (orquestra;
-    o conteúdo de overrides vive no seu próprio componente).
+  - `ModpackEditor.razor` (+ `.razor.cs`) — rotas `/admin/modpacks/new` e
+    `/admin/modpacks/{Id}`: **orquestrador** em abas. Mantém o rascunho
+    (`_draft` + lista plana `_mods`), o Guardar e a troca de aba; cada aba é um
+    componente próprio. O cabeçalho moderno reúne título + chips de status
+    (publicado/rascunho, Minecraft, loader, nº de mods) + botão Guardar.
+  - `Panels/` — um componente por aba (regra **sem monolitos**):
+    `DetailsPanel` (metadados + seletores de versão, self-contained no
+    `MinecraftVersionService`), `ModsPanel` (toolbar + tabela paginada + filtro;
+    ações via `EventCallback`), `ServersPanel` (lista paginada editável),
+    `NewsPanel` (newsletter self-contained no `ModpackNewsService`, paginada).
   - `OverridesPanel.razor` (+ `.razor.cs`) — componente próprio da aba Overrides
-    (árvore + Monaco). `OverrideTreeBuilder.cs` monta a árvore do `MudTreeView`.
+    (árvore lazy + Monaco). `OverrideTreeBuilder.cs` só mapeia ícone por extensão.
   - `Dialogs/` — `CurseForgeSearchDialog` (busca mods, multi-seleção),
     `ImportModpackDialog` (busca modpack), `ImportProgressDialog` (feedback
     bloqueante durante o import), `OverridePathDialog`, `OverrideHistoryDialog`,
@@ -73,9 +80,15 @@ componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
    vez por arraste). Botão e DnD chamam o mesmo núcleo
    (`MoveToFolderAsync`) → `MoveOverrideAsync`/`MoveOverrideFolderAsync` (já com
    histórico/desfazer; o serviço recusa mover uma pasta pra dentro de si mesma).
-4. **Novidades** — newsletter **por modpack** (CRUD direto via `ModpackNewsService`).
+4. **Novidades** — newsletter **por modpack** (CRUD direto via `ModpackNewsService`),
+   lista **paginada** (`MudPagination`).
 5. **Servidores** — entradas (nome/endereço/porta) que o launcher escreve no
-   `servers.dat`.
+   `servers.dat`; lista **paginada** (`MudPagination`).
+
+> **Decomposição:** cada aba é um componente em `Panels/` (`DetailsPanel`,
+> `ModsPanel`, `ServersPanel`, `NewsPanel`) + `OverridesPanel`. O `ModpackEditor`
+> orquestra: segura `_draft`/`_mods` e passa por parâmetro (referência) ou
+> `EventCallback`. **Todas as listas têm paginação.**
 
 > **Troca de aba com feedback:** abas pesadas (Mods/Overrides com muitos itens)
 > travam o render; a troca passa por `OnPreviewInteraction` (cancela + refaz a

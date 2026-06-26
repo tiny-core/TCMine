@@ -19,7 +19,14 @@ public partial class Setup : ComponentBase
     [Inject] private NavigationManager Navigation { get; set; } = null!;
     [CascadingParameter] private HttpContext HttpContext { get; set; } = null!;
 
-    [SupplyParameterFromForm] private SetupInput Input { get; set; } = new();
+    // Sem inicializador inline (BL0008): no POST o binder pode sobrescrever com null antes do bind.
+    // Inicializa no OnInitialized só quando o form não veio preenchido (GET / primeira renderização).
+    [SupplyParameterFromForm] private SetupInput Input { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        Input ??= new SetupInput();
+    }
 
     private async Task CreateMaster()
     {

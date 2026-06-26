@@ -1,5 +1,4 @@
-@namespace TCMine_Server.Components.Pages.Admin.Modpacks
-@using Microsoft.AspNetCore.Components.Forms
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Panels
 
 @* Árvore de overrides (MudTreeView) + editor Monaco sempre montado. Ações nos botões do topo
    e no cabeçalho do editor (a árvore só seleciona). Ver OverridesPanel.razor.cs. *@
@@ -111,7 +110,7 @@
         </MudStack>
 
         <div class="editor-host"
-             style="position:relative; height:55vh; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden;">
+             style="position:relative; height:56vh; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden;">
             <StandaloneCodeEditor @ref="_editor" ConstructionOptions="EditorOptions"
                                   OnDidInit="OnEditorInitAsync"
                                   OnDidChangeModelContent="@(_ => OnContentChanged())"/>

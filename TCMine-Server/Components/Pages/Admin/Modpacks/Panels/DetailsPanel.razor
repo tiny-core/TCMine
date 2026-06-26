@@ -1,0 +1,87 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
+@using TCMine_Domain.Modpack
+
+@* Aba "Detalhes" do editor de modpack: metadados + seletores de versão. Self-contained nas versões
+   (injeta o MinecraftVersionService). Edita o Draft por referência. Ver DetailsPanel.razor.cs. *@
+
+<MudStack Spacing="6">
+    @* ── Identidade ─────────────────────────────────────────────────────────────── *@
+    <div>
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Identidade</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Nome e versão exibidos no launcher.
+        </MudText>
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="Draft.Name" Label="Nome" Variant="Variant.Outlined"
+                              Required="true" MaxLength="120"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Inventory2"/>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="Draft.Version" Label="Versão do modpack"
+                              Variant="Variant.Outlined" MaxLength="40"/>
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="Draft.Description" Label="Descrição"
+                              Variant="Variant.Outlined" Lines="3" MaxLength="2000"
+                              HelperText="Resumo curto do modpack para a página pública."/>
+            </MudItem>
+        </MudGrid>
+    </div>
+
+    <MudDivider/>
+
+    @* ── Versões ────────────────────────────────────────────────────────────────── *@
+    <div>
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Versões</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Minecraft, loader e a versão do loader. As listas vêm dos canais oficiais; aceita texto livre.
+        </MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudAutocomplete T="string" Label="Minecraft" Variant="Variant.Outlined"
+                                 Value="Draft.Minecraft" ValueChanged="OnMinecraftChanged"
+                                 SearchFunc="SearchMcAsync" CoerceText="true" CoerceValue="true"
+                                 ResetValueOnEmptyText="false" Clearable="true"/>
+                <MudSwitch T="bool" @bind-Value="_mcReleasesOnly" Color="Color.Primary" Size="Size.Small"
+                           Class="mt-1" Label="Só releases"/>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="ModLoader" Label="Loader" Variant="Variant.Outlined"
+                           Value="Draft.Loader" ValueChanged="OnLoaderChanged">
+                    @foreach (var l in Enum.GetValues<ModLoader>())
+                    {
+                        <MudSelectItem T="ModLoader" Value="l">@ModLoaders.DisplayName(l)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudAutocomplete T="string" Label="Versão do loader" Variant="Variant.Outlined"
+                                 @bind-Value="Draft.LoaderVersion"
+                                 SearchFunc="SearchLoaderAsync" CoerceText="true" CoerceValue="true"
+                                 ResetValueOnEmptyText="false" Clearable="true"/>
+                <MudSwitch T="bool" @bind-Value="_loaderReleasesOnly" Color="Color.Primary" Size="Size.Small"
+                           Class="mt-1" Label="Só releases"/>
+            </MudItem>
+        </MudGrid>
+    </div>
+
+    <MudDivider/>
+
+    @* ── Extras ─────────────────────────────────────────────────────────────────── *@
+    <div>
+        <MudText Typo="Typo.subtitle1" Class="mb-1">Extras</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudNumericField T="int?" @bind-Value="Draft.RecommendedRamMb"
+                                 Label="RAM recomendada (MB)" Variant="Variant.Outlined"
+                                 Min="0" Step="512" Clearable="true"
+                                 HelperText="Aplicada à instância no install."/>
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex align-center">
+                <MudSwitch T="bool" @bind-Value="Draft.IsPublished" Color="Color.Success"
+                           Label="Publicado (visível no launcher)"/>
+            </MudItem>
+        </MudGrid>
+    </div>
+</MudStack>

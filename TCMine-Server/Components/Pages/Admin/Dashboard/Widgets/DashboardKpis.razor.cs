@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using TCMine_Infrastructure.Server;
 
-namespace TCMine_Server.Components.Pages.Admin.Widgets;
+namespace TCMine_Server.Components.Pages.Admin.Dashboard.Widgets;
 
 public partial class DashboardKpis : ComponentBase
 {

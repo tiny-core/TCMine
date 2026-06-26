@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 
-namespace TCMine_Server.Components.Pages.Admin.Widgets;
+namespace TCMine_Server.Components.Pages.Admin.Dashboard.Widgets;
 
 public partial class DashboardHeader : ComponentBase
 {

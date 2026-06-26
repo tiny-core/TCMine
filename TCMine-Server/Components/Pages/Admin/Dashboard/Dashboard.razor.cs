@@ -3,15 +3,18 @@ using Microsoft.AspNetCore.Components;
 using TCMine_Infrastructure.Server;
 using TCMine_Server.Services;
 
-namespace TCMine_Server.Components.Pages.Admin;
+namespace TCMine_Server.Components.Pages.Admin.Dashboard;
 
 /// <summary>
-/// Página do dashboard admin. Responsabilidade única: carregar o agregado do dashboard uma vez
-/// e distribuí-lo aos widgets (ver Admin/Widgets). Métricas ao vivo, gráfico e formatações vivem
-/// nos próprios widgets, não aqui.
+///     Página do dashboard admin. Responsabilidade única: carregar o agregado do dashboard uma vez
+///     e distribuí-lo aos widgets (ver Admin/Widgets). Métricas ao vivo, gráfico e formatações vivem
+///     nos próprios widgets, não aqui.
 /// </summary>
 public partial class Dashboard : ComponentBase
 {
+    // Agregado carregado no OnInitializedAsync (null enquanto não chega → widgets mostram skeletons)
+    private DashboardData? _data;
+
     // Ambiente atual (Development/Production) — distingue dev de produção no cabeçalho
     [Inject] private IWebHostEnvironment Env { get; set; } = null!;
 
@@ -19,9 +22,6 @@ public partial class Dashboard : ComponentBase
     [Inject] private ContentCatalog Catalog { get; set; } = null!;
 
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    // Agregado carregado no OnInitializedAsync (null enquanto não chega → widgets mostram skeletons)
-    private DashboardData? _data;
 
     private string EnvName => Env.EnvironmentName;
 
