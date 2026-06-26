@@ -25,9 +25,10 @@ related:
 ## Onde vive
 
 - `TCMine-Server/Components/Pages/Admin/Modpacks/`
-  - `Modpacks.razor` (+ `.razor.cs`) — rota `/admin/modpacks`: catálogo (lista
-    em **`MudDataGrid` virtualizado** — leve com muitos modpacks). Restrito a
-    `Owner,Admin`.
+  - `Modpacks.razor` (+ `.razor.cs`) — rota `/admin/modpacks`: catálogo em **`MudDataGrid`**
+    no mesmo padrão da página de Mods (toolbar com busca + `MudDataGridPager` 25/50/100),
+    com colunas **enxutas** (Nome+versão, Minecraft, Loader, Mods, Status, Atualizado, ações).
+    Restrito a `Owner,Admin`.
   - `ModpackEditor.razor` (+ `.razor.cs`) — rotas `/admin/modpacks/new` e
     `/admin/modpacks/{Id}`: **orquestrador** em abas. Mantém o rascunho
     (`_draft` + lista plana `_mods`), o Guardar e a troca de aba; cada aba é um
@@ -58,7 +59,9 @@ componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
    (mod/resourcepack/shaderpack) e `Side` (Ambos/Cliente/Servidor — ver
    [[concepts/modside-rules]]) **editáveis** por linha. Três formas de adicionar:
    busca no CurseForge, import de modpack inteiro e upload manual de `.jar`
-   (`FileId` sintético negativo).
+   (`FileId` sintético negativo). Botão **"Buscar atualizações"** checa os mods CF em
+   lote e aplica as escolhidas (`ModUpdatesDialog`) — ver
+   [[decisions/curseforge-update-tracking]].
 3. **Overrides** — **`MudTreeView`** (árvore de pastas/arquivos) + editor
    **Monaco** (ver abaixo). **Carregamento preguiçoso**: a **raiz** é semeada em
    `Items` (carregada no init) e os **filhos diretos** de cada pasta vêm do
@@ -81,14 +84,19 @@ componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
    (`MoveToFolderAsync`) → `MoveOverrideAsync`/`MoveOverrideFolderAsync` (já com
    histórico/desfazer; o serviço recusa mover uma pasta pra dentro de si mesma).
 4. **Novidades** — newsletter **por modpack** (CRUD direto via `ModpackNewsService`),
-   lista **paginada** (`MudPagination`).
+   em **`MudDataGrid`** (padrão de listas: busca + `MudDataGridPager`).
 5. **Servidores** — entradas (nome/endereço/porta) que o launcher escreve no
-   `servers.dat`; lista **paginada** (`MudPagination`).
+   `servers.dat`; lista **editável inline** (exceção ao padrão de tabela), paginada
+   (`MudPagination`).
 
 > **Decomposição:** cada aba é um componente em `Panels/` (`DetailsPanel`,
 > `ModsPanel`, `ServersPanel`, `NewsPanel`) + `OverridesPanel`. O `ModpackEditor`
 > orquestra: segura `_draft`/`_mods` e passa por parâmetro (referência) ou
 > `EventCallback`. **Todas as listas têm paginação.**
+>
+> **Origem CurseForge:** modpacks importados mostram um **banner** (verificar/atualizar
+> versão) alimentado pela tabela 1:1 `ModpackImportSources` — ver
+> [[decisions/curseforge-update-tracking]].
 
 > **Troca de aba com feedback:** abas pesadas (Mods/Overrides com muitos itens)
 > travam o render; a troca passa por `OnPreviewInteraction` (cancela + refaz a

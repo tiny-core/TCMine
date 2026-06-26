@@ -4,12 +4,11 @@
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Application.Contracts
 @using TCMine_Domain.Modpack
-@using TCMine_Server.Components.Shared
 
-@* Lista de modpacks do painel. Ações: criar (vai para o editor com rascunho novo),
-   editar e apagar. Toda a edição vive no ModpackEditor — esta página é só o catálogo. *@
+@* Catálogo de modpacks em tabela (mesmo padrão da página de Mods): MudDataGrid com busca + pager,
+   só as colunas relevantes. Toda a edição vive no ModpackEditor — esta página lista, cria e apaga. *@
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6" Wrap="Wrap.Wrap">
     <div>
         <MudText Typo="Typo.h4">Modpacks</MudText>
         <MudText Typo="Typo.body1" Color="Color.Secondary">
@@ -40,9 +39,7 @@
         <MudStack AlignItems="AlignItems.Center" Class="py-12">
             <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Secondary" Size="Size.Large"/>
             <MudText Typo="Typo.h6">Nenhum modpack ainda</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                Crie o primeiro modpack para começar.
-            </MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">Crie o primeiro modpack para começar.</MudText>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add" Href="/admin/modpacks/new">
                 Novo modpack
@@ -51,53 +48,40 @@
     }
     else
     {
-        @* DataGrid virtualizado: só renderiza as linhas visíveis — leve mesmo com muitos modpacks *@
         <MudDataGrid T="ModpackAdminRowDto" Items="_rows" Hover="true" Dense="true" Elevation="0"
-                     Virtualize="true" FixedHeader="true" Height="65vh" Filterable="false">
+                     FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter"
+                     RowsPerPage="25">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_search" Placeholder="Filtrar por nome ou Minecraft…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+            </ToolBarContent>
             <Columns>
                 <TemplateColumn Title="Nome" Sortable="true" SortBy="x => x.Name">
                     <CellTemplate>
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Color="Color.Primary"/>
-                            <MudText Typo="Typo.body2">@context.Item.Name</MudText>
+                            <div>
+                                <MudText Typo="Typo.body2">@context.Item.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">v@(context.Item.Version)</MudText>
+                            </div>
                         </MudStack>
                     </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn Title="Versão" Sortable="true" SortBy="x => x.Version">
-                    <CellTemplate>v@(context.Item.Version)</CellTemplate>
                 </TemplateColumn>
                 <PropertyColumn Property="x => x.Minecraft" Title="Minecraft"/>
                 <TemplateColumn Title="Loader" Sortable="true" SortBy="x => x.Loader">
                     <CellTemplate>@ModLoaders.DisplayName(context.Item.Loader) @context.Item.LoaderVersion</CellTemplate>
                 </TemplateColumn>
                 <PropertyColumn Property="x => x.ModCount" Title="Mods" CellStyle="text-align:center"/>
-                <PropertyColumn Property="x => x.ServerCount" Title="Servidores" CellStyle="text-align:center"/>
-                <TemplateColumn Title="Overrides" Sortable="false" CellStyle="text-align:center">
-                    <CellTemplate>
-                        @if (context.Item.HasOverrides)
-                        {
-                            <MudIcon Icon="@Icons.Material.Filled.Check" Color="Color.Success" Size="Size.Small"/>
-                        }
-                        else
-                        {
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
-                        }
-                    </CellTemplate>
-                </TemplateColumn>
-                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished"
-                                CellStyle="text-align:center">
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished" CellStyle="text-align:center">
                     <CellTemplate>
                         @if (context.Item.IsPublished)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
-                                Publicado
-                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
-                                Rascunho
-                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
                         }
                     </CellTemplate>
                 </TemplateColumn>
@@ -113,6 +97,9 @@
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>
+            <PagerContent>
+                <MudDataGridPager T="ModpackAdminRowDto" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
         </MudDataGrid>
     }
 </MudPaper>

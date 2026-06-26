@@ -80,6 +80,51 @@ else
         </MudAlert>
     }
 
+    @* ── Origem CF (modpack importado): versão + verificar/atualizar ──────────────────────── *@
+    @if (_importSource is not null)
+    {
+        <MudAlert Severity="@(_importSource.UpdateAvailable ? Severity.Warning : Severity.Normal)"
+                  Variant="Variant.Outlined" Class="mb-4" Icon="@Icons.Material.Filled.Cloud">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceAround"
+                      Wrap="Wrap.Wrap" Spacing="2">
+                <div>
+                    <MudText Typo="Typo.body2">
+                        Importado do CurseForge: <b>@_importSource.CurseProjectName</b>
+                        @if (!string.IsNullOrWhiteSpace(_importSource.InstalledVersion))
+                        {
+                            <span class="ml-1">v(@_importSource.InstalledVersion)</span>
+                        }
+                    </MudText>
+                    @if (_importSource.UpdateAvailable)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Warning">
+                            Atualização disponível: @_importSource.LatestVersion
+                        </MudText>
+                    }
+                    else if (_importSource.LastCheckedAt is not null)
+                    {
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            Sem atualizações na última verificação.
+                        </MudText>
+                    }
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Text" Size="Size.Small" Disabled="!_cfConfigured"
+                               StartIcon="@Icons.Material.Filled.Refresh" OnClick="CheckModpackUpdateAsync">
+                        Verificar atualização
+                    </MudButton>
+                    @if (_importSource.UpdateAvailable)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Warning" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.SystemUpdateAlt" OnClick="UpdateModpackAsync">
+                            Atualizar para @_importSource.LatestVersion
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudStack>
+        </MudAlert>
+    }
+
     @* ── Abas (cada conteúdo é um componente próprio) ──────────────────────────────── *@
     @* ActivePanelIndex controlado + OnPreviewInteraction: mostra o overlay antes do render pesado. *@
     <MudTabs @ref="_tabs" Elevation="0" Outlined="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4"
@@ -92,7 +137,8 @@ else
         <MudTabPanel Text="@($"Mods ({_mods.Count})")" Icon="@Icons.Material.Filled.Extension">
             <ModsPanel Mods="_mods" CfConfigured="_cfConfigured"
                        OnSearchCf="SearchModsAsync" OnImport="ImportModpackAsync"
-                       OnUploadJar="UploadJarAsync" OnRemove="RemoveMod"/>
+                       OnUploadJar="UploadJarAsync" OnRemove="RemoveMod"
+                       OnCheckUpdates="CheckModUpdatesAsync"/>
         </MudTabPanel>
 
         <MudTabPanel Text="Overrides" Icon="@Icons.Material.Filled.Folder">

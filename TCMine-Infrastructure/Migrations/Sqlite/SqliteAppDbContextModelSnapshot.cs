@@ -112,6 +112,44 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.ToTable("Modpacks");
                 });
 
+            modelBuilder.Entity("TCMine_Domain.Entities.ModpackImportSourceEntity", b =>
+                {
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("CurseProjectId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CurseProjectName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ImportedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("InstalledFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("InstalledVersion")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastCheckedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<long?>("LatestFileId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LatestVersion")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("ModpackId");
+
+                    b.ToTable("ModpackImportSources");
+                });
+
             modelBuilder.Entity("TCMine_Domain.Entities.ModpackModEntity", b =>
                 {
                     b.Property<Guid>("ModpackId")
@@ -419,6 +457,17 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.ModpackImportSourceEntity", b =>
+                {
+                    b.HasOne("TCMine_Domain.Entities.ModpackEntity", "Modpack")
+                        .WithMany()
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Modpack");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ModpackModEntity", b =>

@@ -77,6 +77,26 @@ bloqueante** via `BusyService` (`TCMine-Server/Services/BusyService.cs`).
 - Para micro-leituras interativas (ex.: clicar num arquivo da árvore de overrides),
   não envolva — o overlay piscaria a cada clique.
 
+## Listas (padrão único: tabela)
+
+**Toda lista no painel admin usa `MudDataGrid`** no mesmo modelo (a referência é a
+página de Mods, `Admin/Mods/Mods.razor`):
+
+- `MudDataGrid` com `Dense="true"`, `Hover="true"`, `Elevation="0"`,
+  `FixedHeader="true"` e uma `Height` (ex.: `"68vh"`/`"50vh"`).
+- **Busca** num `MudTextField` dentro de `<ToolBarContent>`, ligada a um
+  `QuickFilter="Filter"` (um método `bool Filter(T row)` no code-behind).
+- **Paginação** sempre, via `<PagerContent><MudDataGridPager PageSizeOptions="new[] { 25, 50, 100 }"/></PagerContent>`.
+  **Não** use `Virtualize` (conflita com o pager) nem paginação manual
+  (`MudPagination` + `Skip/Take`).
+- **Colunas enxutas:** só o que é relevante para escanear a lista; detalhes
+  secundários viram legenda na célula (ex.: versão sob o nome) ou ficam no editor.
+- Estados: `_rows is null` → nada (o `BusyOverlay` cobre o load); lista vazia → um
+  empty-state centralizado com ícone + texto.
+- **Exceção:** listas **editáveis inline** que são mais formulário que tabela (ex.:
+  `ServersPanel`, cards com campos) podem fugir do `MudDataGrid` — mas ainda devem
+  paginar.
+
 ## Projeto de referência
 
 O backup em `P:\TCMine-Launcher-bk` contém a implementação completa (v1.2.0).

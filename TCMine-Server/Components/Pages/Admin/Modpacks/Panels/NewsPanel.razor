@@ -1,7 +1,8 @@
 @namespace TCMine_Server.Components.Pages.Admin.Modpacks
+@using TCMine_Domain.Entities
 
-@* Aba "Novidades" do editor: newsletter por modpack (CRUD direto via ModpackNewsService). Lista
-   paginada. Self-contained — carrega e persiste por conta própria. Ver NewsPanel.razor.cs. *@
+@* Aba "Novidades" do editor: newsletter por modpack em tabela (padrão das listas — MudDataGrid com
+   busca + pager). Self-contained: carrega e persiste por conta própria. Ver NewsPanel.razor.cs. *@
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -28,37 +29,59 @@ else if (_news.Count == 0)
 }
 else
 {
-    @foreach (var n in Paged)
-    {
-        <MudPaper Outlined="true" Elevation="0" Class="pa-3 mb-2">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-                <div class="flex-grow-1">
+    <MudDataGrid T="NewsEntity" Items="_news" Hover="true" Dense="true" Elevation="0"
+                 FixedHeader="true" Height="50vh" Filterable="false" QuickFilter="Filter"
+                 RowsPerPage="25">
+        <ToolBarContent>
+            <MudTextField @bind-Value="_search" Placeholder="Filtrar por título ou tag…"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+        </ToolBarContent>
+        <Columns>
+            <TemplateColumn Title="Título" Sortable="true" SortBy="x => x.Title">
+                <CellTemplate>
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                        @if (!string.IsNullOrWhiteSpace(n.Tag))
+                        @if (!string.IsNullOrWhiteSpace(context.Item.Tag))
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@n.Tag</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@context.Item.Tag</MudChip>
                         }
-                        <MudText Typo="Typo.subtitle2">@n.Title</MudText>
-                        @if (!n.IsPublished)
-                        {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
-                        }
+                        <div>
+                            <MudText Typo="Typo.body2">@context.Item.Title</MudText>
+                            @if (!string.IsNullOrWhiteSpace(context.Item.Summary))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block text-truncate"
+                                         Style="max-width:420px">@context.Item.Summary</MudText>
+                            }
+                        </div>
                     </MudStack>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">@n.Summary</MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">@n.PublishedAt.ToString("dd/MM/yyyy")</MudText>
-                </div>
-                <MudStack Row="true" Spacing="0">
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished" CellStyle="text-align:center">
+                <CellTemplate>
+                    @if (context.Item.IsPublished)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                    }
+                </CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Title="Publicado em" Sortable="true" SortBy="x => x.PublishedAt">
+                <CellTemplate>@context.Item.PublishedAt.ToString("dd/MM/yyyy")</CellTemplate>
+            </TemplateColumn>
+            <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                <CellTemplate>
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                   OnClick="@(() => EditAsync(n))"/>
+                                   OnClick="@(() => EditAsync(context.Item))"/>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                   OnClick="@(() => DeleteAsync(n))"/>
-                </MudStack>
-            </MudStack>
-        </MudPaper>
-    }
-
-    @* Sempre visível (mesmo com 1 página) para a aba ter o controle de paginação presente *@
-    <div class="d-flex justify-center mt-3">
-        <MudPagination Count="PageCount" @bind-Selected="_page" Color="Color.Primary"/>
-    </div>
+                                   OnClick="@(() => DeleteAsync(context.Item))"/>
+                </CellTemplate>
+            </TemplateColumn>
+        </Columns>
+        <PagerContent>
+            <MudDataGridPager T="NewsEntity" PageSizeOptions="new[] { 25, 50, 100 }"/>
+        </PagerContent>
+    </MudDataGrid>
 }

@@ -84,7 +84,10 @@ public abstract class CurseForgeImporter
             loaderVersion,
             mods,
             overrides,
-            packFile?.ServerPackFileId);
+            packFile?.ServerPackFileId,
+            // Origem CF: o projeto importado e o arquivo (.zip) aplicado
+            modpackId,
+            packFile?.Id ?? 0);
     }
 
     /// <summary>

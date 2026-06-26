@@ -50,7 +50,10 @@ public record ImportedModpackDto(
     string LoaderVersion,
     List<ImportedModDto> Mods,
     byte[]? Overrides,
-    long? ServerPackFileId = null);
+    long? ServerPackFileId = null,
+    // Origem CF (para registrar a versão e checar atualizações depois)
+    long CurseProjectId = 0,
+    long CurseFileId = 0);
 
 /// <summary>
 /// Representa um mod importado, contendo informações detalhadas como identificadores,
@@ -118,7 +121,37 @@ public sealed record DraftImportDto<TModEntryEntity>(
     ModLoader Loader,
     string LoaderVersion,
     List<TModEntryEntity> Mods,
-    byte[]? Overrides);
+    byte[]? Overrides,
+    // Origem CF para registrar/atualizar a tabela de import
+    long CurseProjectId = 0,
+    long CurseFileId = 0);
+
+/// <summary>Arquivo mais recente de um mod (do `latestFilesIndexes` do CF), filtrado por versão+loader.</summary>
+public sealed record CfLatestFileDto(long ModId, long FileId, string FileName);
+
+/// <summary>
+/// Uma atualização disponível para um mod do modpack: do arquivo atual para o mais recente do CF.
+/// Calculada sob demanda (sem cache no banco) pelo botão "Buscar atualizações".
+/// </summary>
+public sealed record ModUpdateDto(
+    long CurseModId,
+    string Name,
+    long CurrentFileId,
+    string? CurrentVersion,
+    long LatestFileId,
+    string LatestVersion,
+    string FileName,
+    string DownloadUrl);
+
+/// <summary>Estado de atualização do modpack importado (para o banner/checagem no editor).</summary>
+public sealed record ModpackUpdateStatusDto(
+    string ProjectName,
+    string? InstalledVersion,
+    long InstalledFileId,
+    long? LatestFileId,
+    string? LatestVersion,
+    bool UpdateAvailable,
+    DateTime? LastCheckedAt);
 
 /// <summary>Uma versão selecionável (Minecraft ou loader) e se é um lançamento estável.</summary>
 public sealed record VersionOptionDto(string Version, bool IsRelease)

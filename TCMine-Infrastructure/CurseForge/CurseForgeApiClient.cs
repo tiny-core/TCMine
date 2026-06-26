@@ -82,6 +82,38 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
             .ToDictionary(m => m.Id);
     }
 
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<long, CfLatestFileDto>> GetLatestFileIndexesAsync(
+        IReadOnlyCollection<long> modIds, string gameVersion, int loaderType, CancellationToken ct = default)
+    {
+        if (modIds.Count == 0) return new Dictionary<long, CfLatestFileDto>();
+
+        var result = new Dictionary<long, CfLatestFileDto>();
+
+        // CF limita o tamanho do lote — fatiamos em blocos para muitos mods (economia: ainda 1 req/bloco)
+        foreach (var chunk in modIds.Distinct().Chunk(200))
+        {
+            var resp = await SendAsync<CfDataEnvelope<List<CfModResponse>>>(
+                HttpMethod.Post, "v1/mods", new { modIds = chunk }, ct);
+
+            foreach (var mod in resp?.Data ?? [])
+            {
+                // latestFilesIndexes: arquivo mais recente por (gameVersion, loader). Filtra pelo alvo
+                // e pega o de maior fileId (o mais novo). modLoader nulo = compatível com qualquer loader.
+                var best = (mod.LatestFilesIndexes ?? [])
+                    .Where(i => string.Equals(i.GameVersion, gameVersion, StringComparison.OrdinalIgnoreCase)
+                                && (i.ModLoader is null || i.ModLoader == loaderType))
+                    .OrderByDescending(i => i.FileId)
+                    .FirstOrDefault();
+
+                if (best is not null)
+                    result[mod.Id] = new CfLatestFileDto(mod.Id, best.FileId, best.FileName ?? string.Empty);
+            }
+        }
+
+        return result;
+    }
+
     /// <summary>Indica se a key do CurseForge está configurada (habilita a busca na UI).</summary>
     public async Task<bool> IsConfiguredAsync(CancellationToken ct = default)
     {
@@ -190,7 +222,19 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         List<CfFileResponse> LatestFiles,
         [property: JsonPropertyName("summary")]
         string? Summary = null,
-        [property: JsonPropertyName("logo")] CfLogoResponse? Logo = null);
+        [property: JsonPropertyName("logo")] CfLogoResponse? Logo = null,
+        [property: JsonPropertyName("latestFilesIndexes")]
+        List<CfFileIndexResponse>? LatestFilesIndexes = null);
+
+    // Índice compacto de arquivo recente por (gameVersion, loader) — sem url; resolvemos depois se preciso
+    private sealed record CfFileIndexResponse(
+        [property: JsonPropertyName("gameVersion")]
+        string? GameVersion,
+        [property: JsonPropertyName("fileId")] long FileId,
+        [property: JsonPropertyName("filename")]
+        string? FileName,
+        [property: JsonPropertyName("modLoader")]
+        int? ModLoader);
 
     private sealed record CfLogoResponse([property: JsonPropertyName("url")] string? Url);
 

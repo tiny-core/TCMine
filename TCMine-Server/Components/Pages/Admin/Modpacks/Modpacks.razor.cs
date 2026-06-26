@@ -23,6 +23,17 @@ public partial class Modpacks : ComponentBase
     private List<ModpackAdminRowDto>? _rows;
     private bool _cfConfigured = true;
 
+    // Filtro textual (o MudDataGrid pagina/filtra; QuickFilter combina com a busca)
+    private string _search = string.Empty;
+
+    // QuickFilter do DataGrid: nome ou versão do Minecraft
+    private bool Filter(ModpackAdminRowDto row)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return row.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
+               || row.Minecraft.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await Busy.RunAsync("Carregando modpacks…", async () =>

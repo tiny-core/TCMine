@@ -24,6 +24,10 @@
             </MudButton>
         </CustomContent>
     </MudFileUpload>
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Disabled="@(!CfConfigured || !HasCurseMods)"
+               StartIcon="@Icons.Material.Filled.SystemUpdateAlt" OnClick="@(() => OnCheckUpdates.InvokeAsync())">
+        Buscar atualizações
+    </MudButton>
     <MudSpacer/>
     @if (Mods.Count > 0)
     {

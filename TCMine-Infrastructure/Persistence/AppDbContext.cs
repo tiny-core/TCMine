@@ -24,6 +24,9 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
     // Arquivos de mod (um por FileId, compartilhados entre modpacks) + a junção N:N com os modpacks
     public DbSet<ModFileEntity> ModFiles => Set<ModFileEntity>();
     public DbSet<ModpackModEntity> ModpackMods => Set<ModpackModEntity>();
+
+    // Origem CurseForge de modpacks importados (1:1 com o modpack) — versão + cache de update
+    public DbSet<ModpackImportSourceEntity> ModpackImportSources => Set<ModpackImportSourceEntity>();
     public DbSet<ServerEntryEntity> Servers => Set<ServerEntryEntity>();
     public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
     public DbSet<PlayerConfigEntity> PlayerConfigs => Set<PlayerConfigEntity>();
@@ -92,6 +95,17 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
                 .WithMany(f => f.ModpackLinks)
                 .HasForeignKey(x => x.FileId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Origem do import (1:1 com o modpack): PK = ModpackId; apagar o modpack apaga a origem
+        b.Entity<ModpackImportSourceEntity>(e =>
+        {
+            e.HasKey(s => s.ModpackId);
+            e.Property(s => s.ModpackId).ValueGeneratedNever();
+            e.HasOne(s => s.Modpack)
+                .WithMany()
+                .HasForeignKey(s => s.ModpackId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         b.Entity<NewsEntity>(e =>

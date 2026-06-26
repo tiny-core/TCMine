@@ -28,6 +28,44 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] meta | Padrão único de listas (MudDataGrid) + Novidades migrada
+
+- **Fonte:** pedido do usuário; `CLAUDE.md` + `Panels/NewsPanel.razor(.cs)`.
+- **Páginas afetadas:** `CLAUDE.md` (nova seção "Listas"), [[concepts/modpack-admin-editor]].
+- **Resumo:** nova **regra** no `CLAUDE.md`: toda lista do painel usa `MudDataGrid` no
+  mesmo modelo (referência: página de Mods) — `ToolBarContent` com busca via
+  `QuickFilter`, `MudDataGridPager` (25/50/100), colunas enxutas, sem `Virtualize` nem
+  paginação manual; exceção para listas editáveis inline (ex.: `ServersPanel`). A aba
+  **Novidades** (`NewsPanel`) foi migrada de cards + `MudPagination` para esse padrão.
+  Build limpo.
+- **Pendências:** `ServersPanel` segue como cards editáveis (exceção registrada na regra).
+
+## [2026-06-25] ingest | Lista de modpacks: tabela enxuta (padrão da página de Mods) + busca + pager
+
+- **Fonte:** pedido do usuário; código `TCMine-Server/Components/Pages/Admin/Modpacks/Modpacks.razor(.cs)`.
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]].
+- **Resumo:** a listagem (antes `MudDataGrid` de 10 colunas virtualizado sem pager) foi
+  reescrita no **mesmo padrão da página de Mods**: `MudDataGrid` com `ToolBarContent`
+  (busca por nome/Minecraft via `QuickFilter`) + **`MudDataGridPager`** (25/50/100), e
+  colunas **enxutas** (Nome+versão na mesma célula, Minecraft, Loader, Mods, Status,
+  Atualizado, ações) — removidas Servidores/Overrides para ocupar menos espaço. (Primeiro
+  tentei grade de cards; o usuário preferiu tabela no padrão de Mods.) Build limpo.
+- **Pendências:** nenhuma.
+
+## [2026-06-25] decisao | Origem CF + checagem econômica de atualizações (modpack e mods)
+
+- **Fonte:** [[sources/2026-06-25-curseforge-update-tracking]] (pedido do usuário + código vivo).
+- **Páginas afetadas:** [[decisions/curseforge-update-tracking]] (nova), [[sources/2026-06-25-curseforge-update-tracking]] (nova), [[concepts/modpack-admin-editor]], [[entities/tcmine-infrastructure]], `index.md`.
+- **Resumo:** modpacks importados do CF ganham a tabela 1:1 `ModpackImportSources`
+  (versão importada + cache de update). `CheckModpackUpdateAsync` (TTL 6h, reusa
+  `GetLatestFileAsync`) e `CheckModUpdatesAsync` (**sob demanda**, batch
+  `latestFilesIndexes` + batch files) economizam API: ~2 chamadas para checar todos os
+  mods, 1 para o modpack. UI: banner de origem no editor (verificar/atualizar) + botão
+  "Buscar atualizações" na aba Mods com `ModUpdatesDialog`. Atualizar preserva
+  `Side`/`Target` (merge). Migração `ModpackImportSource` nos dois providers. Build limpo.
+- **Pendências:** job diário opcional para popular o cache de update dos modpacks
+  publicados (badge sem clique) ficou como futuro.
+
 ## [2026-06-25] ingest | Refactor do ModpackEditor em componentes por aba + paginação
 
 - **Fonte:** pedido do usuário; código `TCMine-Server/Components/Pages/Admin/Modpacks/` (`ModpackEditor.razor(.cs)`, novo `Panels/`).

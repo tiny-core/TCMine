@@ -24,11 +24,16 @@ public partial class NewsPanel : ComponentBase
     // null = carregando (BusyOverlay cobre); lista vazia = sem novidades
     private List<NewsEntity>? _news;
 
-    private const int PageSize = 5;
-    private int _page = 1;
+    // Filtro textual (o MudDataGrid pagina; QuickFilter combina com a busca)
+    private string _search = string.Empty;
 
-    private int PageCount => Math.Max(1, ((_news?.Count ?? 0) + PageSize - 1) / PageSize);
-    private IEnumerable<NewsEntity> Paged => (_news ?? []).Skip((_page - 1) * PageSize).Take(PageSize);
+    // QuickFilter do DataGrid: título ou tag
+    private bool Filter(NewsEntity n)
+    {
+        if (string.IsNullOrWhiteSpace(_search)) return true;
+        return n.Title.Contains(_search, StringComparison.OrdinalIgnoreCase)
+               || n.Tag.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -38,7 +43,6 @@ public partial class NewsPanel : ComponentBase
     private async Task ReloadAsync()
     {
         _news = await NewsService.ListForModpackAsync(ModpackId);
-        if (_page > PageCount) _page = PageCount;
     }
 
     private Task NewAsync()

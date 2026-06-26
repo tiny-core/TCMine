@@ -48,7 +48,9 @@ a registra no DI.
     `FileId`, com `OrphanedAt` para marcar órfãos) + junção `ModpackModEntity`
     `(ModpackId, FileId)` — cascade no modpack, `Restrict` no arquivo. O
     `ModpackImportService` mantém o marcador (`MarkOrphansAsync`) e faz GC de órfãos
-    (`DeleteOrphanFileAsync`). Ver [[decisions/mods-many-to-many]].
+    (`DeleteOrphanFileAsync`). Ver [[decisions/mods-many-to-many]]. **Origem CF**
+    (migration `ModpackImportSource`): `ModpackImportSourceEntity` 1:1 com o modpack guarda a
+    versão importada + cache de update — ver [[decisions/curseforge-update-tracking]].
 - **CurseForge (`CurseForge/`):** `CurseForgeApiClient` implementa `ICurseForgeApi`,
   falando direto com `api.curseforge.com` e injetando a `x-api-key` (lida das
   settings cifradas) **por requisição**. Busca de mods/modpacks (game 432),

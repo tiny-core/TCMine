@@ -1,0 +1,54 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Application.Contracts
+
+@* Lista as atualizações de mods encontradas (atual → nova) com seleção; devolve as escolhidas para
+   o editor aplicar no rascunho. Ver ModUpdatesDialog.razor.cs. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (Updates.Count == 0)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-6">
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large"/>
+                <MudText Typo="Typo.body1">Todos os mods estão atualizados.</MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                @Updates.Count atualização(ões) disponível(is). Selecione e confirme para aplicar ao rascunho
+                (baixadas ao Guardar).
+            </MudText>
+            <MudTable T="ModUpdateDto" Items="Updates" MultiSelection="true" @bind-SelectedItems="_selected"
+                      Dense="true" Hover="true" Elevation="0" FixedHeader="true" Height="50vh">
+                <HeaderContent>
+                    <MudTh>Mod</MudTh>
+                    <MudTh>Atual</MudTh>
+                    <MudTh>Nova</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Mod">@context.Name</MudTd>
+                    <MudTd DataLabel="Atual">
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@(context.CurrentVersion ?? "—")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Nova">
+                        <MudText Typo="Typo.body2" Color="Color.Primary">@context.LatestVersion</MudText>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 25, 50, 100 }"/>
+                </PagerContent>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Fechar</MudButton>
+        @if (Updates.Count > 0)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
+                       Disabled="@(_selected.Count == 0)">
+                Atualizar selecionados (@_selected.Count)
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>

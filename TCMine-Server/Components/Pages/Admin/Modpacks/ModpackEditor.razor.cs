@@ -48,6 +48,12 @@ public partial class ModpackEditor : ComponentBase
     // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
     private byte[]? _pendingOverrides;
 
+    // Origem CF de um import feito nesta sessão (persistida no Guardar); null = nada novo
+    private ModpackImportSourceEntity? _pendingSource;
+
+    // Origem CF já gravada (alimenta o banner de "verificar atualização"); null = não veio do CF
+    private ModpackImportSourceEntity? _importSource;
+
     // Bumpado a cada Guardar: muda o @key do OverridesPanel, forçando-o a recarregar do disco
     private int _overridesVersion;
 
@@ -90,6 +96,8 @@ public partial class ModpackEditor : ComponentBase
                 _draft = existing;
                 // Achata os vínculos+arquivos no modelo plano que o editor edita
                 _mods = ModpackImportService.FlattenMods(existing);
+                // Origem CF (se houver) — para o banner de atualização. Não chama a API no load.
+                _importSource = await Service.GetImportSourceAsync(uid);
             }
             else
             {
@@ -172,9 +180,16 @@ public partial class ModpackEditor : ComponentBase
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is not long projectId) return;
 
+        await RunImportAsync(projectId, isUpdate: false);
+    }
+
+    // Import (ou atualização) de um modpack CF para o rascunho. Mescla os mods preservando Side/Target,
+    // registra a origem (_pendingSource) e deixa os overrides pendentes para o Guardar.
+    private async Task RunImportAsync(long projectId, bool isUpdate)
+    {
         // Modal de feedback bloqueante: impede o usuário de mexer no editor durante o import
         var progressDialog = await DialogService.ShowAsync<ImportProgressDialog>(
-            "Importando modpack", new DialogParameters(), BlockingDialog());
+            isUpdate ? "Atualizando modpack" : "Importando modpack", new DialogParameters(), BlockingDialog());
 
         try
         {
@@ -196,9 +211,19 @@ public partial class ModpackEditor : ComponentBase
             if (imported.Overrides is { Length: > 0 })
                 _pendingOverrides = imported.Overrides;
 
+            // Registra a origem CF (versão importada) — persistida no Guardar
+            _pendingSource = new ModpackImportSourceEntity
+            {
+                CurseProjectId = imported.CurseProjectId,
+                CurseProjectName = imported.Name,
+                InstalledFileId = imported.CurseFileId,
+                InstalledVersion = imported.Version
+            };
+
             Snackbar.Add(
-                $"Importado: {added} mod(s) novo(s)." +
-                (_pendingOverrides is not null ? " Overrides serão extraídos ao Guardar." : ""),
+                $"{(isUpdate ? "Atualizado" : "Importado")}: {added} mod(s) novo(s)." +
+                (_pendingOverrides is not null ? " Overrides serão extraídos ao Guardar." : "") +
+                " Clique em Guardar para aplicar.",
                 Severity.Success);
         }
         catch (Exception ex)
@@ -209,6 +234,88 @@ public partial class ModpackEditor : ComponentBase
         {
             progressDialog.Close();
         }
+    }
+
+    // ── Atualizações (CurseForge) ────────────────────────────────────────────────────────────────
+
+    // Botão "Buscar atualizações" da aba Mods: 1 batch ao CF, lista as novidades e aplica as escolhidas.
+    private async Task CheckModUpdatesAsync()
+    {
+        List<ModUpdateDto> updates = [];
+        try
+        {
+            await Busy.RunAsync("Buscando atualizações…", async () =>
+            {
+                updates = await Service.CheckModUpdatesAsync(_mods, _draft.Minecraft, _draft.Loader);
+            });
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao buscar atualizações: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        if (updates.Count == 0)
+        {
+            Snackbar.Add("Todos os mods estão atualizados.", Severity.Info);
+            return;
+        }
+
+        var parameters = new DialogParameters<ModUpdatesDialog> { { x => x.Updates, updates } };
+        var dialog = await DialogService.ShowAsync<ModUpdatesDialog>("Atualizações de mods", parameters, WideDialog());
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not List<ModUpdateDto> chosen || chosen.Count == 0)
+            return;
+
+        foreach (var u in chosen)
+            ApplyModUpdate(u);
+
+        Snackbar.Add($"{chosen.Count} mod(s) atualizado(s) no rascunho. Guarde para baixar.", Severity.Success);
+    }
+
+    // Aplica uma atualização no rascunho: troca arquivo/versão/url e zera o hash (Save re-baixa o jar).
+    private void ApplyModUpdate(ModUpdateDto update)
+    {
+        var mod = _mods.FirstOrDefault(m => m.CurseModId == update.CurseModId);
+        if (mod is null) return;
+
+        mod.FileId = update.LatestFileId;
+        mod.Version = update.LatestVersion;
+        mod.FileName = update.FileName;
+        mod.DownloadUrl = update.DownloadUrl;
+        mod.Sha1 = null; // força o re-download no Guardar
+        mod.FileLength = 0;
+    }
+
+    // Banner: verifica se o modpack importado tem versão nova (force = ignora o TTL do cache)
+    private async Task CheckModpackUpdateAsync()
+    {
+        if (_importSource is null) return;
+        try
+        {
+            await Busy.RunAsync("Verificando atualização do modpack…", async () =>
+            {
+                var status = await Service.CheckModpackUpdateAsync(_draft.Id, force: true);
+                if (status is not null) _importSource = await Service.GetImportSourceAsync(_draft.Id);
+            });
+
+            Snackbar.Add(
+                _importSource?.UpdateAvailable == true
+                    ? $"Atualização disponível: {_importSource.LatestVersion}."
+                    : "O modpack está na versão mais recente.",
+                _importSource?.UpdateAvailable == true ? Severity.Info : Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao verificar: {ex.Message}", Severity.Error);
+        }
+    }
+
+    // Botão "Atualizar modpack": re-importa a versão mais recente e mescla no rascunho
+    private async Task UpdateModpackAsync()
+    {
+        if (_importSource is null) return;
+        await RunImportAsync(_importSource.CurseProjectId, isUpdate: true);
     }
 
     private async Task UploadJarAsync(IBrowserFile file)
@@ -281,14 +388,18 @@ public partial class ModpackEditor : ComponentBase
 
         try
         {
-            await Service.SaveAsync(_draft, _mods, _pendingOverrides, progress);
+            await Service.SaveAsync(_draft, _mods, _pendingOverrides, _pendingSource, progress);
             _pendingOverrides = null; // já extraído
+            _pendingSource = null; // já persistido
             var wasNew = _isNew;
             _isNew = false;
             Snackbar.Add("Modpack guardado.", Severity.Success);
 
             // Recria o OverridesPanel para refletir o que o Save extraiu para o disco
             _overridesVersion++;
+
+            // Recarrega a origem gravada (atualiza o banner; a versão instalada pode ter mudado)
+            if (!wasNew) _importSource = await Service.GetImportSourceAsync(_draft.Id);
 
             if (wasNew)
                 // Navega para a rota canônica do modpack já gravado (habilita overrides/novidades)

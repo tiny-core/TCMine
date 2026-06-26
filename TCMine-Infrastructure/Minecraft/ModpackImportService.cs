@@ -112,7 +112,8 @@ public sealed class ModpackImportService(
 
         return new DraftImportDto<ModEntryEntity>(
             imported.Name, imported.Version, imported.Minecraft,
-            imported.Loader, imported.LoaderVersion, mods, imported.Overrides);
+            imported.Loader, imported.LoaderVersion, mods, imported.Overrides,
+            imported.CurseProjectId, imported.CurseFileId);
     }
 
     // ── Leitura/gestão ─────────────────────────────────────────────────────────────────────────
@@ -250,6 +251,7 @@ public sealed class ModpackImportService(
     /// </summary>
     public async Task SaveAsync(
         ModpackEntity draft, IReadOnlyList<ModEntryEntity> mods, byte[]? pendingOverrides = null,
+        ModpackImportSourceEntity? importSource = null,
         IProgress<SaveProgressDto>? progress = null, CancellationToken ct = default)
     {
         // Dedup defensivo por FileId (a junção tem PK composta ModpackId+FileId); preserva a ordem
@@ -339,6 +341,10 @@ public sealed class ModpackImportService(
             ? ExtractOverrides(draft.Id, pendingOverrides)
             : draft.HasOverrides;
 
+        // Origem do import (quando veio de um import nesta sessão): registra/atualiza a versão aplicada
+        if (importSource is not null)
+            await UpsertImportSourceAsync(tracked.Id, importSource, ct);
+
         await db.SaveChangesAsync(ct);
 
         // Atualiza o marcador de órfão dos arquivos que saíram (agora que os vínculos estão gravados)
@@ -380,6 +386,115 @@ public sealed class ModpackImportService(
                 db.ModFiles.Add(created);
                 existing[m.FileId] = created; // evita duplicar se houver repetição na lista
             }
+    }
+
+    // Cria/atualiza a linha de origem do import. Um novo import limpa o cache de "latest" (acabou de
+    // ficar em dia). Não chama SaveChanges — faz parte da transação do SaveAsync.
+    private async Task UpsertImportSourceAsync(
+        Guid modpackId, ModpackImportSourceEntity source, CancellationToken ct)
+    {
+        var existing = await db.ModpackImportSources.FirstOrDefaultAsync(s => s.ModpackId == modpackId, ct);
+        if (existing is null)
+        {
+            source.ModpackId = modpackId;
+            source.ImportedAt = DateTime.UtcNow;
+            db.ModpackImportSources.Add(source);
+            return;
+        }
+
+        existing.CurseProjectId = source.CurseProjectId;
+        existing.CurseProjectName = source.CurseProjectName;
+        existing.InstalledFileId = source.InstalledFileId;
+        existing.InstalledVersion = source.InstalledVersion;
+        existing.ImportedAt = DateTime.UtcNow;
+        // Acabou de importar → está em dia; zera o cache de checagem
+        existing.LastCheckedAt = null;
+        existing.LatestFileId = null;
+        existing.LatestVersion = null;
+    }
+
+    // ── Atualizações (origem do modpack + mods) ──────────────────────────────────────────────────
+
+    /// <summary>Origem CF do modpack (ou null se não foi importado do CurseForge).</summary>
+    public Task<ModpackImportSourceEntity?> GetImportSourceAsync(Guid modpackId, CancellationToken ct = default)
+    {
+        return db.ModpackImportSources.AsNoTracking().FirstOrDefaultAsync(s => s.ModpackId == modpackId, ct);
+    }
+
+    /// <summary>
+    /// Verifica se o modpack importado tem versão nova no CF. Respeita um TTL (não rebate na API se
+    /// checou recentemente) salvo <paramref name="force"/>. Atualiza o cache (LatestFileId/Version/
+    /// LastCheckedAt) e devolve o estado, ou null se o modpack não tem origem CF.
+    /// </summary>
+    public async Task<ModpackUpdateStatusDto?> CheckModpackUpdateAsync(
+        Guid modpackId, bool force = false, CancellationToken ct = default)
+    {
+        var src = await db.ModpackImportSources.FirstOrDefaultAsync(s => s.ModpackId == modpackId, ct);
+        if (src is null) return null;
+
+        // TTL de 6h: evita bater na API a cada abertura; o botão "checar agora" passa force=true
+        var fresh = src.LastCheckedAt is { } t && DateTime.UtcNow - t < TimeSpan.FromHours(6);
+        if (!force && fresh) return ToStatus(src);
+
+        var latest = await cf.GetLatestFileAsync(src.CurseProjectId, ct);
+        src.LatestFileId = latest?.Id;
+        src.LatestVersion = latest?.DisplayName ?? latest?.FileName;
+        src.LastCheckedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return ToStatus(src);
+    }
+
+    private static ModpackUpdateStatusDto ToStatus(ModpackImportSourceEntity s)
+    {
+        return new ModpackUpdateStatusDto(
+            s.CurseProjectName, s.InstalledVersion, s.InstalledFileId,
+            s.LatestFileId, s.LatestVersion, s.UpdateAvailable, s.LastCheckedAt);
+    }
+
+    /// <summary>
+    /// Procura atualizações para os mods do CurseForge (CurseModId &gt; 0) do rascunho, para a versão
+    /// MC + loader dados. **Sob demanda**, econômico: 1 batch de <c>latestFilesIndexes</c> para todos
+    /// os mods, e 1 batch de arquivos só para os que mudaram (resolve url/nome). Sem cache no banco.
+    /// </summary>
+    public async Task<List<ModUpdateDto>> CheckModUpdatesAsync(
+        IReadOnlyList<ModEntryEntity> mods, string gameVersion, ModLoader loader,
+        CancellationToken ct = default)
+    {
+        // Um mod (CurseModId) costuma ter um arquivo por pack; em caso de repetição, fica o primeiro
+        var current = mods
+            .Where(m => m.CurseModId > 0)
+            .GroupBy(m => m.CurseModId)
+            .ToDictionary(g => g.Key, g => g.First());
+        if (current.Count == 0) return [];
+
+        var indexes = await cf.GetLatestFileIndexesAsync(
+            current.Keys.ToList(), gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
+
+        // Mods cujo arquivo mais recente difere do instalado
+        var changed = indexes
+            .Where(kv => current.TryGetValue(kv.Key, out var c) && kv.Value.FileId != c.FileId)
+            .Select(kv => kv.Value)
+            .ToList();
+        if (changed.Count == 0) return [];
+
+        // Resolve url/nome/versão dos novos arquivos num único batch
+        var details = await cf.GetFilesAsync(changed.Select(c => c.FileId).ToList(), ct);
+
+        var updates = new List<ModUpdateDto>();
+        foreach (var idx in changed)
+        {
+            var cur = current[idx.ModId];
+            details.TryGetValue(idx.FileId, out var fd);
+            var url = CurseForgeImporter.ResolveDownloadUrl(fd) ?? string.Empty;
+            if (string.IsNullOrEmpty(url)) continue; // sem download público utilizável → ignora
+
+            updates.Add(new ModUpdateDto(
+                idx.ModId, cur.Name, cur.FileId, cur.Version,
+                idx.FileId, fd?.DisplayName ?? idx.FileName, fd?.FileName ?? idx.FileName, url));
+        }
+
+        return updates;
     }
 
     // Recalcula o marcador de órfão dos arquivos dados: sem nenhum vínculo restante ⇒ OrphanedAt = agora

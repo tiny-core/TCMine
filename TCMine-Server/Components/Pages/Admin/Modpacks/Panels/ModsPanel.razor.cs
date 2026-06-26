@@ -18,6 +18,10 @@ public partial class ModsPanel : ComponentBase
     [Parameter] public EventCallback OnImport { get; set; }
     [Parameter] public EventCallback<IBrowserFile> OnUploadJar { get; set; }
     [Parameter] public EventCallback<ModEntryEntity> OnRemove { get; set; }
+    [Parameter] public EventCallback OnCheckUpdates { get; set; }
+
+    // Há mods do CurseForge? (só eles têm checagem de atualização)
+    private bool HasCurseMods => Mods.Any(m => m.CurseModId > 0);
 
     private string _filter = string.Empty;
 
