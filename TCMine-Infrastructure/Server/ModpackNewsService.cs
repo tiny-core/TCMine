@@ -1,13 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Infrastructure.Persistence;
 
 namespace TCMine_Infrastructure.Server;
 
 /// <summary>
-/// CRUD da newsletter de um modpack. Cada notícia tem uma FK opcional ao modpack
-/// (<see cref="NewsEntity.ModpackId"/>): aqui só lidamos com as notícias <b>de um modpack</b>
-/// (FK preenchida); o feed global (FK nula) é gerido à parte.
+/// CRUD da newsletter. Cada notícia tem uma FK <b>opcional</b> ao modpack
+/// (<see cref="NewsEntity.ModpackId"/>): preenchida = notícia do modpack; nula = notícia
+/// <b>global</b> (do servidor). A página de novidades globais usa <see cref="ListAllAsync"/>; a aba
+/// de um modpack usa <see cref="ListForModpackAsync"/>.
 ///
 /// Diferente do editor de metadados (escrita-só-ao-Guardar), a newsletter grava direto no banco —
 /// é conteúdo independente do rascunho do modpack. Cada mutação avisa os launchers (SSE).
@@ -24,12 +26,41 @@ public sealed class ModpackNewsService(AppDbContext db, ContentNotifier notifier
             .ToListAsync(ct);
     }
 
-    /// <summary>Cria uma notícia atrelada ao modpack e devolve a entidade gravada (com Id).</summary>
-    public async Task<NewsEntity> CreateAsync(Guid modpackId, NewsEntity draft, CancellationToken ct = default)
+    /// <summary>Todas as novidades (globais + de modpacks) com o nome do modpack — para o painel global.</summary>
+    public async Task<List<NewsRowDto>> ListAllAsync(CancellationToken ct = default)
+    {
+        return await db.News
+            .AsNoTracking()
+            .OrderByDescending(n => n.PublishedAt)
+            .Select(n => new NewsRowDto(
+                n.Id, n.ModpackId,
+                // Nome via subconsulta (FK opcional, sem navigation property); null = global
+                n.ModpackId == null
+                    ? null
+                    : db.Modpacks.Where(m => m.Id == n.ModpackId).Select(m => m.Name).FirstOrDefault(),
+                n.Tag, n.Title, n.Summary, n.PublishedAt, n.IsPublished))
+            .ToListAsync(ct);
+    }
+
+    /// <summary>Modpacks (id + nome) para o seletor opcional do diálogo de novidade.</summary>
+    public async Task<List<ModpackBadgeDto>> ListModpackOptionsAsync(CancellationToken ct = default)
+    {
+        return await db.Modpacks
+            .AsNoTracking()
+            .OrderBy(m => m.Name)
+            .Select(m => new ModpackBadgeDto(m.Id, m.Name))
+            .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Cria uma notícia. <paramref name="draft"/>.<c>ModpackId</c> nulo = global; preenchido = do
+    /// modpack. Devolve a entidade gravada (com Id).
+    /// </summary>
+    public async Task<NewsEntity> CreateAsync(NewsEntity draft, CancellationToken ct = default)
     {
         var entity = new NewsEntity
         {
-            ModpackId = modpackId,
+            ModpackId = draft.ModpackId,
             Tag = draft.Tag,
             Title = draft.Title,
             Summary = draft.Summary,
@@ -43,12 +74,20 @@ public sealed class ModpackNewsService(AppDbContext db, ContentNotifier notifier
         return entity;
     }
 
-    /// <summary>Atualiza uma notícia existente (campos editáveis). No-op se não existir.</summary>
+    /// <summary>Cria uma notícia atrelada a um modpack específico (usado pela aba do editor).</summary>
+    public Task<NewsEntity> CreateAsync(Guid modpackId, NewsEntity draft, CancellationToken ct = default)
+    {
+        draft.ModpackId = modpackId;
+        return CreateAsync(draft, ct);
+    }
+
+    /// <summary>Atualiza uma notícia existente (inclui o vínculo de modpack). No-op se não existir.</summary>
     public async Task UpdateAsync(NewsEntity draft, CancellationToken ct = default)
     {
         var row = await db.News.FirstOrDefaultAsync(n => n.Id == draft.Id, ct);
         if (row is null) return;
 
+        row.ModpackId = draft.ModpackId;
         row.Tag = draft.Tag;
         row.Title = draft.Title;
         row.Summary = draft.Summary;

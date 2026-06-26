@@ -1,12 +1,28 @@
 @namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Application.Contracts
 @using TCMine_Domain.Entities
 
-@* Formulário de criar/editar uma novidade do modpack. Devolve um NewsEntity (destacado);
-   a persistência fica com o editor (ModpackEditor.News.cs). *@
+@* Formulário de criar/editar uma novidade. Devolve um NewsEntity (destacado); a persistência fica
+   com quem chamou. Quando `Modpacks` é fornecido (página global), exibe o seletor opcional de
+   modpack: vazio = notícia global; selecionado = notícia do modpack. *@
 
 <MudDialog>
     <DialogContent>
         <MudGrid>
+            @if (Modpacks is not null)
+            {
+                <MudItem xs="12">
+                    <MudSelect T="Guid?" Value="_model.ModpackId" ValueChanged="OnModpackChanged"
+                               Label="Modpack (opcional)" Variant="Variant.Outlined" Clearable="true"
+                               HelperText="Deixe vazio para uma novidade global (do servidor).">
+                        <MudSelectItem T="Guid?" Value="@((Guid?)null)">🌐 Global (servidor)</MudSelectItem>
+                        @foreach (var mp in Modpacks)
+                        {
+                            <MudSelectItem T="Guid?" Value="@((Guid?)mp.Id)">@mp.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            }
             <MudItem xs="12" sm="4">
                 <MudTextField @bind-Value="_model.Tag" Label="Tag" Variant="Variant.Outlined"
                               MaxLength="40" Placeholder="ex.: Atualização"/>
@@ -43,8 +59,16 @@
     // null = criar; preenchido = editar (não mutamos o original até confirmar)
     [Parameter] public NewsEntity? Entry { get; set; }
 
+    // Quando fornecido, mostra o seletor de modpack (página global). Null = sem seletor (aba do modpack).
+    [Parameter] public List<ModpackBadgeDto>? Modpacks { get; set; }
+
     private readonly NewsEntity _model = new();
     private DateTime? _publishedDate;
+
+    private void OnModpackChanged(Guid? value)
+    {
+        _model.ModpackId = value; // vazio = notícia global
+    }
 
     protected override void OnInitialized()
     {

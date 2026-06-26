@@ -43,8 +43,14 @@
                             Mods
                         </MudNavLink>
                     </AuthorizeView>
+                    @* Novidades — globais + de modpacks (Owner/Admin gerenciam conteúdo) *@
+                    <AuthorizeView Roles="Owner,Admin" Context="news">
+                        <MudNavLink Href="/admin/news" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.Article">
+                            Novidades
+                        </MudNavLink>
+                    </AuthorizeView>
                     @* Páginas ainda não implementadas — desabilitadas até a camada de dados existir *@
-                    <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.Article">Novidades</MudNavLink>
                     <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.CloudUpload">Releases</MudNavLink>
                     @* Gestão de usuários e secrets — só o Owner *@
                     <AuthorizeView Roles="Owner" Context="owner">

@@ -1,0 +1,113 @@
+@page "/admin/news"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Application.Contracts
+
+@* Novidades globais + de modpacks num só lugar (tabela no padrão de listas). Criar/editar abre o
+   NewsEditDialog com seletor de modpack opcional: vazio = global; selecionado = do modpack. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6" Wrap="Wrap.Wrap">
+    <div>
+        <MudText Typo="Typo.h4">Novidades</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Feed global do servidor e novidades por modpack.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
+        Nova novidade
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true">
+    @if (_rows is null)
+    {
+    }
+    else if (_rows.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-12">
+            <MudIcon Icon="@Icons.Material.Filled.Newspaper" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.h6">Nenhuma novidade ainda</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                Publique a primeira novidade (global ou de um modpack).
+            </MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="NewAsync">
+                Nova novidade
+            </MudButton>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="NewsRowDto" Items="_rows" Hover="true" Dense="true" Elevation="0"
+                     FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter"
+                     RowsPerPage="25">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_search" Placeholder="Filtrar por título ou tag…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+            </ToolBarContent>
+            <Columns>
+                <TemplateColumn Title="Destino" Sortable="true" SortBy="x => x.ModpackName ?? string.Empty">
+                    <CellTemplate>
+                        @if (context.Item.ModpackId is null)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Public">Global</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Inventory2">@(context.Item.ModpackName ?? "—")</MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Título" Sortable="true" SortBy="x => x.Title">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            @if (!string.IsNullOrWhiteSpace(context.Item.Tag))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@context.Item.Tag</MudChip>
+                            }
+                            <div>
+                                <MudText Typo="Typo.body2">@context.Item.Title</MudText>
+                                @if (!string.IsNullOrWhiteSpace(context.Item.Summary))
+                                {
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block text-truncate"
+                                             Style="max-width:420px">@context.Item.Summary</MudText>
+                                }
+                            </div>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished" CellStyle="text-align:center">
+                    <CellTemplate>
+                        @if (context.Item.IsPublished)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Publicado em" Sortable="true" SortBy="x => x.PublishedAt">
+                    <CellTemplate>@context.Item.PublishedAt.ToString("dd/MM/yyyy")</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="@(() => EditAsync(context.Item))"/>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(context.Item))"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="NewsRowDto" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudPaper>

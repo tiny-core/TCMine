@@ -68,8 +68,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   `Admin/Modpacks/` (lista + editor em abas + diálogos — ver
   [[concepts/modpack-admin-editor]]); `Admin/Mods/` (catálogo de todos os arquivos
   de mod + badges dos modpacks + marcador/limpeza de órfãos — ver
-  [[decisions/mods-many-to-many]]); `Admin/Users/` (gestão de usuários +
-  `UserEditDialog`, só Owner — ver [[concepts/setup-auth-cookie]]); shared
+  [[decisions/mods-many-to-many]]); `Admin/News/` (novidades globais + de modpacks
+  num só lugar, seletor de modpack opcional no diálogo); `Admin/Users/` (gestão de
+  usuários + `UserEditDialog`, só Owner — ver [[concepts/setup-auth-cookie]]); shared
   (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`, `BusyOverlay` — ver
   [[concepts/async-feedback-overlay]]).
 - **Services (`Services/`):** `BusyService` — estado de "ocupado" por circuito que
@@ -129,7 +130,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
 - [x] Restringir `Settings` ao papel `Owner` (2026-06-25).
 - [x] **Newsletter por modpack** (2026-06-24) — `NewsEntity.ModpackId` (FK
   opcional, null = global) + migration `NewsModpackFk` nos dois providers + aba
-  Novidades. Falta UI para o feed global. Ver [[concepts/modpack-admin-editor]].
+  Novidades. Ver [[concepts/modpack-admin-editor]].
+- [x] **Feed global de novidades** (2026-06-25) — página `/admin/news` (globais + de
+  modpacks) com seletor de modpack opcional no diálogo (vazio = global).
 - [ ] Orquestração de instâncias de servidor Minecraft (a partir do modpack).
 
 ## Referências

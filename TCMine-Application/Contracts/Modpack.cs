@@ -89,6 +89,20 @@ public sealed record SaveProgressDto(int Current, int Total, string FileName);
 public sealed record ModpackBadgeDto(Guid Id, string Name);
 
 /// <summary>
+/// Linha da lista de novidades do painel. <c>ModpackId</c>/<c>ModpackName</c> nulos = notícia
+/// **global** (do servidor, não atrelada a modpack).
+/// </summary>
+public sealed record NewsRowDto(
+    int Id,
+    Guid? ModpackId,
+    string? ModpackName,
+    string Tag,
+    string Title,
+    string Summary,
+    DateTime PublishedAt,
+    bool IsPublished);
+
+/// <summary>
 /// Linha da página "todos os mods" do painel: um <c>ModFile</c> (arquivo único) com os modpacks
 /// em que aparece. <c>IsOrphan</c> = sem vínculo com nenhum modpack; <c>IsManual</c> = upload (sem
 /// origem CurseForge).

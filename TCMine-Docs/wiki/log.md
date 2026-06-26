@@ -28,6 +28,21 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-25] ingest | Página de novidades globais + seletor de modpack opcional
+
+- **Fonte:** pedido do usuário; código `Admin/News/News.razor(.cs)`, `ModpackNewsService.cs`, `Dialogs/NewsEditDialog.razor`, `AdminLayout.razor`.
+- **Páginas afetadas:** [[entities/tcmine-server]], [[concepts/modpack-admin-editor]].
+- **Resumo:** nova página `/admin/news` (Owner/Admin) lista **todas** as novidades
+  (globais + de modpacks) em `MudDataGrid` (padrão de listas) com coluna de destino
+  (chip "Global" ou nome do modpack). O `NewsEditDialog` ganhou um **seletor de modpack
+  opcional** (vazio = global, selecionado = do modpack) — exibido só quando o chamador
+  passa as opções (`Modpacks`); a aba do editor segue sem seletor (modpack fixo). Serviço:
+  `ListAllAsync` (com nome do modpack via subconsulta), `ListModpackOptionsAsync`,
+  `CreateAsync(draft)` (ModpackId opcional) e `UpdateAsync` passou a gravar o vínculo. Link
+  "Novidades" habilitado no menu. Build limpo. (Sem migração — `NewsEntity.ModpackId` já era
+  FK opcional.)
+- **Pendências:** nenhuma.
+
 ## [2026-06-25] meta | Padrão único de listas (MudDataGrid) + Novidades migrada
 
 - **Fonte:** pedido do usuário; `CLAUDE.md` + `Panels/NewsPanel.razor(.cs)`.
