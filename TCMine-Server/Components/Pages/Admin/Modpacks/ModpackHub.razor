@@ -1,0 +1,185 @@
+@page "/admin/modpacks/{Id:guid}"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Domain.Modpack
+@using TCMine_Domain.Entities
+
+@* Hub (overview) do modpack: resumo + cartões das áreas + as instâncias de servidor derivadas. *@
+
+@if (_pack is null)
+{
+    @* BusyOverlay cobre o carregamento *@
+}
+else
+{
+    @* ── Cabeçalho ──────────────────────────────────────────────────────────────────── *@
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Wrap="Wrap.Wrap" Spacing="3">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/admin/modpacks" Variant="Variant.Outlined"/>
+                <div>
+                    <MudText Typo="Typo.h5">@_pack.Name</MudText>
+                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1" Wrap="Wrap.Wrap">
+                        @if (_pack.IsPublished)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Filled"
+                                     Icon="@Icons.Material.Filled.Public">Publicado</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.EditNote">Rascunho</MudChip>
+                        }
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.SportsEsports">@_pack.Minecraft</MudChip>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.Build">@ModLoaders.DisplayName(_pack.Loader) @_pack.LoaderVersion</MudChip>
+                    </MudStack>
+                </div>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Tune" OnClick="EditDetailsAsync">
+                Detalhes
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    @* ── Cartões das áreas de conteúdo ─────────────────────────────────────────────── *@
+    <MudGrid Class="mb-2">
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Extension" Color="Color.Primary"/>
+                    <MudText Typo="Typo.h6">@_pack.ModCount mod(s)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Mods do modpack (cliente e servidor).</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary"
+                               Href="@($"/admin/modpacks/{Id}/mods")">Gerenciar</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Folder" Color="Color.Primary"/>
+                    <MudText Typo="Typo.h6">Overrides</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">
+                        @(_pack.HasOverrides ? "Configs e arquivos extras." : "Sem overrides ainda.")
+                    </MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary"
+                               Href="@($"/admin/modpacks/{Id}/overrides")">Gerenciar</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Newspaper" Color="Color.Primary"/>
+                    <MudText Typo="Typo.h6">Novidades</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Posts exibidos no launcher.</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenNewsAsync">Gerenciar</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Outlined="true" Class="pa-4" Style="height:100%">
+                <MudStack Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Lan" Color="Color.Primary"/>
+                    <MudText Typo="Typo.h6">@_pack.ServerCount conexão(ões)</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Servidores divulgados no launcher.</MudText>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="OpenConnectionsAsync">Gerenciar</MudButton>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @* ── Instâncias de servidor derivadas deste modpack ────────────────────────────── *@
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <div>
+                <MudText Typo="Typo.h6">Servidores deste modpack</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Instâncias gerenciadas (containers) derivadas deste modpack.
+                </MudText>
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="CreateInstanceAsync">Criar servidor</MudButton>
+        </MudStack>
+
+        @if (_instances is null || _instances.Count == 0)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-8">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Secondary" Size="Size.Large"/>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Nenhuma instância ainda. Crie um servidor a partir deste modpack.
+                </MudText>
+            </MudStack>
+        }
+        else
+        {
+            <MudGrid>
+                @foreach (var inst in _instances)
+                {
+                    <MudItem xs="12" md="6">
+                        <MudPaper Outlined="true" Class="pa-3" Style="height:100%">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <div>
+                                    <MudText Typo="Typo.subtitle1">@inst.Name</MudText>
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1" Wrap="Wrap.Wrap">
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="@StatusColor(inst.Status)">@StatusLabel(inst.Status)</MudChip>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Icon="@Icons.Material.Filled.Lan">porta @inst.Port</MudChip>
+                                        @if (!inst.Provisioned)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                                     Icon="@Icons.Material.Filled.Build">Não provisionada</MudChip>
+                                        }
+                                        else if (inst.IsStale)
+                                        {
+                                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                                     Icon="@Icons.Material.Filled.Sync">Desatualizada</MudChip>
+                                        }
+                                    </MudStack>
+                                </div>
+                                <MudStack Row="true" Spacing="1">
+                                    @if (inst.IsStale)
+                                    {
+                                        <MudTooltip Text="Aplicar atualização (re-provisionar)">
+                                            <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt" Size="Size.Small"
+                                                           Color="Color.Warning" OnClick="@(() => ProvisionAsync(inst))"/>
+                                        </MudTooltip>
+                                    }
+                                    else
+                                    {
+                                        <MudTooltip Text="Provisionar">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Build" Size="Size.Small"
+                                                           OnClick="@(() => ProvisionAsync(inst))"/>
+                                        </MudTooltip>
+                                    }
+                                    @if (inst.Status is ServerInstanceStatus.Running or ServerInstanceStatus.Starting)
+                                    {
+                                        <MudTooltip Text="Parar">
+                                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small" Color="Color.Warning"
+                                                           OnClick="@(() => StopAsync(inst))"/>
+                                        </MudTooltip>
+                                    }
+                                    else
+                                    {
+                                        <MudTooltip Text="Iniciar">
+                                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success"
+                                                           Disabled="@(!inst.Provisioned)" OnClick="@(() => StartAsync(inst))"/>
+                                        </MudTooltip>
+                                    }
+                                    <MudTooltip Text="Detalhe e console">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Color="Color.Primary"
+                                                       OnClick="@(() => OpenInstance(inst))"/>
+                                    </MudTooltip>
+                                </MudStack>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudPaper>
+}

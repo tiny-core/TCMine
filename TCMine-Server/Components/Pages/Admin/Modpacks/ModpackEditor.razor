@@ -1,13 +1,14 @@
 @page "/admin/modpacks/new"
-@page "/admin/modpacks/{Id}"
+@page "/admin/modpacks/{Id}/mods"
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Domain.Modpack
 @using TCMine_Server.Components.Pages.Admin.Modpacks.Panels
 @layout AdminLayout
 @attribute [Authorize(Roles = "Owner,Admin")]
 
-@* Editor de modpack: orquestra as abas, cada uma num componente próprio (ver Panels/). O cabeçalho
-   moderno concentra identidade + status + Guardar; o conteúdo vai para os painéis. *@
+@* Gestão de mods do modpack (Fase 3 — sem abas). Na criação (/new) inclui os Detalhes inline para
+   nomear/escolher loader antes de adicionar mods; num modpack existente (/{id}/mods) mostra só os mods
+   (Detalhes/Overrides/Novidades/Conexões vivem no hub). O cabeçalho concentra status + Guardar. *@
 
 @if (_loading)
 {
@@ -22,10 +23,9 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
                   Wrap="Wrap.Wrap" Spacing="3">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="/admin/modpacks"
-                               Variant="Variant.Outlined"/>
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@BackHref" Variant="Variant.Outlined"/>
                 <div>
-                    <MudText Typo="Typo.h5">@(_isNew ? "Novo modpack" : _draft.Name)</MudText>
+                    <MudText Typo="Typo.h5">@(_isNew ? "Novo modpack" : $"Mods · {_draft.Name}")</MudText>
                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-1" Wrap="Wrap.Wrap">
                         @if (_draft.IsPublished)
                         {
@@ -125,58 +125,27 @@ else
         </MudAlert>
     }
 
-    @* ── Abas (cada conteúdo é um componente próprio) ──────────────────────────────── *@
-    @* ActivePanelIndex controlado + OnPreviewInteraction: mostra o overlay antes do render pesado. *@
-    <MudTabs @ref="_tabs" Elevation="0" Outlined="true" ApplyEffectsToContainer="true" TabPanelsClass="pa-4"
-             Rounded="true" ActivePanelIndex="_activeTab" OnPreviewInteraction="OnTabPreview">
-
-        <MudTabPanel Text="Detalhes" Icon="@Icons.Material.Filled.Info">
+    @* ── Detalhes (só na criação — depois editam pelo modal do hub) ─────────────────── *@
+    @if (_isNew)
+    {
+        <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+            <MudText Typo="Typo.subtitle1" Class="mb-3">Detalhes</MudText>
             <DetailsPanel Draft="_draft"/>
-        </MudTabPanel>
+        </MudPaper>
 
-        <MudTabPanel Text="@($"Mods ({_mods.Count})")" Icon="@Icons.Material.Filled.Extension">
-            <ModsPanel Mods="_mods" CfConfigured="_cfConfigured"
-                       OnSearchCf="SearchModsAsync" OnImport="ImportModpackAsync"
-                       OnUploadJar="UploadJarAsync" OnRemove="RemoveMod"
-                       OnCheckUpdates="CheckModUpdatesAsync"/>
-        </MudTabPanel>
+        @if (_pendingOverrides is not null)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                Overrides importados serão extraídos ao <b>Guardar</b> — edite-os depois no hub.
+            </MudAlert>
+        }
+    }
 
-        <MudTabPanel Text="Overrides" Icon="@Icons.Material.Filled.Folder">
-            @if (_isNew)
-            {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                    Guarde o modpack primeiro para editar overrides.
-                </MudAlert>
-            }
-            else
-            {
-                @if (_pendingOverrides is not null)
-                {
-                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-4">
-                        Há overrides importados pendentes. Clique em <b>Guardar</b> para extraí-los e editá-los aqui.
-                    </MudAlert>
-                }
-
-                @* Painel próprio (árvore lazy + Monaco) — recriado por @key a cada save p/ refletir o disco *@
-                <OverridesPanel ModpackId="_draft.Id" @key="_overridesVersion"/>
-            }
-        </MudTabPanel>
-
-        <MudTabPanel Text="Novidades" Icon="@Icons.Material.Filled.Newspaper">
-            @if (_isNew)
-            {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                    Guarde o modpack primeiro para publicar novidades.
-                </MudAlert>
-            }
-            else
-            {
-                <NewsPanel ModpackId="_draft.Id" @key="_draft.Id"/>
-            }
-        </MudTabPanel>
-
-        <MudTabPanel Text="@($"Servidores ({_draft.Servers.Count})")" Icon="@Icons.Material.Filled.Dns">
-            <ServersPanel Servers="_draft.Servers"/>
-        </MudTabPanel>
-    </MudTabs>
+    @* ── Mods ──────────────────────────────────────────────────────────────────────── *@
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+        <ModsPanel Mods="_mods" CfConfigured="_cfConfigured"
+                   OnSearchCf="SearchModsAsync" OnImport="ImportModpackAsync"
+                   OnUploadJar="UploadJarAsync" OnRemove="RemoveMod"
+                   OnCheckUpdates="CheckModUpdatesAsync"/>
+    </MudPaper>
 }

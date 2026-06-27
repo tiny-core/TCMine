@@ -1,0 +1,15 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Server.Components.Pages.Admin.Modpacks
+
+@* Modal de edição dos metadados do modpack (hub). Hospeda o DetailsPanel sobre um rascunho clonado e
+   devolve-o ao confirmar; a persistência (UpdateMetadataAsync) fica com o hub. Ver code-behind. *@
+
+<MudDialog>
+    <DialogContent>
+        <DetailsPanel Draft="Draft"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -94,13 +94,16 @@ public sealed class ModpackImportService(
     /// só grava no Guardar.
     /// </summary>
     public async Task<DraftImportDto<ModEntryEntity>> ImportModpackToDraftAsync(long projectId,
-        CancellationToken ct = default)
+        IProgress<string>? progress = null, CancellationToken ct = default)
     {
-        var imported = await CurseForgeImporter.ImportAsync(projectId, cf, ct)
+        var imported = await CurseForgeImporter.ImportAsync(projectId, cf, progress, ct)
                        ?? throw new InvalidOperationException(
                            "Não foi possível importar (sem manifesto válido).");
 
+        progress?.Report("Baixando o server pack e inferindo o lado dos mods…");
         var serverPackFiles = await LoadServerPackFileNamesAsync(imported.ServerPackFileId, ct);
+
+        progress?.Report($"Mesclando {imported.Mods.Count} mods no rascunho…");
 
         // Monta as entidades SEM baixar os jars — o download é deferido para o Guardar (com progresso)
         var mods = imported.Mods.Select(mod => new ModEntryEntity
@@ -249,6 +252,69 @@ public sealed class ModpackImportService(
     /// (<see cref="ModFileEntity"/>), garante o cache de jars ainda sem hash e extrai overrides
     /// pendentes. <paramref name="mods"/> é a lista plana do editor (ver <see cref="FlattenMods"/>).
     /// </summary>
+    /// <summary>
+    /// Salva <b>só os metadados</b> do modpack (identidade, versões, extras) — para o modal de Detalhes do
+    /// hub, sem mexer em mods/servidores/overrides. Bumpa <c>UpdatedAt</c> (marca instâncias derivadas
+    /// como desatualizadas) e avisa os launchers. Lança se o modpack ainda não existe.
+    /// </summary>
+    public async Task UpdateMetadataAsync(ModpackEntity draft, CancellationToken ct = default)
+    {
+        var tracked = await db.Modpacks.FirstOrDefaultAsync(m => m.Id == draft.Id, ct)
+                      ?? throw new InvalidOperationException("Modpack não encontrado.");
+
+        tracked.Name = draft.Name;
+        tracked.Version = draft.Version;
+        tracked.Minecraft = draft.Minecraft;
+        tracked.Loader = draft.Loader;
+        tracked.LoaderVersion = draft.LoaderVersion;
+        tracked.Description = draft.Description;
+        tracked.IsPublished = draft.IsPublished;
+        tracked.RecommendedRamMb = draft.RecommendedRamMb;
+        tracked.UpdatedAt = DateTime.UtcNow;
+
+        await db.SaveChangesAsync(ct);
+        notifier.Bump();
+    }
+
+    // ── Conexões divulgadas manuais (modal do hub) ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Conexões <b>manuais</b> divulgadas pelo modpack (servidores externos cadastrados à mão). Exclui
+    /// as auto-geradas por instâncias (<c>ServerInstanceId != null</c>), que são geridas pela instância.
+    /// Devolve cópias destacadas para o painel editar livremente.
+    /// </summary>
+    public async Task<List<ServerEntryEntity>> GetManualConnectionsAsync(Guid modpackId, CancellationToken ct = default)
+    {
+        return await db.Servers.AsNoTracking()
+            .Where(s => s.ModpackId == modpackId && s.ServerInstanceId == null)
+            .OrderBy(s => s.Name)
+            .Select(s => new ServerEntryEntity { Name = s.Name, Address = s.Address, Port = s.Port, ModpackId = modpackId })
+            .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Substitui as conexões manuais do modpack pelo conjunto editado (as auto-geradas por instâncias
+    /// ficam intactas). Avisa os launchers (SSE).
+    /// </summary>
+    public async Task SaveConnectionsAsync(
+        Guid modpackId, IReadOnlyList<ServerEntryEntity> entries, CancellationToken ct = default)
+    {
+        var existing = await db.Servers
+            .Where(s => s.ModpackId == modpackId && s.ServerInstanceId == null)
+            .ToListAsync(ct);
+        db.Servers.RemoveRange(existing);
+
+        foreach (var e in entries)
+            db.Servers.Add(new ServerEntryEntity
+            {
+                Name = e.Name, Address = e.Address, Port = e.Port,
+                ModpackId = modpackId, ServerInstanceId = null
+            });
+
+        await db.SaveChangesAsync(ct);
+        notifier.Bump();
+    }
+
     public async Task SaveAsync(
         ModpackEntity draft, IReadOnlyList<ModEntryEntity> mods, byte[]? pendingOverrides = null,
         ModpackImportSourceEntity? importSource = null,

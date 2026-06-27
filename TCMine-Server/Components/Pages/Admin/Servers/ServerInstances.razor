@@ -1,0 +1,134 @@
+@page "/admin/servers"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin,Operator")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Application.Contracts
+@using TCMine_Domain.Entities
+
+@* Instâncias de servidor Minecraft derivadas dos modpacks. Cada linha mostra o status de runtime e
+   dá as ações de ciclo de vida (provisionar, iniciar, parar) + acesso ao detalhe/console. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h4">Servidores</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Instâncias de servidor Minecraft, derivadas dos modpacks e executadas em containers.
+        </MudText>
+    </div>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="CreateAsync">Nova instância
+    </MudButton>
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true">
+    @* Durante o carregamento o BusyOverlay global cobre a tela; aqui não renderizamos nada. *@
+    @if (_rows is null)
+    {
+    }
+    else if (_rows.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-12">
+            <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.h6">Nenhuma instância ainda</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Crie uma instância a partir de um modpack para começar.
+            </MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="ServerInstanceRowDto" Items="_rows" Hover="true" Dense="true" Elevation="0"
+                     FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter"
+                     RowsPerPage="25">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_search" Placeholder="Filtrar por nome ou modpack…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+            </ToolBarContent>
+            <Columns>
+                <TemplateColumn Title="Nome" Sortable="true" SortBy="x => x.Name">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Primary"/>
+                            <div>
+                                <MudText Typo="Typo.body2">@context.Item.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@context.Item.ModpackName</MudText>
+                            </div>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.Status">
+                    <CellTemplate>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@StatusColor(context.Item.Status)"
+                                 Icon="@StatusIcon(context.Item.Status)">@StatusLabel(context.Item.Status)
+                        </MudChip>
+                        @if (!context.Item.Provisioned)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                     Icon="@Icons.Material.Filled.Build">Não provisionada
+                            </MudChip>
+                        }
+                        else if (context.Item.IsStale)
+                        {
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                                     Icon="@Icons.Material.Filled.Sync">Desatualizada
+                            </MudChip>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.Port" Title="Porta"/>
+                <TemplateColumn Title="RAM" Sortable="true" SortBy="x => x.RamMb">
+                    <CellTemplate>@($"{context.Item.RamMb / 1024.0:0.#} GB")</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                    <CellTemplate>
+                        <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
+                            @* Provisionar / aplicar atualização: monta ou re-monta o diretório do modpack *@
+                            @if (context.Item.Provisioned && context.Item.IsStale)
+                            {
+                                <MudTooltip Text="Aplicar atualização (re-provisionar)">
+                                    <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt" Size="Size.Small"
+                                                   Color="Color.Warning" OnClick="@(() => ProvisionAsync(context.Item))"/>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Provisionar (montar diretório)">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Build" Size="Size.Small"
+                                                   OnClick="@(() => ProvisionAsync(context.Item))"/>
+                                </MudTooltip>
+                            }
+                            @if (context.Item.Status is ServerInstanceStatus.Running or ServerInstanceStatus.Starting)
+                            {
+                                <MudTooltip Text="Parar">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small" Color="Color.Warning"
+                                                   OnClick="@(() => StopAsync(context.Item))"/>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Iniciar">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success"
+                                                   Disabled="@(!context.Item.Provisioned)"
+                                                   OnClick="@(() => StartAsync(context.Item))"/>
+                                </MudTooltip>
+                            }
+                            <MudTooltip Text="Detalhe e console">
+                                <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Color="Color.Primary"
+                                               OnClick="@(() => Open(context.Item))"/>
+                            </MudTooltip>
+                            <MudTooltip Text="Apagar">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => DeleteAsync(context.Item))"/>
+                            </MudTooltip>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="ServerInstanceRowDto" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudPaper>

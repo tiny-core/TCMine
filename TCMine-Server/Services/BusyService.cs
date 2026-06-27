@@ -34,6 +34,27 @@ public sealed class BusyService
         });
     }
 
+    /// <summary>
+    /// Atualiza a mensagem do overlay durante uma operação em andamento (progresso ao vivo). No-op se
+    /// nada estiver ocupado. Útil como destino de um <see cref="IProgress{T}"/> — ex.: provisionamento
+    /// de servidor reportando cada etapa. Seguro chamar de qualquer thread (reagenda via OnChange).
+    /// </summary>
+    public void Update(string message)
+    {
+        if (_activeCount <= 0) return;
+        Message = message;
+        OnChange?.Invoke();
+    }
+
+    /// <summary>
+    /// <see cref="IProgress{T}"/> que escreve no overlay — passe ao serviço para refletir o progresso
+    /// ao vivo. <see cref="Progress{T}"/> reagenda o callback no contexto de sincronização capturado.
+    /// </summary>
+    public IProgress<string> Progress()
+    {
+        return new Progress<string>(Update);
+    }
+
     /// <summary>Executa uma operação assíncrona com retorno sob o overlay bloqueante.</summary>
     public async Task<T> RunAsync<T>(string message, Func<Task<T>> operation)
     {

@@ -25,6 +25,7 @@
         <PackageReference Include="Microsoft.Extensions.Http"/>
         <PackageReference Include="Microsoft.Extensions.Identity.Core"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+        <PackageReference Include="Docker.DotNet"/>
 
         <!-- Overrides de segurança das dependências transitivas -->
         <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>

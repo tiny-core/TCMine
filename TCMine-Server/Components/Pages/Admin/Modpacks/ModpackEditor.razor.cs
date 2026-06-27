@@ -40,11 +40,6 @@ public partial class ModpackEditor : ComponentBase
     private bool _loading = true;
     private bool _cfConfigured;
 
-    // Aba ativa (controlada): a troca passa pelo OnTabPreview para mostrar o overlay antes do render
-    private int _activeTab;
-    private MudTabs _tabs = null!;
-    private bool _switchingTab; // evita reentrância caso ActivatePanelAsync redispare o OnPreviewInteraction
-
     // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
     private byte[]? _pendingOverrides;
 
@@ -54,14 +49,14 @@ public partial class ModpackEditor : ComponentBase
     // Origem CF já gravada (alimenta o banner de "verificar atualização"); null = não veio do CF
     private ModpackImportSourceEntity? _importSource;
 
-    // Bumpado a cada Guardar: muda o @key do OverridesPanel, forçando-o a recarregar do disco
-    private int _overridesVersion;
-
     // Estado do Guardar (com progresso de download dos jars)
     private bool _saving;
     private string _saveStatus = string.Empty;
     private int _saveCurrent;
     private int _saveTotal;
+
+    // Voltar: na criação volta para a lista; editando mods, volta para o hub do modpack
+    private string BackHref => _isNew ? "/admin/modpacks" : $"/admin/modpacks/{_draft.Id}";
 
     protected override async Task OnParametersSetAsync()
     {
@@ -106,35 +101,6 @@ public partial class ModpackEditor : ComponentBase
             }
 
             _loading = false;
-        });
-    }
-
-    // Intercepta a troca de aba: cancela a ativação nativa e a refaz sob o overlay, para que a modal
-    // apareça ANTES do render pesado do painel (Mods/Overrides com muitos itens travam a thread de
-    // render). Programático (mudar _activeTab) não dispara este preview de novo, então não há loop.
-    private async Task OnTabPreview(TabInteractionEventArgs args)
-    {
-        if (args.InteractionType != TabInteractionType.Activate || _switchingTab || args.PanelIndex == _activeTab)
-            return;
-
-        args.Cancel = true; // nós conduzimos a troca, sob o overlay
-        var target = args.PanelIndex;
-
-        await Busy.RunAsync("Carregando aba…", async () =>
-        {
-            _activeTab = target;
-            _switchingTab = true;
-            try
-            {
-                await _tabs.ActivatePanelAsync(target, false);
-            }
-            finally
-            {
-                _switchingTab = false;
-            }
-
-            StateHasChanged();
-            await Task.Yield(); // deixa o painel pesado renderizar com o overlay já visível
         });
     }
 
@@ -187,13 +153,18 @@ public partial class ModpackEditor : ComponentBase
     // registra a origem (_pendingSource) e deixa os overrides pendentes para o Guardar.
     private async Task RunImportAsync(long projectId, bool isUpdate)
     {
+        // Estado observável: o diálogo reflete cada fase do import ao vivo (em vez de texto fixo)
+        var progressState = new ProgressState("Iniciando import…");
+        var progress = new Progress<string>(progressState.Report);
+
         // Modal de feedback bloqueante: impede o usuário de mexer no editor durante o import
         var progressDialog = await DialogService.ShowAsync<ImportProgressDialog>(
-            isUpdate ? "Atualizando modpack" : "Importando modpack", new DialogParameters(), BlockingDialog());
+            isUpdate ? "Atualizando modpack" : "Importando modpack",
+            new DialogParameters<ImportProgressDialog> { { x => x.State, progressState } }, BlockingDialog());
 
         try
         {
-            var imported = await Service.ImportModpackToDraftAsync(projectId);
+            var imported = await Service.ImportModpackToDraftAsync(projectId, progress);
 
             // Metadados só preenchem campos ainda vazios — não sobrescrevem o que o admin já definiu
             if (string.IsNullOrWhiteSpace(_draft.Name)) _draft.Name = imported.Name;
@@ -395,14 +366,11 @@ public partial class ModpackEditor : ComponentBase
             _isNew = false;
             Snackbar.Add("Modpack guardado.", Severity.Success);
 
-            // Recria o OverridesPanel para refletir o que o Save extraiu para o disco
-            _overridesVersion++;
-
             // Recarrega a origem gravada (atualiza o banner; a versão instalada pode ter mudado)
             if (!wasNew) _importSource = await Service.GetImportSourceAsync(_draft.Id);
 
             if (wasNew)
-                // Navega para a rota canônica do modpack já gravado (habilita overrides/novidades)
+                // Recém-criado: vai para o hub do modpack (overrides/novidades/instâncias)
                 Nav.NavigateTo($"/admin/modpacks/{_draft.Id}");
         }
         catch (Exception ex)

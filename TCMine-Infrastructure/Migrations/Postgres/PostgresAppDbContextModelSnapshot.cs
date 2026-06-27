@@ -341,6 +341,9 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                     b.Property<int>("Port")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("ServerInstanceId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ModpackId");
@@ -354,8 +357,15 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Advertise")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("AutoRestart")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("ContainerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -364,6 +374,15 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                         .IsRequired()
                         .HasMaxLength(400)
                         .HasColumnType("character varying(400)");
+
+                    b.Property<string>("ExtraJvmArgs")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("ImageTag")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
 
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
@@ -381,11 +400,16 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
-                    b.Property<int?>("Pid")
-                        .HasColumnType("integer");
-
                     b.Property<int>("Port")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ProvisionedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PublicAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int>("RamMb")
                         .HasColumnType("integer");
@@ -398,11 +422,57 @@ namespace TCMine_Infrastructure.Migrations.Postgres
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("XmsMb")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ModpackId");
 
                     b.ToTable("ServerInstances");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.ServerRuntimeCacheEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Loader")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("LoaderVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("MinecraftVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Loader", "LoaderVersion", "MinecraftVersion")
+                        .IsUnique();
+
+                    b.ToTable("ServerRuntimeCache");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ServerSettingEntity", b =>

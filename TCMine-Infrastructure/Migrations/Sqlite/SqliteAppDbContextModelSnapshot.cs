@@ -328,6 +328,9 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.Property<int>("Port")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("ServerInstanceId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ModpackId");
@@ -341,8 +344,15 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Advertise")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("AutoRestart")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContainerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -350,6 +360,15 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.Property<string>("Directory")
                         .IsRequired()
                         .HasMaxLength(400)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExtraJvmArgs")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImageTag")
+                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("MaxPlayers")
@@ -368,11 +387,16 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                         .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
-                    b.Property<int?>("Pid")
-                        .HasColumnType("INTEGER");
-
                     b.Property<int>("Port")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("ProvisionedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PublicAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("RamMb")
                         .HasColumnType("INTEGER");
@@ -385,11 +409,57 @@ namespace TCMine_Infrastructure.Migrations.Sqlite
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("XmsMb")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ModpackId");
 
                     b.ToTable("ServerInstances");
+                });
+
+            modelBuilder.Entity("TCMine_Domain.Entities.ServerRuntimeCacheEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Loader")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LoaderVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MinecraftVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelativePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Loader", "LoaderVersion", "MinecraftVersion")
+                        .IsUnique();
+
+                    b.ToTable("ServerRuntimeCache");
                 });
 
             modelBuilder.Entity("TCMine_Domain.Entities.ServerSettingEntity", b =>

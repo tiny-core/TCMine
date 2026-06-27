@@ -1,0 +1,89 @@
+@using TCMine_Application.Contracts
+
+@* Formulário de criar/editar uma instância de servidor. Devolve um ServerInstanceEditDto; a
+   persistência fica com o ServerInstanceService, chamado pela página. Loader/versões derivam do
+   modpack escolhido (não são editados aqui). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            @* ── Geral ────────────────────────────────────────────────────────────────── *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Geral</MudText>
+            <MudGrid>
+                <MudItem xs="12" sm="7">
+                    <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined"
+                                  Required="true" RequiredError="O nome é necessário" MaxLength="120" Immediate="true"/>
+                </MudItem>
+                <MudItem xs="12" sm="5">
+                    <MudSelect @bind-Value="_modpackId" Label="Modpack de origem" Variant="Variant.Outlined"
+                               Required="true" RequiredError="Escolha o modpack"
+                               Disabled="@LockModpack" HelperText="@(LockModpack ? "Fixo." : null)">
+                        @foreach (var m in _modpacks)
+                        {
+                            <MudSelectItem Value="m.Id">@m.Name <span style="opacity:.6">— @m.Loader · MC @m.Minecraft</span></MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4"/>
+
+            @* ── Rede ─────────────────────────────────────────────────────────────────── *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Rede</MudText>
+            <MudGrid>
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="_port" Label="Porta" Variant="Variant.Outlined"
+                                     Min="1" Max="65535" HelperText="Exposta no host"/>
+                </MudItem>
+                <MudItem xs="6" sm="4">
+                    <MudNumericField @bind-Value="_maxPlayers" Label="Máx. jogadores" Variant="Variant.Outlined" Min="1"/>
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudTextField @bind-Value="_motd" Label="MOTD" Variant="Variant.Outlined" MaxLength="120"/>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4"/>
+
+            @* ── Recursos (JVM) ───────────────────────────────────────────────────────── *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Recursos (JVM)</MudText>
+            <MudGrid>
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="_ramMb" Label="RAM máx. (MB)" Variant="Variant.Outlined"
+                                     Min="512" Step="512" HelperText="-Xmx"/>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField @bind-Value="_xmsMb" Label="RAM inicial (MB)" Variant="Variant.Outlined"
+                                     Min="0" Step="512" HelperText="-Xms; 0 = igual ao máx."/>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_extraJvmArgs" Label="Flags JVM extras" Variant="Variant.Outlined"
+                                  Lines="3" HelperText="Uma flag por linha (ex.: -XX:+UseG1GC). Memória vem dos campos acima."/>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-4"/>
+
+            @* ── Divulgação no launcher ───────────────────────────────────────────────── *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Divulgação no launcher</MudText>
+            <MudTextField @bind-Value="_publicAddress" Label="Endereço público" Variant="Variant.Outlined"
+                          MaxLength="200" Placeholder="ex.: play.tcmine.net"
+                          HelperText="Host/IP que os jogadores usam (e que o status de jogadores consulta)."/>
+            <MudSwitch T="bool" @bind-Value="_advertise" Color="Color.Info" Class="mt-2"
+                       Label="Divulgar automaticamente na lista multiplayer do launcher"/>
+
+            <MudDivider Class="my-4"/>
+
+            @* ── Comportamento ────────────────────────────────────────────────────────── *@
+            <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="mb-2">Comportamento</MudText>
+            <MudSwitch T="bool" @bind-Value="_autoRestart" Color="Color.Success"
+                       Label="Reiniciar automaticamente após queda"/>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm">
+            @(IsEdit ? "Salvar" : "Criar")
+        </MudButton>
+    </DialogActions>
+</MudDialog>

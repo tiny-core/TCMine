@@ -43,6 +43,13 @@
                             Mods
                         </MudNavLink>
                     </AuthorizeView>
+                    @* Instâncias de servidor Minecraft — provisão, ciclo de vida e console (também Operator) *@
+                    <AuthorizeView Roles="Owner,Admin,Operator" Context="servers">
+                        <MudNavLink Href="/admin/servers" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.Dns">
+                            Servidores
+                        </MudNavLink>
+                    </AuthorizeView>
                     @* Novidades — globais + de modpacks (Owner/Admin gerenciam conteúdo) *@
                     <AuthorizeView Roles="Owner,Admin" Context="news">
                         <MudNavLink Href="/admin/news" Match="NavLinkMatch.Prefix"

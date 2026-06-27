@@ -1,13 +1,34 @@
-﻿services:
+# TCMine-Server em Docker, com orquestração das instâncias de servidor Minecraft via
+# Docker-out-of-Docker (DooD): o container do servidor fala com o daemon do HOST (socket montado)
+# e cria containers-irmãos para cada instância Minecraft.
+#
+# Três pré-requisitos do DooD estão refletidos aqui:
+#   1. O socket do daemon do host é montado no container do servidor.
+#   2. tcmine-data é um bind-mount do host → o mesmo caminho do host é montado nos containers Minecraft.
+#   3. ServerInstances:DataHostRoot informa o caminho do host correspondente à raiz de conteúdo (/app),
+#      para os bind-mounts das instâncias apontarem para o host (e não para dentro deste container).
+services:
   tcmine-server:
     image: tcmine-server
     build:
       context: .
       dockerfile: TCMine-Server/Dockerfile
-
-  tcmine-server-1:
-    image: tcmine-server-1
-    build:
-      context: .
-      dockerfile: TCMine-Server/Dockerfile
-
+    # Root para conseguir acessar o socket do Docker (DooD). O socket já dá poder equivalente a root no
+    # host, então rodar como root aqui não amplia o risco — é o padrão para containers que orquestram Docker.
+    user: root
+    ports:
+      - "8080:8080"
+    environment:
+      # Raiz no host equivalente a /app (contentRoot). Como tcmine-data é montado de ./TCMine-Server/
+      # tcmine-data → /app/tcmine-data, o host correspondente a /app é ${PWD}/TCMine-Server. Esse valor
+      # PRECISA casar com o bind abaixo, senão os bind-mounts das instâncias apontam para um caminho vazio.
+      - ServerInstances__DataHostRoot=${PWD}/TCMine-Server
+      # Reusa ESTA imagem (release + JRE embutido) para rodar cada instância Minecraft. Sempre presente
+      # no host (é a que roda o próprio servidor), então o DooD não precisa baixar/construir outra.
+      - ServerInstances__Image=tcmine-server
+    volumes:
+      # 1. Socket do daemon do host — habilita criar/controlar os containers Minecraft (DooD).
+      #    Em Linux, o usuário do container precisa de acesso ao socket (grupo docker).
+      - /var/run/docker.sock:/var/run/docker.sock
+      # 2. Dados do servidor compartilhados com os containers Minecraft (mesmo caminho do host).
+      - ./TCMine-Server/tcmine-data:/app/tcmine-data

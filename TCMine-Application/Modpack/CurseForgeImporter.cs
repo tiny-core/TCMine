@@ -20,14 +20,16 @@ public abstract class CurseForgeImporter
     /// Importa assincronamente um modpack do CurseForge usando a API fornecida e o identificador do modpack.
     /// </summary>
     public static async Task<ImportedModpackDto?> ImportAsync(
-        long modpackId, ICurseForgeApi api, CancellationToken ct = default)
+        long modpackId, ICurseForgeApi api, IProgress<string>? progress = null, CancellationToken ct = default)
     {
         // 1) Arquivo mais recente do modpack (o .zip).
+        progress?.Report("Resolvendo o arquivo do modpack no CurseForge…");
         var packFile = await api.GetLatestFileAsync(modpackId, ct);
         var packUrl = ResolveDownloadUrl(packFile);
         if (packUrl is null) return null;
 
         // 2) Descarrega e lê o manifest.json + extrai os overrides.
+        progress?.Report("Baixando o pacote e lendo o manifesto…");
         using var buffer = new MemoryStream();
         await using (var net = await api.OpenStreamAsync(packUrl, ct))
         {
@@ -49,6 +51,7 @@ public abstract class CurseForgeImporter
         if (manifest is null) return null;
 
         // 3) Resolve arquivos e mods em lote.
+        progress?.Report($"Resolvendo {manifest.Files.Count} mods do manifesto…");
         var fileIds = manifest.Files.Select(f => f.FileId).ToList();
         var files = await api.GetFilesAsync(fileIds, ct);
         var modIds = manifest.Files.Select(f => f.ProjectId).Distinct().ToList();

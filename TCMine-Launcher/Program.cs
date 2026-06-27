@@ -25,5 +25,7 @@ internal sealed class Program
 #endif
             .WithInterFont()
             .LogToTrace()
-            .UseReactiveUI();
+            // ReactiveUI.Avalonia 12.x mudou a assinatura: UseReactiveUI agora exige um builder
+            // (configuração do ReactiveUI). Sem ajustes, passamos um builder vazio.
+            .UseReactiveUI(_ => { });
 }

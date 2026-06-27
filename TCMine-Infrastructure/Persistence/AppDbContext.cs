@@ -33,6 +33,9 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
     public DbSet<ServerSettingEntity> Settings => Set<ServerSettingEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<ServerInstanceEntity> ServerInstances => Set<ServerInstanceEntity>();
+
+    // Índice das instalações de loader/servidor compartilhadas (dedup de disco entre instâncias)
+    public DbSet<ServerRuntimeCacheEntity> ServerRuntimeCache => Set<ServerRuntimeCacheEntity>();
     public DbSet<OverrideHistoryEntry> OverrideHistory => Set<OverrideHistoryEntry>();
 
     protected override void OnModelCreating(ModelBuilder b)
@@ -139,6 +142,15 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
                 .WithMany()
                 .HasForeignKey(s => s.ModpackId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        b.Entity<ServerRuntimeCacheEntity>(e =>
+        {
+            e.HasKey(c => c.Id);
+            // Loader guardado como texto ("NeoForge"/"Forge"/…) — legível no banco
+            e.Property(c => c.Loader).HasConversion<string>().HasMaxLength(20);
+            // Uma instalação por tupla loader+versão+MC: a chave lógica do cache compartilhado
+            e.HasIndex(c => new { c.Loader, c.LoaderVersion, c.MinecraftVersion }).IsUnique();
         });
     }
 }

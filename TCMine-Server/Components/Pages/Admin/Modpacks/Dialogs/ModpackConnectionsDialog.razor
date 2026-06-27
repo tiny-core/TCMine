@@ -1,0 +1,20 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Server.Components.Pages.Admin.Modpacks
+
+@* Modal de conexões divulgadas (Fase 3): edita só as entradas MANUAIS (servidores externos). As
+   divulgadas automaticamente por instâncias gerenciadas não aparecem aqui — são geridas pela instância.
+   Reaproveita o ServersPanel; persiste ao confirmar. Ver code-behind. *@
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Servidores externos divulgados na lista multiplayer do launcher. As instâncias gerenciadas
+            com endereço público divulgam-se sozinhas (não aparecem aqui).
+        </MudText>
+        <ServersPanel Servers="_entries"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm">Salvar</MudButton>
+    </DialogActions>
+</MudDialog>

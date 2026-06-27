@@ -1,0 +1,21 @@
+<component name="ProjectRunConfigurationManager">
+  <!-- Roda o servidor SEM hot reload (dotnet run puro). Estável para operações longas (provisionar
+       servidor baixa MC + libraries por minutos) — o `dotnet watch` pode crashar no meio com um bug
+       do Hot Reload/Roslyn ("Cannot find the old value"). Use esta config quando for testar provisão.
+       Shell Script no terminal integrado, como a config de watch. -->
+  <configuration default="false" name="TCMine-Server (run)" type="ShConfigurationType">
+    <option name="SCRIPT_TEXT" value="dotnet run --launch-profile https" />
+    <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+    <option name="SCRIPT_PATH" value="" />
+    <option name="SCRIPT_OPTIONS" value="" />
+    <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+    <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$/TCMine-Server" />
+    <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+    <option name="INTERPRETER_PATH" value="powershell.exe" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="EXECUTE_IN_TERMINAL" value="true" />
+    <option name="EXECUTE_SCRIPT_FILE" value="false" />
+    <envs />
+    <method v="2" />
+  </configuration>
+</component>

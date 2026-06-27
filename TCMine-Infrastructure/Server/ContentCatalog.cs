@@ -79,6 +79,9 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
         var instances = await db.ServerInstances.CountAsync(ct);
         var runningInstances = await db.ServerInstances
             .CountAsync(s => s.Status == ServerInstanceStatus.Running, ct);
+        // Desatualizadas: provisionadas cujo modpack mudou desde então (precisam re-provisionar)
+        var staleInstances = await db.ServerInstances
+            .CountAsync(s => s.ProvisionedAt != null && s.Modpack!.UpdatedAt > s.ProvisionedAt, ct);
 
         // Releases publicadas + a mais recente (para o card de versão e o changelog rápido)
         var releases = await db.Releases.CountAsync(ct);
@@ -121,6 +124,7 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
             modpackNews,
             instances,
             runningInstances,
+            staleInstances,
             releases,
             latestRelease?.Version,
             latestRelease?.PublishedAt,
@@ -147,6 +151,7 @@ public sealed record DashboardData(
     int ModpackNews,
     int Instances,
     int RunningInstances,
+    int StaleInstances,
     int Releases,
     string? LatestReleaseVersion,
     DateTime? LatestReleaseAt,

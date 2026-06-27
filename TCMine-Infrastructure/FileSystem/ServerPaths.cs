@@ -39,6 +39,20 @@ public static class ServerPaths
         return Path.Combine(root, DataDir, "mods");
     }
 
+    // Raiz do cache de runtime de servidor: loader/server instalados uma vez e compartilhados
+    // entre instâncias (symlink/hardlink). Reduz drasticamente o disco com muitas instâncias.
+    public static string ServerCache(string root)
+    {
+        return Path.Combine(root, DataDir, "server-cache");
+    }
+
+    // Instalações de loader+MC já montadas, por slug (ex.: neoforge-21.1.77-mc1.21.1). O grande
+    // ganho de disco: o pesado libraries/ vive aqui uma vez; as instâncias só apontam para cá.
+    public static string ServerCacheInstalled(string root)
+    {
+        return Path.Combine(ServerCache(root), "installed");
+    }
+
     /// <summary>
     /// Cria todos os diretórios necessários para o servidor funcionar.
     /// Seguro chamar múltiplas vezes — não falha se a pasta já existir.
@@ -50,5 +64,6 @@ public static class ServerPaths
         Directory.CreateDirectory(Servers(root));
         Directory.CreateDirectory(Modpacks(root));
         Directory.CreateDirectory(Mods(root));
+        Directory.CreateDirectory(ServerCacheInstalled(root));
     }
 }

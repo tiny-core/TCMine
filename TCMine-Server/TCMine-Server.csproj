@@ -83,6 +83,7 @@
         <Folder Include="tcmine-data\modpacks\"/>
         <Folder Include="tcmine-data\mods\"/>
         <Folder Include="tcmine-data\secrets\"/>
+        <Folder Include="tcmine-data\server-cache\" />
         <Folder Include="tcmine-data\servers\"/>
         <Folder Include="tcmine-data\updates\"/>
     </ItemGroup>

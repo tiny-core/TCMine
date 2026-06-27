@@ -19,6 +19,7 @@ using TCMine_Infrastructure.CurseForge;
 using TCMine_Infrastructure.Launcher;
 using TCMine_Infrastructure.Minecraft;
 using TCMine_Infrastructure.Server;
+using TCMine_Infrastructure.ServerInstances;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -73,6 +74,29 @@ builder.Services.AddScoped<ModpackNewsService>();
 // Versões oficiais (Minecraft + loaders) para os seletores do editor. Singleton: só usa
 // IHttpClientFactory + cache em memória, sem estado por requisição.
 builder.Services.AddSingleton<MinecraftVersionService>();
+
+// ── Instâncias de servidor Minecraft ─────────────────────────────────────────────────────────────────────────────────
+// Estratégia de ligação de arquivos (symlink no Linux/Docker, cópia/hardlink no Windows dev),
+// decidida uma vez pelo ambiente/config. Singleton: sem estado, só comportamento.
+builder.Services.AddSingleton<ILinkStrategy>(LinkStrategyFactory.Create(builder.Configuration));
+builder.Services.AddSingleton<ServerConfigWriter>();
+// Ping de status (jogadores online) via Server List Ping. Singleton: sem estado, só I/O de rede.
+builder.Services.AddSingleton<MinecraftServerPinger>();
+// Ambiente Docker (client do daemon do host + tradução de path para os bind-mounts). Singleton:
+// o client é thread-safe e reusado entre operações.
+builder.Services.AddSingleton<DockerEnvironment>();
+// Runner Java em container efêmero (instalador do loader). Singleton: sem estado por requisição.
+builder.Services.AddSingleton<IServerJavaRunner, DockerServerJavaRunner>();
+// Ciclo de vida do container do servidor (start/stop/console/logs). Scoped: usa o AppDbContext.
+builder.Services.AddScoped<DockerMinecraftManager>();
+// Cache de instalações de loader (dedup de disco) e provisionamento do diretório da instância.
+// Scoped: usam o AppDbContext.
+builder.Services.AddScoped<ServerRuntimeInstaller>();
+builder.Services.AddScoped<ServerProvisioner>();
+// Fachada do painel admin: CRUD das instâncias + delegação de provisão/ciclo de vida. Scoped: AppDbContext.
+builder.Services.AddScoped<ServerInstanceService>();
+// Reconciliação periódica do status das instâncias com o daemon (detecta quedas de container).
+builder.Services.AddHostedService<ServerStatusReconciler>();
 
 // ── Usuários e autenticação por cookie ───────────────────────────────────────────────────────────────────────────────
 // Usuários vivem no banco; o login valida a senha (hash) e emite um cookie de autenticação.

@@ -8,6 +8,19 @@
 
 <DashboardHeader ServerVersion="@ServerVersion" EnvName="@EnvName" LauncherVersion="@LauncherVersion"/>
 
+@* Aviso agregado: instâncias provisionadas cujo modpack mudou e precisam re-provisionar *@
+@if (_data is { StaleInstances: > 0 })
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-2" Dense="true"
+              Icon="@Icons.Material.Filled.Sync">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
+            <span>@_data.StaleInstances instância(s) desatualizada(s) — o modpack mudou desde a última provisão.</span>
+            <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/admin/servers"
+                       EndIcon="@Icons.Material.Filled.ArrowForward">Ver servidores</MudButton>
+        </MudStack>
+    </MudAlert>
+}
+
 <DashboardKpis Data="@_data"/>
 
 <MudGrid Class="mt-2">

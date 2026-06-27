@@ -1,8 +1,10 @@
 @namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Server.Services
+@implements IDisposable
 
 @* Modal de feedback bloqueante durante o import de um modpack. Não tem botões nem permite
    fechar (sem backdrop click / sem ESC): segura o usuário até o editor fechar a modal por código
-   ao terminar o import. O texto é atualizável via parâmetro Message. *@
+   ao terminar o import. Reflete o progresso ao vivo via ProgressState (subscreve OnChange). *@
 
 <MudDialog>
     <DialogContent>
@@ -10,7 +12,7 @@
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large"/>
             <div style="text-align:center">
                 <MudText Typo="Typo.subtitle1">@Title</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">@Message</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@CurrentMessage</MudText>
             </div>
         </MudStack>
     </DialogContent>
@@ -18,5 +20,28 @@
 
 @code {
     [Parameter] public string Title { get; set; } = "Importando modpack…";
+
+    // Mensagem inicial (fallback quando não há estado observável)
     [Parameter] public string Message { get; set; } = "Baixando o manifesto e resolvendo os mods. Aguarde.";
+
+    // Estado observável opcional: quando fornecido, a mensagem acompanha as fases do import ao vivo
+    [Parameter] public ProgressState? State { get; set; }
+
+    // Mostra o estado ao vivo se houver; senão, a mensagem estática do parâmetro
+    private string CurrentMessage => State?.Message ?? Message;
+
+    protected override void OnInitialized()
+    {
+        if (State is not null) State.OnChange += OnStateChanged;
+    }
+
+    private void OnStateChanged()
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        if (State is not null) State.OnChange -= OnStateChanged;
+    }
 }

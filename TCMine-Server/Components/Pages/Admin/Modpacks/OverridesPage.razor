@@ -1,0 +1,22 @@
+@page "/admin/modpacks/{Id:guid}/overrides"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Server.Components.Pages.Admin.Modpacks.Panels
+
+@* Página dedicada de overrides do modpack (árvore + Monaco). Grava direto no disco (o painel é
+   self-contained), por isso não tem "Guardar" — é o conceito de página própria da Fase 3. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/admin/modpacks/{Id}")" Variant="Variant.Outlined"/>
+    <div>
+        <MudText Typo="Typo.h5">Overrides</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Configs e arquivos extras aplicados sobre o modpack. Alterações gravam direto.
+        </MudText>
+    </div>
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true" Class="pa-4">
+    <OverridesPanel ModpackId="Id"/>
+</MudPaper>
