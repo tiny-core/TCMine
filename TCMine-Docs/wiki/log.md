@@ -28,6 +28,26 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-27] ingest | Instâncias de servidor (Docker) + remodelagem da UX admin
+
+- **Fonte:** sessão de implementação; código vivo `TCMine-Infrastructure/ServerInstances/`,
+  `TCMine-Server/Components/Pages/Admin/` (Modpacks e Servers), `TCMine-Domain/Entities/`.
+- **Páginas afetadas:** [[decisions/server-instances-docker]] (nova), [[concepts/server-instance-lifecycle]] (nova),
+  [[concepts/modpack-server-hub-ux]] (nova), [[sources/2026-06-27-server-instances-e-ux]] (nova),
+  [[index]] (atualizado).
+- **Resumo:** recurso de **servidores Minecraft gerenciados** em containers Docker (DooD): cache de
+  loader compartilhado, provisionamento com symlinks de mods/libraries, console/logs, reconciliação de
+  status, ping de jogadores e trava de início. **Remodelagem da UX**: o editor de modpack em abas virou
+  um **hub** (overview) com páginas/modais; ligação modpack↔servidor (auto-divulgação no launcher) e
+  sincronização de "desatualizado" com "aplicar atualização" num clique. Monaco como padrão para editar
+  arquivos (incl. configs do servidor). Correções: timeout do client Docker, `Mount` no Windows, reuso
+  da imagem do release com JRE 25, resolução de dependências de mod, detecção de incompatibilidade.
+- **Pendências:** ping/auto-divulgação dependem de endereço alcançável (em DooD pode exigir
+  `host.docker.internal`); detecção de "boot pronto" do MC é aproximada (status vira Running ao subir o
+  container, não ao fim do load). Loaders além de NeoForge (Forge/Fabric/Quilt) ainda não implementados.
+
+---
+
 ## [2026-06-25] ingest | Página de novidades globais + seletor de modpack opcional
 
 - **Fonte:** pedido do usuário; código `Admin/News/News.razor(.cs)`, `ModpackNewsService.cs`, `Dialogs/NewsEditDialog.razor`, `AdminLayout.razor`.

@@ -1,0 +1,39 @@
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@using TCMine_Application.Contracts
+
+@* Seletor de versão de um mod do CurseForge. Recebe os arquivos (já buscados lazy pelo editor) e
+   devolve o escolhido ao clicar. Ver code-behind. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (Files.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhuma versão disponível.</MudText>
+        }
+        else
+        {
+            <MudStack Spacing="1" Style="max-height:55vh;overflow-y:auto">
+                @foreach (var f in Files)
+                {
+                    <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
+                               Color="@(f.Id == CurrentFileId ? Color.Primary : Color.Default)"
+                               OnClick="@(() => Pick(f))">
+                        <div style="text-align:left;width:100%">
+                            <MudText Typo="Typo.body2">
+                                @(f.DisplayName ?? f.FileName)
+                                @if (f.Id == CurrentFileId)
+                                {
+                                    <span style="opacity:.6"> · atual</span>
+                                }
+                            </MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@f.FileName</MudText>
+                        </div>
+                    </MudButton>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+    </DialogActions>
+</MudDialog>

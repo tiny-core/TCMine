@@ -49,7 +49,8 @@ public record CfFileRefDto(
     string FileName,
     string? DownloadUrl,
     string? DisplayName,
-    long? ServerPackFileId = null);
+    long? ServerPackFileId = null,
+    IReadOnlyList<long>? RequiredDependencyModIds = null);
 
 /// <summary>
 /// Representa uma referência a um mod no CurseForge, contendo informações como

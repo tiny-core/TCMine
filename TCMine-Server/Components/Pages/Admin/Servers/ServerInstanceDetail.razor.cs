@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
@@ -23,6 +24,7 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private IJSRuntime JS { get; set; } = null!;
 
     [Parameter] public Guid Id { get; set; }
 
@@ -34,6 +36,8 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     private string _command = string.Empty;
     private CancellationTokenSource? _streamCts;
     private string? _streamingContainerId; // container cujo stream está ativo (evita duplicar)
+    private bool _streamingFollow; // modo do stream ativo: follow (rodando) vs estático (parado/crash)
+    private bool _consoleScrollPending; // sinaliza ao OnAfterRender para descer o console à última linha
 
     // ── Status de jogadores (Server List Ping, enquanto rodando) ──────────────────────────────────
     private ServerPing? _ping;
@@ -41,11 +45,6 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 
     // Limite do buffer de log em memória (caracteres) — descarta o começo quando estoura
     private const int MaxLogChars = 100_000;
-
-    // ── Configurações ─────────────────────────────────────────────────────────────────────────────
-    private IReadOnlyList<string> _editableFiles = [];
-    private string? _selectedFile;
-    private string _fileContent = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -58,15 +57,18 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         SyncLogStream();
     }
 
+    // Mantém o console preso na última linha (auto-scroll) sempre que chega log novo
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_consoleScrollPending) return;
+        _consoleScrollPending = false;
+        try { await JS.InvokeVoidAsync("tcmineConsole.scrollToBottom"); }
+        catch { /* console não renderizado (outra aba) — ignora */ }
+    }
+
     private async Task LoadAsync()
     {
         _detail = await Service.GetDetailAsync(Id);
-        _editableFiles = Service.ListEditableFiles(Id);
-        if (_selectedFile is null && _editableFiles.Count > 0)
-        {
-            _selectedFile = _editableFiles[0];
-            await LoadFileAsync();
-        }
     }
 
     // ── Ciclo de vida ───────────────────────────────────────────────────────────────────────────────
@@ -76,7 +78,8 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         var applying = _detail is { Provisioned: true, IsStale: true };
         await RunAndReload(
             applying ? "Aplicando atualização…" : "Provisionando instância…",
-            () => Service.ProvisionAsync(Id, Busy.Progress()),
+            // Desatualizada: re-provisiona E reinicia (se estava rodando) num clique; senão, só provisiona
+            () => applying ? Service.ApplyUpdateAsync(Id, Busy.Progress()) : Service.ProvisionAsync(Id, Busy.Progress()),
             applying ? "Atualização aplicada." : "Instância provisionada.");
     }
 
@@ -124,25 +127,29 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 
     // ── Console: stream de logs ───────────────────────────────────────────────────────────────────────
 
-    // Liga o stream quando o servidor está em execução; desliga caso contrário (ou se o container mudou)
+    // Mostra os logs sempre que há container: ao vivo (follow) se rodando; estático (último log, ex.: o
+    // crash) se parado/crashou. Reinicia o stream se o container ou o modo (follow) mudou.
     private void SyncLogStream()
     {
-        var shouldStream = _detail is { Status: ServerInstanceStatus.Running, ContainerId: not null };
+        var containerId = _detail?.ContainerId;
+        var follow = _detail is { Status: ServerInstanceStatus.Running };
 
-        if (shouldStream && _streamingContainerId != _detail!.ContainerId)
+        if (containerId is not null)
         {
-            StopLogStream();
-            StartLogStream(_detail.ContainerId!);
+            if (_streamingContainerId != containerId || _streamingFollow != follow)
+            {
+                StopLogStream();
+                StartLogStream(containerId, follow);
+            }
         }
-        else if (!shouldStream && _streamingContainerId is not null)
+        else if (_streamingContainerId is not null)
         {
             StopLogStream();
         }
 
         // Ping de jogadores: liga enquanto Running, desliga caso contrário
-        var running = _detail is { Status: ServerInstanceStatus.Running };
-        if (running && _pingCts is null) StartPing();
-        else if (!running && _pingCts is not null) StopPing();
+        if (follow && _pingCts is null) StartPing();
+        else if (!follow && _pingCts is not null) StopPing();
     }
 
     // ── Ping de jogadores ───────────────────────────────────────────────────────────────────────────
@@ -179,13 +186,14 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         }
     }
 
-    private void StartLogStream(string containerId)
+    private void StartLogStream(string containerId, bool follow)
     {
         _logBuffer.Clear();
         _log = string.Empty;
         _streamingContainerId = containerId;
+        _streamingFollow = follow;
         _streamCts = new CancellationTokenSource();
-        _ = StreamLoopAsync(containerId, _streamCts.Token);
+        _ = StreamLoopAsync(containerId, follow, _streamCts.Token);
     }
 
     private void StopLogStream()
@@ -197,17 +205,18 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     }
 
     // Lê o stream de logs e atualiza a UI; encerra silenciosamente no cancelamento (saída da página/parada)
-    private async Task StreamLoopAsync(string containerId, CancellationToken ct)
+    private async Task StreamLoopAsync(string containerId, bool follow, CancellationToken ct)
     {
         try
         {
-            await foreach (var chunk in Service.StreamLogsAsync(containerId, follow: true, ct: ct))
+            await foreach (var chunk in Service.StreamLogsAsync(containerId, follow, ct: ct))
             {
                 _logBuffer.Append(chunk);
                 if (_logBuffer.Length > MaxLogChars)
                     _logBuffer.Remove(0, _logBuffer.Length - MaxLogChars);
 
                 _log = _logBuffer.ToString();
+                _consoleScrollPending = true; // desce para a última linha após o render
                 await InvokeAsync(StateHasChanged);
             }
         }
@@ -241,35 +250,6 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     private async Task OnCommandKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter") await SendCommandAsync();
-    }
-
-    // ── Configurações: edição de arquivos ─────────────────────────────────────────────────────────────
-
-    // Troca o arquivo selecionado e carrega o conteúdo (Value/ValueChanged explícito do MudSelect)
-    private async Task OnFileSelected(string file)
-    {
-        _selectedFile = file;
-        await LoadFileAsync();
-    }
-
-    private async Task LoadFileAsync()
-    {
-        if (string.IsNullOrEmpty(_selectedFile)) return;
-        _fileContent = await Service.ReadFileAsync(Id, _selectedFile) ?? string.Empty;
-    }
-
-    private async Task SaveFileAsync()
-    {
-        if (string.IsNullOrEmpty(_selectedFile)) return;
-        try
-        {
-            await Busy.RunAsync("Salvando arquivo…", () => Service.WriteFileAsync(Id, _selectedFile, _fileContent));
-            Snackbar.Add($"{_selectedFile} salvo.", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Falha ao salvar: {ex.Message}", Severity.Error);
-        }
     }
 
     // ── Apresentação do status ────────────────────────────────────────────────────────────────────────

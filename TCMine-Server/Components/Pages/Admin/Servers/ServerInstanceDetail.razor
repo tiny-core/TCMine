@@ -58,6 +58,11 @@ else
                            Disabled="@(!_detail.Provisioned)" OnClick="StartAsync">Iniciar
                 </MudButton>
             }
+            @if (_detail.Provisioned)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Tune" Variant="Variant.Outlined"
+                           Href="@($"/admin/servers/{Id}/config")">Configurações</MudButton>
+            }
             <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync" Variant="Variant.Outlined">
                 Editar
             </MudButton>
@@ -81,14 +86,29 @@ else
         </MudAlert>
     }
 
-    <MudTabs Elevation="0" Outlined="true" ApplyEffectsToContainer="true">
-        @* ── Console ao vivo ────────────────────────────────────────────────────────────────────── *@
-        <MudTabPanel Text="Console" Icon="@Icons.Material.Filled.Terminal">
-            @if (_detail.Status is ServerInstanceStatus.Running && _detail.ContainerId is not null)
+    @* ── Console ao vivo (log + comandos) ───────────────────────────────────────────────────────── *@
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4">
+        @if (_detail.ContainerId is not null)
+        {
+            @if (_detail.Status is ServerInstanceStatus.Crashed)
             {
-                <div class="server-console">
-                    <pre class="server-console__log">@_log</pre>
-                </div>
+                <MudAlert Severity="Severity.Error" Dense="true" Class="mb-3" Icon="@Icons.Material.Filled.Error">
+                    O servidor caiu. O log da última execução está abaixo — procure o erro perto do fim.
+                </MudAlert>
+            }
+            else if (_detail.Status is not ServerInstanceStatus.Running)
+            {
+                <MudAlert Severity="Severity.Info" Dense="true" Class="mb-3">
+                    Servidor parado — exibindo o log da última execução.
+                </MudAlert>
+            }
+
+            <div class="server-console">
+                <pre class="server-console__log">@_log</pre>
+            </div>
+
+            @if (_detail.Status is ServerInstanceStatus.Running)
+            {
                 <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Class="mt-3">
                     <MudTextField @bind-Value="_command" Placeholder="Comando do servidor (ex.: say olá, op nick)…"
                                   Variant="Variant.Outlined" Margin="Margin.Dense" Immediate="true"
@@ -98,46 +118,18 @@ else
                     </MudButton>
                 </MudStack>
             }
-            else
-            {
-                <MudStack AlignItems="AlignItems.Center" Class="py-12">
-                    <MudIcon Icon="@Icons.Material.Filled.Terminal" Color="Color.Secondary" Size="Size.Large"/>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary">
-                        O console fica disponível com o servidor em execução.
-                    </MudText>
-                </MudStack>
-            }
-        </MudTabPanel>
-
-        @* ── Configurações (arquivos editáveis) ─────────────────────────────────────────────────── *@
-        <MudTabPanel Text="Configurações" Icon="@Icons.Material.Filled.Tune">
-            @if (_editableFiles.Count == 0)
-            {
+        }
+        else
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="py-12">
+                <MudIcon Icon="@Icons.Material.Filled.Terminal" Color="Color.Secondary" Size="Size.Large"/>
                 <MudText Typo="Typo.body2" Color="Color.Secondary">
-                    Provisione a instância para gerar os arquivos de configuração editáveis.
+                    O console aparece após iniciar o servidor (e mantém o log da última execução para diagnóstico).
+                    As configurações ficam no botão <b>Configurações</b> acima.
                 </MudText>
-            }
-            else
-            {
-                <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center" Class="mb-3">
-                    <MudSelect T="string" Value="_selectedFile" ValueChanged="OnFileSelected" Label="Arquivo"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:320px">
-                        @foreach (var f in _editableFiles)
-                        {
-                            <MudSelectItem Value="f">@f</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudSpacer/>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save"
-                               Disabled="@string.IsNullOrEmpty(_selectedFile)" OnClick="SaveFileAsync">Salvar
-                    </MudButton>
-                </MudStack>
-                <MudTextField @bind-Value="_fileContent" Variant="Variant.Outlined" Lines="20"
-                              Class="server-config-editor" Immediate="true"
-                              HelperText="Mudanças só valem após reiniciar o servidor (ou recarregar a config in-game)."/>
-            }
-        </MudTabPanel>
-    </MudTabs>
+            </MudStack>
+        }
+    </MudPaper>
 }
 
 <style>

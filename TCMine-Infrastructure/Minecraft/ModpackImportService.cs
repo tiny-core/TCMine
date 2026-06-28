@@ -57,23 +57,47 @@ public sealed class ModpackImportService(
     /// e devolve uma entidade <b>destacada</b> pronta para entrar no rascunho. Não toca no banco —
     /// a gravação acontece só no Guardar.
     /// </summary>
-    public async Task<ModEntryEntity> AddFromSearchAsync(
+    public async Task<List<ModAddResultDto>> AddFromSearchAsync(
         long modId, string? gameVersion, ModLoader loader, ModSide side = ModSide.Both,
         CancellationToken ct = default)
     {
-        // Resolve o arquivo mais recente p/ a versão MC + loader; cai p/ o mais recente sem filtro.
-        // NÃO baixa o jar aqui — o download acontece no Guardar (com progresso na tela).
-        var files = await cf.GetModFilesAsync(modId, gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
-        if (files.Count == 0) files = await cf.GetModFilesAsync(modId, null, null, ct);
+        // Resolve o mod pedido e, em largura, as suas dependências OBRIGATÓRIAS (transitivo). O visited
+        // evita ciclos e duplicatas. O primeiro resultado é o mod pedido; os demais são dependências.
+        var results = new List<ModAddResultDto>();
+        var visited = new HashSet<long> { modId };
+        var queue = new Queue<long>();
+        queue.Enqueue(modId);
 
-        var file = files.FirstOrDefault()
-                   ?? throw new InvalidOperationException("Sem arquivos disponíveis para esse mod.");
+        while (queue.Count > 0)
+        {
+            var currentId = queue.Dequeue();
+            var resolved = await ResolveModAsync(currentId, gameVersion, loader, side, ct);
+            if (resolved is null) continue; // mod sem arquivo utilizável → ignora
 
-        // Nome e destino (classe) do mod num único lote
+            results.Add(resolved.Value.Result);
+            foreach (var depId in resolved.Value.RequiredDeps)
+                if (visited.Add(depId)) queue.Enqueue(depId); // só enfileira deps inéditas
+        }
+
+        return results;
+    }
+
+    // Resolve um mod num arquivo (filtrado por MC+loader, com fallback) + flag de compatibilidade + as
+    // dependências obrigatórias dele. Devolve null se o mod não tem nenhum arquivo utilizável.
+    private async Task<(ModAddResultDto Result, IReadOnlyList<long> RequiredDeps)?> ResolveModAsync(
+        long modId, string? gameVersion, ModLoader loader, ModSide side, CancellationToken ct)
+    {
+        var compatibleFiles = await cf.GetModFilesAsync(modId, gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
+        var compatible = compatibleFiles.Count > 0;
+
+        var files = compatible ? compatibleFiles : await cf.GetModFilesAsync(modId, null, null, ct);
+        var file = files.FirstOrDefault();
+        if (file is null) return null;
+
         var info = await cf.GetModsAsync([modId], ct);
         info.TryGetValue(modId, out var modRef);
 
-        return new ModEntryEntity
+        var entry = new ModEntryEntity
         {
             CurseModId = modId,
             FileId = file.Id,
@@ -84,6 +108,20 @@ public sealed class ModpackImportService(
             Target = modRef is null ? "mod" : CurseForgeImporter.ClassToTarget(modRef.ClassId),
             Side = side
         };
+
+        return (new ModAddResultDto(entry, compatible), file.RequiredDependencyModIds ?? []);
+    }
+
+    /// <summary>
+    /// Lista os arquivos (versões) de um mod do CurseForge para o seletor de versão — filtrados por MC +
+    /// loader; se não houver compatível, devolve todos (e o seletor mostra o aviso). Busca <b>lazy</b>:
+    /// chamada só quando o admin pede para trocar a versão, não na listagem.
+    /// </summary>
+    public async Task<List<CfFileRefDto>> ListModVersionsAsync(
+        long modId, string? gameVersion, ModLoader loader, CancellationToken ct = default)
+    {
+        var compatible = await cf.GetModFilesAsync(modId, gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
+        return compatible.Count > 0 ? compatible : await cf.GetModFilesAsync(modId, null, null, ct);
     }
 
     // ── Import de modpack inteiro (opcional; mescla no rascunho) ───────────────────────────────

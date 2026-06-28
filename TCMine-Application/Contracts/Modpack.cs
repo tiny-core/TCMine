@@ -85,6 +85,13 @@ public sealed record ModpackAdminRowDto(
 /// <summary>Progresso do download de jars durante o Guardar (mod atual / total + nome).</summary>
 public sealed record SaveProgressDto(int Current, int Total, string FileName);
 
+/// <summary>
+/// Resultado de adicionar um mod da busca: a entrada destacada + se há arquivo <b>compatível</b> com a
+/// versão MC + loader do modpack. <c>Compatible == false</c> = o CurseForge não tem arquivo para essa
+/// combinação (caiu no mais recente disponível) — avisar o admin para evitar crash do loader.
+/// </summary>
+public sealed record ModAddResultDto(TCMine_Domain.Entities.ModEntryEntity Entry, bool Compatible);
+
 /// <summary>Badge de um modpack onde um arquivo de mod está presente (id + nome).</summary>
 public sealed record ModpackBadgeDto(Guid Id, string Name);
 

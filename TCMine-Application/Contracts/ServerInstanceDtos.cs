@@ -13,7 +13,8 @@ public record ServerInstanceRowDto(
     int RamMb,
     bool Provisioned,
     bool AutoRestart,
-    bool IsStale);
+    bool IsStale,
+    string PublicAddress);
 
 /// <summary>Opção de modpack para o seletor ao criar/editar uma instância.</summary>
 public record ModpackOptionDto(Guid Id, string Name, string Loader, string Minecraft);

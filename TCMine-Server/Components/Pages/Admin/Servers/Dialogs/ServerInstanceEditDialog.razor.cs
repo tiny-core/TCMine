@@ -60,15 +60,15 @@ public partial class ServerInstanceEditDialog : ComponentBase
             _publicAddress = i.PublicAddress;
             _advertise = i.Advertise;
         }
-        else if (PresetModpackId is { } preset)
+        else
         {
-            // Criação a partir do hub: já amarrada ao modpack de origem
-            _modpackId = preset;
-        }
-        else if (_modpacks.Count > 0)
-        {
-            // Pré-seleciona o primeiro modpack na criação (campo obrigatório)
-            _modpackId = _modpacks[0].Id;
+            // Criação: pré-preenche o endereço público com o IP do host (os jogadores na rede usam esse)
+            _publicAddress = ServerInstanceService.GetLocalHostAddress();
+
+            if (PresetModpackId is { } preset)
+                _modpackId = preset; // a partir do hub: já amarrada ao modpack de origem
+            else if (_modpacks.Count > 0)
+                _modpackId = _modpacks[0].Id; // primeiro modpack (campo obrigatório)
         }
     }
 

@@ -63,7 +63,19 @@ else
                 <MudText Typo="Typo.body2">@context.Name</MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">@context.FileName</MudText>
             </MudTd>
-            <MudTd DataLabel="Versão">@context.Version</MudTd>
+            <MudTd DataLabel="Versão">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <span>@context.Version</span>
+                    @if (context.CurseModId > 0)
+                    {
+                        @* Lazy: só busca as versões do mod ao clicar (não martela o CF na listagem) *@
+                        <MudTooltip Text="Trocar versão">
+                            <MudIconButton Icon="@Icons.Material.Filled.SwapVert" Size="Size.Small"
+                                           Disabled="!CfConfigured" OnClick="@(() => OnChangeVersion.InvokeAsync(context))"/>
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
             <MudTd DataLabel="Destino">
                 <MudSelect T="string" @bind-Value="context.Target" Dense="true" Margin="Margin.Dense"
                            Variant="Variant.Outlined" Style="min-width:140px">

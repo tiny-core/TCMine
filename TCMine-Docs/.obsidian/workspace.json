@@ -74,7 +74,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 328.5
+    "width": 328.5,
+    "collapsed": true
   },
   "right": {
     "id": "40bbecf6f8451634",
@@ -176,8 +177,9 @@
       "bases:Criar nova base": false
     }
   },
-  "active": "3141130c781a6d49",
+  "active": "8947e91c445fbed4",
   "lastOpenFiles": [
+    "wiki/decisions/server-instances-docker.md",
     "Sem título.canvas",
     "wiki/entities/tcmine-server.md",
     "wiki/sources/2026-06-25-busy-overlay.md",

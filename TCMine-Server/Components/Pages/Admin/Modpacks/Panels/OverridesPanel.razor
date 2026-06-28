@@ -1,135 +1,14 @@
 @namespace TCMine_Server.Components.Pages.Admin.Modpacks.Panels
+@using TCMine_Server.Components.Shared
 
-@* Árvore de overrides (MudTreeView) + editor Monaco sempre montado. Ações nos botões do topo
-   e no cabeçalho do editor (a árvore só seleciona). Ver OverridesPanel.razor.cs. *@
+@* Overrides do modpack: usa o componente compartilhado FileTreeEditor (árvore + Monaco) com a fonte
+   de overrides; o histórico/desfazer (específico dos overrides) entra no slot ToolbarExtra. *@
 
-<MudStack Row="true" Spacing="2" Class="mb-4" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
-    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-               StartIcon="@Icons.Material.Filled.NoteAdd" OnClick="NewFileAsync">
-        Novo arquivo
-    </MudButton>
-    <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileAsync" MaximumFileCount="1">
-        <CustomContent Context="upload">
-            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile"
-                       OnClick="@(() => upload.OpenFilePickerAsync())">
-                Enviar arquivo
-            </MudButton>
-        </CustomContent>
-    </MudFileUpload>
-    <MudSpacer/>
-    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"
-               Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer
-    </MudButton>
-    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History"
-               OnClick="ShowHistoryAsync">Histórico
-    </MudButton>
-</MudStack>
-
-<MudGrid>
-    @* Árvore de arquivos *@
-    <MudItem xs="12" md="4">
-        @* A área da árvore também é alvo de drop: soltar no vazio move o item para a raiz *@
-        <MudPaper Outlined="true" Elevation="0" Style="max-height:60vh; overflow:auto; min-height:60vh;"
-                  @ondragover:preventDefault="true" @ondrop="OnDropOnRoot">
-            @if (_treeItems.Count == 0)
-            {
-                <MudStack AlignItems="AlignItems.Center" Class="py-8">
-                    <MudIcon Icon="@Icons.Material.Filled.FolderOff" Color="Color.Secondary"/>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">Sem overrides.</MudText>
-                </MudStack>
-            }
-            else
-            {
-                @* Lazy loading: a raiz vem de Items; os filhos de cada pasta são buscados pelo
-                   ServerData ao expandir. ExpandOnClick=false: o chevron (pasta) expande; clicar no
-                   nome seleciona (abre o arquivo no editor); o botão à direita move o item. *@
-                <MudTreeView @key="_treeKey" T="string" Items="_treeItems" ServerData="LoadTreeAsync"
-                             Hover="true" Dense="true"
-                             SelectedValue="_selected" SelectedValueChanged="OnSelectedChanged"
-                             SelectionMode="SelectionMode.SingleSelection" ExpandOnClick="false">
-                    <ItemTemplate Context="node">
-                        @* CanExpand controla o chevron no modo lazy: false em arquivos (sem filhos),
-                           true em pastas (o ServerData busca os filhos ao abrir). 'Expandable' não é
-                           parâmetro do MudTreeViewItem — usar CanExpand. *@
-                        <MudTreeViewItem T="string" Items="@node.Children" Value="@node.Value"
-                                         Icon="@node.Icon" CanExpand="@node.Expandable">
-                            <BodyContent>
-                                @* Arrastar move o item; soltar sobre uma pasta move pra dentro dela,
-                                   sobre um arquivo move pra pasta-pai, na área vazia move pra raiz. *@
-                                @* O destaque do alvo (.ovr-drop) é aplicado por js/overrides-dnd.js
-                                   no cliente — sem round-trip ao servidor (evita o delay). *@
-                                <div class="d-flex align-center ovr-node"
-                                     style="width:100%; gap:4px"
-                                     draggable="true"
-                                     @ondragstart="@(() => OnDragStart(node.Value))"
-                                     @ondragstart:stopPropagation="true"
-                                     @ondragend="OnDragEnd"
-                                     @ondragover:preventDefault="true"
-                                     @ondrop="@(() => OnDropOnNode(node.Value))"
-                                     @ondrop:preventDefault="true"
-                                     @ondrop:stopPropagation="true">
-                                    @* Clicar no nome abre o arquivo (pasta: só o chevron expande). O
-                                       BodyContent customizado não dispara a seleção do MudTreeView, então
-                                       tratamos o clique aqui. *@
-                                    <MudText Typo="Typo.body2" Class="flex-grow-1 text-truncate"
-                                             Style="cursor:pointer"
-                                             @onclick="@(() => OnNodeClick(node))">@node.Text</MudText>
-                                    @* stopPropagation: o clique no botão não deve selecionar/abrir o item *@
-                                    <span @onclick="@(() => { })" @onclick:stopPropagation="true">
-                                        <MudIconButton Icon="@Icons.Material.Filled.DriveFileMove"
-                                                       Size="Size.Small" title="Mover"
-                                                       OnClick="@(() => MoveNodeAsync(node.Value))"/>
-                                    </span>
-                                </div>
-                            </BodyContent>
-                        </MudTreeViewItem>
-                    </ItemTemplate>
-                </MudTreeView>
-            }
-        </MudPaper>
-    </MudItem>
-
-    @* Editor — sempre montado; overlay cobre quando nada selecionado ou binário *@
-    <MudItem xs="12" md="8">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
-            <MudText Typo="Typo.subtitle2">
-                @(_selected ?? "Nenhum arquivo selecionado") @(_dirty ? "•" : "")
-            </MudText>
-            <MudStack Row="true" Spacing="1">
-                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
-                           StartIcon="@Icons.Material.Filled.Delete" Disabled="_selected is null"
-                           OnClick="DeleteSelectedAsync">
-                    Apagar
-                </MudButton>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                           StartIcon="@Icons.Material.Filled.Save" Disabled="!_dirty || _binary"
-                           OnClick="SaveFileAsync">
-                    Salvar arquivo
-                </MudButton>
-            </MudStack>
-        </MudStack>
-
-        <div class="editor-host"
-             style="position:relative; height:56vh; border:1px solid var(--mud-palette-lines-default); border-radius:4px; overflow:hidden;">
-            <StandaloneCodeEditor @ref="_editor" ConstructionOptions="EditorOptions"
-                                  OnDidInit="OnEditorInitAsync"
-                                  OnDidChangeModelContent="@(_ => OnContentChanged())"/>
-
-            @if (_selected is null || _binary)
-            {
-                <div
-                    style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
-                    <MudStack AlignItems="AlignItems.Center">
-                        <MudIcon Icon="@(_binary ? Icons.Material.Filled.Lock : Icons.Material.Filled.Edit)"
-                                 Size="Size.Large" Color="Color.Secondary"/>
-                        <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @(_binary
-                                ? $"{_selected} é binário — não editável como texto."
-                                : "Selecione um arquivo na árvore para editar.")
-                        </MudText>
-                    </MudStack>
-                </div>
-            }
-        </div>
-    </MudItem>
-</MudGrid>
+<FileTreeEditor @ref="_tree" Source="_source" OnChanged="RefreshHistoryAsync">
+    <ToolbarExtra>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"
+                   Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer</MudButton>
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History"
+                   OnClick="ShowHistoryAsync">Histórico</MudButton>
+    </ToolbarExtra>
+</FileTreeEditor>

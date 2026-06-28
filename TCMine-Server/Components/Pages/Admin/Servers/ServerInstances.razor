@@ -78,27 +78,36 @@
                     </CellTemplate>
                 </TemplateColumn>
                 <PropertyColumn Property="x => x.Port" Title="Porta"/>
+                <TemplateColumn Title="Jogadores" Sortable="false">
+                    <CellTemplate>
+                        @if (context.Item.Status is ServerInstanceStatus.Running)
+                        {
+                            @if (_pings.TryGetValue(context.Item.Id, out var ping) && ping is not null)
+                            {
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small" Color="Color.Info"/>
+                                    <MudText Typo="Typo.body2">@ping.Online/@ping.Max</MudText>
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">…</MudText>
+                            }
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                        }
+                    </CellTemplate>
+                </TemplateColumn>
                 <TemplateColumn Title="RAM" Sortable="true" SortBy="x => x.RamMb">
                     <CellTemplate>@($"{context.Item.RamMb / 1024.0:0.#} GB")</CellTemplate>
                 </TemplateColumn>
                 <TemplateColumn Sortable="false" CellStyle="text-align:right">
                     <CellTemplate>
                         <MudStack Row="true" Spacing="1" Justify="Justify.FlexEnd">
-                            @* Provisionar / aplicar atualização: monta ou re-monta o diretório do modpack *@
-                            @if (context.Item.Provisioned && context.Item.IsStale)
-                            {
-                                <MudTooltip Text="Aplicar atualização (re-provisionar)">
-                                    <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt" Size="Size.Small"
-                                                   Color="Color.Warning" OnClick="@(() => ProvisionAsync(context.Item))"/>
-                                </MudTooltip>
-                            }
-                            else
-                            {
-                                <MudTooltip Text="Provisionar (montar diretório)">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Build" Size="Size.Small"
-                                                   OnClick="@(() => ProvisionAsync(context.Item))"/>
-                                </MudTooltip>
-                            }
+                            @* Parar (se rodando) e abrir o detalhe. Iniciar/provisionar/apagar vivem no
+                               detalhe e no hub do modpack — a lista é para visão geral. *@
                             @if (context.Item.Status is ServerInstanceStatus.Running or ServerInstanceStatus.Starting)
                             {
                                 <MudTooltip Text="Parar">
@@ -106,21 +115,9 @@
                                                    OnClick="@(() => StopAsync(context.Item))"/>
                                 </MudTooltip>
                             }
-                            else
-                            {
-                                <MudTooltip Text="Iniciar">
-                                    <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success"
-                                                   Disabled="@(!context.Item.Provisioned)"
-                                                   OnClick="@(() => StartAsync(context.Item))"/>
-                                </MudTooltip>
-                            }
                             <MudTooltip Text="Detalhe e console">
                                 <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Color="Color.Primary"
                                                OnClick="@(() => Open(context.Item))"/>
-                            </MudTooltip>
-                            <MudTooltip Text="Apagar">
-                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
-                                               OnClick="@(() => DeleteAsync(context.Item))"/>
                             </MudTooltip>
                         </MudStack>
                     </CellTemplate>

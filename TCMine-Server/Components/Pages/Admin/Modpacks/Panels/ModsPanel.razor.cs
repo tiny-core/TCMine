@@ -20,6 +20,9 @@ public partial class ModsPanel : ComponentBase
     [Parameter] public EventCallback<ModEntryEntity> OnRemove { get; set; }
     [Parameter] public EventCallback OnCheckUpdates { get; set; }
 
+    // Trocar a versão de um mod do CurseForge (busca lazy das versões, só ao clicar)
+    [Parameter] public EventCallback<ModEntryEntity> OnChangeVersion { get; set; }
+
     // Há mods do CurseForge? (só eles têm checagem de atualização)
     private bool HasCurseMods => Mods.Any(m => m.CurseModId > 0);
 

@@ -179,10 +179,17 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         };
     }
 
-    /// <summary>Mapeia o arquivo da API para o DTO neutro do Core.</summary>
+    /// <summary>Mapeia o arquivo da API para o DTO neutro do Core (incl. dependências obrigatórias).</summary>
     private static CfFileRefDto ToDto(CfFileResponse f)
     {
-        return new CfFileRefDto(f.Id, f.ModId, f.FileName, f.DownloadUrl, f.DisplayName, f.ServerPackFileId);
+        // relationType 3 = required dependency (1=embedded, 2=optional, 4=tool, 5=incompatible, 6=include)
+        var requiredDeps = (f.Dependencies ?? [])
+            .Where(d => d.RelationType == 3)
+            .Select(d => d.ModId)
+            .Distinct()
+            .ToList();
+
+        return new CfFileRefDto(f.Id, f.ModId, f.FileName, f.DownloadUrl, f.DisplayName, f.ServerPackFileId, requiredDeps);
     }
 
     /// <summary>
@@ -248,5 +255,13 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         [property: JsonPropertyName("downloadUrl")]
         string? DownloadUrl,
         [property: JsonPropertyName("serverPackFileId")]
-        long? ServerPackFileId);
+        long? ServerPackFileId,
+        [property: JsonPropertyName("dependencies")]
+        List<CfDependencyResponse>? Dependencies = null);
+
+    // Dependência declarada por um arquivo: outro mod + o tipo de relação (3 = obrigatória)
+    private sealed record CfDependencyResponse(
+        [property: JsonPropertyName("modId")] long ModId,
+        [property: JsonPropertyName("relationType")]
+        int RelationType);
 }

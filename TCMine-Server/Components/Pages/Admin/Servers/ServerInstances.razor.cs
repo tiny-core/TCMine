@@ -26,6 +26,9 @@ public partial class ServerInstances : ComponentBase
     private List<ServerInstanceRowDto>? _rows;
     private string _search = string.Empty;
 
+    // Jogadores online por instância (Server List Ping, feito em paralelo após o load — não bloqueia)
+    private readonly Dictionary<Guid, ServerPing?> _pings = new();
+
     protected override async Task OnInitializedAsync()
     {
         await Busy.RunAsync("Carregando servidores…", ReloadAsync);
@@ -34,6 +37,22 @@ public partial class ServerInstances : ComponentBase
     private async Task ReloadAsync()
     {
         _rows = await Service.ListAsync();
+        // Dispara os pings em background; a UI atualiza conforme cada um responde (não segura o load)
+        _ = PingRunningAsync();
+    }
+
+    // Faz o ping de cada instância em execução em paralelo, atualizando a coluna conforme respondem
+    private async Task PingRunningAsync()
+    {
+        var running = _rows?.Where(r => r.Status == ServerInstanceStatus.Running).ToList() ?? [];
+        if (running.Count == 0) return;
+
+        await Parallel.ForEachAsync(running, async (row, ct) =>
+        {
+            var ping = await Service.PingAsync(row.PublicAddress, row.Port, ct);
+            _pings[row.Id] = ping;
+            await InvokeAsync(StateHasChanged);
+        });
     }
 
     private bool Filter(ServerInstanceRowDto row)
@@ -64,43 +83,6 @@ public partial class ServerInstances : ComponentBase
         }
     }
 
-    private async Task ProvisionAsync(ServerInstanceRowDto row)
-    {
-        var applying = row.Provisioned && row.IsStale; // re-provisão de uma instância desatualizada
-        try
-        {
-            // O provisionamento pode baixar/instalar o loader na primeira vez — feedback bloqueante com
-            // progresso ao vivo (cada etapa reportada via IProgress aparece no overlay)
-            await Busy.RunAsync(applying ? "Aplicando atualização…" : "Provisionando instância…", async () =>
-            {
-                await Service.ProvisionAsync(row.Id, Busy.Progress());
-                await ReloadAsync();
-            });
-            Snackbar.Add(applying ? "Atualização aplicada." : "Instância provisionada.", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Falha ao provisionar: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task StartAsync(ServerInstanceRowDto row)
-    {
-        try
-        {
-            await Busy.RunAsync("Iniciando servidor…", async () =>
-            {
-                await Service.StartAsync(row.Id);
-                await ReloadAsync();
-            });
-            Snackbar.Add("Servidor iniciando.", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Falha ao iniciar: {ex.Message}", Severity.Error);
-        }
-    }
-
     private async Task StopAsync(ServerInstanceRowDto row)
     {
         try
@@ -115,31 +97,6 @@ public partial class ServerInstances : ComponentBase
         catch (Exception ex)
         {
             Snackbar.Add($"Falha ao parar: {ex.Message}", Severity.Error);
-        }
-    }
-
-    private async Task DeleteAsync(ServerInstanceRowDto row)
-    {
-        var ok = await DialogService.ShowMessageBoxAsync(
-            "Apagar instância",
-            $"Apagar \"{row.Name}\"? O container e o diretório provisionado serão removidos. " +
-            "Os caches compartilhados (mods, loader) permanecem.",
-            "Apagar", cancelText: "Cancelar");
-
-        if (ok != true) return;
-
-        try
-        {
-            await Busy.RunAsync("Apagando instância…", async () =>
-            {
-                await Service.DeleteAsync(row.Id);
-                await ReloadAsync();
-            });
-            Snackbar.Add("Instância apagada.", Severity.Success);
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add($"Falha ao apagar: {ex.Message}", Severity.Error);
         }
     }
 

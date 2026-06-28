@@ -133,10 +133,11 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   Novidades. Ver [[concepts/modpack-admin-editor]].
 - [x] **Feed global de novidades** (2026-06-25) — página `/admin/news` (globais + de
   modpacks) com seletor de modpack opcional no diálogo (vazio = global).
-- [ ] Orquestração de instâncias de servidor Minecraft (a partir do modpack).
+- [x] Painel de instâncias de servidor Minecraft (hub do modpack + tela do servidor com console/Monaco) —
+      ver [[concepts/modpack-server-hub-ux]] e [[concepts/server-instance-lifecycle]].
 
 ## Referências
 
 - Código: `TCMine-Server/Program.cs`, `Endpoints/`, `Authentication/`,
   `Components/`, `Theme/MudThemeFactory.cs`
-- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]
+- Fontes: [[sources/2026-06-23-leitura-codigo-vivo]], [[sources/2026-06-27-server-instances-e-ux]]

@@ -84,11 +84,12 @@ a registra no DI.
 
 ## Pontos em aberto
 
-- [ ] Detalhar `ModpackImportService`, `MinecraftAuthService` e a orquestração de
-      `ServerInstance` (ainda modelada, não operada).
+- [ ] Detalhar `ModpackImportService` e `MinecraftAuthService`.
+- [x] Orquestração de `ServerInstance`: **implementada** em `ServerInstances/` (Docker-out-of-Docker) —
+      ver [[concepts/server-instance-lifecycle]] e [[decisions/server-instances-docker]].
 
 ## Referências
 
 - Código: `TCMine-Infrastructure/Persistence/`, `CurseForge/`, `FileSystem/`,
-  `Identity/`, `Minecraft/`, `Server/`, `Launcher/`
-- Fonte: [[sources/2026-06-23-leitura-codigo-vivo]]
+  `Identity/`, `Minecraft/`, `Server/`, `ServerInstances/`, `Launcher/`
+- Fontes: [[sources/2026-06-23-leitura-codigo-vivo]], [[sources/2026-06-27-server-instances-e-ux]]

@@ -121,13 +121,27 @@ public partial class ModpackEditor : ComponentBase
             return;
 
         var added = 0;
-        await Busy.RunAsync("Adicionando mods…", async () =>
+        var deps = 0;
+        var incompatible = new List<string>();
+        await Busy.RunAsync("Adicionando mods e dependências…", async () =>
         {
             foreach (var modId in modIds)
                 try
                 {
-                    var entry = await Service.AddFromSearchAsync(modId, _draft.Minecraft, _draft.Loader);
-                    if (MergeMod(entry)) added++;
+                    // Resolve o mod + as dependências obrigatórias (transitivo)
+                    var results = await Service.AddFromSearchAsync(modId, _draft.Minecraft, _draft.Loader);
+                    for (var i = 0; i < results.Count; i++)
+                    {
+                        var r = results[i];
+                        if (MergeMod(r.Entry))
+                        {
+                            added++;
+                            if (i > 0) deps++; // i>0 = dependência puxada junto
+                        }
+
+                        // Sem arquivo para esta versão MC + loader → marca para avisar
+                        if (!r.Compatible) incompatible.Add(r.Entry.Name);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -135,7 +149,17 @@ public partial class ModpackEditor : ComponentBase
                 }
         });
 
-        if (added > 0) Snackbar.Add($"{added} mod(s) adicionado(s).", Severity.Success);
+        if (added > 0)
+            Snackbar.Add(
+                deps > 0 ? $"{added} mod(s) adicionado(s) (incluindo {deps} dependência(s))." : $"{added} mod(s) adicionado(s).",
+                Severity.Success);
+
+        // Avisa sobre os incompatíveis: o CF não tinha arquivo para MC {versão} + {loader}
+        if (incompatible.Count > 0)
+            Snackbar.Add(
+                $"Sem versão compatível com MC {_draft.Minecraft} · {ModLoaders.DisplayName(_draft.Loader)} para: " +
+                $"{string.Join(", ", incompatible)}. Foi adicionada a versão mais recente — pode não carregar.",
+                Severity.Warning);
     }
 
     private async Task ImportModpackAsync()
@@ -332,6 +356,44 @@ public partial class ModpackEditor : ComponentBase
     private void RemoveMod(ModEntryEntity mod)
     {
         _mods.Remove(mod);
+    }
+
+    // Trocar a versão de um mod do CurseForge: busca as versões (lazy, só agora), abre o seletor e
+    // aplica no rascunho — zera o hash para o Guardar re-baixar o jar novo.
+    private async Task ChangeVersionAsync(ModEntryEntity mod)
+    {
+        if (mod.CurseModId <= 0) return;
+
+        List<CfFileRefDto> versions = [];
+        await Busy.RunAsync("Buscando versões…", async () =>
+        {
+            versions = await Service.ListModVersionsAsync(mod.CurseModId, _draft.Minecraft, _draft.Loader);
+        });
+
+        if (versions.Count == 0)
+        {
+            Snackbar.Add("Nenhuma versão disponível para este mod.", Severity.Info);
+            return;
+        }
+
+        var parameters = new DialogParameters<ModVersionPickerDialog>
+        {
+            { x => x.Files, versions },
+            { x => x.CurrentFileId, mod.FileId }
+        };
+        var dialog = await DialogService.ShowAsync<ModVersionPickerDialog>($"Versão de {mod.Name}", parameters, WideDialog());
+        var result = await dialog.Result;
+        if (result is null || result.Canceled || result.Data is not CfFileRefDto chosen) return;
+        if (chosen.Id == mod.FileId) return; // mesma versão
+
+        mod.FileId = chosen.Id;
+        mod.Version = chosen.DisplayName ?? chosen.FileName;
+        mod.FileName = chosen.FileName;
+        mod.DownloadUrl = chosen.DownloadUrl ?? string.Empty;
+        mod.Sha1 = null; // força o re-download no Guardar
+        mod.FileLength = 0;
+
+        Snackbar.Add($"Versão de \"{mod.Name}\" trocada. Guarde para baixar.", Severity.Success);
     }
 
     // ── Guardar ────────────────────────────────────────────────────────────────────────────────

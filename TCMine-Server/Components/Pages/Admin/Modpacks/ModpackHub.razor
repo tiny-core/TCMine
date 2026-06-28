@@ -142,37 +142,15 @@ else
                                     </MudStack>
                                 </div>
                                 <MudStack Row="true" Spacing="1">
-                                    @if (inst.IsStale)
-                                    {
-                                        <MudTooltip Text="Aplicar atualização (re-provisionar)">
-                                            <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt" Size="Size.Small"
-                                                           Color="Color.Warning" OnClick="@(() => ProvisionAsync(inst))"/>
-                                        </MudTooltip>
-                                    }
-                                    else
-                                    {
-                                        <MudTooltip Text="Provisionar">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Build" Size="Size.Small"
-                                                           OnClick="@(() => ProvisionAsync(inst))"/>
-                                        </MudTooltip>
-                                    }
-                                    @if (inst.Status is ServerInstanceStatus.Running or ServerInstanceStatus.Starting)
-                                    {
-                                        <MudTooltip Text="Parar">
-                                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small" Color="Color.Warning"
-                                                           OnClick="@(() => StopAsync(inst))"/>
-                                        </MudTooltip>
-                                    }
-                                    else
-                                    {
-                                        <MudTooltip Text="Iniciar">
-                                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Size="Size.Small" Color="Color.Success"
-                                                           Disabled="@(!inst.Provisioned)" OnClick="@(() => StartAsync(inst))"/>
-                                        </MudTooltip>
-                                    }
+                                    @* Iniciar/provisionar/aplicar atualização vivem na tela do próprio
+                                       servidor; aqui só abrir o detalhe e apagar. *@
                                     <MudTooltip Text="Detalhe e console">
                                         <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Color="Color.Primary"
                                                        OnClick="@(() => OpenInstance(inst))"/>
+                                    </MudTooltip>
+                                    <MudTooltip Text="Apagar servidor">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                       OnClick="@(() => DeleteInstanceAsync(inst))"/>
                                     </MudTooltip>
                                 </MudStack>
                             </MudStack>

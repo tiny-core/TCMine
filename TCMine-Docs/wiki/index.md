@@ -44,6 +44,8 @@ correspondente, com um resumo de uma linha.
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
 - [[concepts/player-config-sync]] — sync de configs por `(uuid, modpackId)` com token Minecraft (player-config, sync)
 - [[concepts/async-feedback-overlay]] — modal não-fechável (`BusyService`/`BusyOverlay`) em toda operação async do painel (blazor, ux, feedback)
+- [[concepts/server-instance-lifecycle]] — provisionar (cache de loader) → rodar em container → reconciliar status → medir presença (server-instance, docker)
+- [[concepts/modpack-server-hub-ux]] — hub do modpack + páginas/modais no lugar de abas; ligação modpack↔servidor e sync de desatualização (admin, ux)
 
 ## Decisões (`wiki/decisions/`)
 
@@ -53,6 +55,7 @@ correspondente, com um resumo de uma linha.
 - [[decisions/central-package-management]] — uma versão por pacote NuGet em toda a solução (build, nuget)
 - [[decisions/mods-many-to-many]] — mods em N:N (`ModFile` + `ModpackMod`) em vez de FK 1:N (ef-core, modpack)
 - [[decisions/curseforge-update-tracking]] — origem CF (1:1) + checagem econômica de atualizações de modpack/mods (curseforge, atualizacoes)
+- [[decisions/server-instances-docker]] — cada servidor Minecraft num container dedicado (Docker-out-of-Docker), TCMine no controle total (server-instance, docker)
 
 ## Fontes / Resumos (`wiki/sources/`)
 
@@ -63,6 +66,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-25-busy-overlay]] — overlay bloqueante de feedback async no painel (code, blazor, ux)
 - [[sources/2026-06-25-mods-many-to-many]] — normalização de mods em N:N (code, ef-core, modpack)
 - [[sources/2026-06-25-curseforge-update-tracking]] — origem CF + checagem de atualizações (code, curseforge)
+- [[sources/2026-06-27-server-instances-e-ux]] — instâncias de servidor (Docker) + remodelagem da UX admin (code, server-instance, docker, ux)
 
 ## Sínteses e páginas derivadas
 

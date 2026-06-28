@@ -146,44 +146,34 @@ public partial class ModpackHub : ComponentBase
         }
     }
 
-    // Provisiona / aplica atualização (mesma operação: re-monta o diretório a partir do modpack atual)
-    private async Task ProvisionAsync(ServerInstanceRowDto row)
+    private void OpenInstance(ServerInstanceRowDto row)
     {
-        await RunInstance(row.IsStale ? "Aplicando atualização…" : "Provisionando…",
-            () => Servers.ProvisionAsync(row.Id, Busy.Progress()),
-            row.IsStale ? "Atualização aplicada." : "Instância provisionada.");
+        Nav.NavigateTo($"/admin/servers/{row.Id}");
     }
 
-    private Task StartAsync(ServerInstanceRowDto row)
+    // Apagar a instância — exclusivo da edição do modpack (hub). Remove container + diretório.
+    private async Task DeleteInstanceAsync(ServerInstanceRowDto row)
     {
-        return RunInstance("Iniciando servidor…", () => Servers.StartAsync(row.Id), "Servidor iniciando.");
-    }
+        var ok = await DialogService.ShowMessageBoxAsync(
+            "Apagar servidor",
+            $"Apagar \"{row.Name}\"? O container e o diretório provisionado serão removidos. " +
+            "Os caches compartilhados (mods, loader) permanecem.",
+            "Apagar", cancelText: "Cancelar");
+        if (ok != true) return;
 
-    private Task StopAsync(ServerInstanceRowDto row)
-    {
-        return RunInstance("Parando servidor…", () => Servers.StopAsync(row.Id), "Servidor parado.");
-    }
-
-    private async Task RunInstance(string message, Func<Task> operation, string success)
-    {
         try
         {
-            await Busy.RunAsync(message, async () =>
+            await Busy.RunAsync("Apagando servidor…", async () =>
             {
-                await operation();
+                await Servers.DeleteAsync(row.Id);
                 await ReloadInstancesAsync();
             });
-            Snackbar.Add(success, Severity.Success);
+            Snackbar.Add("Servidor apagado.", Severity.Success);
         }
         catch (Exception ex)
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
-    }
-
-    private void OpenInstance(ServerInstanceRowDto row)
-    {
-        Nav.NavigateTo($"/admin/servers/{row.Id}");
     }
 
     private static DialogOptions Wide()

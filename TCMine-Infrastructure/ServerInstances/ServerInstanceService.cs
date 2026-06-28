@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using TCMine_Application.Contracts;
@@ -25,11 +27,18 @@ public sealed class ServerInstanceService(
 {
     private readonly string _root = env.ContentRootPath;
 
-    // Arquivos da instância que o painel pode editar como texto (safelist contra path traversal)
-    private static readonly HashSet<string> EditableFiles = new(StringComparer.OrdinalIgnoreCase)
+    // Extensões consideradas texto editável na árvore de config da instância
+    private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        "server.properties", "whitelist.json", "ops.json", "banned-players.json",
-        "banned-ips.json", "user_jvm_args.txt"
+        ".txt", ".json", ".json5", ".jsonc", ".toml", ".cfg", ".conf", ".config", ".properties",
+        ".yaml", ".yml", ".snbt", ".nbt", ".ini", ".lang", ".md", ".mcmeta", ".js", ".zs", ".xml", ".csv",
+        ".sh", ".bat", ".log"
+    };
+
+    // Pastas ocultas na RAIZ da árvore: pesadas/irrelevantes para editar config (jars, mundo, logs)
+    private static readonly HashSet<string> HiddenRootFolders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "libraries", "mods", "world", "logs", ".tcmine"
     };
 
     // ── Listagem / leitura ──────────────────────────────────────────────────────────────────────────
@@ -40,7 +49,8 @@ public sealed class ServerInstanceService(
         RowProjection = i => new ServerInstanceRowDto(
             i.Id, i.Name, i.ModpackId, i.Modpack!.Name, i.Status, i.Port, i.RamMb,
             i.ProvisionedAt != null, i.AutoRestart,
-            i.ProvisionedAt != null && i.Modpack.UpdatedAt > i.ProvisionedAt);
+            i.ProvisionedAt != null && i.Modpack.UpdatedAt > i.ProvisionedAt,
+            i.PublicAddress);
 
     /// <summary>Linhas da tabela de instâncias (ordenadas por nome).</summary>
     public async Task<List<ServerInstanceRowDto>> ListAsync(CancellationToken ct = default)
@@ -141,9 +151,30 @@ public sealed class ServerInstanceService(
 
     // ── Operações pesadas (delegadas) ────────────────────────────────────────────────────────────────
 
-    public Task ProvisionAsync(Guid id, IProgress<string>? progress = null, CancellationToken ct = default)
+    public async Task ProvisionAsync(Guid id, IProgress<string>? progress = null, CancellationToken ct = default)
     {
-        return provisioner.ProvisionAsync(id, progress, ct);
+        await provisioner.ProvisionAsync(id, progress, ct);
+
+        // Re-provisão muda loader/mods/libraries — o container existente foi criado com o comando antigo
+        // (launch args do loader anterior). Remove-o para o próximo start recriar com o estado novo.
+        try { await docker.RemoveContainerAsync(id, ct); }
+        catch { /* sem container / daemon offline — o próximo start cria do zero mesmo */ }
+    }
+
+    /// <summary>
+    /// Aplica a atualização do modpack numa instância já provisionada: re-provisiona (re-monta loader/
+    /// mods/configs e descarta o container antigo) e, se o servidor <b>estava rodando</b>, sobe de novo
+    /// com o estado novo — tudo num clique.
+    /// </summary>
+    public async Task ApplyUpdateAsync(Guid id, IProgress<string>? progress = null, CancellationToken ct = default)
+    {
+        var wasRunning = await db.ServerInstances.AsNoTracking()
+            .Where(i => i.Id == id)
+            .Select(i => i.Status)
+            .FirstOrDefaultAsync(ct) == ServerInstanceStatus.Running;
+
+        await ProvisionAsync(id, progress, ct);
+        if (wasRunning) await StartAsync(id, ct); // recria o container e sobe com o loader/mods novos
     }
 
     public Task StartAsync(Guid id, CancellationToken ct = default)
@@ -190,42 +221,105 @@ public sealed class ServerInstanceService(
         return pinger.PingAsync(target, port, ct);
     }
 
-    // ── Edição de arquivos de config da instância ─────────────────────────────────────────────────────
-
-    /// <summary>Arquivos de config editáveis presentes no diretório da instância (subconjunto da safelist).</summary>
-    public IReadOnlyList<string> ListEditableFiles(Guid id)
+    /// <summary>
+    /// IP local de saída do host (o que os jogadores na mesma rede usam) — para pré-preencher o endereço
+    /// público ao criar uma instância. Truque: um socket UDP "conecta" a um IP público (sem enviar nada)
+    /// e o SO escolhe a interface de saída. Devolve <c>""</c> se não conseguir descobrir.
+    /// </summary>
+    public static string GetLocalHostAddress()
     {
-        var dir = Path.Combine(ServerPaths.Servers(_root), id.ToString());
-        if (!Directory.Exists(dir)) return [];
+        try
+        {
+            using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.Connect("8.8.8.8", 65530); // não envia pacotes; só resolve a interface de saída
+            return (socket.LocalEndPoint as IPEndPoint)?.Address.ToString() ?? string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
 
-        return EditableFiles
-            .Where(name => File.Exists(Path.Combine(dir, name)))
+    // ── Árvore de config da instância (editor de arquivos) ──────────────────────────────────────────────
+
+    /// <summary>É um arquivo de texto editável? (pela extensão).</summary>
+    public bool IsConfigText(string path)
+    {
+        return TextExtensions.Contains(Path.GetExtension(path));
+    }
+
+    /// <summary>
+    /// Filhos diretos de uma pasta do diretório da instância (lazy, para a árvore). Pastas primeiro,
+    /// depois arquivos. Na raiz, oculta pastas pesadas/irrelevantes (<see cref="HiddenRootFolders"/>).
+    /// </summary>
+    public IReadOnlyList<OverrideNodeDto> ListConfigChildren(Guid id, string folder)
+    {
+        var dir = string.IsNullOrEmpty(folder) ? InstanceDir(id) : SafeConfigPath(id, folder);
+        if (dir is null || !Directory.Exists(dir)) return [];
+
+        var prefix = string.IsNullOrEmpty(folder) ? "" : folder.TrimEnd('/') + "/";
+        var atRoot = string.IsNullOrEmpty(folder);
+
+        var folders = Directory.EnumerateDirectories(dir)
+            .Select(d => Path.GetFileName(d)!)
+            .Where(name => !atRoot || !HiddenRootFolders.Contains(name))
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-            .ToList();
+            .Select(name => new OverrideNodeDto(prefix + name, name, true));
+
+        var files = Directory.EnumerateFiles(dir)
+            .Select(f => Path.GetFileName(f))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .Select(name => new OverrideNodeDto(prefix + name, name, false));
+
+        return folders.Concat(files).ToList();
     }
 
-    /// <summary>Lê um arquivo de config editável (null se fora da safelist ou inexistente).</summary>
-    public async Task<string?> ReadFileAsync(Guid id, string fileName, CancellationToken ct = default)
+    /// <summary>Lê um arquivo de config (null se fora do diretório da instância ou inexistente).</summary>
+    public async Task<string?> ReadConfigAsync(Guid id, string path, CancellationToken ct = default)
     {
-        var path = SafeFile(id, fileName);
-        if (path is null || !File.Exists(path)) return null;
-        return await File.ReadAllTextAsync(path, ct);
+        var full = SafeConfigPath(id, path);
+        if (full is null || !File.Exists(full)) return null;
+        return await File.ReadAllTextAsync(full, ct);
     }
 
-    /// <summary>Grava um arquivo de config editável. Recusa nomes fora da safelist.</summary>
-    public async Task WriteFileAsync(Guid id, string fileName, string content, CancellationToken ct = default)
+    /// <summary>Grava um arquivo de config de texto (cria os diretórios pais). Recusa caminho inválido/binário.</summary>
+    public async Task WriteConfigAsync(Guid id, string path, string content, CancellationToken ct = default)
     {
-        var path = SafeFile(id, fileName)
-                   ?? throw new InvalidOperationException("Arquivo não editável.");
-        await File.WriteAllTextAsync(path, content, ct);
+        var full = SafeConfigPath(id, path) ?? throw new InvalidOperationException("Caminho inválido.");
+        if (!IsConfigText(path)) throw new InvalidOperationException("Arquivo não editável como texto.");
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        await File.WriteAllTextAsync(full, content, ct);
     }
 
-    // Resolve o caminho de um arquivo editável garantindo que está na safelist e dentro do dir da instância
-    private string? SafeFile(Guid id, string fileName)
+    /// <summary>Cria um arquivo de config novo (vazio). Lança se já existir.</summary>
+    public async Task CreateConfigAsync(Guid id, string path, CancellationToken ct = default)
     {
-        var name = Path.GetFileName(fileName); // neutraliza qualquer caminho embutido
-        if (!EditableFiles.Contains(name)) return null;
-        return Path.Combine(ServerPaths.Servers(_root), id.ToString(), name);
+        var full = SafeConfigPath(id, path) ?? throw new InvalidOperationException("Caminho inválido.");
+        if (File.Exists(full)) throw new InvalidOperationException("Já existe um arquivo nesse caminho.");
+        Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+        await File.WriteAllTextAsync(full, string.Empty, ct);
+    }
+
+    /// <summary>Apaga um arquivo de config (no-op se não existir).</summary>
+    public Task DeleteConfigAsync(Guid id, string path, CancellationToken ct = default)
+    {
+        var full = SafeConfigPath(id, path);
+        if (full is not null && File.Exists(full)) File.Delete(full);
+        return Task.CompletedTask;
+    }
+
+    private string InstanceDir(Guid id)
+    {
+        return Path.Combine(ServerPaths.Servers(_root), id.ToString());
+    }
+
+    // Resolve um caminho relativo garantindo que fica DENTRO do diretório da instância (anti path-traversal)
+    private string? SafeConfigPath(Guid id, string relativePath)
+    {
+        var baseDir = Path.GetFullPath(InstanceDir(id));
+        var full = Path.GetFullPath(Path.Combine(baseDir, relativePath));
+        var baseWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar) ? baseDir : baseDir + Path.DirectorySeparatorChar;
+        return full.StartsWith(baseWithSep, StringComparison.Ordinal) ? full : null;
     }
 
     // ── Auto-divulgação (instância → entrada do launcher) ─────────────────────────────────────────────

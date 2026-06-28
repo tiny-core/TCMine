@@ -1,0 +1,25 @@
+@page "/admin/servers/{Id:guid}/config"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin,Operator")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Server.Components.Shared
+
+@* Configurações da instância como árvore de arquivos + Monaco (mesmo componente dos overrides). *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/admin/servers/{Id}")" Variant="Variant.Outlined"/>
+    <div>
+        <MudText Typo="Typo.h5">Configurações do servidor</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Edite os arquivos do servidor (server.properties, whitelist, configs dos mods…).
+            Mudanças valem ao reiniciar.
+        </MudText>
+    </div>
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true" Class="pa-4">
+    @if (_source is not null)
+    {
+        <FileTreeEditor Source="_source" @key="Id"/>
+    }
+</MudPaper>
