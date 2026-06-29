@@ -69,6 +69,42 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-29] decisao | Paleta dark do ColorTokens vira fria/azulada
+
+- **Fonte:** preferência do usuário (achou a combinação do launcher v1 mais bonita); código
+  `TCMine-Design/ColorTokens.cs` (`Dark.Background`/`Dark.Text`).
+- **Páginas afetadas:** [[concepts/design-tokens]], [[entities/tcmine-design]] (impacto), [[index]].
+- **Resumo:** os **neutros do tema dark** do `ColorTokens` mudaram de **quente** (preto-amarronzado:
+  `Page #0D0B09`, `Border #3D362F`, `Text #F5F1ED`) para **frio/azulado** (`Page #0B0B14`,
+  `Border #242438`, `Text #E8E8F0`/`#94A3B8`), reproduzindo a paleta do backup. O **laranja da marca**
+  (`Primary`/`Accent` `#F97316`) ficou intacto. Decisão de **alcance total**: como o launcher
+  (`AvaloniaTheme`) e o admin (`MudThemeFactory`) derivam do `ColorTokens`, **ambos** ficam azulados —
+  mantém a fonte única de cor. Compila 0/0.
+- **Pendências:** validar o admin (MudBlazor) com os neutros novos; tema `Light` não foi tocado.
+
+---
+
+## [2026-06-29] ingest | Launcher: shell da UI igual ao backup (chrome/sidebar/status)
+
+- **Fonte:** pedido do usuário ("interface igual ao backup"); referência `P:\TCMine-Launcher-bk`
+  (Views/Windows/MainWindow, Controls/{WindowChrome,TitleBar}, Themes/{Icons,WindowChrome,Styles}).
+  Novos arquivos: `TCMine-Launcher/Views/{WindowChrome.cs,TitleBar.axaml(.cs),PlaceholderPageView.axaml(.cs)}`,
+  `Themes/{Icons,WindowChrome}.axaml` + `Themes/Styles/{Buttons,Cards,Text,Controls}.axaml`,
+  `Converters/IconKeyConverter.cs`, `ViewModels/PlaceholderPageViewModel.cs`; reescritos `MainWindow.axaml`,
+  `LoginView.axaml`, `ModpacksPageView.axaml`, `MainWindowViewModel.cs`, `App.axaml`, `Theme/AvaloniaTheme.cs`.
+- **Páginas afetadas:** [[entities/tcmine-launcher]] (shell replicado), [[concepts/design-tokens]].
+- **Resumo:** replicado o **shell** do launcher v1 — janela borderless (`WindowChrome` arredondado +
+  `TitleBar` com arrasto/min/fechar), **sidebar** de navegação por ícones com estado ativo, página com
+  `TransitioningContentControl` (CrossFade) e **barra de estado** (ponto de ligação ao servidor + versão).
+  O login (MSAL) passou a viver no `MainWindowViewModel` (a `LoginView` liga-se a ele, como no backup);
+  páginas ainda sem feature usam um `PlaceholderPageViewModel` único. **Cor**: o `AvaloniaTheme` passou a
+  emitir os aliases semânticos do backup (`BgSidebar`, `Accent`, `Danger`, …) **a partir do `ColorTokens`**
+  — nenhum hex literal; tudo via `{DynamicResource}`. Compila 0/0.
+- **Pendências:** validação visual em execução (launcher estava rodando build antigo durante a edição);
+  as páginas de Jogar/Instâncias/Novidades/Definições são placeholders até as features existirem.
+
+---
+
 ## [2026-06-29] ingest | Launcher: tema ColorTokens + URL injetada no build (refino)
 
 - **Fonte:** feedback do usuário; código `TCMine-Launcher/Theme/AvaloniaTheme.cs` (restaurado),

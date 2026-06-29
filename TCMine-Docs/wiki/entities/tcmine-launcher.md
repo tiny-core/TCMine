@@ -83,10 +83,14 @@ modpacks publicados pelo servidor. Install/launch do jogo ainda não implementad
 - [x] Catálogo de modpacks (lista) (2026-06-29).
 - [x] Tema `ColorTokens`/`AvaloniaTheme` re-introduzido + estilos no design do backup (2026-06-29).
 - [x] URL do servidor injetada no build (`AppConfig`/`TcmineServerUrl`), não hardcoded (2026-06-29).
-- [ ] **Replicar a interface do backup** (window chrome custom, sidebar de navegação, layouts das
-  páginas e controles) — mesmo visual, porém com as cores do `ColorTokens` (não os hexes do backup).
-  Pedido explícito do usuário. Páginas de features ainda não implementadas (instâncias/launch/news/mods)
-  entram conforme as features.
+- [~] **Replicar a interface do backup** — **shell feito** (2026-06-29): janela borderless
+  (`WindowDecorations="None"` + `WindowChrome` arredondado), `TitleBar` custom (logo/min/fechar +
+  arrasto), **sidebar** de 64px com navegação por ícones (Jogar/Instâncias/Modpacks/Novidades + chip de
+  conta/Definições), área de página com `TransitioningContentControl` (CrossFade) e **barra de estado**
+  (ponto de ligação ao servidor + versão). Login no estilo do backup (card + botão Microsoft). Cores
+  **sempre** do `ColorTokens` (aliases semânticos do backup emitidos pelo `AvaloniaTheme`). Falta: as
+  **páginas** de features ainda não construídas (Jogar/Instâncias/Novidades/Definições estão como
+  placeholder "em breve") entram conforme as features.
 - [ ] Detalhe do modpack + **baixar/instalar** (manifesto, jars, overrides) e montar a instância.
 - [ ] **Lançar** o Minecraft (CmlLib ou equivalente).
 - [ ] Integrar Velopack (auto-update) e o **build do launcher pelo servidor** (injetando

@@ -28,6 +28,20 @@ public sealed class ApiClient(ServerConfig config)
             config.Resolve($"/api/modpacks/{id}"), Json, ct);
     }
 
+    /// <summary>Verifica se o servidor está alcançável (indicador da barra de estado).</summary>
+    public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            using var resp = await _http.GetAsync(config.Resolve("/api/modpacks"), ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     // Em dev o servidor usa um cert self-signed (localhost) — aceita-o SÓ em DEBUG.
     private static HttpMessageHandler CreateHandler()
     {

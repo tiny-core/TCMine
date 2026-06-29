@@ -46,6 +46,11 @@ Nenhum duplica valores — todos derivam de `ColorTokens`.
 - Tokens **por tema** (`Dark`/`Light`) com **chaves lógicas iguais** — só o valor
   muda. Permite trocar tema em runtime sem trocar de instância de tema.
 - `Light` usa semânticos mais saturados para manter contraste AA sobre fundo claro.
+- **[2026-06-29]** Os **neutros do `Dark`** (fundos/bordas/texto) passaram de tom **quente**
+  (preto-amarronzado) para **frio/azulado** (`Page #0B0B14` … `BorderStrong #34344E`,
+  `Text.Primary #E8E8F0`/`Secondary #94A3B8`), por preferência visual (paleta do launcher v1). A
+  **marca laranja** (`Primary`/`Accent`) **não mudou**. Como tudo deriva daqui, launcher (Avalonia) e
+  painel admin (MudBlazor) ficaram azulados juntos.
 
 ## Aplicação concreta
 

@@ -3,7 +3,7 @@
              xmlns:vm="using:TCMine_Launcher.ViewModels"
              xmlns:contracts="using:TCMine_Application.Contracts"
              xmlns:conv="using:TCMine_Launcher.Converters"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="540"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              x:Class="TCMine_Launcher.Views.ModpacksPageView"
@@ -14,8 +14,7 @@
         <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
             <StackPanel>
                 <TextBlock Text="Modpacks" Classes="page-title" />
-                <TextBlock Text="Escolhe um modpack oficial para jogar" Classes="muted"
-                           Margin="0,3,0,0" />
+                <TextBlock Text="Escolhe um modpack oficial para jogar" Classes="muted" Margin="0,3,0,0" />
             </StackPanel>
             <Button Grid.Column="1" Classes="outline-btn" Content="Atualizar"
                     Command="{Binding Refresh}" VerticalAlignment="Center" />
@@ -34,49 +33,53 @@
                             <Border Classes="modpack-card" Margin="0,0,16,16">
                                 <StackPanel>
                                     <!-- Banner com a tag OFICIAL -->
-                                    <Border Height="64" CornerRadius="12,12,0,0"
-                                            Background="{DynamicResource BgElevatedBrush}">
+                                    <Border Height="72" CornerRadius="12,12,0,0" ClipToBounds="True">
+                                        <Border.Background>
+                                            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                                <GradientStop Color="{DynamicResource AccentDeepColor}" Offset="0" />
+                                                <GradientStop Color="{DynamicResource BgElevatedColor}" Offset="1" />
+                                            </LinearGradientBrush>
+                                        </Border.Background>
                                         <Border Classes="tag" Margin="14" VerticalAlignment="Center"
-                                                HorizontalAlignment="Left">
-                                            <TextBlock Text="OFICIAL" />
+                                                HorizontalAlignment="Left" Background="#33000000">
+                                            <TextBlock Text="OFICIAL" Foreground="White" />
                                         </Border>
                                     </Border>
 
                                     <StackPanel Margin="18,15,18,18">
                                         <TextBlock Text="{Binding Name}" Classes="card-title" />
-                                        <TextBlock Text="{Binding Version}" Classes="faint"
-                                                   Margin="0,5,0,0" />
+                                        <TextBlock Text="{Binding Version}" Classes="faint" Margin="0,5,0,0" />
 
                                         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
-                                            <Border Classes="badge" Background="{DynamicResource BgElevatedBrush}">
+                                            <Border Classes="badge" Background="{DynamicResource BgElevated}">
                                                 <TextBlock Text="{Binding Minecraft}" FontSize="10.5"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                           Foreground="{DynamicResource TextSecondary}" />
                                             </Border>
-                                            <Border Classes="badge" Background="{DynamicResource BgElevatedBrush}">
+                                            <Border Classes="badge" Background="{DynamicResource BgElevated}">
                                                 <TextBlock Text="{Binding Loader}" FontSize="10.5"
-                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                                           Foreground="{DynamicResource TextSecondary}" />
                                             </Border>
-                                            <Border Classes="badge" Background="{DynamicResource SuccessBgBrush}"
+                                            <Border Classes="badge" Background="{DynamicResource SuccessBg}"
                                                     IsVisible="{Binding ServerCount, Converter={x:Static conv:Converters.IntIsPositive}}">
                                                 <StackPanel Orientation="Horizontal" Spacing="5">
-                                                    <Ellipse Width="6" Height="6"
-                                                             Fill="{DynamicResource SuccessBrush}"
+                                                    <Ellipse Width="6" Height="6" Fill="{DynamicResource Success}"
                                                              VerticalAlignment="Center" />
                                                     <TextBlock Text="Servidor" FontSize="10"
-                                                               Foreground="{DynamicResource SuccessBrush}"
+                                                               Foreground="{DynamicResource Success}"
                                                                VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Border>
                                         </StackPanel>
 
                                         <TextBlock Text="{Binding Description}"
-                                                   Foreground="{DynamicResource TextSecondaryBrush}"
-                                                   FontSize="12" TextWrapping="Wrap" Height="36"
-                                                   Margin="0,10,0,0" TextTrimming="CharacterEllipsis" />
+                                                   Foreground="{DynamicResource TextMuted}" FontSize="12"
+                                                   TextWrapping="Wrap" Height="36" Margin="0,10,0,0"
+                                                   TextTrimming="CharacterEllipsis" />
 
                                         <!-- Instalar virá no próximo incremento -->
-                                        <Button Classes="primary-btn" Height="38" Margin="0,14,0,0"
-                                                IsEnabled="False" Content="Em breve" />
+                                        <Button Classes="play-btn" Height="38" Margin="0,14,0,0"
+                                                HorizontalAlignment="Stretch" IsEnabled="False"
+                                                Content="Em breve" FontSize="12.5" FontWeight="Bold" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
@@ -87,11 +90,10 @@
 
             <StackPanel IsVisible="{Binding IsEmpty}" Spacing="8"
                         HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="Nenhum modpack publicado ainda." Classes="muted"
-                           HorizontalAlignment="Center" />
+                <TextBlock Text="Nenhum modpack publicado ainda." Classes="muted" HorizontalAlignment="Center" />
             </StackPanel>
 
-            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}"
+            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource Danger}"
                        TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"
                        IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Panel>

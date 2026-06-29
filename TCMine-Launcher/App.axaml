@@ -8,10 +8,20 @@
         <local:ViewLocator />
     </Application.DataTemplates>
 
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://TCMine-Launcher/Themes/Icons.axaml" />
+                <ResourceInclude Source="avares://TCMine-Launcher/Themes/WindowChrome.axaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+
     <Application.Styles>
         <FluentTheme />
         <StyleInclude Source="avares://TCMine-Launcher/Themes/Styles/Text.axaml" />
         <StyleInclude Source="avares://TCMine-Launcher/Themes/Styles/Buttons.axaml" />
         <StyleInclude Source="avares://TCMine-Launcher/Themes/Styles/Cards.axaml" />
+        <StyleInclude Source="avares://TCMine-Launcher/Themes/Styles/Controls.axaml" />
     </Application.Styles>
 </Application>

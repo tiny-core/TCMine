@@ -1,34 +1,39 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:TCMine_Launcher.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="540"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              x:Class="TCMine_Launcher.Views.LoginView"
-             x:DataType="vm:LoginViewModel">
+             x:DataType="vm:MainWindowViewModel">
 
-    <Panel Background="{DynamicResource BgPageBrush}">
+    <Panel>
+        <!-- Fundo com leve brilho no topo -->
+        <Border>
+            <Border.Background>
+                <RadialGradientBrush Center="50%,0%" GradientOrigin="50%,0%" RadiusX="70%" RadiusY="60%">
+                    <GradientStop Color="{DynamicResource BgDefaultColor}" Offset="0" />
+                    <GradientStop Color="{DynamicResource BgPageColor}" Offset="1" />
+                </RadialGradientBrush>
+            </Border.Background>
+        </Border>
 
-        <!-- Cartão de login centrado -->
+        <!-- Cartão de login -->
         <Border Classes="card">
             <StackPanel HorizontalAlignment="Stretch">
 
-                <Image Source="/Assets/icon.png" Width="58" Height="58"
-                       HorizontalAlignment="Center" />
+                <Image Source="{StaticResource AppLogo}" Width="58" Height="58" HorizontalAlignment="Center" />
                 <TextBlock Text="TCMine Launcher" FontSize="20" FontWeight="Bold"
-                           Foreground="{DynamicResource TextPrimaryBrush}"
-                           HorizontalAlignment="Center" Margin="0,10,0,0" />
-                <TextBlock Text="Entra para jogar os modpacks oficiais"
-                           Classes="muted" HorizontalAlignment="Center" Margin="0,5,0,0" />
+                           Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                <TextBlock Text="Entra para jogar os modpacks oficiais" Classes="muted"
+                           HorizontalAlignment="Center" Margin="0,5,0,0" />
 
                 <Separator Classes="divider" Margin="0,26" />
 
                 <!-- Botão Microsoft -->
-                <Button Classes="ms-btn" Command="{Binding SignIn}">
+                <Button Classes="ms-btn" Command="{Binding LoginMicrosoft}" IsEnabled="{Binding !IsAuthenticating}">
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <!-- Logótipo Microsoft (4 quadrados) -->
-                        <Grid Width="18" Height="18" RowDefinitions="*,*" ColumnDefinitions="*,*"
-                              VerticalAlignment="Center">
+                        <Grid Width="18" Height="18" RowDefinitions="*,*" ColumnDefinitions="*,*" VerticalAlignment="Center">
                             <Rectangle Grid.Row="0" Grid.Column="0" Fill="#F25022" Margin="0,0,1,1" />
                             <Rectangle Grid.Row="0" Grid.Column="1" Fill="#7FBA00" Margin="1,0,0,1" />
                             <Rectangle Grid.Row="1" Grid.Column="0" Fill="#00A4EF" Margin="0,1,1,0" />
@@ -40,19 +45,19 @@
                 </Button>
 
                 <!-- Estado: a autenticar -->
-                <StackPanel Spacing="10" Margin="0,18,0,0" IsVisible="{Binding Busy}">
-                    <ProgressBar IsIndeterminate="True" />
-                    <TextBlock Text="{Binding Status}" Classes="muted" FontSize="12.5"
-                               HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center"
+                            Margin="0,18,0,0" IsVisible="{Binding IsAuthenticating}">
+                    <Ellipse Classes="spinner" Width="18" Height="18" />
+                    <TextBlock Text="A aguardar autorização…" Classes="muted" VerticalAlignment="Center" />
                 </StackPanel>
 
                 <!-- Estado: erro -->
-                <TextBlock Text="{Binding Error}"
-                           IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                           Foreground="{DynamicResource ErrorBrush}" FontSize="11.5"
+                <TextBlock Text="{Binding LoginError}"
+                           IsVisible="{Binding LoginError, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           Foreground="{DynamicResource Danger}" FontSize="11.5"
                            TextWrapping="Wrap" TextAlignment="Center" Margin="0,16,0,0" />
 
-                <TextBlock Text="O login abre no teu navegador. Volta aqui depois de autorizares."
+                <TextBlock Text="O login abre no teu navegador (conta Microsoft / Minecraft Java)."
                            Classes="faint" FontSize="10.5" TextWrapping="Wrap"
                            TextAlignment="Center" Margin="0,22,0,0" />
             </StackPanel>

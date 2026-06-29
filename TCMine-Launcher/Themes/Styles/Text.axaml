@@ -1,30 +1,27 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- ===================================================================
-         TEXTO — classes tipográficas. Cor sempre dos tokens de ColorTokens
-         (via AvaloniaTheme → DynamicResource), nunca hexes literais.
-         =================================================================== -->
+    <!-- Texto — classes tipográficas. Cor sempre dos tokens (DynamicResource), nunca hexes. -->
 
     <Style Selector="TextBlock.page-title">
         <Setter Property="FontSize" Value="22" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
 
     <Style Selector="TextBlock.card-title">
         <Setter Property="FontSize" Value="16" />
         <Setter Property="FontWeight" Value="Bold" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimary}" />
     </Style>
 
     <Style Selector="TextBlock.muted">
-        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextMuted}" />
         <Setter Property="FontSize" Value="13" />
     </Style>
 
     <Style Selector="TextBlock.faint">
-        <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFaint}" />
         <Setter Property="FontSize" Value="11" />
     </Style>
 </Styles>

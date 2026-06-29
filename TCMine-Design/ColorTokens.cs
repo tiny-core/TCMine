@@ -69,21 +69,23 @@ public static class ColorTokens
     /// <summary>Tokens próprios do tema escuro: fundos, texto e estados semânticos.</summary>
     public static class Dark
     {
+        // Neutros frios/azulados (preto-azulado → cinza-azulado). O acento da marca continua laranja —
+        // só os fundos/bordas/texto deixaram o tom quente, por preferência visual (paleta do launcher v1).
         public static class Background
         {
-            public const string Page = "#0D0B09";
-            public const string Default = "#161310";
-            public const string Surface = "#1F1B17";
-            public const string Elevated = "#2A2521";
-            public const string Border = "#3D362F";
-            public const string BorderStrong = "#56504A";
+            public const string Page = "#0B0B14";
+            public const string Default = "#0F0F1A";
+            public const string Surface = "#14141F";
+            public const string Elevated = "#1B1B2A";
+            public const string Border = "#242438";
+            public const string BorderStrong = "#34344E";
         }
 
         public static class Text
         {
-            public const string Primary = "#F5F1ED";
-            public const string Secondary = "#B8AFA6";
-            public const string Disabled = "#7A716A";
+            public const string Primary = "#E8E8F0";
+            public const string Secondary = "#94A3B8";
+            public const string Disabled = "#6A6A8A";
             public const string OnPrimary = "#2D1500"; // texto escuro sobre Primary.Base (laranja)
         }
 

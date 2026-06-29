@@ -1,0 +1,25 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:views="using:TCMine_Launcher.Views">
+
+    <!-- Tema do WindowChrome: borda arredondada + fundo que envolve toda a janela (sem chrome nativo).
+         Aplica-se implicitamente por tipo. Cores dos tokens (ColorTokens via AvaloniaTheme). -->
+    <ControlTheme x:Key="{x:Type views:WindowChrome}" TargetType="views:WindowChrome">
+        <Setter Property="Background" Value="{DynamicResource BgWindow}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12"
+                        ClipToBounds="True">
+                    <ContentPresenter Content="{TemplateBinding Content}"
+                                      Padding="{TemplateBinding Padding}"
+                                      HorizontalAlignment="Stretch"
+                                      VerticalAlignment="Stretch" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </ControlTheme>
+</ResourceDictionary>

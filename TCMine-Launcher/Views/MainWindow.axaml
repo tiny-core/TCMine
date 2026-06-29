@@ -1,52 +1,118 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:TCMine_Launcher.ViewModels"
+        xmlns:views="using:TCMine_Launcher.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
+        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
         x:Class="TCMine_Launcher.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/icon.ico"
-        Title="TCMine" Width="980" Height="640"
-        Background="{DynamicResource BgPageBrush}">
+        Title="TCMine Launcher"
+        Width="1100" Height="640"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False"
+        WindowDecorations="None"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent">
 
-    <Grid RowDefinitions="Auto,*">
+    <views:WindowChrome>
+        <Grid RowDefinitions="Auto,*,42">
 
-        <!-- Cabeçalho: marca + chip de conta + sair -->
-        <Border Grid.Row="0" Background="{DynamicResource BgDefaultBrush}"
-                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
-                Padding="20,12">
-            <Grid ColumnDefinitions="Auto,*,Auto">
-                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <Image Source="/Assets/icon.png" Width="24" Height="24" />
-                    <TextBlock Text="TCMine" FontSize="17" FontWeight="Bold"
-                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
-                </StackPanel>
+            <!-- Barra de título -->
+            <views:TitleBar Grid.Row="0" Title="TCMine Launcher" />
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10"
-                            IsVisible="{Binding IsLoggedIn}">
-                    <Border Classes="avatar" Width="32" Height="32" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding PlayerInitial}" FontSize="13" />
+            <!-- Corpo: inicialização / login / aplicação -->
+            <Panel Grid.Row="1">
+
+                <!-- Login (deslogado) -->
+                <views:LoginView IsVisible="{Binding !IsLoggedIn}" />
+
+                <!-- Aplicação (sidebar + página activa) -->
+                <Grid IsVisible="{Binding IsLoggedIn}" ColumnDefinitions="64,*">
+
+                    <!-- Sidebar -->
+                    <Border Grid.Column="0"
+                            Background="{DynamicResource BgSidebar}"
+                            BorderBrush="{DynamicResource BorderChrome}"
+                            BorderThickness="0,0,1,0">
+                        <Grid RowDefinitions="*,Auto">
+                            <StackPanel Grid.Row="0" Margin="0,8,0,0" Spacing="6" HorizontalAlignment="Center">
+                                <Button Classes="nav-btn" Classes.active="{Binding IsHomeSelected}"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.Home}"
+                                        ToolTip.Tip="Jogar">
+                                    <PathIcon Data="{StaticResource IconPlay}" Width="18" Height="18" />
+                                </Button>
+                                <Button Classes="nav-btn" Classes.active="{Binding IsInstancesSelected}"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.Instances}"
+                                        ToolTip.Tip="Instâncias">
+                                    <PathIcon Data="{StaticResource IconInstances}" Width="18" Height="18" />
+                                </Button>
+                                <Button Classes="nav-btn" Classes.active="{Binding IsModpacksSelected}"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.Modpacks}"
+                                        ToolTip.Tip="Modpacks">
+                                    <PathIcon Data="{StaticResource IconModpacks}" Width="18" Height="18" />
+                                </Button>
+                                <Button Classes="nav-btn" Classes.active="{Binding IsNewsSelected}"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.News}"
+                                        ToolTip.Tip="Novidades">
+                                    <PathIcon Data="{StaticResource IconNews}" Width="18" Height="18" />
+                                </Button>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Margin="0,0,0,12" Spacing="10" HorizontalAlignment="Center">
+                                <!-- Chip da conta (avatar) → Definições -->
+                                <Button Classes="account-chip"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.Settings}"
+                                        ToolTip.Tip="{Binding PlayerName}">
+                                    <Border Classes="avatar" Width="34" Height="34">
+                                        <TextBlock Text="{Binding AvatarInitials}" FontSize="13" />
+                                    </Border>
+                                </Button>
+                                <Button Classes="nav-btn" Classes.active="{Binding IsSettingsSelected}"
+                                        Command="{Binding Navigate}" CommandParameter="{x:Static vm:AppTab.Settings}"
+                                        ToolTip.Tip="Definições">
+                                    <PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" />
+                                </Button>
+                            </StackPanel>
+                        </Grid>
                     </Border>
-                    <TextBlock Text="{Binding PlayerName}" Foreground="{DynamicResource TextPrimaryBrush}"
-                               FontWeight="SemiBold" VerticalAlignment="Center" />
-                    <Button Classes="ghost-btn" Content="Sair" Command="{Binding Logout}"
-                            VerticalAlignment="Center" />
-                </StackPanel>
-            </Grid>
-        </Border>
 
-        <!-- Corpo: a página atual (login ou catálogo) + overlay de carregamento -->
-        <Panel Grid.Row="1">
-            <ContentControl Content="{Binding CurrentPage}" />
+                    <!-- Página activa -->
+                    <TransitioningContentControl Grid.Column="1" Content="{Binding CurrentPage}">
+                        <TransitioningContentControl.PageTransition>
+                            <CrossFade Duration="0:0:0.18" />
+                        </TransitioningContentControl.PageTransition>
+                    </TransitioningContentControl>
+                </Grid>
 
-            <Border Classes="busy-overlay" IsVisible="{Binding Busy}">
-                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
-                    <ProgressBar IsIndeterminate="True" Width="220" />
-                    <TextBlock Text="Carregando…" Foreground="{DynamicResource TextPrimaryBrush}"
-                               HorizontalAlignment="Center" />
-                </StackPanel>
+                <!-- Inicialização (login silencioso) -->
+                <Border Classes="busy-overlay" IsVisible="{Binding IsInitializing}">
+                    <Ellipse Classes="spinner" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </Panel>
+
+            <!-- Barra de estado -->
+            <Border Grid.Row="2"
+                    Background="{DynamicResource BgConsole}"
+                    BorderBrush="{DynamicResource BorderChrome}"
+                    BorderThickness="0,1,0,0">
+                <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                        <Panel Width="7" Height="7">
+                            <Ellipse Fill="{DynamicResource Success}" IsVisible="{Binding IsServerOnline}" />
+                            <Ellipse Fill="{DynamicResource WarningText}" IsVisible="{Binding IsServerChecking}" />
+                            <Ellipse Fill="{DynamicResource TextDim}" IsVisible="{Binding IsServerOffline}" />
+                        </Panel>
+                        <TextBlock Text="{Binding ServerStatusLabel}" FontSize="11"
+                                   Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="2" Text="{Binding VersionLabel}" FontSize="11"
+                               Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"
+                               ToolTip.Tip="Versão instalada do launcher" />
+                </Grid>
             </Border>
-        </Panel>
-    </Grid>
+        </Grid>
+    </views:WindowChrome>
 </Window>
