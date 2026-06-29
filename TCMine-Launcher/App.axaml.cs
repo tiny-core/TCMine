@@ -1,17 +1,13 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Splat;
 using TCMine_Launcher.ViewModels;
 using TCMine_Launcher.Views;
 
 namespace TCMine_Launcher;
 
-/// <summary>
-/// Representa o ponto de entrada da aplicação Avalonia.
-/// Responsável por inicializar a aplicação, carregar XAML,
-/// e configurar a janela principal da aplicação e o contexto de dados.
-/// </summary>
-public partial class App : Application
+public class App : Application
 {
     public override void Initialize()
     {
@@ -23,7 +19,7 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel()
+                DataContext = AppLocator.Current.GetService<MainWindowViewModel>()
             };
 
         base.OnFrameworkInitializationCompleted();

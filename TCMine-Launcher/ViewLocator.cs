@@ -1,4 +1,3 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -7,7 +6,7 @@ using TCMine_Launcher.ViewModels;
 namespace TCMine_Launcher;
 
 /// <summary>
-/// Given a view model, returns the corresponding view if possible.
+///     Given a view model, returns the corresponding view if possible.
 /// </summary>
 [RequiresUnreferencedCode(
     "Default implementation of ViewLocator involves reflection which may be trimmed away.",

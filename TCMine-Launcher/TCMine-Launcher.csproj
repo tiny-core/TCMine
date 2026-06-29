@@ -1,20 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-        <Title>TCMine Launcher</Title>
-        <Description>O TCMine Launcher é um launcher customizado de Minecraft para o servidor TCMine. Funciona como a Steam para o TCMine: instala o jogo, gerencia mods, entra no servidor com um clique.</Description>
-        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Launcher</PackageProjectUrl>
         <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
         <PackageIcon>Assets\icon.png</PackageIcon>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
-        <DocumentationFile>bin\Debug\TCMine-Launcher.xml</DocumentationFile>
-    </PropertyGroup>
-    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
-        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
-        <DocumentationFile>bin\Release\TCMine-Launcher.xml</DocumentationFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,6 +13,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <PackageReference Include="Avalonia"/>
         <PackageReference Include="Avalonia.Desktop"/>
         <PackageReference Include="Avalonia.Themes.Fluent"/>
         <PackageReference Include="Avalonia.Fonts.Inter"/>
@@ -30,10 +21,12 @@
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
         </PackageReference>
+        <PackageReference Include="HotAvalonia"/>
+        <PackageReference Include="JetBrains.Annotations"/>
         <PackageReference Include="ReactiveUI.Avalonia"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj"/>
+        <PackageReference Include="ReactiveUI.SourceGenerators">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
 </Project>

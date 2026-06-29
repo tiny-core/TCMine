@@ -1,9 +1,12 @@
-﻿using Avalonia;
+﻿using System.Reflection;
+using Avalonia;
+using JetBrains.Annotations;
 using ReactiveUI.Avalonia;
-using System;
+using TCMine_Launcher.ViewModels;
 
 namespace TCMine_Launcher;
 
+[UsedImplicitly]
 internal sealed class Program
 {
     // Initialization code. Don't use any Avalonia, third-party APIs or any
@@ -17,7 +20,7 @@ internal sealed class Program
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.
-    public static AppBuilder BuildAvaloniaApp()
+    private static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()
 #if DEBUG
@@ -25,7 +28,10 @@ internal sealed class Program
 #endif
             .WithInterFont()
             .LogToTrace()
-            // ReactiveUI.Avalonia 12.x mudou a assinatura: UseReactiveUI agora exige um builder
-            // (configuração do ReactiveUI). Sem ajustes, passamos um builder vazio.
-            .UseReactiveUI(_ => { });
+            .UseReactiveUI(rxAppBuilder =>
+            {
+                rxAppBuilder
+                    .WithViewsFromAssembly(Assembly.GetExecutingAssembly())
+                    .WithRegistration(locator => { locator.RegisterLazySingleton(() => new MainWindowViewModel()); });
+            });
 }
