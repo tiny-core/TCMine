@@ -1,0 +1,91 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ===================================================================
+         BOTÕES — variantes do launcher. Cores dos tokens (ColorTokens via
+         AvaloniaTheme → DynamicResource). Estrutura seguindo o design do backup.
+         =================================================================== -->
+
+    <!-- ── Ação primária (laranja da marca) — login / instalar ─────── -->
+    <Style Selector="Button.primary-btn">
+        <Setter Property="Background" Value="{DynamicResource Primary500Brush}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextOnPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="Height" Value="46" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.primary-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Primary600Brush}" />
+    </Style>
+    <Style Selector="Button.primary-btn:pressed /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource Primary700Brush}" />
+    </Style>
+    <Style Selector="Button.primary-btn:disabled">
+        <Setter Property="Opacity" Value="0.45" />
+    </Style>
+
+    <!-- ── Botão Microsoft (login) — superfície neutra + borda ─────── -->
+    <Style Selector="Button.ms-btn">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="9" />
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+        <Setter Property="Height" Value="48" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.ms-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderStrongBrush}" />
+    </Style>
+    <Style Selector="Button.ms-btn:disabled">
+        <Setter Property="Opacity" Value="0.5" />
+    </Style>
+
+    <!-- ── Botão fantasma / secundário ─────────────────────────────── -->
+    <Style Selector="Button.ghost-btn">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Padding" Value="8,6" />
+    </Style>
+    <Style Selector="Button.ghost-btn:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
+    </Style>
+    <Style Selector="Button.ghost-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="Transparent" />
+    </Style>
+
+    <!-- ── Botão de ação outline (Atualizar, etc.) ─────────────────── -->
+    <Style Selector="Button.outline-btn">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="7" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+        <Setter Property="Padding" Value="14,8" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.outline-btn:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Primary500Brush}" />
+    </Style>
+
+    <!-- ── Chip de conta (avatar + nome) — clicável ────────────────── -->
+    <Style Selector="Button.account-chip">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="6,5" />
+    </Style>
+    <Style Selector="Button.account-chip:pointerover /template/ ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource BgElevatedBrush}" />
+    </Style>
+</Styles>

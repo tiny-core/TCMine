@@ -2,6 +2,8 @@
 using Avalonia;
 using JetBrains.Annotations;
 using ReactiveUI.Avalonia;
+using Splat;
+using TCMine_Launcher.Services;
 using TCMine_Launcher.ViewModels;
 
 namespace TCMine_Launcher;
@@ -32,6 +34,17 @@ internal sealed class Program
             {
                 rxAppBuilder
                     .WithViewsFromAssembly(Assembly.GetExecutingAssembly())
-                    .WithRegistration(locator => { locator.RegisterLazySingleton(() => new MainWindowViewModel()); });
+                    .WithRegistration(locator =>
+                    {
+                        // Grafo de serviços do launcher (sem container pesado — o app é pequeno).
+                        var config = new ServerConfig();
+                        var api = new ApiClient(config);
+                        var auth = new AuthService();
+
+                        locator.RegisterConstant(config);
+                        locator.RegisterConstant(api);
+                        locator.RegisterConstant(auth);
+                        locator.RegisterLazySingleton(() => new MainWindowViewModel(auth, api));
+                    });
             });
 }

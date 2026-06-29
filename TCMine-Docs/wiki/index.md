@@ -24,7 +24,7 @@ correspondente, com um resumo de uma linha.
 - [[entities/tcmine-infrastructure]] — EF Core dual-provider, CurseForge, filesystem, serviços (infrastructure, ef-core)
 - [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`), fonte única de cor (design-system, theming)
 - [[entities/tcmine-server]] — Blazor Server + Minimal API: backend + painel admin (blazor, backend)
-- [[entities/tcmine-launcher]] — app desktop Avalonia (scaffolded), "a Steam do TCMine" (avalonia, launcher)
+- [[entities/tcmine-launcher]] — app desktop Avalonia: login Microsoft (MSAL) + catálogo (avalonia, launcher)
 - [[entities/tcmine-icongenerator]] — gera ícones/assets para launcher e servidor (tooling, assets)
 
 ## Conceitos (`wiki/concepts/`)
@@ -56,6 +56,8 @@ correspondente, com um resumo de uma linha.
 - [[decisions/mods-many-to-many]] — mods em N:N (`ModFile` + `ModpackMod`) em vez de FK 1:N (ef-core, modpack)
 - [[decisions/curseforge-update-tracking]] — origem CF (1:1) + checagem econômica de atualizações de modpack/mods (curseforge, atualizacoes)
 - [[decisions/server-instances-docker]] — cada servidor Minecraft num container dedicado (Docker-out-of-Docker), TCMine no controle total (server-instance, docker)
+- [[decisions/auth-msal-launcher]] — login Microsoft via MSAL no launcher (loopback, sem hosting/secret) (auth, msal, launcher)
+- [[decisions/server-brokered-microsoft-login]] — _(substituída)_ tentativa de login orquestrado pelo servidor via SSE (auth, microsoft, descontinuada)
 
 ## Fontes / Resumos (`wiki/sources/`)
 
@@ -67,6 +69,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-25-mods-many-to-many]] — normalização de mods em N:N (code, ef-core, modpack)
 - [[sources/2026-06-25-curseforge-update-tracking]] — origem CF + checagem de atualizações (code, curseforge)
 - [[sources/2026-06-27-server-instances-e-ux]] — instâncias de servidor (Docker) + remodelagem da UX admin (code, server-instance, docker, ux)
+- [[sources/2026-06-29-launcher-login-catalogo]] — launcher: login Microsoft pelo servidor + catálogo (code, launcher, auth, avalonia)
 
 ## Sínteses e páginas derivadas
 

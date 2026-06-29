@@ -8,12 +8,39 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Folder Include="Models\"/>
         <AvaloniaResource Include="Assets\**"/>
+    </ItemGroup>
+
+    <!-- Config embutida no binário em build-time (NÃO hardcoded, NÃO editável pelo utilizador):
+         a URL do TCMine Server e o Azure client id do login Microsoft (MSAL). Em produção o servidor
+         compila o launcher e passa -p:TcmineServerUrl=… -p:MicrosoftClientId=…; em dev vêm de
+         Client.props (fora do git; ver Client.props.example). Viram AssemblyMetadataAttribute lidos
+         por AppConfig via reflexão. Nenhum é segredo (URL pública; app desktop é public client). -->
+    <Import Project="Client.props" Condition="Exists('Client.props')"/>
+    <ItemGroup Condition="'$(TcmineServerUrl)' != ''">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>TcmineServerUrl</_Parameter1>
+            <_Parameter2>$(TcmineServerUrl)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+    <ItemGroup Condition="'$(MicrosoftClientId)' != ''">
+        <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+            <_Parameter1>MicrosoftClientId</_Parameter1>
+            <_Parameter2>$(MicrosoftClientId)</_Parameter2>
+        </AssemblyAttribute>
+    </ItemGroup>
+
+    <!-- Núcleo compartilhado: DTOs (record) do fio servidor↔launcher + tokens de cor do design system -->
+    <ItemGroup>
+        <ProjectReference Include="..\TCMine-Application\TCMine-Application.csproj"/>
+        <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Avalonia"/>
+        <PackageReference Include="CmlLib.Core"/>
+        <PackageReference Include="CmlLib.Core.Auth.Microsoft"/>
+        <PackageReference Include="XboxAuthNet.Game.Msal"/>
         <PackageReference Include="Avalonia.Desktop"/>
         <PackageReference Include="Avalonia.Themes.Fluent"/>
         <PackageReference Include="Avalonia.Fonts.Inter"/>

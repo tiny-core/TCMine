@@ -83,6 +83,9 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
 
 ## Decisões e estado atual
 
+- **[2026-06-29]** O **login Microsoft do jogador NÃO é feito pelo servidor** — fica no launcher via
+  MSAL (ver [[decisions/auth-msal-launcher]], que substituiu a tentativa server-brokered). O servidor
+  só **valida** o token Minecraft quando precisa (sync de configs, `MinecraftAuthService`).
 - **[2026-06-23]** Auth por **cookie** + `PersistingAuthenticationStateProvider`;
   primeira execução força `/setup` do `Owner`. Ver [[concepts/setup-auth-cookie]].
 - **[2026-06-23]** `Admin/Settings` segue **escrita-só-ao-Guardar**; é onde o

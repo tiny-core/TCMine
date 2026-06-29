@@ -19,6 +19,7 @@ public sealed class SystemMetricsService
         return new SystemSnapshot(
             // WorkingSet64 = memória física em uso pelo processo
             p.WorkingSet64 / 1024d / 1024d,
+            p.PeakVirtualMemorySize64 / 1024d / 1024d,
             // Heap gerenciado pelo GC (subconjunto da memória total)
             GC.GetTotalMemory(false) / 1024d / 1024d,
             p.Threads.Count,
@@ -29,6 +30,7 @@ public sealed class SystemMetricsService
 /// <summary>Fotografia das métricas do processo em um instante.</summary>
 public readonly record struct SystemSnapshot(
     double MemoryMb,
+    double MaxMemoryMb,
     double ManagedHeapMb,
     int Threads,
     TimeSpan Uptime);

@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Splat;
+using TCMine_Launcher.Theme;
 using TCMine_Launcher.ViewModels;
 using TCMine_Launcher.Views;
 
@@ -16,6 +17,10 @@ public class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        // Injeta os tokens de cor do TCMine-Design como recursos Avalonia ANTES de criar a janela —
+        // assim os {DynamicResource} dos estilos/views resolvem de imediato. Fonte única de cor.
+        AvaloniaTheme.ApplyTheme(Resources, dark: true);
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.MainWindow = new MainWindow
             {

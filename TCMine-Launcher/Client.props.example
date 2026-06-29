@@ -1,0 +1,18 @@
+<Project>
+    <!--
+        Copie este arquivo para "Client.props" (fora do git) para builds de DEV.
+        Em PRODUÇÃO o TCMine Server injeta estes valores no publish via
+        `dotnet publish -p:TcmineServerUrl=https://meu-servidor -p:MicrosoftClientId=...`,
+        sem precisar deste arquivo.
+
+        - TcmineServerUrl: URL do servidor que o launcher consome (catálogo, jars).
+          Sem valor, o launcher cai no fallback de dev (https://localhost:7002) do ServerConfig.
+        - MicrosoftClientId: Application (client) ID do app registrado no Azure AD, usado pelo
+          login MSAL (público/desktop). Não é segredo. Sem valor, o login mostra erro de
+          "não configurado".
+    -->
+    <PropertyGroup>
+        <TcmineServerUrl>https://localhost:7002</TcmineServerUrl>
+        <MicrosoftClientId></MicrosoftClientId>
+    </PropertyGroup>
+</Project>

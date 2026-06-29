@@ -3,18 +3,50 @@
         xmlns:vm="using:TCMine_Launcher.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="980" d:DesignHeight="640"
         x:Class="TCMine_Launcher.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/avalonia-logo.ico"
-        Title="TCMine_Launcher">
+        Icon="/Assets/icon.ico"
+        Title="TCMine" Width="980" Height="640"
+        Background="{DynamicResource BgPageBrush}">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    <Grid RowDefinitions="Auto,*">
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <!-- Cabeçalho: marca + chip de conta + sair -->
+        <Border Grid.Row="0" Background="{DynamicResource BgDefaultBrush}"
+                BorderBrush="{DynamicResource BorderBrush}" BorderThickness="0,0,0,1"
+                Padding="20,12">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Image Source="/Assets/icon.png" Width="24" Height="24" />
+                    <TextBlock Text="TCMine" FontSize="17" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
 
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10"
+                            IsVisible="{Binding IsLoggedIn}">
+                    <Border Classes="avatar" Width="32" Height="32" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding PlayerInitial}" FontSize="13" />
+                    </Border>
+                    <TextBlock Text="{Binding PlayerName}" Foreground="{DynamicResource TextPrimaryBrush}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button Classes="ghost-btn" Content="Sair" Command="{Binding Logout}"
+                            VerticalAlignment="Center" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Corpo: a página atual (login ou catálogo) + overlay de carregamento -->
+        <Panel Grid.Row="1">
+            <ContentControl Content="{Binding CurrentPage}" />
+
+            <Border Classes="busy-overlay" IsVisible="{Binding Busy}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+                    <ProgressBar IsIndeterminate="True" Width="220" />
+                    <TextBlock Text="Carregando…" Foreground="{DynamicResource TextPrimaryBrush}"
+                               HorizontalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </Panel>
+    </Grid>
 </Window>

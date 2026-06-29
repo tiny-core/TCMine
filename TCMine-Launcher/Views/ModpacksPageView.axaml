@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TCMine_Launcher.ViewModels"
+             xmlns:contracts="using:TCMine_Application.Contracts"
+             xmlns:conv="using:TCMine_Launcher.Converters"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="TCMine_Launcher.Views.ModpacksPageView"
+             x:DataType="vm:ModpacksPageViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="28,24" Background="Transparent">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="Modpacks" Classes="page-title" />
+                <TextBlock Text="Escolhe um modpack oficial para jogar" Classes="muted"
+                           Margin="0,3,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="outline-btn" Content="Atualizar"
+                    Command="{Binding Refresh}" VerticalAlignment="Center" />
+        </Grid>
+
+        <Panel Grid.Row="1">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding Modpacks}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="contracts:ModpackSummaryDto">
+                            <Border Classes="modpack-card" Margin="0,0,16,16">
+                                <StackPanel>
+                                    <!-- Banner com a tag OFICIAL -->
+                                    <Border Height="64" CornerRadius="12,12,0,0"
+                                            Background="{DynamicResource BgElevatedBrush}">
+                                        <Border Classes="tag" Margin="14" VerticalAlignment="Center"
+                                                HorizontalAlignment="Left">
+                                            <TextBlock Text="OFICIAL" />
+                                        </Border>
+                                    </Border>
+
+                                    <StackPanel Margin="18,15,18,18">
+                                        <TextBlock Text="{Binding Name}" Classes="card-title" />
+                                        <TextBlock Text="{Binding Version}" Classes="faint"
+                                                   Margin="0,5,0,0" />
+
+                                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                                            <Border Classes="badge" Background="{DynamicResource BgElevatedBrush}">
+                                                <TextBlock Text="{Binding Minecraft}" FontSize="10.5"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </Border>
+                                            <Border Classes="badge" Background="{DynamicResource BgElevatedBrush}">
+                                                <TextBlock Text="{Binding Loader}" FontSize="10.5"
+                                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                            </Border>
+                                            <Border Classes="badge" Background="{DynamicResource SuccessBgBrush}"
+                                                    IsVisible="{Binding ServerCount, Converter={x:Static conv:Converters.IntIsPositive}}">
+                                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                                    <Ellipse Width="6" Height="6"
+                                                             Fill="{DynamicResource SuccessBrush}"
+                                                             VerticalAlignment="Center" />
+                                                    <TextBlock Text="Servidor" FontSize="10"
+                                                               Foreground="{DynamicResource SuccessBrush}"
+                                                               VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <TextBlock Text="{Binding Description}"
+                                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                                   FontSize="12" TextWrapping="Wrap" Height="36"
+                                                   Margin="0,10,0,0" TextTrimming="CharacterEllipsis" />
+
+                                        <!-- Instalar virá no próximo incremento -->
+                                        <Button Classes="primary-btn" Height="38" Margin="0,14,0,0"
+                                                IsEnabled="False" Content="Em breve" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <StackPanel IsVisible="{Binding IsEmpty}" Spacing="8"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Nenhum modpack publicado ainda." Classes="muted"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}"
+                       TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center"
+                       IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </Panel>
+    </Grid>
+</UserControl>

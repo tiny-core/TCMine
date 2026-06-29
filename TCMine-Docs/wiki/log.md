@@ -28,6 +28,90 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-06-29] decisao | Volta ao MSAL no launcher (revert do server-brokered)
+
+- **Fonte:** decisão do usuário ("voltar para MSAL", sem hosting/redirect-web/secret); backup
+  `P:\TCMine-Launcher-bk` como referência. Código novo: `TCMine-Launcher/Services/{AuthService,AppConfig}.cs`;
+  removidos no servidor: `AuthEndpoints`, `LoginSessionBroker`, `MicrosoftAuthService`, `PlayerSessionService`,
+  `PlayerAccountEntity`(+repo/porta), campo client secret e migrações `PlayerAccount`/`AzureClientSecret`.
+- **Páginas afetadas:** [[decisions/auth-msal-launcher]] (nova, aceita), [[decisions/server-brokered-microsoft-login]]
+  (→ **substituída**), [[entities/tcmine-launcher]] (auth via MSAL), [[entities/tcmine-server]] (sem endpoints de
+  auth), [[index]].
+- **Resumo:** o fluxo server-brokered exigia redirect **Web** no Azure (acoplado à hospedagem, indefinida)
+  e **client secret**. O usuário preferiu o modelo do backup: **MSAL no launcher** (CmlLib + XboxAuthNet,
+  public client, redirect **loopback**, cache DPAPI) — sem hosting, sem redirect web, sem secret. **Revert
+  limpo** de todo o lado servidor; `MinecraftAuthService` (validação para sync de configs) permanece.
+  Snapshots do EF restaurados via git; `has-pending-model-changes` = limpo. Servidor e launcher compilam 0/0.
+- **Pendências:** o app Azure precisa de "Mobile and desktop applications" com redirect `http://localhost` +
+  account type com contas pessoais (`signInAudience`) + `MicrosoftClientId` no build (Client.props/-p). Se o
+  servidor chegou a aplicar a migração `PlayerAccount` durante os testes, sobra uma tabela `PlayerAccounts`
+  órfã no Postgres (inofensiva; pode ser dropada). Install/launch do jogo continua fora de escopo.
+
+---
+
+## [2026-06-29] decisao | Login Microsoft vira cliente confidencial (client secret)
+
+- **Fonte:** erro real do usuário no login (AADSTS650053) + ele não ter hosting definido; código
+  `TCMine-Domain/Entities/ServerSettingEntity.cs`, `TCMine-Infrastructure/Server/ServerSettingsService.cs`,
+  `TCMine-Infrastructure/Minecraft/MicrosoftAuthService.cs`, `TCMine-Server/Components/Pages/Admin/Settings.razor(.cs)`,
+  migração `AzureClientSecret` (Sqlite+Postgres).
+- **Páginas afetadas:** [[decisions/server-brokered-microsoft-login]] (PKCE-público → confidencial+secret;
+  seção de setup Azure), [[entities/tcmine-server]] (settings ganham client secret).
+- **Resumo:** o login server-brokered é um **web-app confidencial** (o servidor troca o code server-side),
+  então passou a usar **client secret** guardado cifrado (Data Protection), ao lado do client/tenant id já
+  existentes. Novo campo no `/admin/settings`. PKCE mantido como defesa extra. **Diagnóstico do
+  AADSTS650053**: o app Azure precisa suportar contas pessoais (`signInAudience` com
+  PersonalMicrosoftAccount) e tenant `consumers` (não GUID de org) — senão o scope `XboxLive.signin` cai
+  no Graph. **Hosting não é bloqueio**: registrar o redirect Web `https://localhost:7002/auth/microsoft/callback`
+  para dev e adicionar produção depois (o MSAL antigo não exigia isso por ser public-client com loopback).
+- **Pendências:** validar o login fim-a-fim após o usuário ajustar o app no Azure (account type + secret +
+  redirect) e reiniciar o servidor (a migração aplica no boot).
+
+---
+
+## [2026-06-29] ingest | Launcher: tema ColorTokens + URL injetada no build (refino)
+
+- **Fonte:** feedback do usuário; código `TCMine-Launcher/Theme/AvaloniaTheme.cs` (restaurado),
+  `Services/{AppConfig,ServerConfig}.cs`, `Themes/Styles/{Buttons,Cards,Text}.axaml`, `App.axaml(.cs)`,
+  `Views/{LoginView,ModpacksPageView,MainWindow}.axaml`; design de referência em
+  `P:\TCMine-Launcher-bk\TCMine-Launcher\Themes`.
+- **Páginas afetadas:** [[entities/tcmine-launcher]] (tema + URL deixam de ser pendências),
+  [[concepts/design-tokens]] (consumidor Avalonia restaurado), [[index]].
+- **Resumo:** três ajustes pedidos. (1) **Cores do TCMine**: re-introduzido `AvaloniaTheme.ApplyTheme`
+  que injeta os tokens de [[entities/tcmine-design]] (`ColorTokens`) como recursos Avalonia; estilos e
+  views passam a usar `{DynamicResource}` dos tokens, nunca hexes. (2) **URL não-hardcoded**: `AppConfig`
+  lê `TcmineServerUrl` de um `AssemblyMetadataAttribute` injetado no build (servidor injeta a URL/IP ao
+  compilar o launcher; dev usa `Client.props`/fallback) — mesmo padrão do backup. (3) **Design do
+  backup** seguido (card de login, botão Microsoft, cartões de modpack, chip de conta), mapeado para os
+  tokens. Compila 0 erros/0 avisos.
+- **Pendências:** instalar/lançar (próximo incremento); o **build do launcher pelo servidor** (que
+  injeta `TcmineServerUrl` e o feed Velopack) ainda não existe.
+
+---
+
+## [2026-06-29] decisao | Launcher: login Microsoft pelo servidor + catálogo
+
+- **Fonte:** sessão de implementação; código vivo `TCMine-Infrastructure/Minecraft/MicrosoftAuthService.cs`,
+  `TCMine-Infrastructure/Identity/PlayerSessionService.cs`, `TCMine-Server/Services/LoginSessionBroker.cs`,
+  `TCMine-Server/Endpoints/AuthEndpoints.cs`, `TCMine-Domain/Entities/PlayerAccountEntity.cs`,
+  `TCMine-Launcher/Services/` e `ViewModels/`.
+- **Páginas afetadas:** [[decisions/server-brokered-microsoft-login]] (nova),
+  [[sources/2026-06-29-launcher-login-catalogo]] (nova), [[entities/tcmine-launcher]] (stub → wip),
+  [[entities/tcmine-server]] (endpoints + decisão de auth), [[index]] (atualizado).
+- **Resumo:** primeiro incremento real do launcher — **login + catálogo**. O login Microsoft do jogador
+  é **orquestrado pelo servidor** (Auth Code + PKCE; cadeia Xbox→XSTS→Minecraft no `MicrosoftAuthService`),
+  com o resultado empurrado ao launcher por uma **"live link" SSE direcionada** (`LoginSessionBroker`,
+  keyed por `loginId` — vs. o broadcast do `/events`). O refresh token MS fica **cifrado no servidor**
+  (`PlayerAccountEntity`, Data Protection); o launcher guarda só uma **sessão TCMine opaca** (DPAPI).
+  Migração `PlayerAccount` nos dois providers. Launcher reusa os DTOs `record` do core. Servidor e
+  launcher compilam (0 erros).
+- **Pendências:** registar o redirect URI `{PublicBaseUrl}/auth/microsoft/callback` no Azure (setup
+  externo); install/launch do jogo fora de escopo; tema `ColorTokens` do launcher por re-introduzir;
+  `ServerConfig.BaseUrl` por tornar configurável. **Validação end-to-end exige reiniciar o servidor**
+  (estava rodando o build antigo durante a implementação).
+
+---
+
 ## [2026-06-27] ingest | Instâncias de servidor (Docker) + remodelagem da UX admin
 
 - **Fonte:** sessão de implementação; código vivo `TCMine-Infrastructure/ServerInstances/`,

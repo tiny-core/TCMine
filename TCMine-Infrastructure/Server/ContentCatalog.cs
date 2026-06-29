@@ -1,20 +1,19 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine_Application.Contracts;
-using TCMine_Domain.Modpack;
-using TCMine_Infrastructure.Persistence;
 using TCMine_Domain.Entities;
+using TCMine_Domain.Modpack;
 using TCMine_Infrastructure.Launcher;
+using TCMine_Infrastructure.Persistence;
 
 namespace TCMine_Infrastructure.Server;
 
 /// <summary>
-/// Fonte de conteúdo do site público (landing) e de estatísticas para o painel: lê os modpacks
-/// publicados (com seus servidores) e contagens diretamente do banco, e reflete o estado do feed
-/// Velopack do launcher (via <see cref="LauncherFeedService"/>).
-///
-/// Singleton: como o <see cref="AppDbContext"/> é scoped, abre um escopo curto por consulta através
-/// do <see cref="IServiceScopeFactory"/> (mesmo padrão de <c>ServerSettingsService</c>).
+///     Fonte de conteúdo do site público (landing) e de estatísticas para o painel: lê os modpacks
+///     publicados (com seus servidores) e contagens diretamente do banco, e reflete o estado do feed
+///     Velopack do launcher (via <see cref="LauncherFeedService" />).
+///     Singleton: como o <see cref="AppDbContext" /> é scoped, abre um escopo curto por consulta através
+///     do <see cref="IServiceScopeFactory" /> (mesmo padrão de <c>ServerSettingsService</c>).
 /// </summary>
 public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactory scopeFactory)
 {
@@ -49,9 +48,9 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
     }
 
     /// <summary>
-    /// Agregado completo para o dashboard do painel: contagens, distribuição de mods,
-    /// estado das instâncias, última release, modpacks recentes e atividade recente.
-    /// Reúne tudo num único escopo de DB para evitar várias idas e voltas a partir da página.
+    ///     Agregado completo para o dashboard do painel: contagens, distribuição de mods,
+    ///     estado das instâncias, última release, modpacks recentes e atividade recente.
+    ///     Reúne tudo num único escopo de DB para evitar várias idas e voltas a partir da página.
     /// </summary>
     public async Task<DashboardData> GetDashboardAsync(CancellationToken ct = default)
     {
@@ -72,8 +71,9 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
         var modpackNews = await db.News.CountAsync(n => n.IsPublished && n.ModpackId != null, ct);
 
         // Distribuição de mods por lado (sobre os vínculos por-modpack) — "Both" conta para os dois
-        var clientMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Client, ct);
-        var serverMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Both || m.Side == ModSide.Server, ct);
+        var clientMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Client, ct);
+        var serverMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Server, ct);
+        var sharedMods = await db.ModpackMods.CountAsync(m => m.Side == ModSide.Both, ct);
 
         // Instâncias de servidor gerenciadas e quantas estão de pé agora
         var instances = await db.ServerInstances.CountAsync(ct);
@@ -118,6 +118,7 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
             mods,
             clientMods,
             serverMods,
+            sharedMods,
             servers,
             users,
             globalNews,
@@ -145,6 +146,7 @@ public sealed record DashboardData(
     int Mods,
     int ClientMods,
     int ServerMods,
+    int SharedMods,
     int Servers,
     int Users,
     int GlobalNews,
