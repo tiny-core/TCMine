@@ -7,7 +7,7 @@ using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
 using TCMine_Server.Services;
-using TCMine_Infrastructure.ServerInstances;
+using TCMine_Server.Infrastructure.ServerInstances;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers;
 
@@ -20,6 +20,7 @@ namespace TCMine_Server.Components.Pages.Admin.Servers;
 public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 {
     [Inject] private ServerInstanceService Service { get; set; } = null!;
+    [Inject] private ProvisioningCoordinator Provisioner { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
@@ -29,6 +30,11 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     [Parameter] public Guid Id { get; set; }
 
     private ServerInstanceDetailDto? _detail;
+
+    // ── Provisionamento (via coordenador de fundo; reconecta após refresh) ──────────────────────────
+    private ProvisionJobView? _job;            // job em curso/concluído desta instância (null = nenhum)
+    private ElementReference _jobStepsEl;       // container rolável do log de passos → auto-scroll
+    private bool _scrollJobPending;             // sinaliza ao OnAfterRender para descer ao passo atual
 
     // ── Console ───────────────────────────────────────────────────────────────────────────────────
     private readonly StringBuilder _logBuffer = new();
@@ -49,6 +55,11 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     protected override async Task OnInitializedAsync()
     {
         await Busy.RunAsync("Carregando instância…", LoadAsync);
+
+        // Reconecta a um provisionamento em andamento (ex.: o usuário deu refresh no meio) e passa a ouvir
+        // o coordenador para ver o progresso ao vivo.
+        if (Provisioner.IsRunning(Id)) _job = Provisioner.Get(Id);
+        Provisioner.Changed += OnJobChanged;
     }
 
     // Reage à mudança de status (start/stop) ligando/desligando o stream de logs
@@ -60,10 +71,34 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
     // Mantém o console preso na última linha (auto-scroll) sempre que chega log novo
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_consoleScrollPending) return;
-        _consoleScrollPending = false;
-        try { await JS.InvokeVoidAsync("tcmineConsole.scrollToBottom"); }
-        catch { /* console não renderizado (outra aba) — ignora */ }
+        // Auto-scroll do log de passos do provisionamento (mantém o passo atual visível)
+        if (_scrollJobPending)
+        {
+            _scrollJobPending = false;
+            try { await JS.InvokeVoidAsync("tcmineScrollToBottom", _jobStepsEl); }
+            catch { /* painel não renderizado — ignora */ }
+        }
+
+        if (_consoleScrollPending)
+        {
+            _consoleScrollPending = false;
+            try { await JS.InvokeVoidAsync("tcmineConsole.scrollToBottom"); }
+            catch { /* console não renderizado (outra aba) — ignora */ }
+        }
+    }
+
+    // Há um provisionamento em andamento para esta instância?
+    private bool IsProvisioning => _job is { State: ProvisionState.Running };
+
+    // Status "global" do painel: a fase atual (rótulo antes de " — "); o detalhe fica na lista de passos
+    private string JobGlobalStatus
+    {
+        get
+        {
+            var last = _job is { Steps.Count: > 0 } ? _job.Steps[^1] : "Provisionando…";
+            var i = last.IndexOf(" — ", StringComparison.Ordinal);
+            return i < 0 ? last : last[..i];
+        }
     }
 
     private async Task LoadAsync()
@@ -73,14 +108,55 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 
     // ── Ciclo de vida ───────────────────────────────────────────────────────────────────────────────
 
-    private async Task ProvisionAsync()
+    // Dispara o provisionamento no COORDENADOR de fundo (não no circuito): não bloqueia a UI, sobrevive a
+    // um refresh de página (a página reconecta ao progresso) e é retomado no boot se o server cair.
+    private void StartProvision()
     {
         var applying = _detail is { Provisioned: true, IsStale: true };
-        await RunAndReload(
-            applying ? "Aplicando atualização…" : "Provisionando instância…",
-            // Desatualizada: re-provisiona E reinicia (se estava rodando) num clique; senão, só provisiona
-            () => applying ? Service.ApplyUpdateAsync(Id, Busy.Progress()) : Service.ProvisionAsync(Id, Busy.Progress()),
-            applying ? "Atualização aplicada." : "Instância provisionada.");
+        Provisioner.Start(Id, applying);
+        _job = Provisioner.Get(Id);
+        _scrollJobPending = true;
+    }
+
+    // Coordenador avisou que o job mudou (roda fora do circuito → InvokeAsync). Atualiza o painel; ao
+    // concluir com sucesso, recarrega o detalhe e some com o painel; em erro, mantém os passos + o erro.
+    private void OnJobChanged(Guid id)
+    {
+        if (id != Id) return;
+        _ = InvokeAsync(async () =>
+        {
+            var view = Provisioner.Get(Id);
+            if (view is null) return;
+
+            if (view.State == ProvisionState.Running)
+            {
+                _job = view;
+                _scrollJobPending = true;
+                StateHasChanged();
+                return;
+            }
+
+            if (view.State == ProvisionState.Succeeded)
+            {
+                _job = null;
+                await LoadAsync();
+                SyncLogStream();
+                Snackbar.Add("Provisionamento concluído.", Severity.Success);
+            }
+            else
+            {
+                _job = view;
+                Snackbar.Add(view.Error ?? "Falha no provisionamento.", Severity.Error);
+            }
+
+            StateHasChanged();
+        });
+    }
+
+    // Fecha o painel de um provisionamento que falhou (o usuário leu o erro)
+    private void DismissJob()
+    {
+        _job = null;
     }
 
     private async Task StartAsync()
@@ -106,14 +182,18 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         await RunAndReload("Salvando instância…", () => Service.UpdateAsync(dto), "Instância atualizada.");
     }
 
-    // Envelope comum: operação sob overlay + recarrega o detalhe + snackbar; erros viram snackbar
+    // Envelope comum: operação sob overlay + recarrega o detalhe + snackbar; erros viram snackbar.
+    // A operação corre em Task.Run (fora do dispatcher do circuito): operações como o provisionamento
+    // têm trabalho síncrono pesado (link de arquivos) que, no dispatcher, congelaria a UI e engoliria o
+    // progresso ao vivo. Fora dele, o overlay renderiza cada passo. As portas usadas são sequenciais
+    // (sem acesso concorrente ao DbContext), então rodar noutra thread é seguro.
     private async Task RunAndReload(string message, Func<Task> operation, string success)
     {
         try
         {
             await Busy.RunAsync(message, async () =>
             {
-                await operation();
+                await Task.Run(operation);
                 await LoadAsync();
             });
             SyncLogStream();
@@ -261,6 +341,7 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
             ServerInstanceStatus.Running => "Em execução",
             ServerInstanceStatus.Starting => "Iniciando",
             ServerInstanceStatus.Stopping => "Parando",
+            ServerInstanceStatus.Provisioning => "Provisionando",
             ServerInstanceStatus.Crashed => "Falhou",
             _ => "Parado"
         };
@@ -272,6 +353,7 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         {
             ServerInstanceStatus.Running => Color.Success,
             ServerInstanceStatus.Starting or ServerInstanceStatus.Stopping => Color.Info,
+            ServerInstanceStatus.Provisioning => Color.Info,
             ServerInstanceStatus.Crashed => Color.Error,
             _ => Color.Default
         };
@@ -279,6 +361,7 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 
     public ValueTask DisposeAsync()
     {
+        Provisioner.Changed -= OnJobChanged;
         StopLogStream();
         StopPing();
         return ValueTask.CompletedTask;

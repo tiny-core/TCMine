@@ -10,7 +10,7 @@ sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/setup-auth-cookie]]"
 ---
 
@@ -47,8 +47,8 @@ precisar de conta no painel — a identidade é a própria conta Minecraft.
 ## Aplicação concreta
 
 - `TCMine-Server/Endpoints/PlayerConfigEndpoints.cs`;
-  `TCMine-Infrastructure/Minecraft/MinecraftAuthService.cs`;
-  `TCMine-Infrastructure/Persistence/Repositories/PlayerConfigRepository.cs`.
+  `TCMine-Server.Infrastructure/Minecraft/MinecraftAuthService.cs`;
+  `TCMine-Server.Infrastructure/Persistence/Repositories/PlayerConfigRepository.cs`.
 
 ## Contradições / debates conhecidos
 

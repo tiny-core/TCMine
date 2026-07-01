@@ -14,8 +14,18 @@ public sealed class BusyService
     // Quantas operações estão em andamento agora (aninhadas/concorrentes somam)
     private int _activeCount;
 
+    // Log de passos da operação atual (ex.: cada etapa do provisionamento). Cap para não crescer sem fim.
+    private const int MaxSteps = 40;
+    private readonly List<string> _steps = [];
+
     /// <summary>Mensagem da operação em andamento (a da última iniciada); null quando ocioso.</summary>
     public string? Message { get; private set; }
+
+    /// <summary>
+    /// Histórico de passos da operação atual, do primeiro ao mais recente (o último é o passo em curso).
+    /// Operações de um só passo têm um item; o provisionamento acumula vários. Vazio quando ocioso.
+    /// </summary>
+    public IReadOnlyList<string> Steps => _steps;
 
     /// <summary>Há ao menos uma operação em andamento?</summary>
     public bool IsBusy => _activeCount > 0;
@@ -43,7 +53,29 @@ public sealed class BusyService
     {
         if (_activeCount <= 0) return;
         Message = message;
+        AppendOrCoalesceStep(message);
         OnChange?.Invoke();
+    }
+
+    // Adiciona o passo ao log — ou substitui o último quando é a MESMA etapa se atualizando ao vivo.
+    // Convenção: atualizações ao vivo (ex.: "% de download", "25/120 mods") usam " — " para separar o
+    // rótulo fixo do detalhe variável; passos com o mesmo rótulo (prefixo antes do " — ") coalescem
+    // numa linha só em vez de inundar o log.
+    private void AppendOrCoalesceStep(string message)
+    {
+        static string Label(string s)
+        {
+            var i = s.IndexOf(" — ", StringComparison.Ordinal);
+            return i < 0 ? s : s[..i];
+        }
+
+        if (_steps.Count > 0 && Label(_steps[^1]) == Label(message))
+            _steps[^1] = message;
+        else
+            _steps.Add(message);
+
+        if (_steps.Count > MaxSteps)
+            _steps.RemoveRange(0, _steps.Count - MaxSteps);
     }
 
     /// <summary>
@@ -76,6 +108,13 @@ public sealed class BusyService
 
     private void Begin(string message)
     {
+        // Só a operação de topo semeia/limpa o log (aninhadas apenas somam o contador)
+        if (_activeCount == 0)
+        {
+            _steps.Clear();
+            _steps.Add(message);
+        }
+
         _activeCount++;
         Message = message;
         OnChange?.Invoke();
@@ -87,6 +126,7 @@ public sealed class BusyService
         {
             _activeCount = 0;
             Message = null;
+            _steps.Clear();
         }
 
         OnChange?.Invoke();

@@ -10,7 +10,9 @@ sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
+  - "[[entities/tcmine-launcher]]"
+  - "[[entities/tcmine-launcher-infrastructure]]"
   - "[[concepts/modpack-mods-locais]]"
 ---
 
@@ -22,8 +24,24 @@ related:
 ## O que é
 
 `MapEventsEndpoint` ([[entities/tcmine-server]]) abre um stream `text/event-stream`
-em `/events`. O `ContentNotifier` ([[entities/tcmine-infrastructure]]) é um
+em `/events`. O `ContentNotifier` ([[entities/tcmine-server-infrastructure]]) é um
 singleton que mantém uma `Version` incremental e a transmite aos subscritores.
+
+> **Consumidor (launcher), 2026-06-29:** o servidor já fazia o `Bump()` em todas as mutações
+> (`ModpackImportService` save/delete/metadata/connections/overrides, `ServerInstanceService`,
+> `ModpackNewsService`), mas o launcher novo não consumia o `/events`. Agora a porta `IContentWatcher`
+> ([[entities/tcmine-application]]) + impl `ContentWatcher` ([[entities/tcmine-launcher-infrastructure]])
+> ligam-se ao stream, fixam a baseline e disparam ao receber versão diferente (em stream ou após
+> reconectar); o shell recarrega o **catálogo** e o **modpack ativo** (metadados/servidores) e atualiza o
+> indicador "Servidor ligado/indisponível".
+
+> **Consumidor (launcher), 2026-07-01 — disponibilidade:** o mesmo evento passou a alimentar os
+> **badges de indisponibilidade**. A shell cruza as instâncias instaladas com `/api/modpacks`
+> (`ReconcileAvailabilityAsync`) e marca `ModpackMissing` nas que sumiram; o manifesto do ativo passou a
+> distinguir **404 (modpack removido/despublicado)** de **exceção (servidor offline)**. `InstalledModpack`
+> expõe flags reativas (`ModpackMissing`/`AutoJoinServerMissing`/`HasAvailabilityWarning`) que a Home e a
+> lista de Instâncias mostram como badge. A lista de servidores do modpack ativo também se reconstrói a
+> partir do manifesto fresco em cada evento. Ver [[entities/tcmine-launcher]].
 
 ## Por que importa para o TCMine
 
@@ -46,7 +64,7 @@ reage só quando algo muda — barato e quase em tempo real.
 ## Aplicação concreta
 
 - `TCMine-Server/Endpoints/EventsEndpoints.cs`;
-  `TCMine-Infrastructure/Server/ContentNotifier.cs`.
+  `TCMine-Server.Infrastructure/Server/ContentNotifier.cs`.
 
 ## Contradições / debates conhecidos
 

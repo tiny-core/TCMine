@@ -10,7 +10,7 @@ sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/secrets-data-protection]]"
   - "[[concepts/shared-domain-logic]]"
 ---
@@ -41,7 +41,7 @@ conhece a key.
   Owner ainda não a definiu nas settings (ver
   [[concepts/secrets-data-protection]]).
 - **Servidor (import) não usa o proxy:** o `CurseForgeApiClient`
-  ([[entities/tcmine-infrastructure]]) fala direto com o CF, injetando a key lida
+  ([[entities/tcmine-server-infrastructure]]) fala direto com o CF, injetando a key lida
   das settings **por requisição** (a key pode mudar em runtime). O proxy é a porta
   do **cliente**.
 - A mesma `ICurseForgeApi` abstrai os dois acessos (direto vs proxy) — ver
@@ -50,7 +50,7 @@ conhece a key.
 ## Aplicação concreta
 
 - `TCMine-Server/Endpoints/CurseForgeProxyEndpoints.cs`;
-  `TCMine-Infrastructure/CurseForge/CurseForgeApiClient.cs`.
+  `TCMine-Server.Infrastructure/CurseForge/CurseForgeApiClient.cs`.
 
 ## Contradições / debates conhecidos
 

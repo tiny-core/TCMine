@@ -47,7 +47,7 @@ mantém um cache compartilhado dos jars em `tcmine-data/mods/{fileId}/{fileName}
 ## Aplicação concreta
 
 - `TCMine-Server/Endpoints/ModpackEndpoints.cs`;
-  `TCMine-Infrastructure/FileSystem/ServerPaths.cs` (`Mods`, `Modpacks`).
+  `TCMine-Server.Infrastructure/FileSystem/ServerPaths.cs` (`Mods`, `Modpacks`).
 
 ## Modelo de dados (N:N)
 

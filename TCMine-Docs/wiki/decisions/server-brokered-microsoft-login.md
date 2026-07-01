@@ -13,7 +13,7 @@ sources:
 related:
   - "[[entities/tcmine-launcher]]"
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/secrets-data-protection]]"
   - "[[concepts/curseforge-proxy]]"
   - "[[concepts/player-config-sync]]"
@@ -115,8 +115,8 @@ minecraft-launcher-lib) — o erro acima é **configuração do Azure**, não do
 
 ## Referências
 
-- Código servidor: `TCMine-Infrastructure/Minecraft/MicrosoftAuthService.cs`,
-  `TCMine-Infrastructure/Identity/PlayerSessionService.cs`,
+- Código servidor: `TCMine-Server.Infrastructure/Minecraft/MicrosoftAuthService.cs`,
+  `TCMine-Server.Infrastructure/Identity/PlayerSessionService.cs`,
   `TCMine-Server/Services/LoginSessionBroker.cs`, `TCMine-Server/Endpoints/AuthEndpoints.cs`,
   `TCMine-Domain/Entities/PlayerAccountEntity.cs`.
 - Código launcher: `TCMine-Launcher/Services/{AuthService,ApiClient,SessionStore}.cs`.

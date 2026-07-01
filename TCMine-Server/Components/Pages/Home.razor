@@ -1,40 +1,138 @@
-﻿@page "/"
+@page "/"
 @layout PublicLayout
+@using TCMine_Application.Contracts
+@using TCMine_Server.Infrastructure.Server
 
 <PageTitle>TCMine Server</PageTitle>
 
-@* ── Hero ────────────────────────────────────────────────────────────────────────────────────────────────────────── *@
-<MudContainer MaxWidth="MaxWidth.Medium" Class="py-16">
-    <MudStack AlignItems="AlignItems.Center" Spacing="4">
-        <MudImage Src="images/logo.png" Width="96" Height="96"/>
-        <MudText Typo="Typo.h2" Align="Align.Center">TCMine</MudText>
-        <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary">
-            Modpacks oficiais, servidores e launcher próprio — tudo num só lugar.
-        </MudText>
+@* Wrapper que carrega o atributo de escopo — permite ::deep alcançar os MudPaper filhos no CSS *@
+<div class="home-page">
 
-        @if (LauncherAvailable)
-        {
-            <MudButton Href="/download" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
-                Baixar Launcher para Windows
-            </MudButton>
-            @if (LauncherVersion is not null)
-            {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Versão @LauncherVersion</MudText>
-            }
-        }
-        else
-        {
-            @* Sem feed Velopack publicado ainda — botão desabilitado e aviso *@
-            <MudButton Disabled="true" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                       StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
-                Launcher em breve
-            </MudButton>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                O instalador ainda não está disponível. Volte em breve.
+@* ── Hero ────────────────────────────────────────────────────────────────────────────────────── *@
+<div class="home-hero">
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="py-16">
+        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+            <MudImage Src="images/logo.png" Width="96" Height="96"/>
+            <MudText Typo="Typo.h2" Align="Align.Center" Class="home-title">TCMine</MudText>
+            <MudText Typo="Typo.h6" Align="Align.Center" Color="Color.Secondary" Style="max-width: 620px;">
+                Modpacks oficiais, servidores e launcher próprio — tudo num só lugar.
             </MudText>
-        }
-    </MudStack>
+
+            @if (LauncherAvailable)
+            {
+                <MudButton Href="/download" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
+                    Baixar Launcher para Windows
+                </MudButton>
+                @if (LauncherVersion is not null)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Versão @LauncherVersion</MudText>
+                }
+            }
+            else
+            {
+                @* Sem feed Velopack publicado ainda — botão desabilitado e aviso *@
+                <MudButton Disabled="true" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                           StartIcon="@Icons.Material.Filled.Download" Class="mt-2">
+                    Launcher em breve
+                </MudButton>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    O instalador ainda não está disponível. Volte em breve.
+                </MudText>
+            }
+        </MudStack>
+    </MudContainer>
+</div>
+
+@* ── Destaques ───────────────────────────────────────────────────────────────────────────────── *@
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
+    <MudGrid Spacing="4">
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 home-feature" Elevation="0" Outlined="true">
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary" Class="home-feature-icon"/>
+                <MudText Typo="Typo.h6" Class="mt-3">Modpacks curados</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Coleções montadas e testadas pela equipe, sempre atualizadas e prontas para jogar.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 home-feature" Elevation="0" Outlined="true">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Success" Class="home-feature-icon"/>
+                <MudText Typo="Typo.h6" Class="mt-3">Servidores oficiais</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Entre nos servidores da comunidade com a versão certa dos mods, sem configuração manual.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudPaper Class="pa-6 home-feature" Elevation="0" Outlined="true">
+                <MudIcon Icon="@Icons.Material.Filled.RocketLaunch" Color="Color.Info" Class="home-feature-icon"/>
+                <MudText Typo="Typo.h6" Class="mt-3">Launcher próprio</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-1">
+                    Instala, atualiza e sincroniza tudo automaticamente. A "Steam" do TCMine.
+                </MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 </MudContainer>
 
+@* ── Modpacks publicados ─────────────────────────────────────────────────────────────────────── *@
+@if (_modpacks.Count > 0)
+{
+    <MudDivider/>
+    <MudContainer MaxWidth="MaxWidth.Large" Class="py-12">
+        <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-8">Modpacks disponíveis</MudText>
+        <MudGrid Spacing="4">
+            @foreach (var pack in _modpacks)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-5 mud-height-full home-modpack" Elevation="0" Outlined="true">
+                        <MudStack Class="mud-height-full" Justify="Justify.SpaceBetween">
+                            <div>
+                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Start">
+                                    <MudText Typo="Typo.h6">@pack.Summary.Name</MudText>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                        @($"v{pack.Summary.Version}")
+                                    </MudChip>
+                                </MudStack>
+
+                                <MudStack Row="true" Spacing="1" Class="mt-1 mb-3" Wrap="Wrap.Wrap">
+                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Tag">
+                                        MC @pack.Summary.Minecraft
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Build">
+                                        @pack.Summary.Loader
+                                    </MudChip>
+                                    <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Extension">
+                                        @pack.Summary.ModCount mods
+                                    </MudChip>
+                                </MudStack>
+
+                                @if (!string.IsNullOrWhiteSpace(pack.Summary.Description))
+                                {
+                                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="home-modpack-desc">
+                                        @pack.Summary.Description
+                                    </MudText>
+                                }
+                            </div>
+
+                            @if (pack.Servers.Count > 0)
+                            {
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mt-3">
+                                    <MudIcon Icon="@Icons.Material.Filled.Public" Size="Size.Small" Color="Color.Success"/>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @pack.Servers.Count servidor(es) online
+                                    </MudText>
+                                </MudStack>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    </MudContainer>
+}
+
 <MudDivider/>
+</div>

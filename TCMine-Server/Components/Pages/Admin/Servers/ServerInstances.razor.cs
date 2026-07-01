@@ -4,7 +4,7 @@ using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
 using TCMine_Server.Services;
-using TCMine_Infrastructure.ServerInstances;
+using TCMine_Server.Infrastructure.ServerInstances;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers;
 
@@ -120,6 +120,7 @@ public partial class ServerInstances : ComponentBase
             ServerInstanceStatus.Running => "Em execução",
             ServerInstanceStatus.Starting => "Iniciando",
             ServerInstanceStatus.Stopping => "Parando",
+            ServerInstanceStatus.Provisioning => "Provisionando",
             ServerInstanceStatus.Crashed => "Falhou",
             _ => "Parado"
         };
@@ -131,6 +132,7 @@ public partial class ServerInstances : ComponentBase
         {
             ServerInstanceStatus.Running => Color.Success,
             ServerInstanceStatus.Starting or ServerInstanceStatus.Stopping => Color.Info,
+            ServerInstanceStatus.Provisioning => Color.Info,
             ServerInstanceStatus.Crashed => Color.Error,
             _ => Color.Default
         };
@@ -142,6 +144,7 @@ public partial class ServerInstances : ComponentBase
         {
             ServerInstanceStatus.Running => Icons.Material.Filled.CheckCircle,
             ServerInstanceStatus.Starting or ServerInstanceStatus.Stopping => Icons.Material.Filled.Sync,
+            ServerInstanceStatus.Provisioning => Icons.Material.Filled.Sync,
             ServerInstanceStatus.Crashed => Icons.Material.Filled.Error,
             _ => Icons.Material.Filled.StopCircle
         };

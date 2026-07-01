@@ -11,7 +11,7 @@ feeds:
   - "[[concepts/modpack-admin-editor]]"
   - "[[entities/tcmine-server]]"
 related:
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
 ---
 
 # Implementação da UI admin de modpacks

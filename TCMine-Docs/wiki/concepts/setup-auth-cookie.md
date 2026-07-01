@@ -10,7 +10,7 @@ sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-domain]]"
   - "[[concepts/secrets-data-protection]]"
 ---
@@ -59,7 +59,7 @@ ao refresh) e uma porta de entrada segura para gerir conteúdo e segredos.
 
 ## Aplicação concreta
 
-- `TCMine-Infrastructure/Identity/{UserService,SetupState}.cs`;
+- `TCMine-Server.Infrastructure/Identity/{UserService,SetupState}.cs`;
   `TCMine-Server/Authentication/{AuthClaims,PersistingAuthenticationStateProvider}.cs`;
   `TCMine-Server/Program.cs` (cookie + middleware de primeira execução);
   `TCMine-Server/Components/Pages/Admin/Users/` (página de gestão + `UserEditDialog`).

@@ -4,6 +4,8 @@
 @* Aba "Novidades" do editor: newsletter por modpack em tabela (padrão das listas — MudDataGrid com
    busca + pager). Self-contained: carrega e persiste por conta própria. Ver NewsPanel.razor.cs. *@
 
+
+
 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
     <MudText Typo="Typo.body2" Color="Color.Secondary">
         Publicadas na página deste modpack.
@@ -29,7 +31,7 @@ else if (_news.Count == 0)
 }
 else
 {
-    <MudDataGrid T="NewsEntity" Items="_news" Hover="true" Dense="true" Elevation="0"
+    <MudDataGrid T="NewsEntity" Items="_news" Hover="true" Dense="true" Outlined="true"
                  FixedHeader="true" Height="50vh" Filterable="false" QuickFilter="Filter"
                  RowsPerPage="25">
         <ToolBarContent>

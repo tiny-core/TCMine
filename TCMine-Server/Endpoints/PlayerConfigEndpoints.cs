@@ -1,5 +1,5 @@
 ﻿using TCMine_Application.Abstractions;
-using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Minecraft;
 
 namespace TCMine_Server.Endpoints;
 

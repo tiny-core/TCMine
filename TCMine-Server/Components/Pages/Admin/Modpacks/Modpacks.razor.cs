@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
-using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
@@ -62,6 +62,11 @@ public partial class Modpacks : ComponentBase
             await Busy.RunAsync("Apagando modpack…", () => Service.DeleteAsync(row.Id));
             _rows?.Remove(row);
             Snackbar.Add("Modpack apagado.", Severity.Success);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Regra de negócio (ex.: servidores atrelados) — mensagem já é clara e acionável
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
         catch (Exception ex)
         {

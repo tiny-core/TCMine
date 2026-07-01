@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Domain.Entities;
-using TCMine_Infrastructure.Server;
+using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Services;
 

@@ -9,7 +9,7 @@ deciders: [Jocian]
 supersedes: []
 superseded-by: []
 sources: [[[sources/2026-06-27-server-instances-e-ux]]]
-related: [[[entities/tcmine-infrastructure]], [[entities/tcmine-server]], [[concepts/server-instance-lifecycle]]]
+related: [[[entities/tcmine-server-infrastructure]], [[entities/tcmine-server]], [[concepts/server-instance-lifecycle]]]
 ---
 
 # Instâncias de servidor Minecraft via Docker-out-of-Docker
@@ -57,5 +57,5 @@ host/container; um container por instância via Docker; imagens de comunidade (e
 
 ## Referências
 
-- Implementação em [[entities/tcmine-infrastructure]] (`ServerInstances/`); ver [[concepts/server-instance-lifecycle]].
+- Implementação em [[entities/tcmine-server-infrastructure]] (`ServerInstances/`); ver [[concepts/server-instance-lifecycle]].
 - Fonte: [[sources/2026-06-27-server-instances-e-ux]].

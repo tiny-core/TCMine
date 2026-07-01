@@ -11,7 +11,7 @@ feeds:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-domain]]"
   - "[[entities/tcmine-application]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-design]]"
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-launcher]]"
@@ -54,7 +54,7 @@ contradições a tratar.
 ## O que alimentou na wiki
 
 - Criadas as 8 entidades: [[entities/tcmine-solution]], [[entities/tcmine-domain]],
-  [[entities/tcmine-application]], [[entities/tcmine-infrastructure]],
+  [[entities/tcmine-application]], [[entities/tcmine-server-infrastructure]],
   [[entities/tcmine-design]], [[entities/tcmine-server]],
   [[entities/tcmine-launcher]], [[entities/tcmine-icongenerator]].
 - Conceitos/decisões referenciados pelas entidades — **criados na batch seguinte

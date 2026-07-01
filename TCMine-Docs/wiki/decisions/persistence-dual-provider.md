@@ -11,7 +11,7 @@ superseded-by: []
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/clean-architecture]]"
 ---
 
@@ -58,5 +58,5 @@ de migrations servir os dois.
 
 ## Referências
 
-- `TCMine-Infrastructure/Persistence/{AppDbContext,DatabaseServiceCollectionExtensions,SqliteAppDbContext,PostgresAppDbContext}.cs`
-- [[entities/tcmine-infrastructure]] · [[sources/2026-06-23-leitura-codigo-vivo]]
+- `TCMine-Server.Infrastructure/Persistence/{AppDbContext,DatabaseServiceCollectionExtensions,SqliteAppDbContext,PostgresAppDbContext}.cs`
+- [[entities/tcmine-server-infrastructure]] · [[sources/2026-06-23-leitura-codigo-vivo]]

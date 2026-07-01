@@ -21,10 +21,11 @@ correspondente, com um resumo de uma linha.
 - [[entities/tcmine-solution]] — visão geral: 7 projetos em Clean Architecture .NET 10 (overview, arquitetura)
 - [[entities/tcmine-domain]] — entidades, enums e regras puras de domínio (domain, clean-architecture)
 - [[entities/tcmine-application]] — portas, contratos (DTOs `record`) e lógica pura de modpack (application)
-- [[entities/tcmine-infrastructure]] — EF Core dual-provider, CurseForge, filesystem, serviços (infrastructure, ef-core)
+- [[entities/tcmine-server-infrastructure]] — EF Core dual-provider, CurseForge, filesystem, serviços (infrastructure, ef-core)
 - [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`), fonte única de cor (design-system, theming)
 - [[entities/tcmine-server]] — Blazor Server + Minimal API: backend + painel admin (blazor, backend)
-- [[entities/tcmine-launcher]] — app desktop Avalonia: login Microsoft (MSAL) + catálogo (avalonia, launcher)
+- [[entities/tcmine-launcher]] — app desktop Avalonia (só UI + composição): login MSAL + catálogo + jogar (avalonia, launcher)
+- [[entities/tcmine-launcher-infrastructure]] — infra do launcher: CmlLib/HTTP/filesystem que implementa as portas (launcher, infrastructure, cmllib)
 - [[entities/tcmine-icongenerator]] — gera ícones/assets para launcher e servidor (tooling, assets)
 
 ## Conceitos (`wiki/concepts/`)
@@ -46,6 +47,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/async-feedback-overlay]] — modal não-fechável (`BusyService`/`BusyOverlay`) em toda operação async do painel (blazor, ux, feedback)
 - [[concepts/server-instance-lifecycle]] — provisionar (cache de loader) → rodar em container → reconciliar status → medir presença (server-instance, docker)
 - [[concepts/modpack-server-hub-ux]] — hub do modpack + páginas/modais no lugar de abas; ligação modpack↔servidor e sync de desatualização (admin, ux)
+- [[concepts/launcher-install-launch]] — pipeline do launcher: manifesto → mods → overrides → NeoForge (CmlLib) → launch (launcher, install, cmllib)
 
 ## Decisões (`wiki/decisions/`)
 
@@ -57,6 +59,7 @@ correspondente, com um resumo de uma linha.
 - [[decisions/curseforge-update-tracking]] — origem CF (1:1) + checagem econômica de atualizações de modpack/mods (curseforge, atualizacoes)
 - [[decisions/server-instances-docker]] — cada servidor Minecraft num container dedicado (Docker-out-of-Docker), TCMine no controle total (server-instance, docker)
 - [[decisions/auth-msal-launcher]] — login Microsoft via MSAL no launcher (loopback, sem hosting/secret) (auth, msal, launcher)
+- [[decisions/launcher-clean-architecture]] — launcher em Clean Architecture com projeto de infra dedicado (launcher, arquitetura)
 - [[decisions/server-brokered-microsoft-login]] — _(substituída)_ tentativa de login orquestrado pelo servidor via SSE (auth, microsoft, descontinuada)
 
 ## Fontes / Resumos (`wiki/sources/`)
@@ -70,6 +73,9 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-25-curseforge-update-tracking]] — origem CF + checagem de atualizações (code, curseforge)
 - [[sources/2026-06-27-server-instances-e-ux]] — instâncias de servidor (Docker) + remodelagem da UX admin (code, server-instance, docker, ux)
 - [[sources/2026-06-29-launcher-login-catalogo]] — launcher: login Microsoft pelo servidor + catálogo (code, launcher, auth, avalonia)
+- [[sources/2026-06-29-launcher-install-launch]] — launcher: instalar + lançar modpack NeoForge (code, launcher, install, cmllib)
+- [[sources/2026-06-29-launcher-clean-architecture]] — launcher: Clean Architecture + Home estilo backup (code, launcher, arquitetura, ui)
+- [[sources/2026-07-01-dashboard-metrics-home]] — medidores CPU/RAM/disco na dashboard + home pública revampada (code, dashboard, metrics, mudblazor)
 
 ## Sínteses e páginas derivadas
 
@@ -85,8 +91,9 @@ Caminhos relativos à raiz da solução (`P:\TCMine\`), irmã de `TCMine-Docs/`.
 
 - `TCMine-Domain/` → [[entities/tcmine-domain]]
 - `TCMine-Application/` → [[entities/tcmine-application]]
-- `TCMine-Infrastructure/` → [[entities/tcmine-infrastructure]]
+- `TCMine-Server.Infrastructure/` → [[entities/tcmine-server-infrastructure]]
 - `TCMine-Design/` → [[entities/tcmine-design]]
 - `TCMine-Server/` → [[entities/tcmine-server]]
+- `TCMine-Launcher.Infrastructure/` → [[entities/tcmine-launcher-infrastructure]]
 - `TCMine-Launcher/` → [[entities/tcmine-launcher]]
 - `TCMine-IconGenerator/` → [[entities/tcmine-icongenerator]]

@@ -7,19 +7,19 @@ using Microsoft.AspNetCore.Diagnostics;
 using MudBlazor.Services;
 using TCMine_Server;
 using TCMine_Application.Abstractions;
-using TCMine_Infrastructure.FileSystem;
-using TCMine_Infrastructure.Identity;
+using TCMine_Server.Infrastructure.FileSystem;
+using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Authentication;
-using TCMine_Infrastructure.Persistence;
+using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Components;
 using TCMine_Server.Components.Pages;
 using TCMine_Server.Endpoints;
 using TCMine_Server.Services;
-using TCMine_Infrastructure.CurseForge;
-using TCMine_Infrastructure.Launcher;
-using TCMine_Infrastructure.Minecraft;
-using TCMine_Infrastructure.Server;
-using TCMine_Infrastructure.ServerInstances;
+using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.Launcher;
+using TCMine_Server.Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Server;
+using TCMine_Server.Infrastructure.ServerInstances;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +36,7 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 // ── Diretórios de dados ──────────────────────────────────────────────────────────────────────────────────────────────
-// Toda criação de pastas fica centralizada em ServerPaths (TCMine-Infrastructure.FileSystem)
+// Toda criação de pastas fica centralizada em ServerPaths (TCMine-Server.Infrastructure.FileSystem)
 var dataRoot = builder.Environment.ContentRootPath;
 ServerPaths.EnsureCreated(dataRoot);
 
@@ -95,6 +95,9 @@ builder.Services.AddScoped<ServerRuntimeInstaller>();
 builder.Services.AddScoped<ServerProvisioner>();
 // Fachada do painel admin: CRUD das instâncias + delegação de provisão/ciclo de vida. Scoped: AppDbContext.
 builder.Services.AddScoped<ServerInstanceService>();
+// Coordena o provisionamento em segundo plano (fora do circuito Blazor): a página reconecta ao progresso
+// após um refresh e um reinício do server retoma provisões interrompidas. Singleton: estado dos jobs.
+builder.Services.AddSingleton<ProvisioningCoordinator>();
 // Reconciliação periódica do status das instâncias com o daemon (detecta quedas de container).
 builder.Services.AddHostedService<ServerStatusReconciler>();
 
@@ -131,7 +134,8 @@ builder.Services.AddCascadingAuthenticationState();
 // ── Conteúdo e métricas ──────────────────────────────────────────────────────────────────────────────────────────────
 // Singletons: sem estado por requisição (catálogo em memória; métricas medem o processo)
 builder.Services.AddSingleton<ContentCatalog>();
-builder.Services.AddSingleton<SystemMetricsService>();
+// Recebe o dataRoot para reportar o uso do drive onde vivem os dados (tcmine-data)
+builder.Services.AddSingleton(new SystemMetricsService(dataRoot));
 // Feed Velopack: inspeciona tcmine-data/updates para versão/instalador do launcher
 builder.Services.AddSingleton<LauncherFeedService>();
 
@@ -168,6 +172,11 @@ var app = builder.Build();
 // Aplica as migrations pendentes no boot. Resolve o AppDbContext já registrado (o DI escolheu a
 // subclasse concreta conforme o provider). Sem isto, o schema nunca é criado/atualizado.
 await app.Services.MigrateTcMineDatabaseAsync();
+
+// ── Retomada de provisões interrompidas ──────────────────────────────────────────────────────────────────────────────
+// Se o server caiu no meio de um provisionamento, a instância ficou marcada como Provisioning; retoma
+// agora em segundo plano. Fire-and-forget: não atrasa o boot (a query é rápida e o trabalho é assíncrono).
+_ = app.Services.GetRequiredService<ProvisioningCoordinator>().RecoverAsync();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -314,6 +323,7 @@ app.MapCurseForgeProxy();
 app.MapEventsEndpoint();
 app.MapPlayerConfigEndpoints();
 app.MapLauncherFeedEndpoints();
+app.MapNewsEndpoints();
 
 app.Run();
 

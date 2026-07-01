@@ -9,7 +9,14 @@ public enum ServerInstanceStatus
     Starting,
     Running,
     Stopping,
-    Crashed
+    Crashed,
+
+    /// <summary>
+    ///     Provisionamento em andamento (montando loader/mods/configs). Persistido para que um reinício do
+    ///     TCMine-Server no meio do processo possa **retomar** a provisão (ver ProvisioningCoordinator).
+    ///     Guardado como texto na coluna Status (conversão de string), então não exige migration.
+    /// </summary>
+    Provisioning
 }
 
 /// <summary>

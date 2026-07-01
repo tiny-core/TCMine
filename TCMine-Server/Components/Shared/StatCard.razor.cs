@@ -15,10 +15,9 @@ public partial class StatCard : ComponentBase
     [Parameter] [EditorRequired] public string Value { get; set; } = null!;
 
     // Rótulo descritivo abaixo do valor
-    [Parameter] [EditorRequired] public string Label { get; set; } = null!;
+    [Parameter] [EditorRequired] public string Title { get; set; } = null!;
 
-    // Linha secundária opcional (ex.: "3 publicados", "2 rodando") — fica abaixo do rótulo
-    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
 
     // Converte a Color do MudBlazor no nome do token CSS de cor do tema (var(--mud-palette-*)),
     // usado pela faixa de acento e pelo fundo tingido do ícone no CSS escopado.

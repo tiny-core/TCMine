@@ -12,7 +12,7 @@ sources:
   - "[[sources/2026-06-25-mods-many-to-many]]"
 related:
   - "[[entities/tcmine-domain]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/modpack-mods-locais]]"
   - "[[concepts/modside-rules]]"
 ---
@@ -80,6 +80,6 @@ Normalizar em N:N:
 
 - [[sources/2026-06-25-mods-many-to-many]]
 - Código: `TCMine-Domain/Entities/{ModFileEntity,ModpackModEntity,ModEntryEntity}.cs`,
-  `TCMine-Infrastructure/Persistence/AppDbContext.cs`,
-  `TCMine-Infrastructure/Minecraft/ModpackImportService.cs`,
+  `TCMine-Server.Infrastructure/Persistence/AppDbContext.cs`,
+  `TCMine-Server.Infrastructure/Minecraft/ModpackImportService.cs`,
   `Migrations/{Sqlite,Postgres}/*_ModsManyToMany.cs`.

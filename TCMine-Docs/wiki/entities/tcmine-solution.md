@@ -11,7 +11,7 @@ sources:
 related:
   - "[[entities/tcmine-domain]]"
   - "[[entities/tcmine-application]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-design]]"
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-launcher]]"
@@ -31,13 +31,14 @@ related:
 **launcher** desktop instala e atualiza as instâncias do jogador. A lógica que
 os dois lados precisam decidir igual vive no **core** compartilhado.
 
-São **7 projetos**, organizados em camadas com dependências apontando para
+São **8 projetos** (com `TCMine-Launcher.Infrastructure` desde 2026-06-29 — ver
+[[decisions/launcher-clean-architecture]]), organizados em camadas com dependências apontando para
 dentro:
 
 **Core**
 - [[entities/tcmine-domain]] — entidades, enums e regras puras de domínio.
 - [[entities/tcmine-application]] — portas (interfaces), contratos (DTOs `record`) e lógica pura de modpack.
-- [[entities/tcmine-infrastructure]] — EF Core (SQLite/Postgres), CurseForge, filesystem, identidade e serviços.
+- [[entities/tcmine-server-infrastructure]] — EF Core (SQLite/Postgres), CurseForge, filesystem, identidade e serviços.
 
 **Entrega e suporte**
 - [[entities/tcmine-design]] — design system compartilhado (`ColorTokens`), fonte única de cor.

@@ -11,7 +11,7 @@ superseded-by: []
 sources:
   - "[[sources/2026-06-25-curseforge-update-tracking]]"
 related:
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-server]]"
   - "[[concepts/modpack-admin-editor]]"
   - "[[concepts/curseforge-proxy]]"
@@ -70,7 +70,7 @@ ao **custo da API** do CurseForge e ao desempenho.
 
 - [[sources/2026-06-25-curseforge-update-tracking]]
 - Código: `TCMine-Domain/Entities/ModpackImportSourceEntity.cs`;
-  `TCMine-Infrastructure/CurseForge/CurseForgeApiClient.cs` (`GetLatestFileIndexesAsync`);
-  `TCMine-Infrastructure/Minecraft/ModpackImportService.cs`
+  `TCMine-Server.Infrastructure/CurseForge/CurseForgeApiClient.cs` (`GetLatestFileIndexesAsync`);
+  `TCMine-Server.Infrastructure/Minecraft/ModpackImportService.cs`
   (`CheckModpackUpdateAsync`/`CheckModUpdatesAsync`/`GetImportSourceAsync`);
   `Components/Pages/Admin/Modpacks/` (banner no editor, `Panels/ModsPanel`, `Dialogs/ModUpdatesDialog`).

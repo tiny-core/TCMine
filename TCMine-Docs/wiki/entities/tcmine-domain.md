@@ -11,7 +11,7 @@ sources:
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-application]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/clean-architecture]]"
   - "[[decisions/mods-many-to-many]]"
 ---
@@ -34,7 +34,7 @@ DataAnnotations` para anotações como `[MaxLength]`).
   `ModpackModEntity`, `ServerEntryEntity`, `ReleaseEntity`, `PlayerConfigEntity`,
   `ServerSettingEntity`, `UserEntity`, `ServerInstanceEntity`, `OverrideHistoryEntry`.
   São POCOs; o mapeamento EF (chaves, conversões, cascatas) é feito em
-  [[entities/tcmine-infrastructure]] (`AppDbContext.OnModelCreating`), não aqui.
+  [[entities/tcmine-server-infrastructure]] (`AppDbContext.OnModelCreating`), não aqui.
   - `ModpackEntity`: `Id` é `Guid`; tem `Name`/`Version`/`Minecraft`/`Loader`/
     `LoaderVersion`/`Description`/`IsPublished`/`RecommendedRamMb`/`HasOverrides`/
     `UpdatedAt`, e listas `Mods` (vínculos `ModpackModEntity`) + `Servers`.
@@ -62,7 +62,7 @@ DataAnnotations` para anotações como `[MaxLength]`).
 
 ## Relações
 
-- Base de [[entities/tcmine-application]] e [[entities/tcmine-infrastructure]].
+- Base de [[entities/tcmine-application]] e [[entities/tcmine-server-infrastructure]].
 - Concretiza [[concepts/clean-architecture]] (camada interna).
 
 ## Pontos em aberto

@@ -1,4 +1,4 @@
-﻿using TCMine_Infrastructure.Launcher;
+﻿using TCMine_Server.Infrastructure.Launcher;
 
 namespace TCMine_Server.Endpoints;
 

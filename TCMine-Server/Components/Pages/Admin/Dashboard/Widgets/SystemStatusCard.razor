@@ -1,9 +1,9 @@
-@* Status do sistema: métricas instantâneas do processo + gráfico de uso de memória.
+@* Status do sistema: medidores de uso (CPU/RAM/disco) + métricas do processo + gráfico de memória.
    Componente AUTOCONTIDO — gere o seu próprio Timer e re-renderiza só a si mesmo a cada 2s,
    em vez de forçar o re-render da página inteira do dashboard. *@
 
 <MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudText Typo="Typo.h6">Status do sistema</MudText>
         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
             <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="Color.Success" Size="Size.Small"/>
@@ -11,18 +11,41 @@
         </MudStack>
     </MudStack>
 
-    <MudGrid Spacing="2" Class="mb-2">
+    @* Medidores de uso do host/contêiner — o pedido principal: anéis de progresso como referência visual *@
+    <MudGrid Justify="Justify.Center" Class="mb-2">
+        <MudItem xs="4">
+            @* CPU do processo do servidor (não do host global) — ver decisão no log 2026-07-01 *@
+            <MetricGauge Value="@_snapshot.CpuPercent"
+                         Label="CPU" Icon="@Icons.Material.Filled.Memory"
+                         Caption="@($"servidor · {_snapshot.ProcessorCount} núcleos")"/>
+        </MudItem>
+        <MudItem xs="4">
+            <MetricGauge Value="@_snapshot.RamPercent"
+                         Label="RAM" Icon="@Icons.Material.Filled.DeveloperBoard"
+                         Caption="@($"{_snapshot.RamUsedGb:0.0} / {_snapshot.RamTotalGb:0.0} GB")"/>
+        </MudItem>
+        <MudItem xs="4">
+            @* Disco: uso APENAS da pasta de dados do projeto (tcmine-data), sobre a capacidade do drive *@
+            <MetricGauge Value="@_snapshot.DiskPercent"
+                         Label="Dados" Icon="@Icons.Material.Filled.Storage"
+                         Caption="@($"{_snapshot.DiskUsedLabel} de {_snapshot.DiskTotalGb:0} GB")"/>
+        </MudItem>
+    </MudGrid>
+
+    <MudDivider Class="my-3"/>
+
+    @* Métricas do próprio processo do servidor — leitura secundária, em tiles compactos *@
+    <MudGrid Spacing="2" Class="mb-4">
         <MudItem xs="6" sm="3">
             <div class="metric-tile">
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
-                <MudText Typo="Typo.h6">@_snapshot.MemoryMb.ToString("0") <span class="metric-unit">MB</span></MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Processo</MudText>
+                <MudText Typo="Typo.h6">@_snapshot.WorkingSetMb.ToString("0") <span class="metric-unit">MB</span></MudText>
             </div>
         </MudItem>
         <MudItem xs="6" sm="3">
             <div class="metric-tile">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Heap (GC)</MudText>
-                <MudText Typo="Typo.h6">@_snapshot.ManagedHeapMb.ToString("0") <span class="metric-unit">MB</span>
-                </MudText>
+                <MudText Typo="Typo.h6">@_snapshot.ManagedHeapMb.ToString("0") <span class="metric-unit">MB</span></MudText>
             </div>
         </MudItem>
         <MudItem xs="6" sm="3">
@@ -40,7 +63,7 @@
     </MudGrid>
 
     <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Uso de memória (últimas amostras)</MudText>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Uso de memória do processo (últimas amostras)</MudText>
         <MudText Typo="Typo.caption" Color="Color.Secondary">Pico @PeakMemoryMb.ToString("0") MB</MudText>
     </MudStack>
 
@@ -49,5 +72,5 @@
               ChartSeries="@_series"
               ChartLabels="@_labels"
               ChartOptions="@_chartOptions"
-              Width="100%" Height="240px"/>
+              Width="100%" Height="220px"/>
 </MudPaper>

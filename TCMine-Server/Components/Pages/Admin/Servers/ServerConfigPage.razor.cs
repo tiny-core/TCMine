@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components;
-using TCMine_Infrastructure.ServerInstances;
+using TCMine_Server.Infrastructure.ServerInstances;
 using TCMine_Server.Components.Shared;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers;

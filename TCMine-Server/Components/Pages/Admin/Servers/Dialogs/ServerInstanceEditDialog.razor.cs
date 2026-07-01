@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
-using TCMine_Infrastructure.ServerInstances;
+using TCMine_Server.Infrastructure.ServerInstances;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
 

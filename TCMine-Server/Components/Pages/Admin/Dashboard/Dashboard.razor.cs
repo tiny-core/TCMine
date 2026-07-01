@@ -1,6 +1,6 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Components;
-using TCMine_Infrastructure.Server;
+using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Dashboard;

@@ -11,19 +11,20 @@
 @* Aviso agregado: instâncias provisionadas cujo modpack mudou e precisam re-provisionar *@
 @if (_data is { StaleInstances: > 0 })
 {
-    <MudAlert Severity="Severity.Warning" Class="mb-2" Dense="true"
-              Icon="@Icons.Material.Filled.Sync">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Spacing="2">
-            <span>@_data.StaleInstances instância(s) desatualizada(s) — o modpack mudou desde a última provisão.</span>
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Sync">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText>@_data.StaleInstances instância(s) desatualizada(s) — o modpack mudou desde a última provisão.</MudText>
             <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/admin/servers"
-                       EndIcon="@Icons.Material.Filled.ArrowForward">Ver servidores</MudButton>
+                       EndIcon="@Icons.Material.Filled.ArrowForward">
+                Ver servidores
+            </MudButton>
         </MudStack>
     </MudAlert>
 }
 
 <DashboardKpis Data="@_data"/>
 
-<MudGrid Class="mt-2">
+<MudGrid Class="mb-4 mt-1">
     <MudItem xs="12" md="7">
         <SystemStatusCard/>
     </MudItem>
@@ -32,7 +33,7 @@
     </MudItem>
 </MudGrid>
 
-<MudGrid Class="mt-2">
+<MudGrid Class="mb-4">
     <MudItem xs="12" md="7">
         <RecentModpacksCard Modpacks="@(_data?.RecentModpacks)"/>
     </MudItem>

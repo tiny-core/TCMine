@@ -1,0 +1,40 @@
+/* Faixa do hero com um leve gradiente de acento — separa visualmente o topo do resto da página.
+   ::deep alcança os elementos renderizados pelos componentes MudBlazor filhos. */
+::deep .home-hero {
+    background:
+        radial-gradient(1200px 400px at 50% -120px,
+            var(--mud-palette-primary-hover, rgba(249, 115, 22, .12)),
+            transparent 70%);
+    border-bottom: 1px solid var(--mud-palette-lines-default);
+}
+
+/* Título grande em peso forte */
+::deep .home-title {
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+/* Cards de destaque — leve elevação no hover para dar vida à landing */
+::deep .home-feature,
+::deep .home-modpack {
+    transition: transform .15s ease, border-color .15s ease;
+}
+
+::deep .home-feature:hover,
+::deep .home-modpack:hover {
+    transform: translateY(-3px);
+    border-color: var(--mud-palette-primary);
+}
+
+/* Ícone dos destaques em tamanho generoso */
+::deep .home-feature-icon {
+    font-size: 2.6rem;
+}
+
+/* Descrição do modpack limitada a 3 linhas para manter os cards alinhados */
+::deep .home-modpack-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}

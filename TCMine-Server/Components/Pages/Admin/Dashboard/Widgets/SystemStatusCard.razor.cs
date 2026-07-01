@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using TCMine_Infrastructure.Server;
+using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Components.Pages.Admin.Dashboard.Widgets;
 
@@ -54,7 +54,7 @@ public partial class SystemStatusCard : ComponentBase, IDisposable
     {
         _snapshot = Metrics.Capture();
 
-        _memHistory.Add(Math.Round(_snapshot.MemoryMb, 1));
+        _memHistory.Add(Math.Round(_snapshot.WorkingSetMb, 1));
         if (_memHistory.Count > MaxPoints)
             _memHistory.RemoveAt(0);
 

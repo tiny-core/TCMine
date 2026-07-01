@@ -1,0 +1,33 @@
+/* Anel maior que o padrão do MudProgressCircular (Size.Large ~= 70px) para ficar como um "gauge" */
+.gauge-ring {
+    position: relative;
+    width: 104px;
+    height: 104px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Faz o SVG do MudProgressCircular preencher o contêiner ampliado */
+.gauge-ring ::deep .mud-progress-circular {
+    width: 104px !important;
+    height: 104px !important;
+}
+
+/* Rótulo central (a %) centrado sobre o anel */
+.gauge-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* "%" menor e esmaecido junto ao número */
+.gauge-pct {
+    font-size: .65em;
+    font-weight: 400;
+    color: var(--mud-palette-text-secondary);
+    margin-left: 1px;
+}

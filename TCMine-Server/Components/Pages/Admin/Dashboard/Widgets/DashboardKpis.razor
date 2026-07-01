@@ -1,54 +1,81 @@
-@using TCMine_Server.Components.Shared
-
 @* Grade de KPIs do dashboard. Recebe o agregado (null = ainda carregando → mostra "—"). *@
 
 <MudGrid>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Inventory2" Color="Color.Primary"
-                  Label="Modpacks"
-                  Value="@(Data?.Modpacks.ToString() ?? "—")"
-                  Subtitle="@(Data is null ? null : $"{Data.PublishedModpacks} publicados")"/>
+        <StatCard Icon="@Icons.Material.Filled.Inventory2"
+                  Color="Color.Primary"
+                  Title="Modpacks"
+                  Value="@(Data?.Modpacks.ToString() ?? "—")">
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Public">
+                @(Data is null ? null : $"{Data.PublishedModpacks} Publicados")
+            </MudChip>
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Extension" Color="Color.Info"
-                  Label="Mods"
-                  Value="@(Data?.Mods.ToString() ?? "—")"
-                  Subtitle="@(Data is null ? null : $"{Data.ClientMods} cliente · {Data.ServerMods} servidor")"/>
+        <StatCard Icon="@Icons.Material.Filled.Extension"
+                  Color="Color.Info"
+                  Title="Mods"
+                  Value="@(Data?.Mods.ToString() ?? "—")">
+            @if (Data is not null)
+            {
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Dns">
+                    @Data.ServerMods Servidor
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.DataUsage">
+                    @Data.SharedMods
+                </MudChip>
+                <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Computer">
+                    @Data.ClientMods Cliente
+                </MudChip>
+            }
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Public" Color="Color.Tertiary"
-                  Label="Servidores"
-                  Value="@(Data?.Servers.ToString() ?? "—")"
-                  Subtitle="anunciados"/>
+        <StatCard Icon="@Icons.Material.Filled.Dns"
+                  Color="Color.Success"
+                  Title="Instâncias"
+                  Value="@(Data?.Instances.ToString() ?? "—")">
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.PlayArrow">
+                @(Data is null ? null : $"{Data.RunningInstances} Rodando")</MudChip>
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Dns" Color="Color.Success"
-                  Label="Instâncias"
-                  Value="@(Data?.Instances.ToString() ?? "—")"
-                  Subtitle="@(Data is null ? null : $"{Data.RunningInstances} rodando")"/>
+        <StatCard Icon="@Icons.Material.Filled.CloudUpload"
+                  Color="Color.Warning"
+                  Title="Releases"
+                  Value="@(Data?.Releases.ToString() ?? "—")">
+            <MudChip T="string" Size="Size.Small" Icon="@Icons.Material.Filled.Update">
+                @(Data?.LatestReleaseVersion is { } v ? $"última v{v}" : "Nenhuma")
+            </MudChip>
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.People" Color="Color.Secondary"
-                  Label="Usuários"
-                  Value="@(Data?.Users.ToString() ?? "—")"
-                  Subtitle="do painel"/>
+        <StatCard Icon="@Icons.Material.Filled.Public"
+                  Color="Color.Tertiary"
+                  Title="Servidores"
+                  Value="@(Data?.Servers.ToString() ?? "—")">
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.CloudUpload" Color="Color.Warning"
-                  Label="Releases"
-                  Value="@(Data?.Releases.ToString() ?? "—")"
-                  Subtitle="@(Data?.LatestReleaseVersion is { } v ? $"última v{v}" : "nenhuma")"/>
+        <StatCard Icon="@Icons.Material.Filled.Public"
+                  Color="Color.Warning"
+                  Title="Novidades globais"
+                  Value="@(Data?.GlobalNews.ToString() ?? "—")">
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Public" Color="Color.Warning"
-                  Label="Novidades globais"
-                  Value="@(Data?.GlobalNews.ToString() ?? "—")"
-                  Subtitle="do servidor"/>
+        <StatCard Icon="@Icons.Material.Filled.Newspaper"
+                  Color="Color.Warning"
+                  Title="Novidades de modpacks"
+                  Value="@(Data?.ModpackNews.ToString() ?? "—")">
+        </StatCard>
     </MudItem>
     <MudItem xs="12" sm="6" md="4" lg="3">
-        <StatCard Icon="@Icons.Material.Filled.Newspaper" Color="Color.Warning"
-                  Label="Novidades de modpacks"
-                  Value="@(Data?.ModpackNews.ToString() ?? "—")"
-                  Subtitle="atreladas a modpacks"/>
+        <StatCard Icon="@Icons.Material.Filled.People"
+                  Color="Color.Secondary"
+                  Title="Usuários"
+                  Value="@(Data?.Users.ToString() ?? "—")">
+
+        </StatCard>
     </MudItem>
 </MudGrid>

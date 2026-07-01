@@ -1,4 +1,4 @@
-using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks;
 
 namespace TCMine_Server.Components.Shared;

@@ -4,14 +4,15 @@ title: TCMine-Server
 tags: [entity, tcmine, blazor, minimal-api, backend, admin]
 status: wip
 created: 2026-06-23
-updated: 2026-06-25
+updated: 2026-07-01
 aliases: [TCMine-Server, servidor, backend, painel admin]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
   - "[[sources/2026-06-24-modpack-admin-ui]]"
+  - "[[sources/2026-07-01-dashboard-metrics-home]]"
 related:
   - "[[entities/tcmine-solution]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-design]]"
   - "[[entities/tcmine-launcher]]"
   - "[[concepts/setup-auth-cookie]]"
@@ -56,7 +57,8 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   [[concepts/curseforge-proxy]]), `MapEventsEndpoint` (`/events`, SSE — ver
   [[concepts/sse-content-sync]]), `MapPlayerConfigEndpoints`
   (`/players/{uuid}/configs/{modpackId}` — ver [[concepts/player-config-sync]]),
-  `MapLauncherFeedEndpoints` (download/feed).
+  `MapLauncherFeedEndpoints` (download/feed), `MapNewsEndpoints` (`/api/news` — feed público de
+  novidades globais + de modpacks, só publicadas; consumido pela aba Novidades do launcher).
 - **Authentication (`Authentication/`):** `AuthClaims`,
   `PersistingAuthenticationStateProvider` (identidade do cookie persistida do
   prerender para o circuito).
@@ -121,9 +123,33 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
   (`News.ModpackId == null`) e *Novidades de modpacks* (`ModpackId != null`),
   ambos contando só publicadas, a partir do agregado `DashboardData`.
 
+- **[2026-07-01]** **Dashboard com medidores de recurso + home pública revampada**:
+  - `SystemMetricsService` (em `TCMine-Server.Infrastructure/Server`) deixou de medir só o
+    processo e passou a capturar **uso de CPU, RAM e disco** do host/contêiner, de forma
+    **cross-platform** (sem `PerformanceCounter`/WMI): CPU pelo delta de
+    `Process.TotalProcessorTime` normalizado por núcleo; RAM via `GC.GetGCMemoryInfo()`
+    (`MemoryLoadBytes`/`TotalAvailableMemoryBytes`, que **honram limites do Docker**); disco
+    via `DriveInfo` do drive que hospeda `tcmine-data`. O serviço virou **stateful** (guarda a
+    última amostra de CPU) e recebe o `dataRoot` no construtor — o registo passou a
+    `AddSingleton(new SystemMetricsService(dataRoot))` no `Program.cs`. O `SystemSnapshot`
+    agora expõe `CpuPercent`, `Ram`/`Disk` (`(Used,Total)`) e helpers de %/GB.
+  - **`SystemStatusCard`** ganhou três **medidores circulares** (`MudProgressCircular`
+    0–100) para CPU/RAM/Disco, via um novo componente reutilizável **`MetricGauge`**
+    (razor + code-behind + css escopado; cor por limiar verde/atenção/crítico). Mantém os
+    tiles do processo (working set/heap/threads/uptime) e o gráfico de histórico de memória.
+  - **`ModDistributionCard`** trocou as barras lineares por um **donut** (cliente/servidor/
+    ambos) + legenda; migrado para a API de gráficos do **MudBlazor 9** (`ChartSeries` +
+    `ChartLabels`; `InputData`/`InputLabels` foram removidos na v9).
+  - **Home pública (`Home.razor`)** deixou de ser só o hero: fez-se o **wire real** ao
+    `ContentCatalog` (modpacks publicados + disponibilidade do launcher via feed Velopack),
+    com hero (gradiente de acento), três cards de destaque e **grade de modpacks publicados**
+    (versão/MC/loader/mods + nº de servidores). CSS escopado com `::deep` (num wrapper
+    `.home-page`) porque o CSS escopado do Blazor não atinge elementos de componentes-filhos
+    (MudPaper) sem `::deep`.
+
 ## Relações
 
-- Depende de [[entities/tcmine-infrastructure]], [[entities/tcmine-application]],
+- Depende de [[entities/tcmine-server-infrastructure]], [[entities/tcmine-application]],
   [[entities/tcmine-design]]. Serve o [[entities/tcmine-launcher]].
 
 ## Pontos em aberto

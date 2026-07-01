@@ -1,4 +1,5 @@
-@* Distribuição de mods (cliente vs servidor) + resumo de instâncias. Recebe o agregado (null = carregando). *@
+@* Distribuição de mods (cliente / servidor / compartilhado) como donut + legenda, e resumo de
+   instâncias. Recebe o agregado (null = carregando). *@
 
 <MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
     <MudText Typo="Typo.h6" Class="mb-4">Distribuição de mods</MudText>
@@ -8,27 +9,40 @@
         <MudSkeleton Width="100%" Height="60px" Class="mb-3"/>
         <MudSkeleton Width="100%" Height="60px"/>
     }
+    else if (TotalLinks == 0)
+    {
+        @* Sem vínculos de mod ainda — empty-state discreto *@
+        <MudStack AlignItems="AlignItems.Center" Class="py-8" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.DonutLarge" Size="Size.Large" Color="Color.Secondary"/>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum mod atribuído ainda</MudText>
+        </MudStack>
+    }
     else
     {
-        @* Lado cliente — quantos mods vão para o launcher do jogador *@
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <MudIcon Icon="@Icons.Material.Filled.Computer" Size="Size.Small" Color="Color.Info"/>
-                <MudText Typo="Typo.body2">Lado cliente</MudText>
-            </MudStack>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ClientMods</MudText>
-        </MudStack>
-        <MudProgressLinear Color="Color.Info" Value="@ClientShare" Rounded="true" Size="Size.Medium" Class="mb-4"/>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.Center" Spacing="6" Class="mb-2">
+            <MudChart T="double" ChartType="ChartType.Donut" Width="150px" Height="150px"
+                      ChartSeries="@_donutSeries" ChartLabels="@_donutLabels"
+                      ChartOptions="@_donutOptions"/>
 
-        @* Lado servidor — mods que entram nas instâncias *@
-        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Success"/>
-                <MudText Typo="Typo.body2">Lado servidor</MudText>
+            @* Legenda com contagem por lado *@
+            <MudStack Spacing="2">
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Computer" Size="Size.Small" Color="Color.Info"/>
+                    <MudText Typo="Typo.body2">Cliente</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ClientMods</MudText>
+                </MudStack>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Success"/>
+                    <MudText Typo="Typo.body2">Servidor</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ServerMods</MudText>
+                </MudStack>
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <MudIcon Icon="@Icons.Material.Filled.DataUsage" Size="Size.Small" Color="Color.Warning"/>
+                    <MudText Typo="Typo.body2">Ambos</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.SharedMods</MudText>
+                </MudStack>
             </MudStack>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Data.ServerMods</MudText>
         </MudStack>
-        <MudProgressLinear Color="Color.Success" Value="@ServerShare" Rounded="true" Size="Size.Medium" Class="mb-4"/>
 
         <MudDivider Class="my-3"/>
 

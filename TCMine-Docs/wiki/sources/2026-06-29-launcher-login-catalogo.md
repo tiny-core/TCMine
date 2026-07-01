@@ -21,7 +21,7 @@ orquestrado pelo servidor**, **sem código manual**.
 
 ## O que foi implementado
 
-**Servidor ([[entities/tcmine-server]] + [[entities/tcmine-infrastructure]]):**
+**Servidor ([[entities/tcmine-server]] + [[entities/tcmine-server-infrastructure]]):**
 
 - `MicrosoftAuthService` (Infrastructure/Minecraft) — cadeia OAuth com **PKCE**: authorize URL, troca
   de code, refresh, e Xbox Live → XSTS → `login_with_xbox` → perfil. Lê o Azure client/tenant id das

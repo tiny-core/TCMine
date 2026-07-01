@@ -122,8 +122,8 @@ cd TCMine-IconGenerator && dotnet run
 docker compose up --build
 
 # Migrations EF Core (cada provider tem o seu conjunto)
-dotnet ef migrations add <Nome> --project TCMine-Infrastructure --context SqliteAppDbContext
-dotnet ef migrations add <Nome> --project TCMine-Infrastructure --context PostgresAppDbContext
+dotnet ef migrations add <Nome> --project TCMine-Server.Infrastructure --context SqliteAppDbContext
+dotnet ef migrations add <Nome> --project TCMine-Server.Infrastructure --context PostgresAppDbContext
 ```
 
 ### Configuração
@@ -149,8 +149,9 @@ documentado — consulte a wiki para o detalhe vivo de cada um.
 - **TCMine-Domain** — entidades, enums e regras puras de domínio (sem EF/ASP.NET).
 - **TCMine-Application** — portas (interfaces), contratos (DTOs `record`) e
   lógica pura de modpack (`CurseForgeImporter`, `ModSetMerge`).
-- **TCMine-Infrastructure** — EF Core (SQLite/Postgres), CurseForge, filesystem,
-  identidade e serviços de servidor/Minecraft.
+- **TCMine-Server.Infrastructure** — EF Core (SQLite/Postgres), CurseForge, filesystem,
+  identidade e serviços de servidor/Minecraft. (Infra específica do servidor; o launcher
+  tem a sua própria, `TCMine-Launcher.Infrastructure` — sem acoplamento cruzado.)
 
 **Entrega e suporte:**
 

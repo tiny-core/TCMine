@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
-using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Mods;

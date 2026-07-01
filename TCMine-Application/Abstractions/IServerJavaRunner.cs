@@ -29,6 +29,18 @@ public interface IServerJavaRunner
     /// </summary>
     /// <param name="workingDirectory">Diretório de trabalho no host, montado no container.</param>
     /// <param name="arguments">Argumentos passados ao executável <c>java</c> (sem o "java" inicial).</param>
+    /// <param name="output">
+    ///     Opcional: recebe a saída do processo <b>linha a linha, ao vivo</b> (enquanto roda), para
+    ///     refletir o progresso do instalador (ex.: downloads do NeoForge) na UI. A saída completa
+    ///     continua no <see cref="JavaRunResult.Output"/> ao final, para diagnóstico.
+    /// </param>
+    /// <param name="containerName">
+    ///     Opcional: nome fixo do container efêmero (ex.: <c>tcmine-install-{slug}</c>). Dá um handle
+    ///     estável — se sobrar um container com esse nome (o TCMine caiu no meio), ele é removido antes de
+    ///     criar o novo, evitando conflito de nome ao **retomar** uma provisão.
+    /// </param>
     /// <param name="ct">Token de cancelamento.</param>
-    Task<JavaRunResult> RunAsync(string workingDirectory, IReadOnlyList<string> arguments, CancellationToken ct = default);
+    Task<JavaRunResult> RunAsync(
+        string workingDirectory, IReadOnlyList<string> arguments,
+        IProgress<string>? output = null, string? containerName = null, CancellationToken ct = default);
 }

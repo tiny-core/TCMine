@@ -57,6 +57,27 @@ carregamento por um feedback uniforme em todo o painel, e estabelece o padrão p
   — o handler faz `args.Cancel = true` e refaz a troca dentro de `Busy.RunAsync`
   (muda `_activeTab` → `StateHasChanged` → `await Task.Yield()`), de modo que o
   overlay aparece antes do render pesado do painel.
+- **Log de passos (2026-07-01):** o `BusyService` acumula um histórico de passos
+  (`Steps`) além do `Message`; o `BusyOverlay` mostra a lista (concluídos com check,
+  o atual com spinner) quando há mais de um. Serve a operações multi-etapa como o
+  provisionamento. Coalescência: mensagens com o mesmo rótulo antes de `" — "`
+  substituem a linha (o detalhe ao vivo, ex.: `%`, não infla o log).
+- **Layout do overlay (2026-07-01):** spinner → **status global** (a fase atual, só o
+  rótulo antes de `" — "`; o detalhe técnico fica na lista) → **lista de passos** com
+  `max-height` + `overflow-y:auto` (scrollbar quando cresce) e **auto-scroll** para o
+  passo atual (JS `tcmineScrollToBottom` + `ElementReference` no `OnAfterRenderAsync`).
+  Larguras do `MudPaper`/`MudText` por Style inline (o CSS escopado não atinge o DOM de
+  componentes MudBlazor filhos); a lista, sendo HTML próprio, usa `BusyOverlay.razor.css`.
+- **Progresso ao vivo exige liberar o dispatcher (2026-07-01):** operações com
+  **trabalho síncrono pesado** (ex.: provisionamento — link de centenas de arquivos)
+  no dispatcher do circuito **engolem o progresso**: os `progress.Report` marcam
+  `StateHasChanged`, mas o render só corre quando a operação cede a thread — e aí ela
+  já terminou (overlay limpo). Sintoma: o overlay fica parado na mensagem inicial e
+  fecha sem mostrar os passos. Correção no `ServerInstanceDetail`: rodar a operação em
+  **`Task.Run`** (fora do dispatcher) e criar o `Progress` **no circuito** (os callbacks
+  marshalam de volta ao dispatcher, agora livre para renderizar cada passo). Vale para
+  qualquer operação sob overlay com etapas síncronas + progresso ao vivo; I/O async puro
+  (ex.: import do `ModpackEditor`) não precisa, pois cede a thread naturalmente.
 - **Padrão de recarga:** mutação + reload da lista no **mesmo** `RunAsync` (um
   helper `ReloadAsync` interno, sem overlay próprio), para não piscar o overlay
   duas vezes em sequência.

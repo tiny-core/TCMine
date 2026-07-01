@@ -16,7 +16,10 @@ related:
   - "[[entities/tcmine-design]]"
   - "[[concepts/design-tokens]]"
   - "[[concepts/modpack-mods-locais]]"
+  - "[[concepts/launcher-install-launch]]"
   - "[[decisions/auth-msal-launcher]]"
+  - "[[decisions/launcher-clean-architecture]]"
+  - "[[entities/tcmine-launcher-infrastructure]]"
 ---
 
 # TCMine-Launcher
@@ -27,32 +30,43 @@ related:
 
 ## Visão geral
 
-`TCMine-Launcher` (namespace `TCMine_Launcher`) é o cliente desktop. **Estado atual: login +
-catálogo** — o jogador entra com a conta Microsoft (**MSAL no próprio launcher**) e vê o catálogo de
-modpacks publicados pelo servidor. Install/launch do jogo ainda não implementados.
+`TCMine-Launcher` (namespace `TCMine_Launcher`) é o cliente desktop. **Estado atual: login + catálogo
++ instalar/lançar** — o jogador entra com a conta Microsoft (**MSAL no próprio launcher**), vê o
+catálogo de modpacks publicados, **instala e lança** o modpack oficial (NeoForge), com página Jogar e
+Definições (RAM/Java). Ver [[concepts/launcher-install-launch]].
 
 ## Responsabilidades / Escopo
 
-- **Bootstrap (`Program.cs`/`App.axaml(.cs)`):** Avalonia classic desktop lifetime,
-  `UsePlatformDetect`, fonte **Inter**, `UseReactiveUI` + registro de serviços no **Splat**
-  (`ServerConfig`, `ApiClient`, `AuthService`, `MainWindowViewModel`); developer tools em DEBUG.
-- **Serviços (`Services/`):**
-    - `ServerConfig` — base URL do servidor (dependência total; dev `https://localhost:7002`).
-    - `ApiClient` — HTTP contra o servidor; reusa os **DTOs `record`** do core
-      ([[entities/tcmine-application]]). Só catálogo (`/api/modpacks`, `/api/modpacks/{id}`).
-    - `AuthService` — login Microsoft **MSAL no cliente** (CmlLib + XboxAuthNet): `TryLoginSilentAsync`
-      (cache DPAPI), `LoginAsync` (WebView2 interativo), `SignOutAsync`. Devolve uma `MSession`.
-    - `AppConfig` — config embutida no build (`TcmineServerUrl`, `MicrosoftClientId`).
-    - `PlayerSession` — identidade da UI (uuid/username) derivada da `MSession`.
-    - `LauncherPaths` — dados em `%AppData%/TCMine`.
-- **MVVM (`ViewModels/`, `Views/`):** `MainWindowViewModel` (shell/gate login↔catálogo + logout),
-  `LoginViewModel` (botão "Entrar com Microsoft" + progresso), `ModpacksPageViewModel` (lista o
-  catálogo); views correspondentes + `ViewLocator` (mapeia `XViewModel`→`Views.XView`).
-- **Login Microsoft:** ver [[decisions/auth-msal-launcher]] — o login é **no launcher** (MSAL public
-  client, redirect loopback); o servidor não participa. O Azure client id é embutido no build.
+- **Clean Architecture (2026-06-29):** o launcher é só **apresentação + composição** — os serviços/models
+  vivem nas camadas próprias: models em [[entities/tcmine-domain]] (`Launcher/`), portas em
+  [[entities/tcmine-application]] (`Launcher/`), implementações em
+  [[entities/tcmine-launcher-infrastructure]]. Ver [[decisions/launcher-clean-architecture]]. Os
+  ViewModels dependem **só das portas**; o `Program.cs` é o composition root (Splat).
+- **MVVM (`ViewModels/`, `Views/`):** `MainWindowViewModel` (+ partial `.Play.cs`: instâncias/launch),
+  `HomePageViewModel` (Jogar), `ModpacksPageViewModel`, `SettingsPageViewModel`, `PlaceholderPageViewModel`;
+  views correspondentes + `ViewLocator` (mapeia `XViewModel`→`Views.XView`) + `Behaviors/ImageLoader`
+  (skin via mc-heads).
+- **Login Microsoft:** ver [[decisions/auth-msal-launcher]] — no launcher (MSAL public client, loopback);
+  o servidor não participa. O Azure client id é embutido no build.
 
 ## Decisões e estado atual
 
+- **[2026-07-01]** **Badges de indisponibilidade + servidores via SSE.** Quando o servidor avisa (SSE)
+  que o conteúdo mudou, a shell (`MainWindowViewModel`) agora, além de recarregar catálogo/ativo:
+  - `ReconcileAvailabilityAsync()` cruza **todas as instâncias instaladas** com `/api/modpacks` e marca
+    `InstalledModpack.ModpackMissing` nas que já não constam (removidas ou **despublicadas** — o manifesto
+    `/api/modpacks/{id}` dá **404** nesse caso, agora distinguido de "servidor offline");
+  - `RefreshActiveAsync()` trata o **404 do manifesto** do ativo como "modpack removido" (antes só fazia
+    `return` silencioso) e, no caminho feliz, aplica os **servidores frescos**.
+  - `InstalledModpack` ganhou `INotifyPropertyChanged` só para as **flags de runtime** (`ModpackMissing`,
+    `AutoJoinServerMissing`, `HasAvailabilityWarning`, `AvailabilityMessage` — não persistidas), para os
+    **badges** reagirem ao vivo. Badge `Border.badge.warn` na **Home** (hero) e na **lista de Instâncias**.
+  - A **lista de servidores do ativo** (Home) já se reconstrói via SSE (`RefreshActiveAsync` →
+    `Home.NotifyActiveChanged`) — cobre add/remove de servidor do modpack. Ver [[concepts/sse-content-sync]].
+- **[2026-06-29]** **Clean Architecture** (projeto de infra dedicado `TCMine-Launcher.Infrastructure`) —
+  ver [[decisions/launcher-clean-architecture]]. **Home redesenhada** no estilo do backup (hero + painel
+  de perfil/ID/servidores). Clicar num modpack **só seleciona** (não instala); instalar/lançar é o botão
+  da Home. Mods do **cache do servidor** (`/files`).
 - **[2026-06-29]** **Login Microsoft via MSAL no launcher** (não no servidor) — ver
   [[decisions/auth-msal-launcher]], que **substituiu** a tentativa server-brokered
   ([[decisions/server-brokered-microsoft-login]]). Sem hosting/redirect-web/secret; token no cache DPAPI
@@ -91,8 +105,14 @@ modpacks publicados pelo servidor. Install/launch do jogo ainda não implementad
   **sempre** do `ColorTokens` (aliases semânticos do backup emitidos pelo `AvaloniaTheme`). Falta: as
   **páginas** de features ainda não construídas (Jogar/Instâncias/Novidades/Definições estão como
   placeholder "em breve") entram conforme as features.
-- [ ] Detalhe do modpack + **baixar/instalar** (manifesto, jars, overrides) e montar a instância.
-- [ ] **Lançar** o Minecraft (CmlLib ou equivalente).
+- [x] **Instalar + lançar** modpack NeoForge (manifesto → mods/cache → overrides → CmlLib → launch),
+  página Jogar e Definições (RAM/Java) (2026-06-29). Ver [[concepts/launcher-install-launch]].
+- [x] **Aba Instâncias** (lista + deletar/exportar/importar + editar RAM + abrir pastas
+  shaders/texturas), **auto-join por servidor** na Home (o botão marca; JOGAR entra nele) e **janelas**
+  do footer (Eventos/registo + Memória) (2026-06-29).
+- [x] **Aba Novidades** (feed `/api/news`: globais + de modpacks, com badge de origem; recarrega via
+  SSE) (2026-06-29).
+- [ ] Loaders além de NeoForge; **sync de configs** ([[concepts/player-config-sync]], falta `GET` no servidor).
 - [ ] Integrar Velopack (auto-update) e o **build do launcher pelo servidor** (injetando
   `TcmineServerUrl` **e** `MicrosoftClientId` a partir das settings; gerar o feed Velopack).
 

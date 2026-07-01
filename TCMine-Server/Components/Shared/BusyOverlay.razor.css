@@ -1,0 +1,44 @@
+/* Nota: largura do cartão e do título vêm por Style inline no .razor — o CSS escopado do Blazor não
+   atinge elementos renderizados por componentes MudBlazor (MudPaper/MudText). Aqui só estilizamos os
+   elementos HTML próprios do componente (a lista de passos). */
+
+/* Lista de passos: altura limitada → scrollbar quando cresce (ex.: muitos passos de provisionamento) */
+.busy-steps {
+    width: 100%;
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--mud-palette-background-grey);
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+/* Cada passo: ícone/spinner alinhado ao topo do texto (que pode quebrar em 2 linhas) */
+.busy-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
+
+/* Reserva uma coluna fixa para o ícone/spinner — mantém os textos alinhados */
+.busy-step > :first-child {
+    flex: 0 0 auto;
+    margin-top: 1px;
+}
+
+.busy-step-text {
+    color: var(--mud-palette-text-secondary);
+    /* Caminhos/URLs longos do instalador quebram em vez de estourar a largura */
+    overflow-wrap: anywhere;
+}
+
+/* Passo atual em destaque (texto primário + peso) */
+.busy-step-text--current {
+    color: var(--mud-palette-text-primary);
+    font-weight: 500;
+}

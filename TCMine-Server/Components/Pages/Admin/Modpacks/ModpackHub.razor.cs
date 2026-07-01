@@ -2,22 +2,30 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
+using TCMine_Server.Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.ServerInstances;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
 using TCMine_Server.Services;
-using TCMine_Infrastructure.Minecraft;
-using TCMine_Infrastructure.ServerInstances;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Hub (overview) de um modpack: substitui a página de abas como landing. Mostra o resumo + cartões de
-/// cada área e, sobretudo, as <b>instâncias de servidor derivadas</b> deste modpack (a ligação que faltava)
-/// — com selo de "desatualizada" e ações de ciclo de vida. Metadados editam num modal; as áreas pesadas
-/// (Mods/Overrides/Novidades/Conexões) abrem no editor completo (a Fase 3 as torna páginas próprias).
+///     Hub (overview) de um modpack: substitui a página de abas como landing. Mostra o resumo + cartões de
+///     cada área e, sobretudo, as <b>instâncias de servidor derivadas</b> deste modpack (a ligação que faltava)
+///     — com selo de "desatualizada" e ações de ciclo de vida. Metadados editam num modal; as áreas pesadas
+///     (Mods/Overrides/Novidades/Conexões) abrem no editor completo (a Fase 3 as torna páginas próprias).
 /// </summary>
 public partial class ModpackHub : ComponentBase
 {
+    private readonly List<BreadcrumbItem> _breadcrumbItems =
+    [
+        new("Modpacks", "/admin/modpacks", icon: Icons.Material.Filled.Inventory2),
+    ];
+
+    private List<ServerInstanceRowDto>? _instances;
+
+    private ModpackAdminRowDto? _pack;
     [Parameter] public Guid Id { get; set; }
 
     [Inject] private ModpackImportService Packs { get; set; } = null!;
@@ -26,9 +34,6 @@ public partial class ModpackHub : ComponentBase
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
-
-    private ModpackAdminRowDto? _pack;
-    private List<ServerInstanceRowDto>? _instances;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -44,8 +49,12 @@ public partial class ModpackHub : ComponentBase
             Nav.NavigateTo("/admin/modpacks");
             return;
         }
-
+ 
         _instances = await Servers.ListByModpackAsync(Id);
+        _breadcrumbItems.Insert(1, new BreadcrumbItem(
+            _pack.Name, $"/admin/modpacks/{Id}", 
+            icon: Icons.Material.Filled.ModeEdit, 
+            disabled: true));
     }
 
     private async Task ReloadInstancesAsync()
@@ -190,6 +199,7 @@ public partial class ModpackHub : ComponentBase
             ServerInstanceStatus.Running => "Em execução",
             ServerInstanceStatus.Starting => "Iniciando",
             ServerInstanceStatus.Stopping => "Parando",
+            ServerInstanceStatus.Provisioning => "Provisionando",
             ServerInstanceStatus.Crashed => "Falhou",
             _ => "Parado"
         };
@@ -201,6 +211,7 @@ public partial class ModpackHub : ComponentBase
         {
             ServerInstanceStatus.Running => Color.Success,
             ServerInstanceStatus.Starting or ServerInstanceStatus.Stopping => Color.Info,
+            ServerInstanceStatus.Provisioning => Color.Info,
             ServerInstanceStatus.Crashed => Color.Error,
             _ => Color.Default
         };

@@ -11,7 +11,7 @@ feeds:
   - "[[decisions/mods-many-to-many]]"
   - "[[concepts/modpack-mods-locais]]"
   - "[[entities/tcmine-domain]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
 related: []
 ---
 
@@ -41,7 +41,7 @@ dois providers.
 
 - Criou [[decisions/mods-many-to-many]].
 - Atualizou [[concepts/modpack-mods-locais]], [[entities/tcmine-domain]],
-  [[entities/tcmine-infrastructure]].
+  [[entities/tcmine-server-infrastructure]].
 
 ## Referências
 

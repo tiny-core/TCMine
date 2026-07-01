@@ -28,6 +28,195 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-01] meta | Rename: TCMine-Infrastructure → TCMine-Server.Infrastructure
+
+- **Fonte:** pedido do usuário. Ele pensou em **mesclar** as duas infras (server + launcher) num só lugar;
+  após ver o trade-off (mesclar arrastaria EF/Docker pro launcher e CmlLib pro server, revertendo
+  [[decisions/launcher-clean-architecture]]), optou por **renomear** a infra do server para ficar
+  **simétrica** com a do launcher, mantendo o isolamento.
+- **Páginas afetadas:** [[entities/tcmine-server-infrastructure]] (renomeada de `tcmine-infrastructure`),
+  [[decisions/launcher-clean-architecture]] (nota do rename), [[index]], `CLAUDE.md`, e todos os wikilinks
+  que apontavam para a página antiga.
+- **Resumo:** projeto/pasta/assembly `TCMine-Infrastructure` → `TCMine-Server.Infrastructure`; namespace
+  `TCMine_Infrastructure` → `TCMine_Server.Infrastructure` (100 arquivos .cs/.razor, 148 ocorrências);
+  `RootNamespace`/`Title`/`Description` do csproj, `ProjectReference` do `TCMine-Server`, `TCMine.slnx` e
+  comentários atualizados. Sem `MigrationsAssembly` fixado → as migrations continuam válidas (IDs na
+  tabela de histórico inalterados). **Solução compila 0/0** (server e slnx). Nada mesclado — o isolamento
+  server↔launcher permanece; o compartilhado real (models/contratos) já vive em Domain/Application.
+- **Pendências:** `publish/*.deps.json` tem o nome antigo (artefato de build; regenera no próximo publish).
+
+## [2026-07-01] decisao | Provisionamento durável e reconectável (ProvisioningCoordinator)
+
+- **Fonte:** pedido do usuário (recuperar a conexão ao container se o server parar ou a página der refresh).
+  Escopo confirmado: **completa (reconectar progresso)**. Arquivos:
+  `TCMine-Infrastructure/ServerInstances/{ProvisioningCoordinator(novo),DockerServerJavaRunner,ServerRuntimeInstaller}.cs`,
+  `TCMine-Application/Abstractions/IServerJavaRunner.cs`, `TCMine-Domain/Entities/ServerInstanceEntity.cs`,
+  `TCMine-Server/Program.cs`, `.../Servers/ServerInstanceDetail.razor(.cs)`, `.../Servers/ServerInstances.razor.cs`,
+  `.../Modpacks/ModpackHub.razor.cs`.
+- **Páginas afetadas:** [[concepts/server-instance-lifecycle]], [[concepts/async-feedback-overlay]], [[index]].
+- **Resumo:** a provisão saiu do circuito Blazor (onde refresh a matava e o DbContext scoped era descartado)
+  para um **`ProvisioningCoordinator`** singleton — jobs em tarefa de fundo com escopo de DI próprio,
+  progresso em memória + evento `Changed`. A página **reconecta** ao progresso após refresh (inscreve-se no
+  coordenador; painel de passos próprio, não mais o `BusyOverlay`). Container do instalador com **nome
+  determinístico** `tcmine-install-{slug}` + runner **remove órfão de mesmo nome** antes de criar. Novo
+  estado `ServerInstanceStatus.Provisioning` (persistido, coluna string → sem migration); no boot,
+  `RecoverAsync()` **retoma** provisões interrompidas (re-provisão limpa/idempotente); falha volta a
+  `Stopped`. Server compila 0/0; boot limpo (coordenador registrado, RecoverAsync sem erro).
+- **Pendências:** **não testado ao vivo** (login + Docker + provisão real + refresh). Decisão de projeto:
+  no restart, a provisão é **re-executada limpa** (não reatacha o container em execução) — mais simples e
+  robusto que reatachar a um estado semi-escrito; um install em andamento no restart é refeito do zero.
+
+## [2026-07-01] ingest | Instalador NeoForge "parece travado": heartbeat + timeout
+
+- **Fonte:** usuário reportou container preso (log parado em "Splitting 12951 files"). Arquivos:
+  `TCMine-Infrastructure/ServerInstances/{ServerRuntimeInstaller,DockerServerJavaRunner}.cs`.
+- **Páginas afetadas:** [[concepts/server-instance-lifecycle]], [[index]].
+- **Resumo:** o `--installServer` do NeoForge tem fases longas e **silenciosas** (RENAME/ART após o split
+  processa milhares de classes sem imprimir) — não estava travado, só sem feedback, e o overlay congelava
+  na última linha. Adicionado **heartbeat de 2s** no `ServerRuntimeInstaller` que publica a última linha +
+  **tempo decorrido (mm:ss)** (sobe mesmo nas fases mudas). E um **timeout de 30 min** no
+  `DockerServerJavaRunner` (CTS ligado ao ct) como rede de segurança: se travar de verdade, remove o
+  container e lança `TimeoutException` clara. Recuperação de install interrompido é automática (a linha de
+  cache só é gravada no fim; a próxima provisão apaga o installDir e reinstala limpo). Server compila 0/0.
+- **Pendências:** se o hang for real e recorrente, provável causa = recursos do Docker (CPU/memória) —
+  não instrumentado; o timeout apenas mitiga.
+
+## [2026-07-01] ingest | Formatação do BusyOverlay: status global + lista com scroll
+
+- **Fonte:** pedido do usuário (formatar a tela de provisionar). Arquivos:
+  `TCMine-Server/Components/Shared/BusyOverlay.razor(.cs/.css)`, `TCMine-Server/wwwroot/js/server-console.js`.
+- **Páginas afetadas:** [[concepts/async-feedback-overlay]], [[index]].
+- **Resumo:** o overlay ganhou hierarquia: spinner → **status global** (a fase atual limpa, derivada do
+  rótulo antes de `" — "` via `GlobalStatus`; o detalhe técnico do instalador some do título e fica só na
+  lista) → **lista de passos** com altura limitada (`max-height:220px` + scroll) e **auto-scroll** para o
+  passo atual (`tcmineScrollToBottom` + `ElementReference`). Estilo em `BusyOverlay.razor.css` (elementos
+  HTML próprios); larguras do `MudPaper`/`MudText` por inline (CSS escopado não pega componentes filhos).
+  Server compila 0/0; home renderiza sem erros (overlay em si só aparece em operação, atrás de login).
+- **Pendências:** verificação visual do overlay ao vivo (provisão real com Docker) não feita nesta sessão.
+
+## [2026-07-01] lint | Fix: crash de captura de variável de laço no BusyOverlay
+
+- **Fonte:** `ArgumentOutOfRangeException` no circuito ao renderizar o log de passos. Arquivo:
+  `TCMine-Server/Components/Shared/BusyOverlay.razor`.
+- **Páginas afetadas:** [[concepts/async-feedback-overlay]] (nenhuma mudança de conteúdo), [[index]] (n/a).
+- **Resumo:** o `@for (var i …)` do log de passos usava `@Busy.Steps[i]` dentro do `ChildContent` do
+  `MudText` — um `RenderFragment` **adiado** que captura `i` por referência; ao executar após o fim do
+  laço, `i == Steps.Count` → índice fora do intervalo. Corrigido capturando `var step = steps[i]` (valor
+  por iteração) e usando `@step`. Confirma, de quebra, que o fix do `Task.Run` funcionou: o overlay
+  **estava** renderizando a lista de passos (só quebrava neste ponto). Server compila 0/0.
+- **Pendências:** nenhuma.
+
+## [2026-07-01] decisao | Progresso do provisionamento não renderizava (dispatcher preso) → Task.Run
+
+- **Fonte:** bug reportado (overlay fica em "Provisionando instância…" e fecha sem mostrar os passos).
+  Arquivo: `TCMine-Server/Components/Pages/Admin/Servers/ServerInstanceDetail.razor.cs`.
+- **Páginas afetadas:** [[concepts/async-feedback-overlay]], [[concepts/server-instance-lifecycle]], [[index]].
+- **Resumo:** o provisionamento tem trabalho **síncrono pesado** (link de arquivos) que, rodando no
+  dispatcher do circuito Blazor, **engolia o progresso** — os `progress.Report` só renderizavam depois da
+  operação terminar (quando o overlay já limpou os passos). Correção: `RunAndReload` roda a operação em
+  **`Task.Run`** (libera o dispatcher) e o `Progress` é criado **no circuito** em `ProvisionAsync` (para os
+  callbacks marshalarem de volta ao dispatcher, agora livre para renderizar cada passo). Acesso ao
+  DbContext é sequencial (overlay bloqueia interação; loops de ping/log não tocam o db), então rodar noutra
+  thread é seguro. Server compila 0/0.
+- **Pendências:** confirmar com o usuário que os passos aparecem agora; se ainda falhar rápido, o snackbar
+  de erro passa a ser visível *depois* do último passo renderizado (diagnóstico).
+
+## [2026-07-01] ingest | Streaming ao vivo do instalador NeoForge no provisionamento
+
+- **Fonte:** pedido do usuário (dar sequência à pendência do item anterior). Arquivos:
+  `TCMine-Application/Abstractions/IServerJavaRunner.cs`,
+  `TCMine-Infrastructure/ServerInstances/{DockerServerJavaRunner,ServerRuntimeInstaller}.cs`.
+- **Páginas afetadas:** [[concepts/server-instance-lifecycle]], [[index]].
+- **Resumo:** resolve a pendência do log anterior (o passo `java --installServer` não dava progresso ao
+  vivo). `IServerJavaRunner.RunAsync` ganhou `IProgress<string>? output`; o `DockerServerJavaRunner` passou
+  a seguir os logs com `Follow=true` e ler o **stream multiplexado linha a linha** (acumulando a saída
+  completa para o `JavaRunResult`). O `ServerRuntimeInstaller` liga essa saída ao overlay como uma linha
+  ao vivo coalescida, com throttle de 150ms e encurtamento. Server compila 0/0.
+- **Pendências:** verificação visual (login + Docker + provisão real) não feita; decode UTF-8 por bloco
+  pode partir um char multibyte (saída do instalador é ~ASCII — risco desprezível).
+
+## [2026-07-01] ingest | Provisionamento: log de passos + progresso de download no overlay
+
+- **Fonte:** pedido do usuário (mais informação na tela de provisionar). Arquivos:
+  `TCMine-Server/Services/BusyService.cs`, `TCMine-Server/Components/Shared/BusyOverlay.razor`,
+  `TCMine-Infrastructure/ServerInstances/{ServerRuntimeInstaller,ServerProvisioner}.cs`.
+- **Páginas afetadas:** [[concepts/server-instance-lifecycle]], [[concepts/async-feedback-overlay]], [[index]].
+- **Resumo:** o `BusyOverlay` mostrava só a última linha de progresso. Agora o `BusyService` acumula um
+  **log de passos** (com coalescência: mensagens com o mesmo rótulo antes de `" — "` substituem a linha,
+  para o % de download não inundar) e o overlay renderiza a lista (concluídos com check, o atual com
+  spinner). O `ServerRuntimeInstaller` ganhou **progresso de bytes** no download do instalador NeoForge
+  (`GetAsync` + `ResponseHeadersRead` + throttle 250ms) e mensagens de cache-hit/instalação mais claras;
+  o `ServerProvisioner` reporta contexto inicial (loader/MC) e o link de mods coalesce (`n/total`).
+  Server compila 0/0.
+- **Pendências:** verificação visual do fluxo (atrás de login + Docker) não feita; a instalação do
+  NeoForge (`java --installServer`, que baixa MC+libraries no container) não transmite progresso ao vivo —
+  o `IServerJavaRunner` devolve o resultado só no fim (streaming seria um passo à parte).
+
+## [2026-07-01] ingest | Disco da dashboard = só os dados do projeto (tcmine-data)
+
+- **Fonte:** pedido do usuário. Arquivos: `TCMine-Infrastructure/Server/SystemMetricsService.cs`,
+  `TCMine-Infrastructure/FileSystem/ServerPaths.cs` (novo helper `Data(root)`),
+  `TCMine-Server/Components/Pages/Admin/Dashboard/Widgets/SystemStatusCard.razor`.
+- **Páginas afetadas:** [[entities/tcmine-server]], [[sources/2026-07-01-dashboard-metrics-home]], [[index]].
+- **Resumo:** o medidor de disco deixou de reportar o **drive inteiro** (usado = total − livre) e passou a
+  medir **só o tamanho de `tcmine-data`** (varredura recursiva iterativa, pulando reparse points para não
+  inflar via os links do server-cache), sobre a **capacidade do drive** como total. A varredura é
+  **cacheada (30s)** porque o `Capture()` roda a cada 2s. Gauge renomeado para **"Dados"**, legenda em
+  unidade adaptativa (MB/GB). Server compila 0/0.
+- **Pendências:** hardlinks (se usados no cache) contam por link (leve sobre-contagem) — aceitável para o
+  gauge.
+
+## [2026-07-01] ingest | Launcher: badges de indisponibilidade + servidores via SSE
+
+- **Fonte:** pedido do usuário. Arquivos: `TCMine-Domain/Launcher/InstalledModpack.cs`,
+  `TCMine-Launcher/ViewModels/MainWindowViewModel.cs` + `.Play.cs`,
+  `TCMine-Launcher/Views/{HomePageView,InstancesPageView}.axaml`,
+  `TCMine-Launcher/Themes/Styles/Cards.axaml`.
+- **Páginas afetadas:** [[entities/tcmine-launcher]], [[concepts/sse-content-sync]], [[index]].
+- **Resumo:** o launcher passou a **sinalizar com badge** quando o modpack de uma instância foi
+  removido/despublicado no servidor, ou quando o servidor de auto-join sumiu. Disparado pelo **SSE**
+  (`OnServerContentChanged` → `RefreshActiveAsync` + novo `ReconcileAvailabilityAsync`, que cruza as
+  instâncias com `/api/modpacks`). O manifesto do ativo agora distingue **404 (removido)** de **offline**.
+  `InstalledModpack` ganhou `INotifyPropertyChanged` só para flags de runtime não persistidas
+  (`ModpackMissing`/`AutoJoinServerMissing`/`HasAvailabilityWarning`/`AvailabilityMessage`); badges na
+  Home (hero) e na lista de Instâncias (`Border.badge.warn`). A lista de servidores do ativo já
+  reconstrói via SSE. Launcher compila 0/0.
+- **Pendências:** verificação visual do desktop (Avalonia) não feita nesta sessão; instâncias
+  **não-ativas** usam a lista de servidores da última visita (o badge de "servidor sumido" do ativo é
+  sempre fresco via manifesto).
+
+## [2026-07-01] decisao | Guarda clara ao apagar modpack com servidores atrelados
+
+- **Fonte:** bug reportado pelo usuário (erro genérico ao apagar modpack). Arquivos:
+  `TCMine-Infrastructure/Minecraft/ModpackImportService.cs` (`DeleteAsync`),
+  `TCMine-Server/Components/Pages/Admin/Modpacks/Modpacks.razor.cs`.
+- **Páginas afetadas:** [[entities/tcmine-server]], [[concepts/server-instance-lifecycle]], [[index]].
+- **Resumo:** a FK `ServerInstanceEntity → Modpack` é `Restrict` **de propósito**
+  (`AppDbContext`, ~L139) — não deixa apagar um modpack com instâncias derivadas. Antes o
+  `SaveChanges` falhava com um `DbUpdateException` genérico (só dava para diagnosticar pelo log).
+  Agora `DeleteAsync` faz uma **checagem prévia**: se há instâncias com aquele `ModpackId`, lança
+  `InvalidOperationException` **nomeando os servidores** e orientando a apagá-los primeiro. A UI
+  (`Modpacks.razor.cs`) trata `InvalidOperationException` como **Warning** (regra de negócio) e o
+  resto como Error. **Mantido** o `Restrict` (mais seguro que cascatear a remoção de servidores).
+- **Pendências:** nenhuma.
+
+## [2026-07-01] ingest | Dashboard com medidores de recurso + home pública revampada
+
+- **Fonte:** código vivo (implementação a pedido). Arquivos:
+  `TCMine-Infrastructure/Server/SystemMetricsService.cs`, `TCMine-Server/Program.cs`,
+  `.../Dashboard/Widgets/{MetricGauge,SystemStatusCard,ModDistributionCard}.*`,
+  `Components/Pages/Home.*`.
+- **Páginas afetadas:** [[entities/tcmine-server]] (estado + frontmatter),
+  [[sources/2026-07-01-dashboard-metrics-home]] (nova), [[index]].
+- **Resumo:** `SystemMetricsService` passou a medir **CPU/RAM/disco** do host/contêiner
+  (cross-platform: `TotalProcessorTime`, `GC.GetGCMemoryInfo`, `DriveInfo`; stateful, recebe
+  `dataRoot`). `SystemStatusCard` ganhou 3 **medidores circulares** via novo `MetricGauge`;
+  `ModDistributionCard` virou **donut** (API MudBlazor 9 `ChartSeries`+`ChartLabels`). **Home
+  pública** conectada ao `ContentCatalog` (modpacks publicados + launcher) com hero, destaques
+  e grade de modpacks. Server compila 0/0; home validada no browser.
+- **Pendências:** verificação visual da **dashboard admin** (atrás de login) não feita;
+  possível revisão do rótulo "CPU" (é uso do processo do servidor, não CPU global do host).
+
 ## [2026-06-29] decisao | Volta ao MSAL no launcher (revert do server-brokered)
 
 - **Fonte:** decisão do usuário ("voltar para MSAL", sem hosting/redirect-web/secret); backup
@@ -66,6 +255,113 @@ Estrutura sugerida do corpo:
   para dev e adicionar produção depois (o MSAL antigo não exigia isso por ser public-client com loopback).
 - **Pendências:** validar o login fim-a-fim após o usuário ajustar o app no Azure (account type + secret +
   redirect) e reiniciar o servidor (a migração aplica no boot).
+
+---
+
+## [2026-06-29] ingest | Novidades no launcher (globais + de modpacks) + endpoint /api/news
+
+- **Fonte:** pedido do usuário. Servidor: `Contracts/Server.cs` (`NewsItemDto`), `ModpackNewsService.ListPublishedAsync`,
+  `Endpoints/NewsEndpoints.cs` (+ `Program.cs`). Launcher: porta `INewsFeed`, impl `NewsFeed`,
+  `NewsPageViewModel`/`NewsPageView`.
+- **Páginas afetadas:** [[entities/tcmine-server]] (`/api/news`), [[entities/tcmine-launcher]] (aba Novidades),
+  [[concepts/sse-content-sync]] (news também recarrega via SSE).
+- **Resumo:** o servidor já guardava novidades (`NewsEntity`, `ModpackId` null=global) e fazia bump SSE
+  nas mutações, mas **não expunha feed público**. Adicionado `GET /api/news` (só publicadas, globais + de
+  modpacks, com nome do modpack). O launcher ganhou a **aba Novidades**: feed unificado com badge de
+  origem (nome do modpack ou "GLOBAL") + tag + título + resumo + data, recarregado ao vivo pelo SSE.
+  Removido o código morto de placeholder (todas as páginas agora são reais). Compila 0/0 (servidor +
+  launcher).
+- **Pendências:** filtro por origem (todas/globais/modpack) não implementado (feed unificado com badges
+  cobre o pedido); reinício do servidor necessário para o endpoint entrar.
+
+---
+
+## [2026-06-29] ingest | Launcher: botão JOGAR → ATUALIZAR via SSE
+
+- **Fonte:** pedido do usuário. Código `MainWindowViewModel.Play.cs` (versão instalada vs. mais recente).
+- **Páginas afetadas:** [[concepts/launcher-install-launch]], [[concepts/sse-content-sync]].
+- **Resumo:** o launcher passou a guardar a **versão mais recente** de cada modpack (do manifesto, viva
+  via SSE) **separada** da versão instalada (`InstalledModpack.ManifestVersion`). O refresh/SSE deixou de
+  sobrescrever a versão instalada — só os metadados de exibição. `HasActiveUpdate` compara as duas; o
+  botão da Home (e o label do card) vira **ATUALIZAR** quando diferem. Clicar reinstala (overrides
+  reaplicam) e, no sucesso, a versão instalada = a do servidor → volta a "JOGAR". Compila 0/0.
+- **Pendências:** nenhuma.
+
+---
+
+## [2026-06-29] ingest | Launcher: live-link SSE (auto-update ao editar no servidor)
+
+- **Fonte:** feedback do usuário ("não atualiza automaticamente quando edito no servidor"). Nova porta
+  `TCMine-Application/Launcher/IContentWatcher`, impl `TCMine-Launcher.Infrastructure/ContentWatcher`,
+  ligação no `MainWindowViewModel`; composição no `Program.cs`.
+- **Páginas afetadas:** [[concepts/sse-content-sync]] (consumidor no launcher), [[entities/tcmine-launcher]].
+- **Resumo:** o **servidor já fazia `ContentNotifier.Bump()`** em todas as mutações (modpack, instâncias,
+  news) — o problema era só o launcher novo **não consumir o `/events`**. Adicionado o consumidor SSE:
+  fixa a baseline, dispara ao receber versão diferente (em stream **ou após reconectar**), reconecta com
+  backoff; o shell **recarrega o catálogo + o modpack ativo** (servidores/descrição) e atualiza o
+  indicador de ligação. Sem mudanças no servidor. Compila 0/0.
+- **Pendências:** nenhuma específica; o aviso recarrega metadados (não re-baixa mods de instâncias já
+  instaladas — isso fica para o botão Jogar/Atualizar).
+
+---
+
+## [2026-06-29] ingest | Launcher: aba Instâncias + janelas do footer + auto-join
+
+- **Fonte:** feedback do usuário (testando o launcher). Código: `TCMine-Launcher/Views/{InstancesPageView,LogWindow,MemoryWindow}.axaml(.cs)`,
+  `ViewModels/{InstancesPageViewModel,MemoryEditViewModel}.cs`, `MainWindowViewModel.Play.cs` (export/import/delete/abrir-pasta),
+  `HomePageViewModel` (auto-join), portas `IInstanceStore` (Export/Import/GameDir) + impl.
+- **Páginas afetadas:** [[entities/tcmine-launcher]] (aba Instâncias + footer + auto-join), [[concepts/launcher-install-launch]].
+- **Resumo:** ajustes pós-teste — (1) os botões do footer **Eventos**/**Memória** abrem **janelas**
+  (borderless com chrome), não flyouts; (2) o botão por servidor na Home **marca o auto-join** (radio),
+  e o **JOGAR** entra no servidor marcado (deixou de lançar por servidor); (3) **aba Instâncias**:
+  lista das instaladas com **deletar, exportar (zip), importar, editar RAM** (janela) e **abrir pastas
+  de shaders/texturas** (`shaderpacks`/`resourcepacks`). Confirmado: os **mods vêm do cache do servidor**
+  (`/files/{fileId}/{fileName}`), nunca da API do CurseForge. Compila 0/0.
+- **Pendências:** o rótulo de RAM no footer não refresca ao editar pela janela (cosmético); confirmação
+  de delete sem diálogo; sync de configs ainda pendente.
+
+---
+
+## [2026-06-29] decisao | Launcher: Clean Architecture (infra dedicada) + Home estilo backup
+
+- **Fonte:** pedido do usuário (foto da Home + arquitetura limpa); refactor do `TCMine-Launcher`. Novo
+  projeto `TCMine-Launcher.Infrastructure` (no `.slnx`); `TCMine-Domain/Launcher/`,
+  `TCMine-Application/Launcher/`; `Views/HomePageView.axaml` (redesenho) + `Behaviors/ImageLoader.cs`.
+- **Páginas afetadas:** [[decisions/launcher-clean-architecture]] (nova), [[entities/tcmine-launcher-infrastructure]]
+  (nova), [[sources/2026-06-29-launcher-clean-architecture]] (nova), [[entities/tcmine-launcher]]
+  (só UI+composição), [[index]] (8 projetos).
+- **Resumo:** o launcher passou a **espelhar o servidor** em Clean Architecture — models →
+  `TCMine-Domain/Launcher`, **portas** → `TCMine-Application/Launcher`, impls → **`TCMine-Launcher.Infrastructure`**
+  (CmlLib/HTTP/filesystem/fNbt); `TCMine-Launcher` fica só com Views/ViewModels + composição (Splat). A
+  infra do launcher é **dedicada** (não o `TCMine-Infrastructure` partilhado) para não acoplar CmlLib ao
+  servidor nem EF/Docker ao launcher. **Home** redesenhada no estilo da foto (hero + perfil/ID/servidores
+  com ping e play-por-servidor). **Comportamento:** clicar num modpack só **seleciona** (sem download);
+  instalar/lançar é o botão da Home. Mods continuam a vir do **cache do servidor** (`/files`). Servidor,
+  infra e launcher compilam 0/0; a solução tem **8 projetos**.
+- **Pendências:** validação em execução (lançar o jogo end-to-end); aba **Instâncias** dedicada (a grelha
+  de instaladas saiu da Home, que segue a foto); só NeoForge; sem sync de configs.
+
+---
+
+## [2026-06-29] ingest | Launcher: instalar + lançar modpack (NeoForge)
+
+- **Fonte:** sessão de implementação; referência `P:\TCMine-Launcher-bk`. Novos em `TCMine-Launcher/`:
+  `Services/{LaunchOrchestrator,GameLauncher,ModInstaller,OverridesInstaller,ServersDatWriter,InstanceStore,SettingsStore,GameRunStateStore,GameLogCapture,MinecraftServerPinger,SystemInfo,HttpClientProvider}.cs`,
+  `Models/{InstalledModpack,LaunchProgress,LauncherSettings,PlayerDataProfile}.cs`,
+  `ViewModels/{MainWindowViewModel.Play,HomePageViewModel,SettingsPageViewModel}.cs` (+ `ModpacksPageViewModel`),
+  `Views/{HomePageView,SettingsPageView}.axaml` (+ `ModpacksPageView`).
+- **Páginas afetadas:** [[concepts/launcher-install-launch]] (nova), [[sources/2026-06-29-launcher-install-launch]]
+  (nova), [[entities/tcmine-launcher]] (login+catálogo → +instalar/lançar), [[index]].
+- **Resumo:** a função central do launcher — instalar e lançar um modpack **oficial NeoForge**. Pipeline:
+  manifesto (`ApiClient`) → registo (`InstalledModpack`, 1 por modpack) → `LaunchOrchestrator`
+  (NeoForge via CmlLib + mods com cache, **sem Sha1** + overrides `.zip` + `servers.dat` via fNbt) →
+  `Process.Start` + captura de log + deteção de jogo aberto. **Página Jogar** (hero + botão grande +
+  progresso + servidores com ping + grelha de instaladas) e **Definições** (slider de RAM até à RAM
+  física + caminho do Java). Cards de Modpacks: Instalar/Jogar/Atualizar. Pacotes: `CmlLib.Core.Installer.NeoForge`,
+  `fNbt`. Compila 0/0.
+- **Pendências:** só NeoForge (outros loaders → erro amigável); sem sync de configs do jogador (falta
+  `GET` no servidor); sem página de Instâncias dedicada. **Validação end-to-end** (lançar o jogo de
+  facto) ainda por fazer — precisa do `Client.props` com `MicrosoftClientId`.
 
 ---
 
@@ -210,7 +506,7 @@ Estrutura sugerida do corpo:
 ## [2026-06-25] decisao | Origem CF + checagem econômica de atualizações (modpack e mods)
 
 - **Fonte:** [[sources/2026-06-25-curseforge-update-tracking]] (pedido do usuário + código vivo).
-- **Páginas afetadas:** [[decisions/curseforge-update-tracking]] (nova), [[sources/2026-06-25-curseforge-update-tracking]] (nova), [[concepts/modpack-admin-editor]], [[entities/tcmine-infrastructure]], `index.md`.
+- **Páginas afetadas:** [[decisions/curseforge-update-tracking]] (nova), [[sources/2026-06-25-curseforge-update-tracking]] (nova), [[concepts/modpack-admin-editor]], [[entities/tcmine-server-infrastructure]], `index.md`.
 - **Resumo:** modpacks importados do CF ganham a tabela 1:1 `ModpackImportSources`
   (versão importada + cache de update). `CheckModpackUpdateAsync` (TTL 6h, reusa
   `GetLatestFileAsync`) e `CheckModUpdatesAsync` (**sob demanda**, batch
@@ -313,7 +609,7 @@ Estrutura sugerida do corpo:
 ## [2026-06-25] ingest | Marcador de mod órfão + página "todos os mods" com badges
 
 - **Fonte:** pedido do usuário; código `TCMine-Infrastructure/Minecraft/ModpackImportService.cs`, `TCMine-Server/Components/Pages/Admin/Mods/`.
-- **Páginas afetadas:** [[decisions/mods-many-to-many]], [[entities/tcmine-server]], [[entities/tcmine-infrastructure]].
+- **Páginas afetadas:** [[decisions/mods-many-to-many]], [[entities/tcmine-server]], [[entities/tcmine-server-infrastructure]].
 - **Resumo:** complementos da normalização N:N. (1) **Marcador de órfão**:
   `ModFileEntity.OrphanedAt` (UTC), mantido por `MarkOrphansAsync` no `SaveAsync`
   (arquivos que saíram do pack) e no `DeleteAsync` (ao apagar modpack); limpo quando
@@ -328,7 +624,7 @@ Estrutura sugerida do corpo:
 ## [2026-06-25] decisao | Mods em N:N (ModFile + ModpackMod) em vez de FK 1:N
 
 - **Fonte:** [[sources/2026-06-25-mods-many-to-many]] (pergunta do usuário sobre o schema + refactor no código vivo).
-- **Páginas afetadas:** [[decisions/mods-many-to-many]] (nova), [[sources/2026-06-25-mods-many-to-many]] (nova), [[concepts/modpack-mods-locais]], [[entities/tcmine-domain]], [[entities/tcmine-infrastructure]], `index.md`.
+- **Páginas afetadas:** [[decisions/mods-many-to-many]] (nova), [[sources/2026-06-25-mods-many-to-many]] (nova), [[concepts/modpack-mods-locais]], [[entities/tcmine-domain]], [[entities/tcmine-server-infrastructure]], `index.md`.
 - **Resumo:** o usuário notou que a FK `ModpackId` em `Mods` duplicava linhas do
   mesmo arquivo entre modpacks. Normalizado para **N:N**: `ModFileEntity` (PK
   `FileId`, metadados uma vez) + `ModpackModEntity` (junção `(ModpackId, FileId)`
@@ -477,7 +773,7 @@ Estrutura sugerida do corpo:
 ## [2026-06-24] ingest | UI admin de modpacks + BlazorMonaco
 
 - **Fonte:** código vivo escrito nesta sessão ([[sources/2026-06-24-modpack-admin-ui]]);
-  base no `ModpackImportService` já existente ([[entities/tcmine-infrastructure]]).
+  base no `ModpackImportService` já existente ([[entities/tcmine-server-infrastructure]]).
 - **Páginas afetadas:** criado [[concepts/modpack-admin-editor]] e
   [[sources/2026-06-24-modpack-admin-ui]]; atualizado [[entities/tcmine-server]]
   (componentes, decisões, pendências, frontmatter); `index.md` atualizado.
@@ -536,7 +832,7 @@ Estrutura sugerida do corpo:
   `master`, HEAD `ab18cef`); resumo em [[sources/2026-06-23-leitura-codigo-vivo]].
 - **Páginas afetadas:** criadas as entidades [[entities/tcmine-solution]],
   [[entities/tcmine-domain]], [[entities/tcmine-application]],
-  [[entities/tcmine-infrastructure]], [[entities/tcmine-design]],
+  [[entities/tcmine-server-infrastructure]], [[entities/tcmine-design]],
   [[entities/tcmine-server]], [[entities/tcmine-launcher]],
   [[entities/tcmine-icongenerator]]; criada a fonte
   [[sources/2026-06-23-leitura-codigo-vivo]]; `index.md` atualizado.

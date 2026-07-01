@@ -8,6 +8,18 @@ namespace TCMine_Application.Contracts;
 public record NewsDto(string Tag, string Title, string Data, string Summary);
 
 /// <summary>
+/// Item do feed público de novidades (consumido pelo launcher). <c>ModpackId</c>/<c>ModpackName</c>
+/// nulos = notícia <b>global</b> (do servidor); preenchidos = notícia daquele modpack.
+/// </summary>
+public sealed record NewsItemDto(
+    string Tag,
+    string Title,
+    string Summary,
+    DateTime PublishedAt,
+    Guid? ModpackId,
+    string? ModpackName);
+
+/// <summary>
 /// Representa um resumo de um modpack, incluindo metadados essenciais e estatísticas.
 /// </summary>
 public record ModpackSummaryDto(

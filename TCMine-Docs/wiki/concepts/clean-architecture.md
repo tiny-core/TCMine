@@ -12,7 +12,7 @@ related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-domain]]"
   - "[[entities/tcmine-application]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/shared-domain-logic]]"
 ---
 
@@ -40,7 +40,7 @@ essa lógica no core, ela não é duplicada nem diverge entre os dois lados (ver
 - **[[entities/tcmine-domain]]** — entidades, enums e regras puras. Sem EF/ASP.NET.
 - **[[entities/tcmine-application]]** — **portas** (interfaces) e **contratos**
   (DTOs `record`) + lógica pura. Depende só de Domain.
-- **[[entities/tcmine-infrastructure]]** — implementações concretas (EF Core,
+- **[[entities/tcmine-server-infrastructure]]** — implementações concretas (EF Core,
   CurseForge, filesystem). Depende de Domain + Application.
 - **Entrega** ([[entities/tcmine-server]], [[entities/tcmine-launcher]]) compõe a
   raiz: registra a Infrastructure no DI e expõe a UI/endpoints.

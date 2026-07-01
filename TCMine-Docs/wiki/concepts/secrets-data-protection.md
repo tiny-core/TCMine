@@ -9,7 +9,7 @@ aliases: [secrets, Data Protection, token cifrado, ServerSettingsService]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
 related:
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[entities/tcmine-server]]"
   - "[[concepts/curseforge-proxy]]"
   - "[[concepts/setup-auth-cookie]]"
@@ -22,7 +22,7 @@ related:
 
 ## O que é
 
-`ServerSettingsService` ([[entities/tcmine-infrastructure]]) lê/grava a linha única
+`ServerSettingsService` ([[entities/tcmine-server-infrastructure]]) lê/grava a linha única
 `ServerSettingEntity` (`Id == 1`). O token do CurseForge é protegido com um
 `IDataProtector` (`protector "TCMine.ServerSettings.v1"`); os identificadores
 Azure (`AzureClientId`/`AzureTenantId`) e `PublicBaseUrl` são públicos e ficam em
@@ -50,7 +50,7 @@ vars) permite trocá-lo em runtime, sem reiniciar nem editar arquivos.
 
 ## Aplicação concreta
 
-- `TCMine-Infrastructure/Server/ServerSettingsService.cs`;
+- `TCMine-Server.Infrastructure/Server/ServerSettingsService.cs`;
   `TCMine-Domain/Entities/ServerSettingEntity.cs`;
   `TCMine-Server/Program.cs` (`AddDataProtection().PersistKeysToFileSystem(...)`).
 

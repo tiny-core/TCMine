@@ -3,6 +3,7 @@
 @attribute [Authorize(Roles = "Owner,Admin,Operator")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Domain.Entities
+@using TCMine_Server.Infrastructure.ServerInstances
 
 @* Detalhe de uma instância: status + ações de ciclo de vida, console ao vivo (logs do container +
    envio de comandos) e edição dos arquivos de config (server.properties, whitelist, ops, banlists). *@
@@ -38,11 +39,14 @@ else
             @if (_detail.Provisioned && _detail.IsStale)
             {
                 <MudButton StartIcon="@Icons.Material.Filled.SystemUpdateAlt" Color="Color.Warning"
-                           Variant="Variant.Filled" OnClick="ProvisionAsync">Aplicar atualização</MudButton>
+                           Variant="Variant.Filled" Disabled="@IsProvisioning" OnClick="StartProvision">
+                    Aplicar atualização
+                </MudButton>
             }
             else
             {
-                <MudButton StartIcon="@Icons.Material.Filled.Build" OnClick="ProvisionAsync" Variant="Variant.Outlined">
+                <MudButton StartIcon="@Icons.Material.Filled.Build" Variant="Variant.Outlined"
+                           Disabled="@IsProvisioning" OnClick="StartProvision">
                     Provisionar
                 </MudButton>
             }
@@ -55,7 +59,7 @@ else
             else
             {
                 <MudButton StartIcon="@Icons.Material.Filled.PlayArrow" Color="Color.Success" Variant="Variant.Filled"
-                           Disabled="@(!_detail.Provisioned)" OnClick="StartAsync">Iniciar
+                           Disabled="@(!_detail.Provisioned || IsProvisioning)" OnClick="StartAsync">Iniciar
                 </MudButton>
             }
             @if (_detail.Provisioned)
@@ -84,6 +88,71 @@ else
                 <span> Reinicie o servidor depois para os mods novos valerem.</span>
             }
         </MudAlert>
+    }
+
+    @* ── Progresso do provisionamento (via coordenador; reconecta após refresh) ─────────────────── *@
+    @if (_job is not null)
+    {
+        <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-3">
+                @if (_job.State == ProvisionState.Running)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium"/>
+                }
+                else if (_job.State == ProvisionState.Succeeded)
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large"/>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large"/>
+                }
+                <div class="flex-grow-1">
+                    <MudText Typo="Typo.h6">
+                        @(_job.State switch
+                        {
+                            ProvisionState.Running => JobGlobalStatus,
+                            ProvisionState.Succeeded => "Provisionamento concluído",
+                            _ => "Falha no provisionamento"
+                        })
+                    </MudText>
+                    @if (_job.State == ProvisionState.Failed && _job.Error is not null)
+                    {
+                        <MudText Typo="Typo.body2" Color="Color.Error">@_job.Error</MudText>
+                    }
+                </div>
+                @if (_job.State != ProvisionState.Running)
+                {
+                    <MudButton Variant="Variant.Text" OnClick="DismissJob">Fechar</MudButton>
+                }
+            </MudStack>
+
+            @if (_job.Steps.Count > 0)
+            {
+                <div class="provision-steps" @ref="_jobStepsEl">
+                    @{
+                        var steps = _job.Steps;
+                        var lastIndex = steps.Count - 1;
+                    }
+                    @for (var i = 0; i < steps.Count; i++)
+                    {
+                        var step = steps[i];
+                        var isCurrent = _job.State == ProvisionState.Running && i == lastIndex;
+                        <div class="provision-step">
+                            @if (isCurrent)
+                            {
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                            }
+                            <span class="provision-step-text @(isCurrent ? "provision-step-text--current" : null)">@step</span>
+                        </div>
+                    }
+                </div>
+            }
+        </MudPaper>
     }
 
     @* ── Console ao vivo (log + comandos) ───────────────────────────────────────────────────────── *@
@@ -151,5 +220,41 @@ else
     .server-config-editor textarea {
         font-family: 'Cascadia Code', Consolas, monospace;
         font-size: 13px;
+    }
+
+    /* Log de passos do provisionamento — altura limitada + scroll (auto-scroll no code-behind) */
+    .provision-steps {
+        max-height: 200px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--mud-palette-background-grey);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .provision-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .provision-step > :first-child {
+        flex: 0 0 auto;
+        margin-top: 1px;
+    }
+
+    .provision-step-text {
+        color: var(--mud-palette-text-secondary);
+        overflow-wrap: anywhere;
+    }
+
+    .provision-step-text--current {
+        color: var(--mud-palette-text-primary);
+        font-weight: 500;
     }
 </style>

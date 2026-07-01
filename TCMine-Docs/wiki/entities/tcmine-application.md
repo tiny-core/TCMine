@@ -11,7 +11,7 @@ sources:
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-domain]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/shared-domain-logic]]"
   - "[[concepts/dtos-as-records]]"
 ---
@@ -26,7 +26,7 @@ related:
 
 `TCMine-Application` (namespace `TCMine_Application`) define *o que* a aplicação
 faz sem dizer *como* a infraestrutura o realiza. As implementações concretas
-ficam em [[entities/tcmine-infrastructure]]; servidor e launcher injetam a sua
+ficam em [[entities/tcmine-server-infrastructure]]; servidor e launcher injetam a sua
 própria versão das portas.
 
 ## Responsabilidades / Escopo
@@ -59,7 +59,7 @@ própria versão das portas.
 
 ## Relações
 
-- Implementada por [[entities/tcmine-infrastructure]]; consumida por
+- Implementada por [[entities/tcmine-server-infrastructure]]; consumida por
   [[entities/tcmine-server]] e [[entities/tcmine-launcher]].
 
 ## Pontos em aberto

@@ -7,7 +7,7 @@ created: 2026-06-27
 updated: 2026-06-27
 aliases: [provisionamento de servidor, ServerProvisioner, DockerMinecraftManager]
 sources: [[[sources/2026-06-27-server-instances-e-ux]]]
-related: [[[decisions/server-instances-docker]], [[concepts/modside-rules]], [[concepts/modpack-mods-locais]], [[entities/tcmine-infrastructure]]]
+related: [[[decisions/server-instances-docker]], [[concepts/modside-rules]], [[concepts/modpack-mods-locais]], [[entities/tcmine-server-infrastructure]]]
 ---
 
 # Ciclo de vida de uma instância de servidor
@@ -18,7 +18,7 @@ related: [[[decisions/server-instances-docker]], [[concepts/modside-rules]], [[c
 ## O que é
 
 `ServerInstanceEntity` é um servidor Minecraft gerenciado, derivado de um modpack. O fluxo, todo na
-camada `TCMine-Infrastructure/ServerInstances/`, tem quatro fases.
+camada `TCMine-Server.Infrastructure/ServerInstances/`, tem quatro fases.
 
 ## Por que importa para o TCMine
 
@@ -43,6 +43,37 @@ Monta `tcmine-data/servers/{id}/`:
   na primeira provisão.
 - Marca `ProvisionedAt`. Re-provisionar **remove o container existente** (criado com o comando do loader
   antigo) para o próximo start recriar com o estado novo.
+- **Progresso detalhado (2026-07-01):** cada etapa reporta via `IProgress<string>` para o `BusyOverlay`,
+  que agora mostra um **log de passos** (concluídos com check, o atual com spinner) em vez de só a última
+  linha. O download do instalador do NeoForge reporta **bytes** (`X/Y MB · %`); a instalação do NeoForge
+  (`java --installServer`) **transmite a saída ao vivo** (ver abaixo); o cache-hit diz "já em cache —
+  reutilizando"; o link de mods mostra `n/total`. Convenção de coalescência no `BusyService`: mensagens
+  com o mesmo rótulo antes de `" — "` (o detalhe que varia ao vivo) substituem a linha em vez de inundar o log.
+- **Streaming do instalador (2026-07-01):** o `IServerJavaRunner` ganhou um parâmetro opcional
+  `IProgress<string>? output`; o `DockerServerJavaRunner` segue os logs do container com `Follow=true`
+  (stream multiplexado lido linha a linha), reportando ao vivo **e** acumulando a saída completa para o
+  `JavaRunResult` (diagnóstico).
+- **Fases silenciosas + heartbeat (2026-07-01):** o `--installServer` do NeoForge tem passos **longos e
+  sem saída** (o RENAME/ART após "Splitting … files" processa milhares de classes calado, por minutos).
+  Sem feedback, o overlay congela na última linha e "parece travado". Solução no `ServerRuntimeInstaller`:
+  um **timer de heartbeat (2s)** publica a última linha + **tempo decorrido (mm:ss)**, então o `mm:ss` sobe
+  mesmo nas fases mudas. A saída do instalador só atualiza a "última linha"; o timer é quem publica.
+- **Timeout do runner (2026-07-01):** `DockerServerJavaRunner` cancela via CTS ligado ao `ct` após
+  **30 min** (instalações reais levam poucos minutos); ao estourar, remove o container e lança
+  `TimeoutException` clara — um travamento não prende o provisionamento para sempre.
+- **Provisionamento durável e reconectável (2026-07-01):** a provisão deixou de rodar no circuito Blazor
+  (onde um refresh de página a interromperia e o `DbContext` scoped seria descartado embaixo dela) e passou
+  a um **`ProvisioningCoordinator`** (singleton): cada job roda numa **tarefa de fundo com escopo de DI
+  próprio** (`IServiceScopeFactory`), guarda o log de passos em memória e emite `Changed`. A página de
+  detalhe **dispara** via `Coordinator.Start(id, applyUpdate)`, **inscreve-se** no evento e renderiza o
+  progresso num painel próprio — então um **refresh reconecta** ao progresso ao vivo (o job continua no
+  servidor). O container do instalador ganhou **nome determinístico** (`tcmine-install-{slug}`) e o runner
+  **remove um órfão de mesmo nome** antes de criar (retomar sem conflito). A instância fica marcada como
+  `ServerInstanceStatus.Provisioning` (persistido, sem migration — coluna é string); no **boot**,
+  `Coordinator.RecoverAsync()` (chamado no `Program.cs` após as migrations) **retoma** as que ficaram
+  nesse estado (re-provisão limpa e idempotente). Em falha, o status volta a `Stopped` (não re-tenta em
+  loop). O `BusyOverlay` continua para as operações curtas (load/start/stop/edit); só a provisão migrou
+  para o coordenador. Ver [[concepts/async-feedback-overlay]].
 
 ### 2. Execução (`DockerMinecraftManager`)
 
@@ -66,7 +97,7 @@ detalhe (polling) e na lista (coluna, ping paralelo). Host: `PublicAddress` ou l
 
 ## Aplicação concreta
 
-- `TCMine-Infrastructure/ServerInstances/`: `ServerProvisioner`, `ServerRuntimeInstaller`,
+- `TCMine-Server.Infrastructure/ServerInstances/`: `ServerProvisioner`, `ServerRuntimeInstaller`,
   `DockerMinecraftManager`, `DockerEnvironment`, `DockerServerJavaRunner`, `ServerStatusReconciler`,
   `MinecraftServerPinger`, `ServerInstanceService` (fachada do painel).
 - `ServerPaths` define `servers/` e `server-cache/`. Ver [[decisions/server-instances-docker]].

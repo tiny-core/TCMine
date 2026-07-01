@@ -1,0 +1,23 @@
+@* Medidor circular de uma métrica de uso (0–100%). A cor muda por limiar (ok/atenção/crítico).
+   Só markup — parâmetros e lógica de cor ficam no code-behind (MetricGauge.razor.cs). *@
+
+<MudStack AlignItems="AlignItems.Center" Spacing="1" Class="metric-gauge">
+    <div class="gauge-ring">
+        <MudProgressCircular Value="@Value" Min="0" Max="100" StrokeWidth="5"
+                             Color="@GaugeColor" Size="Size.Large"/>
+        @* Rótulo central sobreposto ao anel — a % em destaque *@
+        <div class="gauge-value">
+            <MudText Typo="Typo.h6">@Value.ToString("0")<span class="gauge-pct">%</span></MudText>
+        </div>
+    </div>
+
+    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+        <MudIcon Icon="@Icon" Size="Size.Small" Color="@GaugeColor"/>
+        <MudText Typo="Typo.body2">@Label</MudText>
+    </MudStack>
+
+    @if (!string.IsNullOrEmpty(Caption))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@Caption</MudText>
+    }
+</MudStack>

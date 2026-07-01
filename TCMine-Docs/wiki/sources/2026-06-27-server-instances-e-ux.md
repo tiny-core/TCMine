@@ -8,7 +8,7 @@ updated: 2026-06-27
 source-type: code
 origin: TCMine-Infrastructure/ServerInstances/, TCMine-Server/Components/Pages/Admin/ (código vivo)
 feeds: [[[decisions/server-instances-docker]], [[concepts/server-instance-lifecycle]], [[concepts/modpack-server-hub-ux]]]
-related: [[[entities/tcmine-infrastructure]], [[entities/tcmine-server]], [[entities/tcmine-domain]]]
+related: [[[entities/tcmine-server-infrastructure]], [[entities/tcmine-server]], [[entities/tcmine-domain]]]
 ---
 
 # Implementação de instâncias de servidor + remodelagem da UX admin

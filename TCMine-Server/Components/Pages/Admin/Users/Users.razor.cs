@@ -4,7 +4,7 @@ using MudBlazor;
 using System.Security.Claims;
 using TCMine_Domain.Entities;
 using TCMine_Domain.Identity;
-using TCMine_Infrastructure.Identity;
+using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Components.Pages.Admin.Users.Dialogs;
 using TCMine_Server.Services;
 

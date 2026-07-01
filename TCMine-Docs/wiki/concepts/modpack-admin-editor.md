@@ -10,7 +10,7 @@ sources:
   - "[[sources/2026-06-24-modpack-admin-ui]]"
 related:
   - "[[entities/tcmine-server]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
   - "[[concepts/modpack-mods-locais]]"
   - "[[concepts/modside-rules]]"
   - "[[concepts/curseforge-proxy]]"
@@ -46,7 +46,7 @@ related:
     bloqueante durante o import), `OverridePathDialog`, `OverrideHistoryDialog`,
     `NewsEditDialog`.
 
-O backend é o `ModpackImportService` ([[entities/tcmine-infrastructure]]); a UI
+O backend é o `ModpackImportService` ([[entities/tcmine-server-infrastructure]]); a UI
 **não** fala com EF/CurseForge direto — só com esse serviço. A decomposição em
 componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
 

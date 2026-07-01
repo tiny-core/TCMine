@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "tcmine-server",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "TCMine-Server/TCMine-Server.csproj", "--urls", "http://localhost:5244"],
+      "port": 5244
+    }
+  ]
+}

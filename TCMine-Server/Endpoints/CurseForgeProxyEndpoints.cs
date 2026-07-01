@@ -1,5 +1,5 @@
-﻿using TCMine_Infrastructure.CurseForge;
-using TCMine_Infrastructure.Server;
+﻿using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Endpoints;
 

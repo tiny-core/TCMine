@@ -10,7 +10,7 @@ namespace TCMine_Domain.Entities;
 /// token do CurseForge e identificadores do Azure (login Microsoft).
 ///
 /// Segredos (CF token) são guardados <b>cifrados</b> via Data Protection — ver
-/// <c>TCMine-Infrastructure</c> → <c>Server</c> → <c>ServerSettingsService</c>. O <see cref="AzureClientId"/> e o
+/// <c>TCMine-Server.Infrastructure</c> → <c>Server</c> → <c>ServerSettingsService</c>. O <see cref="AzureClientId"/> e o
 /// <see cref="AzureTenantId"/> são identificadores públicos, guardados em texto.
 /// </summary>
 public class ServerSettingEntity

@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>TCMine_Server.Infrastructure</RootNamespace>
+        <Title>TCMine Server Infrastructure</Title>
+        <Description>TCMine Server Infrastructure — implementações concretas: EF Core, migrations, repositórios, clients HTTP e filesystem.</Description>
+        <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Server.Infrastructure</PackageProjectUrl>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Cookies"/>
+        <PackageReference Include="Microsoft.AspNetCore.Components.Authorization"/>
+        <PackageReference Include="Microsoft.AspNetCore.Http"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Http"/>
+        <PackageReference Include="Microsoft.Extensions.Identity.Core"/>
+        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+        <PackageReference Include="Docker.DotNet"/>
+
+        <!-- Overrides de segurança das dependências transitivas -->
+        <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3"/>
+        <PackageReference Include="System.Security.Cryptography.Xml"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TCMine-Domain\TCMine-Domain.csproj"/>
+        <ProjectReference Include="..\TCMine-Application\TCMine-Application.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Folder Include="Migrations\"/>
+        <Folder Include="Migrations\Sqlite\"/>
+        <Folder Include="Migrations\Postgres\"/>
+    </ItemGroup>
+
+</Project>

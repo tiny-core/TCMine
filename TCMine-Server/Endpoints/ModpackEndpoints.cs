@@ -1,10 +1,10 @@
 ﻿using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
 using TCMine_Application.Contracts;
-using TCMine_Infrastructure.FileSystem;
+using TCMine_Server.Infrastructure.FileSystem;
 using TCMine_Domain.Modpack;
-using TCMine_Infrastructure.Persistence;
-using TCMine_Infrastructure.Server;
+using TCMine_Server.Infrastructure.Persistence;
+using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Endpoints;
 

@@ -1,12 +1,45 @@
 @* Overlay bloqueante global de feedback. Renderizado uma única vez no layout; reage ao BusyService.
    MudOverlay não fecha por clique no backdrop nem por ESC (AutoClose padrão = false) e não tem botão
-   de fechar — é deliberadamente não-fechável: o usuário espera a operação terminar. *@
+   de fechar — é deliberadamente não-fechável: o usuário espera a operação terminar.
+
+   Layout: spinner → STATUS GLOBAL (a fase atual, sem o detalhe técnico) → LOG DE PASSOS (quando há mais
+   de um), com altura limitada + scroll e auto-scroll para o passo atual. *@
 
 <MudOverlay Visible="Busy.IsBusy" DarkBackground="true" ZIndex="9999">
-    <MudPaper Class="pa-8" Elevation="8">
-        <MudStack AlignItems="AlignItems.Center" Spacing="4">
+    @* Larguras via inline: CSS escopado não atinge o elemento renderizado pelo MudPaper (componente filho) *@
+    <MudPaper Class="pa-6" Elevation="8" Style="min-width: 380px; max-width: 560px;">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large"/>
-            <MudText Typo="Typo.body1">@(Busy.Message ?? "Processando…")</MudText>
+
+            @* Status global — a fase atual, limpa (o rótulo antes de " — "; o detalhe fica na lista) *@
+            <MudText Typo="Typo.h6" Align="Align.Center" Style="max-width: 480px;">@GlobalStatus</MudText>
+
+            @* Log de passos — só quando há mais de um (operações de passo único mostram só o título) *@
+            @if (Busy.Steps.Count > 1)
+            {
+                <div class="busy-steps" @ref="_stepsEl">
+                    @{
+                        var steps = Busy.Steps;
+                        var lastIndex = steps.Count - 1;
+                    }
+                    @for (var i = 0; i < steps.Count; i++)
+                    {
+                        var step = steps[i];
+                        var isCurrent = i == lastIndex;
+                        <div class="busy-step">
+                            @if (isCurrent)
+                            {
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                            }
+                            <span class="busy-step-text @(isCurrent ? "busy-step-text--current" : null)">@step</span>
+                        </div>
+                    }
+                </div>
+            }
         </MudStack>
     </MudPaper>
 </MudOverlay>

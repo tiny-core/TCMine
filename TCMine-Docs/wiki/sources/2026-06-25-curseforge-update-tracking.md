@@ -10,7 +10,7 @@ origin: "Pedido do usuário + código vivo (Domain/Application/Infrastructure/Se
 feeds:
   - "[[decisions/curseforge-update-tracking]]"
   - "[[concepts/modpack-admin-editor]]"
-  - "[[entities/tcmine-infrastructure]]"
+  - "[[entities/tcmine-server-infrastructure]]"
 related: []
 ---
 
@@ -41,7 +41,7 @@ e botão "Buscar atualizações" na aba Mods com `ModUpdatesDialog` (seleção).
 ## O que alimentou na wiki
 
 - Criou [[decisions/curseforge-update-tracking]].
-- Atualizou [[concepts/modpack-admin-editor]], [[entities/tcmine-infrastructure]].
+- Atualizou [[concepts/modpack-admin-editor]], [[entities/tcmine-server-infrastructure]].
 
 ## Referências
 

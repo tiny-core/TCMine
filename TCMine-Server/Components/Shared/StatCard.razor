@@ -2,21 +2,21 @@
    + rótulo e (opcional) subtítulo. Usado na grade de KPIs do Dashboard. *@
 
 @* A var CSS --accent é lida pelo StatCard.razor.css para tingir faixa e ícone conforme a Color *@
-<MudPaper Class="stat-card pa-4" MinHeight="140px" Elevation="0" Outlined="true"
+<MudPaper Class="pa-4 align-content-center" MinHeight="190px" Elevation="0" Outlined="true"
           Style="@($"--accent: var(--mud-palette-{PaletteVar});")">
-    <div class="stat-card__bar"></div>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
-        @* Ícone dentro de um quadrado arredondado tingido com a cor do card *@
-        <div class="stat-card__icon">
-            <MudIcon Icon="@Icon" Color="@Color" Size="Size.Large"/>
-        </div>
-        <MudStack Spacing="0">
-            <MudText Typo="Typo.h4" Class="stat-card__value">@Value</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Label</MudText>
-            @if (!string.IsNullOrWhiteSpace(Subtitle))
-            {
-                <MudText Typo="Typo.caption" Class="stat-card__subtitle mt-1">@Subtitle</MudText>
-            }
+
+    <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Row="true" Spacing="0">
+        <MudIcon Icon="@Icon" Color="@Color" Title="@Title" Class="mr-5" Style="font-size: 2.8rem;"/>
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h4">@Value</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Title</MudText>
         </MudStack>
     </MudStack>
+
+    <MudDivider DividerType="DividerType.Middle" Class="my-2"/>
+
+    <MudStack Justify="Justify.Center" Row="true" Spacing="0" Wrap="Wrap.Wrap">
+        @ChildContent
+    </MudStack>
+
 </MudPaper>

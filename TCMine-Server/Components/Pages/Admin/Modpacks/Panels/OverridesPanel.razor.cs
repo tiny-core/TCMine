@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using TCMine_Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Components.Shared;
 using TCMine_Server.Services;
