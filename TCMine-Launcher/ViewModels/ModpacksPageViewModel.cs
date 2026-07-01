@@ -2,29 +2,31 @@ using System.Collections.ObjectModel;
 using System.Reactive;
 using ReactiveUI;
 using TCMine_Application.Contracts;
-using TCMine_Launcher.Services;
+using TCMine_Application.Launcher;
 
 namespace TCMine_Launcher.ViewModels;
 
 /// <summary>
-/// Catálogo de modpacks publicados pelo servidor (<c>GET /api/modpacks</c>). Só leitura neste
-/// incremento — instalar/lançar virá depois.
+/// Catálogo de modpacks publicados pelo servidor (<see cref="IModpackCatalog"/>). Clicar num item só o
+/// **seleciona** e abre a Home — a instalação/launch é o botão grande da Home (não instala daqui).
 /// </summary>
 public sealed class ModpacksPageViewModel : ViewModelBase
 {
-    private readonly ApiClient _api;
+    private readonly MainWindowViewModel _shell;
+    private readonly IModpackCatalog _catalog;
 
     private bool _busy;
     private string? _error;
 
-    public ModpacksPageViewModel(ApiClient api)
+    public ModpacksPageViewModel(MainWindowViewModel shell, IModpackCatalog catalog)
     {
-        _api = api;
+        _shell = shell;
+        _catalog = catalog;
         Refresh = ReactiveCommand.CreateFromTask(LoadAsync);
         _ = LoadAsync();
     }
 
-    public ObservableCollection<ModpackSummaryDto> Modpacks { get; } = [];
+    public ObservableCollection<ModpackListItem> Modpacks { get; } = [];
 
     public ReactiveCommand<Unit, Unit> Refresh { get; }
 
@@ -40,8 +42,10 @@ public sealed class ModpacksPageViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _error, value);
     }
 
-    /// <summary>Empty-state: sem modpacks e sem carregamento em curso.</summary>
     public bool IsEmpty => !Busy && Modpacks.Count == 0;
+
+    /// <summary>Recarrega o catálogo (ex.: quando o servidor avisa que o conteúdo mudou).</summary>
+    public void Reload() => _ = LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -49,9 +53,9 @@ public sealed class ModpacksPageViewModel : ViewModelBase
         Error = null;
         try
         {
-            var packs = await _api.GetModpacksAsync();
+            var packs = await _catalog.GetModpacksAsync();
             Modpacks.Clear();
-            foreach (var p in packs) Modpacks.Add(p);
+            foreach (var p in packs) Modpacks.Add(new ModpackListItem(p, _shell));
         }
         catch (Exception ex)
         {
@@ -63,4 +67,32 @@ public sealed class ModpacksPageViewModel : ViewModelBase
             this.RaisePropertyChanged(nameof(IsEmpty));
         }
     }
+}
+
+/// <summary>Um modpack do catálogo + a ação de abrir (selecionar) na Home.</summary>
+public sealed class ModpackListItem : ViewModelBase
+{
+    private readonly MainWindowViewModel _shell;
+
+    public ModpackListItem(ModpackSummaryDto summary, MainWindowViewModel shell)
+    {
+        Summary = summary;
+        _shell = shell;
+        Open = ReactiveCommand.CreateFromTask(() => _shell.SelectModpackAsync(summary.Id));
+    }
+
+    public ModpackSummaryDto Summary { get; }
+
+    /// <summary>Rótulo informativo do estado local (não instala daqui — abre a Home).</summary>
+    public string ActionLabel
+    {
+        get
+        {
+            var installed = _shell.GetInstalled(Summary.Id.ToString());
+            if (installed is null || !installed.Installed) return "Instalar";
+            return installed.ManifestVersion != Summary.Version ? "Atualizar" : "Jogar";
+        }
+    }
+
+    public ReactiveCommand<Unit, Unit> Open { get; }
 }

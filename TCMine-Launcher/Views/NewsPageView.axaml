@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TCMine_Launcher.ViewModels"
+             xmlns:contracts="using:TCMine_Application.Contracts"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="540"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="TCMine_Launcher.Views.NewsPageView"
+             x:DataType="vm:NewsPageViewModel">
+
+    <Grid RowDefinitions="Auto,*" Margin="28,24">
+
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,20">
+            <StackPanel>
+                <TextBlock Text="Novidades" Classes="page-title" />
+                <TextBlock Text="Anúncios do servidor e dos modpacks" Classes="muted" Margin="0,3,0,0" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="outline-btn" Content="Atualizar" Command="{Binding Refresh}"
+                    VerticalAlignment="Center" />
+        </Grid>
+
+        <Panel Grid.Row="1">
+            <ScrollViewer>
+                <ItemsControl ItemsSource="{Binding News}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="contracts:NewsItemDto">
+                            <Border Classes="panel" Padding="18,16" Margin="0,0,0,12" MaxWidth="720"
+                                    HorizontalAlignment="Left">
+                                <StackPanel Spacing="8">
+                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                                        <!-- Badge de origem: modpack (laranja) ou Global (neutro) -->
+                                        <Border Grid.Column="0" Classes="tag"
+                                                IsVisible="{Binding ModpackName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock Text="{Binding ModpackName}" />
+                                        </Border>
+                                        <Border Grid.Column="0" Classes="badge" Background="{DynamicResource BgElevated}"
+                                                IsVisible="{Binding ModpackName, Converter={x:Static StringConverters.IsNullOrEmpty}}">
+                                            <TextBlock Text="GLOBAL" FontSize="10" FontWeight="SemiBold"
+                                                       LetterSpacing="1" Foreground="{DynamicResource TextSecondary}" />
+                                        </Border>
+                                        <!-- Tag da notícia -->
+                                        <Border Grid.Column="1" Classes="badge" Margin="8,0,0,0"
+                                                Background="{DynamicResource BgElevated}"
+                                                IsVisible="{Binding Tag, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                                            <TextBlock Text="{Binding Tag}" FontSize="10" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource TextDim}" />
+                                        </Border>
+                                        <TextBlock Grid.Column="3" Text="{Binding PublishedAt, StringFormat='{}{0:dd/MM/yyyy}'}"
+                                                   Classes="faint" VerticalAlignment="Center" />
+                                    </Grid>
+
+                                    <TextBlock Text="{Binding Title}" FontSize="16" FontWeight="Bold"
+                                               Foreground="{DynamicResource TextPrimary}" TextWrapping="Wrap" />
+                                    <TextBlock Text="{Binding Summary}" Foreground="{DynamicResource TextSecondary}"
+                                               FontSize="13" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <StackPanel IsVisible="{Binding IsEmpty}" Spacing="8"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="Nenhuma novidade ainda." Classes="muted" HorizontalAlignment="Center" />
+            </StackPanel>
+
+            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource Danger}" TextWrapping="Wrap"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        </Panel>
+    </Grid>
+</UserControl>

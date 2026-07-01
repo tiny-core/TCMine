@@ -24,4 +24,28 @@
         <Setter Property="Foreground" Value="{DynamicResource TextFaint}" />
         <Setter Property="FontSize" Value="11" />
     </Style>
+
+    <!-- Hero da página Jogar -->
+    <Style Selector="TextBlock.hero-title">
+        <Setter Property="FontSize" Value="30" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="TextBlock.hero-subtitle">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{DynamicResource Accent}" />
+    </Style>
+    <Style Selector="TextBlock.hero-summary">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="#C8C8DA" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <!-- Rótulo de secção (IDENTIFICADOR, SERVIDORES) -->
+    <Style Selector="TextBlock.section-label">
+        <Setter Property="FontSize" Value="10.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LetterSpacing" Value="1.5" />
+        <Setter Property="Foreground" Value="{DynamicResource TextDim}" />
+    </Style>
 </Styles>

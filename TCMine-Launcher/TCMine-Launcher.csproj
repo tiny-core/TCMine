@@ -30,17 +30,16 @@
         </AssemblyAttribute>
     </ItemGroup>
 
-    <!-- Núcleo compartilhado: DTOs (record) do fio servidor↔launcher + tokens de cor do design system -->
+    <!-- Clean Architecture: a apresentação depende do core (Domain/Application) e da infra do launcher
+         (impls das portas: CmlLib/HTTP/filesystem). O Domain vem transitivamente pela Infrastructure. -->
     <ItemGroup>
         <ProjectReference Include="..\TCMine-Application\TCMine-Application.csproj"/>
         <ProjectReference Include="..\TCMine-Design\TCMine-Design.csproj"/>
+        <ProjectReference Include="..\TCMine-Launcher.Infrastructure\TCMine-Launcher.Infrastructure.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="Avalonia"/>
-        <PackageReference Include="CmlLib.Core"/>
-        <PackageReference Include="CmlLib.Core.Auth.Microsoft"/>
-        <PackageReference Include="XboxAuthNet.Game.Msal"/>
         <PackageReference Include="Avalonia.Desktop"/>
         <PackageReference Include="Avalonia.Themes.Fluent"/>
         <PackageReference Include="Avalonia.Fonts.Inter"/>

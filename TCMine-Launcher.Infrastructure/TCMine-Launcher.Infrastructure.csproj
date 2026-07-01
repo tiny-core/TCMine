@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <RootNamespace>TCMine_Launcher.Infrastructure</RootNamespace>
+        <Title>TCMine Launcher Infrastructure</Title>
+        <Description>TCMine Launcher Infrastructure — implementações das portas do launcher: login MSAL (CmlLib), download (HTTP), filesystem, lançamento NeoForge e servers.dat (fNbt).</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CmlLib.Core"/>
+        <PackageReference Include="CmlLib.Core.Auth.Microsoft"/>
+        <PackageReference Include="CmlLib.Core.Installer.NeoForge"/>
+        <PackageReference Include="XboxAuthNet.Game.Msal"/>
+        <PackageReference Include="fNbt"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TCMine-Domain\TCMine-Domain.csproj"/>
+        <ProjectReference Include="..\TCMine-Application\TCMine-Application.csproj"/>
+    </ItemGroup>
+
+</Project>

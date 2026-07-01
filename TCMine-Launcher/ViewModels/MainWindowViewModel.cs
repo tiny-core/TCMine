@@ -1,7 +1,9 @@
 using System.Reactive;
 using System.Reflection;
+using Avalonia.Threading;
 using ReactiveUI;
-using TCMine_Launcher.Services;
+using TCMine_Application.Launcher;
+using TCMine_Domain.Launcher;
 
 namespace TCMine_Launcher.ViewModels;
 
@@ -24,14 +26,15 @@ public enum ServerStatus
 }
 
 /// <summary>
-/// ViewModel raiz (shell). Mantém o estado de autenticação e navegação, cria as páginas e expõe os
-/// comandos do login (MSAL) e da sidebar. A tela de login é renderizada pela própria `LoginView`
-/// ligada a este VM (como no backup); as páginas trocam via `CurrentPage`.
+/// ViewModel raiz (shell). Estado de autenticação + navegação; cria as páginas. Depende só das
+/// <b>portas</b> (TCMine-Application) — as implementações vêm da infraestrutura, via composição (Splat).
+/// A parte de instâncias/launch está em <c>MainWindowViewModel.Play.cs</c>.
 /// </summary>
-public sealed class MainWindowViewModel : ViewModelBase
+public sealed partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly AuthService _auth;
-    private readonly ApiClient _api;
+    private readonly IAuthService _auth;
+    private readonly IModpackCatalog _catalog;
+    private readonly IContentWatcher _contentWatcher;
 
     private object? _currentPage;
     private AppTab _selectedTab = AppTab.Modpacks;
@@ -39,36 +42,55 @@ public sealed class MainWindowViewModel : ViewModelBase
     private bool _isLoggedIn;
     private bool _isAuthenticating;
     private string? _loginError;
-    private string _playerName = "";
+    private PlayerSession? _player;
     private ServerStatus _serverStatus = ServerStatus.Checking;
 
-    public MainWindowViewModel(AuthService auth, ApiClient api)
+    public MainWindowViewModel(
+        IAuthService auth, IModpackCatalog catalog, IInstanceStore instanceStore, ISettingsStore settingsStore,
+        IGameRunStateStore runState, ILaunchOrchestrator orchestrator, IServerPinger pinger, ISystemInfo systemInfo,
+        IContentWatcher contentWatcher, INewsFeed newsFeed)
     {
         _auth = auth;
-        _api = api;
+        _catalog = catalog;
+        _instanceStore = instanceStore;
+        _settingsStore = settingsStore;
+        _runState = runState;
+        _orchestrator = orchestrator;
+        _systemInfo = systemInfo;
+        _contentWatcher = contentWatcher;
 
-        // Páginas criadas uma vez. Modpacks é real; as demais são placeholders até as features chegarem.
-        Home = new PlaceholderPageViewModel("Jogar", "A página de jogo chega quando o lançamento estiver pronto.", "IconPlay");
-        Instances = new PlaceholderPageViewModel("Instâncias", "Em breve: gerir as instâncias instaladas.", "IconInstances");
-        Modpacks = new ModpacksPageViewModel(api);
-        News = new PlaceholderPageViewModel("Novidades", "Em breve: novidades do servidor.", "IconNews");
-        Settings = new PlaceholderPageViewModel("Definições", "Em breve: preferências do launcher.", "IconSettings");
-        _currentPage = Modpacks;
+        InitPlay(); // instâncias instaladas + definições + estado de launch (partial .Play.cs)
+
+        Home = new HomePageViewModel(this, pinger);
+        Instances = new InstancesPageViewModel(this);
+        Modpacks = new ModpacksPageViewModel(this, catalog);
+        News = new NewsPageViewModel(newsFeed);
+        Settings = new SettingsPageViewModel(this, systemInfo);
+
+        // Aterragem: Home se já há um modpack ativo (definido em InitPlay/LoadInstalled), senão Modpacks.
+        // Mantém o destaque da sidebar coerente com a página mostrada.
+        _selectedTab = Active is not null ? AppTab.Home : AppTab.Modpacks;
+        _currentPage = _selectedTab == AppTab.Home ? Home : Modpacks;
 
         LoginMicrosoft = ReactiveCommand.CreateFromTask(LoginAsync,
             this.WhenAnyValue(x => x.IsAuthenticating, busy => !busy));
         Logout = ReactiveCommand.CreateFromTask(LogoutAsync);
         Navigate = ReactiveCommand.Create<AppTab>(tab => SelectedTab = tab);
 
+        // Live link: o servidor avisa (SSE) quando o conteúdo muda → recarrega catálogo + ativo.
+        _contentWatcher.ContentChanged += OnServerContentChanged;
+        _contentWatcher.ConnectionChanged += OnServerConnectionChanged;
+        _contentWatcher.Start();
+
         _ = InitializeAsync();
     }
 
     // ── Páginas ──────────────────────────────────────────────────────────────────────────────────
-    public PlaceholderPageViewModel Home { get; }
-    public PlaceholderPageViewModel Instances { get; }
+    public HomePageViewModel Home { get; }
+    public InstancesPageViewModel Instances { get; }
     public ModpacksPageViewModel Modpacks { get; }
-    public PlaceholderPageViewModel News { get; }
-    public PlaceholderPageViewModel Settings { get; }
+    public NewsPageViewModel News { get; }
+    public SettingsPageViewModel Settings { get; }
 
     public object? CurrentPage
     {
@@ -108,7 +130,7 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public ReactiveCommand<AppTab, Unit> Navigate { get; }
 
-    // ── Autenticação ─────────────────────────────────────────────────────────────────────────────
+    // ── Autenticação / perfil ────────────────────────────────────────────────────────────────────
     public bool IsInitializing
     {
         get => _isInitializing;
@@ -133,26 +155,10 @@ public sealed class MainWindowViewModel : ViewModelBase
         private set => this.RaiseAndSetIfChanged(ref _loginError, value);
     }
 
-    public string PlayerName
-    {
-        get => _playerName;
-        private set => this.RaiseAndSetIfChanged(ref _playerName, value);
-    }
-
-    /// <summary>Iniciais do jogador para o avatar (1–2 letras, maiúsculas).</summary>
-    public string AvatarInitials
-    {
-        get
-        {
-            var parts = PlayerName.Split([' ', '_', '-'], StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length switch
-            {
-                0 => "?",
-                1 => parts[0][..1].ToUpperInvariant(),
-                _ => (parts[0][..1] + parts[1][..1]).ToUpperInvariant()
-            };
-        }
-    }
+    public string PlayerName => _player?.Username ?? "";
+    public string AvatarInitials => _player?.Initials ?? "?";
+    public string? PlayerHeadUrl => _player?.HeadUrl;
+    public string AccountLabel => _player?.AccountLabel ?? "";
 
     public ReactiveCommand<Unit, Unit> LoginMicrosoft { get; }
     public ReactiveCommand<Unit, Unit> Logout { get; }
@@ -178,22 +184,22 @@ public sealed class MainWindowViewModel : ViewModelBase
         _ => "Servidor indisponível"
     };
 
-    // Um ponto colorido por estado (cor via DynamicResource na View, sem hex no VM).
     public bool IsServerOnline => Server == ServerStatus.Online;
     public bool IsServerChecking => Server == ServerStatus.Checking;
     public bool IsServerOffline => Server == ServerStatus.Offline;
 
-    /// <summary>Rótulo de versão do launcher (barra de estado).</summary>
     public string VersionLabel => "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0");
 
     // ── Fluxo ────────────────────────────────────────────────────────────────────────────────────
     private async Task InitializeAsync()
     {
         _ = CheckServerAsync();
+        _ = RefreshActiveAsync(); // atualiza metadados do modpack ativo (incl. servidores) do manifesto
+        _ = ReconcileAvailabilityAsync(); // marca instâncias cujo modpack já não existe no servidor
         try
         {
             var session = await _auth.TryLoginSilentAsync();
-            if (session is not null) SetLoggedIn(PlayerSession.From(session));
+            if (session is not null) SetLoggedIn(session);
         }
         finally
         {
@@ -204,8 +210,21 @@ public sealed class MainWindowViewModel : ViewModelBase
     private async Task CheckServerAsync()
     {
         Server = ServerStatus.Checking;
-        Server = await _api.PingAsync() ? ServerStatus.Online : ServerStatus.Offline;
+        Server = await _catalog.PingAsync() ? ServerStatus.Online : ServerStatus.Offline;
     }
+
+    /// <summary>O servidor avisou que o conteúdo mudou — recarrega o catálogo e o modpack ativo.</summary>
+    private void OnServerContentChanged() => Dispatcher.UIThread.Post(() =>
+    {
+        Modpacks.Reload();
+        News.Reload();
+        _ = RefreshActiveAsync();          // servidores + metadados do ativo (via manifesto)
+        _ = ReconcileAvailabilityAsync();  // badges de "modpack removido" em toda a lista de instâncias
+    });
+
+    /// <summary>A ligação SSE ligou/desligou — atualiza o indicador da barra de estado.</summary>
+    private void OnServerConnectionChanged(bool connected) => Dispatcher.UIThread.Post(() =>
+        Server = connected ? ServerStatus.Online : ServerStatus.Offline);
 
     private async Task LoginAsync()
     {
@@ -213,8 +232,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         IsAuthenticating = true;
         try
         {
-            var session = await _auth.LoginAsync();
-            SetLoggedIn(PlayerSession.From(session));
+            SetLoggedIn(await _auth.LoginAsync());
         }
         catch (Exception ex)
         {
@@ -229,16 +247,23 @@ public sealed class MainWindowViewModel : ViewModelBase
     private async Task LogoutAsync()
     {
         await _auth.SignOutAsync();
-        PlayerName = "";
-        this.RaisePropertyChanged(nameof(AvatarInitials));
+        SetPlayer(null);
         IsLoggedIn = false;
         SelectedTab = AppTab.Modpacks;
     }
 
     private void SetLoggedIn(PlayerSession session)
     {
-        PlayerName = session.Username;
-        this.RaisePropertyChanged(nameof(AvatarInitials));
+        SetPlayer(session);
         IsLoggedIn = true;
+    }
+
+    private void SetPlayer(PlayerSession? session)
+    {
+        _player = session;
+        this.RaisePropertyChanged(nameof(PlayerName));
+        this.RaisePropertyChanged(nameof(AvatarInitials));
+        this.RaisePropertyChanged(nameof(PlayerHeadUrl));
+        this.RaisePropertyChanged(nameof(AccountLabel));
     }
 }

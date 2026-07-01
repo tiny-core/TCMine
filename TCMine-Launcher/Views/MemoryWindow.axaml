@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TCMine_Launcher.ViewModels"
+        xmlns:views="using:TCMine_Launcher.Views"
+        mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="260"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="TCMine_Launcher.Views.MemoryWindow"
+        x:DataType="vm:MemoryEditViewModel"
+        Icon="/Assets/icon.ico" Title="Memória"
+        Width="380" Height="250"
+        WindowStartupLocation="CenterOwner" CanResize="False"
+        WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent">
+
+    <views:WindowChrome>
+        <Grid RowDefinitions="Auto,*">
+            <views:TitleBar Grid.Row="0" Title="Memória do modpack" ShowMinimize="False" />
+            <StackPanel Grid.Row="1" Margin="22" Spacing="14">
+                <TextBlock Text="{Binding InstanceName}" Classes="card-title" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="RAM alocada" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding RamLabel}" Foreground="{DynamicResource Accent}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Grid>
+                <Slider Minimum="{Binding RamMin}" Maximum="{Binding RamMax}" Value="{Binding RamMb, Mode=TwoWay}"
+                        SmallChange="512" LargeChange="1024" TickFrequency="1024" IsSnapToTickEnabled="True" />
+                <TextBlock Text="Memória alocada à JVM ao jogar este modpack. Modpacks grandes pedem 6–8 GB."
+                           Classes="faint" TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+    </views:WindowChrome>
+</Window>

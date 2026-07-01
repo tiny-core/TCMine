@@ -1,0 +1,182 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TCMine_Launcher.ViewModels"
+             xmlns:models="using:TCMine_Domain.Launcher"
+             xmlns:bh="using:TCMine_Launcher.Behaviors"
+             mc:Ignorable="d" d:DesignWidth="940" d:DesignHeight="555"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="TCMine_Launcher.Views.HomePageView"
+             x:DataType="vm:HomePageViewModel"
+             x:Name="Root">
+
+    <Panel>
+
+        <!-- Sem nada selecionado -->
+        <StackPanel IsVisible="{Binding !Shell.HasActive}" Spacing="10"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380">
+            <Border Width="64" Height="64" CornerRadius="16" Background="{DynamicResource BgElevated}"
+                    HorizontalAlignment="Center">
+                <PathIcon Data="{StaticResource IconPlay}" Width="26" Height="26"
+                          Foreground="{DynamicResource TextDim}"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Text="Nada para jogar ainda" Classes="page-title" HorizontalAlignment="Center" />
+            <TextBlock Text="Vai a Modpacks e escolhe um modpack oficial para o trazer para aqui."
+                       Classes="muted" TextAlignment="Center" TextWrapping="Wrap" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <!-- Instância ativa: hero (esquerda) + perfil (direita) -->
+        <Grid IsVisible="{Binding Shell.HasActive}" Margin="26" ColumnDefinitions="*,18,300">
+
+            <!-- ESQUERDA: hero + barra de launch -->
+            <Grid Grid.Column="0" RowDefinitions="*,Auto">
+                <Border Grid.Row="0" CornerRadius="16" ClipToBounds="True">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                            <GradientStop Color="{DynamicResource BgElevatedColor}" Offset="0" />
+                            <GradientStop Color="{DynamicResource BgPageColor}" Offset="0.55" />
+                            <GradientStop Color="{DynamicResource Primary700Color}" Offset="1" />
+                        </LinearGradientBrush>
+                    </Border.Background>
+
+                    <Grid>
+                        <!-- brilho laranja decorativo -->
+                        <Border>
+                            <Border.Background>
+                                <RadialGradientBrush Center="85%,15%" GradientOrigin="85%,15%" RadiusX="50%" RadiusY="60%">
+                                    <GradientStop Color="#40F97316" Offset="0" />
+                                    <GradientStop Color="#00F97316" Offset="1" />
+                                </RadialGradientBrush>
+                            </Border.Background>
+                        </Border>
+
+                        <StackPanel VerticalAlignment="Bottom" Margin="30,0,30,28">
+                            <Border Classes="tag" HorizontalAlignment="Left">
+                                <TextBlock Text="OFICIAL" />
+                            </Border>
+                            <TextBlock Classes="hero-title" Text="{Binding Shell.Active.Name}" Margin="0,12,0,0" />
+                            <TextBlock Classes="hero-subtitle" Text="{Binding Shell.Active.VersionSummary}" Margin="0,2,0,0" />
+
+                            <!-- Aviso de indisponibilidade: modpack removido ou servidor de auto-join sumido -->
+                            <Border Classes="badge warn" HorizontalAlignment="Left" Margin="0,12,0,0"
+                                    IsVisible="{Binding Shell.Active.HasAvailabilityWarning}"
+                                    ToolTip.Tip="{Binding Shell.Active.AvailabilityMessage}">
+                                <StackPanel Orientation="Horizontal" Spacing="7">
+                                    <PathIcon Data="{StaticResource IconInfo}" Width="12" Height="12"
+                                              Foreground="{DynamicResource WarningText}" VerticalAlignment="Center" />
+                                    <TextBlock Text="{Binding Shell.Active.AvailabilityMessage}" VerticalAlignment="Center" />
+                                </StackPanel>
+                            </Border>
+
+                            <TextBlock Classes="hero-summary" Text="{Binding Shell.Active.Description}"
+                                       MaxWidth="460" HorizontalAlignment="Left" Margin="0,12,0,0" />
+                        </StackPanel>
+
+                        <!-- Overlay de loading -->
+                        <Border Classes="busy-overlay" IsVisible="{Binding Shell.IsLaunching}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="16">
+                                <Ellipse Classes="spinner" HorizontalAlignment="Center" />
+                                <TextBlock Text="{Binding Shell.LaunchPercent, StringFormat='{}{0:0}%'}"
+                                           Foreground="{DynamicResource Accent}" FontSize="13" FontWeight="Bold"
+                                           HorizontalAlignment="Center" />
+                                <Button Classes="ghost-btn" Command="{Binding Shell.CancelLaunch}"
+                                        HorizontalAlignment="Center">
+                                    <TextBlock Text="Cancelar" FontSize="12.5" Foreground="{DynamicResource Danger}" />
+                                </Button>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Barra de launch -->
+                <Grid Grid.Row="1" Margin="0,18,0,0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Center">
+                        <Panel Width="8" Height="8" VerticalAlignment="Center">
+                            <Ellipse Fill="{DynamicResource Success}" IsVisible="{Binding Shell.Active.Installed}" />
+                            <Ellipse Fill="{DynamicResource WarningText}" IsVisible="{Binding !Shell.Active.Installed}" />
+                        </Panel>
+                        <TextBlock Text="{Binding Shell.LaunchStatus}" Foreground="{DynamicResource TextMuted}"
+                                   FontSize="13" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <Button Grid.Column="1" Classes="play-btn" Command="{Binding Shell.Play}"
+                            Width="230" Height="50">
+                        <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                            <PathIcon Data="{StaticResource IconPlay}" Width="14" Height="14" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding Shell.PlayLabel}" FontSize="14" FontWeight="Bold"
+                                       LetterSpacing="2" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+            </Grid>
+
+            <!-- DIREITA: perfil + identificador + servidores -->
+            <Border Grid.Column="2" Classes="panel">
+                <StackPanel Spacing="0">
+                    <Border Classes="avatar" Width="72" Height="72" ClipToBounds="True">
+                        <Panel>
+                            <TextBlock Text="{Binding Shell.AvatarInitials}" FontSize="24" Foreground="White"
+                                       FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image bh:ImageLoader.SourceUrl="{Binding Shell.PlayerHeadUrl}" Stretch="UniformToFill" />
+                        </Panel>
+                    </Border>
+                    <TextBlock Text="{Binding Shell.PlayerName}" FontSize="16" FontWeight="Bold"
+                               Foreground="{DynamicResource TextPrimary}" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                    <TextBlock Text="{Binding Shell.AccountLabel}" Classes="muted" FontSize="11"
+                               HorizontalAlignment="Center" Margin="0,3,0,0" />
+
+                    <Separator Classes="divider" Margin="0,20" />
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Classes="section-label" Text="IDENTIFICADOR" />
+                        <Button Classes="idbox" Command="{Binding Shell.OpenInstanceFolder}"
+                                ToolTip.Tip="Abrir a pasta da instância">
+                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                <TextBlock Grid.Column="0" Text="ID:" FontSize="11"
+                                           Foreground="{DynamicResource TextDim}" VerticalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="{Binding Shell.InstanceIdShort}" Margin="8,0"
+                                           FontFamily="Cascadia Code,Consolas,monospace" FontSize="11"
+                                           Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                                <PathIcon Grid.Column="2" Data="{StaticResource IconFolder}" Width="14" Height="14"
+                                          Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+
+                    <StackPanel IsVisible="{Binding HasServers}" Margin="0,16,0,0" Spacing="6">
+                        <TextBlock Classes="section-label" Text="SERVIDORES" />
+                        <Border Classes="inset">
+                            <ScrollViewer MaxHeight="200" VerticalScrollBarVisibility="Auto">
+                                <ItemsControl ItemsSource="{Binding Servers}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:ServerStatusItem">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" Margin="12,9">
+                                                <Panel Grid.Column="0" Width="8" Height="8" VerticalAlignment="Center">
+                                                    <Ellipse Fill="{DynamicResource Success}" IsVisible="{Binding Online}" />
+                                                    <Ellipse Fill="{DynamicResource TextDim}" IsVisible="{Binding !Online}" />
+                                                </Panel>
+                                                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Name}" FontSize="12.5"
+                                                               Foreground="{DynamicResource TextPrimary}" />
+                                                    <TextBlock Text="{Binding StatusText}" Classes="faint" />
+                                                </StackPanel>
+                                                <Button Grid.Column="2" Classes="autojoin"
+                                                        Classes.active="{Binding IsAutoJoin}" x:CompileBindings="False"
+                                                        Command="{Binding #Root.DataContext.ToggleAutoJoin}"
+                                                        CommandParameter="{Binding}"
+                                                        ToolTip.Tip="Entrar automaticamente neste servidor ao jogar">
+                                                    <PathIcon Data="{StaticResource IconPlay}" Width="11" Height="11" />
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Panel>
+</UserControl>

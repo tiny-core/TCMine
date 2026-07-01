@@ -1,0 +1,51 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:TCMine_Launcher.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="560"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             x:Class="TCMine_Launcher.Views.SettingsPageView"
+             x:DataType="vm:SettingsPageViewModel">
+
+    <ScrollViewer>
+        <StackPanel Margin="28,24" Spacing="20" MaxWidth="560" HorizontalAlignment="Left">
+            <TextBlock Text="Definições" Classes="page-title" />
+
+            <!-- Memória -->
+            <Border Classes="panel">
+                <StackPanel Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="Memória do jogo (RAM)" Classes="card-title" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding RamLabel}"
+                                   Foreground="{DynamicResource Accent}" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+                    <Slider Minimum="{Binding RamMin}" Maximum="{Binding RamMax}"
+                            Value="{Binding RamMb, Mode=TwoWay}" SmallChange="512" LargeChange="1024"
+                            TickFrequency="1024" IsSnapToTickEnabled="True" />
+                    <TextBlock Text="RAM alocada à JVM ao lançar o jogo. Modpacks grandes pedem 6–8 GB."
+                               Classes="faint" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <!-- Java -->
+            <Border Classes="panel">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Java" Classes="card-title" />
+                    <TextBox Text="{Binding JavaPath, Mode=TwoWay}"
+                             PlaceholderText="Deixa vazio para automático (o launcher instala/deteta o Java)" />
+                    <TextBlock Text="Caminho do executável Java a usar. Vazio = o CmlLib trata disso por ti."
+                               Classes="faint" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="14" HorizontalAlignment="Right">
+                <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Success}"
+                           VerticalAlignment="Center"
+                           IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <Button Classes="play-btn" Content="Guardar" Command="{Binding Save}"
+                        Height="40" Padding="22,0" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

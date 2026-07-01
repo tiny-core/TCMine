@@ -108,9 +108,30 @@
                                    Foreground="{DynamicResource TextFaint}" VerticalAlignment="Center" />
                     </StackPanel>
 
-                    <TextBlock Grid.Column="2" Text="{Binding VersionLabel}" FontSize="11"
-                               Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"
-                               ToolTip.Tip="Versão instalada do launcher" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+
+                        <!-- Eventos (registo do launch) — abre janela -->
+                        <Button Classes="subtle" IsVisible="{Binding IsLoggedIn}" Padding="8,5"
+                                Click="OnOpenLog" ToolTip.Tip="Registo de eventos do lançamento">
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <PathIcon Data="{StaticResource IconNews}" Width="12" Height="12" />
+                                <TextBlock Text="Eventos" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Memória RAM do modpack ativo — abre janela -->
+                        <Button Classes="subtle" IsVisible="{Binding HasActive}" Padding="8,5"
+                                Click="OnOpenMemory" ToolTip.Tip="Configurar a memória do modpack ativo">
+                            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <PathIcon Data="{StaticResource IconMemory}" Width="12" Height="12" />
+                                <TextBlock Text="{Binding ActiveRamLabel}" FontSize="11" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Text="{Binding VersionLabel}" FontSize="11"
+                                   Foreground="{DynamicResource TextDim}" VerticalAlignment="Center"
+                                   ToolTip.Tip="Versão instalada do launcher" />
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

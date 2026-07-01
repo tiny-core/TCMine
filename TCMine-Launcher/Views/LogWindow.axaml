@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:TCMine_Launcher.ViewModels"
+        xmlns:views="using:TCMine_Launcher.Views"
+        mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="420"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="TCMine_Launcher.Views.LogWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/icon.ico" Title="Eventos"
+        Width="520" Height="420"
+        WindowStartupLocation="CenterOwner" CanResize="False"
+        WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent">
+
+    <views:WindowChrome>
+        <Grid RowDefinitions="Auto,*">
+            <views:TitleBar Grid.Row="0" Title="Registo de eventos" ShowMinimize="False" />
+            <Border Grid.Row="1" Background="{DynamicResource BgConsole}" Padding="14" x:CompileBindings="False">
+                <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding LaunchLog}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" FontFamily="Cascadia Code,Consolas,monospace"
+                                           FontSize="11.5" Foreground="{DynamicResource TextSecondary}"
+                                           TextWrapping="Wrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+    </views:WindowChrome>
+</Window>

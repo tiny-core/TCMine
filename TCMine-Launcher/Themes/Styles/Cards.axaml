@@ -61,6 +61,16 @@
         <Setter Property="Padding" Value="7,3" />
     </Style>
 
+    <!-- Variante de aviso (ex.: "modpack/servidor indisponível") — fundo + texto de warning -->
+    <Style Selector="Border.badge.warn">
+        <Setter Property="Background" Value="{DynamicResource WarningBg}" />
+    </Style>
+    <Style Selector="Border.badge.warn > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource WarningText}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
     <!-- ── Avatar do jogador (círculo laranja) ─────────────────────── -->
     <Style Selector="Border.avatar">
         <Setter Property="CornerRadius" Value="1000" />
@@ -93,5 +103,13 @@
     <Style Selector="Border.busy-overlay">
         <Setter Property="Background" Value="{DynamicResource BgWindow}" />
         <Setter Property="Opacity" Value="0.78" />
+    </Style>
+
+    <!-- ── Caixa recuada (inset) ───────────────────────────────────── -->
+    <Style Selector="Border.inset">
+        <Setter Property="Background" Value="{DynamicResource BgConsole}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource BorderSubtle}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
     </Style>
 </Styles>
