@@ -13,7 +13,6 @@ artifacts/
 
 # ------ Publicação ------
 **/publish/
-**/releases/
 *.pubxml.user
 **/tcmine-data
 TCMine-Server/launcher

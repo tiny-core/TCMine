@@ -138,6 +138,21 @@ builder.Services.AddSingleton<ContentCatalog>();
 builder.Services.AddSingleton(new SystemMetricsService(dataRoot));
 // Feed Velopack: inspeciona tcmine-data/updates para versão/instalador do launcher
 builder.Services.AddSingleton<LauncherFeedService>();
+// Compila/empacota o launcher pelo servidor (dotnet publish + vpk) → feed em /updates. Singleton:
+// estado do job de build (progresso reconectável, um de cada vez).
+builder.Services.AddSingleton<LauncherBuildService>();
+// Histórico de releases (página /admin/releases). Scoped: usa o AppDbContext.
+builder.Services.AddScoped<ReleaseService>();
+// Self-update: consulta as releases v* do GitHub e compara com a versão corrente. Client "github" com
+// User-Agent (exigido pela API). Singleton: cache de 1h.
+builder.Services.AddHttpClient("github", c =>
+{
+    c.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine-Server");
+    c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+});
+builder.Services.AddSingleton<GitHubReleaseService>();
+// Auto-build: no boot / ao salvar settings, alinha o launcher à versão do servidor (se preciso).
+builder.Services.AddHostedService<LauncherAutoBuildService>();
 
 // ── Sync de conteúdo (SSE) ───────────────────────────────────────────────────────────────────────────────────────────
 // Notifica os launchers ligados em /events quando o catálogo muda. Singleton: estado partilhado.

@@ -28,6 +28,55 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-02] decisao | Versionamento único (server=launcher) + self-update + auto-build
+
+- **Fonte:** design com o usuário (repo `tiny-core/TCMine`; manter imagem autossuficiente). Escolhas:
+  **uma versão só** e **auto-recompilar no boot** (pega carona no restart do container). Arquivos:
+  `.github/workflows/server-image.yml` (novo), `TCMine-Server/Dockerfile` (ARG/ENV SERVER_VERSION),
+  `AppVersion.cs`, `GitHubReleaseService.cs`, `LauncherAutoBuildService.cs` (novos),
+  `LauncherBuildService.cs`, `Releases.razor(.cs)` + `LauncherBuildDialog`, `Program.cs`.
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]], [[index]].
+- **Resumo:** modelo de **uma versão** — tag `v*` → Actions builda a imagem (`SERVER_VERSION`) → Docker Hub;
+  o server lê a própria versão (`AppVersion`) e o launcher é compilado **nessa** versão. `GitHubReleaseService`
+  (cache 1h) compara com as releases `v*` do GitHub → **banner de update do servidor**.
+  `LauncherBuildService` ganhou `TargetVersion`/`NeedsBuild`/`TryStartAutoAsync`; o botão compila na versão
+  do server e **desabilita quando o feed já está nela**. `LauncherAutoBuildService` (hosted) recompila no
+  **boot** e ao **salvar settings** se desatualizado + settings prontas. Server compila 0/0, boot limpo.
+- **Pendências:** consumidor no launcher (`UpdateManager` contra `/updates`); testar o auto-build/self-update
+  ao vivo (precisa da imagem no Docker Hub + settings); DOCKERHUB secrets no GitHub.
+
+## [2026-07-01] ingest | Launcher build: guarda de settings + cross-compile Linux→Win + imagem autossuficiente
+
+- **Fonte:** feedback do usuário (bloquear sem settings; a imagem Docker deve levar o SDK e compilar o
+  launcher no Linux, autossuficiente). Arquivos: `LauncherBuildService.cs`, `Releases.razor(.cs)`,
+  `TCMine-Server/Dockerfile`, `.dockerignore`, `concepts/launcher-build-velopack.md`.
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]], [[index]].
+- **Resumo:** (1) **guarda**: compilar exige URL pública **e** Azure Client Id — botão desabilitado + aviso,
+  e o serviço recusa. (2) **Cross-compile validado**: testei num container `sdk:10.0` que o `vpk` gera o
+  feed de **Windows a partir do Linux** com o diretório **`[win]`** (`vpk [win] pack`) — gerou `Setup.exe`
+  (58 MB), `nupkg`, `RELEASES`. O serviço adiciona `[win]` quando `!IsWindows()`. (3) **Dockerfile
+  autossuficiente**: base SDK + fonte do launcher + vpk + JRE + `restore -r win-x64`, com
+  `LauncherBuild__ProjectPath` apontando para `/src`. Server compila 0/0.
+- **Pendências (o fluxo completo pedido pelo usuário, ainda a fazer):** GitHub Actions `server-v*` →
+  DockerHub (mirror do bk); `SERVER_VERSION` embutido; `GitHubReleaseService` (aviso de update do server +
+  versão-alvo do launcher); compilar o launcher **na versão do release** e **desabilitar o botão** quando o
+  feed já está nessa versão.
+
+## [2026-07-01] ingest | Compilação do launcher pelo servidor (Velopack)
+
+- **Fonte:** implementação a pedido. Escopo confirmado: página dedicada `/admin/releases` + diálogo de
+  versão/notas. Arquivos: [[sources/2026-07-01-launcher-build-velopack]].
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]] (nova), [[entities/tcmine-server]],
+  [[entities/tcmine-server-infrastructure]], [[entities/tcmine-launcher]], [[index]].
+- **Resumo:** novo `LauncherBuildService` (singleton, job de fundo reconectável) faz `dotnet publish` do
+  launcher (injetando `TcmineServerUrl`/`MicrosoftClientId`) + `vpk pack` → feed Velopack em
+  `tcmine-data/updates`, e grava `ReleaseEntity`. Página `/admin/releases` (Owner/Admin) com estado do
+  feed, botão compilar, progresso ao vivo e histórico. **Pré-requisito descoberto e resolvido:** o launcher
+  precisava de `VelopackApp.Build().Run()` no `Main` (pacote `Velopack`) — sem isso o `vpk pack` recusa.
+  **Validado ponta-a-ponta** (publish + pack geram `RELEASES`/`-full.nupkg`/`-Setup.exe`). Solução 0/0.
+- **Pendências:** consumidor no launcher (`UpdateManager` contra `/updates` + "atualizar" na UI);
+  assinatura de código; build em Docker/Linux runtime-only não suportado.
+
 ## [2026-07-01] meta | Rename: TCMine-Infrastructure → TCMine-Server.Infrastructure
 
 - **Fonte:** pedido do usuário. Ele pensou em **mesclar** as duas infras (server + launcher) num só lugar;

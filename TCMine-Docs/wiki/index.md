@@ -48,6 +48,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/server-instance-lifecycle]] — provisionar (cache de loader) → rodar em container → reconciliar status → medir presença (server-instance, docker)
 - [[concepts/modpack-server-hub-ux]] — hub do modpack + páginas/modais no lugar de abas; ligação modpack↔servidor e sync de desatualização (admin, ux)
 - [[concepts/launcher-install-launch]] — pipeline do launcher: manifesto → mods → overrides → NeoForge (CmlLib) → launch (launcher, install, cmllib)
+- [[concepts/launcher-build-velopack]] — o servidor compila/empacota o launcher (dotnet publish + vpk) e publica o feed Velopack (launcher, velopack, build, releases)
 
 ## Decisões (`wiki/decisions/`)
 
@@ -76,6 +77,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-29-launcher-install-launch]] — launcher: instalar + lançar modpack NeoForge (code, launcher, install, cmllib)
 - [[sources/2026-06-29-launcher-clean-architecture]] — launcher: Clean Architecture + Home estilo backup (code, launcher, arquitetura, ui)
 - [[sources/2026-07-01-dashboard-metrics-home]] — medidores CPU/RAM/disco na dashboard + home pública revampada (code, dashboard, metrics, mudblazor)
+- [[sources/2026-07-01-launcher-build-velopack]] — o servidor compila o launcher (dotnet publish + vpk); validado ponta-a-ponta (code, launcher, velopack, build)
 
 ## Sínteses e páginas derivadas
 

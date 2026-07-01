@@ -11,10 +11,14 @@
             "id": "8947e91c445fbed4",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Visualização em gráfico"
+              "type": "markdown",
+              "state": {
+                "file": "wiki/entities/tcmine-server-infrastructure.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "tcmine-server-infrastructure"
             }
           }
         ]
@@ -179,6 +183,8 @@
   },
   "active": "8947e91c445fbed4",
   "lastOpenFiles": [
+    "wiki/entities/tcmine-launcher.md.tmp.13864.a5cf31228f75",
+    "wiki/log.md.tmp.13864.a3ef94ff7f94",
     "wiki/decisions/server-instances-docker.md",
     "Sem título.canvas",
     "wiki/entities/tcmine-server.md",
@@ -198,7 +204,6 @@
     "wiki/log.md.tmp.13752.831c8e525abe",
     "wiki/entities/tcmine-server.md.tmp.13752.b1c11b35c54c",
     "wiki/entities/tcmine-server.md.tmp.13752.dad785482580",
-    "wiki/index.md.tmp.13752.604108896683",
     "wiki/concepts/async-feedback-overlay.md",
     "wiki/decisions/central-package-management.md",
     "wiki/decisions/persistence-dual-provider.md",
@@ -214,7 +219,6 @@
     "wiki/concepts/design-tokens.md",
     "wiki/concepts/clean-architecture.md",
     "wiki/entities/tcmine-icongenerator.md",
-    "wiki/entities/tcmine-launcher.md",
-    "wiki/entities/tcmine-design.md"
+    "wiki/entities/tcmine-launcher.md"
   ]
 }

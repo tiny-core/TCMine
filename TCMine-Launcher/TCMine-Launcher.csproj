@@ -54,5 +54,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <!-- Auto-update: bootstrap no Main + empacotamento pelo servidor (vpk) -->
+        <PackageReference Include="Velopack"/>
     </ItemGroup>
 </Project>

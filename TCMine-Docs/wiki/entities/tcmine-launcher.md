@@ -113,8 +113,11 @@ Definições (RAM/Java). Ver [[concepts/launcher-install-launch]].
 - [x] **Aba Novidades** (feed `/api/news`: globais + de modpacks, com badge de origem; recarrega via
   SSE) (2026-06-29).
 - [ ] Loaders além de NeoForge; **sync de configs** ([[concepts/player-config-sync]], falta `GET` no servidor).
-- [ ] Integrar Velopack (auto-update) e o **build do launcher pelo servidor** (injetando
-  `TcmineServerUrl` **e** `MicrosoftClientId` a partir das settings; gerar o feed Velopack).
+- [x] **Build do launcher pelo servidor** (2026-07-01) — `/admin/releases` compila (`dotnet publish` +
+  `vpk pack`) injetando `TcmineServerUrl`/`MicrosoftClientId` das settings e gera o feed Velopack; o launcher
+  chama `VelopackApp.Build().Run()` no `Main`. Ver [[concepts/launcher-build-velopack]].
+- [ ] **Consumir** o auto-update no launcher: `UpdateManager` checando `/updates` + "atualizar agora" na UI
+  (o bootstrap Velopack já trata os hooks de instalação; falta o *check* periódico).
 
 ## Referências
 

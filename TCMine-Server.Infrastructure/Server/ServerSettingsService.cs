@@ -106,6 +106,12 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
         return (await GetStoredAsync(ct)).AzureClientId;
     }
 
+    // URL pública do servidor (injetada no launcher como TcmineServerUrl ao compilá-lo)
+    public async Task<string?> GetPublicBaseUrlAsync(CancellationToken ct = default)
+    {
+        return (await GetStoredAsync(ct)).PublicBaseUrl;
+    }
+
     private async Task<ServerSettings> LoadAsync(CancellationToken ct)
     {
         await using var scope = scopeFactory.CreateAsyncScope();

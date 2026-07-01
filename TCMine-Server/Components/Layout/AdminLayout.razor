@@ -55,8 +55,13 @@
                             Novidades
                         </MudNavLink>
                     </AuthorizeView>
-                    @* Páginas ainda não implementadas — desabilitadas até a camada de dados existir *@
-                    <MudNavLink Disabled="true" Icon="@Icons.Material.Filled.CloudUpload">Releases</MudNavLink>
+                    @* Releases do launcher — compilar/publicar via Velopack (Owner/Admin) *@
+                    <AuthorizeView Roles="Owner,Admin" Context="releases">
+                        <MudNavLink Href="/admin/releases" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.CloudUpload">
+                            Releases
+                        </MudNavLink>
+                    </AuthorizeView>
                     @* Gestão de usuários e secrets — só o Owner *@
                     <AuthorizeView Roles="Owner" Context="owner">
                         <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix"

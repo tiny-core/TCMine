@@ -1,0 +1,228 @@
+@page "/admin/releases"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Domain.Entities
+@using TCMine_Server.Infrastructure.Launcher
+
+@* Releases do launcher: estado atual do feed, compilar um novo launcher (dotnet publish + Velopack) com
+   progresso reconectável, e o histórico de releases publicadas. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+    <div>
+        <MudText Typo="Typo.h4">Releases</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Servidor <b>v@Build.TargetVersion</b> · o launcher é compilado nesta mesma versão e servido em
+            <code>/updates</code>.
+        </MudText>
+    </div>
+    <MudButton StartIcon="@Icons.Material.Filled.Build" Color="Color.Primary" Variant="Variant.Filled"
+               Disabled="@(!_canBuild)" OnClick="StartBuildAsync">
+        @(Build.IsRunning ? "Compilando…" : $"Compilar launcher v{Build.TargetVersion}")
+    </MudButton>
+</MudStack>
+
+@* ── Banner de atualização do SERVIDOR (GitHub releases) ──────────────────────────────────────── *@
+@if (_serverUpdate is { UpdateAvailable: true })
+{
+    <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.SystemUpdate">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudText>
+                Atualização do servidor disponível: <b>v@_serverUpdate.LatestVersion</b>
+                (atual v@_serverUpdate.CurrentVersion). Puxe a imagem nova e reinicie o container — o
+                launcher será recompilado automaticamente na nova versão.
+            </MudText>
+            @if (_serverUpdate.Url is { } url)
+            {
+                <MudButton Href="@url" Target="_blank" Variant="Variant.Text" Color="Color.Inherit"
+                           EndIcon="@Icons.Material.Filled.OpenInNew">Ver release</MudButton>
+            }
+        </MudStack>
+    </MudAlert>
+}
+
+@if (!_settingsReady)
+{
+    <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
+        Configure a <b>URL pública</b> e o <b>Azure Client Id</b> em
+        <MudLink Href="/admin/settings">Configurações</MudLink> antes de compilar — ambos são embutidos no
+        launcher em build-time (endereço do servidor e login Microsoft). Assim que salvar, o launcher é
+        compilado automaticamente.
+    </MudAlert>
+}
+
+@* ── Estado do launcher (versão do server vs feed publicado) ──────────────────────────────────── *@
+<MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@(Build.NeedsBuild() ? Icons.Material.Filled.Sync : Icons.Material.Filled.CheckCircle)"
+                     Color="@(Build.NeedsBuild() ? Color.Warning : Color.Success)" Size="Size.Large"/>
+            <div>
+                <MudText Typo="Typo.subtitle1">
+                    @(Feed.LatestVersion() is { } v
+                        ? (Build.NeedsBuild()
+                            ? $"Launcher desatualizado: feed v{v}, servidor v{Build.TargetVersion}"
+                            : $"Launcher atualizado (v{v})")
+                        : "Launcher ainda não compilado")
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(Build.NeedsBuild()
+                        ? (_settingsReady
+                            ? "Recompilando automaticamente… ou clique em Compilar para forçar."
+                            : "Configure as settings para o launcher ser compilado.")
+                        : "O feed corresponde ao servidor; os launchers instalados auto-atualizam via /updates.")
+                </MudText>
+            </div>
+        </MudStack>
+        @if (Feed.HasInstaller())
+        {
+            <MudButton Href="/download" Target="_blank" StartIcon="@Icons.Material.Filled.Download"
+                       Variant="Variant.Outlined">Baixar Setup.exe</MudButton>
+        }
+    </MudStack>
+</MudPaper>
+
+@* ── Progresso da compilação (reconecta após refresh) ─────────────────────────────────────────── *@
+@if (_build is not null)
+{
+    <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-3">
+            @if (_build.State == LauncherBuildState.Running)
+            {
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Medium"/>
+            }
+            else if (_build.State == LauncherBuildState.Succeeded)
+            {
+                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large"/>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Error" Color="Color.Error" Size="Size.Large"/>
+            }
+            <div class="flex-grow-1">
+                <MudText Typo="Typo.h6">
+                    @(_build.State switch
+                    {
+                        LauncherBuildState.Running => $"Compilando launcher {_build.Version}…",
+                        LauncherBuildState.Succeeded => $"Launcher {_build.Version} publicado",
+                        _ => $"Falha ao compilar o launcher {_build.Version}"
+                    })
+                </MudText>
+                @if (_build.State == LauncherBuildState.Failed && _build.Error is not null)
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Error" Style="white-space: pre-wrap;">@_build.Error</MudText>
+                }
+            </div>
+            @if (_build.State != LauncherBuildState.Running)
+            {
+                <MudButton Variant="Variant.Text" OnClick="@(() => _build = null)">Fechar</MudButton>
+            }
+        </MudStack>
+
+        @if (_build.Steps.Count > 0)
+        {
+            <div class="build-steps" @ref="_stepsEl">
+                @{
+                    var steps = _build.Steps;
+                    var lastIndex = steps.Count - 1;
+                }
+                @for (var i = 0; i < steps.Count; i++)
+                {
+                    var step = steps[i];
+                    var isCurrent = _build.State == LauncherBuildState.Running && i == lastIndex;
+                    <div class="build-step">
+                        @if (isCurrent)
+                        {
+                            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                        }
+                        <span class="build-step-text @(isCurrent ? "build-step-text--current" : null)">@step</span>
+                    </div>
+                }
+            </div>
+        }
+    </MudPaper>
+}
+
+@* ── Histórico de releases ────────────────────────────────────────────────────────────────────── *@
+<MudPaper Elevation="0" Outlined="true" Class="pa-4">
+    <MudText Typo="Typo.h6" Class="mb-3">Histórico</MudText>
+
+    @if (_releases is null)
+    {
+        @* BusyOverlay cobre o carregamento *@
+    }
+    else if (_releases.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-8" Spacing="2">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Color="Color.Secondary"/>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhuma release publicada ainda.</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="ReleaseEntity" Items="_releases" Dense="true" Hover="true" Elevation="0" FixedHeader="true"
+                     Height="50vh">
+            <Columns>
+                <PropertyColumn Property="r => r.Version" Title="Versão"/>
+                <PropertyColumn Property="r => r.Channel" Title="Canal"/>
+                <TemplateColumn Title="Publicada">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2">@context.Item.PublishedAt.ToLocalTime().ToString("g")</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Notas">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @(string.IsNullOrWhiteSpace(context.Item.Notes) ? "—" : context.Item.Notes)
+                        </MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="ReleaseEntity" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudPaper>
+
+<style>
+    .build-steps {
+        max-height: 240px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 12px;
+        border-radius: 8px;
+        background: var(--mud-palette-background-grey);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+
+    .build-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        font-size: 0.8rem;
+        line-height: 1.35;
+    }
+
+    .build-step > :first-child {
+        flex: 0 0 auto;
+        margin-top: 1px;
+    }
+
+    .build-step-text {
+        color: var(--mud-palette-text-secondary);
+        overflow-wrap: anywhere;
+        font-family: 'Cascadia Code', Consolas, monospace;
+    }
+
+    .build-step-text--current {
+        color: var(--mud-palette-text-primary);
+        font-weight: 500;
+    }
+</style>

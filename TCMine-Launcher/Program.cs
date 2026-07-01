@@ -5,6 +5,7 @@ using ReactiveUI.Avalonia;
 using Splat;
 using TCMine_Launcher.Infrastructure;
 using TCMine_Launcher.ViewModels;
+using Velopack;
 
 namespace TCMine_Launcher;
 
@@ -17,6 +18,11 @@ internal sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Velopack: trata os hooks do instalador/atualização (--veloapp-*) e sai cedo quando invocado
+        // pelo Setup/Update. DEVE ser a primeira coisa no Main, antes de qualquer código Avalonia — sem
+        // isso o `vpk pack` (usado pelo servidor para empacotar) recusa o build.
+        VelopackApp.Build().Run();
+
         BuildAvaloniaApp()
             .StartWithClassicDesktopLifetime(args);
     }

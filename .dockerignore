@@ -23,3 +23,10 @@
 **/values.dev.yaml
 LICENSE
 README.md
+# TCMine — não levar dados de runtime, docs, nem config/segredos de dev para a imagem
+tcmine-data/
+publish/
+TCMine-Docs/
+.github/
+**/Client.props
+**/appsettings.local.json
