@@ -53,6 +53,12 @@
                          Icon="@Icons.Material.Filled.Build">
                     @ModLoaders.DisplayName(_pack.Loader) @_pack.LoaderVersion
                 </MudChip>
+                @if (!string.IsNullOrWhiteSpace(_pack.CurseForgeUrl))
+                {
+                    <MudChip T="string" Href="@_pack.CurseForgeUrl" Target="_blank" Size="Size.Small"
+                             Variant="Variant.Filled" Icon="@Icons.Material.Filled.OpenInNew"
+                             Style="background:#F16436;color:#fff;">CurseForge</MudChip>
+                }
             </MudStack>
         </MudStack>
     </MudPaper>

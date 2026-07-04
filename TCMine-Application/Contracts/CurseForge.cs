@@ -63,3 +63,9 @@ public record CfModRefDto(long Id, string Name, long ClassId);
 /// resumo e logo, além da classe (que determina o destino: mod/resourcepack/shaderpack).
 /// </summary>
 public record CfSearchResultDto(long Id, string Name, string? Summary, string? LogoUrl, long ClassId);
+
+/// <summary>
+/// Detalhes de um projeto do CurseForge para o import de modpack: nome, resumo (vira a descrição) e o
+/// link da página do projeto (<c>websiteUrl</c>, usado no badge).
+/// </summary>
+public record CfProjectInfoDto(string Name, string? Summary, string? WebsiteUrl);

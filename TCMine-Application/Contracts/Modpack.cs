@@ -33,7 +33,8 @@ public record ModpackManifestDto(
     bool HasOverrides,
     int? RecommendedRamMb,
     IReadOnlyList<ModDto> Mods,
-    IReadOnlyList<ServerDto> Servers);
+    IReadOnlyList<ServerDto> Servers,
+    string? CurseForgeUrl = null);
 
 /// <summary>
 /// Resultado da importação de um modpack do CurseForge (modelo neutro).
@@ -80,7 +81,8 @@ public sealed record ModpackAdminRowDto(
     int ServerCount,
     bool IsPublished,
     bool HasOverrides,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? CurseForgeUrl = null);
 
 /// <summary>Progresso do download de jars durante o Guardar (mod atual / total + nome).</summary>
 public sealed record SaveProgressDto(int Current, int Total, string FileName);
@@ -145,7 +147,10 @@ public sealed record DraftImportDto<TModEntryEntity>(
     byte[]? Overrides,
     // Origem CF para registrar/atualizar a tabela de import
     long CurseProjectId = 0,
-    long CurseFileId = 0);
+    long CurseFileId = 0,
+    // Metadados do projeto CF: resumo (→ descrição) e link da página (→ badge)
+    string? Description = null,
+    string? CurseForgeUrl = null);
 
 /// <summary>Arquivo mais recente de um mod (do `latestFilesIndexes` do CF), filtrado por versão+loader.</summary>
 public sealed record CfLatestFileDto(long ModId, long FileId, string FileName);

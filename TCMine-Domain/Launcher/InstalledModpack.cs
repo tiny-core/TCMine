@@ -21,6 +21,13 @@ public sealed class InstalledModpack : INotifyPropertyChanged
     public string ManifestVersion { get; set; } = "";
     public string Description { get; set; } = "";
 
+    /// <summary>Link da página do modpack no CurseForge (badge). Null se não veio do CF.</summary>
+    public string? CurseForgeUrl { get; set; }
+
+    /// <summary>Há um link do CurseForge para exibir o badge? (binding do XAML)</summary>
+    [JsonIgnore]
+    public bool HasCurseForgeUrl => !string.IsNullOrWhiteSpace(CurseForgeUrl);
+
     public bool HasOverrides { get; set; }
 
     /// <summary>Versão do manifesto cujos overrides já foram aplicados (evita reaplicar).</summary>

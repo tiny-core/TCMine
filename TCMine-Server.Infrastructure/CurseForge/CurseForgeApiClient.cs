@@ -133,6 +133,16 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         return SearchAsync(ClassModpacks, query, null, ct);
     }
 
+    /// <summary>
+    /// Detalhes de um projeto CF (modpack/mod): nome, resumo e link da página. Usado no import para
+    /// preencher a descrição e o badge do modpack. Null se o projeto não existir.
+    /// </summary>
+    public async Task<CfProjectInfoDto?> GetProjectInfoAsync(long projectId, CancellationToken ct = default)
+    {
+        var resp = await SendAsync<CfDataEnvelope<CfModResponse>>(HttpMethod.Get, $"v1/mods/{projectId}", ct: ct);
+        return resp?.Data is { } m ? new CfProjectInfoDto(m.Name, m.Summary, m.Links?.WebsiteUrl) : null;
+    }
+
     private async Task<List<CfSearchResultDto>> SearchAsync(
         int classId, string query, string? gameVersion, CancellationToken ct)
     {
@@ -230,8 +240,12 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         [property: JsonPropertyName("summary")]
         string? Summary = null,
         [property: JsonPropertyName("logo")] CfLogoResponse? Logo = null,
+        [property: JsonPropertyName("links")] CfLinksResponse? Links = null,
         [property: JsonPropertyName("latestFilesIndexes")]
         List<CfFileIndexResponse>? LatestFilesIndexes = null);
+
+    // Links do projeto no CF; usamos o websiteUrl (página do projeto) para o badge do modpack.
+    private sealed record CfLinksResponse([property: JsonPropertyName("websiteUrl")] string? WebsiteUrl);
 
     // Índice compacto de arquivo recente por (gameVersion, loader) — sem url; resolvemos depois se preciso
     private sealed record CfFileIndexResponse(

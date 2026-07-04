@@ -32,7 +32,8 @@ public record ModpackSummaryDto(
     string Description,
     int ModCount,
     int ServerCount,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? CurseForgeUrl = null);
 
 /// <summary>
 /// Representa um servidor associado a um modpack, contendo informações básicas para conexão.

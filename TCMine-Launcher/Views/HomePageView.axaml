@@ -71,6 +71,16 @@
 
                             <TextBlock Classes="hero-summary" Text="{Binding Shell.Active.Description}"
                                        MaxWidth="460" HorizontalAlignment="Left" Margin="0,12,0,0" />
+
+                            <!-- Badge do CurseForge: abre a página do projeto no navegador -->
+                            <Button IsVisible="{Binding Shell.Active.HasCurseForgeUrl}"
+                                    Command="{Binding Shell.OpenCurseForge}"
+                                    HorizontalAlignment="Left" Margin="0,14,0,0" Padding="11,5" Cursor="Hand"
+                                    Background="#F16436" Foreground="White" CornerRadius="6"
+                                    ToolTip.Tip="{Binding Shell.Active.CurseForgeUrl}">
+                                <TextBlock Text="Ver no CurseForge ↗" VerticalAlignment="Center"
+                                           FontSize="12.5" FontWeight="SemiBold" />
+                            </Button>
                         </StackPanel>
 
                         <!-- Overlay de loading -->

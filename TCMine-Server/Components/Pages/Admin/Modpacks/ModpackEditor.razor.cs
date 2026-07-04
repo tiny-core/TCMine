@@ -197,6 +197,12 @@ public partial class ModpackEditor : ComponentBase
             _draft.Loader = imported.Loader;
             _draft.LoaderVersion = imported.LoaderVersion;
 
+            // Descrição só preenche se vazia (não sobrescreve o que o admin escreveu); o link do CF é
+            // origem, sempre atualizado.
+            if (string.IsNullOrWhiteSpace(_draft.Description) && !string.IsNullOrWhiteSpace(imported.Description))
+                _draft.Description = imported.Description!;
+            _draft.CurseForgeUrl = imported.CurseForgeUrl;
+
             var added = 0;
             foreach (var mod in imported.Mods)
                 if (MergeMod(mod))

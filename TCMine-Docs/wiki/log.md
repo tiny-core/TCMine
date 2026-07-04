@@ -28,6 +28,36 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] ingest | Import puxa descrição + link do CurseForge; badge no launcher/web/dashboard
+
+- **Fonte:** pedido do usuário — no import de modpack, puxar também a descrição e o link do CurseForge, e
+  gerar um badge clicável no launcher, na página pública e na dashboard. Decisões: descrição = `summary`;
+  badge no admin em **ambas** (lista de Modpacks + Dashboard).
+- **Dados:** `ModpackEntity.CurseForgeUrl` (migration `ModpackCurseForgeUrl`, 2 providers). O import busca
+  os detalhes do projeto via `CurseForgeApiClient.GetProjectInfoAsync` (novo; lê `summary` + `links.websiteUrl`)
+  — feito na infra (`ImportModpackToDraftAsync`), sem tocar no importer puro nem no port. Descrição só
+  preenche se vazia; link sempre atualizado. Persistido nos dois saves.
+- **Contratos:** `CurseForgeUrl` em `ModpackSummaryDto`, `ModpackManifestDto`, `ModpackAdminRowDto`,
+  `DraftImportDto`, `RecentModpack` (+ novo `CfProjectInfoDto`).
+- **Badges (cor da marca #F16436):** launcher (Home, `InstalledModpack.CurseForgeUrl` + comando
+  `OpenCurseForge`), página pública (`Home.razor`), lista admin (`Modpacks.razor`), **detalhe** do modpack
+  (`ModpackHub.razor`) e dashboard (`RecentModpacksCard`).
+- **Botão "Compilar launcher" sempre habilitado** (Releases): `_canBuild` deixou de exigir `_needsBuild` —
+  o admin pode recompilar para reaplicar uma config alterada (URL/Azure) ao Setup mesmo com o feed na
+  última versão. Legenda do estado "atualizado" ajustada.
+- **Versionamento de rebuild por config (`AppVersion.BuildVersion`):** ao recompilar por cima de uma
+  versão já publicada, gera um prerelease do **próximo** patch — `X.Y.(Z+1)-local.N` (N incrementa) — que
+  ordena **entre** a atual e a próxima release do GitHub (`1.0.1 < 1.0.2-local.1 < 1.0.2`). Assim os
+  launchers instalados atualizam, e a release `launcher-v1.0.2` cheia depois supera os `-local.*`.
+  Correção conceitual: prerelease pendura no **próximo** patch, não no atual (`1.0.1-beta` seria < 1.0.1).
+  A verificar num rebuild real: o Velopack servir prereleases no canal `win` (esperado: sim).
+- **Nota:** modpacks já existentes só ganham descrição/link ao **re-importar/atualizar** (o import novo
+  captura). Build 0/0.
+- **Páginas afetadas:** só código; log. (Candidato a doc em [[concepts/modpack-admin-editor]] /
+  [[decisions/curseforge-update-tracking]].)
+
+---
+
 ## [2026-07-03] lint | Razor renderizava `v@Version` cru (heurística de e-mail do `@`)
 
 - **Fonte:** o usuário viu "v@Version" literal no diálogo de compilar launcher (e o botão "COMPILAR V@VERSION").

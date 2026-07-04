@@ -32,7 +32,7 @@ public static class ModpackEndpoints
                     m.Description,
                     m.Mods.Count(x => x.Side == ModSide.Both || x.Side == ModSide.Client),
                     m.Servers.Count,
-                    m.UpdatedAt))
+                    m.UpdatedAt, m.CurseForgeUrl))
                 .ToListAsync(ct);
 
             return Results.Ok(packs);
@@ -69,7 +69,7 @@ public static class ModpackEndpoints
 
             var manifest = new ModpackManifestDto(
                 pack.Id, pack.Name, pack.Version, pack.Minecraft, pack.Loader, pack.LoaderVersion,
-                pack.Description, pack.HasOverrides, pack.RecommendedRamMb, mods, servers);
+                pack.Description, pack.HasOverrides, pack.RecommendedRamMb, mods, servers, pack.CurseForgeUrl);
 
             return Results.Ok(manifest);
         });

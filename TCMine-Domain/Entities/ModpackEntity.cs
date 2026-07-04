@@ -31,6 +31,13 @@ public class ModpackEntity
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
+    /// Link da página do projeto no CurseForge (quando importado de lá). Usado para exibir um badge
+    /// clicável no launcher, na página pública e no painel. Null para modpacks sem origem CurseForge.
+    /// </summary>
+    [MaxLength(300)]
+    public string? CurseForgeUrl { get; set; }
+
+    /// <summary>
     /// Indica se o modpack está publicamente disponível e visível.
     /// Controla o estado de publicação do modpack para os usuários.
     /// </summary>

@@ -70,6 +70,10 @@ namespace TCMine_Server.Infrastructure.Migrations.Postgres
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CurseForgeUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)

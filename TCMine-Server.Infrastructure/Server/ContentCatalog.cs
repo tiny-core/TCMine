@@ -97,7 +97,7 @@ public sealed class ContentCatalog(LauncherFeedService feed, IServiceScopeFactor
             .OrderByDescending(m => m.UpdatedAt)
             .Take(5)
             .Select(m => new RecentModpack(
-                m.Id, m.Name, m.Version, m.Loader, m.IsPublished, m.Mods.Count, m.UpdatedAt))
+                m.Id, m.Name, m.Version, m.Loader, m.IsPublished, m.Mods.Count, m.UpdatedAt, m.CurseForgeUrl))
             .ToListAsync(ct);
 
         // Trilha de auditoria — últimas alterações de overrides (quem mexeu em quê)
@@ -168,7 +168,8 @@ public sealed record RecentModpack(
     ModLoader Loader,
     bool IsPublished,
     int ModCount,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? CurseForgeUrl = null);
 
 /// <summary>Item da timeline de "atividade recente" (uma entrada do histórico de overrides).</summary>
 public sealed record ActivityItem(

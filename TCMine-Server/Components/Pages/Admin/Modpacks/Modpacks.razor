@@ -65,6 +65,14 @@
                                 <MudText Typo="Typo.body2">@context.Item.Name</MudText>
                                 <MudText Typo="Typo.caption" Color="Color.Secondary">v@(context.Item.Version)</MudText>
                             </div>
+                            @if (!string.IsNullOrWhiteSpace(context.Item.CurseForgeUrl))
+                            {
+                                <MudLink Href="@context.Item.CurseForgeUrl" Target="_blank" Underline="Underline.None">
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled"
+                                             Icon="@Icons.Material.Filled.OpenInNew"
+                                             Style="background:#F16436;color:#fff;">CurseForge</MudChip>
+                                </MudLink>
+                            }
                         </MudStack>
                     </CellTemplate>
                 </TemplateColumn>

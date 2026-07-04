@@ -40,6 +40,48 @@ public static class AppVersion
         return va.CompareTo(vb);
     }
 
+    private const string LocalTag = "-local.";
+
+    /// <summary>
+    /// Versão a empacotar ao (re)compilar o launcher, dada a <paramref name="releaseVersion"/> (última
+    /// tag <c>launcher-v*</c>) e a <paramref name="feedVersion"/> já publicada no feed.
+    /// <list type="bullet">
+    /// <item>Release ainda não publicada (release &gt; feed) → build normal: <c>X.Y.Z</c>.</item>
+    /// <item>Release já publicada (rebuild por config) → prerelease do próximo patch:
+    /// <c>X.Y.(Z+1)-local.N</c>, que ordena <b>entre</b> a atual e a próxima release do GitHub. N
+    /// incrementa a cada rebuild.</item>
+    /// </list>
+    /// </summary>
+    public static string BuildVersion(string releaseVersion, string? feedVersion)
+    {
+        if (string.IsNullOrWhiteSpace(feedVersion)) return Clean(releaseVersion);
+
+        var feed = Clean(feedVersion);
+        var dash = feed.IndexOf(LocalTag, StringComparison.OrdinalIgnoreCase);
+        var feedIsLocal = dash >= 0;
+        var feedBase = feedIsLocal ? feed[..dash] : feed;
+
+        var cmp = Parse(releaseVersion).CompareTo(Parse(feedBase));
+
+        // Release genuinamente mais nova que o feed (inclui a release "cheia" superando o -local do mesmo
+        // patch) → publica a release normal.
+        if (cmp > 0 || (cmp == 0 && feedIsLocal)) return Clean(releaseVersion);
+
+        // Rebuild por config: continua a série -local.N do feed, ou inicia no próximo patch.
+        if (feedIsLocal && int.TryParse(feed[(dash + LocalTag.Length)..], out var n))
+            return $"{feedBase}{LocalTag}{n + 1}";
+
+        return $"{BumpPatch(feedBase)}{LocalTag}1";
+    }
+
+    // "1.0.1" → "1.0.2" (incrementa o patch). Robusto a 2 partes.
+    private static string BumpPatch(string version)
+    {
+        var v = Parse(version);
+        var patch = (v.Build < 0 ? 0 : v.Build) + 1;
+        return $"{v.Major}.{v.Minor}.{patch}";
+    }
+
     // "v1.2.0", "1.2.0+abc", "1.2.0-beta" → Version(1.2.0). Robusto a lixo → 0.0.0.
     private static Version Parse(string? raw)
     {

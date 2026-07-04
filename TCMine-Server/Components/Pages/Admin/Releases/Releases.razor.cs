@@ -39,8 +39,14 @@ public partial class Releases : ComponentBase, IDisposable
     private string? LauncherTarget => _tracks?.Launcher.LatestVersion;
     private string? LauncherTag => _tracks?.Launcher.Tag;
 
-    // Pode compilar agora? (há alvo + está desatualizado + settings prontas + nada rodando)
-    private bool _canBuild => _needsBuild && LauncherTarget is not null && _settingsReady && !Build.IsRunning;
+    // Versão a empacotar: a da release (build normal) ou X.Y.(Z+1)-local.N quando é um rebuild por config
+    // por cima de uma versão já publicada — fica entre a atual e a próxima release do GitHub.
+    private string? BuildVersion => LauncherTarget is { } t ? AppVersion.BuildVersion(t, _feedVersion) : null;
+
+    // Pode compilar agora? Sempre permitido quando há uma release de launcher + settings prontas + nada
+    // rodando — o admin pode querer recompilar para reaplicar uma config alterada (URL/Azure), mesmo com o
+    // feed já na última versão. (O _needsBuild controla só o destaque de "desatualizado", não o botão.)
+    private bool _canBuild => LauncherTarget is not null && _settingsReady && !Build.IsRunning;
 
     private LauncherBuildView? _build;
     private ElementReference _stepsEl;
@@ -97,10 +103,10 @@ public partial class Releases : ComponentBase, IDisposable
         }
     }
 
-    // Abre o diálogo (só notas; a versão é a última launcher-v*) e dispara a compilação no serviço de fundo
+    // Abre o diálogo (só notas; a versão é computada — release ou -local.N) e dispara a compilação de fundo
     private async Task StartBuildAsync()
     {
-        if (LauncherTarget is not { } version || LauncherTag is not { } tag) return;
+        if (BuildVersion is not { } version || LauncherTag is not { } tag) return;
 
         var parameters = new DialogParameters<LauncherBuildDialog>
         {

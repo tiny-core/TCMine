@@ -43,6 +43,7 @@ public sealed partial class MainWindowViewModel
     public ReactiveCommand<Unit, Unit> Play { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> CancelLaunch { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> OpenInstanceFolder { get; private set; } = null!;
+    public ReactiveCommand<Unit, Unit> OpenCurseForge { get; private set; } = null!;
 
     public InstalledModpack? Active
     {
@@ -190,6 +191,7 @@ public sealed partial class MainWindowViewModel
         Play = ReactiveCommand.CreateFromTask(PlayActiveAsync, canPlay);
         CancelLaunch = ReactiveCommand.Create(() => _launchCts?.Cancel());
         OpenInstanceFolder = ReactiveCommand.Create(OpenInstanceFolderImpl);
+        OpenCurseForge = ReactiveCommand.Create(OpenCurseForgeImpl);
 
         LoadInstalled();
         DetectRunningGame();
@@ -290,6 +292,7 @@ public sealed partial class MainWindowViewModel
         {
             existing.Name = m.Name;
             existing.Description = m.Description;
+            existing.CurseForgeUrl = m.CurseForgeUrl;
             existing.Servers = servers; // metadados de exibição: sempre frescos (auto-join continua válido)
             existing.RecommendedRamMb = m.RecommendedRamMb;
 
@@ -319,6 +322,7 @@ public sealed partial class MainWindowViewModel
             NeoForgeVersion = m.LoaderVersion,
             ManifestVersion = m.Version,
             Description = m.Description,
+            CurseForgeUrl = m.CurseForgeUrl,
             HasOverrides = m.HasOverrides,
             Servers = servers,
             RecommendedRamMb = m.RecommendedRamMb,
@@ -535,5 +539,14 @@ public sealed partial class MainWindowViewModel
         Directory.CreateDirectory(dir);
         try { Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true }); }
         catch { /* ignora falhas a abrir o explorador */ }
+    }
+
+    // Abre a página do modpack ativo no CurseForge (badge) no navegador padrão.
+    private void OpenCurseForgeImpl()
+    {
+        var url = Active?.CurseForgeUrl;
+        if (string.IsNullOrWhiteSpace(url)) return;
+        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch { /* ignora falhas a abrir o navegador */ }
     }
 }

@@ -22,7 +22,7 @@
                    OnClick="CheckUpdatesAsync">Verificar atualizações</MudButton>
         <MudButton StartIcon="@Icons.Material.Filled.Build" Color="Color.Primary" Variant="Variant.Filled"
                    Disabled="@(!_canBuild)" OnClick="StartBuildAsync">
-            @(Build.IsRunning ? "Compilando…" : LauncherTarget is { } tv ? $"Compilar launcher v{tv}" : "Compilar launcher")
+            @(Build.IsRunning ? "Compilando…" : BuildVersion is { } tv ? $"Compilar launcher v{tv}" : "Compilar launcher")
         </MudButton>
     </MudStack>
 </MudStack>
@@ -76,7 +76,7 @@
                             ? (_settingsReady
                                 ? "Recompilando automaticamente (poll de 1h) — ou clique para forçar agora."
                                 : "Configure as settings para o launcher ser compilado.")
-                            : "O feed corresponde à última release; os launchers instalados auto-atualizam via /updates.")
+                            : "O feed está na última versão. Recompile se quiser reaplicar uma config alterada (URL/Azure) ao Setup.")
                 </MudText>
             </div>
         </MudStack>

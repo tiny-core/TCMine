@@ -115,6 +115,16 @@
                                         @pack.Summary.Description
                                     </MudText>
                                 }
+
+                                @if (!string.IsNullOrWhiteSpace(pack.Summary.CurseForgeUrl))
+                                {
+                                    <MudButton Href="@pack.Summary.CurseForgeUrl" Target="_blank" Size="Size.Small"
+                                               Variant="Variant.Filled" Class="mt-3"
+                                               Style="background:#F16436;color:#fff;"
+                                               EndIcon="@Icons.Material.Filled.OpenInNew">
+                                        Ver no CurseForge
+                                    </MudButton>
+                                }
                             </div>
 
                             @if (pack.Servers.Count > 0)

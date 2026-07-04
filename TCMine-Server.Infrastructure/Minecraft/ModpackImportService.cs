@@ -151,10 +151,16 @@ public sealed class ModpackImportService(
             Side = CurseForgeImporter.InferSide(mod.FileName, serverPackFiles)
         }).ToList();
 
+        // Metadados do projeto no CF (descrição + link da página) — best-effort; não parte o import.
+        CfProjectInfoDto? projectInfo = null;
+        try { projectInfo = await cf.GetProjectInfoAsync(projectId, ct); }
+        catch { /* segue sem descrição/link */ }
+
         return new DraftImportDto<ModEntryEntity>(
             imported.Name, imported.Version, imported.Minecraft,
             imported.Loader, imported.LoaderVersion, mods, imported.Overrides,
-            imported.CurseProjectId, imported.CurseFileId);
+            imported.CurseProjectId, imported.CurseFileId,
+            Description: projectInfo?.Summary, CurseForgeUrl: projectInfo?.WebsiteUrl);
     }
 
     // ── Leitura/gestão ─────────────────────────────────────────────────────────────────────────
@@ -167,7 +173,7 @@ public sealed class ModpackImportService(
             .OrderBy(m => m.Name)
             .Select(m => new ModpackAdminRowDto(
                 m.Id, m.Name, m.Version, m.Minecraft, m.Loader, m.LoaderVersion,
-                m.Mods.Count, m.Servers.Count, m.IsPublished, m.HasOverrides, m.UpdatedAt))
+                m.Mods.Count, m.Servers.Count, m.IsPublished, m.HasOverrides, m.UpdatedAt, m.CurseForgeUrl))
             .ToListAsync(ct);
     }
 
@@ -322,6 +328,7 @@ public sealed class ModpackImportService(
         tracked.Loader = draft.Loader;
         tracked.LoaderVersion = draft.LoaderVersion;
         tracked.Description = draft.Description;
+        tracked.CurseForgeUrl = draft.CurseForgeUrl;
         tracked.IsPublished = draft.IsPublished;
         tracked.RecommendedRamMb = draft.RecommendedRamMb;
         tracked.UpdatedAt = DateTime.UtcNow;
@@ -414,6 +421,7 @@ public sealed class ModpackImportService(
         tracked.Loader = draft.Loader;
         tracked.LoaderVersion = draft.LoaderVersion;
         tracked.Description = draft.Description;
+        tracked.CurseForgeUrl = draft.CurseForgeUrl;
         tracked.IsPublished = draft.IsPublished;
         tracked.RecommendedRamMb = draft.RecommendedRamMb;
         tracked.UpdatedAt = DateTime.UtcNow; // marca a alteração para sync incremental do launcher
