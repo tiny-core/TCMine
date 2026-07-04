@@ -196,14 +196,15 @@ volumes:
 
 **⚠️ Regra obrigatória do Docker-out-of-Docker:** o servidor cria containers-irmãos (as instâncias
 Minecraft) que montam subpastas de `tcmine-data` **direto do host**. Para os caminhos baterem, a
-variável `ServerInstances__DataHostRoot` (no `environment`) tem de ser o **caminho no host que
-corresponde a `/app`** — isto é, o diretório **pai** de `tcmine-data` no host. Se os dois não casarem,
-as instâncias sobem apontando para um caminho vazio.
+variável `ServerInstances__DataHostRoot` (no `environment`) tem de ser o **caminho no host da pasta
+mapeada para `/app/tcmine-data`** — ou seja, exatamente o lado esquerdo do bind. A pasta do host pode
+ter **qualquer nome**. Se os dois não casarem, as instâncias sobem apontando para um caminho vazio.
 
 | Bind `volumes` (host → container) | `ServerInstances__DataHostRoot` correspondente |
 |-----------------------------------|-----------------------------------------------|
-| `./tcmine-data:/app/tcmine-data` | `${PWD}` |
-| `/srv/tcmine/data:/app/tcmine-data` | `/srv/tcmine` |
+| `./tcmine-data:/app/tcmine-data` | `${PWD}/tcmine-data` |
+| `/srv/tcmine/data:/app/tcmine-data` | `/srv/tcmine/data` |
+| `/media/ZimaOS-HD/AppData/tcmine-server:/app/tcmine-data` | `/media/ZimaOS-HD/AppData/tcmine-server` |
 
 > **Use bind-mount, não named volume:** as instâncias Minecraft precisam de um caminho de **host real**
 > para re-montar os dados; um `docker volume` não expõe esse caminho e o DooD não funcionaria.

@@ -2,6 +2,7 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using TCMine_Server.Infrastructure.FileSystem;
 
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
@@ -12,9 +13,10 @@ namespace TCMine_Server.Infrastructure.ServerInstances;
 ///
 /// <para><b>Tradução de caminho (crítico em DooD):</b> quando o TCMine-Server roda em container, um
 /// caminho como <c>/app/tcmine-data/servers/{id}</c> só existe <i>dentro</i> dele; o daemon, no host,
-/// precisa do caminho do host (ex.: <c>/opt/tcmine/tcmine-data/servers/{id}</c>). A config
-/// <c>ServerInstances:DataHostRoot</c> informa onde a raiz de conteúdo do servidor está montada no
-/// host; sem ela (dev, TCMine fora de container) usamos a própria raiz local.</para>
+/// precisa do caminho do host (ex.: <c>/media/disco/AppData/tcmine-server/servers/{id}</c>). A config
+/// <c>ServerInstances:DataHostRoot</c> aponta para a pasta do host montada em <c>/app/tcmine-data</c>
+/// (o caminho do host do próprio <c>tcmine-data</c>, com <b>qualquer nome</b>); sem ela (dev, TCMine fora
+/// de container) usamos a pasta <c>tcmine-data</c> local.</para>
 ///
 /// Singleton: o client é thread-safe e reusado; <see cref="Dispose"/> o fecha no shutdown.
 /// </summary>
@@ -28,10 +30,11 @@ public sealed class DockerEnvironment : IDisposable
     {
         _contentRoot = env.ContentRootPath;
 
-        // Raiz no host correspondente à raiz de conteúdo; em dev (sem container) é a própria local
+        // Caminho do host da pasta tcmine-data (montada em /app/tcmine-data). Pode ter QUALQUER nome no
+        // host. Sem config (dev, fora de container) usamos a pasta tcmine-data local — host == local.
         _dataHostRoot = config["ServerInstances:DataHostRoot"]?.Trim() is { Length: > 0 } h
             ? h
-            : _contentRoot;
+            : ServerPaths.Data(_contentRoot);
 
         // Imagem que roda as instâncias. Em produção o compose aponta para a imagem do release (que já
         // traz o JRE) — reuso de imagem, sempre presente no host. Sem config, cai na oficial do temurin
@@ -59,15 +62,17 @@ public sealed class DockerEnvironment : IDisposable
     public string? Network { get; }
 
     /// <summary>
-    /// Traduz um caminho local (sob a raiz de conteúdo) para o caminho equivalente no host, para uso
-    /// como origem de um bind-mount. Fora da raiz de conteúdo, devolve o caminho como veio.
+    /// Traduz um caminho local (sob <c>tcmine-data</c>) para o caminho equivalente no host, para uso como
+    /// origem de um bind-mount. Fora de <c>tcmine-data</c>, devolve o caminho como veio. Como o
+    /// <see cref="_dataHostRoot"/> aponta direto para o <c>tcmine-data</c> do host, a pasta pode ter
+    /// qualquer nome (não precisa se chamar "tcmine-data").
     /// </summary>
     public string ToHostPath(string localPath)
     {
         var full = Path.GetFullPath(localPath);
-        var rel = Path.GetRelativePath(_contentRoot, full);
+        var rel = Path.GetRelativePath(ServerPaths.Data(_contentRoot), full);
 
-        // Caminho fora da raiz (GetRelativePath devolve algo com "..") → sem tradução
+        // Caminho fora de tcmine-data (GetRelativePath devolve algo com "..") → sem tradução
         var hostPath = rel.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(rel)
             ? full
             : Path.Combine(_dataHostRoot, rel);

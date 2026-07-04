@@ -28,6 +28,23 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-04] lint | DooD: DataHostRoot aponta direto para tcmine-data (sem restrição de nome)
+
+- **Fonte:** o usuário (ZimaOS, container pela UI) provisionou e recebeu "bind source path does not exist:
+  /app/tcmine-data/server-cache/installed/…" — caminho do container, não do host. A pasta do host era
+  `/media/ZimaOS-HD/AppData/tcmine-server` (nome ≠ `tcmine-data`), o que o esquema antigo não permitia.
+- **Causa:** `DockerEnvironment.ToHostPath` traduzia relativo à raiz de conteúdo (`/app`), então
+  `DataHostRoot` tinha de ser o **pai** de `tcmine-data` E a pasta do host precisava se chamar `tcmine-data`.
+- **Correção:** `ToHostPath` passa a ser relativo a `ServerPaths.Data(contentRoot)` (`/app/tcmine-data`), e
+  `DataHostRoot` passa a ser o **caminho do host do próprio tcmine-data** (qualquer nome). Default (dev) =
+  `ServerPaths.Data(contentRoot)`. `compose.yaml` ajustado (`${PWD}` → `${PWD}/tcmine-data`) e README/tabela.
+- **Deploy:** entra na próxima imagem. Depois de atualizar, setar
+  `ServerInstances__DataHostRoot=<pasta do host mapeada em /app/tcmine-data>` (exatamente o lado esquerdo
+  do bind). Build 0/0.
+- **Páginas afetadas:** código + `compose.yaml` + `README.md`; log.
+
+---
+
 ## [2026-07-03] ingest | Import puxa descrição + link do CurseForge; badge no launcher/web/dashboard
 
 - **Fonte:** pedido do usuário — no import de modpack, puxar também a descrição e o link do CurseForge, e
