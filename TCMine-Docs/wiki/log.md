@@ -28,6 +28,20 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] meta | README na raiz do projeto
+
+- **Fonte:** pedido do usuário — README explicando o projeto, tecnologias, referências à docs e um
+  tutorial de produção bem detalhado.
+- **Criado:** `README.md` na raiz — sobre/tecnologias/arquitetura (tabela dos 8 projetos), links para a
+  wiki (`TCMine-Docs/wiki/index.md`, entities/concepts/decisions/log) e `CLAUDE.md`, e um tutorial passo a
+  passo de produção via Docker Compose (`.env` do banco → `docker compose up --build` → `/setup` do Owner →
+  segredos no painel → reverse proxy/PublicBaseUrl → publicar launcher). Fatos verificados no código
+  (migrations no boot em `Program.cs`, `/setup`, porta 8080, vars de banco).
+- **Páginas afetadas:** só `README.md` (referencia a wiki; não altera páginas).
+- **Resumo:** documentação; sem mudança de código.
+
+---
+
 ## [2026-07-03] meta | Config do banco por vars separadas (DB_HOST/DB_NAME/DB_USER/DB_PASSWORD)
 
 - **Fonte:** o usuário quer configurar o container do TCMine-Server por variáveis de banco separadas
