@@ -116,8 +116,10 @@ Definições (RAM/Java). Ver [[concepts/launcher-install-launch]].
 - [x] **Build do launcher pelo servidor** (2026-07-01) — `/admin/releases` compila (`dotnet publish` +
   `vpk pack`) injetando `TcmineServerUrl`/`MicrosoftClientId` das settings e gera o feed Velopack; o launcher
   chama `VelopackApp.Build().Run()` no `Main`. Ver [[concepts/launcher-build-velopack]].
-- [ ] **Consumir** o auto-update no launcher: `UpdateManager` checando `/updates` + "atualizar agora" na UI
-  (o bootstrap Velopack já trata os hooks de instalação; falta o *check* periódico).
+- [x] **Consumir o auto-update no launcher** (2026-07-02) — porta `IUpdateService` + impl `UpdateService`
+  (Velopack `UpdateManager` contra `/updates`); o shell checa no boot (`CheckUpdateAsync`) e mostra um
+  **banner "Atualização disponível: vX — Atualizar agora"** que baixa, aplica e reinicia. Guarda
+  `IsInstalled` (dev não checa). Ver [[concepts/launcher-build-velopack]].
 
 ## Referências
 

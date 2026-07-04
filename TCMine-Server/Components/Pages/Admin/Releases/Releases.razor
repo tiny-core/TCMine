@@ -12,27 +12,26 @@
     <div>
         <MudText Typo="Typo.h4">Releases</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary">
-            Servidor <b>v@Build.TargetVersion</b> · o launcher é compilado nesta mesma versão e servido em
-            <code>/updates</code>.
+            Servidor <b>v@(_tracks?.Server.CurrentVersion ?? "—")</b> · launcher
+            <b>@(LauncherTarget is { } t ? $"v{t}" : "sem release")</b> — versões independentes.
         </MudText>
     </div>
     <MudButton StartIcon="@Icons.Material.Filled.Build" Color="Color.Primary" Variant="Variant.Filled"
                Disabled="@(!_canBuild)" OnClick="StartBuildAsync">
-        @(Build.IsRunning ? "Compilando…" : $"Compilar launcher v{Build.TargetVersion}")
+        @(Build.IsRunning ? "Compilando…" : LauncherTarget is { } tv ? $"Compilar launcher v{tv}" : "Compilar launcher")
     </MudButton>
 </MudStack>
 
-@* ── Banner de atualização do SERVIDOR (GitHub releases) ──────────────────────────────────────── *@
-@if (_serverUpdate is { UpdateAvailable: true })
+@* ── Banner de atualização do SERVIDOR (server-v* no GitHub) ──────────────────────────────────── *@
+@if (_tracks?.Server is { UpdateAvailable: true } su)
 {
     <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.SystemUpdate">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <MudText>
-                Atualização do servidor disponível: <b>v@_serverUpdate.LatestVersion</b>
-                (atual v@_serverUpdate.CurrentVersion). Puxe a imagem nova e reinicie o container — o
-                launcher será recompilado automaticamente na nova versão.
+                Atualização do servidor disponível: <b>v@su.LatestVersion</b> (atual v@su.CurrentVersion).
+                Puxe a imagem nova e reinicie o container.
             </MudText>
-            @if (_serverUpdate.Url is { } url)
+            @if (su.Url is { } url)
             {
                 <MudButton Href="@url" Target="_blank" Variant="Variant.Text" Color="Color.Inherit"
                            EndIcon="@Icons.Material.Filled.OpenInNew">Ver release</MudButton>
@@ -51,26 +50,28 @@
     </MudAlert>
 }
 
-@* ── Estado do launcher (versão do server vs feed publicado) ──────────────────────────────────── *@
+@* ── Estado do launcher (última launcher-v* vs feed publicado) ────────────────────────────────── *@
 <MudPaper Elevation="0" Outlined="true" Class="pa-4 mb-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
         <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@(Build.NeedsBuild() ? Icons.Material.Filled.Sync : Icons.Material.Filled.CheckCircle)"
-                     Color="@(Build.NeedsBuild() ? Color.Warning : Color.Success)" Size="Size.Large"/>
+            <MudIcon Icon="@(_needsBuild ? Icons.Material.Filled.Sync : Icons.Material.Filled.CheckCircle)"
+                     Color="@(_needsBuild ? Color.Warning : Color.Success)" Size="Size.Large"/>
             <div>
                 <MudText Typo="Typo.subtitle1">
-                    @(Feed.LatestVersion() is { } v
-                        ? (Build.NeedsBuild()
-                            ? $"Launcher desatualizado: feed v{v}, servidor v{Build.TargetVersion}"
-                            : $"Launcher atualizado (v{v})")
-                        : "Launcher ainda não compilado")
+                    @(LauncherTarget is null
+                        ? "Nenhuma release de launcher (launcher-v*) publicada ainda"
+                        : _needsBuild
+                            ? $"Launcher desatualizado: feed {(_feedVersion is { } fv ? $"v{fv}" : "vazio")}, release v{LauncherTarget}"
+                            : $"Launcher atualizado (v{_feedVersion})")
                 </MudText>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @(Build.NeedsBuild()
-                        ? (_settingsReady
-                            ? "Recompilando automaticamente… ou clique em Compilar para forçar."
-                            : "Configure as settings para o launcher ser compilado.")
-                        : "O feed corresponde ao servidor; os launchers instalados auto-atualizam via /updates.")
+                    @(LauncherTarget is null
+                        ? "Crie uma tag/release launcher-v* no GitHub para o servidor compilar o launcher."
+                        : _needsBuild
+                            ? (_settingsReady
+                                ? "Recompilando automaticamente (poll de 1h) — ou clique para forçar agora."
+                                : "Configure as settings para o launcher ser compilado.")
+                            : "O feed corresponde à última release; os launchers instalados auto-atualizam via /updates.")
                 </MudText>
             </div>
         </MudStack>

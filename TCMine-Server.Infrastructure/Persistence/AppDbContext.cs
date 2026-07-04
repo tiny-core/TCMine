@@ -29,7 +29,6 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
     public DbSet<ModpackImportSourceEntity> ModpackImportSources => Set<ModpackImportSourceEntity>();
     public DbSet<ServerEntryEntity> Servers => Set<ServerEntryEntity>();
     public DbSet<ReleaseEntity> Releases => Set<ReleaseEntity>();
-    public DbSet<PlayerConfigEntity> PlayerConfigs => Set<PlayerConfigEntity>();
     public DbSet<ServerSettingEntity> Settings => Set<ServerSettingEntity>();
     public DbSet<UserEntity> Users => Set<UserEntity>();
     public DbSet<ServerInstanceEntity> ServerInstances => Set<ServerInstanceEntity>();
@@ -47,9 +46,6 @@ public abstract class AppDbContext(DbContextOptions options) : DbContext(options
             // Papel guardado como texto ("Owner", "Admin", …) em vez de int — legível no banco
             e.Property(u => u.Role).HasConversion<string>().HasMaxLength(20);
         });
-
-        // Configs do jogador: chave composta (Uuid, ModpackId)
-        b.Entity<PlayerConfigEntity>().HasKey(p => new { p.Uuid, p.ModpackId });
 
         // Settings é uma linha única; a chave não é gerada pelo banco (controlamos o ID)
         b.Entity<ServerSettingEntity>(e =>

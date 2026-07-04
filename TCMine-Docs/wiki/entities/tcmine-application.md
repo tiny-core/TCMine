@@ -33,7 +33,8 @@ própria versão das portas.
 
 - **Portas (`Abstractions/`):** `ICurseForgeApi` (o servidor implementa com a API
   direta + key; o cliente, sobre o proxy — ver [[concepts/curseforge-proxy]]),
-  `IUserRepository`, `IPlayerConfigRepository`, `IServerSettingsStore`.
+  `IUserRepository`, `IServerSettingsStore`. (As configs do jogador **não** têm porta:
+  são um zip em disco no servidor — ver [[concepts/player-config-sync]].)
 - **Contratos (`Contracts/`):** DTOs imutáveis como `record` — `ModDto`,
   `ModpackManifestDto`, `ImportedModpackDto`/`ImportedModDto`, `MergeResultDto<T>`,
   `ModpackAdminRowDto`, `SaveProgressDto`, `OverrideFileDto`, `DraftImportDto<T>`,

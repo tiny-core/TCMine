@@ -35,6 +35,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private readonly IAuthService _auth;
     private readonly IModpackCatalog _catalog;
     private readonly IContentWatcher _contentWatcher;
+    private readonly IUpdateService _updateService;
 
     private object? _currentPage;
     private AppTab _selectedTab = AppTab.Modpacks;
@@ -44,11 +45,14 @@ public sealed partial class MainWindowViewModel : ViewModelBase
     private string? _loginError;
     private PlayerSession? _player;
     private ServerStatus _serverStatus = ServerStatus.Checking;
+    private string? _updateVersion;
+    private bool _isUpdating;
+    private string _updateStatus = "";
 
     public MainWindowViewModel(
         IAuthService auth, IModpackCatalog catalog, IInstanceStore instanceStore, ISettingsStore settingsStore,
         IGameRunStateStore runState, ILaunchOrchestrator orchestrator, IServerPinger pinger, ISystemInfo systemInfo,
-        IContentWatcher contentWatcher, INewsFeed newsFeed)
+        IContentWatcher contentWatcher, INewsFeed newsFeed, IUpdateService updateService)
     {
         _auth = auth;
         _catalog = catalog;
@@ -58,6 +62,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         _orchestrator = orchestrator;
         _systemInfo = systemInfo;
         _contentWatcher = contentWatcher;
+        _updateService = updateService;
 
         InitPlay(); // instâncias instaladas + definições + estado de launch (partial .Play.cs)
 
@@ -76,6 +81,8 @@ public sealed partial class MainWindowViewModel : ViewModelBase
             this.WhenAnyValue(x => x.IsAuthenticating, busy => !busy));
         Logout = ReactiveCommand.CreateFromTask(LogoutAsync);
         Navigate = ReactiveCommand.Create<AppTab>(tab => SelectedTab = tab);
+        UpdateNow = ReactiveCommand.CreateFromTask(ApplyUpdateAsync,
+            this.WhenAnyValue(x => x.IsUpdating, busy => !busy));
 
         // Live link: o servidor avisa (SSE) quando o conteúdo muda → recarrega catálogo + ativo.
         _contentWatcher.ContentChanged += OnServerContentChanged;
@@ -190,12 +197,42 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public string VersionLabel => "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "1.0.0");
 
+    // ── Auto-update (Velopack contra o feed /updates do servidor) ─────────────────────────────────
+    public ReactiveCommand<Unit, Unit> UpdateNow { get; }
+
+    /// <summary>Versão nova disponível (null = nenhuma / não instalado / dev).</summary>
+    public string? UpdateVersion
+    {
+        get => _updateVersion;
+        private set
+        {
+            this.RaiseAndSetIfChanged(ref _updateVersion, value);
+            this.RaisePropertyChanged(nameof(IsUpdateAvailable));
+        }
+    }
+
+    public bool IsUpdateAvailable => _updateVersion is not null;
+
+    public bool IsUpdating
+    {
+        get => _isUpdating;
+        private set => this.RaiseAndSetIfChanged(ref _isUpdating, value);
+    }
+
+    /// <summary>Texto do progresso do update (ex.: "Baixando 42%").</summary>
+    public string UpdateStatus
+    {
+        get => _updateStatus;
+        private set => this.RaiseAndSetIfChanged(ref _updateStatus, value);
+    }
+
     // ── Fluxo ────────────────────────────────────────────────────────────────────────────────────
     private async Task InitializeAsync()
     {
         _ = CheckServerAsync();
         _ = RefreshActiveAsync(); // atualiza metadados do modpack ativo (incl. servidores) do manifesto
         _ = ReconcileAvailabilityAsync(); // marca instâncias cujo modpack já não existe no servidor
+        _ = CheckUpdateAsync(); // há uma versão nova do launcher no feed do servidor?
         try
         {
             var session = await _auth.TryLoginSilentAsync();
@@ -204,6 +241,41 @@ public sealed partial class MainWindowViewModel : ViewModelBase
         finally
         {
             IsInitializing = false;
+        }
+    }
+
+    // Verifica o feed /updates; se houver versão nova (e a app estiver instalada), mostra o aviso
+    private async Task CheckUpdateAsync()
+    {
+        try
+        {
+            UpdateVersion = await _updateService.CheckAsync();
+        }
+        catch
+        {
+            // sem rede / feed indisponível — sem aviso, sem ruído
+        }
+    }
+
+    // Baixa e aplica o update; a app reinicia sozinha ao aplicar (não retorna daqui em caso de sucesso)
+    private async Task ApplyUpdateAsync()
+    {
+        IsUpdating = true;
+        UpdateStatus = "Iniciando…";
+        try
+        {
+            var progress = new Progress<int>(p => UpdateStatus = $"Baixando {p}%");
+            await _updateService.DownloadAndApplyAsync(progress);
+            // Se chegou aqui sem reiniciar, algo impediu (ex.: não instalado)
+            UpdateStatus = "Nada para aplicar.";
+        }
+        catch (Exception ex)
+        {
+            UpdateStatus = "Falha ao atualizar: " + ex.Message;
+        }
+        finally
+        {
+            IsUpdating = false;
         }
     }
 

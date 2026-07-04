@@ -451,7 +451,7 @@ public sealed partial class MainWindowViewModel
             LaunchStatus = "Minecraft em execução";
             LaunchLog.Add("Minecraft iniciado.");
 
-            _ = MonitorGameAsync(process);
+            _ = MonitorGameAsync(process, instance);
         }
         catch (OperationCanceledException)
         {
@@ -473,7 +473,7 @@ public sealed partial class MainWindowViewModel
         }
     }
 
-    private async Task MonitorGameAsync(Process process)
+    private async Task MonitorGameAsync(Process process, InstalledModpack? instance)
     {
         try { await process.WaitForExitAsync(); }
         catch { /* o importante é reativar a UI a seguir */ }
@@ -481,6 +481,21 @@ public sealed partial class MainWindowViewModel
         _runState.Clear();
         try { process.Dispose(); }
         catch { /* noop */ }
+
+        // Empurra as configs do jogador (keybinds/opções/minimapa) para o servidor após a sessão, para
+        // ficarem disponíveis noutros PCs. Best-effort — falhas não afetam a UI. O status do upload
+        // aparece na mesma label da barra de launch (marshalado para a UI thread).
+        if (instance is not null)
+        {
+            try
+            {
+                void Report(string msg) => Dispatcher.UIThread.Post(() => LaunchStatus = msg);
+                Report("A sincronizar configurações do jogador…");
+                await _orchestrator.PushConfigsAsync(instance, Report);
+                _instanceStore.Save(instance);
+            }
+            catch { /* servidor offline / sem sessão — tenta na próxima */ }
+        }
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -505,7 +520,7 @@ public sealed partial class MainWindowViewModel
             }
 
             _isGameRunning = true; // direto: ainda no construtor, sem bindings ligados
-            _ = MonitorGameAsync(proc);
+            _ = MonitorGameAsync(proc, GetInstalled(state.ModpackId));
         }
         catch (ArgumentException)
         {

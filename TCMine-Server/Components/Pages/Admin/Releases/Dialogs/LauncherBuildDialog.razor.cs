@@ -11,10 +11,18 @@ public partial class LauncherBuildDialog : ComponentBase
 {
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
-    // Versão-alvo (= versão do servidor); mostrada só para leitura
+    // Versão-alvo (= última launcher-v*); mostrada só para leitura
     [Parameter] public string Version { get; set; } = "0.0.0";
 
+    // Notas pré-preenchidas (ex.: corpo da release do GitHub); o admin pode ajustar
+    [Parameter] public string InitialNotes { get; set; } = string.Empty;
+
     private string _notes = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        _notes = InitialNotes;
+    }
 
     private void Confirm()
     {

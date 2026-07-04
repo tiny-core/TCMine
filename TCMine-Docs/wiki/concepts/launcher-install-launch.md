@@ -66,8 +66,9 @@ modpack oficial, sem mexer em mods/loader/Java à mão.
 ## Contradições / debates conhecidos
 
 - **Só NeoForge** neste incremento; Forge/Fabric/Quilt dão erro amigável (loader não suportado ainda).
-- **Sem sync de configs** do jogador (o servidor só tem `PUT` de configs; falta o `GET`) — o
-  `LaunchOrchestrator` ainda não puxa/empurra configs. Ver [[concepts/player-config-sync]].
+- **Sync de configs do jogador implementado** (2026-07-03): o `LaunchOrchestrator` puxa as configs do
+  servidor no prepare (após os overrides) e a shell empurra ao fechar o jogo. Ver
+  [[concepts/player-config-sync]] — reutiliza o mesmo `PlayerDataProfile` do snapshot/restore.
 
 ## Aplicação concreta
 

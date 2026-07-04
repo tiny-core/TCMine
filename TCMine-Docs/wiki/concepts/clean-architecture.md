@@ -46,8 +46,8 @@ essa lógica no core, ela não é duplicada nem diverge entre os dois lados (ver
   raiz: registra a Infrastructure no DI e expõe a UI/endpoints.
 
 A inversão de dependência aparece concretamente nas portas: `ICurseForgeApi`,
-`IUserRepository`, `IPlayerConfigRepository`, `IServerSettingsStore` vivem na
-Application; as implementações, na Infrastructure; o DI faz a ligação.
+`IUserRepository`, `IServerSettingsStore` vivem na Application; as implementações,
+na Infrastructure; o DI faz a ligação.
 
 ## Aplicação concreta
 

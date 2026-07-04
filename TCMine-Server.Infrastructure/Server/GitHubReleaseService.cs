@@ -5,34 +5,40 @@ using Microsoft.Extensions.Logging;
 
 namespace TCMine_Server.Infrastructure.Server;
 
-/// <summary>Resumo do estado de atualização do servidor (para o banner do painel).</summary>
-public sealed record ServerUpdate(
-    string CurrentVersion,
-    string? LatestVersion,
-    string? Notes,
-    string? Url,
-    bool UpdateAvailable);
+/// <summary>Faixa de releases do servidor (tags <c>server-v*</c>) — dirige o aviso de "atualize o servidor".</summary>
+public sealed record ServerTrack(
+    string CurrentVersion, string? LatestVersion, string? Notes, string? Url, bool UpdateAvailable);
 
 /// <summary>
-///     Verifica se há uma versão mais recente do TCMine publicada no GitHub (releases <c>v*</c> de
-///     <c>tiny-core/TCMine</c>) e compara com a versão corrente (<see cref="AppVersion" />). Como o modelo
-///     é de <b>uma versão só</b>, a mesma release cobre servidor e launcher: um update do servidor implica
-///     puxar a imagem nova (que traz a fonte do launcher naquela versão).
-///     Cache de 1h, tolerante a falha (devolve o último conhecido). Repo configurável via <c>GITHUB_REPO</c>.
+///     Faixa de releases do launcher (tags <c>launcher-v*</c>) — a versão do <b>código</b> do launcher,
+///     independente do servidor. O servidor compila o launcher <b>nesta</b> versão, buscando a fonte na
+///     <see cref="Tag" /> (tarball do GitHub).
+/// </summary>
+public sealed record LauncherTrack(
+    string? LatestVersion, string? Tag, string? Notes, string? Url);
+
+/// <summary>As duas faixas independentes.</summary>
+public sealed record GitHubTracks(ServerTrack Server, LauncherTrack Launcher);
+
+/// <summary>
+///     Lê as releases do GitHub (<c>tiny-core/TCMine</c>) e separa em duas faixas por prefixo de tag:
+///     <c>server-v*</c> (a imagem) e <c>launcher-v*</c> (o código do launcher). Assim atualizar um não
+///     obriga o outro — resolve a sobrecarga do modelo de versão única. Cache 1h, tolerante a falha
+///     (devolve o último conhecido). Repo configurável via <c>GITHUB_REPO</c>.
 /// </summary>
 public sealed class GitHubReleaseService(
     IHttpClientFactory http, IConfiguration config, ILogger<GitHubReleaseService> logger)
 {
-    private static readonly TimeSpan Ttl = TimeSpan.FromHours(1);
+    private static readonly TimeSpan Ttl = TimeSpan.FromHours(6);
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private ServerUpdate? _cached;
+    private GitHubTracks? _cached;
     private DateTime _cachedAtUtc;
 
-    private string Repo => config["GITHUB_REPO"] is { Length: > 0 } r ? r.Trim() : "tiny-core/TCMine";
+    public string Repo => config["GITHUB_REPO"] is { Length: > 0 } r ? r.Trim() : "tiny-core/TCMine";
 
-    /// <summary>Estado de atualização (cacheado). <paramref name="force" /> ignora a cache.</summary>
-    public async Task<ServerUpdate> GetAsync(bool force = false, CancellationToken ct = default)
+    /// <summary>As duas faixas (cacheadas). <paramref name="force" /> ignora a cache.</summary>
+    public async Task<GitHubTracks> GetAsync(bool force = false, CancellationToken ct = default)
     {
         var current = AppVersion.Current(config);
 
@@ -47,31 +53,51 @@ public sealed class GitHubReleaseService(
 
             var client = http.CreateClient("github");
             var releases = await client.GetFromJsonAsync<List<GhRelease>>(
-                $"https://api.github.com/repos/{Repo}/releases?per_page=100", ct);
+                $"https://api.github.com/repos/{Repo}/releases?per_page=100", ct) ?? [];
 
-            var latest = releases?
-                .Where(r => r is { Draft: false } && r.TagName?.StartsWith('v') == true)
-                .OrderByDescending(r => r.TagName, Comparer<string?>.Create(AppVersion.Compare))
-                .FirstOrDefault();
+            var live = releases.Where(r => r is { Draft: false }).ToList();
+            var server = Highest(live, "server-v");
+            var launcher = Highest(live, "launcher-v");
 
-            _cached = new ServerUpdate(
+            var serverTrack = new ServerTrack(
                 current,
-                latest?.TagName is { } t ? t.TrimStart('v', 'V') : null,
-                latest?.Body, latest?.HtmlUrl,
-                latest is not null && AppVersion.IsNewer(latest.TagName, current));
+                server?.TagName is { } st ? Strip(st, "server-v") : null,
+                server?.Body, server?.HtmlUrl,
+                server is not null && AppVersion.IsNewer(server.TagName, current));
+
+            var launcherTrack = new LauncherTrack(
+                launcher?.TagName is { } lt ? Strip(lt, "launcher-v") : null,
+                launcher?.TagName, launcher?.Body, launcher?.HtmlUrl);
+
+            _cached = new GitHubTracks(serverTrack, launcherTrack);
             _cachedAtUtc = DateTime.UtcNow;
             return _cached;
         }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Falha ao consultar releases do GitHub ({Repo}).", Repo);
-            // Sem rede/erro → não sinaliza update; devolve o último conhecido ou um estado neutro
-            return _cached ?? new ServerUpdate(current, null, null, null, false);
+            return _cached ?? new GitHubTracks(
+                new ServerTrack(current, null, null, null, false),
+                new LauncherTrack(null, null, null, null));
         }
         finally
         {
             _gate.Release();
         }
+    }
+
+    // Release mais alta (semver) cuja tag começa pelo prefixo
+    private static GhRelease? Highest(IEnumerable<GhRelease> releases, string prefix)
+    {
+        return releases
+            .Where(r => r.TagName?.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) == true)
+            .OrderByDescending(r => r.TagName, Comparer<string?>.Create(AppVersion.Compare))
+            .FirstOrDefault();
+    }
+
+    private static string Strip(string tag, string prefix)
+    {
+        return tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? tag[prefix.Length..] : tag.TrimStart('v', 'V');
     }
 
     private bool Fresh()

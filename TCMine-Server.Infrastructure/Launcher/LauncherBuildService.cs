@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Formats.Tar;
+using System.IO.Compression;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -26,23 +28,24 @@ public sealed record LauncherBuildView(
 
 /// <summary>
 ///     Compila e empacota o launcher <b>pelo próprio servidor</b>, gerando o feed Velopack em
-///     <c>tcmine-data/updates</c> (servido em <c>/updates</c>; o <c>Setup.exe</c> vai em <c>/download</c>).
-///     Fluxo: <c>dotnet publish</c> do launcher (injetando <c>TcmineServerUrl</c> = PublicBaseUrl e
-///     <c>MicrosoftClientId</c> = AzureClientId) → <c>vpk pack</c> (Velopack) → grava um
-///     <see cref="ReleaseEntity" />.
+///     <c>tcmine-data/updates</c> (servido em <c>/updates</c>; o <c>Setup.exe</c> em <c>/download</c>).
 ///
-///     Roda em <b>segundo plano com progresso reconectável</b> (mesmo padrão do
-///     <c>ProvisioningCoordinator</c>): a página se inscreve em <see cref="Changed" /> e sobrevive a um
-///     refresh. Singleton: só há um launcher, logo um job de cada vez.
+///     <b>Duas versões independentes:</b> o launcher tem a sua própria faixa (<c>launcher-v*</c>),
+///     desacoplada do servidor. Para não amarrar as duas, a fonte do launcher <b>não é embutida</b> na
+///     imagem — o servidor a <b>baixa do GitHub</b> na tag da versão-alvo (tarball), compila (injetando
+///     <c>TcmineServerUrl</c>/<c>MicrosoftClientId</c> das settings) e empacota com o <c>vpk</c>. Assim uma
+///     mudança só no launcher (novo <c>launcher-v*</c>) é recompilada pelo servidor <b>em execução</b>, sem
+///     rebuild de imagem nem reinício do container; e uma mudança só no servidor não força update do launcher.
 ///
-///     Pré-requisitos de ambiente: o servidor precisa rodar a partir do <b>código-fonte</b> (para achar o
-///     projeto do launcher), com o <b>SDK .NET</b> e o <b>vpk</b> disponíveis. Sem isso, falha com
-///     mensagem clara — não é suportado num deploy runtime-only.
+///     Roda em segundo plano com progresso reconectável (mesmo padrão do <c>ProvisioningCoordinator</c>).
+///     Singleton: um build de cada vez. Exige SDK .NET + <c>vpk</c> na imagem (autossuficiente p/ compilar).
 /// </summary>
 public sealed class LauncherBuildService(
     IServiceScopeFactory scopeFactory,
     ServerSettingsService settings,
     LauncherFeedService feed,
+    GitHubReleaseService github,
+    IHttpClientFactory http,
     IConfiguration config,
     IHostEnvironment env,
     ILogger<LauncherBuildService> logger)
@@ -71,19 +74,6 @@ public sealed class LauncherBuildService(
         }
     }
 
-    /// <summary>
-    ///     Versão-alvo do launcher = a versão CORRENTE do servidor (modelo de uma versão só). O launcher é
-    ///     sempre compilado para casar com o servidor que está rodando.
-    /// </summary>
-    public string TargetVersion => AppVersion.Current(config);
-
-    /// <summary>O feed publicado está atrás da versão do servidor (ou não existe)? → precisa (re)compilar.</summary>
-    public bool NeedsBuild()
-    {
-        var published = feed.LatestVersion();
-        return published is null || AppVersion.IsNewer(TargetVersion, published);
-    }
-
     /// <summary>Ambas as settings embutidas no launcher estão configuradas? (pré-requisito do build).</summary>
     public async Task<bool> SettingsReadyAsync(CancellationToken ct = default)
     {
@@ -93,21 +83,33 @@ public sealed class LauncherBuildService(
     }
 
     /// <summary>
-    ///     Auto-build: compila o launcher na <see cref="TargetVersion" /> se estiver desatualizado e as
-    ///     settings prontas. Idempotente (não reinicia se já rodando). Devolve se iniciou. Usado no boot e
-    ///     ao salvar as settings — o launcher acompanha o servidor sem ação manual.
+    ///     Auto-build: se há uma release de launcher (<c>launcher-v*</c>) mais nova que o feed publicado e as
+    ///     settings estão prontas, compila essa versão em segundo plano. Idempotente. Devolve se iniciou.
+    ///     Usado no boot, ao salvar settings e no poll periódico — o launcher acompanha as releases sem ação
+    ///     manual e sem tocar no container.
     /// </summary>
     public async Task<bool> TryStartAutoAsync(CancellationToken ct = default)
     {
-        if (IsRunning || !NeedsBuild()) return false;
+        if (IsRunning) return false;
+
+        var tracks = await github.GetAsync(ct: ct);
+        var target = tracks.Launcher.LatestVersion;
+        var tag = tracks.Launcher.Tag;
+        if (target is null || tag is null) return false; // nenhuma release de launcher publicada ainda
+
+        var published = feed.LatestVersion();
+        var needs = published is null || AppVersion.IsNewer(target, published);
+        if (!needs) return false;
+
         if (!await SettingsReadyAsync(ct)) return false;
 
-        Start(TargetVersion, $"Build automático — launcher alinhado ao servidor {TargetVersion}.");
+        Start(target, tag, $"Build automático — launcher {target}.");
         return true;
     }
 
-    /// <summary>Inicia (ou ignora, se já rodando) a compilação. Retorna já — o trabalho corre em fundo.</summary>
-    public void Start(string version, string notes)
+    /// <summary>Inicia (ou ignora, se já rodando) a compilação da <paramref name="tag" /> na
+    /// <paramref name="version" />. Retorna já — o trabalho corre em fundo.</summary>
+    public void Start(string version, string tag, string notes)
     {
         lock (_lock)
         {
@@ -115,36 +117,40 @@ public sealed class LauncherBuildService(
             _job = new Job(version);
         }
 
-        _ = RunAsync(version, notes);
+        _ = RunAsync(version, tag, notes);
     }
 
-    private async Task RunAsync(string version, string notes)
+    private async Task RunAsync(string version, string tag, string notes)
     {
         var job = _job!;
         var stagingRoot = Path.Combine(ServerPaths.Data(env.ContentRootPath), ".launcher-build");
 
         try
         {
-            Report("Verificando ambiente e configurações…");
+            Report("Verificando configurações…");
 
-            // Ambas são EMBUTIDAS no launcher em build-time (viram AssemblyMetadata) — sem elas o launcher
-            // não saberia o endereço do servidor nem faria o login Microsoft. Exigidas antes de compilar.
+            // Embutidas no launcher em build-time (viram AssemblyMetadata). Exigidas antes de compilar.
             var baseUrl = await settings.GetPublicBaseUrlAsync();
             var clientId = await settings.GetAzureClientIdAsync();
             if (string.IsNullOrWhiteSpace(baseUrl) || string.IsNullOrWhiteSpace(clientId))
                 throw new InvalidOperationException(
                     "Configure a URL pública (PublicBaseUrl) e o Azure Client Id em Configurações antes de " +
                     "compilar o launcher — ambos são embutidos no launcher em build-time.");
-            var project = ResolveLauncherProject();
+
             var vpk = ResolveVpk();
             var rid = config["LauncherBuild:Rid"] is { Length: > 0 } r ? r : "win-x64";
             var channel = config["LauncherBuild:Channel"] is { Length: > 0 } c ? c : "win";
 
             var updatesDir = ServerPaths.Updates(env.ContentRootPath);
             Directory.CreateDirectory(updatesDir);
-            var publishDir = Path.Combine(stagingRoot, "publish");
             if (Directory.Exists(stagingRoot)) Directory.Delete(stagingRoot, true);
+            Directory.CreateDirectory(stagingRoot);
+            var publishDir = Path.Combine(stagingRoot, "publish");
             Directory.CreateDirectory(publishDir);
+
+            // ── 0. Baixa a FONTE do launcher na tag (desacopla do servidor / da imagem) ───────────────
+            Report($"Baixando código-fonte do launcher ({tag})…");
+            var project = await FetchSourceAsync(tag, Path.Combine(stagingRoot, "src"));
 
             // ── 1. dotnet publish (self-contained; injeta URL do server + client id do MSAL) ──────────
             Report($"Publicando launcher {version} — {rid}, self-contained…");
@@ -154,7 +160,6 @@ public sealed class LauncherBuildService(
                 "--nologo", "-o", publishDir,
                 $"-p:TcmineServerUrl={baseUrl}", $"-p:MicrosoftClientId={clientId}"
             };
-
             var publish = await RunProcessAsync("dotnet", publishArgs, "Publicando launcher", job);
             if (publish.ExitCode != 0)
                 throw new InvalidOperationException(
@@ -169,8 +174,7 @@ public sealed class LauncherBuildService(
                 await File.WriteAllTextAsync(notesFile, notes);
             }
 
-            // No Linux, o `vpk` precisa do DIRETÓRIO de OS `[win]` para cross-compilar o alvo Windows
-            // (gera o Setup.exe/nupkg de Windows). No Windows nativo o pack já mira Windows — sem diretório.
+            // No Linux o `vpk` precisa do DIRETÓRIO de OS `[win]` para cross-compilar o alvo Windows.
             var packArgs = new List<string>();
             if (!OperatingSystem.IsWindows())
                 packArgs.Add("[win]");
@@ -207,7 +211,7 @@ public sealed class LauncherBuildService(
                 {
                     Version = version,
                     Channel = channel,
-                    Notes = notes ?? string.Empty,
+                    Notes = notes,
                     Files = string.Join('\n', files)
                 });
                 await db.SaveChangesAsync();
@@ -229,11 +233,47 @@ public sealed class LauncherBuildService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Falha ao limpar o diretório de staging do build do launcher.");
+                logger.LogWarning(ex, "Falha ao limpar o staging do build do launcher.");
             }
         }
 
         Changed?.Invoke();
+    }
+
+    // Baixa e extrai o tarball do código-fonte na tag; devolve o caminho do csproj do launcher
+    private async Task<string> FetchSourceAsync(string tag, string destDir)
+    {
+        Directory.CreateDirectory(destDir);
+        var url = $"https://github.com/{github.Repo}/archive/refs/tags/{tag}.tar.gz";
+
+        var client = http.CreateClient("github"); // tem User-Agent; segue redirects por padrão
+        var tgz = Path.Combine(destDir, "src.tar.gz");
+        using (var resp = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+        {
+            if (!resp.IsSuccessStatusCode)
+                throw new InvalidOperationException(
+                    $"Não foi possível baixar a fonte do launcher da tag '{tag}' ({(int)resp.StatusCode}). " +
+                    "Confirme que a tag existe no GitHub e o repositório é público (ou defina GITHUB_REPO).");
+            await using var fs = File.Create(tgz);
+            await resp.Content.CopyToAsync(fs);
+        }
+
+        var extractDir = Path.Combine(destDir, "extract");
+        Directory.CreateDirectory(extractDir);
+        await using (var fs = File.OpenRead(tgz))
+        await using (var gz = new GZipStream(fs, CompressionMode.Decompress))
+        {
+            await TarFile.ExtractToDirectoryAsync(gz, extractDir, overwriteFiles: true);
+        }
+
+        // O GitHub empacota tudo sob um único diretório-raiz "{repo}-{ref}"
+        var root = Directory.GetDirectories(extractDir).FirstOrDefault()
+                   ?? throw new InvalidOperationException("Tarball do código-fonte vazio ou inesperado.");
+        var csproj = Path.Combine(root, "TCMine-Launcher", "TCMine-Launcher.csproj");
+        if (!File.Exists(csproj))
+            throw new InvalidOperationException(
+                $"'TCMine-Launcher/TCMine-Launcher.csproj' não encontrado no código-fonte da tag '{tag}'.");
+        return csproj;
     }
 
     // Reporta um marco (novo passo no log) e notifica a UI
@@ -245,8 +285,6 @@ public sealed class LauncherBuildService(
 
     // ── Execução de processo com streaming ─────────────────────────────────────────────────────────
 
-    // Roda um processo capturando stdout+stderr; reflete a última linha (coalescida, com throttle de
-    // 150ms) sob o passo <paramref name="label"/> e acumula a saída completa para o diagnóstico de falha.
     private async Task<(int ExitCode, string Output)> RunProcessAsync(
         string exe, IReadOnlyList<string> args, string label, Job job)
     {
@@ -271,7 +309,7 @@ public sealed class LauncherBuildService(
             lock (outLock) output.AppendLine(line);
 
             var now = DateTime.UtcNow;
-            if ((now - lastUi).TotalMilliseconds < 150) return; // throttle: não martela o circuito
+            if ((now - lastUi).TotalMilliseconds < 150) return; // throttle
             lastUi = now;
             job.Add($"{label} — {Shorten(line.Trim(), 90)}");
             Changed?.Invoke();
@@ -289,7 +327,7 @@ public sealed class LauncherBuildService(
         {
             throw new InvalidOperationException(
                 $"Não foi possível executar '{exe}': {ex.Message}. " +
-                "Verifique se está instalado e acessível no PATH (o build do launcher exige o SDK .NET e o vpk).");
+                "Verifique se está instalado e acessível no PATH (o build exige o SDK .NET e o vpk).");
         }
 
         process.BeginOutputReadLine();
@@ -301,51 +339,23 @@ public sealed class LauncherBuildService(
         return (process.ExitCode, full);
     }
 
-    // ── Resolução de caminhos ──────────────────────────────────────────────────────────────────────
-
-    private string ResolveLauncherProject()
-    {
-        var configured = config["LauncherBuild:ProjectPath"];
-        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured))
-            return Path.GetFullPath(configured);
-
-        // Dev: o content root é .../TCMine-Server; o launcher é um projeto-irmão na solução
-        var root = env.ContentRootPath;
-        string[] candidates =
-        [
-            Path.Combine(root, "..", "TCMine-Launcher", "TCMine-Launcher.csproj"),
-            Path.Combine(root, "TCMine-Launcher", "TCMine-Launcher.csproj")
-        ];
-        foreach (var c in candidates)
-            if (File.Exists(c))
-                return Path.GetFullPath(c);
-
-        throw new InvalidOperationException(
-            "Código-fonte do launcher não encontrado. Compilar o launcher só é possível quando o servidor " +
-            "roda a partir do código-fonte da solução (defina LauncherBuild:ProjectPath se o layout for outro).");
-    }
-
     private string ResolveVpk()
     {
         var configured = config["LauncherBuild:VpkPath"];
         if (!string.IsNullOrWhiteSpace(configured))
             return configured;
 
-        // Caminho padrão da ferramenta global do dotnet; se não existir, deixa o PATH resolver "vpk"
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         var exe = OperatingSystem.IsWindows() ? "vpk.exe" : "vpk";
         var candidate = Path.Combine(home, ".dotnet", "tools", exe);
         return File.Exists(candidate) ? candidate : "vpk";
     }
 
-    // ── Helpers de texto ───────────────────────────────────────────────────────────────────────────
-
     private static string Shorten(string s, int max)
     {
         return s.Length <= max ? s : s[..(max - 1)] + "…";
     }
 
-    // Últimas linhas da saída (para a mensagem de erro não ficar gigante)
     private static string Tail(string text, int max = 1500)
     {
         if (string.IsNullOrEmpty(text)) return "(sem saída)";
@@ -368,7 +378,6 @@ public sealed class LauncherBuildService(
         {
             lock (_lock)
             {
-                // Coalesce atualizações ao vivo do mesmo passo (mesmo rótulo antes de " — ")
                 static string Label(string s)
                 {
                     var i = s.IndexOf(" — ", StringComparison.Ordinal);

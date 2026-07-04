@@ -12,25 +12,27 @@
         }
         else
         {
-            <MudStack Spacing="1" Style="max-height:55vh;overflow-y:auto">
-                @foreach (var f in Files)
-                {
-                    <MudButton FullWidth="true" Variant="Variant.Outlined" Class="justify-start"
-                               Color="@(f.Id == CurrentFileId ? Color.Primary : Color.Default)"
-                               OnClick="@(() => Pick(f))">
-                        <div style="text-align:left;width:100%">
-                            <MudText Typo="Typo.body2">
-                                @(f.DisplayName ?? f.FileName)
-                                @if (f.Id == CurrentFileId)
-                                {
-                                    <span style="opacity:.6"> · atual</span>
-                                }
-                            </MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@f.FileName</MudText>
-                        </div>
-                    </MudButton>
-                }
-            </MudStack>
+            @* Scroll num <div> simples (como CurseForgeSearchDialog); a lista usa MudList/MudListItem —
+               MudButton como linha de lista colapsava e não rolava. Clicar num item escolhe a versão. *@
+            <div style="min-height:200px; max-height:55vh; overflow-y:auto;">
+                <MudList T="long" Dense="true">
+                    @foreach (var f in Files)
+                    {
+                        <MudListItem T="long" Value="f.Id" OnClick="@(() => Pick(f))">
+                            <div>
+                                <MudText Typo="Typo.body2">
+                                    @(f.DisplayName ?? f.FileName)
+                                    @if (f.Id == CurrentFileId)
+                                    {
+                                        <span style="opacity:.6"> · atual</span>
+                                    }
+                                </MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@f.FileName</MudText>
+                            </div>
+                        </MudListItem>
+                    }
+                </MudList>
+            </div>
         }
     </DialogContent>
     <DialogActions>

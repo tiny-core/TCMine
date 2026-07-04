@@ -57,6 +57,10 @@ login com **MSAL** sem nada disso, e decidiu voltar a esse modelo.
 - **Revert:** removidos `AuthEndpoints`, `LoginSessionBroker`, `MicrosoftAuthService`,
   `PlayerSessionService`, `PlayerAccountEntity` (+repo/porta), o campo client secret e as migrações
   `PlayerAccount`/`AzureClientSecret`. `MinecraftAuthService` permanece.
+- **Limpeza posterior (2026-07-03):** como as migrações `PlayerAccount` foram **apagadas do histórico**
+  (não convertidas em `DropTable`), bancos que as aplicaram durante os testes ficaram com uma tabela
+  `PlayerAccounts` órfã. A migration `DropOrphanPlayerAccounts` (Sqlite + Postgres) faz um
+  `DROP TABLE IF EXISTS "PlayerAccounts"` idempotente — remove-a onde sobrou, no-op no resto.
 
 ## Setup no Azure (mínimo)
 

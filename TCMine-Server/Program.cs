@@ -159,7 +159,8 @@ builder.Services.AddHostedService<LauncherAutoBuildService>();
 builder.Services.AddSingleton<ContentNotifier>();
 
 // ── Configs do jogador (sync entre PCs) ──────────────────────────────────────────────────────────────────────────────
-// Leitura/escrita por (uuid, modpackId) via IPlayerConfigRepository (registrado em AddTcMineDatabase).
+// Leitura/escrita por (uuid, modpackId) como zip em disco (tcmine-data/player-configs), servido/recebido
+// por streaming direto no endpoint — sem BD (o zip pode incluir o cache do minimapa, grande).
 // A validação do token Minecraft é singleton (cacheia em IMemoryCache; usa o IHttpClientFactory).
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<MinecraftAuthService>();

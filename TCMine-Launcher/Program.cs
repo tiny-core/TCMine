@@ -55,10 +55,11 @@ internal sealed class Program
                         var orchestrator = new LaunchOrchestrator(auth, config);
                         var contentWatcher = new ContentWatcher(config);
                         var newsFeed = new NewsFeed(config);
+                        var updateService = new UpdateService(config);
 
                         locator.RegisterLazySingleton(() => new MainWindowViewModel(
                             auth, catalog, instanceStore, settingsStore, runState, orchestrator, pinger,
-                            systemInfo, contentWatcher, newsFeed));
+                            systemInfo, contentWatcher, newsFeed, updateService));
                     });
             });
 }

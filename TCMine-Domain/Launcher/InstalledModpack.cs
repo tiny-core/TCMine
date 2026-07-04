@@ -42,6 +42,13 @@ public sealed class InstalledModpack : INotifyPropertyChanged
 
     public DateTimeOffset? LastPlayedAt { get; set; }
 
+    /// <summary>
+    /// <c>UpdatedAt</c> do servidor correspondente às configs do jogador (keybinds/opções) que estão
+    /// aplicadas nesta instância. Usado no sync last-write-wins: no prepare, só baixa do servidor se este
+    /// valor divergir do <c>UpdatedAt</c> remoto (ex.: o jogador jogou noutro PC). Null = nunca sincronizou.
+    /// </summary>
+    public DateTimeOffset? ConfigSyncedAt { get; set; }
+
     // ── Derivados (não persistir) ────────────────────────────────────────────────────────────────
     [JsonIgnore]
     public string VersionSummary => $"v{ManifestVersion} · MC {Minecraft} · NeoForge {NeoForgeVersion}";

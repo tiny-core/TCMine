@@ -64,11 +64,10 @@ para si, sem configuração manual do cliente. E o auto-update do launcher passa
   quando `!OperatingSystem.IsWindows()`). Testado num container `sdk:10.0`: `dotnet publish -r win-x64` +
   `vpk [win] pack` geraram `Setup.exe`/`nupkg`/`RELEASES` de Windows. Isso viabiliza a **imagem Docker
   autossuficiente**.
-- **Imagem Docker autossuficiente (2026-07-01):** o `TCMine-Server/Dockerfile` deixou de ser runtime-only
-  e passou a **base SDK** carregando a **fonte do launcher** + **vpk** (global tool) + **JRE**, com
-  `dotnet restore -r win-x64` pré-feito. Assim o container **compila o launcher em runtime** (o painel
-  dispara). `ENV LauncherBuild__ProjectPath=/src/TCMine-Launcher/TCMine-Launcher.csproj` (o app roda em
-  `/app`, a fonte em `/src`).
+- **Imagem Docker autossuficiente p/ compilar (2026-07-01, revisto em 02):** o `TCMine-Server/Dockerfile`
+  é **base SDK** com **vpk** (global tool) + **JRE**. **Não** embute a fonte do launcher — ela é baixada do
+  GitHub por build (ver Versionamento). Assim o container compila o launcher em runtime, e a imagem fica
+  leve e desacoplada do código do launcher.
 
 ## Aplicação concreta
 
@@ -77,27 +76,39 @@ para si, sem configuração manual do cliente. E o auto-update do launcher passa
 - `TCMine-Launcher/Program.cs`: `VelopackApp.Build().Run()`.
 - Endpoints: `/updates` (estáticos, feed), `/download` (`Setup.exe`).
 
-## Versionamento (uma versão só)
+## Versionamento (duas faixas independentes)
 
-> Decisão (2026-07-02): **uma versão para tudo** — a mesma tag `v*` no GitHub define o servidor **e** o
-> launcher. Mais simples que as duas faixas do backup (`server-v*`/`launcher-v*`), porque aqui o launcher é
-> compilado **pelo** servidor, na versão dele.
+> Decisão (2026-07-02): **duas versões independentes** — tags `server-v*` (a imagem) e `launcher-v*` (o
+> código do launcher). Reverte a tentativa de "uma versão só" (que acoplava demais): com uma versão só, uma
+> mudança só no launcher forçava rebuild+restart da imagem, e uma mudança só no servidor gerava um "update"
+> falso para os players. As duas faixas (como no backup) resolvem os dois casos.
 
-- **Fonte da versão:** o GitHub Actions (`.github/workflows/server-image.yml`) dispara na tag `v*`,
-  extrai `X.Y.Z`, builda a imagem com `--build-arg SERVER_VERSION=X.Y.Z` (→ `-p:Version` do assembly +
-  `ENV SERVER_VERSION`) e publica no Docker Hub (`<user>/tcmine-server:X.Y.Z` + `:latest`). O servidor lê a
-  própria versão via `AppVersion.Current` (`SERVER_VERSION` ou o assembly).
-- **Self-update do servidor:** `GitHubReleaseService` consulta `/repos/tiny-core/TCMine/releases` (client
-  `github` com User-Agent, cache 1h, tolerante a falha), pega a maior `v*` e compara com a versão corrente.
-  Se maior → banner "atualização do servidor" na página de Releases. Atualizar = **puxar a imagem nova +
-  reiniciar o container** (que traz a fonte do launcher naquela versão).
-- **Launcher segue o servidor:** `LauncherBuildService.TargetVersion` = a versão do servidor;
-  `NeedsBuild()` = feed publicado atrás da versão do servidor (ou inexistente). A página compila **nessa
-  versão** (sem digitar) e o botão fica **desabilitado quando o feed já está na versão do servidor**.
-- **Auto-build (`LauncherAutoBuildService`, IHostedService):** no **boot** e ao **salvar as settings**,
-  se `NeedsBuild()` e as settings (URL/AzureId) prontas, compila o launcher em segundo plano. Assim o
-  fluxo de container (parar → puxar imagem nova → subir) **já recompila o launcher** — zero-touch. O botão
-  manual continua para forçar.
+- **Servidor (`server-v*`):** o GitHub Actions (`.github/workflows/server-image.yml`) dispara na tag
+  `server-v*`, extrai `X.Y.Z`, builda a imagem com `--build-arg SERVER_VERSION` (→ `-p:Version` do assembly
+  + `ENV SERVER_VERSION`) e publica no Docker Hub. `GitHubReleaseService` (cache 1h) compara a maior
+  `server-v*` com a versão corrente (`AppVersion`) → **banner "atualize o servidor"** (puxar imagem + restart).
+- **Launcher (`launcher-v*`):** **não dispara build de imagem**. É só a versão do código do launcher. O
+  servidor **em execução** pega a maior `launcher-v*` do GitHub, **baixa a fonte dessa tag** (tarball
+  `github.com/{repo}/archive/refs/tags/{tag}.tar.gz`, extraído com `System.Formats.Tar`), compila (injeta
+  URL/AzureId) e publica o feed **nessa versão**. `NeedsBuild` = feed publicado atrás da última `launcher-v*`.
+- **Desacoplamento (o ponto-chave):** como a fonte do launcher é **baixada por build** (não embutida na
+  imagem), uma nova `launcher-v*` é recompilada pelo servidor rodando — **sem rebuild de imagem nem restart**.
+  E `server-v*` não mexe na versão do launcher → **nada de update falso** para os players.
+- **Auto-build (`LauncherAutoBuildService`, IHostedService):** no **boot**, ao **salvar settings** e num
+  **poll de 1h**, se a última `launcher-v*` > feed e as settings prontas, compila em segundo plano. Assim
+  uma release de launcher chega aos players sozinha, com o container de pé. O botão manual continua para forçar.
+
+## Consumidor no launcher (auto-update)
+
+Fecha o ciclo: o launcher **consome** o feed que o servidor gera.
+
+- Porta `IUpdateService` ([[entities/tcmine-application]]) + impl `UpdateService`
+  ([[entities/tcmine-launcher-infrastructure]]) via **Velopack `UpdateManager`** apontando para
+  `{servidor}/updates`. Canal `win` (default no Windows) casa com o pack (`-c win`).
+- O shell (`MainWindowViewModel`) checa no boot (`CheckUpdateAsync`); se há versão nova **e** a app está
+  **instalada** (`IsInstalled` — dev não checa), mostra um **banner "Atualização disponível: vX"** com
+  **"Atualizar agora"** → `DownloadAndApplyAsync` (progresso %) → **aplica e reinicia**.
+- Requer o bootstrap `VelopackApp.Build().Run()` no `Main` (já presente).
 
 ## Contradições / debates conhecidos
 

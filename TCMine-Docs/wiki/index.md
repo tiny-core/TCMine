@@ -43,7 +43,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/sse-content-sync]] — `/events` empurra um contador de versão; launcher recarrega o catálogo (sse, sync)
 - [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner, auth por cookie e papéis (auth, setup, roles)
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
-- [[concepts/player-config-sync]] — sync de configs por `(uuid, modpackId)` com token Minecraft (player-config, sync)
+- [[concepts/player-config-sync]] — sync **incremental** (diff por manifesto SHA-256) das configs player-owned (keybinds/opções/minimapa de servidor) por `(uuid, modpackId)`; pull no prepare, push ao fechar o jogo (player-config, sync)
 - [[concepts/async-feedback-overlay]] — modal não-fechável (`BusyService`/`BusyOverlay`) em toda operação async do painel (blazor, ux, feedback)
 - [[concepts/server-instance-lifecycle]] — provisionar (cache de loader) → rodar em container → reconciliar status → medir presença (server-instance, docker)
 - [[concepts/modpack-server-hub-ux]] — hub do modpack + páginas/modais no lugar de abas; ligação modpack↔servidor e sync de desatualização (admin, ux)
@@ -78,6 +78,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-06-29-launcher-clean-architecture]] — launcher: Clean Architecture + Home estilo backup (code, launcher, arquitetura, ui)
 - [[sources/2026-07-01-dashboard-metrics-home]] — medidores CPU/RAM/disco na dashboard + home pública revampada (code, dashboard, metrics, mudblazor)
 - [[sources/2026-07-01-launcher-build-velopack]] — o servidor compila o launcher (dotnet publish + vpk); validado ponta-a-ponta (code, launcher, velopack, build)
+- [[sources/2026-07-03-player-config-sync-completo]] — sync de configs do jogador completado fim-a-fim (blob no servidor + pull/push no launcher) (code, player-config, sync)
 
 ## Sínteses e páginas derivadas
 

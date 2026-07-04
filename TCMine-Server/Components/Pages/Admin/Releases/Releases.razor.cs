@@ -31,11 +31,16 @@ public partial class Releases : ComponentBase, IDisposable
     // Compilar exige URL pública + Azure Client Id (ambos embutidos no launcher em build-time)
     private bool _settingsReady;
 
-    // Estado de atualização do servidor (GitHub releases vs versão corrente)
-    private ServerUpdate? _serverUpdate;
+    // Faixas de release do GitHub (server-v* e launcher-v*) + estado derivado
+    private GitHubTracks? _tracks;
+    private string? _feedVersion;    // versão publicada no feed /updates
+    private bool _needsBuild;        // há launcher-v* mais nova que o feed?
 
-    // Pode compilar agora? (precisa recompilar + settings prontas + nada rodando)
-    private bool _canBuild => Build.NeedsBuild() && _settingsReady && !Build.IsRunning;
+    private string? LauncherTarget => _tracks?.Launcher.LatestVersion;
+    private string? LauncherTag => _tracks?.Launcher.Tag;
+
+    // Pode compilar agora? (há alvo + está desatualizado + settings prontas + nada rodando)
+    private bool _canBuild => _needsBuild && LauncherTarget is not null && _settingsReady && !Build.IsRunning;
 
     private LauncherBuildView? _build;
     private ElementReference _stepsEl;
@@ -58,15 +63,21 @@ public partial class Releases : ComponentBase, IDisposable
         var clientId = await Settings.GetAzureClientIdAsync();
         _settingsReady = !string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(clientId);
 
-        _serverUpdate = await GitHub.GetAsync();
+        _tracks = await GitHub.GetAsync();
+        _feedVersion = Feed.LatestVersion();
+        _needsBuild = LauncherTarget is { } target &&
+                      (_feedVersion is null || AppVersion.IsNewer(target, _feedVersion));
     }
 
-    // Abre o diálogo (só notas — a versão é a do servidor) e dispara a compilação no serviço de fundo
+    // Abre o diálogo (só notas; a versão é a última launcher-v*) e dispara a compilação no serviço de fundo
     private async Task StartBuildAsync()
     {
+        if (LauncherTarget is not { } version || LauncherTag is not { } tag) return;
+
         var parameters = new DialogParameters<LauncherBuildDialog>
         {
-            { x => x.Version, Build.TargetVersion }
+            { x => x.Version, version },
+            { x => x.InitialNotes, _tracks?.Launcher.Notes ?? string.Empty }
         };
         var dialog = await DialogService.ShowAsync<LauncherBuildDialog>(
             "Compilar launcher", parameters, new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true });
@@ -75,7 +86,7 @@ public partial class Releases : ComponentBase, IDisposable
             result.Data is not LauncherBuildDialog.LauncherBuildRequest req)
             return;
 
-        Build.Start(req.Version, req.Notes);
+        Build.Start(req.Version, tag, req.Notes);
         _build = Build.Current;
         _scrollPending = true;
     }

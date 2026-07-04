@@ -38,10 +38,9 @@ a registra no DI.
   (env `DB_PROVIDER`/`DB_CONNECTION` > seção `Database` > default SQLite) e mapeia
   a base abstrata → concreta; `MigrateTcMineDatabaseAsync` aplica migrations no
   boot. SQLite default: `Data Source=data-server/tcmine.db`. Repositórios:
-  `UserRepository`, `PlayerConfigRepository`, `ServerSettingsStore`. Ver
+  `UserRepository`, `ServerSettingsStore`. Ver
   [[decisions/persistence-dual-provider]].
-  - `OnModelCreating` concentra: `Username` único; chave composta de
-    `PlayerConfigEntity` `(Uuid, ModpackId)`; `ServerSettingEntity` linha única
+  - `OnModelCreating` concentra: `Username` único; `ServerSettingEntity` linha única
     (`Id == 1`, `ValueGeneratedNever`); cascatas modpack→mods/servers; enums como
     texto; `ServerInstance` com `Restrict` no FK do modpack. **Mods em N:N**
     (migrations `ModsManyToMany` + `ModFileOrphanMarker`): `ModFileEntity` (PK

@@ -59,7 +59,6 @@ public static partial class DatabaseServiceCollectionExtensions
 
         // Repositórios (portas da Application → implementações EF). Scoped: usam o AppDbContext.
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IPlayerConfigRepository, PlayerConfigRepository>();
         services.AddScoped<IServerSettingsStore, ServerSettingsStore>();
 
         return services;

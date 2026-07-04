@@ -46,6 +46,13 @@ public static class ServerPaths
         return Path.Combine(root, DataDir, "mods");
     }
 
+    // Configs do jogador (keybinds/opções/minimapa), por (uuid, modpackId), como um zip em disco.
+    // Um subdiretório por UUID; cada modpack é um {modpackId}.zip. Pode incluir o cache do mapa (grande).
+    public static string PlayerConfigs(string root)
+    {
+        return Path.Combine(root, DataDir, "player-configs");
+    }
+
     // Raiz do cache de runtime de servidor: loader/server instalados uma vez e compartilhados
     // entre instâncias (symlink/hardlink). Reduz drasticamente o disco com muitas instâncias.
     public static string ServerCache(string root)
@@ -71,6 +78,7 @@ public static class ServerPaths
         Directory.CreateDirectory(Servers(root));
         Directory.CreateDirectory(Modpacks(root));
         Directory.CreateDirectory(Mods(root));
+        Directory.CreateDirectory(PlayerConfigs(root));
         Directory.CreateDirectory(ServerCacheInstalled(root));
     }
 }

@@ -28,6 +28,130 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] lint | Fix: diálogo de versão de mod renderizava colapsado (sem lista/scroll)
+
+- **Fonte:** o usuário reportou que "mudar versão" de um mod abria um diálogo com pills vazias, sem texto
+  e sem scroll, transbordando a tela (print).
+- **Causa:** `ModVersionPickerDialog.razor` montava a lista como `MudStack` + `MudButton` por linha; os
+  botões colapsavam e o `max-height` no `MudStack` não segurava o scroll.
+- **Correção:** reescrito no padrão comprovado do `CurseForgeSearchDialog` — `<div>` com
+  `max-height:55vh; overflow-y:auto` + `MudList`/`MudListItem` (clique escolhe a versão). Code-behind
+  (`Pick`/`Cancel`) inalterado.
+- **Páginas afetadas:** só código (`ModVersionPickerDialog.razor`); sem mudança de wiki além deste log.
+- **Resumo:** compila 0/0 (validado em saída temporária — o servidor estava a correr e travava o `bin`).
+  Blazor Server: precisa **rebuild + restart** do servidor para aparecer.
+
+---
+
+## [2026-07-03] lint | Drop da tabela órfã `PlayerAccounts`
+
+- **Fonte:** o usuário reportou uma tabela `PlayerAccounts` sem uso no banco.
+- **Diagnóstico:** órfã do login brokered pelo servidor (substituído pelo MSAL no launcher — ver
+  [[decisions/auth-msal-launcher]]). Zero referências em código (`.cs`); só aparecia em docs. A migration
+  `PlayerAccount` que a criava foi apagada do histórico no revert, então nenhum `DropTable` a removia.
+- **Correção:** migration `DropOrphanPlayerAccounts` (Sqlite + Postgres) com
+  `DROP TABLE IF EXISTS "PlayerAccounts"` idempotente (remove onde sobrou; no-op em bancos limpos).
+- **Páginas afetadas:** [[decisions/auth-msal-launcher]] (nota de limpeza posterior), [[log]].
+- **Resumo:** build limpo (0/0). Migration **não aplicada** — `dotnet ef database update` fica a critério
+  do usuário (o boot do Docker aplica sozinho).
+
+---
+
+## [2026-07-03] ingest | Sync de configs: feedback de status na label da Home
+
+- **Fonte:** pedido do usuário (mesma sessão). A label de status da Home passa a informar quando o launcher
+  faz download/upload das configs.
+- **Implementado:** `PlayerConfigSync.Pull/PushAsync` ganham um `Action<string>? report`; o `LaunchOrchestrator`
+  liga o pull ao progresso do prepare e o `ILaunchOrchestrator.PushConfigsAsync` recebe o report. A shell
+  (`MainWindowViewModel.MonitorGameAsync`) mostra o status do push na `LaunchStatus` (marshalado p/ UI thread).
+  Mensagens: "A baixar/enviar configurações do jogador (N ficheiros)…".
+- **Páginas afetadas:** [[concepts/player-config-sync]] (bullet de feedback na UI).
+- **Resumo:** build limpo (0/0).
+
+---
+
+## [2026-07-03] decisao | Sync de configs: diff incremental + cache de mapa só de servidor
+
+- **Fonte:** direção do usuário (mesma sessão). Dois pedidos: (1) **não** enviar o zip inteiro — só o
+  **diff**, para não sobrecarregar a rede; (2) no cache de mapa, incluir só o **mundo do servidor**
+  atrelado ao modpack, **não** os mundos singleplayer locais que o jogador cria.
+- **Protocolo (novo):** ficheiros **descompactados em disco** no servidor + `.tcmine-manifest.json`
+  (caminho→SHA-256+tamanho). Rotas `GET /manifest`, `POST /bundle` (baixa só o que falta), `PUT /push`
+  (envia só o alterado + manifesto; servidor reconcilia remoções). Substitui o par GET/PUT de zip único.
+  Contrato partilhado em `TCMine-Application/Contracts/PlayerConfig.cs`.
+- **Allowlist (`PlayerDataProfile`) estreitado:** `config/xaero*`, `journeymap/config`,
+  `XaeroWaypoints/Multiplayer*`, `XaeroWorldMap/Multiplayer*`, `journeymap/data/mp` — só multiplayer;
+  `data/sp`/`Singleplayer_*` ficam de fora. (Também muda o snapshot/restore de overrides, que usa o mesmo
+  profile.)
+- **Páginas afetadas:** [[concepts/player-config-sync]] (reescrita das seções de protocolo e allowlist),
+  [[sources/2026-07-03-player-config-sync-completo]].
+- **Resumo:** build limpo (0/0). Pull não apaga ficheiros locais; remoções propagam via push.
+- **Pendências:** hashing a cada sync (otimizável com cache size+mtime); custo de disco do cache de mapa.
+
+---
+
+## [2026-07-03] ingest | Sync de configs do jogador completado fim-a-fim (storage em disco)
+
+- **Fonte:** código vivo (implementação nesta sessão). Pedido do usuário: salvar as configs do jogador
+  (começando pelas teclas) no servidor, para não se perderem ao atualizar o modpack ou trocar de PC.
+- **Decisões do usuário (sessão):** escopo = **reusar o `PlayerDataProfile`** (options.txt + shaders +
+  minimapa Xaero/JourneyMap); trigger = **automático** (pull no prepare, push ao fechar o jogo);
+  storage = **disco** (não BD) e **manter o cache do mapa** (JourneyMap inteiro).
+- **Estado anterior:** só esqueleto — `PlayerConfigEntity` sem blob (o zip era descartado), só `PUT`, e
+  launcher sem código de sync.
+- **Pivot:** a 1ª versão guardava o zip como **blob em BD** (migration `PlayerConfigBlob`). Como o usuário
+  quis disco + cache de mapa (100s de MB), reverteram-se as migrations de Blob, removeu-se toda a camada
+  EF do player-config e migrou-se para **ficheiros em disco com streaming**.
+- **Implementado (final):** servidor — endpoint faz storage em `tcmine-data/player-configs/{uuid}/{id}.zip`
+  (`ServerPaths.PlayerConfigs`), `GET`/`PUT` por streaming, teto 256 MB (`413` + limite de corpo do Kestrel
+  levantado por pedido), header `X-Config-Updated` (mtime); migration `DropPlayerConfigs` (SQLite+Postgres)
+  largou a tabela. Launcher — `PlayerConfigSync` (pull/push via ficheiro temporário), `ConfigSyncedAt` no
+  `InstalledModpack` (last-write-wins), wiring no `LaunchOrchestrator` + `ILaunchOrchestrator.PushConfigsAsync`
+  + `MainWindowViewModel.Play.cs`.
+- **Páginas afetadas:** [[concepts/player-config-sync]] (reescrita → `stable`),
+  [[concepts/launcher-install-launch]] (contradição resolvida),
+  [[sources/2026-07-03-player-config-sync-completo]], [[index]]; correções cruzadas em
+  [[entities/tcmine-application]], [[entities/tcmine-server-infrastructure]], [[concepts/clean-architecture]]
+  (removida a menção a `IPlayerConfigRepository`).
+- **Resumo:** build limpo (0 erros/avisos); migration `DropPlayerConfigs` gerada nos dois providers e
+  verificada (`DropTable`).
+- **Pendências:** sem merge de conflitos (last-write-wins); vigiar tamanho de `player-configs/` com o cache
+  de mapa. Migration `DropPlayerConfigs` **não aplicada** ao banco de dev (`dotnet ef database update` fica
+  a critério do usuário).
+
+---
+
+## [2026-07-02] decisao | Reverte p/ DUAS versões (server-v*/launcher-v*) + fonte do launcher baixada
+
+- **Fonte:** o usuário identificou a sobrecarga do modelo de versão única (mudar só o launcher forçava
+  rebuild+restart da imagem; mudar só o server gerava update falso pros players). Escopo confirmado:
+  **baixar a fonte do launcher do GitHub sob demanda**. Arquivos: `GitHubReleaseService.cs` (duas faixas),
+  `LauncherBuildService.cs` (fetch+extract da tag, dirigido por `launcher-v*`), `LauncherAutoBuildService.cs`
+  (poll 1h), `Dockerfile` (sem fonte embutida), `.github/workflows/server-image.yml` (tag `server-v*`),
+  `Releases.razor(.cs)` + `LauncherBuildDialog`.
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]] (seção de versionamento reescrita), [[index]].
+- **Resumo:** volta ao modelo de **duas faixas** do backup — `server-v*` (imagem) e `launcher-v*` (código
+  do launcher), independentes. O servidor **em execução** baixa a fonte do launcher na tag `launcher-v*`
+  (tarball do GitHub, extraído com `System.Formats.Tar`), compila e publica o feed — **sem rebuild de
+  imagem nem restart**. A imagem Docker ficou **leve** (SDK+vpk+JRE, sem fonte embutida). `GitHubReleaseService`
+  agora devolve duas faixas; a página mostra o banner de update do server (server-v*) e o estado do launcher
+  (última launcher-v* vs feed). Auto-build no boot/settings/**poll 1h**. Server compila 0/0, boot limpo.
+- **Pendências:** validar o fetch+build ao vivo (precisa de uma tag `launcher-v*` real no repo público);
+  secrets DOCKERHUB no GitHub; assinatura de código.
+
+## [2026-07-02] ingest | Consumidor de auto-update no launcher (Velopack UpdateManager)
+
+- **Fonte:** continuação (o usuário pediu "sim pode fazer"). Arquivos: `TCMine-Application/Launcher/IUpdateService.cs`
+  (novo), `TCMine-Launcher.Infrastructure/UpdateService.cs` (novo) + `.csproj` (Velopack),
+  `TCMine-Launcher/ViewModels/MainWindowViewModel.cs`, `Views/MainWindow.axaml`, `Program.cs`.
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]], [[entities/tcmine-launcher]], [[index]].
+- **Resumo:** porta `IUpdateService` + impl Velopack (`UpdateManager` contra `{servidor}/updates`, canal
+  `win`). O shell checa no boot (guardando `IsInstalled` — dev não checa) e mostra um **banner de update**
+  com "Atualizar agora" → baixa (progresso %), aplica e reinicia. Fecha o ciclo do
+  [[concepts/launcher-build-velopack]]. Solução compila 0/0.
+- **Pendências:** validar ao vivo (precisa de uma app instalada via Setup.exe + 2 versões no feed);
+  assinatura de código (SmartScreen).
+
 ## [2026-07-02] decisao | Versionamento único (server=launcher) + self-update + auto-build
 
 - **Fonte:** design com o usuário (repo `tiny-core/TCMine`; manter imagem autossuficiente). Escolhas:

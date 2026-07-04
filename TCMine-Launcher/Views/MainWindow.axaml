@@ -17,13 +17,33 @@
         TransparencyLevelHint="Transparent">
 
     <views:WindowChrome>
-        <Grid RowDefinitions="Auto,*,42">
+        <Grid RowDefinitions="Auto,Auto,*,42">
 
             <!-- Barra de título -->
             <views:TitleBar Grid.Row="0" Title="TCMine Launcher" />
 
+            <!-- Banner de auto-update (aparece quando há versão nova no feed do servidor) -->
+            <Border Grid.Row="1" IsVisible="{Binding IsUpdateAvailable}"
+                    Background="{DynamicResource AccentBg}" Padding="16,8">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <PathIcon Grid.Column="0" Data="{StaticResource IconDownload}" Width="14" Height="14"
+                              Foreground="{DynamicResource Accent}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Margin="10,0" VerticalAlignment="Center" FontSize="12.5"
+                               Foreground="{DynamicResource TextPrimary}">
+                        <Run Text="Atualização disponível: v" /><Run Text="{Binding UpdateVersion}" />
+                    </TextBlock>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding UpdateStatus}" FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextMuted}" IsVisible="{Binding IsUpdating}" />
+                        <Button Classes="outline-btn" Command="{Binding UpdateNow}" IsEnabled="{Binding !IsUpdating}">
+                            <TextBlock Text="Atualizar agora" FontSize="12" />
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <!-- Corpo: inicialização / login / aplicação -->
-            <Panel Grid.Row="1">
+            <Panel Grid.Row="2">
 
                 <!-- Login (deslogado) -->
                 <views:LoginView IsVisible="{Binding !IsLoggedIn}" />
@@ -93,7 +113,7 @@
             </Panel>
 
             <!-- Barra de estado -->
-            <Border Grid.Row="2"
+            <Border Grid.Row="3"
                     Background="{DynamicResource BgConsole}"
                     BorderBrush="{DynamicResource BorderChrome}"
                     BorderThickness="0,1,0,0">

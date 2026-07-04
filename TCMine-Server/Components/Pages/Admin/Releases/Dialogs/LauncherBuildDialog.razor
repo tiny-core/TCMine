@@ -1,11 +1,11 @@
-@* Confirmação de compilar o launcher. No modelo de UMA versão só, a versão é fixa (= a do servidor) e
-   mostrada só para leitura; o admin edita apenas as notas/changelog. Devolve um LauncherBuildRequest. *@
+@* Confirmação de compilar o launcher. A versão é a última release do launcher (launcher-v*), fixa e só
+   para leitura; o admin edita apenas as notas/changelog. Devolve um LauncherBuildRequest. *@
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            O servidor vai publicar o launcher <b>na versão @Version</b> (a mesma do servidor), injetando a
-            URL pública e o Azure Client Id, e gerar o feed Velopack. Pode levar alguns minutos.
+            O servidor vai baixar a fonte do launcher <b>v@Version</b> do GitHub, publicar (injetando a URL
+            pública e o Azure Client Id) e gerar o feed Velopack. Pode levar alguns minutos.
         </MudText>
 
         <MudTextField @bind-Value="_notes" Label="Notas da versão (opcional)" Variant="Variant.Outlined"

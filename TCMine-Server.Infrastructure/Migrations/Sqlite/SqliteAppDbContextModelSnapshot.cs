@@ -254,24 +254,6 @@ namespace TCMine_Server.Infrastructure.Migrations.Sqlite
                     b.ToTable("OverrideHistory");
                 });
 
-            modelBuilder.Entity("TCMine_Domain.Entities.PlayerConfigEntity", b =>
-                {
-                    b.Property<string>("Uuid")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ModpackId")
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Uuid", "ModpackId");
-
-                    b.ToTable("PlayerConfigs");
-                });
-
             modelBuilder.Entity("TCMine_Domain.Entities.ReleaseEntity", b =>
                 {
                     b.Property<int>("Id")

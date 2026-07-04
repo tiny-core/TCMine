@@ -6,55 +6,62 @@ using TCMine_Server.Infrastructure.Server;
 namespace TCMine_Server.Infrastructure.Launcher;
 
 /// <summary>
-///     Mantém o feed do launcher <b>alinhado à versão do servidor</b> sem ação manual: no boot (e ao salvar
-///     as settings) tenta recompilar o launcher se o feed publicado está atrás do servidor e as settings
-///     (URL/AzureId) estão prontas. Pega carona no fluxo de container — subir a imagem nova já recompila o
-///     launcher. O build corre em segundo plano (via <see cref="LauncherBuildService" />); a página
-///     <c>/admin/releases</c> mostra o progresso. Não suportado sem SDK/vpk/fonte (ex.: dev sem isso) — aí
-///     apenas registra o aviso e não faz nada.
+///     Mantém o feed do launcher alinhado à <b>última release do launcher</b> (<c>launcher-v*</c>) sem ação
+///     manual: no boot, ao salvar as settings e num <b>poll de hora em hora</b>, tenta recompilar se há uma
+///     versão de launcher mais nova que o feed publicado e as settings (URL/AzureId) prontas. Assim uma
+///     nova <c>launcher-v*</c> chega aos players com o servidor <b>em execução</b> — sem rebuild de imagem
+///     nem reinício do container. O build corre em segundo plano (<see cref="LauncherBuildService" />).
 /// </summary>
 public sealed class LauncherAutoBuildService(
     LauncherBuildService build,
     ServerSettingsService settings,
     ILogger<LauncherAutoBuildService> logger) : IHostedService
 {
+    private static readonly TimeSpan PollInterval = TimeSpan.FromHours(1);
     private CancellationTokenSource? _cts;
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _cts = new CancellationTokenSource();
-
-        // Ao salvar as settings (ex.: 1º deploy configura URL/AzureId), tenta alinhar o launcher
         settings.Changed += OnSettingsChanged;
-
-        // Boot: espera o app assentar e então alinha o launcher ao servidor, se preciso
-        _ = RunBootCheckAsync(_cts.Token);
+        _ = PollLoopAsync(_cts.Token);
         return Task.CompletedTask;
     }
 
-    private async Task RunBootCheckAsync(CancellationToken ct)
+    private async Task PollLoopAsync(CancellationToken ct)
     {
         try
         {
-            await Task.Delay(TimeSpan.FromSeconds(10), ct);
-            if (await build.TryStartAutoAsync(ct))
-                logger.LogInformation(
-                    "Auto-build do launcher iniciado no boot (feed atrás do servidor {Version}).",
-                    build.TargetVersion);
+            await Task.Delay(TimeSpan.FromSeconds(10), ct); // deixa o boot assentar
+
+            while (!ct.IsCancellationRequested)
+            {
+                await TryOnceAsync(ct);
+                await Task.Delay(PollInterval, ct); // re-checa de hora em hora (nova launcher-v*)
+            }
         }
         catch (OperationCanceledException)
         {
             // Encerrando — normal
         }
+    }
+
+    private async Task TryOnceAsync(CancellationToken ct)
+    {
+        try
+        {
+            if (await build.TryStartAutoAsync(ct))
+                logger.LogInformation("Auto-build do launcher iniciado (release nova ou feed desatualizado).");
+        }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Auto-build do launcher no boot falhou ao iniciar.");
+            logger.LogWarning(ex, "Auto-build do launcher: verificação falhou.");
         }
     }
 
     private void OnSettingsChanged(ServerSettings updated)
     {
-        _ = build.TryStartAutoAsync();
+        _ = TryOnceAsync(CancellationToken.None); // ex.: 1º deploy — settings configuradas agora
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
