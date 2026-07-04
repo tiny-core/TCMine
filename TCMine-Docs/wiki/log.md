@@ -28,6 +28,16 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] lint | Razor renderizava `v@Version` cru (heurística de e-mail do `@`)
+
+- **Fonte:** o usuário viu "v@Version" literal no diálogo de compilar launcher (e o botão "COMPILAR V@VERSION").
+- **Causa:** `v@Version` cola o `@` a texto de ambos os lados → o Razor trata como **e-mail** e imprime literal.
+- **Correção:** `@(Version)` explícito. Corrigido em `LauncherBuildDialog.razor` (2×) e no banner de update do
+  servidor em `Releases.razor` (`v@su.LatestVersion`/`v@su.CurrentVersion` → `@(...)`).
+- **Páginas afetadas:** só código; log. Build 0/0.
+
+---
+
 ## [2026-07-03] lint | Aviso de update do servidor nunca aparecia (tag com prefixo quebrava o semver)
 
 - **Fonte:** o usuário criou `server-v1.0.1` mas o painel (Releases) não mostrou "atualização disponível".

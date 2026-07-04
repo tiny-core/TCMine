@@ -4,7 +4,7 @@
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-            O servidor vai baixar a fonte do launcher <b>v@Version</b> do GitHub, publicar (injetando a URL
+            O servidor vai baixar a fonte do launcher <b>v@(Version)</b> do GitHub, publicar (injetando a URL
             pública e o Azure Client Id) e gerar o feed Velopack. Pode levar alguns minutos.
         </MudText>
 
@@ -16,7 +16,7 @@
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Build"
                    OnClick="Confirm">
-            Compilar v@Version
+            Compilar v@(Version)
         </MudButton>
     </DialogActions>
 </MudDialog>

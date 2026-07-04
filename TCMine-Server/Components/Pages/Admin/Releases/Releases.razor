@@ -33,7 +33,7 @@
     <MudAlert Severity="Severity.Info" Class="mb-4" Icon="@Icons.Material.Filled.SystemUpdate">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
             <MudText>
-                Atualização do servidor disponível: <b>v@su.LatestVersion</b> (atual v@su.CurrentVersion).
+                Atualização do servidor disponível: <b>v@(su.LatestVersion)</b> (atual v@(su.CurrentVersion)).
                 Puxe a imagem nova e reinicie o container.
             </MudText>
             @if (su.Url is { } url)
