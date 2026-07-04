@@ -28,6 +28,20 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] meta | Config do banco por vars separadas (DB_HOST/DB_NAME/DB_USER/DB_PASSWORD)
+
+- **Fonte:** o usuário quer configurar o container do TCMine-Server por variáveis de banco separadas
+  (provider, database, usuário, senha), em vez da connection string única.
+- **Implementado:** `AddTcMineDatabase` passa a resolver a connection string por prioridade —
+  `DB_CONNECTION` (completa) → vars separadas `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (só
+  Postgres, montadas via `NpgsqlConnectionStringBuilder`) → `appsettings` → padrão. `compose.yaml` ganhou
+  as vars (via `${...}` de um `.env` não versionado); criado um `.env` local de exemplo.
+- **Convenção:** atualizado o `CLAUDE.md` (seção Configuração) e [[decisions/persistence-dual-provider]].
+- **Páginas afetadas:** [[decisions/persistence-dual-provider]], `CLAUDE.md`, [[log]].
+- **Resumo:** infra compila 0/0. Backward-compat: `DB_CONNECTION` continua ganhando; SQLite ignora as vars.
+
+---
+
 ## [2026-07-03] lint | Fix: diálogo de versão de mod renderizava colapsado (sem lista/scroll)
 
 - **Fonte:** o usuário reportou que "mudar versão" de um mod abria um diálogo com pills vazias, sem texto

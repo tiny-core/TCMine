@@ -33,10 +33,14 @@ de migrations servir os dois.
 - `AppDbContext` é **abstrato**; `SqliteAppDbContext` e `PostgresAppDbContext` são
   concretos, cada um com o **seu** conjunto de migrations
   (`Migrations/Sqlite/`, `Migrations/Postgres/`).
-- `AddTcMineDatabase` escolhe o provider por configuração — prioridade: env
-  `DB_PROVIDER`/`DB_CONNECTION` > seção `Database` do `appsettings` > **default
-  SQLite** (`Data Source=data-server/tcmine.db`) — e mapeia a base abstrata para a
-  concreta no DI (`AddScoped<AppDbContext>(sp => sp.Get...Concrete())`).
+- `AddTcMineDatabase` escolhe o **provider** por `DB_PROVIDER` > `appsettings` >
+  **default SQLite**, e resolve a **connection string** por prioridade:
+  `DB_CONNECTION` (string completa) → **vars separadas** `DB_HOST`/`DB_PORT`/`DB_NAME`/
+  `DB_USER`/`DB_PASSWORD` (só Postgres, montadas via `NpgsqlConnectionStringBuilder` —
+  escapa senha com caracteres especiais) → `Database:ConnectionString` do `appsettings`
+  → padrão do provider (`Data Source=data-server/tcmine.db` / Postgres local). Depois
+  mapeia a base abstrata para a concreta no DI (`AddScoped<AppDbContext>(sp => sp.Get...Concrete())`).
+  No container, as vars vêm de um `.env` consumido pelo `compose.yaml`.
 - Os **serviços dependem só de `AppDbContext`** (a base) e ignoram o provider.
 - `MigrateTcMineDatabaseAsync` aplica as migrations no boot, resolvendo a
   subclasse já escolhida pelo DI.

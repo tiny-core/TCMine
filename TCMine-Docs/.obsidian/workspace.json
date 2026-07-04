@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "wiki/entities/tcmine-server-infrastructure.md",
+                "file": "wiki/entities/tcmine-solution.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "tcmine-server-infrastructure"
+              "title": "tcmine-solution"
             }
           }
         ]
@@ -183,6 +183,8 @@
   },
   "active": "8947e91c445fbed4",
   "lastOpenFiles": [
+    "wiki/index.md",
+    "wiki/entities/tcmine-server-infrastructure.md",
     "wiki/entities/tcmine-launcher.md.tmp.13864.a5cf31228f75",
     "wiki/log.md.tmp.13864.a3ef94ff7f94",
     "wiki/decisions/server-instances-docker.md",
@@ -199,11 +201,9 @@
     "wiki/concepts/async-feedback-overlay.md.tmp.13752.f9f3606bec61",
     "wiki/sources/2026-06-24-modpack-admin-ui.md",
     "wiki/sources/2026-06-23-leitura-codigo-vivo.md",
-    "wiki/index.md",
     "wiki/log.md",
     "wiki/log.md.tmp.13752.831c8e525abe",
     "wiki/entities/tcmine-server.md.tmp.13752.b1c11b35c54c",
-    "wiki/entities/tcmine-server.md.tmp.13752.dad785482580",
     "wiki/concepts/async-feedback-overlay.md",
     "wiki/decisions/central-package-management.md",
     "wiki/decisions/persistence-dual-provider.md",

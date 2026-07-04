@@ -26,9 +26,19 @@ services:
       # Reusa ESTA imagem (release + JRE embutido) para rodar cada instância Minecraft. Sempre presente
       # no host (é a que roda o próprio servidor), então o DooD não precisa baixar/construir outra.
       - ServerInstances__Image=tcmine-server
+      # ── Banco de dados ──────────────────────────────────────────────────────────────────────────────
+      # Valores vêm de um ficheiro .env ao lado deste compose (NÃO versionado). Para Postgres, informe
+      # DB_HOST/DB_NAME/DB_USER/DB_PASSWORD (DB_PORT default 5432). Sem estas vars o servidor cai no SQLite
+      # (ficheiro em tcmine-data). Alternativa a estas 4: uma única DB_CONNECTION com a string completa.
+      - DB_PROVIDER=${DB_PROVIDER:-Postgres}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
     volumes:
       # 1. Socket do daemon do host — habilita criar/controlar os containers Minecraft (DooD).
       #    Em Linux, o usuário do container precisa de acesso ao socket (grupo docker).
       - /var/run/docker.sock:/var/run/docker.sock
       # 2. Dados do servidor compartilhados com os containers Minecraft (mesmo caminho do host).
-      - ./TCMine-Server/tcmine-data:/app/tcmine-data
+      - ./tcmine-data:/app/tcmine-data

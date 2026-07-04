@@ -128,9 +128,12 @@ dotnet ef migrations add <Nome> --project TCMine-Server.Infrastructure --context
 
 ### Configuração
 
-- **Bootstrap do banco** (fora do banco): env vars `DB_PROVIDER`
-  (`Sqlite`/`Postgres`) e `DB_CONNECTION`, ou a seção `Database` do
-  `appsettings`. SQLite é o padrão. Ver `appsettings.local.json` (fora do git).
+- **Bootstrap do banco** (fora do banco): `DB_PROVIDER` (`Sqlite`/`Postgres`) e a
+  connection string, que resolve por prioridade: `DB_CONNECTION` (completa) → **vars
+  separadas** `DB_HOST`/`DB_PORT`/`DB_NAME`/`DB_USER`/`DB_PASSWORD` (só Postgres,
+  montadas via `NpgsqlConnectionStringBuilder`) → seção `Database` do `appsettings` →
+  padrão do provider. SQLite é o padrão. No container, as vars vêm de um `.env` (fora
+  do git) consumido pelo `compose.yaml`. Ver `appsettings.local.json` (fora do git) p/ dev.
 - **Secrets de runtime** (token CurseForge, Azure client/tenant id,
   `PublicBaseUrl`): configurados **pelo painel admin** e guardados no banco — o
   token CF fica **cifrado** via Data Protection. **Não** há mais

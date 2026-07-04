@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using TCMine_Application.Abstractions;
 using TCMine_Server.Infrastructure.Persistence.Repositories;
 
@@ -32,27 +33,32 @@ public static partial class DatabaseServiceCollectionExtensions
         var options = config.GetSection(DatabaseOptions.SectionName).Get<DatabaseOptions>()
                       ?? new DatabaseOptions();
 
-        // Env vars têm prioridade — sobrepõem o que veio do appsettings
+        // Provider ativo: env DB_PROVIDER > seção Database do appsettings > padrão (Sqlite).
         if (Enum.TryParse<DatabaseProvider>(config["DB_PROVIDER"], true, out var envProvider))
             options.Provider = envProvider;
 
-        var envConnection = config["DB_CONNECTION"];
-        if (!string.IsNullOrWhiteSpace(envConnection))
-            options.ConnectionString = envConnection;
+        // Connection string, por ordem de prioridade (env ganha para facilitar Docker):
+        //  1. DB_CONNECTION — string completa; escape hatch, sobrepõe tudo.
+        //  2. Vars separadas DB_HOST/DB_PORT/DB_NAME/DB_USER/DB_PASSWORD — montadas aqui (só Postgres).
+        //  3. Database:ConnectionString do appsettings.
+        //  4. Padrão por provider.
+        var connection =
+            Trimmed(config["DB_CONNECTION"])
+            ?? BuildConnectionFromParts(config, options.Provider)
+            ?? Trimmed(options.ConnectionString)
+            ?? DefaultConnectionFor(options.Provider);
 
         switch (options.Provider)
         {
             case DatabaseProvider.Postgres:
-                var pgConnection = options.ConnectionString ?? DefaultPostgresConnection;
-                services.AddDbContext<PostgresAppDbContext>(o => o.UseNpgsql(pgConnection));
+                services.AddDbContext<PostgresAppDbContext>(o => o.UseNpgsql(connection));
                 // Mapeia a base abstrata para a concreta — uma instância por escopo/requisição
                 services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<PostgresAppDbContext>());
                 break;
 
             case DatabaseProvider.Sqlite:
             default:
-                var sqliteConnection = options.ConnectionString ?? DefaultSqliteConnection;
-                services.AddDbContext<SqliteAppDbContext>(o => o.UseSqlite(sqliteConnection));
+                services.AddDbContext<SqliteAppDbContext>(o => o.UseSqlite(connection));
                 services.AddScoped<AppDbContext>(sp => sp.GetRequiredService<SqliteAppDbContext>());
                 break;
         }
@@ -63,6 +69,47 @@ public static partial class DatabaseServiceCollectionExtensions
 
         return services;
     }
+
+    /// <summary>Connection string padrão do provider quando nada é configurado.</summary>
+    private static string DefaultConnectionFor(DatabaseProvider provider) =>
+        provider == DatabaseProvider.Postgres ? DefaultPostgresConnection : DefaultSqliteConnection;
+
+    /// <summary>
+    /// Monta a connection string do Postgres a partir das env vars <b>separadas</b>
+    /// (<c>DB_HOST</c>, <c>DB_PORT</c>, <c>DB_NAME</c>, <c>DB_USER</c>, <c>DB_PASSWORD</c>). Devolve
+    /// <c>null</c> se o provider não é Postgres ou se nenhuma delas foi informada — aí o caller cai para o
+    /// appsettings/padrão. Usa <see cref="NpgsqlConnectionStringBuilder"/> para escapar valores com
+    /// caracteres especiais (ex.: senha com <c>;</c>). Partes ausentes recebem defaults sensatos.
+    /// </summary>
+    private static string? BuildConnectionFromParts(IConfiguration config, DatabaseProvider provider)
+    {
+        // Vars separadas são um conceito de Postgres (host/porta/user/senha); SQLite é só um ficheiro.
+        if (provider != DatabaseProvider.Postgres) return null;
+
+        var host = Trimmed(config["DB_HOST"]);
+        var port = Trimmed(config["DB_PORT"]);
+        var name = Trimmed(config["DB_NAME"]);
+        var user = Trimmed(config["DB_USER"]);
+        var password = Trimmed(config["DB_PASSWORD"]);
+
+        // Nenhuma parte informada → deixa o appsettings/padrão decidir.
+        if (host is null && port is null && name is null && user is null && password is null)
+            return null;
+
+        var builder = new NpgsqlConnectionStringBuilder
+        {
+            Host = host ?? "localhost",
+            Database = name ?? "tcmine",
+            Username = user ?? "postgres",
+            Password = password
+        };
+        if (int.TryParse(port, out var parsedPort)) builder.Port = parsedPort;
+
+        return builder.ConnectionString;
+    }
+
+    /// <summary>Normaliza para <c>null</c> quando vazio/espaços; senão devolve o valor sem espaços nas pontas.</summary>
+    private static string? Trimmed(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     /// <summary>
     /// Aplica as migrations pendentes da camada de dados no Startup. Resolve o
