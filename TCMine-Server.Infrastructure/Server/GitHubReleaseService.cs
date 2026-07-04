@@ -60,11 +60,12 @@ public sealed class GitHubReleaseService(
             var server = Highest(live, "server-v");
             var launcher = Highest(live, "launcher-v");
 
+            // Compara a versão SEM o prefixo "server-v": passar a tag crua ao IsNewer fazia o Parse cortar
+            // em "server" (o '-') → 0.0.0 → o aviso de atualização do servidor nunca aparecia.
+            var serverVersion = server?.TagName is { } st ? Strip(st, "server-v") : null;
             var serverTrack = new ServerTrack(
-                current,
-                server?.TagName is { } st ? Strip(st, "server-v") : null,
-                server?.Body, server?.HtmlUrl,
-                server is not null && AppVersion.IsNewer(server.TagName, current));
+                current, serverVersion, server?.Body, server?.HtmlUrl,
+                serverVersion is not null && AppVersion.IsNewer(serverVersion, current));
 
             var launcherTrack = new LauncherTrack(
                 launcher?.TagName is { } lt ? Strip(lt, "launcher-v") : null,

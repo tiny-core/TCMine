@@ -64,9 +64,37 @@ public partial class Releases : ComponentBase, IDisposable
         _settingsReady = !string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(clientId);
 
         _tracks = await GitHub.GetAsync();
+        RecomputeLauncherState();
+    }
+
+    // Feed publicado vs. última launcher-v* → precisa recompilar?
+    private void RecomputeLauncherState()
+    {
         _feedVersion = Feed.LatestVersion();
         _needsBuild = LauncherTarget is { } target &&
                       (_feedVersion is null || AppVersion.IsNewer(target, _feedVersion));
+    }
+
+    // Botão "Verificar atualizações": ignora o cache de 6h e consulta o GitHub na hora.
+    private async Task CheckUpdatesAsync()
+    {
+        try
+        {
+            await Busy.RunAsync("Verificando novas versões…", async () =>
+            {
+                _tracks = await GitHub.GetAsync(force: true);
+                RecomputeLauncherState();
+            });
+
+            if (_tracks?.Server is { UpdateAvailable: true } su)
+                Snackbar.Add($"Atualização do servidor disponível: v{su.LatestVersion}.", Severity.Info);
+            else
+                Snackbar.Add("Servidor já está na versão mais recente.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Falha ao verificar atualizações: {ex.Message}", Severity.Error);
+        }
     }
 
     // Abre o diálogo (só notas; a versão é a última launcher-v*) e dispara a compilação no serviço de fundo

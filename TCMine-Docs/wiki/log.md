@@ -28,6 +28,22 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] lint | Aviso de update do servidor nunca aparecia (tag com prefixo quebrava o semver)
+
+- **Fonte:** o usuário criou `server-v1.0.1` mas o painel (Releases) não mostrou "atualização disponível".
+- **Causa:** `GitHubReleaseService` passava a **tag crua** (`server-v1.0.1`) ao `AppVersion.IsNewer`. O
+  `AppVersion.Parse` só tira o `v` inicial e corta no primeiro `-` (lógica de pré-lançamento) → sobra
+  `"server"` → `0.0.0` → nunca é "mais novo" que a versão corrente. O banner do servidor **nunca** aparecia.
+  (A faixa do launcher não tinha o bug — o auto-build já comparava a versão sem prefixo.)
+- **Correção:** comparar a versão **sem** o prefixo (`Strip(tag, "server-v")`) no `ServerTrack`.
+- **Botão "Verificar atualizações"** na página Releases: força `GitHub.GetAsync(force: true)` (ignora o cache
+  de 6h) via `BusyService`, com snackbar do resultado — para não depender do TTL de 6h.
+- **Nota:** cache de 6h + o servidor v1.0.0 em produção **tem o bug** — não vai detectar a 1.0.1. Atualizar
+  agora é manual (`docker compose pull && up -d`); a detecção passa a funcionar a partir da versão corrigida.
+- **Páginas afetadas:** só código; log. Build 0/0.
+
+---
+
 ## [2026-07-03] lint | Launcher fechava no boot: PublicBaseUrl sem esquema → UriFormatException
 
 - **Fonte:** o usuário instalou o launcher em produção e ele fechava logo ao abrir (sem UI). Event Viewer
