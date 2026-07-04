@@ -28,7 +28,21 @@ Estrutura sugerida do corpo:
 
 ---
 
-## [2026-07-03] meta | README na raiz do projeto
+## [2026-07-03] meta | Produção usa a imagem do Docker Hub + fix do DataHostRoot no compose
+
+- **Fonte:** o usuário esclareceu que produção **não** é clonar/buildar (isso é dev), e sim **puxar a
+  imagem pública** `jocian/tcmine-server` (buildada pelo GitHub Actions na tag `server-v*`).
+- **Compose:** `image: jocian/tcmine-server:latest` (removido o `build:` — produção só puxa),
+  `ServerInstances__Image=jocian/tcmine-server:latest`. **Fix:** `ServerInstances__DataHostRoot` corrigido
+  de `${PWD}/TCMine-Server` para `${PWD}` (o bind virou `./tcmine-data`, então o pai é `${PWD}`) — sem isso
+  as instâncias Minecraft (DooD) montavam caminho vazio. Comentários atualizados.
+- **README:** seção de produção reescrita — "Clonar o repositório" virou "Obter o compose.yaml" (curl do
+  raw, sem clonar); subir passa a `docker compose up -d` (pull, sem build); manutenção vira
+  `docker compose pull && up -d`; adicionada a seção "4. Persistência (volume de dados)" com a regra do
+  DataHostRoot; exemplos de versão ajustados p/ 1.0.0.
+- **Pendências:** o `compose.yaml` corrigido precisa ser commitado/pushado p/ o `curl` do raw servir a
+  versão certa. Falta configurar descrição/overview do repo no Docker Hub (`jocian/tcmine-server`).
+- **Páginas afetadas:** só `README.md`, `compose.yaml` (código/docs); log.
 
 - **Fonte:** pedido do usuário — README explicando o projeto, tecnologias, referências à docs e um
   tutorial de produção bem detalhado.

@@ -9,23 +9,22 @@
 #      para os bind-mounts das instâncias apontarem para o host (e não para dentro deste container).
 services:
   tcmine-server:
-    image: tcmine-server
-    build:
-      context: .
-      dockerfile: TCMine-Server/Dockerfile
+    # Imagem pública publicada pelo GitHub Actions (tag server-v*) no Docker Hub. Produção só PUXA a
+    # imagem — não builda. Para buildar localmente, use o TCMine-Server/Dockerfile (ou deixe o CI).
+    image: jocian/tcmine-server:latest
     # Root para conseguir acessar o socket do Docker (DooD). O socket já dá poder equivalente a root no
     # host, então rodar como root aqui não amplia o risco — é o padrão para containers que orquestram Docker.
     user: root
     ports:
       - "8080:8080"
     environment:
-      # Raiz no host equivalente a /app (contentRoot). Como tcmine-data é montado de ./TCMine-Server/
-      # tcmine-data → /app/tcmine-data, o host correspondente a /app é ${PWD}/TCMine-Server. Esse valor
-      # PRECISA casar com o bind abaixo, senão os bind-mounts das instâncias apontam para um caminho vazio.
-      - ServerInstances__DataHostRoot=${PWD}/TCMine-Server
-      # Reusa ESTA imagem (release + JRE embutido) para rodar cada instância Minecraft. Sempre presente
-      # no host (é a que roda o próprio servidor), então o DooD não precisa baixar/construir outra.
-      - ServerInstances__Image=tcmine-server
+      # Raiz no host equivalente a /app (contentRoot). Como tcmine-data é montado de ./tcmine-data →
+      # /app/tcmine-data, o host correspondente a /app é ${PWD} (o diretório-pai de tcmine-data). Esse
+      # valor PRECISA casar com o bind abaixo, senão os bind-mounts das instâncias apontam p/ caminho vazio.
+      - ServerInstances__DataHostRoot=${PWD}
+      # Reusa ESTA imagem (release + JRE embutido) para rodar cada instância Minecraft. Já presente no host
+      # (é a que roda o próprio servidor), então o DooD não precisa baixar/construir outra.
+      - ServerInstances__Image=jocian/tcmine-server:latest
       # ── Banco de dados ──────────────────────────────────────────────────────────────────────────────
       # Valores vêm de um ficheiro .env ao lado deste compose (NÃO versionado). Para Postgres, informe
       # DB_HOST/DB_NAME/DB_USER/DB_PASSWORD (DB_PORT default 5432). Sem estas vars o servidor cai no SQLite

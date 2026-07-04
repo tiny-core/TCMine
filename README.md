@@ -97,10 +97,14 @@ Convenções de contribuição (idioma, tamanho de arquivo, code-behind Blazor, 
 
 ## Rodar em produção (Docker)
 
-O jeito suportado de rodar o TCMine-Server em produção é via **Docker Compose**. A imagem é
-baseada no **SDK** .NET (não no runtime) porque o servidor **compila o launcher em runtime**
-(via painel `/admin/releases`) e carrega o `vpk` (Velopack CLI) + um **JRE** — a mesma imagem
-é reutilizada para rodar cada instância de servidor Minecraft.
+Em produção você **não compila nada localmente** — usa a **imagem pública** já construída pelo
+**GitHub Actions** (a cada tag `server-v*`) e publicada no Docker Hub:
+**[`jocian/tcmine-server`](https://hub.docker.com/r/jocian/tcmine-server)**. Basta o `compose.yaml`
+e um `.env` no host — nada de clonar o código-fonte (isso é o [modo de desenvolvimento](#desenvolvimento-local)).
+
+A imagem é baseada no **SDK** .NET (não no runtime) porque o servidor **compila o launcher em runtime**
+(painel `/admin/releases`) e carrega o `vpk` (Velopack CLI) + um **JRE** — a mesma imagem é reutilizada
+para rodar cada instância de servidor Minecraft (Docker-out-of-Docker).
 
 ### Pré-requisitos
 
@@ -111,11 +115,14 @@ baseada no **SDK** .NET (não no runtime) porque o servidor **compila o launcher
   produção com múltiplas instâncias prefira Postgres.*
 - Uma **chave da API do CurseForge** (configurada depois, pelo painel — não vai em variável).
 
-### 1. Clonar o repositório
+### 1. Obter o `compose.yaml` (sem clonar)
+
+Em produção basta o `compose.yaml` (ele já aponta para a imagem `jocian/tcmine-server:latest`). Crie
+uma pasta e baixe só esse arquivo:
 
 ```bash
-git clone <url-do-repo> tcmine
-cd tcmine
+mkdir tcmine && cd tcmine
+curl -O https://raw.githubusercontent.com/tiny-core/TCMine/master/compose.yaml
 ```
 
 ### 2. Configurar o banco via `.env`
@@ -154,27 +161,62 @@ DB_PASSWORD=troque-esta-senha
 ### 3. Subir o servidor
 
 ```bash
-# Build da imagem + subida. -d roda em background.
-docker compose up --build -d
-
-# (opcional) fixar a versão embutida do servidor (faixa de auto-update "server-v*")
-docker compose build --build-arg SERVER_VERSION=1.2.0
+# Puxa a imagem pública do Docker Hub e sobe. -d roda em background.
 docker compose up -d
 ```
 
-O servidor sobe na porta **8080** (mapeada no `compose.yaml`). Acompanhe os logs:
+O `docker compose up` baixa `jocian/tcmine-server:latest` do Docker Hub (sem build local) e sobe na
+porta **8080**. Para fixar uma versão em vez de `latest`, edite a linha `image:` do `compose.yaml`
+(ex.: `jocian/tcmine-server:1.0.0`). Acompanhe os logs:
 
 ```bash
 docker compose logs -f tcmine-server
 ```
 
-### 4. Primeiro acesso — criar o `Owner`
+### 4. Persistência (volume de dados)
+
+**Todo** o estado do servidor vive num único diretório, montado por **bind-mount** no `compose.yaml`:
+
+```yaml
+volumes:
+  - ./tcmine-data:/app/tcmine-data      # host → container
+```
+
+O que fica lá dentro (criado no boot): `updates/` (feed do launcher), `secrets/` (chaves do Data
+Protection — **cifram o token do CurseForge**), `servers/` (instâncias Minecraft), `modpacks/`,
+`mods/` (cache de jars) e `player-configs/` (sync das configs do jogador). **Sem esse bind, você
+perde tudo isso ao recriar o container.**
+
+**Trocar o local no host** — edite o lado esquerdo do bind (aceita caminho relativo ou absoluto):
+
+```yaml
+volumes:
+  - /srv/tcmine/data:/app/tcmine-data
+```
+
+**⚠️ Regra obrigatória do Docker-out-of-Docker:** o servidor cria containers-irmãos (as instâncias
+Minecraft) que montam subpastas de `tcmine-data` **direto do host**. Para os caminhos baterem, a
+variável `ServerInstances__DataHostRoot` (no `environment`) tem de ser o **caminho no host que
+corresponde a `/app`** — isto é, o diretório **pai** de `tcmine-data` no host. Se os dois não casarem,
+as instâncias sobem apontando para um caminho vazio.
+
+| Bind `volumes` (host → container) | `ServerInstances__DataHostRoot` correspondente |
+|-----------------------------------|-----------------------------------------------|
+| `./tcmine-data:/app/tcmine-data` | `${PWD}` |
+| `/srv/tcmine/data:/app/tcmine-data` | `/srv/tcmine` |
+
+> **Use bind-mount, não named volume:** as instâncias Minecraft precisam de um caminho de **host real**
+> para re-montar os dados; um `docker volume` não expõe esse caminho e o DooD não funcionaria.
+
+**Backup:** com o servidor parado, copie a pasta `tcmine-data/` **e** faça um dump do Postgres.
+
+### 5. Primeiro acesso — criar o `Owner`
 
 Abra **`http://SEU_HOST:8080`**. Na primeira execução, sem nenhum usuário, o servidor
 redireciona para **`/setup`**, onde você cria a conta **Owner** (a senha é guardada com PBKDF2).
 Os papéis disponíveis são `Owner` / `Admin` / `Operator` / `Viewer`.
 
-### 5. Configurar os segredos de runtime (no painel)
+### 6. Configurar os segredos de runtime (no painel)
 
 Diferente do banco, os segredos de runtime **não** vão em variável de ambiente — são
 configurados **pelo painel admin** e guardados no banco (o token do CurseForge fica **cifrado**
@@ -186,13 +228,13 @@ via Data Protection). Após logar como Owner, configure:
   Usada para montar os links absolutos de download dos mods e o feed de update. **Defina isto
   se estiver atrás de um reverse proxy.**
 
-### 6. (Recomendado) Reverse proxy + HTTPS
+### 7. (Recomendado) Reverse proxy + HTTPS
 
 Em produção, coloque um reverse proxy (Nginx, Caddy, Traefik) na frente, terminando TLS e
-encaminhando para a porta `8080` do container. Depois defina o `PublicBaseUrl` (passo 5) com a
+encaminhando para a porta `8080` do container. Depois defina o `PublicBaseUrl` (passo 6) com a
 URL pública `https://…`.
 
-### 7. Publicar o launcher
+### 8. Publicar o launcher
 
 Com o servidor no ar, vá em **Admin → Releases** para **compilar e publicar o launcher**
 (`dotnet publish` + `vpk`, feito dentro do container). O servidor hospeda o feed Velopack em
@@ -202,13 +244,17 @@ Com o servidor no ar, vá em **Admin → Releases** para **compilar e publicar o
 ### Atualizar / manutenção
 
 ```bash
-git pull
-docker compose up --build -d      # reconstrói e reinicia
+docker compose pull               # puxa a nova imagem publicada (jocian/tcmine-server:latest)
+docker compose up -d              # recria o container com a nova imagem
 docker compose down               # para tudo
 ```
 
-Os dados persistem no bind-mount **`./tcmine-data`** (updates, secrets, servidores, modpacks,
-mods, configs de jogador). **Inclua essa pasta e o banco Postgres nos seus backups.**
+Quando o painel avisar que há uma versão nova do servidor (faixa `server-v*`), atualizar é só o
+`docker compose pull && docker compose up -d` acima.
+
+Os dados persistem no bind-mount **`./tcmine-data`** (ver [Persistência](#4-persistência-volume-de-dados)):
+o `docker compose up --build` reaproveita a pasta, então atualizar **não** apaga modpacks, servidores
+nem configs. **Inclua `tcmine-data/` e o banco Postgres nos seus backups.**
 
 ---
 
