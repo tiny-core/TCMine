@@ -253,7 +253,7 @@ public sealed class LauncherBuildService(
             if (!resp.IsSuccessStatusCode)
                 throw new InvalidOperationException(
                     $"Não foi possível baixar a fonte do launcher da tag '{tag}' ({(int)resp.StatusCode}). " +
-                    "Confirme que a tag existe no GitHub e o repositório é público (ou defina GITHUB_REPO).");
+                    "Confirme que a tag existe no GitHub e o repositório é público.");
             await using var fs = File.Create(tgz);
             await resp.Content.CopyToAsync(fs);
         }

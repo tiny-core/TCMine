@@ -24,7 +24,7 @@ public sealed record GitHubTracks(ServerTrack Server, LauncherTrack Launcher);
 ///     Lê as releases do GitHub (<c>tiny-core/TCMine</c>) e separa em duas faixas por prefixo de tag:
 ///     <c>server-v*</c> (a imagem) e <c>launcher-v*</c> (o código do launcher). Assim atualizar um não
 ///     obriga o outro — resolve a sobrecarga do modelo de versão única. Cache 1h, tolerante a falha
-///     (devolve o último conhecido). Repo configurável via <c>GITHUB_REPO</c>.
+///     (devolve o último conhecido).
 /// </summary>
 public sealed class GitHubReleaseService(
     IHttpClientFactory http, IConfiguration config, ILogger<GitHubReleaseService> logger)
@@ -35,7 +35,8 @@ public sealed class GitHubReleaseService(
     private GitHubTracks? _cached;
     private DateTime _cachedAtUtc;
 
-    public string Repo => config["GITHUB_REPO"] is { Length: > 0 } r ? r.Trim() : "tiny-core/TCMine";
+    // Repo fixo do projeto no GitHub — as faixas server-v*/launcher-v* saem daqui.
+    public string Repo => "tiny-core/TCMine";
 
     /// <summary>As duas faixas (cacheadas). <paramref name="force" /> ignora a cache.</summary>
     public async Task<GitHubTracks> GetAsync(bool force = false, CancellationToken ct = default)
