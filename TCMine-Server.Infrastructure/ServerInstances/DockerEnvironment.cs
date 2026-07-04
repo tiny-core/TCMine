@@ -23,18 +23,19 @@ namespace TCMine_Server.Infrastructure.ServerInstances;
 public sealed class DockerEnvironment : IDisposable
 {
     private readonly string _contentRoot;
-    private readonly string _dataHostRoot;
+    private readonly string? _configuredHostRoot;
+    private readonly Lock _hostRootLock = new();
+    private string? _resolvedHostRoot;
     private readonly string _socket;
 
     public DockerEnvironment(IConfiguration config, IHostEnvironment env)
     {
         _contentRoot = env.ContentRootPath;
 
-        // Caminho do host da pasta tcmine-data (montada em /app/tcmine-data). Pode ter QUALQUER nome no
-        // host. Sem config (dev, fora de container) usamos a pasta tcmine-data local — host == local.
-        _dataHostRoot = config["ServerInstances:DataHostRoot"]?.Trim() is { Length: > 0 } h
-            ? h
-            : ServerPaths.Data(_contentRoot);
+        // Override OPCIONAL do caminho do host da pasta tcmine-data. Se vazio, auto-detectamos inspecionando
+        // o próprio container (ver DataHostRoot()) — o admin não precisa repetir um caminho que já está no
+        // volume. Só definir esta config se a auto-detecção falhar ou para forçar um caminho.
+        _configuredHostRoot = config["ServerInstances:DataHostRoot"]?.Trim() is { Length: > 0 } h ? h : null;
 
         // Imagem que roda as instâncias. Em produção o compose aponta para a imagem do release (que já
         // traz o JRE) — reuso de imagem, sempre presente no host. Sem config, cai na oficial do temurin
@@ -63,9 +64,8 @@ public sealed class DockerEnvironment : IDisposable
 
     /// <summary>
     /// Traduz um caminho local (sob <c>tcmine-data</c>) para o caminho equivalente no host, para uso como
-    /// origem de um bind-mount. Fora de <c>tcmine-data</c>, devolve o caminho como veio. Como o
-    /// <see cref="_dataHostRoot"/> aponta direto para o <c>tcmine-data</c> do host, a pasta pode ter
-    /// qualquer nome (não precisa se chamar "tcmine-data").
+    /// origem de um bind-mount. Fora de <c>tcmine-data</c>, devolve o caminho como veio. Usa o caminho do
+    /// host de <c>tcmine-data</c> (config explícita ou auto-detectado), então a pasta pode ter qualquer nome.
     /// </summary>
     public string ToHostPath(string localPath)
     {
@@ -75,11 +75,78 @@ public sealed class DockerEnvironment : IDisposable
         // Caminho fora de tcmine-data (GetRelativePath devolve algo com "..") → sem tradução
         var hostPath = rel.StartsWith("..", StringComparison.Ordinal) || Path.IsPathRooted(rel)
             ? full
-            : Path.Combine(_dataHostRoot, rel);
+            : Path.Combine(DataHostRoot(), rel);
 
         // Normaliza para barra '/': o daemon aceita "P:/dir" (drive Windows com barra normal) e evita
         // a ambiguidade do separador de bind. Em Linux já é '/', então é no-op.
         return hostPath.Replace('\\', '/');
+    }
+
+    /// <summary>
+    /// Caminho do host da pasta <c>tcmine-data</c>, resolvido uma vez (cacheado). Ordem: config explícita →
+    /// auto-detecção (inspeciona o próprio container e lê a origem do mount em <c>/app/tcmine-data</c>) →
+    /// pasta local (dev, host == local). Assim, em container com o socket montado, o DooD funciona sem
+    /// precisar da env var — o caminho já vem do próprio volume.
+    /// </summary>
+    private string DataHostRoot()
+    {
+        if (_resolvedHostRoot is not null) return _resolvedHostRoot;
+        lock (_hostRootLock)
+        {
+            return _resolvedHostRoot ??=
+                _configuredHostRoot ?? TryDetectHostRoot() ?? ServerPaths.Data(_contentRoot);
+        }
+    }
+
+    /// <summary>
+    /// Inspeciona o próprio container no daemon do host e devolve a origem (host) do mount destinado a
+    /// <c>/app/tcmine-data</c>. Null se não rodar em container ou não achar o mount.
+    /// </summary>
+    private string? TryDetectHostRoot()
+    {
+        try
+        {
+            if (OwnContainerId() is not { } id) return null;
+
+            var info = Client.Containers.InspectContainerAsync(id).GetAwaiter().GetResult();
+            var dataDir = ServerPaths.Data(_contentRoot).Replace('\\', '/').TrimEnd('/');
+
+            var mount = info.Mounts?.FirstOrDefault(m =>
+                string.Equals(m.Destination?.TrimEnd('/'), dataDir, StringComparison.Ordinal));
+
+            return string.IsNullOrWhiteSpace(mount?.Source) ? null : mount.Source;
+        }
+        catch
+        {
+            return null; // sem socket / não é container / daemon indisponível → cai no fallback
+        }
+    }
+
+    /// <summary>
+    /// Id do próprio container. Lê <c>/proc/self/mountinfo</c> (procura <c>/containers/&lt;id&gt;/</c> dos
+    /// binds que o Docker cria para /etc/hostname etc.) — robusto a cgroup v1/v2 e a data-root customizado.
+    /// Cai no <c>HOSTNAME</c> (id curto, salvo hostname customizado). Null fora de container.
+    /// </summary>
+    private static string? OwnContainerId()
+    {
+        try
+        {
+            foreach (var line in File.ReadLines("/proc/self/mountinfo"))
+            {
+                var i = line.IndexOf("/containers/", StringComparison.Ordinal);
+                if (i < 0) continue;
+
+                var id = new string(line[(i + "/containers/".Length)..].TakeWhile(Uri.IsHexDigit).ToArray());
+                if (id.Length >= 12) return id;
+            }
+        }
+        catch
+        {
+            // /proc indisponível (ex.: Windows dev) → tenta o HOSTNAME
+        }
+
+        var hostname = Environment.GetEnvironmentVariable("HOSTNAME");
+        return string.IsNullOrWhiteSpace(hostname) ? null : hostname;
     }
 
     /// <summary>

@@ -3,29 +3,27 @@ using System.Runtime.InteropServices;
 namespace TCMine_Server.Infrastructure.FileSystem;
 
 /// <summary>
-/// Estratégia de dev (Windows, sem admin/Developer Mode, onde symlinks falham):
+/// Estratégia padrão: liga arquivos por <b>hardlink</b> (custo de disco ~zero — o link e o cache
+/// compartilham os mesmos bytes/inode) e pastas por recursão (hardlinkando cada arquivo interno).
 ///
-/// <list type="bullet">
-/// <item><b>Arquivo</b> → tenta <b>hardlink</b> (sem privilégio, mesma partição; o jar do cache e o
-/// link compartilham os mesmos bytes em disco). Se o hardlink falhar (ex.: partições diferentes),
-/// cai para cópia.</item>
-/// <item><b>Pasta</b> → cópia recursiva (hardlinkando cada arquivo interno quando dá). É o
-/// trade-off aceitável em dev: mais disco que symlink, mas funciona sem privilégio elevado.</item>
-/// </list>
-///
-/// Em produção usa-se a <see cref="SymlinkStrategy"/>; esta existe para o ambiente de dev no Windows.
+/// <para><b>Por que não symlink em produção:</b> os servidores Minecraft rodam em containers-irmãos
+/// (Docker-out-of-Docker) que montam só a pasta da instância. Um symlink apontaria para um caminho do
+/// container do TCMine-Server (ex.: <c>/app/tcmine-data/server-cache/…</c>) que <b>não existe</b> no
+/// container da instância → link quebrado. O hardlink vira um arquivo real na pasta da instância, então
+/// resolve dentro do container. Exige mesma partição (o cache e a instância vivem sob <c>tcmine-data</c>,
+/// então batem); se o hardlink falhar (partições diferentes/FS sem suporte), cai para cópia.</para>
 /// </summary>
 public sealed class CopyLinkStrategy : ILinkStrategy
 {
-    public string Name => "Copy/Hardlink";
+    public string Name => "Hardlink/Copy";
 
     public void LinkFile(string source, string destination)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
         if (File.Exists(destination)) File.Delete(destination);
 
-        // Tenta hardlink primeiro (zero cópia de bytes); só Windows tem a API nativa aqui
-        if (OperatingSystem.IsWindows() && TryHardLinkWindows(source, destination)) return;
+        // Hardlink primeiro (zero cópia de bytes). API nativa por SO; falha → cai para cópia.
+        if (TryHardLink(source, destination)) return;
 
         File.Copy(source, destination, overwrite: true);
     }
@@ -36,7 +34,7 @@ public sealed class CopyLinkStrategy : ILinkStrategy
         CopyRecursive(new DirectoryInfo(source), destination);
     }
 
-    // Copia uma árvore inteira, hardlinkando cada arquivo quando possível (economiza disco em dev)
+    // Copia uma árvore inteira, hardlinkando cada arquivo quando possível (economiza disco)
     private void CopyRecursive(DirectoryInfo dir, string targetDir)
     {
         Directory.CreateDirectory(targetDir);
@@ -48,21 +46,29 @@ public sealed class CopyLinkStrategy : ILinkStrategy
             CopyRecursive(sub, Path.Combine(targetDir, sub.Name));
     }
 
-    // CreateHardLink do Win32: cria um nome adicional para os mesmos dados (mesma partição NTFS).
-    // Não exige privilégio de administrador, diferente dos symlinks no Windows.
-    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
-
-    private static bool TryHardLinkWindows(string source, string destination)
+    private static bool TryHardLink(string source, string destination)
     {
         try
         {
-            return CreateHardLink(destination, source, IntPtr.Zero);
+            if (OperatingSystem.IsWindows())
+                return CreateHardLink(destination, source, IntPtr.Zero);
+
+            // Linux/macOS: link(2) do libc. 0 = sucesso.
+            return LinkUnix(source, destination) == 0;
         }
         catch
         {
             return false; // qualquer falha → o chamador cai para File.Copy
         }
     }
+
+    // CreateHardLink do Win32: cria um nome adicional para os mesmos dados (mesma partição NTFS).
+    // Não exige privilégio de administrador, diferente dos symlinks no Windows.
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+    // link(2) do libc: cria um novo nome (hardlink) para um arquivo existente na mesma partição.
+    [DllImport("libc", EntryPoint = "link", SetLastError = true)]
+    private static extern int LinkUnix(string oldpath, string newpath);
 }

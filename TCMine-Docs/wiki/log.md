@@ -28,6 +28,40 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-04] lint | Caça a bugs no fluxo DooD — clamp de RAM da instância (Xms > Xmx não subia)
+
+- **Fonte:** revisão pedida pelo usuário ("veja se existe mais algum bug"). Varredura focada no fluxo de
+  provisionamento/instância (onde os últimos bugs apareceram).
+- **Achado + fix:** `ServerInstanceService.Apply` gravava `RamMb`/`XmsMb` sem validar. `Xms > Xmx` (ou RAM
+  ~0) faz a JVM recusar subir ("Initial heap size larger than maximum"). Adicionados clamps: `RamMb ≥ 512`,
+  `XmsMb ∈ [0, RamMb]`, `MaxPlayers ≥ 1`.
+- **Revisado e OK:** ciclo de vida do container (`DockerMinecraftManager`: start/stop/reconcile, mounts via
+  `ToHostPath`, entrypoint java), container efêmero do instalador (`DockerServerJavaRunner`), instalador do
+  loader (`ServerRuntimeInstaller`, com sanidade pós-install), `ServerConfigWriter` (eula=true, jvm args,
+  server.properties preservando edições, listas de jogador).
+- **Observações (não-fix):** `RestartPolicy=UnlessStopped` faz um servidor que crasha no boot reiniciar em
+  loop (reconciler pode oscilar Running/Crashed); e o `-local.N` prerelease do launcher ainda precisa de
+  validação real no Velopack. Build 0/0.
+- **Páginas afetadas:** só código; log.
+
+---
+
+## [2026-07-04] lint | DooD: linking de libraries/mods via hardlink (symlink quebrava na instância)
+
+- **Fonte:** o usuário provisionou; a pasta da instância foi criada com overrides/mods, mas **sem os links**
+  de `libraries/` (e mods) → `Error: could not open 'libraries/net/neoforged/neoforge/21.1.234/unix_args.txt'`.
+- **Causa:** produção usava `SymlinkStrategy`, que cria symlinks com **alvo absoluto** do caminho do
+  container do TCMine-Server (`/app/tcmine-data/server-cache/…`). O container-irmão da instância (DooD) monta
+  só a pasta da instância e **não enxerga** esse caminho → symlink quebrado.
+- **Correção:** o `CopyLinkStrategy` passa a **hardlinkar no Linux** (P/Invoke `link(2)` do libc; custo de
+  disco ~zero, mesma partição do `tcmine-data`) e vira o **padrão** no `LinkStrategyFactory` (symlink só via
+  override, para deploy sem DooD). Hardlink é arquivo real → o container da instância enxerga.
+- **Workaround (imagem atual):** `ServerInstances__LinkStrategy=Copy` (copia; funciona já) + re-provisionar.
+- **Deploy:** entra no próximo patch. Build 0/0.
+- **Páginas afetadas:** só código; log.
+
+---
+
 ## [2026-07-04] lint | DooD: DataHostRoot aponta direto para tcmine-data (sem restrição de nome)
 
 - **Fonte:** o usuário (ZimaOS, container pela UI) provisionou e recebeu "bind source path does not exist:
@@ -38,9 +72,12 @@ Estrutura sugerida do corpo:
 - **Correção:** `ToHostPath` passa a ser relativo a `ServerPaths.Data(contentRoot)` (`/app/tcmine-data`), e
   `DataHostRoot` passa a ser o **caminho do host do próprio tcmine-data** (qualquer nome). Default (dev) =
   `ServerPaths.Data(contentRoot)`. `compose.yaml` ajustado (`${PWD}` → `${PWD}/tcmine-data`) e README/tabela.
-- **Deploy:** entra na próxima imagem. Depois de atualizar, setar
-  `ServerInstances__DataHostRoot=<pasta do host mapeada em /app/tcmine-data>` (exatamente o lado esquerdo
-  do bind). Build 0/0.
+- **Auto-detecção (dispensa a env var):** a pedido do usuário — em vez de repetir um caminho que já está
+  no volume, o `DockerEnvironment` **inspeciona o próprio container** (id via `/proc/self/mountinfo`,
+  `InspectContainerAsync`) e lê a origem (host) do mount em `/app/tcmine-data`. Ordem: config explícita →
+  auto-detecção → pasta local (dev). `compose.yaml` deixou de setar `DataHostRoot` (só override); README
+  atualizado. Assim, no ZimaOS, **nenhuma env de caminho** é necessária — basta o `docker.sock` montado.
+- **Deploy:** entra na próxima imagem (patch). Build 0/0.
 - **Páginas afetadas:** código + `compose.yaml` + `README.md`; log.
 
 ---

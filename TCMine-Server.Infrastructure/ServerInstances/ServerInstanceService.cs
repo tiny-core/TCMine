@@ -371,9 +371,11 @@ public sealed class ServerInstanceService(
         i.Name = dto.Name;
         i.ModpackId = dto.ModpackId;
         i.Port = dto.Port;
-        i.RamMb = dto.RamMb;
-        i.XmsMb = dto.XmsMb;
-        i.MaxPlayers = dto.MaxPlayers;
+        // Clamps defensivos: RAM baixa demais ou Xms > Xmx impedem a JVM de subir ("Initial heap size
+        // larger than maximum"). Piso de 512 MB no heap; Xms nunca acima do Xmx (0 = igual ao Xmx).
+        i.RamMb = Math.Max(512, dto.RamMb);
+        i.XmsMb = Math.Clamp(dto.XmsMb, 0, i.RamMb);
+        i.MaxPlayers = Math.Max(1, dto.MaxPlayers);
         i.Motd = dto.Motd;
         i.ExtraJvmArgs = dto.ExtraJvmArgs;
         i.AutoRestart = dto.AutoRestart;

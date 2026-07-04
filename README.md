@@ -194,17 +194,14 @@ volumes:
   - /srv/tcmine/data:/app/tcmine-data
 ```
 
-**⚠️ Regra obrigatória do Docker-out-of-Docker:** o servidor cria containers-irmãos (as instâncias
-Minecraft) que montam subpastas de `tcmine-data` **direto do host**. Para os caminhos baterem, a
-variável `ServerInstances__DataHostRoot` (no `environment`) tem de ser o **caminho no host da pasta
-mapeada para `/app/tcmine-data`** — ou seja, exatamente o lado esquerdo do bind. A pasta do host pode
-ter **qualquer nome**. Se os dois não casarem, as instâncias sobem apontando para um caminho vazio.
+**Docker-out-of-Docker (automático):** o servidor cria containers-irmãos (as instâncias Minecraft) que
+montam subpastas de `tcmine-data` **direto do host**. O caminho do host é **auto-detectado** — o servidor
+inspeciona o próprio container e lê a origem do volume montado em `/app/tcmine-data`. **Você não precisa
+configurar nada** para isso (basta o `docker.sock` montado, que já é requisito). A pasta do host pode ter
+**qualquer nome**.
 
-| Bind `volumes` (host → container) | `ServerInstances__DataHostRoot` correspondente |
-|-----------------------------------|-----------------------------------------------|
-| `./tcmine-data:/app/tcmine-data` | `${PWD}/tcmine-data` |
-| `/srv/tcmine/data:/app/tcmine-data` | `/srv/tcmine/data` |
-| `/media/ZimaOS-HD/AppData/tcmine-server:/app/tcmine-data` | `/media/ZimaOS-HD/AppData/tcmine-server` |
+> **Override (raro):** se a auto-detecção falhar, defina `ServerInstances__DataHostRoot` com o **caminho
+> no host** da pasta mapeada para `/app/tcmine-data` (o lado esquerdo do bind).
 
 > **Use bind-mount, não named volume:** as instâncias Minecraft precisam de um caminho de **host real**
 > para re-montar os dados; um `docker volume` não expõe esse caminho e o DooD não funcionaria.

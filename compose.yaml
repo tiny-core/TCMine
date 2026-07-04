@@ -18,10 +18,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      # Caminho NO HOST da pasta tcmine-data (a montada em /app/tcmine-data abaixo). O DooD usa isto para
-      # os bind-mounts das instâncias apontarem para o host. Como o bind é ./tcmine-data, o host é
-      # ${PWD}/tcmine-data. A pasta do host pode ter qualquer nome — este valor é o caminho dela.
-      - ServerInstances__DataHostRoot=${PWD}/tcmine-data
+      # ServerInstances__DataHostRoot é AUTO-DETECTADO (o servidor inspeciona o próprio container e lê a
+      # origem no host do volume montado em /app/tcmine-data). Só defina se a auto-detecção falhar ou para
+      # forçar um caminho — ex.: - ServerInstances__DataHostRoot=${PWD}/tcmine-data
       # Reusa ESTA imagem (release + JRE embutido) para rodar cada instância Minecraft. Já presente no host
       # (é a que roda o próprio servidor), então o DooD não precisa baixar/construir outra.
       - ServerInstances__Image=jocian/tcmine-server:latest
