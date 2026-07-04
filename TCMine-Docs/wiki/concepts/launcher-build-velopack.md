@@ -29,7 +29,9 @@ O admin abre `/admin/releases`, informa versão + notas e clica em **Compilar la
    `-p:TcmineServerUrl=<PublicBaseUrl>` e `-p:MicrosoftClientId=<AzureClientId>` (ver
    [[entities/tcmine-launcher]]; viram `AssemblyMetadataAttribute`).
 2. `vpk pack` (Velopack CLI) → gera `RELEASES`, `*-full.nupkg`, `*-Setup.exe`, `releases.<canal>.json` no
-   diretório de updates.
+   diretório de updates. **Branding:** passa `--icon Assets/icon.ico` (ícone do `Setup.exe`/`Update.exe`)
+   e `--splashImage Assets/splash.png` (tela do instalador) — assets committados do launcher, resolvidos
+   na fonte baixada (guardados por `File.Exists`). Sem isso o Setup saía com o ícone genérico do Velopack.
 3. Grava um `ReleaseEntity` (versão, canal, notas, arquivos).
 
 ## Por que importa para o TCMine

@@ -184,6 +184,24 @@ public sealed class LauncherBuildService(
                 "-e", "TCMine-Launcher.exe", "-o", updatesDir, "-c", channel, "-r", rid,
                 "--packTitle", "TCMine Launcher"
             });
+
+            // Ícone do Setup.exe/Update.exe e imagem de splash do instalador — assets do launcher
+            // (committados, vêm na fonte baixada). Guardados por File.Exists p/ não quebrar se faltarem.
+            var assetsDir = Path.Combine(Path.GetDirectoryName(project)!, "Assets");
+            var iconPath = Path.Combine(assetsDir, "icon.ico");
+            if (File.Exists(iconPath))
+            {
+                packArgs.Add("--icon");
+                packArgs.Add(iconPath);
+            }
+
+            var splashPath = Path.Combine(assetsDir, "splash.png");
+            if (File.Exists(splashPath))
+            {
+                packArgs.Add("--splashImage");
+                packArgs.Add(splashPath);
+            }
+
             if (notesFile is not null)
             {
                 packArgs.Add("--releaseNotes");

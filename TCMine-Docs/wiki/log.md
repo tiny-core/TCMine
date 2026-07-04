@@ -28,6 +28,20 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] ingest | Ícone + splash no Setup.exe do launcher (vpk pack)
+
+- **Fonte:** o usuário notou que o Setup do launcher saía sem o ícone do projeto.
+- **Causa:** o `vpk pack` não passava `--icon` nem `--splashImage` → Setup com o ícone genérico do Velopack.
+- **Correção:** `LauncherBuildService` agora adiciona `--icon Assets/icon.ico` e `--splashImage Assets/splash.png`
+  (assets já committados em `TCMine-Launcher/Assets/`; resolvidos na fonte baixada via `Path.GetDirectoryName(project)`,
+  guardados por `File.Exists`). Infra compila 0/0.
+- **Assinatura de código:** discutido, não implementado — o Velopack suporta (`--signParams`/Azure Trusted
+  Signing), mas remover o alerta do SmartScreen exige um **certificado de CA real** (self-signed não ajuda).
+  Já registrado como lacuna em [[concepts/launcher-build-velopack]].
+- **Páginas afetadas:** [[concepts/launcher-build-velopack]] (passo do pack), log.
+
+---
+
 ## [2026-07-03] meta | Produção usa a imagem do Docker Hub + fix do DataHostRoot no compose
 
 - **Fonte:** o usuário esclareceu que produção **não** é clonar/buildar (isso é dev), e sim **puxar a
