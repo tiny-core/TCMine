@@ -42,6 +42,17 @@ public partial class Settings : ComponentBase
 
     private async Task SaveAsync()
     {
+        // A URL pública é embutida no launcher como `new Uri(...)`; sem esquema ela quebra o launcher no
+        // boot (UriFormatException). Valida cedo, aqui, para o admin não gerar um launcher inutilizável.
+        var url = _form.PublicBaseUrl?.Trim();
+        if (!string.IsNullOrEmpty(url) &&
+            (!Uri.TryCreate(url, UriKind.Absolute, out var parsed) ||
+             (parsed.Scheme != Uri.UriSchemeHttp && parsed.Scheme != Uri.UriSchemeHttps)))
+        {
+            Snackbar.Add("A URL pública deve ser absoluta e começar com http:// ou https://.", Severity.Warning);
+            return;
+        }
+
         _saving = true;
         try
         {

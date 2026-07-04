@@ -137,6 +137,14 @@ public sealed class LauncherBuildService(
                     "Configure a URL pública (PublicBaseUrl) e o Azure Client Id em Configurações antes de " +
                     "compilar o launcher — ambos são embutidos no launcher em build-time.");
 
+            // A URL é embutida e usada como `new Uri(...)` no launcher. Sem esquema (ex.: "host:8080") ela
+            // lança UriFormatException e o launcher fecha no boot. Validamos aqui para falhar no painel.
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var baseUri) ||
+                (baseUri.Scheme != Uri.UriSchemeHttp && baseUri.Scheme != Uri.UriSchemeHttps))
+                throw new InvalidOperationException(
+                    $"A URL pública (PublicBaseUrl) '{baseUrl}' não é uma URL absoluta válida. Inclua o " +
+                    "esquema http:// ou https:// (ex.: https://tcmine.exemplo.com) e recompile o launcher.");
+
             var vpk = ResolveVpk();
             var rid = config["LauncherBuild:Rid"] is { Length: > 0 } r ? r : "win-x64";
             var channel = config["LauncherBuild:Channel"] is { Length: > 0 } c ? c : "win";

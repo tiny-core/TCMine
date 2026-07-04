@@ -28,6 +28,22 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-03] lint | Launcher fechava no boot: PublicBaseUrl sem esquema → UriFormatException
+
+- **Fonte:** o usuário instalou o launcher em produção e ele fechava logo ao abrir (sem UI). Event Viewer
+  (.NET Runtime 1026) deu o stack: `System.UriFormatException` em `ServerConfig.Resolve` ←
+  `UpdateService..ctor` ← composição no `Program.BuildAvaloniaApp`.
+- **Causa:** a `PublicBaseUrl` configurada no painel estava **sem esquema** (ex.: `host:8080`); embutida no
+  launcher, `new Uri(BaseUrl)` lançava e derrubava o app antes da janela (o `UpdateService` é criado eager
+  na composição do Splat).
+- **Correção imediata (usuário):** corrigir a URL com `http://`/`https://`, recompilar e reinstalar.
+- **Blindagem (código):** (1) launcher `ServerConfig` normaliza — sem esquema assume `https`, inválida →
+  fallback de dev; `Resolve` nunca mais lança no boot. (2) servidor `LauncherBuildService` bloqueia o build
+  se a URL não for absoluta http(s), com mensagem clara. (3) `Settings.razor.cs` valida a URL ao salvar.
+- **Páginas afetadas:** só código; log. Build 0/0 (3 avisos pré-existentes no IconGenerator, sem relação).
+
+---
+
 ## [2026-07-03] ingest | Ícone + splash no Setup.exe do launcher (vpk pack)
 
 - **Fonte:** o usuário notou que o Setup do launcher saía sem o ícone do projeto.
