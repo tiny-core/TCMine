@@ -44,6 +44,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/sse-content-sync]] — `/events` empurra um contador de versão; launcher recarrega o catálogo (sse, sync)
 - [[concepts/setup-auth-cookie]] — primeira execução, setup do Owner, auth por cookie e papéis (auth, setup, roles)
 - [[concepts/secrets-data-protection]] — segredos cifrados em repouso via Data Protection (segurança, secrets)
+- [[concepts/security-headers]] — CSP + anti-clickjacking em todas as respostas; calibrada p/ Blazor+MudBlazor+Monaco (segurança, csp, blazor)
 - [[concepts/player-config-sync]] — sync **incremental** (diff por manifesto SHA-256) das configs player-owned (keybinds/opções/minimapa de servidor) por `(uuid, modpackId)`; pull no prepare, push ao fechar o jogo (player-config, sync)
 - [[concepts/async-feedback-overlay]] — modal não-fechável (`BusyService`/`BusyOverlay`) em toda operação async do painel (blazor, ux, feedback)
 - [[concepts/server-instance-lifecycle]] — provisionar (cache de loader) → rodar em container → reconciliar status → medir presença (server-instance, docker)

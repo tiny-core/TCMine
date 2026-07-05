@@ -48,6 +48,53 @@ Estrutura sugerida do corpo:
   Split futuro opcional de `ModpackUpdateService`/`ModFileCacheService`. Página
   `entities/` própria para o `TCMine-Tests` se o projeto crescer. Security headers (CSP).
 
+## [2026-07-05] ingest | Split do ModpackImportService em ModFileCacheService + ModpackUpdateService
+
+- **Fonte:** código vivo, item 1 do backlog (continuação do split de responsabilidades).
+- **Páginas afetadas:** [[concepts/modpack-admin-editor]], [[entities/tcmine-server-infrastructure]],
+  [[sources/2026-07-05-refactor-p0-proxy-overrides]].
+- **Resumo:** o `ModpackImportService` (794 linhas) foi dividido em três serviços com
+  responsabilidade única: **`ModFileCacheService`** (cache de jars/SHA-1, marcação de
+  órfãos, upload manual, server pack), **`ModpackUpdateService`** (checagem de
+  atualizações CF do modpack e mods — leitura pura, consumida só pela UI) e o
+  `ModpackImportService` reduzido (busca/add/import/save do rascunho). O import injeta o
+  cache (EnsureCached/LoadServerPack/MarkOrphans); os consumidores da UI (`ModpackEditor`,
+  `Mods`) foram migrados para os novos serviços. 3 registros DI novos (scoped). Build
+  **zero warnings**, 39 testes verdes, e o **boot em Development valida o grafo de DI**
+  (`ValidateOnBuild`) — servidor sobe limpo.
+- **Pendências:** E2E autenticado do editor de modpack (render das páginas admin — precisa
+  de login, mesma limitação do Monaco). Split de serviços do modpack agora **concluído**.
+
+## [2026-07-05] ingest | Build a zero warnings (fim do backlog de analisadores)
+
+- **Fonte:** código vivo, limpeza final dos analisadores.
+- **Páginas afetadas:** [[sources/2026-07-05-refactor-p0-proxy-overrides]].
+- **Resumo:** solução compila **sem nenhum warning**. Corrigidos: **CS0618** (SkiaSharp
+  4.x — `SKPath` in-place obsoleto → `SKPathBuilder` no IconGenerator) e **CA1859** ×4
+  (tipos concretos onde não há custo de design: retorno `HttpClientHandler` nos
+  `CreateHandler`; params `List<long>`/`Dictionary<Guid,string>` em métodos privados).
+  **Suprimidos** com justificativa no `Directory.Build.props`: **CA1873** (boxing em log,
+  mesma família do CA1848 já suprimido) e **CA1725** (renomear param do `OnModelCreating`
+  — churn cosmético). 39 testes seguem verdes.
+- **Pendências:** E2E do editor Monaco autenticado; split opcional de
+  `ModpackUpdateService`/`ModFileCacheService`; testes do manifesto de player-config.
+
+## [2026-07-05] decisao | Security headers (CSP) no painel, validado contra o app
+
+- **Fonte:** código vivo, item de segurança do backlog P1.
+- **Páginas afetadas:** [[concepts/security-headers]] (nova), [[entities/tcmine-server]],
+  `index.md`.
+- **Resumo:** novo middleware `SecurityHeaders` (`app.UseSecurityHeaders()`) aplica CSP +
+  `X-Content-Type-Options`/`X-Frame-Options`/`Referrer-Policy`/`Permissions-Policy` a todas
+  as respostas. A CSP foi **calibrada e verificada contra o app rodando** (home + login
+  MudBlazor + scripts do Monaco + WebSocket do Blazor): `style-src 'unsafe-inline'`
+  (tokens/MudBlazor), `script-src/worker-src blob:` (workers do Monaco), `img-src https:`
+  (thumbnails CF), `connect-src 'self'` (Blazor WS/SSE). Zero violações no console. Header
+  CSP mantido **único** via `OnStarting`+indexer (o framework Blazor emitia um segundo
+  `frame-ancestors 'self'`).
+- **Pendências:** testar o editor Monaco autenticado (abrir overrides) num ambiente com
+  login — os scripts carregam, falta o E2E do worker em edição real.
+
 ## [2026-07-05] ingest | Fecho do backlog de analisadores (CA1068/CA1001/CA2016) + CI
 
 - **Fonte:** código vivo, continuação do P1.

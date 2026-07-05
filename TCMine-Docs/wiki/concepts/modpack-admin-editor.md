@@ -46,13 +46,20 @@ related:
     bloqueante durante o import), `OverridePathDialog`, `OverrideHistoryDialog`,
     `NewsEditDialog`.
 
-O backend é o `ModpackImportService` ([[entities/tcmine-server-infrastructure]]) para
-import/add/save/update-check, e o `ModpackOverridesService` (extraído em 2026-07-05,
-ver [[sources/2026-07-05-refactor-p0-proxy-overrides]]) para toda a **edição
-interativa de overrides + histórico/desfazer**. A UI **não** fala com EF/CurseForge
-direto — só com esses serviços. A decomposição em componentes/partials/diálogos —
-e agora também a separação dos dois serviços — segue a regra **sem monolitos** do
-`CLAUDE.md`.
+O backend foi decomposto em serviços de responsabilidade única (todos extraídos do
+antigo monolito `ModpackImportService` em 2026-07-05, ver
+[[sources/2026-07-05-refactor-p0-proxy-overrides]]):
+
+- **`ModpackImportService`** — busca/add/import CF + save do rascunho (escrita-só-ao-Guardar).
+- **`ModFileCacheService`** — cache de jars/SHA-1, marcação de órfãos, upload manual (usado
+  pela página `Mods` e injetado no import).
+- **`ModpackUpdateService`** — checagem de atualizações (modpack + mods) no CurseForge.
+- **`ModpackOverridesService`** — edição interativa de overrides + histórico/desfazer.
+
+A UI **não** fala com EF/CurseForge direto — só com esses serviços; o `ModpackEditor`
+injeta os que precisa (`Service`/`Files`/`Updates`). A decomposição em
+componentes/partials/diálogos **e** a separação em serviços seguem a regra **sem
+monolitos** do `CLAUDE.md` ([[entities/tcmine-server-infrastructure]]).
 
 ## Abas do editor
 
