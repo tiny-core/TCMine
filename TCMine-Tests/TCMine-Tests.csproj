@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+      Testes de unidade da lógica PURA do core (Domain/Application): sem EF, sem HTTP, sem I/O.
+      Cobre as regras compartilhadas entre servidor e launcher, onde um bug é mais caro (decidem
+      igual dos dois lados). TargetFramework/Nullable/analisadores vêm do Directory.Build.props.
+    -->
+    <PropertyGroup>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
+        <PackageReference Include="xunit"/>
+        <PackageReference Include="xunit.runner.visualstudio"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\TCMine-Domain\TCMine-Domain.csproj"/>
+        <ProjectReference Include="..\TCMine-Application\TCMine-Application.csproj"/>
+    </ItemGroup>
+
+</Project>
