@@ -1,4 +1,3 @@
-using System.Net.Http;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Launcher;
 using TCMine_Launcher.Infrastructure.FileSystem;
@@ -7,9 +6,9 @@ using TCMine_Launcher.Infrastructure.Networking;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Baixa os mods do manifesto para uma cache partilhada e copia para a instância. Os jars são servidos
-/// pelo próprio TCMine Server (URLs já apontam para <c>/files/...</c>) — integridade por existência
-/// (o <c>ModDto</c> não traz Sha1). Colaborador interno do <see cref="LaunchOrchestrator"/>.
+///     Baixa os mods do manifesto para uma cache partilhada e cópia para a instância. Os jars são servidos
+///     pelo próprio TCMine Server (URLs já apontam para <c>/files/...</c>) — integridade por existência
+///     (o <c>ModDto</c> não traz Sha1). Colaborador interno do <see cref="LaunchOrchestrator" />.
 /// </summary>
 internal sealed class ModInstaller
 {
@@ -86,12 +85,15 @@ internal sealed class ModInstaller
         }
     }
 
-    private static string FolderFor(string? target) => target?.ToLowerInvariant() switch
+    private static string FolderFor(string? target)
     {
-        "resourcepack" => "resourcepacks",
-        "shaderpack" => "shaderpacks",
-        _ => "mods"
-    };
+        return target?.ToLowerInvariant() switch
+        {
+            "resourcepack" => "resourcepacks",
+            "shaderpack" => "shaderpacks",
+            _ => "mods"
+        };
+    }
 
     private static void PruneUnlisted(IReadOnlyList<ModDto> mods, string modsDir)
     {
@@ -103,7 +105,13 @@ internal sealed class ModInstaller
 
     private static void TryDelete(string path)
     {
-        try { File.Delete(path); }
-        catch { /* noop */ }
+        try
+        {
+            File.Delete(path);
+        }
+        catch
+        {
+            /* noop */
+        }
     }
 }

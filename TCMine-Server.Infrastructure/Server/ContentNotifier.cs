@@ -4,13 +4,12 @@ using System.Threading.Channels;
 namespace TCMine_Server.Infrastructure.Server;
 
 /// <summary>
-/// Sinaliza aos launchers ligados (via SSE em <c>/events</c>) que o conteúdo público
-/// mudou — modpacks criados/editados/eliminados ou (no futuro) novidades. Mantém uma
-/// <see cref="Version"/> incremental e transmite-a a todos os subscritores quando
-/// <see cref="Bump"/> é chamado.
-///
-/// Singleton (estado partilhado em memória). O launcher fixa a versão inicial como
-/// baseline e recarrega o catálogo sempre que recebe uma versão maior.
+///     Sinaliza aos launchers ligados (via SSE em <c>/events</c>) que o conteúdo público
+///     mudou — modpacks criados/editados/eliminados ou (no futuro) novidades. Mantém uma
+///     <see cref="Version" /> incremental e transmite-a a todos os subscritores quando
+///     <see cref="Bump" /> é chamado.
+///     Singleton (estado partilhado em memória). O launcher fixa a versão inicial como
+///     baseline e recarrega o catálogo sempre que recebe uma versão maior.
 /// </summary>
 public sealed class ContentNotifier
 {

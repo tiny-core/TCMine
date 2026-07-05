@@ -2,29 +2,28 @@
    Componente AUTOCONTIDO — gere o seu próprio Timer e re-renderiza só a si mesmo a cada 2s,
    em vez de forçar o re-render da página inteira do dashboard. *@
 
-<MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudText Typo="Typo.h6">Status do sistema</MudText>
-        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="Color.Success" Size="Size.Small"/>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">Ao vivo</MudText>
-        </MudStack>
-    </MudStack>
+<MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.h6"
+             Class="mb-2">Status do sistema
+    </MudText>
 
-    @* Medidores de uso GLOBAL do host/contêiner — anéis de progresso como referência visual *@
-    <MudGrid Justify="Justify.Center" Class="mb-2">
-        <MudItem xs="4">
+    <MudDivider DividerType="DividerType.FullWidth"/>
+
+    @* Medidores de uso GLOBAL do host/contêiner — anéis de progresso como referência visual.
+       Rede não entra aqui (é taxa, não %): tem o seu próprio gráfico abaixo. *@
+    <MudGrid Justify="Justify.Center" Class="my-4">
+        <MudItem xs="6" md="4">
             @* CPU de todos os núcleos do host (não só do processo do servidor) *@
             <MetricGauge Value="@_snapshot.CpuPercent"
                          Label="CPU" Icon="@Icons.Material.Filled.Memory"
                          Caption="@($"host · {_snapshot.ProcessorCount} núcleos")"/>
         </MudItem>
-        <MudItem xs="4">
+        <MudItem xs="6" md="4">
             <MetricGauge Value="@_snapshot.RamPercent"
                          Label="RAM" Icon="@Icons.Material.Filled.DeveloperBoard"
                          Caption="@($"{_snapshot.RamUsedGb:0.0} / {_snapshot.RamTotalGb:0.0} GB")"/>
         </MudItem>
-        <MudItem xs="4">
+        <MudItem xs="6" md="4">
             @* Disco: uso total do drive que hospeda os dados do projeto *@
             <MetricGauge Value="@_snapshot.DiskPercent"
                          Label="Disco" Icon="@Icons.Material.Filled.Storage"
@@ -32,20 +31,22 @@
         </MudItem>
     </MudGrid>
 
-    <MudDivider Class="my-3"/>
+    <MudDivider DividerType="DividerType.FullWidth"/>
 
     @* Métricas do próprio processo do servidor — leitura secundária, em tiles compactos *@
-    <MudGrid Spacing="2" Class="mb-4">
+    <MudGrid Spacing="2" Class="my-4">
         <MudItem xs="6" sm="3">
             <div class="metric-tile">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Processo</MudText>
-                <MudText Typo="Typo.h6">@_snapshot.WorkingSetMb.ToString("0") <span class="metric-unit">MB</span></MudText>
+                <MudText Typo="Typo.h6">@_snapshot.WorkingSetMb.ToString("0") <span class="metric-unit">MB</span>
+                </MudText>
             </div>
         </MudItem>
         <MudItem xs="6" sm="3">
             <div class="metric-tile">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Heap (GC)</MudText>
-                <MudText Typo="Typo.h6">@_snapshot.ManagedHeapMb.ToString("0") <span class="metric-unit">MB</span></MudText>
+                <MudText Typo="Typo.h6">@_snapshot.ManagedHeapMb.ToString("0") <span class="metric-unit">MB</span>
+                </MudText>
             </div>
         </MudItem>
         <MudItem xs="6" sm="3">
@@ -62,15 +63,41 @@
         </MudItem>
     </MudGrid>
 
-    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Uso de memória do processo (últimas amostras)</MudText>
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Pico @PeakMemoryMb.ToString("0") MB</MudText>
-    </MudStack>
-
-    <MudChart T="double"
-              ChartType="ChartType.Line"
-              ChartSeries="@_series"
-              ChartLabels="@_labels"
-              ChartOptions="@_chartOptions"
-              Width="100%" Height="220px"/>
 </MudPaper>
+
+@* Gráficos em papers próprios, lado a lado (empilham no mobile): memória (MB, absoluto) e rede
+   (MB/s, taxa). Escalas diferentes → cada um no seu paper e eixo. Mesma amostragem (deste componente). *@
+<MudGrid Class="mb-4" Spacing="4">
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="0" Outlined="true" Style="min-height: 425px;">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                <MudText Typo="Typo.h6">Memória do processo</MudText>
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Pico @PeakMemoryMb.ToString("0") MB</MudText>
+            </MudStack>
+            <MudDivider DividerType="DividerType.FullWidth"/>
+            <MudChart T="double"
+                      ChartType="ChartType.Line"
+                      ChartSeries="@_memSeries"
+                      ChartLabels="@_labels"
+                      ChartOptions="@_memChartOptions"
+                      Width="100%"/>
+        </MudPaper>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="0" Outlined="true" Style="min-height: 425px;">
+            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                <MudText Typo="Typo.h6">Tráfego de rede</MudText>
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">
+                    ↓ @FormatRate(_snapshot.Network.RecvBytesPerSec) · ↑ @FormatRate(_snapshot.Network.SentBytesPerSec)
+                </MudText>
+            </MudStack>
+            <MudDivider DividerType="DividerType.FullWidth"/>
+            <MudChart T="double"
+                      ChartType="ChartType.Line"
+                      ChartSeries="@_netSeries"
+                      ChartLabels="@_labels"
+                      ChartOptions="@_netChartOptions"
+                      Width="100%"/>
+        </MudPaper>
+    </MudItem>
+</MudGrid>

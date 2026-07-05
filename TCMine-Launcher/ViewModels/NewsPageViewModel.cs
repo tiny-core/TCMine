@@ -40,7 +40,10 @@ public sealed class NewsPageViewModel : ViewModelBase
     public bool IsEmpty => !Busy && News.Count == 0;
 
     /// <summary>Recarrega o feed (ex.: quando o servidor avisa que o conteúdo mudou).</summary>
-    public void Reload() => _ = LoadAsync();
+    public void Reload()
+    {
+        _ = LoadAsync();
+    }
 
     private async Task LoadAsync()
     {

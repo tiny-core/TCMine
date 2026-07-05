@@ -1,52 +1,50 @@
-﻿using System;
+﻿#nullable disable
+
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
+namespace TCMine_Server.Infrastructure.Migrations.Sqlite;
 
-namespace TCMine_Server.Infrastructure.Migrations.Sqlite
+/// <inheritdoc />
+public partial class ServerInstanceAdvertise : Migration
 {
     /// <inheritdoc />
-    public partial class ServerInstanceAdvertise : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<Guid>(
-                name: "ServerInstanceId",
-                table: "Servers",
-                type: "TEXT",
-                nullable: true);
+        migrationBuilder.AddColumn<Guid>(
+            "ServerInstanceId",
+            "Servers",
+            "TEXT",
+            nullable: true);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "Advertise",
-                table: "ServerInstances",
-                type: "INTEGER",
-                nullable: false,
-                defaultValue: false);
+        migrationBuilder.AddColumn<bool>(
+            "Advertise",
+            "ServerInstances",
+            "INTEGER",
+            nullable: false,
+            defaultValue: false);
 
-            migrationBuilder.AddColumn<string>(
-                name: "PublicAddress",
-                table: "ServerInstances",
-                type: "TEXT",
-                maxLength: 200,
-                nullable: false,
-                defaultValue: "");
-        }
+        migrationBuilder.AddColumn<string>(
+            "PublicAddress",
+            "ServerInstances",
+            "TEXT",
+            maxLength: 200,
+            nullable: false,
+            defaultValue: "");
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "ServerInstanceId",
-                table: "Servers");
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            "ServerInstanceId",
+            "Servers");
 
-            migrationBuilder.DropColumn(
-                name: "Advertise",
-                table: "ServerInstances");
+        migrationBuilder.DropColumn(
+            "Advertise",
+            "ServerInstances");
 
-            migrationBuilder.DropColumn(
-                name: "PublicAddress",
-                table: "ServerInstances");
-        }
+        migrationBuilder.DropColumn(
+            "PublicAddress",
+            "ServerInstances");
     }
 }

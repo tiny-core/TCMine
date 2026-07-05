@@ -1,20 +1,19 @@
 ﻿using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
 using TCMine_Application.Contracts;
-using TCMine_Server.Infrastructure.FileSystem;
 using TCMine_Domain.Modpack;
+using TCMine_Server.Infrastructure.FileSystem;
 using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Endpoints;
 
 /// <summary>
-/// Endpoints HTTP consumidos pelo <b>launcher</b> (não pela admin Blazor): catálogo de modpacks,
-/// manifesto detalhado, serving dos jars do cache e do bundle de overrides.
-///
-/// Princípio central: os mods são servidos pelo <b>próprio servidor</b> — o manifesto reescreve a
-/// URL de cada mod para <c>/files/{fileId}/{fileName}</c>, e o launcher baixa daqui, nunca do
-/// CurseForge (ver project-modpack-mods-locais). O manifesto público é filtrado para o lado cliente.
+///     Endpoints HTTP consumidos pelo <b>launcher</b> (não pela admin Blazor): catálogo de modpacks,
+///     manifesto detalhado, serving dos jars do cache e do bundle de overrides.
+///     Princípio central: os mods são servidos pelo <b>próprio servidor</b> — o manifesto reescreve a
+///     URL de cada mod para <c>/files/{fileId}/{fileName}</c>, e o launcher baixa daqui, nunca do
+///     CurseForge (ver project-modpack-mods-locais). O manifesto público é filtrado para o lado cliente.
 /// </summary>
 public static class ModpackEndpoints
 {
@@ -114,8 +113,8 @@ public static class ModpackEndpoints
     }
 
     /// <summary>
-    /// URL base externa para montar links absolutos de download. Usa o <c>PublicBaseUrl</c>
-    /// configurado (canônico atrás de proxy reverso); na falta dele, deriva da requisição.
+    ///     URL base externa para montar links absolutos de download. Usa o <c>PublicBaseUrl</c>
+    ///     configurado (canônico atrás de proxy reverso); na falta dele, deriva da requisição.
     /// </summary>
     private static async Task<string> ResolveBaseUrlAsync(
         HttpContext ctx, ServerSettingsService settings, CancellationToken ct)

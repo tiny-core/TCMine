@@ -1,10 +1,8 @@
-using System.Net.Http;
-
 namespace TCMine_Launcher.Infrastructure.Networking;
 
 /// <summary>
-/// <see cref="HttpClient"/> partilhado para downloads (jars/overrides/imagens). Timeout infinito
-/// (ficheiros grandes); o cert self-signed de dev é aceite só em DEBUG.
+///     <see cref="HttpClient" /> partilhado para downloads (jars/overrides/imagens). Timeout infinito
+///     (arquivos grandes); o cert self-signed de dev é aceite só em DEBUG.
 /// </summary>
 public static class HttpClientProvider
 {

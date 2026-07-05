@@ -17,9 +17,9 @@ public class ServerEntryEntity
     public ModpackEntity? Modpack { get; set; }
 
     /// <summary>
-    /// Quando preenchido, esta entrada foi <b>auto-gerada</b> por uma instância gerenciada
-    /// (<see cref="ServerInstanceEntity"/>) e é mantida em sync com ela — não deve ser editada à mão.
-    /// <c>null</c> = entrada manual (servidor externo cadastrado pelo admin).
+    ///     Quando preenchido, esta entrada foi <b>autogerada</b> por uma instância gerenciada
+    ///     (<see cref="ServerInstanceEntity" />) e é mantida em sync com ela — não deve ser editada à mão.
+    ///     <c>null</c> = entrada manual (servidor externo cadastrado pelo admin).
     /// </summary>
     public Guid? ServerInstanceId { get; set; }
 }

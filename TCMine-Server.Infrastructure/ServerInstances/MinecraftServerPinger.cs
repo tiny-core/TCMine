@@ -8,12 +8,11 @@ namespace TCMine_Server.Infrastructure.ServerInstances;
 public sealed record ServerPing(int Online, int Max, string? Description);
 
 /// <summary>
-/// Cliente do <b>Server List Ping</b> (SLP) do Minecraft (protocolo moderno, 1.7+): conecta na porta do
-/// jogo, faz o handshake + status request e lê o JSON de status — o mesmo que a lista de servidores do
-/// jogo usa para mostrar "X/Y jogadores". É a forma de medir presença sem RCON nem parse de log.
-///
-/// Tudo é prefixado por <c>VarInt</c> (inteiro de tamanho variável). Falha (servidor fora/ainda subindo)
-/// devolve <c>null</c> — o chamador trata como "indisponível".
+///     Cliente do <b>Server List Ping</b> (SLP) do Minecraft (protocolo moderno, 1.7+): conecta na porta do
+///     jogo, faz o handshake + status request e lê o JSON de status — o mesmo que a lista de servidores do
+///     jogo usa para mostrar "X/Y jogadores". É a forma de medir presença sem RCON nem parse de log.
+///     Tudo é prefixado por <c>VarInt</c> (inteiro de tamanho variável). Falha (servidor fora/ainda subindo)
+///     devolve <c>null</c> — o chamador trata como "indisponível".
 /// </summary>
 public sealed class MinecraftServerPinger
 {

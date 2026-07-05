@@ -3,13 +3,8 @@
 namespace TCMine_Application.Contracts;
 
 /// <summary>
-/// Representa uma notícia com metadados associados.
-/// </summary>
-public record NewsDto(string Tag, string Title, string Data, string Summary);
-
-/// <summary>
-/// Item do feed público de novidades (consumido pelo launcher). <c>ModpackId</c>/<c>ModpackName</c>
-/// nulos = notícia <b>global</b> (do servidor); preenchidos = notícia daquele modpack.
+///     Item do feed público de novidades (consumido pelo launcher). <c>ModpackId</c>/<c>ModpackName</c>
+///     nulos = notícia <b>global</b> (do servidor); preenchidos = notícia daquele modpack.
 /// </summary>
 public sealed record NewsItemDto(
     string Tag,
@@ -20,7 +15,7 @@ public sealed record NewsItemDto(
     string? ModpackName);
 
 /// <summary>
-/// Representa um resumo de um modpack, incluindo metadados essenciais e estatísticas.
+///     Representa um resumo de um modpack, incluindo metadados essenciais e estatísticas.
 /// </summary>
 public record ModpackSummaryDto(
     Guid Id,
@@ -36,12 +31,6 @@ public record ModpackSummaryDto(
     string? CurseForgeUrl = null);
 
 /// <summary>
-/// Representa um servidor associado a um modpack, contendo informações básicas para conexão.
+///     Representa um servidor associado a um modpack, contendo informações básicas para conexão.
 /// </summary>
 public record ServerDto(string Name, string Address, int Port);
-
-/// <summary>
-/// Representa uma versão publicada de software, incluindo metadados como versão, notas de lançamento,
-/// canal de distribuição e data de publicação.
-/// </summary>
-public record ReleaseDto(string Version, string Notes, string Channel, DateTime PublishedAt);

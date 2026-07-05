@@ -1,27 +1,29 @@
+using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.Extensions.FileProviders;
 using MudBlazor.Services;
-using TCMine_Server;
 using TCMine_Application.Abstractions;
-using TCMine_Server.Infrastructure.FileSystem;
-using TCMine_Server.Infrastructure.Identity;
+using TCMine_Server;
 using TCMine_Server.Authentication;
-using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Components;
 using TCMine_Server.Components.Pages;
 using TCMine_Server.Endpoints;
-using TCMine_Server.Security;
-using TCMine_Server.Services;
 using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.FileSystem;
+using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Infrastructure.Launcher;
 using TCMine_Server.Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Infrastructure.PlayerConfigs;
 using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Infrastructure.ServerInstances;
+using TCMine_Server.Security;
+using TCMine_Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -92,7 +94,7 @@ builder.Services.AddSingleton<MinecraftVersionService>();
 // ── Instâncias de servidor Minecraft ─────────────────────────────────────────────────────────────────────────────────
 // Estratégia de ligação de arquivos (symlink no Linux/Docker, cópia/hardlink no Windows dev),
 // decidida uma vez pelo ambiente/config. Singleton: sem estado, só comportamento.
-builder.Services.AddSingleton<ILinkStrategy>(LinkStrategyFactory.Create(builder.Configuration));
+builder.Services.AddSingleton(LinkStrategyFactory.Create(builder.Configuration));
 builder.Services.AddSingleton<ServerConfigWriter>();
 // Ping de status (jogadores online) via Server List Ping. Singleton: sem estado, só I/O de rede.
 builder.Services.AddSingleton<MinecraftServerPinger>();
@@ -156,7 +158,7 @@ builder.Services.AddSingleton(new SystemMetricsService(dataRoot));
 // Feed Velopack: inspeciona tcmine-data/updates para versão/instalador do launcher
 builder.Services.AddSingleton<LauncherFeedService>();
 // Compila/empacota o launcher pelo servidor (dotnet publish + vpk) → feed em /updates. Singleton:
-// estado do job de build (progresso reconectável, um de cada vez).
+// estado do job de build (progresso reconectáveis, um de cada vez).
 builder.Services.AddSingleton<LauncherBuildService>();
 // Histórico de releases (página /admin/releases). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<ReleaseService>();
@@ -168,7 +170,7 @@ builder.Services.AddHttpClient("github", c =>
     c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
 });
 builder.Services.AddSingleton<GitHubReleaseService>();
-// Auto-build: no boot / ao salvar settings, alinha o launcher à versão do servidor (se preciso).
+// Auto Build: no boot / ao salvar settings, alinha o launcher à versão do servidor (se preciso).
 builder.Services.AddHostedService<LauncherAutoBuildService>();
 
 // ── Sync de conteúdo (SSE) ───────────────────────────────────────────────────────────────────────────────────────────
@@ -191,9 +193,9 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
     options.AddPolicy("configs", ctx =>
-        System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitPartition.GetFixedWindowLimiter(
             ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            _ => new FixedWindowRateLimiterOptions
             {
                 Window = TimeSpan.FromMinutes(1), PermitLimit = 30, QueueLimit = 0
             }));
@@ -252,7 +254,7 @@ if (!app.Environment.IsDevelopment())
 // (a 200, porque definir 404 no render SSR do Blazor descarta a saída) e marca o HttpContext. Este
 // middleware faz buffer da resposta da página e promove o status a 404 antes de a enviar — assim o
 // corpo é preservado e o status fica correto. Restrito a GET de página: rotas de API (status cru ao
-// launcher), SSE (/events) e ficheiros estáticos ficam de fora (não podem ser bufferizados).
+// launcher), SSE (/events) e arquivos estáticos ficam de fora (não podem ser bufferizados).
 app.UseWhen(
     ctx => HttpMethods.IsGet(ctx.Request.Method)
            && !IsApiPath(ctx.Request.Path)
@@ -283,7 +285,7 @@ app.UseWhen(
 app.UseHttpsRedirection();
 
 // ── Cabeçalhos de segurança (CSP + anti-clickjacking) ────────────────────────────────────────────────────────────────
-// Cedo no pipeline para cobrir também os ficheiros estáticos abaixo. Ver TCMine_Server.Security.SecurityHeaders.
+// Cedo no pipeline para cobrir também os arquivos estáticos abaixo. Ver TCMine_Server.Security.SecurityHeaders.
 app.UseSecurityHeaders();
 
 // ── Feed Velopack (arquivos estáticos em /updates) ──────────────────────────────────────────────────────────────────
@@ -291,7 +293,7 @@ app.UseSecurityHeaders();
 // de auth e do redirect de primeira execução) para ficar sempre acessível.
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(ServerPaths.Updates(dataRoot)),
+    FileProvider = new PhysicalFileProvider(ServerPaths.Updates(dataRoot)),
     RequestPath = "/updates",
     ServeUnknownFileTypes = true // RELEASES não tem extensão; o Velopack precisa de o ler
 });
@@ -302,7 +304,6 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
-
 
 // ── Primeira execução: sem usuários → força o setup do usuário master ────────────────────────────────────────────────
 // Enquanto não houver usuário, qualquer rota (exceto assets e o próprio /setup) vai para /setup.

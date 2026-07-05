@@ -6,8 +6,8 @@ using TCMine_Domain.Identity;
 namespace TCMine_Server.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementação EF Core de <see cref="IUserRepository"/>. Scoped — usa o <see cref="AppDbContext"/>
-/// da requisição/circuito. Só persistência; a lógica de hash/normalização fica no serviço.
+///     Implementação EF Core de <see cref="IUserRepository" />. Scoped — usa o <see cref="AppDbContext" />
+///     da requisição/circuito. Só persistência; a lógica de hash/normalização fica no serviço.
 /// </summary>
 public sealed class UserRepository(AppDbContext db) : IUserRepository
 {

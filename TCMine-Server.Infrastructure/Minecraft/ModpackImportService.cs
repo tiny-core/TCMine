@@ -1,34 +1,32 @@
-using System.IO.Compression;
+﻿using System.IO.Compression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using TCMine_Application.Contracts;
 using TCMine_Application.Modpack;
-using TCMine_Server.Infrastructure.FileSystem;
-using TCMine_Domain.Modpack;
-using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Domain.Entities;
+using TCMine_Domain.Modpack;
 using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.FileSystem;
+using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Edição e import de modpacks no servidor. O fluxo principal é <b>manual</b>: o admin cria o
-/// modpack, pesquisa mods por nome e adiciona; o import de um modpack inteiro do CurseForge é uma
-/// opção que mescla no rascunho. Em todos os casos o servidor é a fonte dos jars — o cache/hash de
-/// cada arquivo vive no <see cref="ModFileCacheService" />, e o launcher depois baixa do servidor.
-///
-/// Segue a política de escrita-só-ao-Guardar: a página edita um rascunho destacado em memória e
-/// só <see cref="SaveAsync" /> persiste no banco. Os jars, porém, são baixados ao adicionar cada
-/// mod (operação cara isolada por item), para o Guardar ficar leve.
-///
-/// Preocupações vizinhas foram extraídas para não acumular responsabilidades aqui:
-/// <list type="bullet">
-///   <item><see cref="ModFileCacheService" /> — cache de jars, SHA-1, marcação de órfãos, upload.</item>
-///   <item><see cref="ModpackUpdateService" /> — checagem de atualizações no CurseForge.</item>
-///   <item><see cref="ModpackOverridesService" /> — edição interativa de overrides + histórico.</item>
-/// </list>
-/// Aqui fica só a extração do bundle inicial de overrides no import (<see cref="ExtractOverrides" />).
+///     Edição e import de modpacks no servidor. O fluxo principal é <b>manual</b>: o admin cria o
+///     modpack, pesquisa mods por nome e adiciona; o import de um modpack inteiro do CurseForge é uma
+///     opção que mescla no rascunho. Em todos os casos o servidor é a fonte dos jars — o cache/hash de
+///     cada arquivo vive no <see cref="ModFileCacheService" />, e o launcher depois baixa do servidor.
+///     Segue a política de escrita-só-ao-Guardar: a página edita um rascunho destacado em memória e
+///     só <see cref="SaveAsync" /> persiste no banco. Os jars, porém, são baixados ao adicionar cada
+///     mod (operação cara isolada por item), para o Guardar ficar leve.
+///     Preocupações vizinhas foram extraídas para não acumular responsabilidades aqui:
+///     <list type="bullet">
+///         <item><see cref="ModFileCacheService" /> — cache de jars, SHA-1, marcação de órfãos, upload.</item>
+///         <item><see cref="ModpackUpdateService" /> — checagem de atualizações no CurseForge.</item>
+///         <item><see cref="ModpackOverridesService" /> — edição interativa de overrides + histórico.</item>
+///     </list>
+///     Aqui fica só a extração do bundle inicial de overrides no import (<see cref="ExtractOverrides" />).
 /// </summary>
 public sealed class ModpackImportService(
     AppDbContext db,
@@ -60,9 +58,9 @@ public sealed class ModpackImportService(
     // ── Adicionar mod da busca (resolve o arquivo + baixa o jar) ───────────────────────────────
 
     /// <summary>
-    /// Resolve o arquivo mais recente de um mod (para a versão MC + loader do modpack), baixa o jar
-    /// e devolve uma entidade <b>destacada</b> pronta para entrar no rascunho. Não toca no banco —
-    /// a gravação acontece só no Guardar.
+    ///     Resolve o arquivo mais recente de um mod (para a versão MC + loader do modpack), baixa o jar
+    ///     e devolve uma entidade <b>destacada</b> pronta para entrar no rascunho. Não toca no banco —
+    ///     a gravação acontece só no Guardar.
     /// </summary>
     public async Task<List<ModAddResultDto>> AddFromSearchAsync(
         long modId, string? gameVersion, ModLoader loader, ModSide side = ModSide.Both,
@@ -83,7 +81,8 @@ public sealed class ModpackImportService(
 
             results.Add(resolved.Value.Result);
             foreach (var depId in resolved.Value.RequiredDeps)
-                if (visited.Add(depId)) queue.Enqueue(depId); // só enfileira deps inéditas
+                if (visited.Add(depId))
+                    queue.Enqueue(depId); // só enfileira deps inéditas
         }
 
         return results;
@@ -94,7 +93,8 @@ public sealed class ModpackImportService(
     private async Task<(ModAddResultDto Result, IReadOnlyList<long> RequiredDeps)?> ResolveModAsync(
         long modId, string? gameVersion, ModLoader loader, ModSide side, CancellationToken ct)
     {
-        var compatibleFiles = await cf.GetModFilesAsync(modId, gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
+        var compatibleFiles =
+            await cf.GetModFilesAsync(modId, gameVersion, CurseForgeApiClient.ModLoaderType(loader), ct);
         var compatible = compatibleFiles.Count > 0;
 
         var files = compatible ? compatibleFiles : await cf.GetModFilesAsync(modId, null, null, ct);
@@ -120,9 +120,9 @@ public sealed class ModpackImportService(
     }
 
     /// <summary>
-    /// Lista os arquivos (versões) de um mod do CurseForge para o seletor de versão — filtrados por MC +
-    /// loader; se não houver compatível, devolve todos (e o seletor mostra o aviso). Busca <b>lazy</b>:
-    /// chamada só quando o admin pede para trocar a versão, não na listagem.
+    ///     Lista os arquivos (versões) de um mod do CurseForge para o seletor de versão — filtrados por MC +
+    ///     loader; se não houver compatível, devolve todos (e o seletor mostra o aviso). Busca <b>lazy</b>:
+    ///     chamada só quando o admin pede para trocar a versão, não na listagem.
     /// </summary>
     public async Task<List<CfFileRefDto>> ListModVersionsAsync(
         long modId, string? gameVersion, ModLoader loader, CancellationToken ct = default)
@@ -134,9 +134,9 @@ public sealed class ModpackImportService(
     // ── Import de modpack inteiro (opcional; mescla no rascunho) ───────────────────────────────
 
     /// <summary>
-    /// Importa um modpack do CurseForge num resultado destacado (metadados + mods já baixados, com
-    /// <c>Side</c> inferido pelo server pack, + bundle de overrides). A página mescla no rascunho e
-    /// só grava no Guardar.
+    ///     Importa um modpack do CurseForge num resultado destacado (metadados + mods já baixados, com
+    ///     <c>Side</c> inferido pelo server pack, + bundle de overrides). A página mescla no rascunho e
+    ///     só grava no Guardar.
     /// </summary>
     public async Task<DraftImportDto<ModEntryEntity>> ImportModpackToDraftAsync(long projectId,
         IProgress<string>? progress = null, CancellationToken ct = default)
@@ -160,14 +160,20 @@ public sealed class ModpackImportService(
 
         // Metadados do projeto no CF (descrição + link da página) — best-effort; não parte o import.
         CfProjectInfoDto? projectInfo = null;
-        try { projectInfo = await cf.GetProjectInfoAsync(projectId, ct); }
-        catch { /* segue sem descrição/link */ }
+        try
+        {
+            projectInfo = await cf.GetProjectInfoAsync(projectId, ct);
+        }
+        catch
+        {
+            /* segue sem descrição/link */
+        }
 
         return new DraftImportDto<ModEntryEntity>(
             imported.Name, imported.Version, imported.Minecraft,
             imported.Loader, imported.LoaderVersion, mods, imported.Overrides,
             imported.CurseProjectId, imported.CurseFileId,
-            Description: projectInfo?.Summary, CurseForgeUrl: projectInfo?.WebsiteUrl);
+            projectInfo?.Summary, projectInfo?.WebsiteUrl);
     }
 
     // ── Leitura/gestão ─────────────────────────────────────────────────────────────────────────
@@ -195,8 +201,8 @@ public sealed class ModpackImportService(
     }
 
     /// <summary>
-    /// Achata os vínculos de um modpack carregado em <see cref="ModEntryEntity"/> (modelo do editor),
-    /// juntando os campos do <see cref="ModFileEntity"/> com os atributos por-modpack. Respeita a ordem.
+    ///     Achata os vínculos de um modpack carregado em <see cref="ModEntryEntity" /> (modelo do editor),
+    ///     juntando os campos do <see cref="ModFileEntity" /> com os atributos por-modpack. Respeita a ordem.
     /// </summary>
     public static List<ModEntryEntity> FlattenMods(ModpackEntity pack)
     {
@@ -211,12 +217,6 @@ public sealed class ModpackImportService(
                 FileLength = mm.ModFile.FileLength, Target = mm.Target, Side = mm.Side
             })
             .ToList();
-    }
-
-    /// <summary>Existe um modpack com este slug? (validação ao criar um novo)</summary>
-    public Task<bool> ExistsAsync(Guid uid, CancellationToken ct = default)
-    {
-        return db.Modpacks.AnyAsync(m => m.Id == uid, ct);
     }
 
     /// <summary>Apaga o modpack (cascata em mods/servidores) e os overrides extraídos do slug.</summary>
@@ -272,9 +272,9 @@ public sealed class ModpackImportService(
     // ── Persistência (escrita-só-ao-Guardar) ───────────────────────────────────────────────────
 
     /// <summary>
-    /// Salva <b>só os metadados</b> do modpack (identidade, versões, extras) — para o modal de Detalhes do
-    /// hub, sem mexer em mods/servidores/overrides. Bumpa <c>UpdatedAt</c> (marca instâncias derivadas
-    /// como desatualizadas) e avisa os launchers. Lança se o modpack ainda não existe.
+    ///     Salva <b>só os metadados</b> do modpack (identidade, versões, extras) — para o modal de Detalhes do
+    ///     hub, sem mexer em mods/servidores/overrides. Bumpa <c>UpdatedAt</c> (marca instâncias derivadas
+    ///     como desatualizadas) e avisa os launchers. Lança se o modpack ainda não existe.
     /// </summary>
     public async Task UpdateMetadataAsync(ModpackEntity draft, CancellationToken ct = default)
     {
@@ -299,22 +299,23 @@ public sealed class ModpackImportService(
     // ── Conexões divulgadas manuais (modal do hub) ────────────────────────────────────────────────
 
     /// <summary>
-    /// Conexões <b>manuais</b> divulgadas pelo modpack (servidores externos cadastrados à mão). Exclui
-    /// as auto-geradas por instâncias (<c>ServerInstanceId != null</c>), que são geridas pela instância.
-    /// Devolve cópias destacadas para o painel editar livremente.
+    ///     Conexões <b>manuais</b> divulgadas pelo modpack (servidores externos cadastrados à mão). Exclui
+    ///     as auto-geradas por instâncias (<c>ServerInstanceId != null</c>), que são geridas pela instância.
+    ///     Devolve cópias destacadas para o painel editar livremente.
     /// </summary>
     public async Task<List<ServerEntryEntity>> GetManualConnectionsAsync(Guid modpackId, CancellationToken ct = default)
     {
         return await db.Servers.AsNoTracking()
             .Where(s => s.ModpackId == modpackId && s.ServerInstanceId == null)
             .OrderBy(s => s.Name)
-            .Select(s => new ServerEntryEntity { Name = s.Name, Address = s.Address, Port = s.Port, ModpackId = modpackId })
+            .Select(s => new ServerEntryEntity
+                { Name = s.Name, Address = s.Address, Port = s.Port, ModpackId = modpackId })
             .ToListAsync(ct);
     }
 
     /// <summary>
-    /// Substitui as conexões manuais do modpack pelo conjunto editado (as auto-geradas por instâncias
-    /// ficam intactas). Avisa os launchers (SSE).
+    ///     Substitui as conexões manuais do modpack pelo conjunto editado (as auto-geradas por instâncias
+    ///     ficam intactas). Avisa os launchers (SSE).
     /// </summary>
     public async Task SaveConnectionsAsync(
         Guid modpackId, IReadOnlyList<ServerEntryEntity> entries, CancellationToken ct = default)
@@ -336,10 +337,10 @@ public sealed class ModpackImportService(
     }
 
     /// <summary>
-    /// Persiste o rascunho: cria/atualiza o modpack, reconcilia servidores e os vínculos de mod
-    /// (o formulário é a fonte da verdade), faz upsert dos arquivos compartilhados
-    /// (<see cref="ModFileEntity"/>), garante o cache de jars ainda sem hash e extrai overrides
-    /// pendentes. <paramref name="mods"/> é a lista plana do editor (ver <see cref="FlattenMods"/>).
+    ///     Persiste o rascunho: cria/atualiza o modpack, reconcilia servidores e os vínculos de mod
+    ///     (o formulário é a fonte da verdade), faz upsert dos arquivos compartilhados
+    ///     (<see cref="ModFileEntity" />), garante o cache de jars ainda sem hash e extrai overrides
+    ///     pendentes. <paramref name="mods" /> é a lista plana do editor (ver <see cref="FlattenMods" />).
     /// </summary>
     public async Task SaveAsync(
         ModpackEntity draft, IReadOnlyList<ModEntryEntity> mods, byte[]? pendingOverrides = null,
@@ -507,9 +508,9 @@ public sealed class ModpackImportService(
     }
 
     /// <summary>
-    /// Extrai o bundle de overrides para <c>data-server/modpacks/{slug}/overrides/</c>, substituindo
-    /// o conteúdo anterior. Devolve <c>true</c> se havia overrides. Editável depois pelo painel
-    /// (ver <see cref="ModpackOverridesService" />).
+    ///     Extrai o bundle de overrides para <c>data-server/modpacks/{slug}/overrides/</c>, substituindo
+    ///     o conteúdo anterior. Devolve <c>true</c> se havia overrides. Editável depois pelo painel
+    ///     (ver <see cref="ModpackOverridesService" />).
     /// </summary>
     private bool ExtractOverrides(Guid uid, byte[]? overrides)
     {

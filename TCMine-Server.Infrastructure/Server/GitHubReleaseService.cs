@@ -7,7 +7,11 @@ namespace TCMine_Server.Infrastructure.Server;
 
 /// <summary>Faixa de releases do servidor (tags <c>server-v*</c>) — dirige o aviso de "atualize o servidor".</summary>
 public sealed record ServerTrack(
-    string CurrentVersion, string? LatestVersion, string? Notes, string? Url, bool UpdateAvailable);
+    string CurrentVersion,
+    string? LatestVersion,
+    string? Notes,
+    string? Url,
+    bool UpdateAvailable);
 
 /// <summary>
 ///     Faixa de releases do launcher (tags <c>launcher-v*</c>) — a versão do <b>código</b> do launcher,
@@ -15,7 +19,10 @@ public sealed record ServerTrack(
 ///     <see cref="Tag" /> (tarball do GitHub).
 /// </summary>
 public sealed record LauncherTrack(
-    string? LatestVersion, string? Tag, string? Notes, string? Url);
+    string? LatestVersion,
+    string? Tag,
+    string? Notes,
+    string? Url);
 
 /// <summary>As duas faixas independentes.</summary>
 public sealed record GitHubTracks(ServerTrack Server, LauncherTrack Launcher);
@@ -27,7 +34,9 @@ public sealed record GitHubTracks(ServerTrack Server, LauncherTrack Launcher);
 ///     (devolve o último conhecido).
 /// </summary>
 public sealed class GitHubReleaseService(
-    IHttpClientFactory http, IConfiguration config, ILogger<GitHubReleaseService> logger) : IDisposable
+    IHttpClientFactory http,
+    IConfiguration config,
+    ILogger<GitHubReleaseService> logger) : IDisposable
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromHours(6);
 
@@ -37,6 +46,12 @@ public sealed class GitHubReleaseService(
 
     // Repo fixo do projeto no GitHub — as faixas server-v*/launcher-v* saem daqui.
     public string Repo => "tiny-core/TCMine";
+
+    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa a atualização da cache.
+    public void Dispose()
+    {
+        _gate.Dispose();
+    }
 
     /// <summary>As duas faixas (cacheadas). <paramref name="force" /> ignora a cache.</summary>
     public async Task<GitHubTracks> GetAsync(bool force = false, CancellationToken ct = default)
@@ -99,18 +114,14 @@ public sealed class GitHubReleaseService(
 
     private static string Strip(string tag, string prefix)
     {
-        return tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) ? tag[prefix.Length..] : tag.TrimStart('v', 'V');
+        return tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+            ? tag[prefix.Length..]
+            : tag.TrimStart('v', 'V');
     }
 
     private bool Fresh()
     {
         return _cached is not null && DateTime.UtcNow - _cachedAtUtc < Ttl;
-    }
-
-    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa a atualização da cache.
-    public void Dispose()
-    {
-        _gate.Dispose();
     }
 
     private sealed record GhRelease(

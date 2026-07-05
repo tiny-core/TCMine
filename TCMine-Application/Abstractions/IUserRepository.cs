@@ -3,9 +3,9 @@ using TCMine_Domain.Entities;
 namespace TCMine_Application.Abstractions;
 
 /// <summary>
-/// Acesso a dados dos usuários do painel. A camada Application depende desta porta;
-/// a implementação concreta (EF Core) vive na Infrastructure. Regras de negócio (normalização
-/// do login, hash de senha) ficam no serviço de aplicação — o repositório só persiste/consulta.
+///     Acesso a dados dos usuários do painel. A camada Application depende desta porta;
+///     a implementação concreta (EF Core) vive na Infrastructure. Regras de negócio (normalização
+///     do login, hash de senha) ficam no serviço de aplicação — o repositório só persiste/consulta.
 /// </summary>
 public interface IUserRepository
 {
@@ -27,10 +27,10 @@ public interface IUserRepository
     /// <summary>Quantos Owners ativos existem (impede remover/rebaixar o último).</summary>
     Task<int> CountActiveOwnersAsync(CancellationToken ct = default);
 
-    /// <summary>Marca um novo usuário para inserção (efetivado no <see cref="SaveChangesAsync"/>).</summary>
+    /// <summary>Marca um novo usuário para inserção (efetivado no <see cref="SaveChangesAsync" />).</summary>
     void Add(UserEntity user);
 
-    /// <summary>Marca um usuário para remoção (efetivado no <see cref="SaveChangesAsync"/>).</summary>
+    /// <summary>Marca um usuário para remoção (efetivado no <see cref="SaveChangesAsync" />).</summary>
     void Remove(UserEntity user);
 
     /// <summary>Persiste as alterações pendentes (insert/update/delete).</summary>

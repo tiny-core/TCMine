@@ -3,31 +3,30 @@ using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
-using TCMine_Server.Services;
 using TCMine_Server.Infrastructure.ServerInstances;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers;
 
 /// <summary>
-/// Lista das instâncias de servidor com as ações de ciclo de vida (provisionar, iniciar, parar) e
-/// acesso ao detalhe/console. Cria via <see cref="ServerInstanceEditDialog"/> e delega tudo ao
-/// <see cref="ServerInstanceService"/>. Operações pesadas usam o <see cref="BusyService"/>; a lista é
-/// recarregada após cada mudança para refletir o estado real.
+///     Lista das instâncias de servidor com as ações de ciclo de vida (provisionar, iniciar, parar) e
+///     acesso ao detalhe/console. Cria via <see cref="ServerInstanceEditDialog" /> e delega tudo ao
+///     <see cref="ServerInstanceService" />. Operações pesadas usam o <see cref="BusyService" />; a lista é
+///     recarregada após cada mudança para refletir o estado real.
 /// </summary>
 public partial class ServerInstances : ComponentBase
 {
+    // Jogadores online por instância (Server List Ping, feito em paralelo após o load — não bloqueia)
+    private readonly Dictionary<Guid, ServerPing?> _pings = new();
+
+    // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
+    private List<ServerInstanceRowDto>? _rows;
+    private string _search = string.Empty;
     [Inject] private ServerInstanceService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
-
-    // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
-    private List<ServerInstanceRowDto>? _rows;
-    private string _search = string.Empty;
-
-    // Jogadores online por instância (Server List Ping, feito em paralelo após o load — não bloqueia)
-    private readonly Dictionary<Guid, ServerPing?> _pings = new();
 
     protected override async Task OnInitializedAsync()
     {

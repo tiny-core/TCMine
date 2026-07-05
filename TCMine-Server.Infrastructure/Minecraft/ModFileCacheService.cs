@@ -4,31 +4,30 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using TCMine_Application.Contracts;
 using TCMine_Application.Modpack;
-using TCMine_Server.Infrastructure.FileSystem;
-using TCMine_Domain.Modpack;
-using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Domain.Entities;
+using TCMine_Domain.Modpack;
 using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.FileSystem;
+using TCMine_Server.Infrastructure.Persistence;
 
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Cache de jars no disco (<c>tcmine-data/mods/{fileId}/{fileName}</c>) e gestão dos
-/// <see cref="ModFileEntity"/> partilhados entre modpacks. Extraído do <see cref="ModpackImportService"/>
-/// para isolar a preocupação "arquivo/jar/hash/órfão" do fluxo de edição do modpack.
-///
-/// Princípio: cada jar é baixado <b>uma vez</b> para o cache partilhado, com SHA-1 (integridade) e
-/// tamanho; o launcher depois baixa do servidor (nunca do CF). Um <see cref="ModFileEntity"/> pode
-/// ser reusado por vários modpacks — quando fica sem nenhum vínculo, é marcado como órfão
-/// (<see cref="MarkOrphansAsync"/>) e pode ser removido pela página de mods.
+///     Cache de jars no disco (<c>tcmine-data/mods/{fileId}/{fileName}</c>) e gestão dos
+///     <see cref="ModFileEntity" /> partilhados entre modpacks. Extraído do <see cref="ModpackImportService" />
+///     para isolar a preocupação "arquivo/jar/hash/órfão" do fluxo de edição do modpack.
+///     Princípio: cada jar é baixado <b>uma vez</b> para o cache partilhado, com SHA-1 (integridade) e
+///     tamanho; o launcher depois baixa do servidor (nunca do CF). Um <see cref="ModFileEntity" /> pode
+///     ser reusado por vários modpacks — quando fica sem nenhum vínculo, é marcado como órfão
+///     (<see cref="MarkOrphansAsync" />) e pode ser removido pela página de mods.
 /// </summary>
 public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf, IHostEnvironment env)
 {
     private readonly string _root = env.ContentRootPath;
 
     /// <summary>
-    /// Todos os arquivos de mod do servidor (um por FileId) com os modpacks em que aparecem — para a
-    /// página "todos os mods". Órfão = sem nenhum vínculo. Ordenado por nome.
+    ///     Todos os arquivos de mod do servidor (um por FileId) com os modpacks em que aparecem — para a
+    ///     página "todos os mods". Órfão = sem nenhum vínculo. Ordenado por nome.
     /// </summary>
     public async Task<List<ModFileRowDto>> ListModFilesAsync(CancellationToken ct = default)
     {
@@ -47,8 +46,8 @@ public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf,
     }
 
     /// <summary>
-    /// Remove um arquivo de mod **órfão** (sem vínculos) do banco e o jar do cache de disco. Recusa
-    /// se ainda houver algum modpack usando-o (proteção contra quebrar um pack).
+    ///     Remove um arquivo de mod **órfão** (sem vínculos) do banco e o jar do cache de disco. Recusa
+    ///     se ainda houver algum modpack usando-o (proteção contra quebrar um pack).
     /// </summary>
     public async Task<bool> DeleteOrphanFileAsync(long fileId, CancellationToken ct = default)
     {
@@ -69,9 +68,9 @@ public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf,
     }
 
     /// <summary>
-    /// Recalcula o marcador de órfão dos arquivos dados: sem nenhum vínculo restante ⇒ OrphanedAt = agora
-    /// (se ainda não marcado); com vínculo ⇒ limpa. Persiste se algo mudou. Chamado pelo
-    /// <see cref="ModpackImportService"/> após gravar/apagar um modpack.
+    ///     Recalcula o marcador de órfão dos arquivos dados: sem nenhum vínculo restante ⇒ OrphanedAt = agora
+    ///     (se ainda não marcado); com vínculo ⇒ limpa. Persiste se algo mudou. Chamado pelo
+    ///     <see cref="ModpackImportService" /> após gravar/apagar um modpack.
     /// </summary>
     public async Task MarkOrphansAsync(List<long> fileIds, CancellationToken ct)
     {
@@ -105,8 +104,8 @@ public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf,
     }
 
     /// <summary>
-    /// Garante que o jar está no cache (<c>data-server/mods/{fileId}/{fileName}</c>) e devolve
-    /// o SHA-1 e o tamanho. Se já estiver em cache, só recalcula o hash a partir do disco.
+    ///     Garante que o jar está no cache (<c>data-server/mods/{fileId}/{fileName}</c>) e devolve
+    ///     o SHA-1 e o tamanho. Se já estiver em cache, só recalcula o hash a partir do disco.
     /// </summary>
     public async Task<(string? Sha1, long Length)> EnsureCachedAsync(
         long fileId, string fileName, string url, CancellationToken ct)
@@ -138,8 +137,8 @@ public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf,
     }
 
     /// <summary>
-    /// Baixa o server pack (se houver) e devolve o conjunto de nomes de jar contidos nele —
-    /// base da inferência de <c>ModSide</c>. Devolve nulo quando não há server pack.
+    ///     Baixa o server pack (se houver) e devolve o conjunto de nomes de jar contidos nele —
+    ///     base da inferência de <c>ModSide</c>. Devolve nulo quando não há server pack.
     /// </summary>
     public async Task<IReadOnlySet<string>?> LoadServerPackFileNamesAsync(
         long? serverPackFileId, CancellationToken ct)
@@ -171,10 +170,10 @@ public sealed class ModFileCacheService(AppDbContext db, CurseForgeApiClient cf,
     }
 
     /// <summary>
-    /// Recebe um jar enviado pelo admin, guarda-o no cache compartilhado e devolve uma entidade de mod
-    /// <b>destacada</b> (pronta para entrar no rascunho), já com SHA-1/tamanho. O <c>FileId</c> é
-    /// sintético e <b>negativo</b> (derivado do conteúdo) para nunca colidir com ids do CurseForge e
-    /// duplicar uploads idênticos. Não toca no banco — a gravação acontece no Guardar.
+    ///     Recebe um jar enviado pelo admin, guarda-o no cache compartilhado e devolve uma entidade de mod
+    ///     <b>destacada</b> (pronta para entrar no rascunho), já com SHA-1/tamanho. O <c>FileId</c> é
+    ///     sintético e <b>negativo</b> (derivado do conteúdo) para nunca colidir com ids do CurseForge e
+    ///     duplicar uploads idênticos. Não toca no banco — a gravação acontece no Guardar.
     /// </summary>
     public async Task<ModEntryEntity> AddUploadedModAsync(
         string fileName, byte[] content, CancellationToken ct = default)

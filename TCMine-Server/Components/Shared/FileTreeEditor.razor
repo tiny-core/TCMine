@@ -1,6 +1,4 @@
 @namespace TCMine_Server.Components.Shared
-@using Microsoft.AspNetCore.Components.Forms
-@using BlazorMonaco.Editor
 
 @* Árvore de arquivos (MudTreeView lazy) + editor Monaco — componente COMPARTILHADO entre os overrides
    do modpack e as configs do servidor. As ações disponíveis vêm das capacidades do IFileTreeSource.
@@ -10,14 +8,16 @@
     @if (Source.CanCreate)
     {
         <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.NoteAdd" OnClick="NewFileAsync">Novo arquivo</MudButton>
+                   StartIcon="@Icons.Material.Filled.NoteAdd" OnClick="NewFileAsync">Novo arquivo
+        </MudButton>
     }
     @if (Source.CanUpload)
     {
         <MudFileUpload T="IBrowserFile" FilesChanged="UploadFileAsync" MaximumFileCount="1">
             <CustomContent Context="upload">
                 <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile"
-                           OnClick="@(() => upload.OpenFilePickerAsync())">Enviar arquivo</MudButton>
+                           OnClick="@(() => upload.OpenFilePickerAsync())">Enviar arquivo
+                </MudButton>
             </CustomContent>
         </MudFileUpload>
     }
@@ -85,11 +85,13 @@
                 {
                     <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
                                StartIcon="@Icons.Material.Filled.Delete" Disabled="_selected is null"
-                               OnClick="DeleteSelectedAsync">Apagar</MudButton>
+                               OnClick="DeleteSelectedAsync">Apagar
+                    </MudButton>
                 }
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                            StartIcon="@Icons.Material.Filled.Save" Disabled="!_dirty || _binary"
-                           OnClick="SaveFileAsync">Salvar arquivo</MudButton>
+                           OnClick="SaveFileAsync">Salvar arquivo
+                </MudButton>
             </MudStack>
         </MudStack>
 
@@ -101,12 +103,14 @@
 
             @if (_selected is null || _binary)
             {
-                <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
+                <div
+                    style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--mud-palette-surface);">
                     <MudStack AlignItems="AlignItems.Center">
                         <MudIcon Icon="@(_binary ? Icons.Material.Filled.Lock : Icons.Material.Filled.Edit)"
                                  Size="Size.Large" Color="Color.Secondary"/>
                         <MudText Typo="Typo.body2" Color="Color.Secondary">
-                            @(_binary ? $"{_selected} é binário — não editável como texto."
+                            @(_binary
+                                ? $"{_selected} é binário — não editável como texto."
                                 : "Selecione um arquivo na árvore para editar.")
                         </MudText>
                     </MudStack>

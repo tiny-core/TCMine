@@ -1,9 +1,9 @@
 ﻿namespace TCMine_Domain.Identity;
 
 /// <summary>
-/// Níveis de acesso do painel admin, do mais para o menos privilegiado.
-/// Guardado como string no banco (ver mapeamento no AppDbContext) — legível e estável
-/// as reordenações do enum.
+///     Níveis de acesso do painel admin, do mais para o menos privilegiado.
+///     Guardado como string no banco (ver mapeamento no AppDbContext) — legível e estável
+///     as reordenações do enum.
 /// </summary>
 public enum UserRole
 {

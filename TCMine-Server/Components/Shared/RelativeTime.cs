@@ -1,8 +1,8 @@
 namespace TCMine_Server.Components.Shared;
 
 /// <summary>
-/// Formatação de tempo relativo curto em PT-BR (ex.: "agora", "há 5 min", "há 2 h", "há 3 d").
-/// Compartilhado pelos widgets do dashboard (atividade recente, modpacks recentes).
+///     Formatação de tempo relativo curto em PT-BR (ex.: "agora", "há 5 min", "há 2 h", "há 3 d").
+///     Compartilhado pelos widgets do dashboard (atividade recente, modpacks recentes).
 /// </summary>
 public static class RelativeTime
 {

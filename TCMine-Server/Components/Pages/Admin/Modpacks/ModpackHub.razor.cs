@@ -2,10 +2,10 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
-using TCMine_Server.Infrastructure.Minecraft;
-using TCMine_Server.Infrastructure.ServerInstances;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
+using TCMine_Server.Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.ServerInstances;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
@@ -20,7 +20,7 @@ public partial class ModpackHub : ComponentBase
 {
     private readonly List<BreadcrumbItem> _breadcrumbItems =
     [
-        new("Modpacks", "/admin/modpacks", icon: Icons.Material.Filled.Inventory2),
+        new("Modpacks", "/admin/modpacks", icon: Icons.Material.Filled.Inventory2)
     ];
 
     private List<ServerInstanceRowDto>? _instances;
@@ -49,11 +49,11 @@ public partial class ModpackHub : ComponentBase
             Nav.NavigateTo("/admin/modpacks");
             return;
         }
- 
+
         _instances = await Servers.ListByModpackAsync(Id);
         _breadcrumbItems.Insert(1, new BreadcrumbItem(
-            _pack.Name, $"/admin/modpacks/{Id}", 
-            icon: Icons.Material.Filled.ModeEdit, 
+            _pack.Name, $"/admin/modpacks/{Id}",
+            icon: Icons.Material.Filled.ModeEdit,
             disabled: true));
     }
 

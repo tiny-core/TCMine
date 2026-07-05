@@ -8,21 +8,20 @@ using TCMine_Server.Infrastructure.Minecraft;
 namespace TCMine_Server.Endpoints;
 
 /// <summary>
-/// Sync <b>incremental</b> das configs do jogador entre PCs, por <c>(uuid, modpackId)</c>. Os ficheiros
-/// player-owned (keybinds/opções, shaders, minimapa — incluindo o cache de mapa dos <b>servidores</b>)
-/// vivem <b>descompactados em disco</b> (<c>tcmine-data/player-configs/{uuid}/{modpackId}/</c>) ao lado de
-/// um <c>.tcmine-manifest.json</c> (caminho → hash+tamanho). Só os ficheiros que mudaram trafegam — nunca
-/// o conjunto inteiro — para não sobrecarregar a rede.
-///
-/// - <b>GET /manifest</b> (aberto): o manifesto atual, para o cliente diferenciar.
-/// - <b>POST /bundle</b> (aberto): zip só com os caminhos pedidos (o cliente baixa o que lhe falta).
-/// - <b>PUT /push</b> (auth): zip só com os ficheiros novos/alterados + o novo manifesto; o servidor
-///   aplica-os e apaga os que saíram do manifesto. Exige token Minecraft do UUID (ver
-///   <see cref="MinecraftAuthService"/>). Tudo rate-limited pela política "configs".
+///     Sync <b>incremental</b> das configs do jogador entre PCs, por <c>(uuid, modpackId)</c>. Os arquivos
+///     player-owned (keybinds/opções, shaders, minimapa — incluindo o cache de mapa dos <b>servidores</b>)
+///     vivem <b>descompactados em disco</b> (<c>tcmine-data/player-configs/{uuid}/{modpackId}/</c>) ao lado de
+///     um <c>.tcmine-manifest.json</c> (caminho → hash+tamanho). Só os arquivos que mudaram trafegam — nunca
+///     o conjunto inteiro — para não sobrecarregar a rede.
+///     - <b>GET /manifest</b> (aberto): o manifesto atual, para o cliente diferenciar.
+///     - <b>POST /bundle</b> (aberto): zip só com os caminhos pedidos (o cliente baixa o que lhe falta).
+///     - <b>PUT /push</b> (auth): zip só com os arquivos novos/alterados + o novo manifesto; o servidor
+///     aplica-os e apaga os que saíram do manifesto. Exige token Minecraft do UUID (ver
+///     <see cref="MinecraftAuthService" />). Tudo rate-limited pela política "configs".
 /// </summary>
 public static class PlayerConfigEndpoints
 {
-    // Manifesto guardado ao lado dos ficheiros; nunca é servido como ficheiro de config normal.
+    // Manifesto guardado ao lado dos arquivos; nunca é servido como arquivo de config normal.
     private const string ManifestFile = ".tcmine-manifest.json";
 
     // Teto defensivo do corpo do PUT (o diff pode incluir o cache de mapa na 1ª vez). Ajustar se preciso.
@@ -68,21 +67,23 @@ public static class PlayerConfigEndpoints
             // Zip para um temporário auto-apagável (DeleteOnClose) e servido por streaming.
             var tmp = Path.Combine(Path.GetTempPath(), "tcmine-bundle-" + Guid.NewGuid().ToString("N") + ".zip");
             await using (var fs = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
-            using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
-                foreach (var rel in req.Paths ?? [])
+            await using (var zip = new ZipArchive(fs, ZipArchiveMode.Create))
+            {
+                foreach (var rel in req.Paths)
                 {
                     if (rel == ManifestFile) continue;
                     var full = Path.GetFullPath(Path.Combine(dir, rel));
                     if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase) || !File.Exists(full)) continue;
                     await zip.CreateEntryFromFileAsync(full, rel, ct);
                 }
+            }
 
             var stream = new FileStream(tmp, FileMode.Open, FileAccess.Read, FileShare.None, 4096,
                 FileOptions.DeleteOnClose);
             return Results.File(stream, "application/zip");
         }).RequireRateLimiting("configs");
 
-        // Push incremental: zip com ficheiros novos/alterados + o novo manifesto. Escrita autenticada.
+        // Push incremental: zip com arquivos novos/alterados + o novo manifesto. Escrita autenticada.
         app.MapPut("/players/{uuid}/configs/{modpackId}/push", async (
             string uuid, string modpackId, HttpContext ctx, IHostEnvironment env,
             MinecraftAuthService auth, CancellationToken ct) =>
@@ -112,14 +113,17 @@ public static class PlayerConfigEndpoints
                         return Results.BadRequest();
                 }
 
-                using var zip = ZipFile.OpenRead(tmp);
+                await using var zip = await ZipFile.OpenReadAsync(tmp, ct);
 
-                // O manifesto novo (lista completa de ficheiros) vem dentro do zip.
+                // O manifesto novo (lista completa de arquivos) vem dentro do zip.
                 var manifestEntry = zip.GetEntry(ManifestFile);
                 if (manifestEntry is null) return Results.BadRequest();
                 PlayerConfigManifest? incoming;
-                await using (var ms = manifestEntry.Open())
+                await using (var ms = await manifestEntry.OpenAsync(ct))
+                {
                     incoming = await JsonSerializer.DeserializeAsync<PlayerConfigManifest>(ms, Json, ct);
+                }
+
                 if (incoming is null) return Results.BadRequest();
 
                 // Cota: rejeita se o conjunto declarado excede o teto por (uuid, modpackId). Barra o
@@ -132,14 +136,14 @@ public static class PlayerConfigEndpoints
 
                 var oldManifest = ReadManifest(dir);
 
-                // Extrai os ficheiros alterados/novos (tudo menos o manifesto), com guarda de zip-slip.
+                // Extrai os arquivos alterados/novos (tudo menos o manifesto), com guarda de zip-slip.
                 foreach (var entry in zip.Entries)
                 {
                     if (entry.FullName == ManifestFile || string.IsNullOrEmpty(entry.Name)) continue;
                     var dest = Path.GetFullPath(Path.Combine(dir, entry.FullName));
                     if (!dest.StartsWith(root, StringComparison.OrdinalIgnoreCase)) continue;
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-                    entry.ExtractToFile(dest, true);
+                    await entry.ExtractToFileAsync(dest, true, ct);
                 }
 
                 // Apaga o que saiu do manifesto (ficheiros presentes antes e ausentes agora).
@@ -169,18 +173,26 @@ public static class PlayerConfigEndpoints
         }).RequireRateLimiting("configs");
     }
 
-    private static string ConfigDir(IHostEnvironment env, string uuid, string modpackId) =>
-        Path.Combine(ServerPaths.PlayerConfigs(env.ContentRootPath), uuid, modpackId);
+    private static string ConfigDir(IHostEnvironment env, string uuid, string modpackId)
+    {
+        return Path.Combine(ServerPaths.PlayerConfigs(env.ContentRootPath), uuid, modpackId);
+    }
 
     private static PlayerConfigManifest? ReadManifest(string dir)
     {
         var path = Path.Combine(dir, ManifestFile);
         if (!File.Exists(path)) return null;
-        try { return JsonSerializer.Deserialize<PlayerConfigManifest>(File.ReadAllText(path), Json); }
-        catch { return null; }
+        try
+        {
+            return JsonSerializer.Deserialize<PlayerConfigManifest>(File.ReadAllText(path), Json);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
-    /// <summary>Copia até <paramref name="max"/> bytes; corta (BadRequest a montante via 0? não) lançando.</summary>
+    /// <summary>Copia até <paramref name="max" /> bytes; corta (BadRequest a montante via 0? Não) lançando.</summary>
     private static async Task<long> CopyBoundedAsync(Stream src, Stream dst, long max, CancellationToken ct)
     {
         var buffer = new byte[81920];
@@ -198,8 +210,14 @@ public static class PlayerConfigEndpoints
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); }
-        catch { /* best-effort */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            /* best-effort */
+        }
     }
 
     /// <summary>Aceita só chaves simples (defesa; também garante um segmento de path seguro).</summary>
@@ -210,9 +228,9 @@ public static class PlayerConfigEndpoints
     }
 
     /// <summary>
-    /// Autoriza uma leitura (manifest/bundle): exige o token Minecraft do próprio UUID. Devolve o
-    /// <see cref="IResult"/> de recusa (401 sem token, 403 se não pertence ao UUID) ou <c>null</c> se
-    /// autorizado. Fail-open herdado do <see cref="MinecraftAuthService"/> (Mojang fora → autoriza).
+    ///     Autoriza uma leitura (manifest/bundle): exige o token Minecraft do próprio UUID. Devolve o
+    ///     <see cref="IResult" /> de recusa (401 sem token, 403 se não pertence ao UUID) ou <c>null</c> se
+    ///     autorizado. Fail-open herdado do <see cref="MinecraftAuthService" /> (Mojang fora → autoriza).
     /// </summary>
     private static async Task<IResult?> AuthorizeReadAsync(
         HttpContext ctx, string uuid, MinecraftAuthService auth, CancellationToken ct)

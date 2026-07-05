@@ -23,9 +23,9 @@ public interface ICurseForgeApi
         IReadOnlyCollection<long> modIds, CancellationToken ct = default);
 
     /// <summary>
-    /// Arquivo mais recente de cada mod para uma versão MC + loader, em **lote** (usa o
-    /// <c>latestFilesIndexes</c> do <c>POST /v1/mods</c>). 1 chamada para N mods — base da checagem
-    /// de atualizações econômicas. Mods sem arquivo para o alvo são omitidos do resultado.
+    ///     Arquivo mais recente de cada mod para uma versão MC + loader, em **lote** (usa o
+    ///     <c>latestFilesIndexes</c> do <c>POST /v1/mods</c>). 1 chamada para N mods — base da checagem
+    ///     de atualizações econômicas. Mods sem arquivo para o alvo são omitidos do resultado.
     /// </summary>
     Task<IReadOnlyDictionary<long, CfLatestFileDto>> GetLatestFileIndexesAsync(
         IReadOnlyCollection<long> modIds, string gameVersion, int loaderType, CancellationToken ct = default);

@@ -1,8 +1,8 @@
 namespace TCMine_Domain.Launcher;
 
 /// <summary>
-/// Identidade do jogador para a UI (derivada do login). Valor puro de domínio — a obtenção do token
-/// (MSAL/CmlLib) é infraestrutura; aqui só o que a UI mostra.
+///     Identidade do jogador para a UI (derivada do login). Valor puro de domínio — a obtenção do token
+///     (MSAL/CmlLib) é infraestrutura; aqui só o que a UI mostra.
 /// </summary>
 public sealed record PlayerSession(string Uuid, string Username)
 {

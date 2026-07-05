@@ -6,7 +6,7 @@ namespace TCMine_Server.Components.Shared;
 public partial class StatCard : ComponentBase
 {
     // Ícone do Material exibido à esquerda
-    [Parameter] [EditorRequired] public string Icon { get; set; } = null!;
+    [Parameter] public string Icon { get; set; } = null!;
 
     // Cor do ícone (acento do tema)
     [Parameter] public Color Color { get; set; } = Color.Default;

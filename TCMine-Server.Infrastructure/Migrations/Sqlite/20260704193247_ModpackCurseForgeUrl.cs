@@ -1,29 +1,28 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿#nullable disable
 
-#nullable disable
+using Microsoft.EntityFrameworkCore.Migrations;
 
-namespace TCMine_Server.Infrastructure.Migrations.Sqlite
+namespace TCMine_Server.Infrastructure.Migrations.Sqlite;
+
+/// <inheritdoc />
+public partial class ModpackCurseForgeUrl : Migration
 {
     /// <inheritdoc />
-    public partial class ModpackCurseForgeUrl : Migration
+    protected override void Up(MigrationBuilder migrationBuilder)
     {
-        /// <inheritdoc />
-        protected override void Up(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.AddColumn<string>(
-                name: "CurseForgeUrl",
-                table: "Modpacks",
-                type: "TEXT",
-                maxLength: 300,
-                nullable: true);
-        }
+        migrationBuilder.AddColumn<string>(
+            "CurseForgeUrl",
+            "Modpacks",
+            "TEXT",
+            maxLength: 300,
+            nullable: true);
+    }
 
-        /// <inheritdoc />
-        protected override void Down(MigrationBuilder migrationBuilder)
-        {
-            migrationBuilder.DropColumn(
-                name: "CurseForgeUrl",
-                table: "Modpacks");
-        }
+    /// <inheritdoc />
+    protected override void Down(MigrationBuilder migrationBuilder)
+    {
+        migrationBuilder.DropColumn(
+            "CurseForgeUrl",
+            "Modpacks");
     }
 }

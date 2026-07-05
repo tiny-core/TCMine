@@ -9,19 +9,17 @@ using TCMine_Server.Infrastructure.Persistence;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Monta o diretório de uma instância de servidor a partir do seu modpack, pronto para o container
-/// subir. Orquestra as peças do passo de provisionamento:
-///
-/// <list type="number">
-/// <item>garante a instalação do loader no cache compartilhado (<see cref="ServerRuntimeInstaller"/>);</item>
-/// <item>liga o <c>libraries/</c> pesado do cache no diretório da instância (symlink/hardlink — sem cópia);</item>
-/// <item>liga os jars dos mods do <b>lado servidor</b> (filtro <see cref="ModSideRules"/>) do cache de mods;</item>
-/// <item>semeia o <c>config/</c> da instância com os overrides do modpack (cópia — editável por instância);</item>
-/// <item>gera as configs (<see cref="ServerConfigWriter"/>) e marca <c>ProvisionedAt</c>.</item>
-/// </list>
-///
-/// É idempotente: re-provisionar re-liga libraries e mods (refletindo mudanças no modpack) sem mexer no
-/// <c>config/</c>/<c>world/</c> já existentes da instância (que passam a ser editados pelo painel).
+///     Monta o diretório de uma instância de servidor a partir do seu modpack, pronto para o container
+///     subir. Orquestra as peças do passo de provisionamento:
+///     <list type="number">
+///         <item>garante a instalação do loader no cache compartilhado (<see cref="ServerRuntimeInstaller" />);</item>
+///         <item>liga o <c>libraries/</c> pesado do cache no diretório da instância (symlink/hardlink — sem cópia);</item>
+///         <item>liga os jars dos mods do <b>lado servidor</b> (filtro <see cref="ModSideRules" />) do cache de mods;</item>
+///         <item>semeia o <c>config/</c> da instância com os overrides do modpack (cópia — editável por instância);</item>
+///         <item>gera as configs (<see cref="ServerConfigWriter" />) e marca <c>ProvisionedAt</c>.</item>
+///     </list>
+///     É idempotente: re-provisionar re-liga libraries e mods (refletindo mudanças no modpack) sem mexer no
+///     <c>config/</c>/<c>world/</c> já existentes da instância (que passam a ser editados pelo painel).
 /// </summary>
 public sealed class ServerProvisioner(
     AppDbContext db,
@@ -38,20 +36,20 @@ public sealed class ServerProvisioner(
     private string ImageTag => config["ServerInstances:Image"] is { Length: > 0 } img ? img : "eclipse-temurin:25-jre";
 
     /// <summary>
-    /// Provisiona a instância <paramref name="instanceId"/>. Reporta marcos via <paramref name="progress"/>
-    /// (texto curto) para o modal de progresso do painel. Persiste <c>Directory</c>, <c>ImageTag</c> e
-    /// <c>ProvisionedAt</c> ao final.
+    ///     Provisiona a instância <paramref name="instanceId" />. Reporta marcos via <paramref name="progress" />
+    ///     (texto curto) para o modal de progresso do painel. Persiste <c>Directory</c>, <c>ImageTag</c> e
+    ///     <c>ProvisionedAt</c> ao final.
     /// </summary>
     public async Task ProvisionAsync(
         Guid instanceId, IProgress<string>? progress = null, CancellationToken ct = default)
     {
         var instance = await db.ServerInstances
-            .Include(i => i.Modpack!).ThenInclude(m => m.Mods).ThenInclude(mm => mm.ModFile)
-            .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
-            ?? throw new InvalidOperationException("Instância não encontrada.");
+                           .Include(i => i.Modpack!).ThenInclude(m => m.Mods).ThenInclude(mm => mm.ModFile)
+                           .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
+                       ?? throw new InvalidOperationException("Instância não encontrada.");
 
         var modpack = instance.Modpack
-            ?? throw new InvalidOperationException("Instância sem modpack de origem.");
+                      ?? throw new InvalidOperationException("Instância sem modpack de origem.");
 
         var firstProvision = instance.ProvisionedAt is null;
         var instanceDir = Path.Combine(ServerPaths.Servers(_root), instance.Id.ToString());
@@ -154,7 +152,7 @@ public sealed class ServerProvisioner(
             var rel = Path.GetRelativePath(overridesDir, file);
             var dest = Path.Combine(instanceDir, rel);
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-            File.Copy(file, dest, overwrite: true);
+            File.Copy(file, dest, true);
             copied++;
         }
 

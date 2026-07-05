@@ -1,8 +1,8 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Formats.Tar;
 using System.IO.Compression;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -24,19 +24,20 @@ public enum LauncherBuildState
 
 /// <summary>Instantâneo imutável do job de compilação — o que a página renderiza.</summary>
 public sealed record LauncherBuildView(
-    LauncherBuildState State, string Version, IReadOnlyList<string> Steps, string? Error);
+    LauncherBuildState State,
+    string Version,
+    IReadOnlyList<string> Steps,
+    string? Error);
 
 /// <summary>
 ///     Compila e empacota o launcher <b>pelo próprio servidor</b>, gerando o feed Velopack em
 ///     <c>tcmine-data/updates</c> (servido em <c>/updates</c>; o <c>Setup.exe</c> em <c>/download</c>).
-///
 ///     <b>Duas versões independentes:</b> o launcher tem a sua própria faixa (<c>launcher-v*</c>),
 ///     desacoplada do servidor. Para não amarrar as duas, a fonte do launcher <b>não é embutida</b> na
 ///     imagem — o servidor a <b>baixa do GitHub</b> na tag da versão-alvo (tarball), compila (injetando
 ///     <c>TcmineServerUrl</c>/<c>MicrosoftClientId</c> das settings) e empacota com o <c>vpk</c>. Assim uma
 ///     mudança só no launcher (novo <c>launcher-v*</c>) é recompilada pelo servidor <b>em execução</b>, sem
 ///     rebuild de imagem nem reinício do container; e uma mudança só no servidor não força update do launcher.
-///
 ///     Roda em segundo plano com progresso reconectável (mesmo padrão do <c>ProvisioningCoordinator</c>).
 ///     Singleton: um build de cada vez. Exige SDK .NET + <c>vpk</c> na imagem (autossuficiente p/ compilar).
 /// </summary>
@@ -53,15 +54,15 @@ public sealed class LauncherBuildService(
     private readonly object _lock = new();
     private Job? _job;
 
-    /// <summary>Disparado a cada mudança do job — a página re-renderiza.</summary>
-    public event Action? Changed;
-
     /// <summary>Instantâneo do job atual (null = nenhum ainda).</summary>
     public LauncherBuildView? Current
     {
         get
         {
-            lock (_lock) return _job?.View();
+            lock (_lock)
+            {
+                return _job?.View();
+            }
         }
     }
 
@@ -70,9 +71,15 @@ public sealed class LauncherBuildService(
     {
         get
         {
-            lock (_lock) return _job is { State: LauncherBuildState.Running };
+            lock (_lock)
+            {
+                return _job is { State: LauncherBuildState.Running };
+            }
         }
     }
+
+    /// <summary>Disparado a cada mudança do job — a página re-renderiza.</summary>
+    public event Action? Changed;
 
     /// <summary>Ambas as settings embutidas no launcher estão configuradas? (pré-requisito do build).</summary>
     public async Task<bool> SettingsReadyAsync(CancellationToken ct = default)
@@ -107,8 +114,10 @@ public sealed class LauncherBuildService(
         return true;
     }
 
-    /// <summary>Inicia (ou ignora, se já rodando) a compilação da <paramref name="tag" /> na
-    /// <paramref name="version" />. Retorna já — o trabalho corre em fundo.</summary>
+    /// <summary>
+    ///     Inicia (ou ignora, se já rodando) a compilação da <paramref name="tag" /> na
+    ///     <paramref name="version" />. Retorna já — o trabalho corre em fundo.
+    /// </summary>
     public void Start(string version, string tag, string notes)
     {
         lock (_lock)
@@ -289,7 +298,7 @@ public sealed class LauncherBuildService(
         await using (var fs = File.OpenRead(tgz))
         await using (var gz = new GZipStream(fs, CompressionMode.Decompress))
         {
-            await TarFile.ExtractToDirectoryAsync(gz, extractDir, overwriteFiles: true);
+            await TarFile.ExtractToDirectoryAsync(gz, extractDir, true);
         }
 
         // O GitHub empacota tudo sob um único diretório-raiz "{repo}-{ref}"
@@ -332,7 +341,10 @@ public sealed class LauncherBuildService(
         void OnLine(string? line)
         {
             if (string.IsNullOrEmpty(line)) return;
-            lock (outLock) output.AppendLine(line);
+            lock (outLock)
+            {
+                output.AppendLine(line);
+            }
 
             var now = DateTime.UtcNow;
             if ((now - lastUi).TotalMilliseconds < 150) return; // throttle
@@ -349,7 +361,7 @@ public sealed class LauncherBuildService(
             if (!process.Start())
                 throw new InvalidOperationException($"Não foi possível iniciar o processo '{exe}'.");
         }
-        catch (System.ComponentModel.Win32Exception ex)
+        catch (Win32Exception ex)
         {
             throw new InvalidOperationException(
                 $"Não foi possível executar '{exe}': {ex.Message}. " +
@@ -361,7 +373,11 @@ public sealed class LauncherBuildService(
         await process.WaitForExitAsync();
 
         string full;
-        lock (outLock) full = output.ToString();
+        lock (outLock)
+        {
+            full = output.ToString();
+        }
+
         return (process.ExitCode, full);
     }
 
@@ -393,8 +409,8 @@ public sealed class LauncherBuildService(
     private sealed class Job(string version)
     {
         private const int MaxSteps = 80;
-        private readonly List<string> _steps = [];
         private readonly object _lock = new();
+        private readonly List<string> _steps = [];
         private string? _error;
 
         public string Version { get; } = version;
@@ -431,7 +447,10 @@ public sealed class LauncherBuildService(
 
         public LauncherBuildView View()
         {
-            lock (_lock) return new LauncherBuildView(State, Version, [.. _steps], _error);
+            lock (_lock)
+            {
+                return new LauncherBuildView(State, Version, [.. _steps], _error);
+            }
         }
     }
 }

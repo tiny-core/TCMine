@@ -1,6 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using TCMine_Application.Abstractions;
@@ -9,10 +9,10 @@ using TCMine_Server.Infrastructure.Persistence.Repositories;
 namespace TCMine_Server.Infrastructure.Persistence;
 
 /// <summary>
-/// Registro e inicialização da camada de dados. Concentra num só lugar a escolha
-/// do provider (SQLite/Postgres) e o mapeamento da base abstrata
-/// <see cref="AppDbContext"/> para a subclasse concreta — assim os serviços
-/// dependem apenas de <see cref="AppDbContext"/> e ignoram o provider.
+///     Registro e inicialização da camada de dados. Concentra num só lugar a escolha
+///     do provider (SQLite/Postgres) e o mapeamento da base abstrata
+///     <see cref="AppDbContext" /> para a subclasse concreta — assim os serviços
+///     dependem apenas de <see cref="AppDbContext" /> e ignoram o provider.
 /// </summary>
 public static partial class DatabaseServiceCollectionExtensions
 {
@@ -23,9 +23,9 @@ public static partial class DatabaseServiceCollectionExtensions
         "Host=localhost;Database=tcmine;Username=postgres;Password=postgres";
 
     /// <summary>
-    /// Registra o <see cref="AppDbContext"/> no DI conforme o provider configurado.
-    /// Prioridade de config: env vars DB_PROVIDER/DB_CONNECTION &gt; seção "Database" do
-    /// appsettings &gt; padrão (SQLite). Env vars ganham para facilitar Docker/produção.
+    ///     Registra o <see cref="AppDbContext" /> no DI conforme o provider configurado.
+    ///     Prioridade de config: env vars DB_PROVIDER/DB_CONNECTION &gt; seção "Database" do
+    ///     appsettings &gt; padrão (SQLite). Env vars ganham para facilitar Docker/produção.
     /// </summary>
     public static IServiceCollection AddTcMineDatabase(
         this IServiceCollection services, IConfiguration config)
@@ -71,15 +71,17 @@ public static partial class DatabaseServiceCollectionExtensions
     }
 
     /// <summary>Connection string padrão do provider quando nada é configurado.</summary>
-    private static string DefaultConnectionFor(DatabaseProvider provider) =>
-        provider == DatabaseProvider.Postgres ? DefaultPostgresConnection : DefaultSqliteConnection;
+    private static string DefaultConnectionFor(DatabaseProvider provider)
+    {
+        return provider == DatabaseProvider.Postgres ? DefaultPostgresConnection : DefaultSqliteConnection;
+    }
 
     /// <summary>
-    /// Monta a connection string do Postgres a partir das env vars <b>separadas</b>
-    /// (<c>DB_HOST</c>, <c>DB_PORT</c>, <c>DB_NAME</c>, <c>DB_USER</c>, <c>DB_PASSWORD</c>). Devolve
-    /// <c>null</c> se o provider não é Postgres ou se nenhuma delas foi informada — aí o caller cai para o
-    /// appsettings/padrão. Usa <see cref="NpgsqlConnectionStringBuilder"/> para escapar valores com
-    /// caracteres especiais (ex.: senha com <c>;</c>). Partes ausentes recebem defaults sensatos.
+    ///     Monta a connection string do Postgres a partir das env vars <b>separadas</b>
+    ///     (<c>DB_HOST</c>, <c>DB_PORT</c>, <c>DB_NAME</c>, <c>DB_USER</c>, <c>DB_PASSWORD</c>). Devolve
+    ///     <c>null</c> se o provider não é Postgres ou se nenhuma delas foi informada — aí o caller cai para o
+    ///     appsettings/padrão. Usa <see cref="NpgsqlConnectionStringBuilder" /> para escapar valores com
+    ///     caracteres especiais (ex.: senha com <c>;</c>). Partes ausentes recebem defaults sensatos.
     /// </summary>
     private static string? BuildConnectionFromParts(IConfiguration config, DatabaseProvider provider)
     {
@@ -109,16 +111,19 @@ public static partial class DatabaseServiceCollectionExtensions
     }
 
     /// <summary>Normaliza para <c>null</c> quando vazio/espaços; senão devolve o valor sem espaços nas pontas.</summary>
-    private static string? Trimmed(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static string? Trimmed(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
 
     /// <summary>
-    /// Aplica as migrations pendentes da camada de dados no Startup. Resolve o
-    /// <see cref="AppDbContext"/> já registrado — o DI escolheu a subclasse concreta
-    /// (SQLite/Postgres) conforme o provider configurado, então o caller não precisa
-    /// repetir essa decisão. Cria um escopo temporário porque o <see cref="DbContext"/>
-    /// é scoped e o aplicativo, no Startup, está fora de requisição.
+    ///     Aplica as migrations pendentes da camada de dados no Startup. Resolve o
+    ///     <see cref="AppDbContext" /> já registrado — o DI escolheu a subclasse concreta
+    ///     (SQLite/Postgres) conforme o provider configurado, então o caller não precisa
+    ///     repetir essa decisão. Cria um escopo temporário porque o <see cref="DbContext" />
+    ///     é scoped e o aplicativo, no Startup, está fora de requisição.
     /// </summary>
-    /// <param name="services">O <see cref="IServiceProvider"/> raiz da aplicação (ex.: <c>app.Services</c>).</param>
+    /// <param name="services">O <see cref="IServiceProvider" /> raiz da aplicação (ex.: <c>app.Services</c>).</param>
     /// <param name="ct">Token de cancelamento opcional.</param>
     public static async Task MigrateTcMineDatabaseAsync(
         this IServiceProvider services, CancellationToken ct = default)

@@ -6,14 +6,18 @@
    uma vez (OnInitializedAsync) e distribui aos widgets; o card de status do sistema gere o
    seu próprio timer/re-render, então as seções abaixo não re-renderizam de 2 em 2 segundos. *@
 
-<DashboardHeader ServerVersion="@ServerVersion" EnvName="@EnvName" LauncherVersion="@LauncherVersion"/>
+<DashboardHeader ServerVersion="@ServerVersion"
+                 EnvName="@EnvName"
+                 LauncherVersion="@LauncherVersion"/>
+
 
 @* Aviso agregado: instâncias provisionadas cujo modpack mudou e precisam re-provisionar *@
 @if (_data is { StaleInstances: > 0 })
 {
     <MudAlert Severity="Severity.Warning" Class="mb-4" Icon="@Icons.Material.Filled.Sync">
         <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-            <MudText>@_data.StaleInstances instância(s) desatualizada(s) — o modpack mudou desde a última provisão.</MudText>
+            <MudText>@_data.StaleInstances instância(s) desatualizada(s) — o modpack mudou desde a última provisão.
+            </MudText>
             <MudButton Variant="Variant.Text" Color="Color.Inherit" Href="/admin/servers"
                        EndIcon="@Icons.Material.Filled.ArrowForward">
                 Ver servidores
@@ -24,23 +28,21 @@
 
 <DashboardKpis Data="@_data"/>
 
-<MudGrid Class="mb-4 mt-1">
-    <MudItem xs="12" md="7">
-        <SystemStatusCard/>
-    </MudItem>
-    <MudItem xs="12" md="5">
-        <RecentActivityCard Activity="@(_data?.RecentActivity)"/>
-    </MudItem>
-</MudGrid>
-
 @* Métricas ao vivo por instância de servidor (um card cada) — autocontido, gere o próprio timer *@
 <ServerInstancesMetricsCard/>
 
-<MudGrid Class="mb-4">
-    <MudItem xs="12" md="7">
-        <RecentModpacksCard Modpacks="@(_data?.RecentModpacks)"/>
+@* Status do sistema em largura total: medidores + tiles no paper de topo e, abaixo, os dois
+   gráficos (memória e rede) em papers próprios lado a lado. *@
+<SystemStatusCard/>
+
+<MudGrid Class="mb-4" Spacing="4">
+    <MudItem xs="12" md="6">
+        <RecentActivityCard Activity="@(_data?.RecentActivity)"/>
     </MudItem>
-    <MudItem xs="12" md="5">
-        <ModDistributionCard Data="@_data"/>
+    <MudItem xs="12" md="6">
+        @* Quebra do uso de disco da pasta de dados (cache de mods, modpacks, instâncias…) *@
+        <DataDiskUsageCard/>
     </MudItem>
 </MudGrid>
+
+<RecentModpacksCard Modpacks="@(_data?.RecentModpacks)"/>

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using System.Net;
 using System.Net.Sockets;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,10 @@ using TCMine_Server.Infrastructure.Server;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Fachada do painel admin para as instâncias de servidor: CRUD da entidade, mais a delegação das
-/// operações pesadas para o <see cref="ServerProvisioner"/> (montar o diretório) e o
-/// <see cref="DockerMinecraftManager"/> (ciclo de vida do container, console e logs). Mantém a UI
-/// fina — a página só conhece este serviço e os DTOs.
+///     Fachada do painel admin para as instâncias de servidor: CRUD da entidade, mais a delegação das
+///     operações pesadas para o <see cref="ServerProvisioner" /> (montar o diretório) e o
+///     <see cref="DockerMinecraftManager" /> (ciclo de vida do container, console e logs). Mantém a UI
+///     fina — a página só conhece este serviço e os DTOs.
 /// </summary>
 public sealed class ServerInstanceService(
     AppDbContext db,
@@ -25,8 +26,6 @@ public sealed class ServerInstanceService(
     ContentNotifier notifier,
     IHostEnvironment env)
 {
-    private readonly string _root = env.ContentRootPath;
-
     // Extensões consideradas texto editável na árvore de config da instância
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -45,12 +44,14 @@ public sealed class ServerInstanceService(
 
     // Projeção de linha reutilizada pelas duas listas. "Desatualizada" (IsStale) = provisionada E o
     // modpack mudou desde a última provisão (UpdatedAt > ProvisionedAt). Expression para o EF traduzir.
-    private static readonly System.Linq.Expressions.Expression<Func<ServerInstanceEntity, ServerInstanceRowDto>>
+    private static readonly Expression<Func<ServerInstanceEntity, ServerInstanceRowDto>>
         RowProjection = i => new ServerInstanceRowDto(
             i.Id, i.Name, i.ModpackId, i.Modpack!.Name, i.Status, i.Port, i.RamMb,
             i.ProvisionedAt != null, i.AutoRestart,
             i.ProvisionedAt != null && i.Modpack.UpdatedAt > i.ProvisionedAt,
             i.PublicAddress);
+
+    private readonly string _root = env.ContentRootPath;
 
     /// <summary>Linhas da tabela de instâncias (ordenadas por nome).</summary>
     public async Task<List<ServerInstanceRowDto>> ListAsync(CancellationToken ct = default)
@@ -126,8 +127,8 @@ public sealed class ServerInstanceService(
     }
 
     /// <summary>
-    /// Apaga a instância: remove o container (se houver), o diretório provisionado e a linha. Os caches
-    /// compartilhados (mods, instalação do loader) permanecem — servem a outras instâncias.
+    ///     Apaga a instância: remove o container (se houver), o diretório provisionado e a linha. Os caches
+    ///     compartilhados (mods, instalação do loader) permanecem — servem a outras instâncias.
     /// </summary>
     public async Task DeleteAsync(Guid id, CancellationToken ct = default)
     {
@@ -135,7 +136,14 @@ public sealed class ServerInstanceService(
         if (instance is null) return;
 
         // Remove o container (idempotente; ignora se já não existe)
-        try { await docker.RemoveContainerAsync(id, ct); } catch { /* daemon offline / já removido */ }
+        try
+        {
+            await docker.RemoveContainerAsync(id, ct);
+        }
+        catch
+        {
+            /* daemon offline / já removido */
+        }
 
         // Remove a entrada divulgada auto-gerada por esta instância (some do launcher junto)
         var advertised = await db.Servers.Where(s => s.ServerInstanceId == id).ToListAsync(ct);
@@ -157,14 +165,20 @@ public sealed class ServerInstanceService(
 
         // Re-provisão muda loader/mods/libraries — o container existente foi criado com o comando antigo
         // (launch args do loader anterior). Remove-o para o próximo start recriar com o estado novo.
-        try { await docker.RemoveContainerAsync(id, ct); }
-        catch { /* sem container / daemon offline — o próximo start cria do zero mesmo */ }
+        try
+        {
+            await docker.RemoveContainerAsync(id, ct);
+        }
+        catch
+        {
+            /* sem container / daemon offline — o próximo start cria do zero mesmo */
+        }
     }
 
     /// <summary>
-    /// Aplica a atualização do modpack numa instância já provisionada: re-provisiona (re-monta loader/
-    /// mods/configs e descarta o container antigo) e, se o servidor <b>estava rodando</b>, sobe de novo
-    /// com o estado novo — tudo num clique.
+    ///     Aplica a atualização do modpack numa instância já provisionada: re-provisiona (re-monta loader/
+    ///     mods/configs e descarta o container antigo) e, se o servidor <b>estava rodando</b>, sobe de novo
+    ///     com o estado novo — tudo num clique.
     /// </summary>
     public async Task ApplyUpdateAsync(Guid id, IProgress<string>? progress = null, CancellationToken ct = default)
     {
@@ -187,13 +201,6 @@ public sealed class ServerInstanceService(
         return docker.StopAsync(id, ct);
     }
 
-    /// <summary>Reinicia: para e sobe de novo (mantém o container, só recicla o processo).</summary>
-    public async Task RestartAsync(Guid id, CancellationToken ct = default)
-    {
-        await docker.StopAsync(id, ct);
-        await docker.StartAsync(id, ct);
-    }
-
     public Task RemoveContainerAsync(Guid id, CancellationToken ct = default)
     {
         return docker.RemoveContainerAsync(id, ct);
@@ -211,9 +218,9 @@ public sealed class ServerInstanceService(
     }
 
     /// <summary>
-    /// Server List Ping direto (host/porta): jogadores online/máximo, ou <c>null</c> se não respondeu
-    /// (ainda subindo / fora). Recebe os dados prontos (não toca na BD) — o detalhe faz polling no
-    /// circuito Blazor sem disputar o DbContext scoped. Host vazio cai no loopback (porta publicada no host).
+    ///     Server List Ping direto (host/porta): jogadores online/máximo, ou <c>null</c> se não respondeu
+    ///     (ainda subindo / fora). Recebe os dados prontos (não toca na BD) — o detalhe faz polling no
+    ///     circuito Blazor sem disputar o DbContext scoped. Host vazio cai no loopback (porta publicada no host).
     /// </summary>
     public Task<ServerPing?> PingAsync(string? host, int port, CancellationToken ct = default)
     {
@@ -222,9 +229,9 @@ public sealed class ServerInstanceService(
     }
 
     /// <summary>
-    /// IP local de saída do host (o que os jogadores na mesma rede usam) — para pré-preencher o endereço
-    /// público ao criar uma instância. Truque: um socket UDP "conecta" a um IP público (sem enviar nada)
-    /// e o SO escolhe a interface de saída. Devolve <c>""</c> se não conseguir descobrir.
+    ///     IP local de saída do host (o que os jogadores na mesma rede usam) — para pré-preencher o endereço
+    ///     público ao criar uma instância. Truque: um socket UDP "conecta" a um IP público (sem enviar nada)
+    ///     e o SO escolhe a interface de saída. Devolve <c>""</c> se não conseguir descobrir.
     /// </summary>
     public static string GetLocalHostAddress()
     {
@@ -249,8 +256,8 @@ public sealed class ServerInstanceService(
     }
 
     /// <summary>
-    /// Filhos diretos de uma pasta do diretório da instância (lazy, para a árvore). Pastas primeiro,
-    /// depois arquivos. Na raiz, oculta pastas pesadas/irrelevantes (<see cref="HiddenRootFolders"/>).
+    ///     Filhos diretos de uma pasta do diretório da instância (lazy, para a árvore). Pastas primeiro,
+    ///     depois arquivos. Na raiz, oculta pastas pesadas/irrelevantes (<see cref="HiddenRootFolders" />).
     /// </summary>
     public IReadOnlyList<OverrideNodeDto> ListConfigChildren(Guid id, string folder)
     {
@@ -318,16 +325,18 @@ public sealed class ServerInstanceService(
     {
         var baseDir = Path.GetFullPath(InstanceDir(id));
         var full = Path.GetFullPath(Path.Combine(baseDir, relativePath));
-        var baseWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar) ? baseDir : baseDir + Path.DirectorySeparatorChar;
+        var baseWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar)
+            ? baseDir
+            : baseDir + Path.DirectorySeparatorChar;
         return full.StartsWith(baseWithSep, StringComparison.Ordinal) ? full : null;
     }
 
     // ── Auto-divulgação (instância → entrada do launcher) ─────────────────────────────────────────────
 
     /// <summary>
-    /// Mantém em sync a entrada divulgada (<see cref="ServerEntryEntity"/>) gerada por esta instância:
-    /// faz upsert quando <c>Advertise</c> está ligado e há <c>PublicAddress</c>; remove caso contrário.
-    /// Só estagia as mudanças no contexto — o <c>SaveChanges</c> fica com o chamador (mesma transação).
+    ///     Mantém em sync a entrada divulgada (<see cref="ServerEntryEntity" />) gerada por esta instância:
+    ///     faz upsert quando <c>Advertise</c> está ligado e há <c>PublicAddress</c>; remove caso contrário.
+    ///     Só estagia as mudanças no contexto — o <c>SaveChanges</c> fica com o chamador (mesma transação).
     /// </summary>
     private async Task SyncAdvertisementAsync(ServerInstanceEntity instance, CancellationToken ct)
     {

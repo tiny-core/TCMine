@@ -7,13 +7,13 @@ using TCMine_Application.Launcher;
 namespace TCMine_Launcher.ViewModels;
 
 /// <summary>
-/// Catálogo de modpacks publicados pelo servidor (<see cref="IModpackCatalog"/>). Clicar num item só o
-/// **seleciona** e abre a Home — a instalação/launch é o botão grande da Home (não instala daqui).
+///     Catálogo de modpacks publicados pelo servidor (<see cref="IModpackCatalog" />). Clicar num item só o
+///     **seleciona** e abre a Home — a instalação/launch é o botão grande da Home (não instala daqui).
 /// </summary>
 public sealed class ModpacksPageViewModel : ViewModelBase
 {
-    private readonly MainWindowViewModel _shell;
     private readonly IModpackCatalog _catalog;
+    private readonly MainWindowViewModel _shell;
 
     private bool _busy;
     private string? _error;
@@ -30,10 +30,10 @@ public sealed class ModpacksPageViewModel : ViewModelBase
 
     public ReactiveCommand<Unit, Unit> Refresh { get; }
 
-    public bool Busy
+    private bool Busy
     {
         get => _busy;
-        private set => this.RaiseAndSetIfChanged(ref _busy, value);
+        set => this.RaiseAndSetIfChanged(ref _busy, value);
     }
 
     public string? Error
@@ -45,7 +45,10 @@ public sealed class ModpacksPageViewModel : ViewModelBase
     public bool IsEmpty => !Busy && Modpacks.Count == 0;
 
     /// <summary>Recarrega o catálogo (ex.: quando o servidor avisa que o conteúdo mudou).</summary>
-    public void Reload() => _ = LoadAsync();
+    public void Reload()
+    {
+        _ = LoadAsync();
+    }
 
     private async Task LoadAsync()
     {

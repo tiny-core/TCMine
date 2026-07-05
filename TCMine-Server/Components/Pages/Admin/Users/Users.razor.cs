@@ -1,34 +1,33 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using MudBlazor;
-using System.Security.Claims;
 using TCMine_Domain.Entities;
 using TCMine_Domain.Identity;
-using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Components.Pages.Admin.Users.Dialogs;
+using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Users;
 
 /// <summary>
-/// Gestão de usuários do painel (rota só para Owner). Lista todos, abre o <see cref="UserEditDialog"/>
-/// para criar/editar e delega a persistência ao <see cref="UserService"/> — que centraliza hash de
-/// senha, unicidade do login e a proteção do último Owner ativo. A lista é recarregada após cada
-/// alteração para refletir o estado real do banco.
+///     Gestão de usuários do painel (rota só para Owner). Lista todos, abre o <see cref="UserEditDialog" />
+///     para criar/editar e delega a persistência ao <see cref="UserService" /> — que centraliza hash de
+///     senha, unicidade do login e a proteção do último Owner ativo. A lista é recarregada após cada
+///     alteração para refletir o estado real do banco.
 /// </summary>
 public partial class Users : ComponentBase
 {
+    // Id do usuário logado — para marcar "você" e impedir a auto-remoção
+    private Guid _currentUserId;
+
+    // null = carregando (mostra skeletons); lista vazia = estado vazio
+    private List<UserEntity>? _rows;
     [Inject] private UserService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
     [CascadingParameter] private Task<AuthenticationState> AuthState { get; set; } = null!;
-
-    // null = carregando (mostra skeletons); lista vazia = estado vazio
-    private List<UserEntity>? _rows;
-
-    // Id do usuário logado — para marcar "você" e impedir a auto-remoção
-    private Guid _currentUserId;
 
     protected override async Task OnInitializedAsync()
     {

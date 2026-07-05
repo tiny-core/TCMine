@@ -5,15 +5,13 @@ using TCMine_Server.Infrastructure.FileSystem;
 namespace TCMine_Server.Infrastructure.Launcher;
 
 /// <summary>
-/// Inspeciona a pasta do feed Velopack (<c>tcmine-data/updates</c>) para descobrir a versão mais
-/// recente do launcher e o instalador de primeira instalação (<c>*Setup.exe</c>).
-///
-/// O feed em si (RELEASES, releases.*.json, *-full/-delta.nupkg, Setup.exe) é servido como
-/// arquivos estáticos em <c>/updates</c> — é o Velopack do cliente que o consome. Este serviço só
-/// existe para a Home mostrar "Baixar (versão X)" ou "em breve", e para o atalho <c>/download</c>.
-///
-/// Singleton, mas lê o disco a cada chamada (sem cache): publicar uma nova versão é colocar
-/// arquivos na pasta, e queremos refletir isso sem reiniciar o servidor.
+///     Inspeciona a pasta do feed Velopack (<c>tcmine-data/updates</c>) para descobrir a versão mais
+///     recente do launcher e o instalador de primeira instalação (<c>*Setup.exe</c>).
+///     O feed em si (RELEASES, releases.*.json, *-full/-delta.nupkg, Setup.exe) é servido como
+///     arquivos estáticos em <c>/updates</c> — é o Velopack do cliente que o consome. Este serviço só
+///     existe para a Home mostrar "Baixar (versão X)" ou "em breve", e para o atalho <c>/download</c>.
+///     Singleton, mas lê o disco a cada chamada (sem cache): publicar uma nova versão é colocar
+///     arquivos na pasta, e queremos refletir isso sem reiniciar o servidor.
 /// </summary>
 public sealed partial class LauncherFeedService(IHostEnvironment env)
 {

@@ -4,19 +4,24 @@ using TCMine_Domain.Entities;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Gera/sincroniza os arquivos de configuração que o servidor Minecraft lê no diretório da instância:
-/// <c>server.properties</c>, <c>eula.txt</c>, <c>user_jvm_args.txt</c> e as listas de jogadores
-/// (<c>whitelist.json</c>, <c>ops.json</c>, <c>banned-players.json</c>, <c>banned-ips.json</c>).
-///
-/// Política de sincronização:
-/// <list type="bullet">
-/// <item><b>server.properties</b> — preserva o que o admin editou no painel (e chaves customizadas),
-/// apenas sobrepondo as chaves que o TCMine governa (porta, MOTD, max-players, whitelist).</item>
-/// <item><b>eula.txt / user_jvm_args.txt</b> — totalmente gerados pelo TCMine a cada provisão (a
-/// fonte da verdade são os campos da instância: RAM, Xms, flags extras).</item>
-/// <item><b>listas de jogadores</b> — só criadas vazias se ainda não existirem; o painel as edita
-/// depois (Step 4). Nunca sobrescritas aqui.</item>
-/// </list>
+///     Gera/sincroniza os arquivos de configuração que o servidor Minecraft lê no diretório da instância:
+///     <c>server.properties</c>, <c>eula.txt</c>, <c>user_jvm_args.txt</c> e as listas de jogadores
+///     (<c>whitelist.json</c>, <c>ops.json</c>, <c>banned-players.json</c>, <c>banned-ips.json</c>).
+///     Política de sincronização:
+///     <list type="bullet">
+///         <item>
+///             <b>server.properties</b> — preserva o que o admin editou no painel (e chaves customizadas),
+///             apenas sobrepondo as chaves que o TCMine governa (porta, MOTD, max-players, whitelist).
+///         </item>
+///         <item>
+///             <b>eula.txt / user_jvm_args.txt</b> — totalmente gerados pelo TCMine a cada provisão (a
+///             fonte da verdade são os campos da instância: RAM, Xms, flags extras).
+///         </item>
+///         <item>
+///             <b>listas de jogadores</b> — só criadas vazias se ainda não existirem; o painel as edita
+///             depois (Step 4). Nunca sobrescritas aqui.
+///         </item>
+///     </list>
 /// </summary>
 public sealed class ServerConfigWriter
 {
@@ -41,9 +46,9 @@ public sealed class ServerConfigWriter
     // ── user_jvm_args.txt ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Escreve <c>user_jvm_args.txt</c> (formato de arquivo de argumentos da JVM: uma flag por linha,
-    /// <c>#</c> = comentário). O loader (NeoForge/Forge) referencia este arquivo via <c>@user_jvm_args.txt</c>.
-    /// Memória vem de <see cref="ServerInstanceEntity.RamMb"/> (Xmx) e <c>XmsMb</c> (0 = igual ao Xmx).
+    ///     Escreve <c>user_jvm_args.txt</c> (formato de arquivo de argumentos da JVM: uma flag por linha,
+    ///     <c>#</c> = comentário). O loader (NeoForge/Forge) referencia este arquivo via <c>@user_jvm_args.txt</c>.
+    ///     Memória vem de <see cref="ServerInstanceEntity.RamMb" /> (Xmx) e <c>XmsMb</c> (0 = igual ao Xmx).
     /// </summary>
     private static void WriteJvmArgs(string dir, ServerInstanceEntity instance)
     {
@@ -67,8 +72,8 @@ public sealed class ServerConfigWriter
     // ── server.properties ───────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Lê o <c>server.properties</c> atual (se houver), sobrepõe as chaves governadas pelo TCMine e
-    /// regrava — preservando as edições do admin e quaisquer chaves customizadas.
+    ///     Lê o <c>server.properties</c> atual (se houver), sobrepõe as chaves governadas pelo TCMine e
+    ///     regrava — preservando as edições do admin e quaisquer chaves customizadas.
     /// </summary>
     private static void SyncServerProperties(string dir, ServerInstanceEntity instance)
     {
@@ -89,15 +94,15 @@ public sealed class ServerConfigWriter
     {
         return
         [
-            new("online-mode", "true"),
-            new("white-list", "false"),
-            new("enforce-whitelist", "false"),
-            new("pvp", "true"),
-            new("difficulty", "normal"),
-            new("gamemode", "survival"),
-            new("spawn-protection", "0"),
-            new("view-distance", "10"),
-            new("simulation-distance", "10")
+            new KeyValuePair<string, string>("online-mode", "true"),
+            new KeyValuePair<string, string>("white-list", "false"),
+            new KeyValuePair<string, string>("enforce-whitelist", "false"),
+            new KeyValuePair<string, string>("pvp", "true"),
+            new KeyValuePair<string, string>("difficulty", "normal"),
+            new KeyValuePair<string, string>("gamemode", "survival"),
+            new KeyValuePair<string, string>("spawn-protection", "0"),
+            new KeyValuePair<string, string>("view-distance", "10"),
+            new KeyValuePair<string, string>("simulation-distance", "10")
         ];
     }
 

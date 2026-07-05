@@ -9,18 +9,16 @@ using TCMine_Server.Infrastructure.Persistence;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Garante que a instalação de servidor de uma tupla (loader, versão do loader, versão do Minecraft)
-/// existe <b>uma única vez</b> no cache compartilhado (<see cref="ServerPaths.ServerCacheInstalled"/>)
-/// e indexa-a em <see cref="ServerRuntimeCacheEntity"/>. É o coração da economia de disco: várias
-/// instâncias do mesmo loader/versão reaproveitam o mesmo <c>libraries/</c> pesado em vez de cada uma
-/// baixar a sua cópia.
-///
-/// Faz o download do instalador oficial (NeoForge, via Maven) e roda <c>--installServer</c> através de
-/// <see cref="IServerJavaRunner"/> (container Java efêmero) — o próprio instalador baixa o vanilla de
-/// que precisa. A execução Java é delegada para manter o provisionamento independente de Docker.
-///
-/// Hoje cobre <b>NeoForge</b> (o loader padrão dos modpacks); Forge/Fabric/Quilt seguem o mesmo molde
-/// (baixar instalador/launcher + rodar) e entram numa etapa seguinte.
+///     Garante que a instalação de servidor de uma tupla (loader, versão do loader, versão do Minecraft)
+///     existe <b>uma única vez</b> no cache compartilhado (<see cref="ServerPaths.ServerCacheInstalled" />)
+///     e indexa-a em <see cref="ServerRuntimeCacheEntity" />. É o coração da economia de disco: várias
+///     instâncias do mesmo loader/versão reaproveitam o mesmo <c>libraries/</c> pesado em vez de cada uma
+///     baixar a sua cópia.
+///     Faz o download do instalador oficial (NeoForge, via Maven) e roda <c>--installServer</c> através de
+///     <see cref="IServerJavaRunner" /> (container Java efêmero) — o próprio instalador baixa o vanilla de
+///     que precisa. A execução Java é delegada para manter o provisionamento independente de Docker.
+///     Hoje cobre <b>NeoForge</b> (o loader padrão dos modpacks); Forge/Fabric/Quilt seguem o mesmo molde
+///     (baixar instalador/launcher + rodar) e entram numa etapa seguinte.
 /// </summary>
 public sealed class ServerRuntimeInstaller(
     AppDbContext db,
@@ -31,9 +29,9 @@ public sealed class ServerRuntimeInstaller(
     private readonly string _root = env.ContentRootPath;
 
     /// <summary>
-    /// Devolve a instalação em cache para a tupla pedida, criando-a se ainda não existir. Idempotente:
-    /// se já houver linha + pasta, só atualiza <see cref="ServerRuntimeCacheEntity.LastUsedAt"/>.
-    /// O caminho absoluto da instalação é dado por <see cref="InstalledDir"/>.
+    ///     Devolve a instalação em cache para a tupla pedida, criando-a se ainda não existir. Idempotente:
+    ///     se já houver linha + pasta, só atualiza <see cref="ServerRuntimeCacheEntity.LastUsedAt" />.
+    ///     O caminho absoluto da instalação é dado por <see cref="InstalledDir" />.
     /// </summary>
     public async Task<ServerRuntimeCacheEntity> EnsureAsync(
         ModLoader loader, string loaderVersion, string minecraftVersion,
@@ -96,9 +94,9 @@ public sealed class ServerRuntimeInstaller(
     }
 
     /// <summary>
-    /// Argumentos passados ao <c>java</c> para iniciar o servidor a partir do diretório da instância
-    /// (que terá o <c>libraries/</c> ligado do cache e o <c>user_jvm_args.txt</c> próprio). Derivados
-    /// do layout produzido pela instalação, por isso vivem aqui.
+    ///     Argumentos passados ao <c>java</c> para iniciar o servidor a partir do diretório da instância
+    ///     (que terá o <c>libraries/</c> ligado do cache e o <c>user_jvm_args.txt</c> próprio). Derivados
+    ///     do layout produzido pela instalação, por isso vivem aqui.
     /// </summary>
     public static IReadOnlyList<string> ResolveLaunchArgs(ModLoader loader, string loaderVersion)
     {
@@ -161,7 +159,11 @@ public sealed class ServerRuntimeInstaller(
         {
             if (progress is null) return;
             string detail;
-            lock (lineLock) detail = lastLine;
+            lock (lineLock)
+            {
+                detail = lastLine;
+            }
+
             progress.Report($"{label} — {Shorten(detail, 60)} · {DateTime.UtcNow - started:mm\\:ss}");
         }
 
@@ -169,13 +171,16 @@ public sealed class ServerRuntimeInstaller(
         {
             var trimmed = line.Trim();
             if (trimmed.Length == 0) return;
-            lock (lineLock) lastLine = trimmed;
+            lock (lineLock)
+            {
+                lastLine = trimmed;
+            }
         });
 
         // Timer de 2s: publica já e depois periodicamente (mm:ss sobe mesmo nas fases sem saída)
         using var heartbeat = progress is null
             ? null
-            : new System.Threading.Timer(_ => PublishStatus(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+            : new Timer(_ => PublishStatus(), null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
 
         var result = await java.RunAsync(installDir, ["-jar", installerName, "--installServer"],
             progress is null ? null : installOutput, containerName, ct);
@@ -253,7 +258,7 @@ public sealed class ServerRuntimeInstaller(
     private static string FormatSize(long bytes)
     {
         if (bytes <= 0) return "0 KB";
-        double kb = bytes / 1024.0;
+        var kb = bytes / 1024.0;
         if (kb < 1024) return $"{kb:0} KB";
         var mb = kb / 1024.0;
         return mb >= 1024 ? $"{mb / 1024:0.#} GB" : $"{mb:0.#} MB";

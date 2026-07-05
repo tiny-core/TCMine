@@ -1,18 +1,17 @@
 namespace TCMine_Domain.Launcher;
 
 /// <summary>
-/// Define os ficheiros/pastas da pasta do jogo que pertencem ao <b>jogador</b> (não ao modpack):
-/// keybinds/opções, shaders selecionados, dados/cache de minimapa. Usado tanto para preservar essas
-/// configs quando os overrides do modpack são reaplicados num update, como para o sync com o servidor
-/// ([[concepts/player-config-sync]]). Caminhos relativos a <c>minecraft/</c>.
-///
-/// <b>Só mundos de servidor (multiplayer):</b> o cache de mapa incluído é o dos mundos do servidor
-/// (subpastas <c>mp</c>/<c>Multiplayer*</c>), <b>não</b> o dos mundos singleplayer locais que o jogador
-/// cria (<c>sp</c>/<c>Singleplayer*</c>) — estes ficam de fora de propósito.
+///     Define os arquivos/pastas da pasta do jogo que pertencem ao <b>jogador</b> (não ao modpack):
+///     keybinds/opções, shaders selecionados, dados/cache de minimapa. Usado tanto para preservar essas
+///     configs quando os overrides do modpack são reaplicados num update, como para o sync com o servidor
+///     ([[concepts/player-config-sync]]). Caminhos relativos a <c>minecraft/</c>.
+///     <b>Só mundos de servidor (multiplayer):</b> o cache de mapa incluído é o dos mundos do servidor
+///     (subpastas <c>mp</c>/<c>Multiplayer*</c>), <b>não</b> o dos mundos singleplayer locais que o jogador
+///     cria (<c>sp</c>/<c>Singleplayer*</c>) — estes ficam de fora de propósito.
 /// </summary>
 public static class PlayerDataProfile
 {
-    public static readonly IReadOnlyList<string> Patterns =
+    private static readonly IReadOnlyList<string> Patterns =
     [
         "options.txt",
         "optionsshaders.txt",
@@ -26,7 +25,7 @@ public static class PlayerDataProfile
         "journeymap/data/mp"
     ];
 
-    /// <summary>Caminhos relativos ('/') de todos os ficheiros player-owned que existem em gameDir.</summary>
+    /// <summary>Caminhos relativos ('/') de todos os arquivos player-owned que existem em gameDir.</summary>
     public static IReadOnlyList<string> EnumerateExisting(string gameDir)
     {
         var result = new List<string>();
@@ -67,6 +66,8 @@ public static class PlayerDataProfile
             result.Add(ToRel(gameDir, file));
     }
 
-    private static string ToRel(string gameDir, string full) =>
-        Path.GetRelativePath(gameDir, full).Replace(Path.DirectorySeparatorChar, '/');
+    private static string ToRel(string gameDir, string full)
+    {
+        return Path.GetRelativePath(gameDir, full).Replace(Path.DirectorySeparatorChar, '/');
+    }
 }

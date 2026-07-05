@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
@@ -14,11 +13,11 @@ using TCMine_Launcher.Infrastructure.Networking;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Sync <b>incremental</b> das configs player-owned (keybinds/opções, shaders, minimapa — incluindo o
-/// cache de mapa dos servidores; ver <see cref="PlayerDataProfile"/>) com o servidor, por
-/// <c>(uuid, modpackId)</c>. Compara manifestos (caminho → hash) e transfere <b>só o que mudou</b>, em vez
-/// do conjunto inteiro — poupa rede. No prepare puxa; ao fechar o jogo empurra. Colaborador interno do
-/// <see cref="LaunchOrchestrator"/>. Best-effort: falhas de rede não podem partir o launch.
+///     Sync <b>incremental</b> das configs player-owned (keybinds/opções, shaders, minimapa — incluindo o
+///     cache de mapa dos servidores; ver <see cref="PlayerDataProfile" />) com o servidor, por
+///     <c>(uuid, modpackId)</c>. Compara manifestos (caminho → hash) e transfere <b>só o que mudou</b>, em vez
+///     do conjunto inteiro — poupa rede. No prepare puxa; ao fechar o jogo empurra. Colaborador interno do
+///     <see cref="LaunchOrchestrator" />. Best-effort: falhas de rede não podem partir o launch.
 /// </summary>
 internal sealed class PlayerConfigSync(ServerConfig config)
 {
@@ -29,9 +28,9 @@ internal sealed class PlayerConfigSync(ServerConfig config)
     private readonly HttpClient _http = HttpClientProvider.Shared;
 
     /// <summary>
-    /// Servidor → local. Baixa só os ficheiros cujo hash difere (ou faltam) localmente. Salta se o
-    /// manifesto remoto já for o aplicado (<see cref="InstalledModpack.ConfigSyncedAt"/>). Sem manifesto
-    /// no servidor (404) = nada a puxar.
+    ///     Servidor → local. Baixa só os arquivos cujo hash difere (ou faltam) localmente. Salta se o
+    ///     manifesto remoto já for o aplicado (<see cref="InstalledModpack.ConfigSyncedAt" />). Sem manifesto
+    ///     no servidor (404) = nada a puxar.
     /// </summary>
     public async Task PullAsync(
         InstalledModpack instance, string uuid, string accessToken, Action<string>? report = null,
@@ -88,8 +87,8 @@ internal sealed class PlayerConfigSync(ServerConfig config)
     }
 
     /// <summary>
-    /// Local → servidor. Envia só os ficheiros novos/alterados + o manifesto completo (para o servidor
-    /// reconciliar remoções). Nada mudou → no-op. Atualiza <see cref="InstalledModpack.ConfigSyncedAt"/>.
+    ///     Local → servidor. Envia só os arquivos novos/alterados + o manifesto completo (para o servidor
+    ///     reconciliar remoções). Nada mudou → no-op. Atualiza <see cref="InstalledModpack.ConfigSyncedAt" />.
     /// </summary>
     public async Task PushAsync(
         InstalledModpack instance, string uuid, string accessToken, Action<string>? report = null,
@@ -104,9 +103,11 @@ internal sealed class PlayerConfigSync(ServerConfig config)
         var serverFiles = new Dictionary<string, PlayerConfigFileInfo>();
         using (var mReq = Authorized(HttpMethod.Get, ManifestUrl(uuid, instance.ModpackId), accessToken))
         using (var mResp = await _http.SendAsync(mReq, ct))
+        {
             if (mResp.IsSuccessStatusCode &&
                 await mResp.Content.ReadFromJsonAsync<PlayerConfigManifest>(Json, ct) is { } server)
                 serverFiles = server.Files;
+        }
 
         var toUpload = local.Files
             .Where(kv => !serverFiles.TryGetValue(kv.Key, out var si) || si.Hash != kv.Value.Hash)
@@ -150,7 +151,7 @@ internal sealed class PlayerConfigSync(ServerConfig config)
         }
     }
 
-    /// <summary>Manifesto dos ficheiros player-owned existentes em <paramref name="gameDir"/> (hash SHA-256).</summary>
+    /// <summary>Manifesto dos ficheiros player-owned existentes em <paramref name="gameDir" /> (hash SHA-256).</summary>
     private static async Task<PlayerConfigManifest> BuildManifestAsync(string gameDir, CancellationToken ct)
     {
         var files = new Dictionary<string, PlayerConfigFileInfo>();
@@ -207,21 +208,35 @@ internal sealed class PlayerConfigSync(ServerConfig config)
         return req;
     }
 
-    private Uri ManifestUrl(string uuid, string modpackId) =>
-        config.Resolve($"/players/{uuid}/configs/{modpackId}/manifest");
+    private Uri ManifestUrl(string uuid, string modpackId)
+    {
+        return config.Resolve($"/players/{uuid}/configs/{modpackId}/manifest");
+    }
 
-    private Uri BundleUrl(string uuid, string modpackId) =>
-        config.Resolve($"/players/{uuid}/configs/{modpackId}/bundle");
+    private Uri BundleUrl(string uuid, string modpackId)
+    {
+        return config.Resolve($"/players/{uuid}/configs/{modpackId}/bundle");
+    }
 
-    private Uri PushUrl(string uuid, string modpackId) =>
-        config.Resolve($"/players/{uuid}/configs/{modpackId}/push");
+    private Uri PushUrl(string uuid, string modpackId)
+    {
+        return config.Resolve($"/players/{uuid}/configs/{modpackId}/push");
+    }
 
-    private static string TempZip() =>
-        Path.Combine(Path.GetTempPath(), "tcmine-cfg-" + Guid.NewGuid().ToString("N") + ".zip");
+    private static string TempZip()
+    {
+        return Path.Combine(Path.GetTempPath(), "tcmine-cfg-" + Guid.NewGuid().ToString("N") + ".zip");
+    }
 
     private static void TryDelete(string path)
     {
-        try { if (File.Exists(path)) File.Delete(path); }
-        catch { /* best-effort */ }
+        try
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch
+        {
+            /* best-effort */
+        }
     }
 }

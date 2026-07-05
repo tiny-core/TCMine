@@ -18,15 +18,21 @@ public partial class ServerInstancesMetricsCard : ComponentBase, IDisposable
     // uma leitura de ~1s no daemon; N servidores em paralelo a cada 5s mantém a carga sob controle.
     private static readonly TimeSpan SampleInterval = TimeSpan.FromSeconds(5);
 
-    private List<ServerInstanceRowDto>? _rows;
-    private IReadOnlyDictionary<Guid, ServerInstanceStats> _stats =
-        new Dictionary<Guid, ServerInstanceStats>();
-
     // Uso em disco (bytes) por instância — vale para rodando E parada; cacheado no serviço
     private IReadOnlyDictionary<Guid, long> _disk = new Dictionary<Guid, long>();
 
+    // Server List Ping por instância em execução → jogadores online (ServerPing.Online = contagem,
+    // .Max = teto). Best-effort: só entra quem respondeu (offline = ausente do dicionário).
+    private IReadOnlyDictionary<Guid, ServerPing> _pings = new Dictionary<Guid, ServerPing>();
+
+    private List<ServerInstanceRowDto>? _rows;
+
     // Evita sobreposição de amostras: se uma rodada ainda não terminou, o próximo tick é ignorado
     private bool _sampling;
+
+    private IReadOnlyDictionary<Guid, ServerInstanceStats> _stats =
+        new Dictionary<Guid, ServerInstanceStats>();
+
     private Timer? _timer;
 
     [Inject] private ServerInstanceService Service { get; set; } = null!;
@@ -58,6 +64,9 @@ public partial class ServerInstancesMetricsCard : ComponentBase, IDisposable
             _stats = await Metrics.SampleAsync();
             // Uso em disco de todas as instâncias (não só as rodando) — cacheado, então é barato reamostrar
             _disk = await Metrics.SampleDiskAsync(_rows.Select(r => r.Id));
+            // Jogadores online: ping (Server List Ping) só das instâncias em execução, em paralelo.
+            // PingAsync não toca no AppDbContext (só na rede), então é seguro fora do lock scoped.
+            _pings = await PingRunningAsync(_rows);
         }
         catch
         {
@@ -71,10 +80,37 @@ public partial class ServerInstancesMetricsCard : ComponentBase, IDisposable
         StateHasChanged();
     }
 
+    // Faz o Server List Ping das instâncias em execução, em paralelo, e devolve só as que responderam online.
+    private async Task<IReadOnlyDictionary<Guid, ServerPing>> PingRunningAsync(IEnumerable<ServerInstanceRowDto> rows)
+    {
+        var running = rows.Where(r => r.Status == ServerInstanceStatus.Running).ToList();
+        var result = new Dictionary<Guid, ServerPing>();
+        if (running.Count == 0) return result;
+
+        await Parallel.ForEachAsync(running, async (row, ct) =>
+        {
+            // Resposta não-nula = o servidor respondeu ao SLP (está online); null = sem resposta
+            var ping = await Service.PingAsync(row.PublicAddress, row.Port, ct);
+            if (ping is not null)
+                lock (result)
+                {
+                    result[row.Id] = ping;
+                }
+        });
+
+        return result;
+    }
+
     // Stats do container desta instância, se estiver rodando e o daemon respondeu; senão null (card ocioso)
     private ServerInstanceStats? Stats(ServerInstanceRowDto row)
     {
         return _stats.TryGetValue(row.Id, out var s) ? s : null;
+    }
+
+    // Ping (jogadores) desta instância se respondeu online; senão null (esconde a linha de jogadores)
+    private ServerPing? Ping(ServerInstanceRowDto row)
+    {
+        return _pings.TryGetValue(row.Id, out var p) ? p : null;
     }
 
     // Uso em disco desta instância, formatado (ou "—" enquanto a primeira medição não chegou)

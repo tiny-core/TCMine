@@ -6,20 +6,23 @@ using TCMine_Design;
 namespace TCMine_Launcher.Theme;
 
 /// <summary>
-/// Aplica a paleta de <see cref="ColorTokens"/> como recursos Avalonia (Color + SolidColorBrush) no
-/// dicionário de recursos da aplicação. Fonte única de cor — mesma de [[entities/tcmine-design]] usada
-/// pelo CSS (admin) e MudBlazor.
-///
-/// Emite dois conjuntos de chaves:
-/// <list type="bullet">
-///   <item><b>Tokens</b>: <c>Primary500Color</c>/<c>Primary500Brush</c>, <c>BgSurfaceBrush</c>, … (todos
-///   os <see cref="ColorTokens.ToCssVariables"/>).</item>
-///   <item><b>Aliases semânticos</b> (estilo do backup): <c>BgSidebar</c>, <c>BgConsole</c>,
-///   <c>Accent</c>, <c>Danger</c>, … — pensados para os estilos/views herdados do launcher v1, mas
-///   com os valores vindos do <see cref="ColorTokens"/> (não hexes literais).</item>
-/// </list>
-/// As chaves são iguais em dark/light — só o valor muda — então dá para rechamar ao alternar o tema.
-/// Os consumidores referenciam via <c>{DynamicResource …}</c> (registado em runtime, antes da janela).
+///     Aplica a paleta de <see cref="ColorTokens" /> como recursos Avalonia (Color + SolidColorBrush) no
+///     dicionário de recursos da aplicação. Fonte única de cor — mesma de [[entities/tcmine-design]] usada
+///     pelo CSS (admin) e MudBlazor.
+///     Emite dois conjuntos de chaves:
+///     <list type="bullet">
+///         <item>
+///             <b>Tokens</b>: <c>Primary500Color</c>/<c>Primary500Brush</c>, <c>BgSurfaceBrush</c>, … (todos
+///             os <see cref="ColorTokens.ToCssVariables" />).
+///         </item>
+///         <item>
+///             <b>Aliases semânticos</b> (estilo do backup): <c>BgSidebar</c>, <c>BgConsole</c>,
+///             <c>Accent</c>, <c>Danger</c>, … — pensados para os estilos/views herdados do launcher v1, mas
+///             com os valores vindos do <see cref="ColorTokens" /> (não hexes literais).
+///         </item>
+///     </list>
+///     As chaves são iguais em dark/light — só o valor muda — então dá para re-chamar ao alternar o tema.
+///     Os consumidores referenciam via <c>{DynamicResource …}</c> (registado em runtime, antes da janela).
 /// </summary>
 public static class AvaloniaTheme
 {
@@ -38,8 +41,8 @@ public static class AvaloniaTheme
     }
 
     /// <summary>
-    /// Aliases semânticos do launcher v1 (sidebar/console/acento/estados), mapeados para os valores do
-    /// <see cref="ColorTokens"/> — assim os estilos e views herdados funcionam sem hexes próprios.
+    ///     Aliases semânticos do launcher v1 (sidebar/console/acento/estados), mapeados para os valores do
+    ///     <see cref="ColorTokens" /> — assim os estilos e views herdados funcionam sem hexes próprios.
     /// </summary>
     private static void ApplySemanticAliases(IResourceDictionary r, bool dark)
     {

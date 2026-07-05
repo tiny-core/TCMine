@@ -1,9 +1,9 @@
 @page "/admin/releases"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Domain.Entities
 @using TCMine_Server.Infrastructure.Launcher
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
 
 @* Releases do launcher: estado atual do feed, compilar um novo launcher (dotnet publish + Velopack) com
    progresso reconectável, e o histórico de releases publicadas. *@
@@ -19,7 +19,8 @@
     <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
         @* Força uma consulta ao GitHub ignorando o cache de 6h — para ver releases novas na hora *@
         <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined"
-                   OnClick="CheckUpdatesAsync">Verificar atualizações</MudButton>
+                   OnClick="CheckUpdatesAsync">Verificar atualizações
+        </MudButton>
         <MudButton StartIcon="@Icons.Material.Filled.Build" Color="Color.Primary" Variant="Variant.Filled"
                    Disabled="@(!_canBuild)" OnClick="StartBuildAsync">
             @(Build.IsRunning ? "Compilando…" : BuildVersion is { } tv ? $"Compilar launcher v{tv}" : "Compilar launcher")
@@ -39,7 +40,8 @@
             @if (su.Url is { } url)
             {
                 <MudButton Href="@url" Target="_blank" Variant="Variant.Text" Color="Color.Inherit"
-                           EndIcon="@Icons.Material.Filled.OpenInNew">Ver release</MudButton>
+                           EndIcon="@Icons.Material.Filled.OpenInNew">Ver release
+                </MudButton>
             }
         </MudStack>
     </MudAlert>
@@ -49,7 +51,8 @@
 {
     <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
         Configure a <b>URL pública</b> e o <b>Azure Client Id</b> em
-        <MudLink Href="/admin/settings">Configurações</MudLink> antes de compilar — ambos são embutidos no
+        <MudLink Href="/admin/settings">Configurações</MudLink>
+        antes de compilar — ambos são embutidos no
         launcher em build-time (endereço do servidor e login Microsoft). Assim que salvar, o launcher é
         compilado automaticamente.
     </MudAlert>
@@ -73,9 +76,9 @@
                     @(LauncherTarget is null
                         ? "Crie uma tag/release launcher-v* no GitHub para o servidor compilar o launcher."
                         : _needsBuild
-                            ? (_settingsReady
+                            ? _settingsReady
                                 ? "Recompilando automaticamente (poll de 1h) — ou clique para forçar agora."
-                                : "Configure as settings para o launcher ser compilado.")
+                                : "Configure as settings para o launcher ser compilado."
                             : "O feed está na última versão. Recompile se quiser reaplicar uma config alterada (URL/Azure) ao Setup.")
                 </MudText>
             </div>
@@ -83,7 +86,8 @@
         @if (Feed.HasInstaller())
         {
             <MudButton Href="/download" Target="_blank" StartIcon="@Icons.Material.Filled.Download"
-                       Variant="Variant.Outlined">Baixar Setup.exe</MudButton>
+                       Variant="Variant.Outlined">Baixar Setup.exe
+            </MudButton>
         }
     </MudStack>
 </MudPaper>
@@ -116,7 +120,8 @@
                 </MudText>
                 @if (_build.State == LauncherBuildState.Failed && _build.Error is not null)
                 {
-                    <MudText Typo="Typo.body2" Color="Color.Error" Style="white-space: pre-wrap;">@_build.Error</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Error"
+                             Style="white-space: pre-wrap;">@_build.Error</MudText>
                 }
             </div>
             @if (_build.State != LauncherBuildState.Running)

@@ -11,6 +11,8 @@ namespace TCMine_Server.Infrastructure.Server;
 /// </summary>
 public static class AppVersion
 {
+    private const string LocalTag = "-local.";
+
     /// <summary>Versão corrente (ex.: "1.2.0"). Nunca lança; devolve "0.0.0" se nada for encontrado.</summary>
     public static string Current(IConfiguration config)
     {
@@ -40,17 +42,17 @@ public static class AppVersion
         return va.CompareTo(vb);
     }
 
-    private const string LocalTag = "-local.";
-
     /// <summary>
-    /// Versão a empacotar ao (re)compilar o launcher, dada a <paramref name="releaseVersion"/> (última
-    /// tag <c>launcher-v*</c>) e a <paramref name="feedVersion"/> já publicada no feed.
-    /// <list type="bullet">
-    /// <item>Release ainda não publicada (release &gt; feed) → build normal: <c>X.Y.Z</c>.</item>
-    /// <item>Release já publicada (rebuild por config) → prerelease do próximo patch:
-    /// <c>X.Y.(Z+1)-local.N</c>, que ordena <b>entre</b> a atual e a próxima release do GitHub. N
-    /// incrementa a cada rebuild.</item>
-    /// </list>
+    ///     Versão a empacotar ao (re)compilar o launcher, dada a <paramref name="releaseVersion" /> (última
+    ///     tag <c>launcher-v*</c>) e a <paramref name="feedVersion" /> já publicada no feed.
+    ///     <list type="bullet">
+    ///         <item>Release ainda não publicada (release &gt; feed) → build normal: <c>X.Y.Z</c>.</item>
+    ///         <item>
+    ///             Release já publicada (rebuild por config) → prerelease do próximo patch:
+    ///             <c>X.Y.(Z+1)-local.N</c>, que ordena <b>entre</b> a atual e a próxima release do GitHub. N
+    ///             incrementa a cada rebuild.
+    ///         </item>
+    ///     </list>
     /// </summary>
     public static string BuildVersion(string releaseVersion, string? feedVersion)
     {

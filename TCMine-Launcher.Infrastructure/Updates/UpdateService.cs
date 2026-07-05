@@ -1,6 +1,6 @@
 using TCMine_Application.Launcher;
-using Velopack;
 using TCMine_Launcher.Infrastructure.Configuration;
+using Velopack;
 
 namespace TCMine_Launcher.Infrastructure.Updates;
 
@@ -10,16 +10,12 @@ namespace TCMine_Launcher.Infrastructure.Updates;
 ///     (<c>win</c>) casa com o pack do servidor (<c>-c win</c>), então não é preciso configurá-lo.
 ///     Guarda internamente a última verificação para o "aplicar" reusar sem re-checar.
 /// </summary>
-public sealed class UpdateService : IUpdateService
+public sealed class UpdateService(ServerConfig config) : IUpdateService
 {
-    private readonly UpdateManager _manager;
+    private readonly UpdateManager _manager = new(config.Resolve("/updates").ToString());
     private UpdateInfo? _pending;
 
-    public UpdateService(ServerConfig config)
-    {
-        // Feed servido como estáticos em {servidor}/updates
-        _manager = new UpdateManager(config.Resolve("/updates").ToString());
-    }
+    // Feed servido como estáticos em {servidor}/updates
 
     public bool IsInstalled => _manager.IsInstalled;
 

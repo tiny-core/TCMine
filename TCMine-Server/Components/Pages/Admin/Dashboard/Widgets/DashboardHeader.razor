@@ -1,26 +1,46 @@
 @* Cabeçalho do dashboard: título + chips de contexto (versão do servidor, ambiente, launcher).
    Puramente apresentacional — recebe tudo por parâmetro. *@
 
-<MudStack Row="true" AlignItems="AlignItems.Start" Justify="Justify.SpaceBetween"
-          Wrap="Wrap.Wrap" Class="mb-6">
-    <MudStack>
-        <MudText Typo="Typo.h4" GutterBottom="true">Dashboard</MudText>
-        <MudText Typo="Typo.body1" Color="Color.Secondary">Visão geral do servidor TCMine.</MudText>
-    </MudStack>
+<MudPaper Outlined="true"
+          Class="pa-4 mb-4"
+          Elevation="0">
+    <MudStack Row="true"
+              AlignItems="AlignItems.Center"
+              Justify="Justify.SpaceBetween"
+              Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4"
+                     GutterBottom="true">
+                Dashboard
+            </MudText>
+            <MudText Typo="Typo.body1"
+                     Color="Color.Secondary">
+                Visão geral do servidor TCMine, com métricas em tempo real, serviços e operações.
+            </MudText>
+        </MudStack>
 
-    <MudStack Row="true" Spacing="2" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default"
-                 Icon="@Icons.Material.Filled.Dns">
-            Servidor v@(ServerVersion)
-        </MudChip>
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                 Color="@(EnvName == "Production" ? Color.Success : Color.Warning)"
-                 Icon="@Icons.Material.Filled.Memory">
-            @EnvName
-        </MudChip>
-        <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary"
-                 Icon="@Icons.Material.Filled.CloudDownload">
-            Launcher @(LauncherVersion is null ? "não publicado" : $"v{LauncherVersion}")
-        </MudChip>
+        <MudStack Row="true"
+                  Spacing="2"
+                  Wrap="Wrap.Wrap"
+                  AlignItems="AlignItems.Center">
+            <MudChip T="string"
+                     Variant="Variant.Outlined"
+                     Color="Color.Default"
+                     Icon="@Icons.Material.Filled.Dns">
+                Servidor v@(ServerVersion)
+            </MudChip>
+            <MudChip T="string"
+                     Variant="Variant.Outlined"
+                     Color="@(EnvName == "Production" ? Color.Success : Color.Warning)"
+                     Icon="@Icons.Material.Filled.Memory">
+                @EnvName
+            </MudChip>
+            <MudChip T="string"
+                     Variant="Variant.Text"
+                     Color="Color.Primary"
+                     Icon="@Icons.Material.Filled.CloudDownload">
+                Launcher @(LauncherVersion is null ? "não publicado" : $"v{LauncherVersion}")
+            </MudChip>
+        </MudStack>
     </MudStack>
-</MudStack>
+</MudPaper>

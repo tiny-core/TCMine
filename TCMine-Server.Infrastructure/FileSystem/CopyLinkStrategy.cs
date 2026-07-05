@@ -3,15 +3,16 @@ using System.Runtime.InteropServices;
 namespace TCMine_Server.Infrastructure.FileSystem;
 
 /// <summary>
-/// Estratégia padrão: liga arquivos por <b>hardlink</b> (custo de disco ~zero — o link e o cache
-/// compartilham os mesmos bytes/inode) e pastas por recursão (hardlinkando cada arquivo interno).
-///
-/// <para><b>Por que não symlink em produção:</b> os servidores Minecraft rodam em containers-irmãos
-/// (Docker-out-of-Docker) que montam só a pasta da instância. Um symlink apontaria para um caminho do
-/// container do TCMine-Server (ex.: <c>/app/tcmine-data/server-cache/…</c>) que <b>não existe</b> no
-/// container da instância → link quebrado. O hardlink vira um arquivo real na pasta da instância, então
-/// resolve dentro do container. Exige mesma partição (o cache e a instância vivem sob <c>tcmine-data</c>,
-/// então batem); se o hardlink falhar (partições diferentes/FS sem suporte), cai para cópia.</para>
+///     Estratégia padrão: liga arquivos por <b>hardlink</b> (custo de disco ~zero — o link e o cache
+///     compartilham os mesmos bytes/inode) e pastas por recursão (hardlinkando cada arquivo interno).
+///     <para>
+///         <b>Por que não symlink em produção:</b> os servidores Minecraft rodam em containers-irmãos
+///         (Docker-out-of-Docker) que montam só a pasta da instância. Um symlink apontaria para um caminho do
+///         container do TCMine-Server (ex.: <c>/app/tcmine-data/server-cache/…</c>) que <b>não existe</b> no
+///         container da instância → link quebrado. O hardlink vira um arquivo real na pasta da instância, então
+///         resolve dentro do container. Exige mesma partição (o cache e a instância vivem sob <c>tcmine-data</c>,
+///         então batem); se o hardlink falhar (partições diferentes/FS sem suporte), cai para cópia.
+///     </para>
 /// </summary>
 public sealed class CopyLinkStrategy : ILinkStrategy
 {
@@ -25,7 +26,7 @@ public sealed class CopyLinkStrategy : ILinkStrategy
         // Hardlink primeiro (zero cópia de bytes). API nativa por SO; falha → cai para cópia.
         if (TryHardLink(source, destination)) return;
 
-        File.Copy(source, destination, overwrite: true);
+        File.Copy(source, destination, true);
     }
 
     public void LinkDirectory(string source, string destination)
@@ -66,7 +67,8 @@ public sealed class CopyLinkStrategy : ILinkStrategy
     // Não exige privilégio de administrador, diferente dos symlinks no Windows.
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+    private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName,
+        IntPtr lpSecurityAttributes);
 
     // link(2) do libc: cria um novo nome (hardlink) para um arquivo existente na mesma partição.
     // LPUTF8Str: paths no Linux são bytes UTF-8 — o marshaling explícito garante a codificação certa.

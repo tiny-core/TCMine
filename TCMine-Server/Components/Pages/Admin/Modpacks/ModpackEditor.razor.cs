@@ -4,23 +4,48 @@ using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Domain.Modpack;
-using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Editor de um modpack (criar ou editar). **Orquestra** as abas — cada uma é um componente próprio
-/// (<see cref="DetailsPanel"/>, <see cref="ModsPanel"/>, <see cref="OverridesPanel"/>,
-/// <see cref="NewsPanel"/>, <see cref="ServersPanel"/>). Mantém o rascunho destacado (<see cref="_draft"/>
-/// + <see cref="_mods"/>) e a política de escrita-só-ao-Guardar para metadados, mods e servidores.
-///
-/// Exceção: overrides e novidades gravam direto no disco/banco (têm seus próprios serviços), por isso
-/// só ficam disponíveis depois do primeiro Guardar — antes disso o modpack ainda não existe.
+///     Editor de um modpack (criar ou editar). **Orquestra** as abas — cada uma é um componente próprio
+///     (<see cref="DetailsPanel" />, <see cref="ModsPanel" />, <see cref="OverridesPanel" />,
+///     <see cref="NewsPanel" />, <see cref="ServersPanel" />). Mantém o rascunho destacado (<see cref="_draft" />
+///     + <see cref="_mods" />) e a política de escrita-só-ao-Guardar para metadados, mods e servidores.
+///     Exceção: overrides e novidades gravam direto no disco/banco (têm seus próprios serviços), por isso
+///     só ficam disponíveis depois do primeiro Guardar — antes disso o modpack ainda não existe.
 /// </summary>
 public partial class ModpackEditor : ComponentBase
 {
+    private bool _cfConfigured;
+
+    // Rascunho destacado: a fonte da verdade do formulário até o Guardar
+    private ModpackEntity _draft = new();
+
+    // Origem CF já gravada (alimenta o banner de "verificar atualização"); null = não veio do CF
+    private ModpackImportSourceEntity? _importSource;
+
+    private bool _isNew;
+    private bool _loading = true;
+
+    // Mods do rascunho como lista plana (campos do arquivo + Side/Target por-modpack). A persistência
+    // decompõe isto em ModFile (compartilhado) + ModpackMod (junção) no SaveAsync.
+    private List<ModEntryEntity> _mods = [];
+
+    // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
+    private byte[]? _pendingOverrides;
+
+    // Origem CF de um import feito nesta sessão (persistida no Guardar); null = nada novo
+    private ModpackImportSourceEntity? _pendingSource;
+    private int _saveCurrent;
+    private string _saveStatus = string.Empty;
+    private int _saveTotal;
+
+    // Estado do Guardar (com progresso de download dos jars)
+    private bool _saving;
     [Parameter] public string? Id { get; set; }
 
     [Inject] private ModpackImportService Service { get; set; } = null!;
@@ -30,32 +55,6 @@ public partial class ModpackEditor : ComponentBase
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    // Rascunho destacado: a fonte da verdade do formulário até o Guardar
-    private ModpackEntity _draft = new();
-
-    // Mods do rascunho como lista plana (campos do arquivo + Side/Target por-modpack). A persistência
-    // decompõe isto em ModFile (compartilhado) + ModpackMod (junção) no SaveAsync.
-    private List<ModEntryEntity> _mods = [];
-
-    private bool _isNew;
-    private bool _loading = true;
-    private bool _cfConfigured;
-
-    // Bundle de overrides pendente de um import (extraído só no Guardar); null = nada pendente
-    private byte[]? _pendingOverrides;
-
-    // Origem CF de um import feito nesta sessão (persistida no Guardar); null = nada novo
-    private ModpackImportSourceEntity? _pendingSource;
-
-    // Origem CF já gravada (alimenta o banner de "verificar atualização"); null = não veio do CF
-    private ModpackImportSourceEntity? _importSource;
-
-    // Estado do Guardar (com progresso de download dos jars)
-    private bool _saving;
-    private string _saveStatus = string.Empty;
-    private int _saveCurrent;
-    private int _saveTotal;
 
     // Voltar: na criação volta para a lista; editando mods, volta para o hub do modpack
     private string BackHref => _isNew ? "/admin/modpacks" : $"/admin/modpacks/{_draft.Id}";
@@ -153,7 +152,9 @@ public partial class ModpackEditor : ComponentBase
 
         if (added > 0)
             Snackbar.Add(
-                deps > 0 ? $"{added} mod(s) adicionado(s) (incluindo {deps} dependência(s))." : $"{added} mod(s) adicionado(s).",
+                deps > 0
+                    ? $"{added} mod(s) adicionado(s) (incluindo {deps} dependência(s))."
+                    : $"{added} mod(s) adicionado(s).",
                 Severity.Success);
 
         // Avisa sobre os incompatíveis: o CF não tinha arquivo para MC {versão} + {loader}
@@ -172,7 +173,7 @@ public partial class ModpackEditor : ComponentBase
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is not long projectId) return;
 
-        await RunImportAsync(projectId, isUpdate: false);
+        await RunImportAsync(projectId, false);
     }
 
     // Import (ou atualização) de um modpack CF para o rascunho. Mescla os mods preservando Side/Target,
@@ -247,10 +248,8 @@ public partial class ModpackEditor : ComponentBase
         List<ModUpdateDto> updates = [];
         try
         {
-            await Busy.RunAsync("Buscando atualizações…", async () =>
-            {
-                updates = await Updates.CheckModUpdatesAsync(_mods, _draft.Minecraft, _draft.Loader);
-            });
+            await Busy.RunAsync("Buscando atualizações…",
+                async () => { updates = await Updates.CheckModUpdatesAsync(_mods, _draft.Minecraft, _draft.Loader); });
         }
         catch (Exception ex)
         {
@@ -298,8 +297,8 @@ public partial class ModpackEditor : ComponentBase
         {
             await Busy.RunAsync("Verificando atualização do modpack…", async () =>
             {
-                var status = await Updates.CheckModpackUpdateAsync(_draft.Id, force: true);
-                if (status is not null) _importSource = await Updates.GetImportSourceAsync(_draft.Id);
+                var refreshed = await Updates.CheckModpackUpdateAsync(_draft.Id, true);
+                if (refreshed) _importSource = await Updates.GetImportSourceAsync(_draft.Id);
             });
 
             Snackbar.Add(
@@ -318,7 +317,7 @@ public partial class ModpackEditor : ComponentBase
     private async Task UpdateModpackAsync()
     {
         if (_importSource is null) return;
-        await RunImportAsync(_importSource.CurseProjectId, isUpdate: true);
+        await RunImportAsync(_importSource.CurseProjectId, true);
     }
 
     private async Task UploadJarAsync(IBrowserFile file)
@@ -373,10 +372,11 @@ public partial class ModpackEditor : ComponentBase
         if (mod.CurseModId <= 0) return;
 
         List<CfFileRefDto> versions = [];
-        await Busy.RunAsync("Buscando versões…", async () =>
-        {
-            versions = await Service.ListModVersionsAsync(mod.CurseModId, _draft.Minecraft, _draft.Loader);
-        });
+        await Busy.RunAsync("Buscando versões…",
+            async () =>
+            {
+                versions = await Service.ListModVersionsAsync(mod.CurseModId, _draft.Minecraft, _draft.Loader);
+            });
 
         if (versions.Count == 0)
         {
@@ -389,7 +389,8 @@ public partial class ModpackEditor : ComponentBase
             { x => x.Files, versions },
             { x => x.CurrentFileId, mod.FileId }
         };
-        var dialog = await DialogService.ShowAsync<ModVersionPickerDialog>($"Versão de {mod.Name}", parameters, WideDialog());
+        var dialog =
+            await DialogService.ShowAsync<ModVersionPickerDialog>($"Versão de {mod.Name}", parameters, WideDialog());
         var result = await dialog.Result;
         if (result is null || result.Canceled || result.Data is not CfFileRefDto chosen) return;
         if (chosen.Id == mod.FileId) return; // mesma versão

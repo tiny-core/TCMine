@@ -1,24 +1,26 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:TCMine_Launcher.ViewModels"
         xmlns:views="using:TCMine_Launcher.Views"
         mc:Ignorable="d" d:DesignWidth="380" d:DesignHeight="260"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:TCMine_Launcher.ViewModels"
+        xmlns:views1="clr-namespace:TCMine_Launcher.Views"
         x:Class="TCMine_Launcher.Views.MemoryWindow"
-        x:DataType="vm:MemoryEditViewModel"
+        x:DataType="viewModels:MemoryEditViewModel"
         Icon="/Assets/icon.ico" Title="Memória"
         Width="380" Height="250"
         WindowStartupLocation="CenterOwner" CanResize="False"
         WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent">
 
-    <views:WindowChrome>
+    <views1:WindowChrome>
         <Grid RowDefinitions="Auto,*">
             <views:TitleBar Grid.Row="0" Title="Memória do modpack" ShowMinimize="False" />
             <StackPanel Grid.Row="1" Margin="22" Spacing="14">
                 <TextBlock Text="{Binding InstanceName}" Classes="card-title" />
                 <Grid ColumnDefinitions="*,Auto">
-                    <TextBlock Text="RAM alocada" Foreground="{DynamicResource TextSecondary}" VerticalAlignment="Center" />
+                    <TextBlock Text="RAM alocada" Foreground="{DynamicResource TextSecondary}"
+                               VerticalAlignment="Center" />
                     <TextBlock Grid.Column="1" Text="{Binding RamLabel}" Foreground="{DynamicResource Accent}"
                                FontWeight="SemiBold" VerticalAlignment="Center" />
                 </Grid>
@@ -28,5 +30,5 @@
                            Classes="faint" TextWrapping="Wrap" />
             </StackPanel>
         </Grid>
-    </views:WindowChrome>
+    </views1:WindowChrome>
 </Window>

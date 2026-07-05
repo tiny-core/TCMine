@@ -6,13 +6,12 @@ using TCMine_Server.Infrastructure.Persistence;
 namespace TCMine_Server.Infrastructure.Server;
 
 /// <summary>
-/// CRUD da newsletter. Cada notícia tem uma FK <b>opcional</b> ao modpack
-/// (<see cref="NewsEntity.ModpackId"/>): preenchida = notícia do modpack; nula = notícia
-/// <b>global</b> (do servidor). A página de novidades globais usa <see cref="ListAllAsync"/>; a aba
-/// de um modpack usa <see cref="ListForModpackAsync"/>.
-///
-/// Diferente do editor de metadados (escrita-só-ao-Guardar), a newsletter grava direto no banco —
-/// é conteúdo independente do rascunho do modpack. Cada mutação avisa os launchers (SSE).
+///     CRUD da newsletter. Cada notícia tem uma FK <b>opcional</b> ao modpack
+///     (<see cref="NewsEntity.ModpackId" />): preenchida = notícia do modpack; nula = notícia
+///     <b>global</b> (do servidor). A página de novidades globais usa <see cref="ListAllAsync" />; a aba
+///     de um modpack usa <see cref="ListForModpackAsync" />.
+///     Diferente do editor de metadados (escrita-só-ao-Guardar), a newsletter grava direto no banco —
+///     é conteúdo independente do rascunho do modpack. Cada mutação avisa os launchers (SSE).
 /// </summary>
 public sealed class ModpackNewsService(AppDbContext db, ContentNotifier notifier)
 {
@@ -68,8 +67,8 @@ public sealed class ModpackNewsService(AppDbContext db, ContentNotifier notifier
     }
 
     /// <summary>
-    /// Cria uma notícia. <paramref name="draft"/>.<c>ModpackId</c> nulo = global; preenchido = do
-    /// modpack. Devolve a entidade gravada (com Id).
+    ///     Cria uma notícia. <paramref name="draft" />.<c>ModpackId</c> nulo = global; preenchido = do
+    ///     modpack. Devolve a entidade gravada (com Id).
     /// </summary>
     public async Task<NewsEntity> CreateAsync(NewsEntity draft, CancellationToken ct = default)
     {

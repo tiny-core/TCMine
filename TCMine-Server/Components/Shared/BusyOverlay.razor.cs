@@ -5,9 +5,9 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Shared;
 
 /// <summary>
-/// Overlay bloqueante global de feedback async. Renderizado uma única vez no <c>RootLayout</c>,
-/// reage ao <see cref="BusyService"/> do circuito: aparece enquanto há operação em andamento e some
-/// quando a última termina. Não-fechável de propósito (ver markup no .razor).
+///     Overlay bloqueante global de feedback async. Renderizado uma única vez no <c>RootLayout</c>,
+///     reage ao <see cref="BusyService" /> do circuito: aparece enquanto há operação em andamento e some
+///     quando a última termina. Não-fechável de propósito (ver markup no .razor).
 /// </summary>
 public partial class BusyOverlay : ComponentBase, IDisposable
 {
@@ -46,8 +46,14 @@ public partial class BusyOverlay : ComponentBase, IDisposable
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!Busy.IsBusy || Busy.Steps.Count <= 1) return;
-        try { await JS.InvokeVoidAsync("tcmineScrollToBottom", _stepsEl); }
-        catch { /* elemento ainda não no DOM / circuito a fechar — ignora */ }
+        try
+        {
+            await JS.InvokeVoidAsync("tcmineScrollToBottom", _stepsEl);
+        }
+        catch
+        {
+            /* elemento ainda não no DOM / circuito a fechar — ignora */
+        }
     }
 
     // O estado muda fora do ciclo de render do componente; reagenda na sync context do Blazor

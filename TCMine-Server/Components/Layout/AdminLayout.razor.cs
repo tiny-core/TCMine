@@ -5,16 +5,21 @@ namespace TCMine_Server.Components.Layout;
 
 public partial class AdminLayout : LayoutComponentBase, IDisposable
 {
-    [Inject] private NavigationManager Navigation { get; set; } = null!;
-
-    // Settings do servidor — usado para avisar quando os secrets ainda não foram configurados
-    [Inject] private ServerSettingsService Settings { get; set; } = null!;
-
     // Drawer aberto por padrão; o botão de menu alterna (responsivo em telas estreitas)
     private bool _drawerOpen = true;
 
     // Lista legível dos secrets em falta (vazia = tudo configurado)
     private string? _missingSecrets;
+    [Inject] private NavigationManager Navigation { get; set; } = null!;
+
+    // Settings do servidor — usado para avisar quando os secrets ainda não foram configurados
+    [Inject] private ServerSettingsService Settings { get; set; } = null!;
+
+    public void Dispose()
+    {
+        // Singleton de longa vida: sem unsubscribe o componente vazaria a cada navegação
+        Settings.Changed -= OnSettingsChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,12 +48,6 @@ public partial class AdminLayout : LayoutComponentBase, IDisposable
             Refresh(stored);
             StateHasChanged();
         });
-    }
-
-    public void Dispose()
-    {
-        // Singleton de longa vida: sem unsubscribe o componente vazaria a cada navegação
-        Settings.Changed -= OnSettingsChanged;
     }
 
     private void ToggleDrawer()

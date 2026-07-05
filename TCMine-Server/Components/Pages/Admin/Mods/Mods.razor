@@ -1,8 +1,8 @@
 @page "/admin/mods"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Application.Contracts
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
 
 @* Catálogo de todos os arquivos de mod do servidor (um por FileId, compartilhados entre modpacks).
    Cada linha mostra os modpacks em que o mod aparece (badges) e marca os órfãos (sem vínculo). *@

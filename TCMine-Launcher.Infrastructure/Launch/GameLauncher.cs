@@ -10,12 +10,12 @@ using TCMine_Domain.Launcher;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Instalação e lançamento reais do Minecraft + NeoForge via CmlLib.Core. NÃO chama <c>Start()</c> —
-/// devolve o processo pronto. Colaborador interno do <see cref="LaunchOrchestrator"/>.
+///     Instalação e lançamento reais do Minecraft + NeoForge via CmlLib.Core. NÃO chama <c>Start()</c> —
+///     devolve o processo pronto. Colaborador interno do <see cref="LaunchOrchestrator" />.
 /// </summary>
 internal sealed class GameLauncher
 {
-    public async Task<Process> PrepareAsync(
+    public static async Task<Process> PrepareAsync(
         string gameDir, string mcVersion, string neoForgeVersion, MSession session, int ramMb,
         string? javaPath, IProgress<LaunchProgress> progress,
         IReadOnlyList<ModpackServer> servers, ModpackServer? autoJoinServer, CancellationToken ct)
@@ -64,7 +64,7 @@ internal sealed class GameLauncher
             }
 
             // Encaminha o token: cancelar o launch (CancelLaunch) interrompe o install/build do CmlLib.
-            var process = await launcher.InstallAndBuildProcessAsync(versionName, launchOption, cancellationToken: ct);
+            var process = await launcher.InstallAndBuildProcessAsync(versionName, launchOption, ct);
 
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;

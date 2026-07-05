@@ -8,12 +8,11 @@ using TCMine_Server.Infrastructure.Server;
 namespace TCMine_Server.Infrastructure.CurseForge;
 
 /// <summary>
-/// Implementação de <see cref="ICurseForgeApi"/> no servidor: fala direto com a API oficial
-/// do CurseForge (<c>api.curseforge.com</c>), injetando a <c>x-api-key</c> guardada (cifrada)
-/// nas settings. É a única ponta que conhece a key — o launcher fala com o proxy, nunca aqui.
-///
-/// A key é lida por requisição (e não fixada no <see cref="HttpClient"/>) porque o Owner pode
-/// configurá-la/alterá-la em runtime pelo painel, sem reiniciar o servidor.
+///     Implementação de <see cref="ICurseForgeApi" /> no servidor: fala direto com a API oficial
+///     do CurseForge (<c>api.curseforge.com</c>), injetando a <c>x-api-key</c> guardada (cifrada)
+///     nas settings. É a única ponta que conhece a key — o launcher fala com o proxy, nunca aqui.
+///     A key é lida por requisição (e não fixada no <see cref="HttpClient" />) porque o Owner pode
+///     configurá-la/alterá-la em runtime pelo painel, sem reiniciar o servidor.
 /// </summary>
 public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettingsService settings) : ICurseForgeApi
 {
@@ -134,8 +133,8 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
     }
 
     /// <summary>
-    /// Detalhes de um projeto CF (modpack/mod): nome, resumo e link da página. Usado no import para
-    /// preencher a descrição e o badge do modpack. Null se o projeto não existir.
+    ///     Detalhes de um projeto CF (modpack/mod): nome, resumo e link da página. Usado no import para
+    ///     preencher a descrição e o badge do modpack. Null se o projeto não existir.
     /// </summary>
     public async Task<CfProjectInfoDto?> GetProjectInfoAsync(long projectId, CancellationToken ct = default)
     {
@@ -161,8 +160,8 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
     }
 
     /// <summary>
-    /// Arquivos de um mod (mais recentes primeiro), filtrados por versão MC e tipo de loader.
-    /// Usado pela UI para resolver o jar a instalar ao adicionar um mod da busca.
+    ///     Arquivos de um mod (mais recentes primeiro), filtrados por versão MC e tipo de loader.
+    ///     Usado pela UI para resolver o jar a instalar ao adicionar um mod da busca.
     /// </summary>
     public async Task<List<CfFileRefDto>> GetModFilesAsync(
         long modId, string? gameVersion = null, int? loaderType = null, CancellationToken ct = default)
@@ -199,12 +198,13 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
             .Distinct()
             .ToList();
 
-        return new CfFileRefDto(f.Id, f.ModId, f.FileName, f.DownloadUrl, f.DisplayName, f.ServerPackFileId, requiredDeps);
+        return new CfFileRefDto(f.Id, f.ModId, f.FileName, f.DownloadUrl, f.DisplayName, f.ServerPackFileId,
+            requiredDeps);
     }
 
     /// <summary>
-    /// Envia uma requisição autenticada (x-api-key) e deserialize a resposta. O corpo,
-    /// quando presente, é serializado como JSON. A key é resolvida a cada chamada.
+    ///     Envia uma requisição autenticada (x-api-key) e deserialize a resposta. O corpo,
+    ///     quando presente, é serializado como JSON. A key é resolvida a cada chamada.
     /// </summary>
     private async Task<T?> SendAsync<T>(
         HttpMethod method, string path, object? body = null, CancellationToken ct = default)
@@ -245,7 +245,9 @@ public sealed class CurseForgeApiClient(IHttpClientFactory factory, ServerSettin
         List<CfFileIndexResponse>? LatestFilesIndexes = null);
 
     // Links do projeto no CF; usamos o websiteUrl (página do projeto) para o badge do modpack.
-    private sealed record CfLinksResponse([property: JsonPropertyName("websiteUrl")] string? WebsiteUrl);
+    private sealed record CfLinksResponse(
+        [property: JsonPropertyName("websiteUrl")]
+        string? WebsiteUrl);
 
     // Índice compacto de arquivo recente por (gameVersion, loader) — sem url; resolvemos depois se preciso
     private sealed record CfFileIndexResponse(

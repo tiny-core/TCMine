@@ -6,13 +6,28 @@ using TCMine_Server.Infrastructure.ServerInstances;
 namespace TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
 
 /// <summary>
-/// Diálogo de criar/editar uma instância de servidor. Só coleta e valida o formulário e devolve um
-/// <see cref="ServerInstanceEditDto"/>; a persistência fica com o <see cref="ServerInstanceService"/>,
-/// chamado pela página. Carrega as opções de modpack ao abrir (consulta leve, sem overlay — exceção
-/// do padrão para buscas internas de diálogo).
+///     Diálogo de criar/editar uma instância de servidor. Só coleta e valida o formulário e devolve um
+///     <see cref="ServerInstanceEditDto" />; a persistência fica com o <see cref="ServerInstanceService" />,
+///     chamado pela página. Carrega as opções de modpack ao abrir (consulta leve, sem overlay — exceção
+///     do padrão para buscas internas de diálogo).
 /// </summary>
 public partial class ServerInstanceEditDialog : ComponentBase
 {
+    private bool _advertise = true;
+    private bool _autoRestart;
+    private string _extraJvmArgs = string.Empty;
+
+    private MudForm _form = null!;
+    private int _maxPlayers = 20;
+    private Guid _modpackId;
+    private List<ModpackOptionDto> _modpacks = [];
+    private string _motd = "A TCMine server";
+
+    private string _name = string.Empty;
+    private int _port = 25565;
+    private string _publicAddress = string.Empty;
+    private int _ramMb = 4096;
+    private int _xmsMb;
     [Inject] private ServerInstanceService Service { get; set; } = null!;
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
@@ -24,21 +39,6 @@ public partial class ServerInstanceEditDialog : ComponentBase
 
     // Modpack travado: edição (não muda após criar) ou criação já amarrada a um modpack
     private bool LockModpack => IsEdit || PresetModpackId is not null;
-
-    private MudForm _form = null!;
-    private List<ModpackOptionDto> _modpacks = [];
-
-    private string _name = string.Empty;
-    private Guid _modpackId;
-    private int _port = 25565;
-    private int _maxPlayers = 20;
-    private int _ramMb = 4096;
-    private int _xmsMb;
-    private string _motd = "A TCMine server";
-    private string _extraJvmArgs = string.Empty;
-    private bool _autoRestart;
-    private string _publicAddress = string.Empty;
-    private bool _advertise = true;
 
     private bool IsEdit => Instance is not null;
 

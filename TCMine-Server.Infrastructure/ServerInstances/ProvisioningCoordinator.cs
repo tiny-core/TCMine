@@ -23,11 +23,15 @@ public sealed record ProvisionJobView(ProvisionState State, IReadOnlyList<string
 ///     num escopo de DI próprio (via <see cref="IServiceScopeFactory" />) numa tarefa de fundo, guarda o
 ///     seu log de passos em memória e emite <see cref="Changed" /> a cada atualização. Assim:
 ///     <list type="bullet">
-///         <item>um <b>refresh de página</b> não interrompe nem perde a provisão — a página só re-inscreve
-///         e volta a ver o progresso;</item>
-///         <item>a instância fica marcada como <see cref="ServerInstanceStatus.Provisioning" /> (persistido),
-///         então um <b>reinício do TCMine-Server</b> no meio do processo é <b>retomado</b> no boot
-///         (<see cref="RecoverAsync" />).</item>
+///         <item>
+///             um <b>refresh de página</b> não interrompe nem perde a provisão — a página só re-inscreve
+///             e volta a ver o progresso;
+///         </item>
+///         <item>
+///             a instância fica marcada como <see cref="ServerInstanceStatus.Provisioning" /> (persistido),
+///             então um <b>reinício do TCMine-Server</b> no meio do processo é <b>retomado</b> no boot
+///             (<see cref="RecoverAsync" />).
+///         </item>
 ///     </list>
 ///     Singleton: o estado dos jobs é partilhado por todos os circuitos.
 /// </summary>
@@ -96,7 +100,7 @@ public sealed class ProvisioningCoordinator(IServiceScopeFactory scopeFactory, I
         foreach (var id in pending)
         {
             logger.LogInformation("Retomando provisionamento interrompido da instância {Id}.", id);
-            Start(id, applyUpdate: false);
+            Start(id, false);
         }
     }
 
@@ -188,8 +192,8 @@ public sealed class ProvisioningCoordinator(IServiceScopeFactory scopeFactory, I
     private sealed class Job
     {
         private const int MaxSteps = 60;
-        private readonly List<string> _steps = [];
         private readonly object _lock = new();
+        private readonly List<string> _steps = [];
         private string? _error;
 
         public ProvisionState State { get; private set; } = ProvisionState.Running;

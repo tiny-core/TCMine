@@ -6,7 +6,7 @@ using TCMine_Application.Launcher;
 
 namespace TCMine_Launcher.Infrastructure.Networking;
 
-/// <summary>Server List Ping do Minecraft (estado online/jogadores/MOTD). Implementa <see cref="IServerPinger"/>.</summary>
+/// <summary>Server List Ping do Minecraft (estado online/jogadores/MOTD). Implementa <see cref="IServerPinger" />.</summary>
 public sealed class ServerPinger : IServerPinger
 {
     public async Task<ServerPing> PingAsync(string host, int port, int timeoutMs = 4000)
@@ -80,7 +80,8 @@ public sealed class ServerPinger : IServerPinger
         var sb = new StringBuilder();
         if (element.ValueKind == JsonValueKind.Object)
         {
-            if (element.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String) sb.Append(t.GetString());
+            if (element.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String)
+                sb.Append(t.GetString());
             if (element.TryGetProperty("extra", out var extra) && extra.ValueKind == JsonValueKind.Array)
                 foreach (var part in extra.EnumerateArray())
                     sb.Append(ExtractText(part));
@@ -89,7 +90,10 @@ public sealed class ServerPinger : IServerPinger
         return sb.ToString();
     }
 
-    private static string StripCodes(string s) => Regex.Replace(s, "§.", string.Empty).Trim();
+    private static string StripCodes(string s)
+    {
+        return Regex.Replace(s, "§.", string.Empty).Trim();
+    }
 
     private static void WriteVarInt(Stream s, int value)
     {

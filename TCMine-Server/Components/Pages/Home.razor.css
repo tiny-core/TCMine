@@ -1,10 +1,9 @@
 /* Faixa do hero com um leve gradiente de acento — separa visualmente o topo do resto da página.
    ::deep alcança os elementos renderizados pelos componentes MudBlazor filhos. */
 ::deep .home-hero {
-    background:
-        radial-gradient(1200px 400px at 50% -120px,
-            var(--mud-palette-primary-hover, rgba(249, 115, 22, .12)),
-            transparent 70%);
+    background: radial-gradient(1200px 400px at 50% -120px,
+    var(--mud-palette-primary-hover, rgba(249, 115, 22, .12)),
+    transparent 70%);
     border-bottom: 1px solid var(--mud-palette-lines-default);
 }
 

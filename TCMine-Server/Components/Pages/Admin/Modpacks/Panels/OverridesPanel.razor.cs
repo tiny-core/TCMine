@@ -1,29 +1,29 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 using TCMine_Server.Components.Shared;
+using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks.Panels;
 
 /// <summary>
-/// Painel de overrides de um modpack: hoje um wrapper fino sobre o <see cref="FileTreeEditor"/>
-/// (árvore + Monaco compartilhados). Adiciona o que é específico dos overrides — o histórico/desfazer —
-/// via o slot de toolbar, e mantém o estado <c>_hasHistory</c> em sync pelo callback <c>OnChanged</c>.
+///     Painel de overrides de um modpack: hoje um wrapper fino sobre o <see cref="FileTreeEditor" />
+///     (árvore + Monaco compartilhados). Adiciona o que é específico dos overrides — o histórico/desfazer —
+///     via o slot de toolbar, e mantém o estado <c>_hasHistory</c> em sync pelo callback <c>OnChanged</c>.
 /// </summary>
 public partial class OverridesPanel : ComponentBase
 {
+    private bool _hasHistory;
+    private IFileTreeSource _source = null!;
+
+    private FileTreeEditor _tree = null!;
     [Parameter] public Guid ModpackId { get; set; }
 
     [Inject] private ModpackOverridesService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    private FileTreeEditor _tree = null!;
-    private IFileTreeSource _source = null!;
-    private bool _hasHistory;
 
     protected override void OnParametersSet()
     {

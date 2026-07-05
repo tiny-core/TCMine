@@ -4,5 +4,8 @@ namespace TCMine_Launcher.Views;
 
 public partial class HomePageView : UserControl
 {
-    public HomePageView() => InitializeComponent();
+    public HomePageView()
+    {
+        InitializeComponent();
+    }
 }

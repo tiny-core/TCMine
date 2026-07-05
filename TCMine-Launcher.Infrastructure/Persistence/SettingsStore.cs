@@ -5,7 +5,7 @@ using TCMine_Launcher.Infrastructure.FileSystem;
 
 namespace TCMine_Launcher.Infrastructure.Persistence;
 
-/// <summary>Persiste as <see cref="LauncherSettings"/> em <c>settings.json</c> (escrita atómica).</summary>
+/// <summary>Persiste as <see cref="LauncherSettings" /> em <c>settings.json</c> (escrita atômica).</summary>
 public sealed class SettingsStore : ISettingsStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };

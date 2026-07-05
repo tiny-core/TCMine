@@ -7,13 +7,12 @@ using Microsoft.Extensions.Logging;
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Valida o access token do Minecraft (MSession) contra a API de perfil da Mojang e confirma que
-/// pertence ao UUID indicado. Usado para autenticar a <b>escrita</b> das configs do jogador (PUT).
-///
-/// <b>Fail-open</b>: se a Mojang estiver inacessível, autoriza — são settings de jogo, sem
-/// segredos, e não adianta partir o sync por uma indisponibilidade externa. Só NEGA quando o
-/// token é confirmadamente inválido (401/403) ou o UUID não corresponde. Resultados cacheados
-/// em memória (~10 min) para não bater na Mojang a cada PUT.
+///     Valida o access token do Minecraft (MSession) contra a API de perfil da Mojang e confirma que
+///     pertence ao UUID indicado. Usado para autenticar a <b>escrita</b> das configs do jogador (PUT).
+///     <b>Fail-open</b>: se a Mojang estiver inacessível, autoriza — são settings de jogo, sem
+///     segredos, e não adianta partir o sync por uma indisponibilidade externa. Só NEGA quando o
+///     token é confirmadamente inválido (401/403) ou o UUID não corresponde. Resultados cacheados
+///     em memória (~10 min) para não bater na Mojang a cada PUT.
 /// </summary>
 public sealed class MinecraftAuthService(IHttpClientFactory http, IMemoryCache cache, ILogger<MinecraftAuthService> log)
 {

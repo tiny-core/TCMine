@@ -1,11 +1,10 @@
-
 namespace TCMine_Launcher.Infrastructure.Launch;
 
-/// <summary>Escreve a saída do jogo num ficheiro e mantém as últimas linhas em memória. Thread-safe.</summary>
+/// <summary>Escreve a saída do jogo num arquivo e mantém as últimas linhas em memória. Thread-safe.</summary>
 internal sealed class GameLogCapture : IDisposable
 {
     private const int TailSize = 30;
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
     private readonly Queue<string> _tail = new();
     private readonly StreamWriter _writer;
 
@@ -22,8 +21,14 @@ internal sealed class GameLogCapture : IDisposable
     {
         lock (_lock)
         {
-            try { _writer.Dispose(); }
-            catch { /* noop */ }
+            try
+            {
+                _writer.Dispose();
+            }
+            catch
+            {
+                /* noop */
+            }
         }
     }
 

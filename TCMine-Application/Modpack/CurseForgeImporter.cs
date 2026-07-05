@@ -17,7 +17,7 @@ public abstract class CurseForgeImporter
     private static readonly JsonSerializerOptions Json = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
-    /// Importa assincronamente um modpack do CurseForge usando a API fornecida e o identificador do modpack.
+    ///     Importa assincronamente um modpack do CurseForge usando a API fornecida e o identificador do modpack.
     /// </summary>
     public static async Task<ImportedModpackDto?> ImportAsync(
         long modpackId, ICurseForgeApi api, IProgress<string>? progress = null, CancellationToken ct = default)
@@ -94,35 +94,11 @@ public abstract class CurseForgeImporter
     }
 
     /// <summary>
-    /// Resolve um único par (mod, arquivo) do CurseForge num <see cref="ImportedModDto" />.
-    /// É a base do "adicionar mod manualmente" — partilhada por servidor (admin) e launcher,
-    /// porque ambos passam a sua própria <see cref="ICurseForgeApi" /> (direta vs proxy).
-    /// </summary>
-    public static async Task<ImportedModDto?> ImportSingleAsync(
-        long modId, long fileId, ICurseForgeApi api, CancellationToken ct = default)
-    {
-        var files = await api.GetFilesAsync([fileId], ct);
-        if (!files.TryGetValue(fileId, out var file)) return null;
-
-        var mods = await api.GetModsAsync([modId], ct);
-        mods.TryGetValue(modId, out var mod);
-
-        var url = ResolveDownloadUrl(file);
-        return new ImportedModDto(
-            modId, fileId,
-            mod?.Name ?? file.FileName,
-            file.FileName,
-            url ?? string.Empty,
-            mod is null ? "mod" : ClassToTarget(mod.ClassId),
-            file.DisplayName);
-    }
-
-    /// <summary>
-    /// Infere o lado (<see cref="ModSide" />) de um mod a partir do conteúdo do server pack.
-    /// Regra: o manifesto lista os mods do <b>cliente</b>; o server pack contém o subconjunto
-    /// que roda no servidor. Logo, mod presente no pack ⇒ <see cref="ModSide.Both" />; ausente ⇒
-    /// <see cref="ModSide.Client" />. Sem server pack (<paramref name="serverPackFileNames" /> nulo),
-    /// assume <see cref="ModSide.Both" /> — o admin ajusta manualmente.
+    ///     Infere o lado (<see cref="ModSide" />) de um mod a partir do conteúdo do server pack.
+    ///     Regra: o manifesto lista os mods do <b>cliente</b>; o server pack contém o subconjunto
+    ///     que roda no servidor. Logo, mod presente no pack ⇒ <see cref="ModSide.Both" />; ausente ⇒
+    ///     <see cref="ModSide.Client" />. Sem server pack (<paramref name="serverPackFileNames" /> nulo),
+    ///     assume <see cref="ModSide.Both" /> — o admin ajusta manualmente.
     /// </summary>
     public static ModSide InferSide(string modFileName, IReadOnlySet<string>? serverPackFileNames)
     {

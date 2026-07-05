@@ -1,8 +1,8 @@
 @page "/admin/news"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Application.Contracts
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
 
 @* Novidades globais + de modpacks num só lugar (tabela no padrão de listas). Criar/editar abre o
    NewsEditDialog com seletor de modpack opcional: vazio = global; selecionado = do modpack. *@
@@ -54,7 +54,8 @@
                         @if (context.Item.ModpackId is null)
                         {
                             <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
-                                     Icon="@Icons.Material.Filled.Public">Global</MudChip>
+                                     Icon="@Icons.Material.Filled.Public">Global
+                            </MudChip>
                         }
                         else
                         {
@@ -68,7 +69,8 @@
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             @if (!string.IsNullOrWhiteSpace(context.Item.Tag))
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">@context.Item.Tag</MudChip>
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default"
+                                         Variant="Variant.Outlined">@context.Item.Tag</MudChip>
                             }
                             <div>
                                 <MudText Typo="Typo.body2">@context.Item.Title</MudText>
@@ -81,15 +83,20 @@
                         </MudStack>
                     </CellTemplate>
                 </TemplateColumn>
-                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished" CellStyle="text-align:center">
+                <TemplateColumn Title="Status" Sortable="true" SortBy="x => x.IsPublished"
+                                CellStyle="text-align:center">
                     <CellTemplate>
                         @if (context.Item.IsPublished)
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
+                                Publicado
+                            </MudChip>
                         }
                         else
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                                Rascunho
+                            </MudChip>
                         }
                     </CellTemplate>
                 </TemplateColumn>

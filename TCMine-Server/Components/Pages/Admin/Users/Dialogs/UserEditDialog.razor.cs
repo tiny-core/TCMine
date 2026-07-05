@@ -6,24 +6,24 @@ using TCMine_Domain.Identity;
 namespace TCMine_Server.Components.Pages.Admin.Users.Dialogs;
 
 /// <summary>
-/// Diálogo de criar/editar um usuário do painel. Só coleta e valida o formulário e devolve um
-/// <see cref="UserFormResult"/>; a persistência (hash, unicidade do login, proteção do último Owner)
-/// fica com o <c>UserService</c>, chamado pela página. Na criação a senha é obrigatória; na edição
-/// é opcional (preencher = redefinir).
+///     Diálogo de criar/editar um usuário do painel. Só coleta e valida o formulário e devolve um
+///     <see cref="UserFormResult" />; a persistência (hash, unicidade do login, proteção do último Owner)
+///     fica com o <c>UserService</c>, chamado pela página. Na criação a senha é obrigatória; na edição
+///     é opcional (preencher = redefinir).
 /// </summary>
 public partial class UserEditDialog : ComponentBase
 {
+    private string _confirm = string.Empty;
+
+    private MudForm _form = null!;
+    private bool _isActive = true;
+    private string _password = string.Empty;
+    private UserRole _role = UserRole.Viewer;
+    private string _username = string.Empty;
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     // null = criar; preenchido = editar (não mutamos o original — devolvemos um resultado)
     [Parameter] public UserEntity? User { get; set; }
-
-    private MudForm _form = null!;
-    private string _username = string.Empty;
-    private UserRole _role = UserRole.Viewer;
-    private string _password = string.Empty;
-    private string _confirm = string.Empty;
-    private bool _isActive = true;
 
     private bool IsEdit => User is not null;
 

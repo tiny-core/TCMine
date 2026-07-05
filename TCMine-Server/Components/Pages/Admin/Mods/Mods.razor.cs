@@ -7,25 +7,25 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Pages.Admin.Mods;
 
 /// <summary>
-/// Catálogo de todos os arquivos de mod do servidor (um por FileId, compartilhados entre modpacks),
-/// com os modpacks em que cada um aparece e o marcador de órfão. Só leitura, exceto a limpeza de
-/// arquivos órfãos (sem vínculo). Carrega uma vez no init; recarrega após apagar um órfão.
+///     Catálogo de todos os arquivos de mod do servidor (um por FileId, compartilhados entre modpacks),
+///     com os modpacks em que cada um aparece e o marcador de órfão. Só leitura, exceto a limpeza de
+///     arquivos órfãos (sem vínculo). Carrega uma vez no init; recarrega após apagar um órfão.
 /// </summary>
 public partial class Mods : ComponentBase
 {
-    [Inject] private ModFileCacheService Service { get; set; } = null!;
-    [Inject] private NavigationManager Nav { get; set; } = null!;
-    [Inject] private IDialogService DialogService { get; set; } = null!;
-    [Inject] private ISnackbar Snackbar { get; set; } = null!;
-    [Inject] private BusyService Busy { get; set; } = null!;
+    private bool _onlyOrphans;
+
+    private int _orphanCount;
 
     // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
     private List<ModFileRowDto>? _rows;
 
     private string _search = string.Empty;
-    private bool _onlyOrphans;
-
-    private int _orphanCount;
+    [Inject] private ModFileCacheService Service { get; set; } = null!;
+    [Inject] private NavigationManager Nav { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {

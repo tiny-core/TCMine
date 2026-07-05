@@ -6,25 +6,23 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Pages.Admin;
 
 /// <summary>
-/// Página de configurações do servidor (token CurseForge + Azure client/tenant id).
-/// Segue a política de escrita-só-ao-Guardar: o formulário vive em memória e nada é
-/// persistido até o clique em "Guardar".
-///
-/// Nota: por enquanto qualquer admin autenticado acede (a guarda é o &lt;AuthorizeView&gt;
-/// do AdminLayout). Na Etapa C, com usuários e papéis, isto fica restrito ao Owner.
+///     Página de configurações do servidor (token CurseForge + Azure client/tenant id).
+///     Segue a política de escrita-só-ao-Guardar: o formulário vive em memória e nada é
+///     persistido até o clique em "Guardar".
+///     Nota: por enquanto qualquer admin autenticado acede (a guarda é o &lt;AuthorizeView&gt;
+///     do AdminLayout). Na Etapa C, com usuários e papéis, isto fica restrito ao Owner.
 /// </summary>
 public partial class Settings : ComponentBase
 {
-    [Inject] private ServerSettingsService SettingsService { get; set; } = null!;
-    [Inject] private ISnackbar Snackbar { get; set; } = null!;
-    [Inject] private BusyService Busy { get; set; } = null!;
-
     // Modelo isolado do formulário — nunca usar a própria Page como modelo
     private readonly SettingsForm _form = new();
 
     private bool _loading = true;
     private bool _saving;
     private bool _showCfKey; // revela/oculta o token na UI
+    [Inject] private ServerSettingsService SettingsService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {

@@ -9,15 +9,15 @@ using TCMine_Launcher.Infrastructure.FileSystem;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Orquestra a preparação do jogo (sem arrancar): NeoForge (CmlLib) + mods + overrides. Obtém a sessão
-/// Minecraft do <see cref="AuthService"/> (ambos na infra). Implementa <see cref="ILaunchOrchestrator"/>.
+///     Orquestra a preparação do jogo (sem arrancar): NeoForge (CmlLib) + mods + overrides. Obtém a sessão
+///     Minecraft do <see cref="AuthService" /> (ambos na infra). Implementa <see cref="ILaunchOrchestrator" />.
 /// </summary>
 public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : ILaunchOrchestrator
 {
+    private readonly PlayerConfigSync _configSync = new(config);
     private readonly GameLauncher _launcher = new();
     private readonly ModInstaller _mods = new();
     private readonly OverridesInstaller _overrides = new(config);
-    private readonly PlayerConfigSync _configSync = new(config);
 
     public async Task<Process> PrepareAsync(
         InstalledModpack instance, ModpackManifestDto manifest, int ramMb, string? javaPath,
@@ -29,7 +29,7 @@ public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : 
         var gameDir = LauncherPaths.InstanceGameDir(instance.ModpackId);
         var autoJoin = instance.Servers.FirstOrDefault(s => s.Name == instance.AutoJoinServerName);
 
-        var process = await _launcher.PrepareAsync(
+        var process = await GameLauncher.PrepareAsync(
             gameDir, instance.Minecraft, instance.NeoForgeVersion, session, ramMb, javaPath,
             progress, instance.Servers, autoJoin, ct);
 
@@ -55,7 +55,7 @@ public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : 
             /* servidor offline ou sem config — segue com as configs locais */
         }
 
-        // Captura do stdout/stderr do jogo para ficheiro (infra) — o chamador só faz Start + BeginRead.
+        // Captura do stdout/stderr do jogo para arquivo (infra) — o chamador só faz Start + BeginRead.
         var log = new GameLogCapture(LauncherPaths.InstanceLogFile(instance.ModpackId));
         process.OutputDataReceived += (_, e) => log.Append(e.Data);
         process.ErrorDataReceived += (_, e) => log.Append(e.Data);
@@ -66,9 +66,9 @@ public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : 
     }
 
     /// <summary>
-    /// Empurra para o servidor as configs player-owned atuais da instância (chamado pela shell ao fechar o
-    /// jogo). Atualiza <see cref="InstalledModpack.ConfigSyncedAt"/>; o chamador persiste a instância.
-    /// Best-effort — sem sessão/rede válida, é no-op silencioso.
+    ///     Empurra para o servidor as configs player-owned atuais da instância (chamado pela shell ao fechar o
+    ///     jogo). Atualiza <see cref="InstalledModpack.ConfigSyncedAt" />; o chamador persiste a instância.
+    ///     Best-effort — sem sessão/rede válida, é no-op silencioso.
     /// </summary>
     public async Task PushConfigsAsync(
         InstalledModpack instance, Action<string>? report = null, CancellationToken ct = default)

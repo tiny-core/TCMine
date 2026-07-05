@@ -4,15 +4,18 @@ using System.Text.Json.Serialization;
 namespace TCMine_Domain.Launcher;
 
 /// <summary>
-/// Instância instalada localmente, derivada de um modpack oficial. O launcher é só-oficial: há **uma
-/// instância por modpack**, chaveada pelo <see cref="ModpackId"/>. Persistido em JSON.
-/// Implementa <see cref="INotifyPropertyChanged"/> só para as <b>flags de disponibilidade em runtime</b>
-/// (não persistidas): assim os badges de "modpack/servidor indisponível" — bindados direto no XAML —
-/// reagem quando o SSE avisa que o conteúdo do servidor mudou.
+///     Instância instalada localmente, derivada de um modpack oficial. O launcher é só-oficial: há **uma
+///     instância por modpack**, chaveada pelo <see cref="ModpackId" />. Persistido em JSON.
+///     Implementa <see cref="INotifyPropertyChanged" /> só para as <b>flags de disponibilidade em runtime</b>
+///     (não persistidas): assim os badges de "modpack/servidor indisponível" — blindados direto no XAML —
+///     reagem quando o SSE avisa que o conteúdo do servidor mudou.
 /// </summary>
 public sealed class InstalledModpack : INotifyPropertyChanged
 {
-    /// <summary>Id do modpack no servidor (Guid em texto) — também é o nome da pasta da instância.</summary>
+    // ── Disponibilidade em runtime (setada pela shell a partir do catálogo/manifesto; não persistir) ──
+    private bool _modpackMissing;
+
+    /// <summary>ID do modpack no servidor (Guid em texto) — também é o nome da pasta da instância.</summary>
     public string ModpackId { get; set; } = "";
 
     public string Name { get; set; } = "";
@@ -50,23 +53,18 @@ public sealed class InstalledModpack : INotifyPropertyChanged
     public DateTimeOffset? LastPlayedAt { get; set; }
 
     /// <summary>
-    /// <c>UpdatedAt</c> do servidor correspondente às configs do jogador (keybinds/opções) que estão
-    /// aplicadas nesta instância. Usado no sync last-write-wins: no prepare, só baixa do servidor se este
-    /// valor divergir do <c>UpdatedAt</c> remoto (ex.: o jogador jogou noutro PC). Null = nunca sincronizou.
+    ///     <c>UpdatedAt</c> do servidor correspondente às configs do jogador (keybinds/opções) que estão
+    ///     aplicadas nesta instância. Usado no sync last-write-wins: no prepare, só baixa do servidor se este
+    ///     valor divergir do <c>UpdatedAt</c> remoto (ex.: o jogador jogou noutro PC). Null = nunca sincronizou.
     /// </summary>
     public DateTimeOffset? ConfigSyncedAt { get; set; }
 
     // ── Derivados (não persistir) ────────────────────────────────────────────────────────────────
-    [JsonIgnore]
-    public string VersionSummary => $"v{ManifestVersion} · MC {Minecraft} · NeoForge {NeoForgeVersion}";
+    [JsonIgnore] public string VersionSummary => $"v{ManifestVersion} · MC {Minecraft} · NeoForge {NeoForgeVersion}";
 
-    [JsonIgnore]
-    public bool HasServer => Servers.Count > 0;
+    [JsonIgnore] public bool HasServer => Servers.Count > 0;
 
-    // ── Disponibilidade em runtime (setada pela shell a partir do catálogo/manifesto; não persistir) ──
-    private bool _modpackMissing;
-
-    /// <summary>O modpack já não existe no servidor (removido ou despublicado). Setado pela shell.</summary>
+    /// <summary>O modpack já não existe no servidor (removido ou republicado). Setado pela shell.</summary>
     [JsonIgnore]
     public bool ModpackMissing
     {
@@ -80,8 +78,8 @@ public sealed class InstalledModpack : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// O servidor de auto-join configurado desapareceu da lista atual de servidores do modpack.
-    /// Só faz sentido enquanto o modpack existe (se o modpack sumiu, o aviso é o outro).
+    ///     O servidor de autojoin configurado desapareceu da lista atual de servidores do modpack.
+    ///     Só faz sentido enquanto o modpack existe (se o modpack sumiu, o aviso é o outro).
     /// </summary>
     [JsonIgnore]
     public bool AutoJoinServerMissing =>
@@ -99,11 +97,16 @@ public sealed class InstalledModpack : INotifyPropertyChanged
             ? $"Servidor \"{AutoJoinServerName}\" já não existe"
             : null;
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+
     /// <summary>
-    /// Reavaliar os badges após a lista de servidores / auto-join mudar (ex.: depois de aplicar um
-    /// manifesto fresco). <see cref="ModpackMissing"/> já notifica sozinho no seu setter.
+    ///     Reavaliar os badges após a lista de servidores / autojoin mudar (ex.: após aplicar um
+    ///     manifesto fresco). <see cref="ModpackMissing" /> já notifica sozinho no seu setter.
     /// </summary>
-    public void NotifyAvailabilityChanged() => RaiseAvailability();
+    public void NotifyAvailabilityChanged()
+    {
+        RaiseAvailability();
+    }
 
     private void RaiseAvailability()
     {
@@ -113,8 +116,8 @@ public sealed class InstalledModpack : INotifyPropertyChanged
         OnPropertyChanged(nameof(AvailabilityMessage));
     }
 
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    private void OnPropertyChanged(string propertyName) =>
+    private void OnPropertyChanged(string propertyName)
+    {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
 }

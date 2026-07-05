@@ -1,6 +1,4 @@
 @using TCMine_Domain.Modpack
-@using TCMine_Server.Components.Shared
-
 @* Lista dos modpacks tocados mais recentemente. Recebe a lista (null = carregando). *@
 
 <MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
@@ -45,7 +43,8 @@
                             {
                                 <MudChip T="string" Href="@m.CurseForgeUrl" Target="_blank" Size="Size.Small"
                                          Variant="Variant.Filled" Icon="@Icons.Material.Filled.OpenInNew"
-                                         Style="background:#F16436;color:#fff;">CurseForge</MudChip>
+                                         Style="background:#F16436;color:#fff;">CurseForge
+                                </MudChip>
                             }
                             @if (m.IsPublished)
                             {

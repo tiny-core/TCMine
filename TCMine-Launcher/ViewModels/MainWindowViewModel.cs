@@ -26,9 +26,9 @@ public enum ServerStatus
 }
 
 /// <summary>
-/// ViewModel raiz (shell). Estado de autenticação + navegação; cria as páginas. Depende só das
-/// <b>portas</b> (TCMine-Application) — as implementações vêm da infraestrutura, via composição (Splat).
-/// A parte de instâncias/launch está em <c>MainWindowViewModel.Play.cs</c>.
+///     ViewModel raiz (shell). Estado de autenticação + navegação; cria as páginas. Depende só das
+///     <b>portas</b> (TCMine-Application) — as implementações vêm da infraestrutura, via composição (Splat).
+///     A parte de instâncias/launch está em <c>MainWindowViewModel.Play.cs</c>.
 /// </summary>
 public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
@@ -38,16 +38,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private readonly IUpdateService _updateService;
 
     private object? _currentPage;
-    private AppTab _selectedTab = AppTab.Modpacks;
+    private bool _isAuthenticating;
     private bool _isInitializing = true;
     private bool _isLoggedIn;
-    private bool _isAuthenticating;
+    private bool _isUpdating;
     private string? _loginError;
     private PlayerSession? _player;
+    private AppTab _selectedTab;
     private ServerStatus _serverStatus = ServerStatus.Checking;
-    private string? _updateVersion;
-    private bool _isUpdating;
     private string _updateStatus = "";
+    private string? _updateVersion;
 
     public MainWindowViewModel(
         IAuthService auth, IModpackCatalog catalog, IInstanceStore instanceStore, ISettingsStore settingsStore,
@@ -64,7 +64,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         _contentWatcher = contentWatcher;
         _updateService = updateService;
 
-        InitPlay(); // instâncias instaladas + definições + estado de launch (partial .Play.cs)
+        InitPlay(); // instâncias instaladas + definições + estado de launch (partial.Play.cs)
 
         Home = new HomePageViewModel(this, pinger);
         Instances = new InstancesPageViewModel(this);
@@ -72,7 +72,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         News = new NewsPageViewModel(newsFeed);
         Settings = new SettingsPageViewModel(this, systemInfo);
 
-        // Aterragem: Home se já há um modpack ativo (definido em InitPlay/LoadInstalled), senão Modpacks.
+        // Aterrissagem: Home se já há um modpack ativo (definido em InitPlay/LoadInstalled), senão Modpacks.
         // Mantém o destaque da sidebar coerente com a página mostrada.
         _selectedTab = Active is not null ? AppTab.Home : AppTab.Modpacks;
         _currentPage = _selectedTab == AppTab.Home ? Home : Modpacks;
@@ -93,11 +93,11 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     // ── Páginas ──────────────────────────────────────────────────────────────────────────────────
-    public HomePageViewModel Home { get; }
-    public InstancesPageViewModel Instances { get; }
-    public ModpacksPageViewModel Modpacks { get; }
-    public NewsPageViewModel News { get; }
-    public SettingsPageViewModel Settings { get; }
+    private HomePageViewModel Home { get; }
+    private InstancesPageViewModel Instances { get; }
+    private ModpacksPageViewModel Modpacks { get; }
+    private NewsPageViewModel News { get; }
+    private SettingsPageViewModel Settings { get; }
 
     public object? CurrentPage
     {
@@ -106,10 +106,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     // ── Navegação ────────────────────────────────────────────────────────────────────────────────
-    public AppTab SelectedTab
+    private AppTab SelectedTab
     {
         get => _selectedTab;
-        private set
+        set
         {
             if (_selectedTab == value) return;
             this.RaiseAndSetIfChanged(ref _selectedTab, value);
@@ -171,10 +171,10 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     public ReactiveCommand<Unit, Unit> Logout { get; }
 
     // ── Estado do servidor (barra de estado) ─────────────────────────────────────────────────────
-    public ServerStatus Server
+    private ServerStatus Server
     {
         get => _serverStatus;
-        private set
+        set
         {
             this.RaiseAndSetIfChanged(ref _serverStatus, value);
             this.RaisePropertyChanged(nameof(ServerStatusLabel));
@@ -230,7 +230,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     private async Task InitializeAsync()
     {
         _ = CheckServerAsync();
-        _ = RefreshActiveAsync(); // atualiza metadados do modpack ativo (incl. servidores) do manifesto
+        _ = RefreshActiveAsync(); // Atualiza metadados do modpack ativo (incl. Servidores) do manifesto
         _ = ReconcileAvailabilityAsync(); // marca instâncias cujo modpack já não existe no servidor
         _ = CheckUpdateAsync(); // há uma versão nova do launcher no feed do servidor?
         try
@@ -244,7 +244,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    // Verifica o feed /updates; se houver versão nova (e a app estiver instalada), mostra o aviso
+    // Verifica o feed /updates; se houver versão nova (e o aplicativo estiver instalada), mostra o aviso
     private async Task CheckUpdateAsync()
     {
         try
@@ -257,7 +257,7 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
         }
     }
 
-    // Baixa e aplica o update; a app reinicia sozinha ao aplicar (não retorna daqui em caso de sucesso)
+    // Baixa e aplica o update; o aplicativo reinicia sozinha ao aplicar (não retorna daqui em caso de sucesso)
     private async Task ApplyUpdateAsync()
     {
         IsUpdating = true;
@@ -286,17 +286,23 @@ public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
     }
 
     /// <summary>O servidor avisou que o conteúdo mudou — recarrega o catálogo e o modpack ativo.</summary>
-    private void OnServerContentChanged() => Dispatcher.UIThread.Post(() =>
+    private void OnServerContentChanged()
     {
-        Modpacks.Reload();
-        News.Reload();
-        _ = RefreshActiveAsync();          // servidores + metadados do ativo (via manifesto)
-        _ = ReconcileAvailabilityAsync();  // badges de "modpack removido" em toda a lista de instâncias
-    });
+        Dispatcher.UIThread.Post(() =>
+        {
+            Modpacks.Reload();
+            News.Reload();
+            _ = RefreshActiveAsync(); // servidores + metadados do ativo (via manifesto)
+            _ = ReconcileAvailabilityAsync(); // badges de "modpack removido" em toda a lista de instâncias
+        });
+    }
 
     /// <summary>A ligação SSE ligou/desligou — atualiza o indicador da barra de estado.</summary>
-    private void OnServerConnectionChanged(bool connected) => Dispatcher.UIThread.Post(() =>
-        Server = connected ? ServerStatus.Online : ServerStatus.Offline);
+    private void OnServerConnectionChanged(bool connected)
+    {
+        Dispatcher.UIThread.Post(() =>
+            Server = connected ? ServerStatus.Online : ServerStatus.Offline);
+    }
 
     private async Task LoginAsync()
     {

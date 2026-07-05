@@ -8,10 +8,14 @@ using TCMine_Server.Infrastructure.Persistence;
 namespace TCMine_Server.Infrastructure.PlayerConfigs;
 
 /// <summary>
-/// Fachada admin para as configs player-owned guardadas em disco (<c>tcmine-data/player-configs/{uuid}/
-/// {modpackId}/</c>, ver [[concepts/player-config-sync]]). Enumera os conjuntos com tamanho/contagem/último
-/// sync, resolve o nome do modpack pela BD e permite <b>apagar</b> um conjunto ou tudo de um jogador para
-/// recuperar disco. Não há tabela: o sync é só filesystem, então esta é a única forma de gerir/limpar.
+///     Fachada admin para as configs player-owned guardadas em disco (
+///     <c>
+///         tcmine-data/player-configs/{uuid}/
+///         {modpackId}/
+///     </c>
+///     , ver [[concepts/player-config-sync]]). Enumera os conjuntos com tamanho/contagem/último
+///     sync, resolve o nome do modpack pela BD e permite <b>apagar</b> um conjunto ou tudo de um jogador para
+///     recuperar disco. Não há tabela: o sync é só filesystem, então esta é a única forma de gerir/limpar.
 /// </summary>
 public sealed class PlayerConfigAdminService(AppDbContext db, IHostEnvironment env)
 {
@@ -25,8 +29,8 @@ public sealed class PlayerConfigAdminService(AppDbContext db, IHostEnvironment e
     // ── Listagem ──────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Todos os conjuntos de config em disco (um por <c>(uuid, modpackId)</c>), com o total agregado. A
-    /// varredura de tamanho roda fora do contexto do chamador para não bloquear o circuito Blazor.
+    ///     Todos os conjuntos de config em disco (um por <c>(uuid, modpackId)</c>), com o total agregado. A
+    ///     varredura de tamanho roda fora do contexto do chamador para não bloquear o circuito Blazor.
     /// </summary>
     public async Task<PlayerConfigOverviewDto> ListAsync(CancellationToken ct = default)
     {
@@ -79,8 +83,14 @@ public sealed class PlayerConfigAdminService(AppDbContext db, IHostEnvironment e
             var dir = stack.Pop();
 
             FileSystemInfo[] entries;
-            try { entries = dir.GetFileSystemInfos(); }
-            catch { continue; }
+            try
+            {
+                entries = dir.GetFileSystemInfos();
+            }
+            catch
+            {
+                continue;
+            }
 
             foreach (var entry in entries)
             {
@@ -148,7 +158,9 @@ public sealed class PlayerConfigAdminService(AppDbContext db, IHostEnvironment e
             ? Path.Combine(baseDir, uuid)
             : Path.Combine(baseDir, uuid, modpackId));
 
-        var baseWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar) ? baseDir : baseDir + Path.DirectorySeparatorChar;
+        var baseWithSep = baseDir.EndsWith(Path.DirectorySeparatorChar)
+            ? baseDir
+            : baseDir + Path.DirectorySeparatorChar;
         return full.StartsWith(baseWithSep, StringComparison.Ordinal) ? full : null;
     }
 

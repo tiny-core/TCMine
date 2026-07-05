@@ -1,4 +1,3 @@
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using TCMine_Application.Contracts;
@@ -7,7 +6,7 @@ using TCMine_Launcher.Infrastructure.Configuration;
 
 namespace TCMine_Launcher.Infrastructure.Content;
 
-/// <summary>Leitura do catálogo de modpacks do servidor. Implementa <see cref="IModpackCatalog"/>.</summary>
+/// <summary>Leitura do catálogo de modpacks do servidor. Implementa <see cref="IModpackCatalog" />.</summary>
 public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog, IDisposable
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -15,11 +14,20 @@ public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog, IDisp
     // HttpClient próprio (handler custom) — descartado no Dispose.
     private readonly HttpClient _http = new(CreateHandler()) { Timeout = TimeSpan.FromSeconds(30) };
 
-    public async Task<IReadOnlyList<ModpackSummaryDto>> GetModpacksAsync(CancellationToken ct = default) =>
-        await _http.GetFromJsonAsync<List<ModpackSummaryDto>>(config.Resolve("/api/modpacks"), Json, ct) ?? [];
+    public void Dispose()
+    {
+        _http.Dispose();
+    }
 
-    public async Task<ModpackManifestDto?> GetManifestAsync(Guid modpackId, CancellationToken ct = default) =>
-        await _http.GetFromJsonAsync<ModpackManifestDto>(config.Resolve($"/api/modpacks/{modpackId}"), Json, ct);
+    public async Task<IReadOnlyList<ModpackSummaryDto>> GetModpacksAsync(CancellationToken ct = default)
+    {
+        return await _http.GetFromJsonAsync<List<ModpackSummaryDto>>(config.Resolve("/api/modpacks"), Json, ct) ?? [];
+    }
+
+    public async Task<ModpackManifestDto?> GetManifestAsync(Guid modpackId, CancellationToken ct = default)
+    {
+        return await _http.GetFromJsonAsync<ModpackManifestDto>(config.Resolve($"/api/modpacks/{modpackId}"), Json, ct);
+    }
 
     public async Task<bool> PingAsync(CancellationToken ct = default)
     {
@@ -42,10 +50,5 @@ public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog, IDisp
             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 #endif
         return handler;
-    }
-
-    public void Dispose()
-    {
-        _http.Dispose();
     }
 }

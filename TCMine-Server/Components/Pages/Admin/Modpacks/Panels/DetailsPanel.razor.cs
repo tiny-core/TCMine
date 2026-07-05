@@ -8,24 +8,24 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Aba "Detalhes" do <see cref="ModpackEditor"/>: edita os metadados do <see cref="Draft"/> (por
-/// referência) e oferece os seletores de versão. As listas de versão são carregadas aqui (o painel
-/// monta ao abrir a aba), então sempre refletem o loader/Minecraft atuais do rascunho.
+///     Aba "Detalhes" do <see cref="ModpackEditor" />: edita os metadados do <see cref="Draft" /> (por
+///     referência) e oferece os seletores de versão. As listas de versão são carregadas aqui (o painel
+///     monta ao abrir a aba), então sempre refletem o loader/Minecraft atuais do rascunho.
 /// </summary>
 public partial class DetailsPanel : ComponentBase
 {
-    [Parameter] [EditorRequired] public ModpackEntity Draft { get; set; } = null!;
-
-    [Inject] private MinecraftVersionService Versions { get; set; } = null!;
-    [Inject] private BusyService Busy { get; set; } = null!;
-
-    // Seletores de versão (canais oficiais; podem vir vazios → texto livre)
-    private IReadOnlyList<VersionOptionDto> _mcVersions = [];
+    private bool _loaderReleasesOnly = true;
     private IReadOnlyList<VersionOptionDto> _loaderVersions = [];
 
     // Mostrar só lançamentos estáveis (oculta snapshots/beta/rc) — ligado por padrão
     private bool _mcReleasesOnly = true;
-    private bool _loaderReleasesOnly = true;
+
+    // Seletores de versão (canais oficiais; podem vir vazios → texto livre)
+    private IReadOnlyList<VersionOptionDto> _mcVersions = [];
+    [Parameter] [EditorRequired] public ModpackEntity Draft { get; set; } = null!;
+
+    [Inject] private MinecraftVersionService Versions { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {

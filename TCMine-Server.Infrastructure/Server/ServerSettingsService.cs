@@ -13,32 +13,35 @@ public sealed record ServerSettings(
     string? PublicBaseUrl);
 
 /// <summary>
-/// Lê e grava as configurações de runtime (token CurseForge, Azure client/tenant id)
-/// na linha única <see cref="ServerSettingEntity"/>.
-///
-/// Singleton com cache em memória — a leitura é quente (o proxy CF consulta a cada
-/// requisição). Como o <see cref="Persistence.AppDbContext"/> é scoped, abrimos um escopo curto via
-/// <see cref="IServiceScopeFactory"/> para tocar o banco. Segredos são cifrados com
-/// Data Protection antes de gravar e nunca trafegam em texto no banco.
-///
-/// Os valores são lidos exclusivamente do banco — sem fallback para variáveis de ambiente
-/// (decisão de projeto: secrets configurados pelo painel, não por env). Antes de o Owner
-/// preencher as settings, os getters devolvem null e os consumidores tratam como "não configurado".
+///     Lê e grava as configurações de runtime (token CurseForge, Azure client/tenant id)
+///     na linha única <see cref="ServerSettingEntity" />.
+///     Singleton com cache em memória — a leitura é quente (o proxy CF consulta a cada
+///     requisição). Como o <see cref="Persistence.AppDbContext" /> é scoped, abrimos um escopo curto via
+///     <see cref="IServiceScopeFactory" /> para tocar o banco. Segredos são cifrados com
+///     Data Protection antes de gravar e nunca trafegam em texto no banco.
+///     Os valores são lidos exclusivamente do banco — sem fallback para variáveis de ambiente
+///     (decisão de projeto: secrets configurados pelo painel, não por env). Antes de o Owner
+///     preencher as settings, os getters devolvem null e os consumidores tratam como "não configurado".
 /// </summary>
 public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDataProtectionProvider protection)
     : IDisposable
 {
-    private readonly IDataProtector _protector = protection.CreateProtector("TCMine.ServerSettings.v1");
-
     // Serializa cargas/gravações concorrentes para o cache não correr
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly IDataProtector _protector = protection.CreateProtector("TCMine.ServerSettings.v1");
 
     // Valores guardados no banco (sem fallback); null = ainda não carregado
     private ServerSettings? _cache;
 
+    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa leitura/gravação do cache.
+    public void Dispose()
+    {
+        _gate.Dispose();
+    }
+
     /// <summary>
-    /// Disparado após uma gravação bem-sucedida, com o snapshot novo. Permite que a UI
-    /// (ex.: o aviso de secrets pendentes no AdminLayout) reaja sem precisar de reload.
+    ///     Disparado após uma gravação bem-sucedida, com o snapshot novo. Permite que a UI
+    ///     (ex.: o aviso de secrets pendentes no AdminLayout) reaja sem precisar de reload.
     /// </summary>
     public event Action<ServerSettings>? Changed;
 
@@ -148,11 +151,5 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
     private static string? Normalize(string? s)
     {
         return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
-    }
-
-    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa leitura/gravação do cache.
-    public void Dispose()
-    {
-        _gate.Dispose();
     }
 }

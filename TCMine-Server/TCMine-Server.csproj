@@ -45,7 +45,6 @@
     <ItemGroup>
         <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\DashboardHeader.razor"/>
         <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\DashboardKpis.razor"/>
-        <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\ModDistributionCard.razor"/>
         <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\RecentActivityCard.razor"/>
         <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\RecentModpacksCard.razor"/>
         <AdditionalFiles Include="Components\Pages\Admin\Dashboard\Widgets\SystemStatusCard.razor"/>

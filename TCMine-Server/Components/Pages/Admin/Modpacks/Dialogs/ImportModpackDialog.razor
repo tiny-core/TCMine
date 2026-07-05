@@ -1,6 +1,7 @@
-@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
 @using TCMine_Application.Contracts
-@inject TCMine_Server.Infrastructure.Minecraft.ModpackImportService Service
+@using TCMine_Server.Infrastructure.Minecraft
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@inject ModpackImportService Service
 
 @* Busca de modpacks no CurseForge para importar e mesclar no rascunho. Devolve o projectId
    escolhido; o editor faz o import (mods + overrides) e a mesclagem. *@

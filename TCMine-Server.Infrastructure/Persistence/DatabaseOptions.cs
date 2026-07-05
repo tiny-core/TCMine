@@ -8,13 +8,12 @@ public enum DatabaseProvider
 }
 
 /// <summary>
-/// Configuração da camada de dados, lida da seção "Database" do appsettings
-/// (ou das env vars DB_PROVIDER / DB_CONNECTION, que têm prioridade — ver
-/// <see cref="DatabaseServiceCollectionExtensions"/>).
-///
-/// Esta config é <b>bootstrap</b>: precisa estar fora do banco, porque é ela que
-/// diz como conectar ao banco. Tudo o mais (CF token, Azure client id, usuários)
-/// passa a viver no próprio banco nas próximas etapas.
+///     Configuração da camada de dados, lida da seção "Database" do appsettings
+///     (ou das env vars DB_PROVIDER / DB_CONNECTION, que têm prioridade — ver
+///     <see cref="DatabaseServiceCollectionExtensions" />).
+///     Esta config é <b>bootstrap</b>: precisa estar fora do banco, porque é ela que
+///     diz como conectar ao banco. Tudo o mais (CF token, Azure client id, usuários)
+///     passa a viver no próprio banco nas próximas etapas.
 /// </summary>
 public sealed class DatabaseOptions
 {

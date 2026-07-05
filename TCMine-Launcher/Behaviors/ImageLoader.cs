@@ -11,9 +11,9 @@ using TCMine_Launcher.Infrastructure.Networking;
 namespace TCMine_Launcher.Behaviors;
 
 /// <summary>
-/// Propriedade anexada que carrega uma imagem de um URL (cache em memória + disco) e a põe no
-/// <see cref="Image.Source"/>. Uso: <c>&lt;Image bh:ImageLoader.SourceUrl="{Binding HeadUrl}" /&gt;</c>.
-/// Falhas de rede são ignoradas (fica sem imagem). Camada de View.
+///     Propriedade anexada que carrega uma imagem de um URL (cache em memória + disco) e a põe no
+///     <see cref="Image.Source" />. Uso: <c>&lt;Image bh:ImageLoader.SourceUrl="{Binding HeadUrl}" /&gt;</c>.
+///     Falhas de rede são ignoradas (fica sem imagem). Camada de View.
 /// </summary>
 public static class ImageLoader
 {
@@ -27,8 +27,15 @@ public static class ImageLoader
         SourceUrlProperty.Changed.AddClassHandler<Image>((image, e) => _ = LoadAsync(image, e.NewValue as string));
     }
 
-    public static void SetSourceUrl(Image element, string? value) => element.SetValue(SourceUrlProperty, value);
-    public static string? GetSourceUrl(Image element) => element.GetValue(SourceUrlProperty);
+    public static void SetSourceUrl(Image element, string? value)
+    {
+        element.SetValue(SourceUrlProperty, value);
+    }
+
+    private static string? GetSourceUrl(Image element)
+    {
+        return element.GetValue(SourceUrlProperty);
+    }
 
     private static async Task LoadAsync(Image image, string? url)
     {

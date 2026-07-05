@@ -1,6 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <OutputType>WinExe</OutputType>
+        <!-- Explícito porque o nome do projeto tem hífen: sem isto a IDE deriva o namespace errado
+             (ex.: 'ViewModels' em vez de 'TCMine_Launcher.ViewModels') e o ViewLocator não acha as Views. -->
+        <RootNamespace>TCMine_Launcher</RootNamespace>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <Title>TCMine Launcher</Title>
         <Description>O TCMine Launcher.</Description>

@@ -5,12 +5,16 @@ using TCMine_Domain.Entities;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Aba "Mods" do <see cref="ModpackEditor"/>. Apresentacional: mostra a lista plana de mods
-/// (<see cref="Mods"/>, editada por referência) e dispara <see cref="EventCallback"/>s para as ações
-/// que precisam da orquestração do editor (buscar/importar/upload/remover). Tem filtro local e paginação.
+///     Aba "Mods" do <see cref="ModpackEditor" />. Apresentacional: mostra a lista plana de mods
+///     (<see cref="Mods" />, editada por referência) e dispara <see cref="EventCallback" />s para as ações
+///     que precisam da orquestração do editor (buscar/importar/upload/remover). Tem filtro local e paginação.
 /// </summary>
 public partial class ModsPanel : ComponentBase
 {
+    // Destinos possíveis de um arquivo no cliente (pasta de instalação)
+    private static readonly string[] Targets = ["mod", "resourcepack", "shaderpack"];
+
+    private string _filter = string.Empty;
     [Parameter] [EditorRequired] public List<ModEntryEntity> Mods { get; set; } = null!;
     [Parameter] public bool CfConfigured { get; set; }
 
@@ -25,11 +29,6 @@ public partial class ModsPanel : ComponentBase
 
     // Há mods do CurseForge? (só eles têm checagem de atualização)
     private bool HasCurseMods => Mods.Any(m => m.CurseModId > 0);
-
-    private string _filter = string.Empty;
-
-    // Destinos possíveis de um arquivo no cliente (pasta de instalação)
-    private static readonly string[] Targets = ["mod", "resourcepack", "shaderpack"];
 
     // Lista filtrada pelo campo de busca (nome ou arquivo)
     private IEnumerable<ModEntryEntity> Filtered =>

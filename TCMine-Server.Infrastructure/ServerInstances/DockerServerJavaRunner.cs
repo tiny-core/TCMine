@@ -6,14 +6,13 @@ using TCMine_Application.Abstractions;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Implementação Docker do <see cref="IServerJavaRunner"/>: roda <c>java</c> num container <b>efêmero</b>
-/// (imagem só-Java do TCMine), com o diretório de trabalho montado como <c>/data</c>, aguarda o término
-/// e captura a saída. Usado pelo provisionamento para rodar o instalador do loader
-/// (<c>--installServer</c>) sem manter um processo Java no host.
-///
-/// Segue os logs <b>ao vivo</b> (<c>Follow=true</c>) para reportar o progresso do instalador linha a
-/// linha, e ainda acumula a saída completa para o <see cref="JavaRunResult"/> (diagnóstico de falhas).
-/// Não usa <c>AutoRemove</c>: o container é removido manualmente ao final (inclusive em erro).
+///     Implementação Docker do <see cref="IServerJavaRunner" />: roda <c>java</c> num container <b>efêmero</b>
+///     (imagem só-Java do TCMine), com o diretório de trabalho montado como <c>/data</c>, aguarda o término
+///     e captura a saída. Usado pelo provisionamento para rodar o instalador do loader
+///     (<c>--installServer</c>) sem manter um processo Java no host.
+///     Segue os logs <b>ao vivo</b> (<c>Follow=true</c>) para reportar o progresso do instalador linha a
+///     linha, e ainda acumula a saída completa para o <see cref="JavaRunResult" /> (diagnóstico de falhas).
+///     Não usa <c>AutoRemove</c>: o container é removido manualmente ao final (inclusive em erro).
 /// </summary>
 public sealed class DockerServerJavaRunner(DockerEnvironment docker) : IServerJavaRunner
 {

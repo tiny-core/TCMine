@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Net;
-using System.Net.Http;
 using TCMine_Domain.Launcher;
 using TCMine_Launcher.Infrastructure.Configuration;
 using TCMine_Launcher.Infrastructure.FileSystem;
@@ -9,9 +8,9 @@ using TCMine_Launcher.Infrastructure.Networking;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Aplica o bundle de overrides do modpack na pasta do jogo, gated por versão; numa atualização preserva
-/// os ficheiros do jogador (snapshot/restore via <see cref="PlayerDataProfile"/>). Colaborador interno
-/// do <see cref="LaunchOrchestrator"/>.
+///     Aplica o bundle de overrides do modpack na pasta do jogo, gated por versão; numa atualização preserva
+///     os arquivos do jogador (snapshot/restore via <see cref="PlayerDataProfile" />). Colaborador interno
+///     do <see cref="LaunchOrchestrator" />.
 /// </summary>
 internal sealed class OverridesInstaller(ServerConfig config)
 {
@@ -88,7 +87,13 @@ internal sealed class OverridesInstaller(ServerConfig config)
 
     private static void TryDeleteDir(string dir)
     {
-        try { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
-        catch { /* noop */ }
+        try
+        {
+            if (Directory.Exists(dir)) Directory.Delete(dir, true);
+        }
+        catch
+        {
+            /* noop */
+        }
     }
 }

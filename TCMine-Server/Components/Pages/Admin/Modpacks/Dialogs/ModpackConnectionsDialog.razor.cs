@@ -6,19 +6,18 @@ using TCMine_Server.Infrastructure.Minecraft;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
 
 /// <summary>
-/// Modal de conexões divulgadas manuais (Fase 3): carrega as entradas manuais do modpack, hospeda o
-/// <c>ServersPanel</c> para edição e persiste-as ao confirmar (via <see cref="ModpackImportService"/>).
-/// As entradas auto-geradas por instâncias ficam fora — são geridas pela instância.
+///     Modal de conexões divulgadas manuais (Fase 3): carrega as entradas manuais do modpack, hospeda o
+///     <c>ServersPanel</c> para edição e persiste-as ao confirmar (via <see cref="ModpackImportService" />).
+///     As entradas auto-geradas por instâncias ficam fora — são geridas pela instância.
 /// </summary>
 public partial class ModpackConnectionsDialog : ComponentBase
 {
+    // Lista editável (cópias destacadas) — o ServersPanel edita por referência
+    private List<ServerEntryEntity> _entries = [];
     [Inject] private ModpackImportService Service { get; set; } = null!;
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
-
-    // Lista editável (cópias destacadas) — o ServersPanel edita por referência
-    private List<ServerEntryEntity> _entries = [];
 
     protected override async Task OnInitializedAsync()
     {

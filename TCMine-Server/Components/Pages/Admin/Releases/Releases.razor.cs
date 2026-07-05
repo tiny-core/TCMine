@@ -16,6 +16,19 @@ namespace TCMine_Server.Components.Pages.Admin.Releases;
 /// </summary>
 public partial class Releases : ComponentBase, IDisposable
 {
+    private LauncherBuildView? _build;
+    private string? _feedVersion; // versão publicada no feed /updates
+    private bool _needsBuild; // há launcher-v* mais nova que o feed?
+
+    private List<ReleaseEntity>? _releases;
+    private bool _scrollPending;
+
+    // Compilar exige URL pública + Azure Client Id (ambos embutidos no launcher em build-time)
+    private bool _settingsReady;
+    private ElementReference _stepsEl;
+
+    // Faixas de release do GitHub (server-v* e launcher-v*) + estado derivado
+    private GitHubTracks? _tracks;
     [Inject] private LauncherBuildService Build { get; set; } = null!;
     [Inject] private ReleaseService ReleaseSvc { get; set; } = null!;
     [Inject] private LauncherFeedService Feed { get; set; } = null!;
@@ -25,16 +38,6 @@ public partial class Releases : ComponentBase, IDisposable
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
     [Inject] private IJSRuntime JS { get; set; } = null!;
-
-    private List<ReleaseEntity>? _releases;
-
-    // Compilar exige URL pública + Azure Client Id (ambos embutidos no launcher em build-time)
-    private bool _settingsReady;
-
-    // Faixas de release do GitHub (server-v* e launcher-v*) + estado derivado
-    private GitHubTracks? _tracks;
-    private string? _feedVersion;    // versão publicada no feed /updates
-    private bool _needsBuild;        // há launcher-v* mais nova que o feed?
 
     private string? LauncherTarget => _tracks?.Launcher.LatestVersion;
     private string? LauncherTag => _tracks?.Launcher.Tag;
@@ -48,9 +51,10 @@ public partial class Releases : ComponentBase, IDisposable
     // feed já na última versão. (O _needsBuild controla só o destaque de "desatualizado", não o botão.)
     private bool _canBuild => LauncherTarget is not null && _settingsReady && !Build.IsRunning;
 
-    private LauncherBuildView? _build;
-    private ElementReference _stepsEl;
-    private bool _scrollPending;
+    public void Dispose()
+    {
+        Build.Changed -= OnBuildChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,7 +92,7 @@ public partial class Releases : ComponentBase, IDisposable
         {
             await Busy.RunAsync("Verificando novas versões…", async () =>
             {
-                _tracks = await GitHub.GetAsync(force: true);
+                _tracks = await GitHub.GetAsync(true);
                 RecomputeLauncherState();
             });
 
@@ -156,12 +160,13 @@ public partial class Releases : ComponentBase, IDisposable
     {
         if (!_scrollPending) return;
         _scrollPending = false;
-        try { await JS.InvokeVoidAsync("tcmineScrollToBottom", _stepsEl); }
-        catch { /* painel não renderizado — ignora */ }
-    }
-
-    public void Dispose()
-    {
-        Build.Changed -= OnBuildChanged;
+        try
+        {
+            await JS.InvokeVoidAsync("tcmineScrollToBottom", _stepsEl);
+        }
+        catch
+        {
+            /* painel não renderizado — ignora */
+        }
     }
 }

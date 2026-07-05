@@ -1,4 +1,3 @@
-using System.Net.Http;
 using TCMine_Application.Launcher;
 using TCMine_Launcher.Infrastructure.Configuration;
 using TCMine_Launcher.Infrastructure.Networking;
@@ -6,13 +5,13 @@ using TCMine_Launcher.Infrastructure.Networking;
 namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>
-/// Consome o SSE <c>/events</c> do servidor: fixa a versão inicial como baseline e dispara
-/// <see cref="ContentChanged"/> sempre que recebe uma versão diferente (em stream ou após reconectar).
-/// Reconecta com backoff. Implementa <see cref="IContentWatcher"/>.
+///     Consome o SSE <c>/events</c> do servidor: fixa a versão inicial como baseline e dispara
+///     <see cref="ContentChanged" /> sempre que recebe uma versão diferente (em stream ou após reconectar).
+///     Reconecta com backoff. Implementa <see cref="IContentWatcher" />.
 /// </summary>
 public sealed class ContentWatcher(ServerConfig config) : IContentWatcher, IDisposable
 {
-    // Compartilhado no app — NÃO é descartado aqui (o dono é o HttpClientProvider).
+    // Compartilhado no aplicativo — NÃO é descartado aqui (o dono é o HttpClientProvider).
     private readonly HttpClient _http = HttpClientProvider.Shared;
     private CancellationTokenSource? _cts;
 
@@ -41,7 +40,7 @@ public sealed class ContentWatcher(ServerConfig config) : IContentWatcher, IDisp
 
     private async Task LoopAsync(CancellationToken ct)
     {
-        long? known = null; // mantido entre reconexões para detetar mudanças durante a queda
+        long? known = null; // mantido entre reconexões para detectar mudanças durante a queda
 
         while (!ct.IsCancellationRequested)
         {
@@ -61,7 +60,10 @@ public sealed class ContentWatcher(ServerConfig config) : IContentWatcher, IDisp
                     if (!line.StartsWith("data:", StringComparison.Ordinal)) continue;
                     if (!long.TryParse(line["data:".Length..].Trim(), out var version)) continue;
 
-                    if (known is null) known = version;            // baseline
+                    if (known is null)
+                    {
+                        known = version; // baseline
+                    }
                     else if (version != known)
                     {
                         known = version;
@@ -78,8 +80,14 @@ public sealed class ContentWatcher(ServerConfig config) : IContentWatcher, IDisp
                 ConnectionChanged?.Invoke(false);
             }
 
-            try { await Task.Delay(TimeSpan.FromSeconds(5), ct); } // backoff antes de reconectar
-            catch (OperationCanceledException) { break; }
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            } // backoff antes de reconectar
+            catch (OperationCanceledException)
+            {
+                break;
+            }
         }
     }
 }

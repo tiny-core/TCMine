@@ -1,5 +1,3 @@
-@using TCMine_Application.Contracts
-
 @* Formulário de criar/editar uma instância de servidor. Devolve um ServerInstanceEditDto; a
    persistência fica com o ServerInstanceService, chamado pela página. Loader/versões derivam do
    modpack escolhido (não são editados aqui). *@
@@ -20,7 +18,8 @@
                                Disabled="@LockModpack" HelperText="@(LockModpack ? "Fixo." : null)">
                         @foreach (var m in _modpacks)
                         {
-                            <MudSelectItem Value="m.Id">@m.Name <span style="opacity:.6">— @m.Loader · MC @m.Minecraft</span></MudSelectItem>
+                            <MudSelectItem Value="m.Id">@m.Name <span
+                                    style="opacity:.6">— @m.Loader · MC @m.Minecraft</span></MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
@@ -36,7 +35,8 @@
                                      Min="1" Max="65535" HelperText="Exposta no host"/>
                 </MudItem>
                 <MudItem xs="6" sm="4">
-                    <MudNumericField @bind-Value="_maxPlayers" Label="Máx. jogadores" Variant="Variant.Outlined" Min="1"/>
+                    <MudNumericField @bind-Value="_maxPlayers" Label="Máx. jogadores" Variant="Variant.Outlined"
+                                     Min="1"/>
                 </MudItem>
                 <MudItem xs="12" sm="4">
                     <MudTextField @bind-Value="_motd" Label="MOTD" Variant="Variant.Outlined" MaxLength="120"/>
@@ -58,7 +58,8 @@
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_extraJvmArgs" Label="Flags JVM extras" Variant="Variant.Outlined"
-                                  Lines="3" HelperText="Uma flag por linha (ex.: -XX:+UseG1GC). Memória vem dos campos acima."/>
+                                  Lines="3"
+                                  HelperText="Uma flag por linha (ex.: -XX:+UseG1GC). Memória vem dos campos acima."/>
                 </MudItem>
             </MudGrid>
 

@@ -8,11 +8,17 @@ namespace TCMine_Launcher.Views;
 
 public partial class InstancesPageView : UserControl
 {
-    public InstancesPageView() => InitializeComponent();
+    public InstancesPageView()
+    {
+        InitializeComponent();
+    }
 
     private MainWindowViewModel? Shell => (DataContext as InstancesPageViewModel)?.Shell;
 
-    private static InstalledModpack? InstanceOf(object? sender) => (sender as Control)?.DataContext as InstalledModpack;
+    private static InstalledModpack? InstanceOf(object? sender)
+    {
+        return (sender as Control)?.DataContext as InstalledModpack;
+    }
 
     private void OnDelete(object? sender, RoutedEventArgs e)
     {

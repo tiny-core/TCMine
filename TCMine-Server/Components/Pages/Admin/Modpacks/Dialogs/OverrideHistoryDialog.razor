@@ -1,7 +1,7 @@
-@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
 @using TCMine_Domain.Entities
-@using TCMine_Server.Components.Shared
-@inject TCMine_Server.Infrastructure.Minecraft.ModpackOverridesService Service
+@using TCMine_Server.Infrastructure.Minecraft
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs
+@inject ModpackOverridesService Service
 @inject ISnackbar Snackbar
 
 @* Histórico de alterações de overrides + desfazer até um ponto. Como o histórico é uma pilha,

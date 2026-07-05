@@ -3,7 +3,7 @@ using TCMine_Domain.Modpack;
 
 namespace TCMine_Domain.Entities;
 
-/// <summary>Um modpack oficial: metadados + mods + servidores. O <see cref="Id"/> é o slug público.</summary>
+/// <summary>Um modpack oficial: metadados + mods + servidores. O <see cref="Id" /> é o slug público.</summary>
 public class ModpackEntity
 {
     public Guid Id { get; set; }
@@ -12,64 +12,64 @@ public class ModpackEntity
     [MaxLength(40)] public string Minecraft { get; set; } = string.Empty;
 
     /// <summary>
-    /// Carregador de mods do modpack (NeoForge/Forge/Fabric/Quilt). O projeto não fica
-    /// preso ao NeoForge — guardado como texto via conversão no AppDbContext.
+    ///     Carregador de mods do modpack (NeoForge/Forge/Fabric/Quilt). O projeto não fica
+    ///     preso ao NeoForge — guardado como texto via conversão no AppDbContext.
     /// </summary>
     public ModLoader Loader { get; set; } = ModLoader.NeoForge;
 
     /// <summary>
-    /// Versão do carregador (ex.: "21.1.77"); separada do tipo para exibir e instalar.
+    ///     Versão do carregador (ex.: "21.1.77"); separada do tipo para exibir e instalar.
     /// </summary>
     [MaxLength(40)]
     public string LoaderVersion { get; set; } = string.Empty;
 
     /// <summary>
-    /// A descrição textual do modpack, fornecendo informações adicionais sobre seu propósito,
-    /// características ou outros detalhes que o tornem único. Limitado a 2000 caracteres.
+    ///     A descrição textual do modpack, fornecendo informações adicionais sobre seu propósito,
+    ///     características ou outros detalhes que o tornem único. Limitado a 2000 caracteres.
     /// </summary>
     [MaxLength(2000)]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Link da página do projeto no CurseForge (quando importado de lá). Usado para exibir um badge
-    /// clicável no launcher, na página pública e no painel. Null para modpacks sem origem CurseForge.
+    ///     Link da página do projeto no CurseForge (quando importado de lá). Usado para exibir um badge
+    ///     clicável no launcher, na página pública e no painel. Null para modpacks sem origem CurseForge.
     /// </summary>
     [MaxLength(300)]
     public string? CurseForgeUrl { get; set; }
 
     /// <summary>
-    /// Indica se o modpack está publicamente disponível e visível.
-    /// Controla o estado de publicação do modpack para os usuários.
+    ///     Indica se o modpack está publicamente disponível e visível.
+    ///     Controla o estado de publicação do modpack para os usuários.
     /// </summary>
     public bool IsPublished { get; set; } = true;
 
     /// <summary>
-    /// RAM recomendada (MB) para este modpack; aplicada à instância no install
+    ///     RAM recomendada (MB) para este modpack; aplicada à instância no install
     /// </summary>
     public int? RecommendedRamMb { get; set; }
 
     /// <summary>
-    /// Tem um bundle de overrides (configs/resourcepacks/options) guardado
+    ///     Tem um bundle de overrides (configs/resourcepacks/options) guardado
     /// </summary>
     public bool HasOverrides { get; set; }
 
     /// <summary>
-    /// Última modificação (UTC). Exposto no resumo para sync incremental do launcher
+    ///     Última modificação (UTC). Exposto no resumo para sync incremental do launcher
     /// </summary>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
-    /// Vínculos com os mods deste modpack (junção N:N — ver <see cref="ModpackModEntity"/>). Cada
-    /// vínculo aponta para um <see cref="ModFileEntity"/> compartilhado e carrega os atributos
-    /// por-modpack (Side/Target). Apagar o modpack apaga os vínculos em cascata; os arquivos
-    /// (ModFile) permanecem, pois podem ser usados por outros modpacks.
+    ///     Vínculos com os mods deste modpack (junção N:N — ver <see cref="ModpackModEntity" />). Cada
+    ///     vínculo aponta para um <see cref="ModFileEntity" /> compartilhado e carrega os atributos
+    ///     por-modpack (Side/Target). Apagar o modpack apaga os vínculos em cascata; os arquivos
+    ///     (ModFile) permanecem, pois podem ser usados por outros modpacks.
     /// </summary>
     public List<ModpackModEntity> Mods { get; set; } = [];
 
     /// <summary>
-    /// Lista de servidores associados ao modpack. Estes servidores são anunciados no arquivo
-    /// servers.dat pelo launcher, permitindo que usuários conectem diretamente aos servidores
-    /// recomendados pelo modpack.
+    ///     Lista de servidores associados ao modpack. Estes servidores são anunciados no arquivo
+    ///     servers.dat pelo launcher, permitindo que usuários conectem diretamente aos servidores
+    ///     recomendados pelo modpack.
     /// </summary>
     public List<ServerEntryEntity> Servers { get; set; } = [];
 }

@@ -1,21 +1,10 @@
-@using TCMine_Application.Contracts
-@using TCMine_Domain.Entities
-
 @* Métricas por instância de servidor: um card para cada instância, com medidores ao vivo de CPU/RAM
    quando está rodando. Componente AUTOCONTIDO — gere o próprio Timer e re-renderiza só a si mesmo,
    amostrando as instâncias e os stats dos containers a cada poucos segundos. *@
 
 @if (_rows is { Count: > 0 })
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 mt-1">
-        <MudText Typo="Typo.h6">Servidores</MudText>
-        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-            <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="Color.Success" Size="Size.Small"/>
-            <MudText Typo="Typo.caption" Color="Color.Secondary">Ao vivo</MudText>
-        </MudStack>
-    </MudStack>
-
-    <MudGrid Class="mb-4">
+    <MudGrid Spacing="4" Class="mb-4">
         @foreach (var row in _rows)
         {
             var stats = Stats(row);
@@ -32,7 +21,7 @@
                             @StatusLabel(row.Status)
                         </MudChip>
                     </MudStack>
-
+                    <MudDivider Class="mb-3"/>
                     @if (stats is { } s)
                     {
                         @* Medidores ao vivo: CPU do container e RAM usada sobre o -Xmx configurado *@
@@ -52,13 +41,26 @@
                     {
                         @* Parada / sem container: sem métricas ao vivo (CPU/RAM), só o uso em disco abaixo *@
                         <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="metric-server-idle">
-                            <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew" Color="Color.Secondary" Size="Size.Large"/>
+                            <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew" Color="Color.Secondary"
+                                     Size="Size.Large"/>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">Sem métricas ao vivo</MudText>
                         </MudStack>
                     }
 
                     @* Uso em disco do diretório da instância — vale rodando ou parada *@
                     <MudDivider Class="my-3"/>
+                    @if (Ping(row) is { } ping)
+                    {
+                        @* Jogadores online (Server List Ping) — só aparece quando o servidor responde *@
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Small"
+                                         Color="Color.Secondary"/>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Jogadores</MudText>
+                            </MudStack>
+                            <MudText Typo="Typo.body2">@ping.Online / @ping.Max</MudText>
+                        </MudStack>
+                    }
                     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
                         <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                             <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small" Color="Color.Secondary"/>

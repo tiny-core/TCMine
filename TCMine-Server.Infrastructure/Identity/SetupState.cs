@@ -3,9 +3,9 @@
 namespace TCMine_Server.Infrastructure.Identity;
 
 /// <summary>
-/// Rastreia se o servidor já foi inicializado (existe ao menos um usuário). Singleton com
-/// cache: uma vez inicializado, nunca retrocede, então evitamos bater no banco a cada
-/// requisição. O middleware de primeira execução consulta isto para redirecionar a /setup.
+///     Rastreia se o servidor já foi inicializado (existe ao menos um usuário). Singleton com
+///     cache: uma vez inicializado, nunca retrocede, então evitamos bater no banco a cada
+///     requisição. O middleware de primeira execução consulta isto para redirecionar a /setup.
 /// </summary>
 public sealed class SetupState(IServiceScopeFactory scopeFactory)
 {

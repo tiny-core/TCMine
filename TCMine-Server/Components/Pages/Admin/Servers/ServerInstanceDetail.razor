@@ -1,9 +1,9 @@
 @page "/admin/servers/{Id:guid}"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin,Operator")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Domain.Entities
 @using TCMine_Server.Infrastructure.ServerInstances
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin,Operator")]
 
 @* Detalhe de uma instância: status + ações de ciclo de vida, console ao vivo (logs do container +
    envio de comandos) e edição dos arquivos de config (server.properties, whitelist, ops, banlists). *@
@@ -65,7 +65,8 @@ else
             @if (_detail.Provisioned)
             {
                 <MudButton StartIcon="@Icons.Material.Filled.Tune" Variant="Variant.Outlined"
-                           Href="@($"/admin/servers/{Id}/config")">Configurações</MudButton>
+                           Href="@($"/admin/servers/{Id}/config")">Configurações
+                </MudButton>
             }
             <MudButton StartIcon="@Icons.Material.Filled.Edit" OnClick="EditAsync" Variant="Variant.Outlined">
                 Editar
@@ -76,13 +77,15 @@ else
     @if (!_detail.Provisioned)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
-            Instância ainda não provisionada — clique em <b>Provisionar</b> para montar o diretório (loader, mods, configs).
+            Instância ainda não provisionada — clique em <b>Provisionar</b> para montar o diretório (loader, mods,
+            configs).
         </MudAlert>
     }
     else if (_detail.IsStale)
     {
         <MudAlert Severity="Severity.Warning" Class="mb-4" Dense="true">
-            O modpack mudou desde a última provisão — clique em <b>Aplicar atualização</b> para re-montar os mods/configs.
+            O modpack mudou desde a última provisão — clique em <b>Aplicar atualização</b> para re-montar os
+            mods/configs.
             @if (_detail.Status is ServerInstanceStatus.Running)
             {
                 <span> Reinicie o servidor depois para os mods novos valerem.</span>
@@ -145,9 +148,11 @@ else
                             }
                             else
                             {
-                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Small"/>
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"
+                                         Size="Size.Small"/>
                             }
-                            <span class="provision-step-text @(isCurrent ? "provision-step-text--current" : null)">@step</span>
+                            <span
+                                class="provision-step-text @(isCurrent ? "provision-step-text--current" : null)">@step</span>
                         </div>
                     }
                 </div>

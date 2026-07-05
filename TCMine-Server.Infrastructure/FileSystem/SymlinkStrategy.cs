@@ -1,9 +1,9 @@
 namespace TCMine_Server.Infrastructure.FileSystem;
 
 /// <summary>
-/// Estratégia de produção: cria <b>symlinks</b> reais para arquivos e pastas. Custo de disco zero —
-/// o conteúdo continua só no cache compartilhado. É o caminho usado dentro do container Linux, onde
-/// symlinks não exigem privilégio e são resolvidos pelo mesmo filesystem do host.
+///     Estratégia de produção: cria <b>symlinks</b> reais para arquivos e pastas. Custo de disco zero —
+///     o conteúdo continua só no cache compartilhado. É o caminho usado dentro do container Linux, onde
+///     symlinks não exigem privilégio e são resolvidos pelo mesmo filesystem do host.
 /// </summary>
 public sealed class SymlinkStrategy : ILinkStrategy
 {

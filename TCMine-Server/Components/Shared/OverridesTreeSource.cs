@@ -1,12 +1,12 @@
-using TCMine_Server.Infrastructure.Minecraft;
 using TCMine_Server.Components.Pages.Admin.Modpacks;
+using TCMine_Server.Infrastructure.Minecraft;
 
 namespace TCMine_Server.Components.Shared;
 
 /// <summary>
-/// <see cref="IFileTreeSource"/> dos overrides de um modpack — adapta o <see cref="ModpackOverridesService"/>
-/// para o <see cref="FileTreeEditor"/>. Suporta todas as operações (criar/enviar/mover/apagar). O
-/// histórico/desfazer fica no host (toolbar extra), não aqui.
+///     <see cref="IFileTreeSource" /> dos overrides de um modpack — adapta o <see cref="ModpackOverridesService" />
+///     para o <see cref="FileTreeEditor" />. Suporta todas as operações (criar/enviar/mover/apagar). O
+///     histórico/desfazer fica no host (toolbar extra), não aqui.
 /// </summary>
 public sealed class OverridesTreeSource(ModpackOverridesService service, Guid modpackId) : IFileTreeSource
 {

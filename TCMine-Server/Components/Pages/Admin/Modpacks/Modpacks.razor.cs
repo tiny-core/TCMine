@@ -7,24 +7,24 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Catálogo de modpacks do painel. Só lista, navega para o editor e apaga — toda a edição
-/// (mods, overrides, servidores) vive no <see cref="ModpackEditor"/>. Carrega as linhas uma vez
-/// no init; apagar remove da BD e atualiza a lista em memória sem recarregar tudo.
+///     Catálogo de modpacks do painel. Só lista, navega para o editor e apaga — toda a edição
+///     (mods, overrides, servidores) vive no <see cref="ModpackEditor" />. Carrega as linhas uma vez
+///     no init; apagar remove da BD e atualiza a lista em memória sem recarregar tudo.
 /// </summary>
 public partial class Modpacks : ComponentBase
 {
+    private bool _cfConfigured = true;
+
+    // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
+    private List<ModpackAdminRowDto>? _rows;
+
+    // Filtro textual (o MudDataGrid pagina/filtra; QuickFilter combina com a busca)
+    private string _search = string.Empty;
     [Inject] private ModpackImportService Service { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    // null = carregando (BusyOverlay cobre a tela); lista vazia = estado vazio
-    private List<ModpackAdminRowDto>? _rows;
-    private bool _cfConfigured = true;
-
-    // Filtro textual (o MudDataGrid pagina/filtra; QuickFilter combina com a busca)
-    private string _search = string.Empty;
 
     // QuickFilter do DataGrid: nome ou versão do Minecraft
     private bool Filter(ModpackAdminRowDto row)

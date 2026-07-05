@@ -4,7 +4,7 @@ using TCMine_Launcher.Infrastructure.FileSystem;
 
 namespace TCMine_Launcher.Infrastructure.Persistence;
 
-/// <summary>Persiste o jogo em execução (modpackId + PID). Implementa <see cref="IGameRunStateStore"/>.</summary>
+/// <summary>Persiste o jogo em execução (modpackId + PID). Implementa <see cref="IGameRunStateStore" />.</summary>
 public sealed class GameRunStateStore : IGameRunStateStore
 {
     public void Save(string modpackId, int pid)
@@ -16,14 +16,20 @@ public sealed class GameRunStateStore : IGameRunStateStore
         }
         catch
         {
-            // best-effort — a deteção é um extra, não pode partir o launch
+            // best-effort — a detecção é um extra, não pode partir o launch
         }
     }
 
     public void Clear()
     {
-        try { File.Delete(LauncherPaths.RunStateFile); }
-        catch { /* noop */ }
+        try
+        {
+            File.Delete(LauncherPaths.RunStateFile);
+        }
+        catch
+        {
+            /* noop */
+        }
     }
 
     public RunState? Load()

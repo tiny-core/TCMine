@@ -4,21 +4,18 @@ using Docker.DotNet;
 using Docker.DotNet.Models;
 using Microsoft.EntityFrameworkCore;
 using TCMine_Domain.Entities;
-using TCMine_Server.Infrastructure.FileSystem;
 using TCMine_Server.Infrastructure.Persistence;
 
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Ciclo de vida do container Docker de uma instância de servidor Minecraft (Docker-out-of-Docker):
-/// cria/inicia/para/remove o container, envia comandos pelo stdin (console) e transmite os logs.
-///
-/// O container roda a imagem só-Java do TCMine com o diretório provisionado da instância montado em
-/// <c>/data</c>; o comando de início vem de <see cref="ServerRuntimeInstaller.ResolveLaunchArgs"/>
-/// (derivado do layout do install em cache). O estado conhecido (Status/ContainerId) é refletido na BD.
-///
-/// Pré-requisito: a instância já provisionada (<see cref="ServerProvisioner"/>) — este serviço não
-/// monta o diretório, só executa.
+///     Ciclo de vida do container Docker de uma instância de servidor Minecraft (Docker-out-of-Docker):
+///     cria/inicia/para/remove o container, envia comandos pelo stdin (console) e transmite os logs.
+///     O container roda a imagem só-Java do TCMine com o diretório provisionado da instância montado em
+///     <c>/data</c>; o comando de início vem de <see cref="ServerRuntimeInstaller.ResolveLaunchArgs" />
+///     (derivado do layout do install em cache). O estado conhecido (Status/ContainerId) é refletido na BD.
+///     Pré-requisito: a instância já provisionada (<see cref="ServerProvisioner" />) — este serviço não
+///     monta o diretório, só executa.
 /// </summary>
 public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment docker)
 {
@@ -39,8 +36,8 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     // ── Start ───────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Garante o container criado e em execução para a instância. Idempotente: reaproveita um container
-    /// existente (inicia se parado) e cria um novo se não houver. Atualiza Status/ContainerId na BD.
+    ///     Garante o container criado e em execução para a instância. Idempotente: reaproveita um container
+    ///     existente (inicia se parado) e cria um novo se não houver. Atualiza Status/ContainerId na BD.
     /// </summary>
     public async Task StartAsync(Guid instanceId, CancellationToken ct = default)
     {
@@ -76,7 +73,7 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     private async Task<string> CreateContainerAsync(ServerInstanceEntity instance, CancellationToken ct)
     {
         var modpack = instance.Modpack
-            ?? throw new InvalidOperationException("Instância sem modpack de origem.");
+                      ?? throw new InvalidOperationException("Instância sem modpack de origem.");
 
         var launchArgs = ServerRuntimeInstaller.ResolveLaunchArgs(modpack.Loader, modpack.LoaderVersion);
         var hostDir = docker.ToHostPath(instance.Directory);
@@ -130,8 +127,8 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     // ── Stop / Remove ─────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Para o servidor graciosamente: envia <c>stop</c> pelo console e, em seguida, garante a parada do
-    /// container (com prazo antes do kill). Atualiza Status na BD.
+    ///     Para o servidor graciosamente: envia <c>stop</c> pelo console e, em seguida, garante a parada do
+    ///     container (com prazo antes do kill). Atualiza Status na BD.
     /// </summary>
     public async Task StopAsync(Guid instanceId, CancellationToken ct = default)
     {
@@ -141,7 +138,14 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
         await SetStatusAsync(instance, ServerInstanceStatus.Stopping, ct);
 
         // Tenta o desligamento limpo do mundo via comando do jogo; ignora se o stdin já não responde
-        try { await SendRawAsync(containerId, "stop\n", ct); } catch { /* cai para o stop do container */ }
+        try
+        {
+            await SendRawAsync(containerId, "stop\n", ct);
+        }
+        catch
+        {
+            /* cai para o stop do container */
+        }
 
         // Dá tempo do save antes de matar (SIGTERM → kill). 90s cobre saves grandes de modpacks pesados.
         await Client.Containers.StopContainerAsync(containerId,
@@ -167,10 +171,10 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     // ── Reconciliação de status ───────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Concilia o estado conhecido (Running/Starting) com a realidade do daemon: se o container saiu
-    /// inesperadamente, marca <c>Crashed</c>; se sumiu, <c>Stopped</c>; se está de pé, <c>Running</c>.
-    /// Só examina instâncias que a BD acha ativas (paradas via <see cref="StopAsync"/> já estão certas).
-    /// Uma única chamada ao Docker (lista por prefixo de nome). Devolve true se algo mudou.
+    ///     Concilia o estado conhecido (Running/Starting) com a realidade do daemon: se o container saiu
+    ///     inesperadamente, marca <c>Crashed</c>; se sumiu, <c>Stopped</c>; se está de pé, <c>Running</c>.
+    ///     Só examina instâncias que a BD acha ativas (paradas via <see cref="StopAsync" /> já estão certas).
+    ///     Uma única chamada ao Docker (lista por prefixo de nome). Devolve true se algo mudou.
     /// </summary>
     public async Task<bool> ReconcileAllAsync(CancellationToken ct = default)
     {
@@ -234,9 +238,9 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     // ── Console (stdin) ──────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Envia um comando ao console do servidor (ex.: <c>say</c>, <c>op</c>, <c>whitelist reload</c>).
-    /// Recebe o <paramref name="containerId"/> direto (não toca na BD) para poder rodar concorrente ao
-    /// stream de logs sem disputar o DbContext scoped do circuito Blazor.
+    ///     Envia um comando ao console do servidor (ex.: <c>say</c>, <c>op</c>, <c>whitelist reload</c>).
+    ///     Recebe o <paramref name="containerId" /> direto (não toca na BD) para poder rodar concorrente ao
+    ///     stream de logs sem disputar o DbContext scoped do circuito Blazor.
     /// </summary>
     public async Task SendCommandAsync(string containerId, string command, CancellationToken ct = default)
     {
@@ -257,9 +261,9 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     // ── Logs ──────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Transmite os logs do container (stdout+stderr) como blocos de texto, opcionalmente seguindo em
-    /// tempo real. Recebe o <paramref name="containerId"/> direto (não toca na BD) — o console do painel
-    /// consome este stream no circuito Blazor sem disputar o DbContext scoped.
+    ///     Transmite os logs do container (stdout+stderr) como blocos de texto, opcionalmente seguindo em
+    ///     tempo real. Recebe o <paramref name="containerId" /> direto (não toca na BD) — o console do painel
+    ///     consome este stream no circuito Blazor sem disputar o DbContext scoped.
     /// </summary>
     public async IAsyncEnumerable<string> StreamLogsAsync(
         string containerId, bool follow = true, string tail = "200",
@@ -283,9 +287,9 @@ public sealed class DockerMinecraftManager(AppDbContext db, DockerEnvironment do
     private async Task<ServerInstanceEntity> LoadAsync(Guid instanceId, CancellationToken ct)
     {
         return await db.ServerInstances
-            .Include(i => i.Modpack)
-            .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
-            ?? throw new InvalidOperationException("Instância não encontrada.");
+                   .Include(i => i.Modpack)
+                   .FirstOrDefaultAsync(i => i.Id == instanceId, ct)
+               ?? throw new InvalidOperationException("Instância não encontrada.");
     }
 
     // Procura um container pelo nome exato (a API filtra por substring; conferimos o nome com "/")

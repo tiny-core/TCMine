@@ -2,7 +2,6 @@
 using Avalonia;
 using JetBrains.Annotations;
 using ReactiveUI.Avalonia;
-using Splat;
 using TCMine_Launcher.Infrastructure.Auth;
 using TCMine_Launcher.Infrastructure.Configuration;
 using TCMine_Launcher.Infrastructure.Content;
@@ -27,7 +26,7 @@ internal sealed class Program
     {
         // Velopack: trata os hooks do instalador/atualização (--veloapp-*) e sai cedo quando invocado
         // pelo Setup/Update. DEVE ser a primeira coisa no Main, antes de qualquer código Avalonia — sem
-        // isso o `vpk pack` (usado pelo servidor para empacotar) recusa o build.
+        // isso o 'vpk pack' (usado pelo servidor para empacotar) recusa o Build.
         VelopackApp.Build().Run();
 
         BuildAvaloniaApp()

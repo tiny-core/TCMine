@@ -4,6 +4,7 @@
         xmlns:views="using:TCMine_Launcher.Views"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views1="clr-namespace:TCMine_Launcher.Views"
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="640"
         x:Class="TCMine_Launcher.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
@@ -16,7 +17,7 @@
         Background="Transparent"
         TransparencyLevelHint="Transparent">
 
-    <views:WindowChrome>
+    <views1:WindowChrome>
         <Grid RowDefinitions="Auto,Auto,*,42">
 
             <!-- Barra de título -->
@@ -48,7 +49,7 @@
                 <!-- Login (deslogado) -->
                 <views:LoginView IsVisible="{Binding !IsLoggedIn}" />
 
-                <!-- Aplicação (sidebar + página activa) -->
+                <!-- Aplicação (sidebar + página ativa) -->
                 <Grid IsVisible="{Binding IsLoggedIn}" ColumnDefinitions="64,*">
 
                     <!-- Sidebar -->
@@ -155,5 +156,5 @@
                 </Grid>
             </Border>
         </Grid>
-    </views:WindowChrome>
+    </views1:WindowChrome>
 </Window>

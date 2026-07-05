@@ -4,15 +4,14 @@ using TCMine_Domain.Entities;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Aba "Servidores" do <see cref="ModpackEditor"/>: edita a lista de servidores anunciados (por
-/// referência). Add/remove e paginação são locais; a persistência acontece no Guardar do editor.
+///     Aba "Servidores" do <see cref="ModpackEditor" />: edita a lista de servidores anunciados (por
+///     referência). Add/remove e paginação são locais; a persistência acontece no Guardar do editor.
 /// </summary>
 public partial class ServersPanel : ComponentBase
 {
-    [Parameter] [EditorRequired] public List<ServerEntryEntity> Servers { get; set; } = null!;
-
     private const int PageSize = 5;
     private int _page = 1;
+    [Parameter] [EditorRequired] public List<ServerEntryEntity> Servers { get; set; } = null!;
 
     private int PageCount => Math.Max(1, (Servers.Count + PageSize - 1) / PageSize);
     private IEnumerable<ServerEntryEntity> Paged => Servers.Skip((_page - 1) * PageSize).Take(PageSize);

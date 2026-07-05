@@ -1,8 +1,8 @@
 ﻿namespace TCMine_Domain.Modpack;
 
 /// <summary>
-/// Carregador de mods de um modpack/servidor. O projeto não fica preso ao NeoForge —
-/// outros loaders são suportados. Compartilhado por launcher e servidor (Core).
+///     Carregador de mods de um modpack/servidor. O projeto não fica preso ao NeoForge —
+///     outros loaders são suportados. Compartilhado por launcher e servidor (Core).
 /// </summary>
 public enum ModLoader
 {
@@ -16,8 +16,8 @@ public enum ModLoader
 public static class ModLoaders
 {
     /// <summary>
-    /// Interpreta o id de loader do manifesto CurseForge (ex.: <c>"neoforge-21.1.77"</c>,
-    /// <c>"fabric-0.15.11"</c>) em (loader, versão). Prefixo desconhecido → NeoForge como padrão.
+    ///     Interpreta o id de loader do manifesto CurseForge (ex.: <c>"neoforge-21.1.77"</c>,
+    ///     <c>"fabric-0.15.11"</c>) em (loader, versão). Prefixo desconhecido → NeoForge como padrão.
     /// </summary>
     public static (ModLoader Loader, string Version) ParseId(string? loaderId)
     {

@@ -1,0 +1,48 @@
+@* Uso de disco da pasta de dados (tcmine-data) por área. Autocontido: mede no init (off-thread) e
+   mostra barras relativas à maior área. Ajuda a ver o que ocupa espaço (cache de mods etc.). *@
+
+<MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudText Typo="Typo.h6">Uso de disco (dados)</MudText>
+        @if (_dirs is not null)
+        {
+            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">@FormatSize(_total) no total</MudText>
+        }
+    </MudStack>
+
+    <MudDivider DividerType="DividerType.FullWidth" Class="mb-3"/>
+
+    @if (_dirs is null)
+    {
+        @* Medindo os tamanhos em disco (pode demorar com muitos arquivos) *@
+        <MudStack AlignItems="AlignItems.Center" Class="my-6">
+            <MudProgressCircular Indeterminate="true" Size="Size.Medium"/>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Medindo o uso em disco…</MudText>
+        </MudStack>
+    }
+    else if (_total == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="my-6">
+            <MudIcon Icon="@Icons.Material.Filled.FolderOff" Size="Size.Large" Color="Color.Secondary"/>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Nenhum dado em disco ainda.</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudStack Spacing="3">
+            @foreach (var d in _dirs)
+            {
+                <div>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-1">
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@d.Icon" Size="Size.Small" Color="Color.Primary"/>
+                            <MudText Typo="Typo.body2">@d.Label</MudText>
+                        </MudStack>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@FormatSize(d.Bytes)</MudText>
+                    </MudStack>
+                    <MudProgressLinear Value="@BarPercent(d)" Color="Color.Primary" Rounded="true" Size="Size.Small"/>
+                </div>
+            }
+        </MudStack>
+    }
+</MudPaper>

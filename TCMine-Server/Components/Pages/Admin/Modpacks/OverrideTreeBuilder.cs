@@ -3,9 +3,9 @@ using MudBlazor;
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Helpers da árvore de overrides. A construção é **preguiçosa** (um nível por vez via
-/// <c>MudTreeView.ServerData</c> + <c>ModpackImportService.ListOverrideChildren</c>), então aqui
-/// fica só o mapeamento de ícone por extensão.
+///     Helpers da árvore de overrides. A construção é **preguiçosa** (um nível por vez via
+///     <c>MudTreeView.ServerData</c> + <c>ModpackImportService.ListOverrideChildren</c>), então aqui
+///     fica só o mapeamento de ícone por extensão.
 /// </summary>
 public static class OverrideTreeBuilder
 {

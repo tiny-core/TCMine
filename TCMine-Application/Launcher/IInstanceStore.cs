@@ -24,7 +24,7 @@ public interface IInstanceStore
     InstalledModpack? Import(string zipPath);
 }
 
-/// <summary>Estado do jogo em execução (para detetar um jogo aberto ao reabrir o launcher).</summary>
+/// <summary>Estado do jogo em execução (para detectar um jogo aberto ao reabrir o launcher).</summary>
 public sealed record RunState(string ModpackId, int Pid);
 
 /// <summary>Persiste qual instância tem o jogo a correr (modpackId + PID).</summary>

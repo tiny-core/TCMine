@@ -6,21 +6,23 @@ namespace TCMine_IconGenerator;
 public static class Utility
 {
     /// <summary>
-    /// Localiza a raiz do repositório percorrendo a hierarquia de diretórios a partir do caminho de execução atual
-    /// ou de um caminho de substituição opcional. A raiz do repositório é identificada pela presença de um arquivo de solução (*.sln)
-    /// ou diretórios de projeto específicos como "TCMine-Launcher" e "TCMine-Server".
+    ///     Localiza a raiz do repositório percorrendo a hierarquia de diretórios a partir do caminho de execução atual
+    ///     ou de um caminho de substituição opcional. A raiz do repositório é identificada pela presença de um arquivo de
+    ///     solução (*.sln)
+    ///     ou diretórios de projeto específicos como "TCMine-Launcher" e "TCMine-Server".
     /// </summary>
     /// <param name="overridePath">
-    /// Um caminho opcional a ser usado como ponto de partida para encontrar a raiz do repositório.
-    /// Se especificado e não for nulo ou espaço em branco, o método retornará diretamente o caminho completo deste override.
+    ///     Um caminho opcional a ser usado como ponto de partida para encontrar a raiz do repositório.
+    ///     Se especificado e não for nulo ou espaço em branco, o método retornará diretamente o caminho completo deste
+    ///     override.
     /// </param>
     /// <returns>
-    /// O caminho completo para a raiz do repositório.
-    /// Lança uma exceção se a raiz não puder ser localizada.
+    ///     O caminho completo para a raiz do repositório.
+    ///     Lança uma exceção se a raiz não puder ser localizada.
     /// </returns>
     /// <exception cref="DirectoryNotFoundException">
-    /// Lançada quando a raiz do repositório não pode ser determinada, indicando que um arquivo de solução
-    /// ou diretórios específicos não foram encontrados na hierarquia de diretórios.
+    ///     Lançada quando a raiz do repositório não pode ser determinada, indicando que um arquivo de solução
+    ///     ou diretórios específicos não foram encontrados na hierarquia de diretórios.
     /// </exception>
     public static string FindRepoRoot(string? overridePath)
     {
@@ -43,16 +45,16 @@ public static class Utility
     }
 
     /// <summary>
-    /// Renderiza um ícone em forma de quadrado arredondado com um design bordado
-    /// e um gráfico de cubo incorporado. O ícone renderizado é retornado como uma imagem PNG
-    /// na forma de um array de bytes.
+    ///     Renderiza um ícone em forma de quadrado arredondado com um design bordado
+    ///     e um gráfico de cubo incorporado. O ícone renderizado é retornado como uma imagem PNG
+    ///     na forma de um array de bytes.
     /// </summary>
     /// <param name="s">
-    /// O tamanho (em píxeis) da tela quadrada onde o ícone será renderizado.
-    /// Este tamanho determina tanto a largura quanto a altura da imagem de saída.
+    ///     O tamanho (em píxeis) da tela quadrada onde o ícone será renderizado.
+    ///     Este tamanho determina tanto a largura quanto a altura da imagem de saída.
     /// </param>
     /// <returns>
-    /// Um byte array contendo a representação PNG do ícone renderizado.
+    ///     Um byte array contendo a representação PNG do ícone renderizado.
     /// </returns>
     public static byte[] RenderIcon(int s)
     {

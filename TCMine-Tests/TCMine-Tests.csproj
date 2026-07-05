@@ -8,6 +8,8 @@
     <PropertyGroup>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <!-- Explícito (nome com hífen) para a IDE não gerar namespaces sem o prefixo do projeto. -->
+        <RootNamespace>TCMine_Tests</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

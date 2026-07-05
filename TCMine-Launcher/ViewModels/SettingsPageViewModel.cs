@@ -9,8 +9,8 @@ public sealed class SettingsPageViewModel : ViewModelBase
 {
     private readonly MainWindowViewModel _shell;
     private readonly ISystemInfo _systemInfo;
-    private double _ramMb;
     private string _javaPath;
+    private double _ramMb;
     private string? _status;
 
     public SettingsPageViewModel(MainWindowViewModel shell, ISystemInfo systemInfo)

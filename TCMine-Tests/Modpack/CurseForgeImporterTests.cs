@@ -10,8 +10,10 @@ namespace TCMine_Tests.Modpack;
 // por servidor e launcher.
 public class CurseForgeImporterTests
 {
-    private static CfFileRefDto File(long id, string fileName, string? downloadUrl) =>
-        new(id, ModId: 100, fileName, downloadUrl, DisplayName: fileName);
+    private static CfFileRefDto File(long id, string fileName, string? downloadUrl)
+    {
+        return new CfFileRefDto(id, 100, fileName, downloadUrl, fileName);
+    }
 
     // ── InferSide ────────────────────────────────────────────────────────────────────────────────
     // Regra: manifesto = mods do cliente; server pack = subconjunto do servidor. Presente ⇒ Both.
@@ -41,8 +43,8 @@ public class CurseForgeImporterTests
     [Theory]
     [InlineData(12, "resourcepack")]
     [InlineData(6552, "shaderpack")]
-    [InlineData(6, "mod")]      // classe de mods
-    [InlineData(0, "mod")]      // desconhecida cai no default
+    [InlineData(6, "mod")] // classe de mods
+    [InlineData(0, "mod")] // desconhecida cai no default
     [InlineData(9999, "mod")]
     public void ClassToTarget_mapeia_classe_para_pasta(long classId, string expected)
     {
@@ -87,12 +89,14 @@ public class CurseForgeImporterTests
     {
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, true))
+        {
             foreach (var (path, content) in entries)
             {
                 var e = zip.CreateEntry(path);
                 using var s = new StreamWriter(e.Open());
                 s.Write(content);
             }
+        }
 
         return ms.ToArray();
     }

@@ -19,7 +19,7 @@ public class App : Application
     {
         // Injeta os tokens de cor do TCMine-Design como recursos Avalonia ANTES de criar a janela —
         // assim os {DynamicResource} dos estilos/views resolvem de imediato. Fonte única de cor.
-        AvaloniaTheme.ApplyTheme(Resources, dark: true);
+        AvaloniaTheme.ApplyTheme(Resources);
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             desktop.MainWindow = new MainWindow

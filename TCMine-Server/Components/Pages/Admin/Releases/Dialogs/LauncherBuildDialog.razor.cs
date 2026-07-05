@@ -9,6 +9,7 @@ namespace TCMine_Server.Components.Pages.Admin.Releases.Dialogs;
 /// </summary>
 public partial class LauncherBuildDialog : ComponentBase
 {
+    private string _notes = string.Empty;
     [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = null!;
 
     // Versão-alvo (= última launcher-v*); mostrada só para leitura
@@ -16,8 +17,6 @@ public partial class LauncherBuildDialog : ComponentBase
 
     // Notas pré-preenchidas (ex.: corpo da release do GitHub); o admin pode ajustar
     [Parameter] public string InitialNotes { get; set; } = string.Empty;
-
-    private string _notes = string.Empty;
 
     protected override void OnInitialized()
     {

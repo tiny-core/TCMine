@@ -3,18 +3,17 @@ using CmlLib.Core.Auth.Microsoft;
 using Microsoft.Identity.Client;
 using TCMine_Application.Launcher;
 using TCMine_Domain.Launcher;
-using XboxAuthNet.Game.Msal;
 using TCMine_Launcher.Infrastructure.Configuration;
+using XboxAuthNet.Game.Msal;
 
 namespace TCMine_Launcher.Infrastructure.Auth;
 
 /// <summary>
-/// Login Microsoft/Xbox no próprio launcher via CmlLib + MSAL. Implementa a porta
-/// <see cref="IAuthService"/> (devolve um <see cref="PlayerSession"/> de domínio) e expõe a
-/// <see cref="MSession"/> do CmlLib ao orquestrador (ambos na infraestrutura) para o lançamento.
-///
-/// No Windows o MSAL usa WebView2 (popup) para o login interativo e o cache DPAPI para o silencioso.
-/// O Azure client id vem embutido no build (<see cref="AppConfig.MicrosoftClientId"/>).
+///     Login Microsoft/Xbox no próprio launcher via CmlLib + MSAL. Implementa a porta
+///     <see cref="IAuthService" /> (devolve um <see cref="PlayerSession" /> de domínio) e expõe a
+///     <see cref="MSession" /> do CmlLib ao orquestrador (ambos na infraestrutura) para o lançamento.
+///     No Windows o MSAL usa WebView2 (popup) para o login interativo e o cache DPAPI para o silencioso.
+///     O Azure client id vem embutido no Build (<see cref="AppConfig.MicrosoftClientId" />).
 /// </summary>
 public sealed class AuthService : IAuthService
 {

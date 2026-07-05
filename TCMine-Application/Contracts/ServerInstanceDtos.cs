@@ -20,8 +20,8 @@ public record ServerInstanceRowDto(
 public record ModpackOptionDto(Guid Id, string Name, string Loader, string Minecraft);
 
 /// <summary>
-/// Campos editáveis de uma instância (criação e edição). O <see cref="Id"/> vazio (default) indica
-/// criação. Loader/versões não entram aqui: derivam do modpack na provisão.
+///     Campos editáveis de uma instância (criação e edição). O <see cref="Id" /> vazio (default) indica
+///     criação. Loader/versões não entram aqui: derivam do modpack na provisão.
 /// </summary>
 public record ServerInstanceEditDto(
     Guid Id,
@@ -38,8 +38,8 @@ public record ServerInstanceEditDto(
     bool Advertise);
 
 /// <summary>
-/// Estado completo de uma instância para a página de detalhe: além dos campos editáveis, o status de
-/// runtime e o <see cref="ContainerId"/> (para o console/logs consumir sem novo acesso à BD).
+///     Estado completo de uma instância para a página de detalhe: além dos campos editáveis, o status de
+///     runtime e o <see cref="ContainerId" /> (para o console/logs consumir sem novo acesso à BD).
 /// </summary>
 public record ServerInstanceDetailDto(
     ServerInstanceEditDto Edit,

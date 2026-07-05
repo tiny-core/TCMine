@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using TCMine_Server.Infrastructure.FileSystem;
@@ -5,26 +7,35 @@ using TCMine_Server.Infrastructure.FileSystem;
 namespace TCMine_Server.Infrastructure.Server;
 
 /// <summary>
-/// Captura métricas instantâneas do HOST/contêiner (CPU, RAM, disco) para os medidores e o gráfico do
-/// dashboard. As leituras são <b>globais</b>: CPU de todos os núcleos do host, memória física do
-/// sistema/limite de cgroup e uso total do drive — não só do processo do servidor. Singleton: o uptime
-/// é medido desde o arranque e a % de CPU precisa de estado entre amostras (compara dois instantes de
-/// tempo de CPU acumulado).
+///     Captura métricas instantâneas do HOST/contêiner (CPU, RAM, disco) para os medidores e o gráfico do
+///     dashboard. As leituras são <b>globais</b>: CPU de todos os núcleos do host, memória física do
+///     sistema/limite de cgroup e uso total do drive — não só do processo do servidor. Singleton: o uptime
+///     é medido desde o arranque e a % de CPU precisa de estado entre amostras (compara dois instantes de
+///     tempo de CPU acumulado).
 /// </summary>
 public sealed class SystemMetricsService
 {
-    // Marca o momento em que o serviço iniciou (base do uptime)
-    private readonly DateTime _startedUtc = DateTime.UtcNow;
-
-    // Raiz do projeto (content root) — dela derivamos o drive que hospeda a pasta de dados (tcmine-data).
-    private readonly string _dataRoot;
-
     // Estado para o cálculo incremental de CPU global. Protegido por lock: Capture() pode ser chamado por
     // circuitos Blazor diferentes (o serviço é singleton, partilhado). Guardamos os totais acumulados da
     // última amostra: idle (ocioso) e total (todos os estados). O uso é o complemento do idle no delta.
     private readonly object _cpuLock = new();
+
+    // Raiz do projeto (content root) — dela derivamos o drive que hospeda a pasta de dados (tcmine-data).
+    private readonly string _dataRoot;
+
+    // Estado para o cálculo da taxa de rede (bytes/s). Como o CPU, precisa de dois instantes: guardamos os
+    // totais acumulados de bytes (recebidos/enviados) e o momento da última amostra. Protegido por lock
+    // (singleton partilhado entre circuitos). No contêiner, reflete as interfaces do próprio contêiner —
+    // ou seja, o tráfego real do servidor.
+    private readonly object _netLock = new();
+
+    // Marca o momento em que o serviço iniciou (base do uptime)
+    private readonly DateTime _startedUtc = DateTime.UtcNow;
     private ulong _lastCpuIdle;
     private ulong _lastCpuTotal;
+    private long _lastNetRecv;
+    private long _lastNetSent;
+    private DateTime _lastNetUtc;
 
     public SystemMetricsService(string dataRoot)
     {
@@ -34,12 +45,18 @@ public sealed class SystemMetricsService
         var (idle, total) = ReadCpuTimes();
         _lastCpuIdle = idle;
         _lastCpuTotal = total;
+
+        // Baseline da rede (mesmo motivo: a 1ª taxa precisa de um ponto de partida)
+        var (recv, sent) = ReadNetworkTotals();
+        _lastNetRecv = recv;
+        _lastNetSent = sent;
+        _lastNetUtc = DateTime.UtcNow;
     }
 
     public SystemSnapshot Capture()
     {
         // Process.GetCurrentProcess() lê os contadores do próprio processo do servidor (memória/threads).
-        using var p = System.Diagnostics.Process.GetCurrentProcess();
+        using var p = Process.GetCurrentProcess();
 
         return new SystemSnapshot(
             // WorkingSet64 = memória física em uso pelo processo do servidor
@@ -51,7 +68,58 @@ public sealed class SystemMetricsService
             Environment.ProcessorCount,
             CaptureGlobalCpuPercent(),
             CaptureRam(),
-            CaptureDisk());
+            CaptureDisk(),
+            CaptureNetwork());
+    }
+
+    // ── Rede (taxa de transferência das interfaces) ─────────────────────────────────────────────────────
+    // Bytes por segundo (recebidos, enviados) desde a última amostra. Soma todas as interfaces ativas
+    // exceto loopback. Cross-platform via NetworkInterface (Windows + Linux). Devolve (0,0) na 1ª amostra
+    // ou se o delta de tempo for nulo.
+    private (double RecvBytesPerSec, double SentBytesPerSec) CaptureNetwork()
+    {
+        var (recv, sent) = ReadNetworkTotals();
+        var now = DateTime.UtcNow;
+
+        lock (_netLock)
+        {
+            var seconds = (now - _lastNetUtc).TotalSeconds;
+            // Contadores podem resetar (interface reiniciada) → Math.Max evita taxa negativa
+            var recvDelta = Math.Max(0, recv - _lastNetRecv);
+            var sentDelta = Math.Max(0, sent - _lastNetSent);
+
+            _lastNetRecv = recv;
+            _lastNetSent = sent;
+            _lastNetUtc = now;
+
+            if (seconds <= 0) return (0, 0);
+            return (recvDelta / seconds, sentDelta / seconds);
+        }
+    }
+
+    // Soma dos bytes acumulados (recebidos, enviados) das interfaces ativas (sem loopback). Plataformas/
+    // permissões sem suporte devolvem (0,0) → taxa fica em 0 em vez de derrubar o dashboard.
+    private static (long Recv, long Sent) ReadNetworkTotals()
+    {
+        try
+        {
+            long recv = 0, sent = 0;
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != OperationalStatus.Up) continue;
+                if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback) continue;
+
+                var stats = nic.GetIPStatistics(); // IPv4 + IPv6 combinados
+                recv += stats.BytesReceived;
+                sent += stats.BytesSent;
+            }
+
+            return (recv, sent);
+        }
+        catch
+        {
+            return (0, 0);
+        }
     }
 
     // ── CPU (global do host) ──────────────────────────────────────────────────────────────────────────
@@ -88,7 +156,7 @@ public sealed class SystemMetricsService
         return (0, 0);
     }
 
-    // /proc/stat primeira linha: "cpu  user nice system idle iowait irq softirq steal guest guest_nice".
+    // /proc/stat primeira linha: "cpu user nice system idle io wait irq softirq steal guest guest_nice".
     // idle = idle + iowait; total = soma de todos os campos numéricos.
     private static (ulong Idle, ulong Total) ReadLinuxCpuTimes()
     {
@@ -177,7 +245,8 @@ public readonly record struct SystemSnapshot(
     int ProcessorCount,
     double CpuPercent,
     (long Used, long Total) Ram,
-    (long Used, long Total) Disk)
+    (long Used, long Total) Disk,
+    (double RecvBytesPerSec, double SentBytesPerSec) Network)
 {
     // Conveniências de apresentação — mantêm a UI livre de conversões repetidas
     public double WorkingSetMb => WorkingSetBytes / 1024d / 1024d;
@@ -190,4 +259,9 @@ public readonly record struct SystemSnapshot(
     public double DiskUsedGb => Disk.Used / 1024d / 1024d / 1024d;
     public double DiskTotalGb => Disk.Total / 1024d / 1024d / 1024d;
     public double DiskPercent => Disk.Total > 0 ? Disk.Used / (double)Disk.Total * 100d : 0;
+
+    // Rede em MB/s (recebido, enviado e total) — a base do medidor e do gráfico
+    public double NetRecvMbps => Network.RecvBytesPerSec / 1024d / 1024d;
+    public double NetSentMbps => Network.SentBytesPerSec / 1024d / 1024d;
+    public double NetTotalMbps => NetRecvMbps + NetSentMbps;
 }

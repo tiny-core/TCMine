@@ -6,20 +6,16 @@ using TCMine_Server.Infrastructure.FileSystem;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Métricas de runtime por instância de servidor: CPU/RAM ao vivo dos containers (lidas direto do daemon
-/// Docker) e uso em disco do diretório de cada instância. Singleton e sem BD: fala com o
-/// <see cref="DockerEnvironment"/> (thread-safe) e com o filesystem, então pode ser amostrado por um Timer
-/// do dashboard sem disputar o DbContext scoped de um circuito Blazor. Os metadados da instância (nome,
-/// RAM configurada, status) vêm de outra fonte e são cruzados por Id.
+///     Métricas de runtime por instância de servidor: CPU/RAM ao vivo dos containers (lidas direto do daemon
+///     Docker) e uso em disco do diretório de cada instância. Singleton e sem BD: fala com o
+///     <see cref="DockerEnvironment" /> (thread-safe) e com o filesystem, então pode ser amostrado por um Timer
+///     do dashboard sem disputar o DbContext scoped de um circuito Blazor. Os metadados da instância (nome,
+///     RAM configurada, status) vêm de outra fonte e são cruzados por Id.
 /// </summary>
 public sealed class ServerInstanceMetricsService(DockerEnvironment docker, IHostEnvironment env)
 {
     // Prefixo de nome dos containers das instâncias (ver DockerMinecraftManager.ContainerName)
     private const string NamePrefix = "tcmine-mc-";
-
-    // Raiz dos diretórios das instâncias (tcmine-data/servers). O tamanho em disco de cada uma é o
-    // tamanho da sua subpasta {id}.
-    private readonly string _serversRoot = ServerPaths.Servers(env.ContentRootPath);
 
     // Uso em disco é caro de medir (varredura recursiva) e muda devagar → cacheado por instância e
     // recalculado no máximo a cada DiskSampleInterval. Concurrent: o Timer do dashboard pode reamostrar
@@ -27,10 +23,14 @@ public sealed class ServerInstanceMetricsService(DockerEnvironment docker, IHost
     private static readonly TimeSpan DiskSampleInterval = TimeSpan.FromSeconds(30);
     private readonly ConcurrentDictionary<Guid, (DateTime At, long Bytes)> _diskCache = new();
 
+    // Raiz dos diretórios das instâncias (tcmine-data/servers). O tamanho em disco de cada uma é o
+    // tamanho da sua subpasta {id}.
+    private readonly string _serversRoot = ServerPaths.Servers(env.ContentRootPath);
+
     /// <summary>
-    /// Amostra as métricas de todos os containers de instância em execução, indexadas pelo Id da
-    /// instância. Instâncias paradas (sem container rodando) simplesmente não aparecem no dicionário.
-    /// Uma falha de amostragem de um container é ignorada (ele fica de fora) — não derruba as demais.
+    ///     Amostra as métricas de todos os containers de instância em execução, indexadas pelo Id da
+    ///     instância. Instâncias paradas (sem container rodando) simplesmente não aparecem no dicionário.
+    ///     Uma falha de amostragem de um container é ignorada (ele fica de fora) — não derruba as demais.
     /// </summary>
     public async Task<IReadOnlyDictionary<Guid, ServerInstanceStats>> SampleAsync(CancellationToken ct = default)
     {
@@ -65,10 +65,10 @@ public sealed class ServerInstanceMetricsService(DockerEnvironment docker, IHost
     }
 
     /// <summary>
-    /// Uso em disco (bytes) do diretório de cada instância pedida, indexado por Id. Aplica-se a QUALQUER
-    /// instância (rodando ou parada), diferente do <see cref="SampleAsync"/> que só cobre containers vivos.
-    /// Cacheado por <see cref="DiskSampleInterval"/>; a varredura das entradas expiradas roda fora do
-    /// contexto do chamador (<see cref="Task.Run(Action)"/>) para não bloquear o circuito Blazor.
+    ///     Uso em disco (bytes) do diretório de cada instância pedida, indexado por Id. Aplica-se a QUALQUER
+    ///     instância (rodando ou parada), diferente do <see cref="SampleAsync" /> que só cobre containers vivos.
+    ///     Cacheado por <see cref="DiskSampleInterval" />; a varredura das entradas expiradas roda fora do
+    ///     contexto do chamador (<see cref="Task.Run(Action)" />) para não bloquear o circuito Blazor.
     /// </summary>
     public async Task<IReadOnlyDictionary<Guid, long>> SampleDiskAsync(
         IEnumerable<Guid> instanceIds, CancellationToken ct = default)
@@ -185,8 +185,14 @@ public sealed class ServerInstanceMetricsService(DockerEnvironment docker, IHost
             var dir = stack.Pop();
 
             FileSystemInfo[] entries;
-            try { entries = dir.GetFileSystemInfos(); }
-            catch { continue; } // sem permissão / pasta removida durante a varredura
+            try
+            {
+                entries = dir.GetFileSystemInfos();
+            }
+            catch
+            {
+                continue;
+            } // sem permissão / pasta removida durante a varredura
 
             foreach (var entry in entries)
             {

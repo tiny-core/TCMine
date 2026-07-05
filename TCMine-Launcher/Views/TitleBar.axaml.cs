@@ -6,8 +6,8 @@ using Avalonia.Interactivity;
 namespace TCMine_Launcher.Views;
 
 /// <summary>
-/// Barra de título para janelas sem chrome nativo (<c>SystemDecorations="None"</c>): logótipo + título
-/// + minimizar/fechar, e arrasto da janela. Resolve a janela-pai sozinha (via <see cref="TopLevel"/>).
+///     Barra de título para janelas sem chrome nativo (<c>SystemDecorations="None"</c>): logótipo + título
+///     + minimizar/fechar, e arrasto da janela. Resolve a janela-pai sozinha (via <see cref="TopLevel" />).
 /// </summary>
 public partial class TitleBar : UserControl
 {
@@ -17,7 +17,10 @@ public partial class TitleBar : UserControl
     public static readonly StyledProperty<bool> ShowMinimizeProperty =
         AvaloniaProperty.Register<TitleBar, bool>(nameof(ShowMinimize), true);
 
-    public TitleBar() => InitializeComponent();
+    public TitleBar()
+    {
+        InitializeComponent();
+    }
 
     public string Title
     {
@@ -44,5 +47,8 @@ public partial class TitleBar : UserControl
         if (Host is { } window) window.WindowState = WindowState.Minimized;
     }
 
-    private void OnClose(object? sender, RoutedEventArgs e) => Host?.Close();
+    private void OnClose(object? sender, RoutedEventArgs e)
+    {
+        Host?.Close();
+    }
 }

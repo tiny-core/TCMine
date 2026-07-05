@@ -1,5 +1,4 @@
 @namespace TCMine_Server.Components.Pages.Admin.Modpacks.Panels
-@using TCMine_Server.Components.Shared
 
 @* Overrides do modpack: usa o componente compartilhado FileTreeEditor (árvore + Monaco) com a fonte
    de overrides; o histórico/desfazer (específico dos overrides) entra no slot ToolbarExtra. *@
@@ -7,8 +6,10 @@
 <FileTreeEditor @ref="_tree" Source="_source" OnChanged="RefreshHistoryAsync">
     <ToolbarExtra>
         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Undo"
-                   Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer</MudButton>
+                   Disabled="!_hasHistory" OnClick="UndoLastAsync">Desfazer
+        </MudButton>
         <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History"
-                   OnClick="ShowHistoryAsync">Histórico</MudButton>
+                   OnClick="ShowHistoryAsync">Histórico
+        </MudButton>
     </ToolbarExtra>
 </FileTreeEditor>

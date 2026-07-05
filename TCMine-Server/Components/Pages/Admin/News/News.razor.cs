@@ -2,31 +2,30 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
-using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.News;
 
 /// <summary>
-/// Página de novidades do painel: lista globais + de modpacks (<see cref="ModpackNewsService"/>).
-/// Criar/editar abre o <c>NewsEditDialog</c> com o seletor de modpack opcional — vazio = global,
-/// selecionado = do modpack. Segue o padrão de listas (MudDataGrid + busca + pager).
+///     Página de novidades do painel: lista globais + de modpacks (<see cref="ModpackNewsService" />).
+///     Criar/editar abre o <c>NewsEditDialog</c> com o seletor de modpack opcional — vazio = global,
+///     selecionado = do modpack. Segue o padrão de listas (MudDataGrid + busca + pager).
 /// </summary>
 public partial class News : ComponentBase
 {
-    [Inject] private ModpackNewsService NewsService { get; set; } = null!;
-    [Inject] private IDialogService DialogService { get; set; } = null!;
-    [Inject] private ISnackbar Snackbar { get; set; } = null!;
-    [Inject] private BusyService Busy { get; set; } = null!;
+    // Opções do seletor de modpack no diálogo (carregadas uma vez)
+    private List<ModpackBadgeDto> _modpacks = [];
 
     // null = carregando (overlay cobre); lista vazia = sem novidades
     private List<NewsRowDto>? _rows;
 
-    // Opções do seletor de modpack no diálogo (carregadas uma vez)
-    private List<ModpackBadgeDto> _modpacks = [];
-
     private string _search = string.Empty;
+    [Inject] private ModpackNewsService NewsService { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private BusyService Busy { get; set; } = null!;
 
     // QuickFilter do DataGrid: título ou tag
     private bool Filter(NewsRowDto row)

@@ -1,10 +1,8 @@
 @page "/admin/users"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Domain.Entities
-@using TCMine_Domain.Identity
-@using TCMine_Server.Components.Shared
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner")]
 
 @* Gestão de usuários do painel (só Owner). Lista, cria, edita, ativa/desativa e remove.
    O formulário vive no UserEditDialog; esta página orquestra e fala com o UserService. *@

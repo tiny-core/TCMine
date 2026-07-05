@@ -2,21 +2,36 @@
    + rótulo e (opcional) subtítulo. Usado na grade de KPIs do Dashboard. *@
 
 @* A var CSS --accent é lida pelo StatCard.razor.css para tingir faixa e ícone conforme a Color *@
-<MudPaper Class="pa-4 align-content-center" MinHeight="190px" Elevation="0" Outlined="true"
-          Style="@($"--accent: var(--mud-palette-{PaletteVar});")">
 
-    <MudStack Justify="Justify.Center" AlignItems="AlignItems.Center" Row="true" Spacing="0">
-        <MudIcon Icon="@Icon" Color="@Color" Title="@Title" Class="mr-5" Style="font-size: 2.8rem;"/>
-        <MudStack Spacing="1">
-            <MudText Typo="Typo.h4">@Value</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@Title</MudText>
+<MudCard Outlined="true">
+    <MudCardContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icon"
+                     Color="@Color"
+                     Title="@Title"/>
+            <MudStack Row="true"
+                      Justify="Justify.SpaceBetween"
+                      AlignItems="AlignItems.Center"
+                      Style="width: 100%;">
+                <MudText Typo="Typo.body2"
+                         Color="Color.Secondary">
+                    @Title
+                </MudText>
+
+                <MudText Align="Align.Center"
+                         Typo="Typo.subtitle1">
+                    @Value
+                </MudText>
+            </MudStack>
         </MudStack>
-    </MudStack>
-
-    <MudDivider DividerType="DividerType.Middle" Class="my-2"/>
-
-    <MudStack Justify="Justify.Center" Row="true" Spacing="0" Wrap="Wrap.Wrap">
-        @ChildContent
-    </MudStack>
-
-</MudPaper>
+        <MudDivider DividerType="DividerType.FullWidth"
+                    Class="mb-4 mt-2"/>
+        <MudStack Justify="Justify.Center"
+                  AlignItems="AlignItems.Center"
+                  Row="true"
+                  Spacing="0"
+                  Wrap="Wrap.Wrap">
+            @ChildContent
+        </MudStack>
+    </MudCardContent>
+</MudCard>

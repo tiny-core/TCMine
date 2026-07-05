@@ -7,26 +7,30 @@ using TCMine_Server.Infrastructure.FileSystem;
 namespace TCMine_Server.Infrastructure.ServerInstances;
 
 /// <summary>
-/// Ambiente Docker compartilhado para a orquestração das instâncias (Docker-out-of-Docker): segura o
-/// <see cref="DockerClient"/> único (fala com o daemon do host via socket) e resolve a <b>tradução de
-/// caminho</b> entre o que o TCMine-Server vê e o que o daemon precisa para os bind-mounts.
-///
-/// <para><b>Tradução de caminho (crítico em DooD):</b> quando o TCMine-Server roda em container, um
-/// caminho como <c>/app/tcmine-data/servers/{id}</c> só existe <i>dentro</i> dele; o daemon, no host,
-/// precisa do caminho do host (ex.: <c>/media/disco/AppData/tcmine-server/servers/{id}</c>). A config
-/// <c>ServerInstances:DataHostRoot</c> aponta para a pasta do host montada em <c>/app/tcmine-data</c>
-/// (o caminho do host do próprio <c>tcmine-data</c>, com <b>qualquer nome</b>); sem ela (dev, TCMine fora
-/// de container) usamos a pasta <c>tcmine-data</c> local.</para>
-///
-/// Singleton: o client é thread-safe e reusado; <see cref="Dispose"/> o fecha no shutdown.
+///     Ambiente Docker compartilhado para a orquestração das instâncias (Docker-out-of-Docker): segura o
+///     <see cref="DockerClient" /> único (fala com o daemon do host via socket) e resolve a
+///     <b>
+///         tradução de
+///         caminho
+///     </b>
+///     entre o que o TCMine-Server vê e o que o daemon precisa para os bind-mounts.
+///     <para>
+///         <b>Tradução de caminho (crítico em DooD):</b> quando o TCMine-Server roda em container, um
+///         caminho como <c>/app/tcmine-data/servers/{id}</c> só existe <i>dentro</i> dele; o daemon, no host,
+///         precisa do caminho do host (ex.: <c>/media/disco/AppData/tcmine-server/servers/{id}</c>). A config
+///         <c>ServerInstances:DataHostRoot</c> aponta para a pasta do host montada em <c>/app/tcmine-data</c>
+///         (o caminho do host do próprio <c>tcmine-data</c>, com <b>qualquer nome</b>); sem ela (dev, TCMine fora
+///         de container) usamos a pasta <c>tcmine-data</c> local.
+///     </para>
+///     Singleton: o client é thread-safe e reusado; <see cref="Dispose" /> o fecha no shutdown.
 /// </summary>
 public sealed class DockerEnvironment : IDisposable
 {
-    private readonly string _contentRoot;
     private readonly string? _configuredHostRoot;
+    private readonly string _contentRoot;
     private readonly Lock _hostRootLock = new();
-    private string? _resolvedHostRoot;
     private readonly string _socket;
+    private string? _resolvedHostRoot;
 
     public DockerEnvironment(IConfiguration config, IHostEnvironment env)
     {
@@ -62,10 +66,15 @@ public sealed class DockerEnvironment : IDisposable
     /// <summary>Rede Docker a anexar aos containers (opcional).</summary>
     public string? Network { get; }
 
+    public void Dispose()
+    {
+        Client.Dispose();
+    }
+
     /// <summary>
-    /// Traduz um caminho local (sob <c>tcmine-data</c>) para o caminho equivalente no host, para uso como
-    /// origem de um bind-mount. Fora de <c>tcmine-data</c>, devolve o caminho como veio. Usa o caminho do
-    /// host de <c>tcmine-data</c> (config explícita ou auto-detectado), então a pasta pode ter qualquer nome.
+    ///     Traduz um caminho local (sob <c>tcmine-data</c>) para o caminho equivalente no host, para uso como
+    ///     origem de um bind-mount. Fora de <c>tcmine-data</c>, devolve o caminho como veio. Usa o caminho do
+    ///     host de <c>tcmine-data</c> (config explícita ou auto-detectado), então a pasta pode ter qualquer nome.
     /// </summary>
     public string ToHostPath(string localPath)
     {
@@ -83,10 +92,10 @@ public sealed class DockerEnvironment : IDisposable
     }
 
     /// <summary>
-    /// Caminho do host da pasta <c>tcmine-data</c>, resolvido uma vez (cacheado). Ordem: config explícita →
-    /// auto-detecção (inspeciona o próprio container e lê a origem do mount em <c>/app/tcmine-data</c>) →
-    /// pasta local (dev, host == local). Assim, em container com o socket montado, o DooD funciona sem
-    /// precisar da env var — o caminho já vem do próprio volume.
+    ///     Caminho do host da pasta <c>tcmine-data</c>, resolvido uma vez (cacheado). Ordem: config explícita →
+    ///     auto-detecção (inspeciona o próprio container e lê a origem do mount em <c>/app/tcmine-data</c>) →
+    ///     pasta local (dev, host == local). Assim, em container com o socket montado, o DooD funciona sem
+    ///     precisar da env var — o caminho já vem do próprio volume.
     /// </summary>
     private string DataHostRoot()
     {
@@ -99,8 +108,8 @@ public sealed class DockerEnvironment : IDisposable
     }
 
     /// <summary>
-    /// Inspeciona o próprio container no daemon do host e devolve a origem (host) do mount destinado a
-    /// <c>/app/tcmine-data</c>. Null se não rodar em container ou não achar o mount.
+    ///     Inspeciona o próprio container no daemon do host e devolve a origem (host) do mount destinado a
+    ///     <c>/app/tcmine-data</c>. Null se não rodar em container ou não achar o mount.
     /// </summary>
     private string? TryDetectHostRoot()
     {
@@ -123,9 +132,9 @@ public sealed class DockerEnvironment : IDisposable
     }
 
     /// <summary>
-    /// Id do próprio container. Lê <c>/proc/self/mountinfo</c> (procura <c>/containers/&lt;id&gt;/</c> dos
-    /// binds que o Docker cria para /etc/hostname etc.) — robusto a cgroup v1/v2 e a data-root customizado.
-    /// Cai no <c>HOSTNAME</c> (id curto, salvo hostname customizado). Null fora de container.
+    ///     Id do próprio container. Lê <c>/proc/self/mountinfo</c> (procura <c>/containers/&lt;id&gt;/</c> dos
+    ///     binds que o Docker cria para /etc/hostname etc.) — robusto a cgroup v1/v2 e a data-root customizado.
+    ///     Cai no <c>HOSTNAME</c> (id curto, salvo hostname customizado). Null fora de container.
     /// </summary>
     private static string? OwnContainerId()
     {
@@ -150,8 +159,8 @@ public sealed class DockerEnvironment : IDisposable
     }
 
     /// <summary>
-    /// Garante que a imagem existe no daemon, baixando-a se faltar. A imagem do release (reusada em
-    /// produção) já está presente — o pull só acontece para imagens públicas em dev (ex.: temurin).
+    ///     Garante que a imagem existe no daemon, baixando-a se faltar. A imagem do release (reusada em
+    ///     produção) já está presente — o pull só acontece para imagens públicas em dev (ex.: temurin).
     /// </summary>
     public async Task EnsureImageAsync(string image, CancellationToken ct = default)
     {
@@ -171,7 +180,7 @@ public sealed class DockerEnvironment : IDisposable
             var (repo, tag) = SplitImage(image);
             await Client.Images.CreateImageAsync(
                 new ImagesCreateParameters { FromImage = repo, Tag = tag },
-                authConfig: null,
+                null,
                 new Progress<JSONMessage>(),
                 ct);
         }
@@ -202,10 +211,5 @@ public sealed class DockerEnvironment : IDisposable
     {
         if (config["ServerInstances:DockerHost"]?.Trim() is { Length: > 0 } host) return host;
         return OperatingSystem.IsWindows() ? "npipe://./pipe/docker_engine" : "unix:///var/run/docker.sock";
-    }
-
-    public void Dispose()
-    {
-        Client.Dispose();
     }
 }

@@ -15,12 +15,18 @@ public partial class SystemStatusCard : ComponentBase, IDisposable
     // Janela deslizante das últimas amostras de memória (MB)
     private const int MaxPoints = 30;
 
-    // Série única → legenda redundante (o rótulo já está no cabeçalho do card)
-    private readonly ChartOptions _chartOptions = new() { ShowLegend = false };
+    // Gráfico de memória: série única → sem legenda (o rótulo está no cabeçalho da seção)
+    private readonly ChartOptions _memChartOptions = new() { ShowLegend = false };
     private readonly List<double> _memHistory = [];
+
+    // Gráfico de rede: séries ↓ recebido e ↑ enviado (mesma escala MB/s) → legenda ligada
+    private readonly ChartOptions _netChartOptions = new() { ShowLegend = true };
+    private readonly List<double> _netRecvHistory = [];
+    private readonly List<double> _netSentHistory = [];
     private string[] _labels = [];
 
-    private List<ChartSeries<double>> _series = [];
+    private List<ChartSeries<double>> _memSeries = [];
+    private List<ChartSeries<double>> _netSeries = [];
 
     private SystemSnapshot _snapshot;
     private Timer? _timer;
@@ -58,10 +64,34 @@ public partial class SystemStatusCard : ComponentBase, IDisposable
         if (_memHistory.Count > MaxPoints)
             _memHistory.RemoveAt(0);
 
-        // Recria a série a cada amostra para o MudChart detectar a mudança
-        _series = [new ChartSeries<double> { Name = "Memória (MB)", Data = _memHistory.ToArray() }];
+        // 3 casas: a taxa costuma ser pequena (MB/s) e não queremos perder amostras baixas
+        _netRecvHistory.Add(Math.Round(_snapshot.NetRecvMbps, 3));
+        _netSentHistory.Add(Math.Round(_snapshot.NetSentMbps, 3));
+        if (_netRecvHistory.Count > MaxPoints)
+        {
+            _netRecvHistory.RemoveAt(0);
+            _netSentHistory.RemoveAt(0);
+        }
+
+        // Recria as séries a cada amostra para o MudChart detectar a mudança
+        _memSeries = [new ChartSeries<double> { Name = "Memória (MB)", Data = _memHistory.ToArray() }];
+        _netSeries =
+        [
+            new ChartSeries<double> { Name = "↓ Recebido", Data = _netRecvHistory.ToArray() },
+            new ChartSeries<double> { Name = "↑ Enviado", Data = _netSentHistory.ToArray() }
+        ];
         // Eixo X sem rótulos — é uma visão "últimas N amostras", não um relógio
         _labels = _memHistory.Select(_ => string.Empty).ToArray();
+    }
+
+    // Formata uma taxa em bytes/s na maior unidade legível (B/s, KB/s, MB/s)
+    private static string FormatRate(double bytesPerSec)
+    {
+        return bytesPerSec >= 1024 * 1024
+            ? $"{bytesPerSec / 1024d / 1024d:0.0} MB/s"
+            : bytesPerSec >= 1024
+                ? $"{bytesPerSec / 1024d:0} KB/s"
+                : $"{bytesPerSec:0} B/s";
     }
 
     private static string FormatUptime(TimeSpan t)

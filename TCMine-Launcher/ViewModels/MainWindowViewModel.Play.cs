@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.IO;
 using System.Reactive;
 using Avalonia.Threading;
 using ReactiveUI;
@@ -12,33 +11,32 @@ using TCMine_Domain.Modpack;
 namespace TCMine_Launcher.ViewModels;
 
 /// <summary>
-/// Parte da shell dedicada às <b>instâncias instaladas</b> e ao <b>pipeline de install/launch</b>. Só
-/// coordena as portas (TCMine-Application); o download dos mods (do cache do servidor), o NeoForge e os
-/// overrides vivem na infraestrutura. Clicar num modpack apenas o <b>seleciona</b> — instalar/jogar é o
-/// botão grande da Home.
+///     Parte da shell dedicada às <b>instâncias instaladas</b> e ao <b>pipeline de install/launch</b>. Só
+///     coordena as portas (TCMine-Application); o download dos mods (do cache do servidor), o NeoForge e os
+///     overrides vivem na infraestrutura. Clicar num modpack apenas o <b>seleciona</b> — instalar/jogar é o
+///     botão grande da Home.
 /// </summary>
 public sealed partial class MainWindowViewModel
 {
     private readonly IInstanceStore _instanceStore;
-    private readonly ISettingsStore _settingsStore;
-    private readonly IGameRunStateStore _runState;
+
+    // Versão mais recente de cada modpack no servidor (do manifesto/catálogo). Comparada com a versão
+    // instalada (InstalledModpack.ManifestVersion) para detectar "atualizar". Atualizada via SSE.
+    private readonly Dictionary<string, string> _latestVersions = [];
     private readonly ILaunchOrchestrator _orchestrator;
+    private readonly IGameRunStateStore _runState;
+    private readonly ISettingsStore _settingsStore;
     private readonly ISystemInfo _systemInfo;
-    private LauncherSettings _settings = new();
+    private bool _acceptProgress;
 
     private InstalledModpack? _active;
     private bool _isGameRunning;
     private bool _isLaunching;
+    private CancellationTokenSource? _launchCts;
     private double _launchPercent;
     private string _launchStatus = "Pronto";
-    private CancellationTokenSource? _launchCts;
-    private bool _acceptProgress;
 
-    // Versão mais recente de cada modpack no servidor (do manifesto/catálogo). Comparada com a versão
-    // instalada (InstalledModpack.ManifestVersion) para detetar "atualizar". Atualizada via SSE.
-    private readonly Dictionary<string, string> _latestVersions = [];
-
-    public ObservableCollection<InstalledModpack> Installed { get; } = [];
+    private ObservableCollection<InstalledModpack> Installed { get; } = [];
 
     public ReactiveCommand<Unit, Unit> Play { get; private set; } = null!;
     public ReactiveCommand<Unit, Unit> CancelLaunch { get; private set; } = null!;
@@ -65,7 +63,7 @@ public sealed partial class MainWindowViewModel
 
     public double ActiveRamMb
     {
-        get => Active is { } a ? EffectiveRam(a) : _settings.AllocatedRamMb;
+        get => Active is { } a ? EffectiveRam(a) : Prefs.AllocatedRamMb;
         set
         {
             if (Active is not { } a) return;
@@ -80,46 +78,9 @@ public sealed partial class MainWindowViewModel
     /// <summary>Teto de RAM (RAM física), independente da instância — usado pelos editores de memória.</summary>
     public double RamHardMax => Math.Max(2048, _systemInfo.TotalPhysicalRamMb / 1024 * 1024);
 
-    // ── Gestão de instâncias (aba Instâncias) ────────────────────────────────────────────────────
-    public void SaveInstance(InstalledModpack instance) => _instanceStore.Save(instance);
-
-    public void DeleteInstance(InstalledModpack instance)
-    {
-        _instanceStore.Delete(instance.ModpackId);
-        Installed.Remove(instance);
-
-        if (Active != instance) return;
-        Active = Installed.FirstOrDefault();
-        _settings.SelectedModpackId = Active?.ModpackId;
-        _settingsStore.Save(_settings);
-        Home.NotifyActiveChanged();
-    }
-
-    public Task ExportInstanceAsync(InstalledModpack instance, string zipPath) =>
-        Task.Run(() => _instanceStore.Export(instance.ModpackId, zipPath));
-
-    public async Task<InstalledModpack?> ImportInstanceAsync(string zipPath)
-    {
-        var imported = await Task.Run(() => _instanceStore.Import(zipPath));
-        if (imported is null) return null;
-
-        if (GetInstalled(imported.ModpackId) is { } existing) Installed.Remove(existing);
-        Installed.Insert(0, imported);
-        return imported;
-    }
-
-    /// <summary>Abre uma subpasta do jogo da instância (ex.: "shaderpacks", "resourcepacks").</summary>
-    public void OpenInstanceSubfolder(InstalledModpack instance, string sub)
-    {
-        var dir = Path.Combine(_instanceStore.GameDir(instance.ModpackId), sub);
-        Directory.CreateDirectory(dir);
-        try { Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true }); }
-        catch { /* ignora falhas a abrir o explorador */ }
-    }
-
     public bool HasActive => Active is not null;
 
-    /// <summary>Id (abreviado) da instância ativa — mostrado no painel da Home.</summary>
+    /// <summary>ID (abreviado) da instância ativa — mostrado no painel da Home.</summary>
     public string InstanceIdShort => Active?.ModpackId is { } id
         ? id.Length > 30 ? id[..30] + "…" : id
         : "—";
@@ -170,11 +131,67 @@ public sealed partial class MainWindowViewModel
         ? "EM EXECUÇÃO"
         : IsLaunching
             ? "A PREPARAR…"
-            : (Active?.Installed ?? false)
+            : Active?.Installed ?? false
                 ? HasActiveUpdate ? "ATUALIZAR" : "JOGAR"
                 : "INSTALAR";
 
-    internal LauncherSettings Prefs => _settings;
+    internal LauncherSettings Prefs { get; private set; } = new();
+
+    // Descarta o CTS do launch em curso (é recriado por launch e normalmente já descartado no finally;
+    // isto cobre o encerramento do aplicativo com um launch em andamento) e encerra o loop de status da Home.
+    public void Dispose()
+    {
+        _launchCts?.Dispose();
+        Home.Dispose();
+    }
+
+    // ── Gestão de instâncias (aba Instâncias) ────────────────────────────────────────────────────
+    public void SaveInstance(InstalledModpack instance)
+    {
+        _instanceStore.Save(instance);
+    }
+
+    public void DeleteInstance(InstalledModpack instance)
+    {
+        _instanceStore.Delete(instance.ModpackId);
+        Installed.Remove(instance);
+
+        if (Active != instance) return;
+        Active = Installed.FirstOrDefault();
+        Prefs.SelectedModpackId = Active?.ModpackId;
+        _settingsStore.Save(Prefs);
+        Home.NotifyActiveChanged();
+    }
+
+    public Task ExportInstanceAsync(InstalledModpack instance, string zipPath)
+    {
+        return Task.Run(() => _instanceStore.Export(instance.ModpackId, zipPath));
+    }
+
+    public async Task<InstalledModpack?> ImportInstanceAsync(string zipPath)
+    {
+        var imported = await Task.Run(() => _instanceStore.Import(zipPath));
+        if (imported is null) return null;
+
+        if (GetInstalled(imported.ModpackId) is { } existing) Installed.Remove(existing);
+        Installed.Insert(0, imported);
+        return imported;
+    }
+
+    /// <summary>Abre uma subpasta do jogo da instância (ex.: "shaderpacks", "resourcepacks").</summary>
+    public void OpenInstanceSubfolder(InstalledModpack instance, string sub)
+    {
+        var dir = Path.Combine(_instanceStore.GameDir(instance.ModpackId), sub);
+        Directory.CreateDirectory(dir);
+        try
+        {
+            Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+        }
+        catch
+        {
+            /* ignora falhas a abrir o explorador */
+        }
+    }
 
     private void RaisePlayState()
     {
@@ -185,7 +202,7 @@ public sealed partial class MainWindowViewModel
 
     private void InitPlay()
     {
-        _settings = _settingsStore.Load();
+        Prefs = _settingsStore.Load();
 
         var canPlay = this.WhenAnyValue(x => x.IsLaunching, x => x.IsGameRunning, (l, r) => !l && !r);
         Play = ReactiveCommand.CreateFromTask(PlayActiveAsync, canPlay);
@@ -203,12 +220,14 @@ public sealed partial class MainWindowViewModel
         foreach (var instance in _instanceStore.LoadAll().OrderByDescending(i => i.LastPlayedAt))
             Installed.Add(instance);
 
-        Active = Installed.FirstOrDefault(i => i.ModpackId == _settings.SelectedModpackId)
+        Active = Installed.FirstOrDefault(i => i.ModpackId == Prefs.SelectedModpackId)
                  ?? Installed.FirstOrDefault();
     }
 
-    public InstalledModpack? GetInstalled(string modpackId) =>
-        Installed.FirstOrDefault(i => i.ModpackId == modpackId);
+    public InstalledModpack? GetInstalled(string modpackId)
+    {
+        return Installed.FirstOrDefault(i => i.ModpackId == modpackId);
+    }
 
     /// <summary>Atualiza os metadados do modpack ativo a partir do manifesto (servidores, descrição…).</summary>
     public async Task RefreshActiveAsync()
@@ -219,7 +238,7 @@ public sealed partial class MainWindowViewModel
             var manifest = await _catalog.GetManifestAsync(Guid.Parse(Active.ModpackId));
             if (manifest is null)
             {
-                // Manifesto 404: o modpack foi removido/despublicado no servidor. Sinaliza (badge) e
+                // Manifesto 404: o modpack foi removido/des-publicado no servidor. Sinaliza (badge) e
                 // rebuild da lista de servidores para refletir o estado — sem apagar nada em disco.
                 Active.ModpackMissing = true;
                 Home.NotifyActiveChanged();
@@ -240,10 +259,10 @@ public sealed partial class MainWindowViewModel
     }
 
     /// <summary>
-    /// Reconcilia todas as instâncias instaladas com o catálogo público: marca como
-    /// <see cref="InstalledModpack.ModpackMissing"/> as que já não constam do servidor (removidas ou
-    /// despublicadas). Cobre a lista de Instâncias inteira; a lista de servidores do ativo continua a
-    /// vir do manifesto (<see cref="RefreshActiveAsync"/>). Silenciosa se o servidor estiver offline.
+    ///     Reconcilia todas as instâncias instaladas com o catálogo público: marca como
+    ///     <see cref="InstalledModpack.ModpackMissing" /> as que já não constam do servidor (removidas ou
+    ///     des-publicadas). Cobre a lista de Instâncias inteira; a lista de servidores do ativo continua a
+    ///     vir do manifesto (<see cref="RefreshActiveAsync" />). Silenciosa se o servidor estiver offline.
     /// </summary>
     public async Task ReconcileAvailabilityAsync()
     {
@@ -268,18 +287,21 @@ public sealed partial class MainWindowViewModel
     public void SelectActive(InstalledModpack instance)
     {
         Active = instance;
-        _settings.SelectedModpackId = instance.ModpackId;
-        _settingsStore.Save(_settings);
+        Prefs.SelectedModpackId = instance.ModpackId;
+        _settingsStore.Save(Prefs);
         Home.NotifyActiveChanged();
     }
 
-    public void SaveSettings() => _settingsStore.Save(_settings);
+    public void SaveSettings()
+    {
+        _settingsStore.Save(Prefs);
+    }
 
     /// <summary>
-    /// Regista o modpack (se preciso) e atualiza os **metadados de exibição** (nome, descrição,
-    /// servidores). Para uma instância **já instalada**, NÃO mexe na versão/loader/overrides instalados —
-    /// só regista a versão mais recente do servidor (em <see cref="_latestVersions"/>) para o botão
-    /// poder virar "ATUALIZAR". Os campos de instalação só mudam ao Jogar (<see cref="ApplyInstallFromManifest"/>).
+    ///     Regista o modpack (se preciso) e atualiza os **metadados de exibição** (nome, descrição,
+    ///     servidores). Para uma instância **já instalada**, NÃO mexe na versão/loader/overrides instalados —
+    ///     só regista a versão mais recente do servidor (em <see cref="_latestVersions" />) para o botão
+    ///     poder virar "ATUALIZAR". Os campos de instalação só mudam ao Jogar (<see cref="ApplyInstallFromManifest" />).
     /// </summary>
     public InstalledModpack RegisterFromManifest(ModpackManifestDto m)
     {
@@ -293,7 +315,7 @@ public sealed partial class MainWindowViewModel
             existing.Name = m.Name;
             existing.Description = m.Description;
             existing.CurseForgeUrl = m.CurseForgeUrl;
-            existing.Servers = servers; // metadados de exibição: sempre frescos (auto-join continua válido)
+            existing.Servers = servers; // metadados de exibição: sempre frescos (autojoin continua válido)
             existing.RecommendedRamMb = m.RecommendedRamMb;
 
             // Manifesto veio → o modpack existe; reavalia os badges com os servidores frescos
@@ -347,7 +369,7 @@ public sealed partial class MainWindowViewModel
     public int EffectiveRam(InstalledModpack instance)
     {
         var max = Math.Max(2048, _systemInfo.TotalPhysicalRamMb / 1024 * 1024);
-        return Math.Clamp(instance.RamOverrideMb ?? instance.RecommendedRamMb ?? _settings.AllocatedRamMb, 1024, max);
+        return Math.Clamp(instance.RamOverrideMb ?? instance.RecommendedRamMb ?? Prefs.AllocatedRamMb, 1024, max);
     }
 
     /// <summary>Botão do card de Modpacks: só **seleciona** (regista metadados) e abre a Home — NÃO instala.</summary>
@@ -356,7 +378,6 @@ public sealed partial class MainWindowViewModel
         var idStr = modpackId.ToString();
         var instance = GetInstalled(idStr);
         if (instance is null)
-        {
             try
             {
                 var manifest = await _catalog.GetManifestAsync(modpackId);
@@ -367,7 +388,6 @@ public sealed partial class MainWindowViewModel
             {
                 return;
             }
-        }
 
         SelectActive(instance);
         SelectedTab = AppTab.Home;
@@ -412,7 +432,7 @@ public sealed partial class MainWindowViewModel
             return;
         }
 
-        instance = RegisterFromManifest(manifest);   // garante na lista + metadados frescos + latest
+        instance = RegisterFromManifest(manifest); // garante na lista + metadados frescos + latest
         ApplyInstallFromManifest(instance, manifest); // vamos instalar/atualizar para a versão atual
         await LaunchAsync(instance, manifest);
     }
@@ -437,7 +457,7 @@ public sealed partial class MainWindowViewModel
         try
         {
             var ram = EffectiveRam(instance);
-            var java = string.IsNullOrWhiteSpace(_settings.JavaPath) ? null : _settings.JavaPath;
+            var java = string.IsNullOrWhiteSpace(Prefs.JavaPath) ? null : Prefs.JavaPath;
 
             var process = await _orchestrator.PrepareAsync(instance, manifest, ram, java, progress, _launchCts.Token);
             _acceptProgress = false;
@@ -479,27 +499,44 @@ public sealed partial class MainWindowViewModel
 
     private async Task MonitorGameAsync(Process process, InstalledModpack? instance)
     {
-        try { await process.WaitForExitAsync(); }
-        catch { /* o importante é reativar a UI a seguir */ }
+        try
+        {
+            await process.WaitForExitAsync();
+        }
+        catch
+        {
+            /* o importante é reativar a UI a seguir */
+        }
 
         _runState.Clear();
-        try { process.Dispose(); }
-        catch { /* noop */ }
+        try
+        {
+            process.Dispose();
+        }
+        catch
+        {
+            /* noop */
+        }
 
         // Empurra as configs do jogador (keybinds/opções/minimapa) para o servidor após a sessão, para
         // ficarem disponíveis noutros PCs. Best-effort — falhas não afetam a UI. O status do upload
         // aparece na mesma label da barra de launch (marshalado para a UI thread).
         if (instance is not null)
-        {
             try
             {
-                void Report(string msg) => Dispatcher.UIThread.Post(() => LaunchStatus = msg);
+                void Report(string msg)
+                {
+                    Dispatcher.UIThread.Post(() => LaunchStatus = msg);
+                }
+
                 Report("A sincronizar configurações do jogador…");
                 await _orchestrator.PushConfigsAsync(instance, Report);
                 _instanceStore.Save(instance);
             }
-            catch { /* servidor offline / sem sessão — tenta na próxima */ }
-        }
+            catch
+            {
+                /* servidor offline / sem sessão — tenta na próxima */
+            }
 
         Dispatcher.UIThread.Post(() =>
         {
@@ -537,8 +574,14 @@ public sealed partial class MainWindowViewModel
         if (Active is null) return;
         var dir = _instanceStore.InstanceDir(Active.ModpackId);
         Directory.CreateDirectory(dir);
-        try { Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true }); }
-        catch { /* ignora falhas a abrir o explorador */ }
+        try
+        {
+            Process.Start(new ProcessStartInfo(dir) { UseShellExecute = true });
+        }
+        catch
+        {
+            /* ignora falhas a abrir o explorador */
+        }
     }
 
     // Abre a página do modpack ativo no CurseForge (badge) no navegador padrão.
@@ -546,14 +589,13 @@ public sealed partial class MainWindowViewModel
     {
         var url = Active?.CurseForgeUrl;
         if (string.IsNullOrWhiteSpace(url)) return;
-        try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
-        catch { /* ignora falhas a abrir o navegador */ }
-    }
-
-    // Descarta o CTS do launch em curso (é recriado por launch e normalmente já descartado no finally;
-    // isto cobre o encerramento do app com um launch em andamento).
-    public void Dispose()
-    {
-        _launchCts?.Dispose();
+        try
+        {
+            Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+        }
+        catch
+        {
+            /* ignora falhas a abrir o navegador */
+        }
     }
 }

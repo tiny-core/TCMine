@@ -4,8 +4,8 @@ using TCMine_Domain.Launcher;
 namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
-/// Escreve/atualiza o <c>servers.dat</c> (NBT) da instância — os servidores do modpack aparecem na lista
-/// multijogador. Faz merge (não duplica). Colaborador interno do <see cref="GameLauncher"/>.
+///     Escreve/atualiza o <c>servers.dat</c> (NBT) da instância — os servidores do modpack aparecem na lista
+///     multijogador. Faz merge (não duplica). Colaborador interno do <see cref="GameLauncher" />.
 /// </summary>
 internal static class ServersDatWriter
 {

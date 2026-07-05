@@ -6,7 +6,7 @@ using TCMine_Launcher.Infrastructure.FileSystem;
 
 namespace TCMine_Launcher.Infrastructure.Persistence;
 
-/// <summary>Persistência das instâncias instaladas (uma pasta por modpack). Implementa <see cref="IInstanceStore"/>.</summary>
+/// <summary>Persistência das instâncias instaladas (uma pasta por modpack). Implementa <see cref="IInstanceStore" />.</summary>
 public sealed class InstanceStore : IInstanceStore
 {
     private static readonly JsonSerializerOptions Options = new() { WriteIndented = true };
@@ -53,7 +53,10 @@ public sealed class InstanceStore : IInstanceStore
         }
     }
 
-    public bool IsRegistered(string modpackId) => File.Exists(LauncherPaths.InstanceConfigFile(modpackId));
+    public bool IsRegistered(string modpackId)
+    {
+        return File.Exists(LauncherPaths.InstanceConfigFile(modpackId));
+    }
 
     public void Delete(string modpackId)
     {
@@ -68,9 +71,15 @@ public sealed class InstanceStore : IInstanceStore
         }
     }
 
-    public string InstanceDir(string modpackId) => LauncherPaths.InstanceDir(modpackId);
+    public string InstanceDir(string modpackId)
+    {
+        return LauncherPaths.InstanceDir(modpackId);
+    }
 
-    public string GameDir(string modpackId) => LauncherPaths.InstanceGameDir(modpackId);
+    public string GameDir(string modpackId)
+    {
+        return LauncherPaths.InstanceGameDir(modpackId);
+    }
 
     public void Export(string modpackId, string zipPath)
     {

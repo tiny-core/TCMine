@@ -14,8 +14,8 @@ namespace TCMine_Application.Modpack;
 public static class ModSetMerge
 {
     /// <summary>
-    /// Mescla duas coleções de mods com base em uma chave (tipicamente o ID do mod),
-    /// preservando a ordem e atualizando itens conforme necessário.
+    ///     Mescla duas coleções de mods com base em uma chave (tipicamente o ID do mod),
+    ///     preservando a ordem e atualizando itens conforme necessário.
     /// </summary>
     public static MergeResultDto<T> Merge<T>(
         IEnumerable<T> current, IEnumerable<T> incoming, Func<T, long> key)

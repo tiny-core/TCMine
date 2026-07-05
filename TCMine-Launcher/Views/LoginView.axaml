@@ -33,7 +33,8 @@
                 <!-- Botão Microsoft -->
                 <Button Classes="ms-btn" Command="{Binding LoginMicrosoft}" IsEnabled="{Binding !IsAuthenticating}">
                     <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                        <Grid Width="18" Height="18" RowDefinitions="*,*" ColumnDefinitions="*,*" VerticalAlignment="Center">
+                        <Grid Width="18" Height="18" RowDefinitions="*,*" ColumnDefinitions="*,*"
+                              VerticalAlignment="Center">
                             <Rectangle Grid.Row="0" Grid.Column="0" Fill="#F25022" Margin="0,0,1,1" />
                             <Rectangle Grid.Row="0" Grid.Column="1" Fill="#7FBA00" Margin="1,0,0,1" />
                             <Rectangle Grid.Row="1" Grid.Column="0" Fill="#00A4EF" Margin="0,1,1,0" />

@@ -3,12 +3,11 @@
 namespace TCMine_Server.Endpoints;
 
 /// <summary>
-/// Stream de eventos (Server-Sent Events) consumido pelo <b>launcher</b>: avisa que o conteúdo
-/// público mudou. O launcher liga-se a <c>/events</c>, fixa a versão inicial como baseline e
-/// recarrega o catálogo de modpacks sempre que recebe uma versão maior.
-///
-/// Leitura pública (sem auth), tal como <c>/api/modpacks</c> — não há segredos no fluxo, só um
-/// contador de versão. O <see cref="ContentNotifier"/> é a fonte das notificações.
+///     Stream de eventos (Server-Sent Events) consumido pelo <b>launcher</b>: avisa que o conteúdo
+///     público mudou. O launcher liga-se a <c>/events</c>, fixa a versão inicial como baseline e
+///     recarrega o catálogo de modpacks sempre que recebe uma versão maior.
+///     Leitura pública (sem auth), tal como <c>/api/modpacks</c> — não há segredos no fluxo, só um
+///     contador de versão. O <see cref="ContentNotifier" /> é a fonte das notificações.
 /// </summary>
 public static class EventsEndpoints
 {

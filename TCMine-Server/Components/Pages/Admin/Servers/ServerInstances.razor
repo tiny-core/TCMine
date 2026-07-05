@@ -1,9 +1,9 @@
 @page "/admin/servers"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin,Operator")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Application.Contracts
 @using TCMine_Domain.Entities
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin,Operator")]
 
 @* Instâncias de servidor Minecraft derivadas dos modpacks. Cada linha mostra o status de runtime e
    dá as ações de ciclo de vida (provisionar, iniciar, parar) + acesso ao detalhe/console. *@
@@ -111,12 +111,14 @@
                             @if (context.Item.Status is ServerInstanceStatus.Running or ServerInstanceStatus.Starting)
                             {
                                 <MudTooltip Text="Parar">
-                                    <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small" Color="Color.Warning"
+                                    <MudIconButton Icon="@Icons.Material.Filled.Stop" Size="Size.Small"
+                                                   Color="Color.Warning"
                                                    OnClick="@(() => StopAsync(context.Item))"/>
                                 </MudTooltip>
                             }
                             <MudTooltip Text="Detalhe e console">
-                                <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small" Color="Color.Primary"
+                                <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"
+                                               Color="Color.Primary"
                                                OnClick="@(() => Open(context.Item))"/>
                             </MudTooltip>
                         </MudStack>

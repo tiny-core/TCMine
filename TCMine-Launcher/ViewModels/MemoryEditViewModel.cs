@@ -4,22 +4,13 @@ using TCMine_Domain.Launcher;
 namespace TCMine_Launcher.ViewModels;
 
 /// <summary>Editor de memória (RAM) de uma instância — usado pela janela de Memória (footer e Instâncias).</summary>
-public sealed class MemoryEditViewModel : ViewModelBase
+public sealed class MemoryEditViewModel(MainWindowViewModel shell, InstalledModpack instance) : ViewModelBase
 {
-    private readonly MainWindowViewModel _shell;
-    private readonly InstalledModpack _instance;
-    private double _ramMb;
+    private double _ramMb = shell.EffectiveRam(instance);
 
-    public MemoryEditViewModel(MainWindowViewModel shell, InstalledModpack instance)
-    {
-        _shell = shell;
-        _instance = instance;
-        _ramMb = shell.EffectiveRam(instance);
-    }
-
-    public string InstanceName => _instance.Name;
+    public string InstanceName => instance.Name;
     public double RamMin => 1024;
-    public double RamMax => _shell.RamHardMax;
+    public double RamMax => shell.RamHardMax;
 
     public double RamMb
     {
@@ -27,8 +18,8 @@ public sealed class MemoryEditViewModel : ViewModelBase
         set
         {
             this.RaiseAndSetIfChanged(ref _ramMb, value);
-            _instance.RamOverrideMb = (int)value;
-            _shell.SaveInstance(_instance);
+            instance.RamOverrideMb = (int)value;
+            shell.SaveInstance(instance);
             this.RaisePropertyChanged(nameof(RamLabel));
         }
     }

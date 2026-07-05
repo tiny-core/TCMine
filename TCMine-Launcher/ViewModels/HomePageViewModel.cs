@@ -7,12 +7,14 @@ using TCMine_Domain.Launcher;
 namespace TCMine_Launcher.ViewModels;
 
 /// <summary>
-/// Página "Jogar": hero da instância ativa + botão grande (na shell) + painel de perfil/ID/servidores.
-/// O estado de launch e o perfil vivem na shell (<see cref="MainWindowViewModel"/>), exposta via
-/// <see cref="Shell"/> para binding direto.
+///     Página "Jogar": hero da instância ativa + botão grande (na shell) + painel de perfil/ID/servidores.
+///     O estado de launch e o perfil vivem na shell (<see cref="MainWindowViewModel" />), exposta via
+///     <see cref="Shell" /> para binding direto.
 /// </summary>
-public sealed class HomePageViewModel : ViewModelBase
+public sealed class HomePageViewModel : ViewModelBase, IDisposable
 {
+    // Encerra o loop de atualização de status quando o VM é descartado — sem isto ele roda para sempre.
+    private readonly CancellationTokenSource _cts = new();
     private readonly IServerPinger _pinger;
 
     public HomePageViewModel(MainWindowViewModel shell, IServerPinger pinger)
@@ -22,7 +24,7 @@ public sealed class HomePageViewModel : ViewModelBase
         SelectInstance = ReactiveCommand.Create<InstalledModpack>(shell.SelectActive);
         ToggleAutoJoin = ReactiveCommand.Create<ServerStatusItem>(OnToggleAutoJoin);
         RebuildServers();
-        _ = ServerLoopAsync();
+        _ = ServerLoopAsync(_cts.Token);
     }
 
     public MainWindowViewModel Shell { get; }
@@ -36,7 +38,16 @@ public sealed class HomePageViewModel : ViewModelBase
 
     public bool HasServers => Servers.Count > 0;
 
-    public void NotifyActiveChanged() => RebuildServers();
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+    }
+
+    public void NotifyActiveChanged()
+    {
+        RebuildServers();
+    }
 
     private void RebuildServers()
     {
@@ -53,8 +64,8 @@ public sealed class HomePageViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Comportamento "rádio": só um servidor de auto-join. Clicar no que já está ativo desliga (passa a
-    /// abrir no menu principal). Persiste no modpack ativo; o JOGAR usa esta marcação.
+    ///     Comportamento "rádio": só um servidor de autojoin. Clicar no que já está ativo desliga (passa a
+    ///     abrir no menu principal). Persiste no modpack ativo; o JOGAR usa esta marcação.
     /// </summary>
     private void OnToggleAutoJoin(ServerStatusItem item)
     {
@@ -66,13 +77,24 @@ public sealed class HomePageViewModel : ViewModelBase
         Shell.SaveInstance(active);
     }
 
-    private async Task ServerLoopAsync()
+    // Atualiza o status dos servidores a cada 30s até o VM ser descartado. Resiliente: uma falha de
+    // ping num ciclo não mata o loop (tenta de novo no próximo); só o cancelamento o encerra.
+    private async Task ServerLoopAsync(CancellationToken ct)
     {
-        while (true)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(30));
-            await RefreshServersAsync();
-        }
+        while (!ct.IsCancellationRequested)
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), ct);
+                await RefreshServersAsync();
+            }
+            catch (OperationCanceledException)
+            {
+                break; // VM descartado — encerra normalmente
+            }
+            catch
+            {
+                // Falha transitória (ex.: rede) — ignora e re-tenta no próximo ciclo
+            }
     }
 
     private async Task RefreshServersAsync()
@@ -91,8 +113,8 @@ public sealed class HomePageViewModel : ViewModelBase
 /// <summary>Estado de um servidor do modpack (linha na página Jogar).</summary>
 public sealed class ServerStatusItem(ModpackServer server) : ViewModelBase
 {
-    private bool _online;
     private bool _isAutoJoin;
+    private bool _online;
     private string _statusText = "A verificar…";
 
     public ModpackServer Server { get; } = server;

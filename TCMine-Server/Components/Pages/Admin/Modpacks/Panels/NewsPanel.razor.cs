@@ -1,31 +1,30 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine_Domain.Entities;
-using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Components.Pages.Admin.Modpacks.Dialogs;
+using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Modpacks;
 
 /// <summary>
-/// Aba "Novidades" do <see cref="ModpackEditor"/>: newsletter por modpack. Self-contained — carrega
-/// a lista do <see cref="ModpackNewsService"/> e faz o CRUD direto (grava na hora, fora da política
-/// de escrita-só-ao-Guardar). Só é renderizado depois do primeiro Guardar (o editor garante o id).
+///     Aba "Novidades" do <see cref="ModpackEditor" />: newsletter por modpack. Self-contained — carrega
+///     a lista do <see cref="ModpackNewsService" /> e faz o CRUD direto (grava na hora, fora da política
+///     de escrita-só-ao-Guardar). Só é renderizado depois do primeiro Guardar (o editor garante o id).
 /// </summary>
 public partial class NewsPanel : ComponentBase
 {
+    // null = carregando (BusyOverlay cobre); lista vazia = sem novidades
+    private List<NewsEntity>? _news;
+
+    // Filtro textual (o MudDataGrid pagina; QuickFilter combina com a busca)
+    private string _search = string.Empty;
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 
     [Inject] private ModpackNewsService NewsService { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    // null = carregando (BusyOverlay cobre); lista vazia = sem novidades
-    private List<NewsEntity>? _news;
-
-    // Filtro textual (o MudDataGrid pagina; QuickFilter combina com a busca)
-    private string _search = string.Empty;
 
     // QuickFilter do DataGrid: título ou tag
     private bool Filter(NewsEntity n)

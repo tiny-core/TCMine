@@ -1,9 +1,9 @@
 ﻿namespace TCMine_Server.Infrastructure.FileSystem;
 
 /// <summary>
-/// Centraliza todos os caminhos de diretório que o servidor precisa.
-/// Garante que as pastas existem antes de qualquer serviço tentar usá-las.
-/// Adicionar um novo diretório aqui é o único lugar que precisa ser alterado.
+///     Centraliza todos os caminhos de diretório que o servidor precisa.
+///     Garante que as pastas existem antes de qualquer serviço tentar usá-las.
+///     Adicionar um novo diretório aqui é o único lugar que precisa ser alterado.
 /// </summary>
 public static class ServerPaths
 {
@@ -68,8 +68,8 @@ public static class ServerPaths
     }
 
     /// <summary>
-    /// Cria todos os diretórios necessários para o servidor funcionar.
-    /// Seguro chamar múltiplas vezes — não falha se a pasta já existir.
+    ///     Cria todos os diretórios necessários para o servidor funcionar.
+    ///     Seguro chamar múltiplas vezes — não falha se a pasta já existir.
     /// </summary>
     public static void EnsureCreated(string root)
     {

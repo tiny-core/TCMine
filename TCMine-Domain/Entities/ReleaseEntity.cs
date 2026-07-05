@@ -3,9 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace TCMine_Domain.Entities;
 
 /// <summary>
-/// Metadados de uma release do launcher. Os artefacts (Setup.exe, .nupkg,
-/// releases.&lt;channel&gt;.json) ficam no diretório de updates e são servidos
-/// pelo Velopack em <c>/updates</c>; esta entidade guarda o histórico/changelog.
+///     Metadados de uma release do launcher. Os artefacts (Setup.exe, .nupkg,
+///     releases.&lt;channel&gt;.json) ficam no diretório de updates e são servidos
+///     pelo Velopack em <c>/updates</c>; esta entidade guarda o histórico/changelog.
 /// </summary>
 public class ReleaseEntity
 {

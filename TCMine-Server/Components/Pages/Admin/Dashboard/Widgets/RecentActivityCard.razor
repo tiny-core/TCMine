@@ -1,10 +1,8 @@
-@using TCMine_Server.Components.Shared
-
 @* Timeline de atividade recente (histórico de overrides). Recebe a lista (null = carregando). *@
 
 <MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
     <MudText Typo="Typo.h6" Class="mb-3">Atividade recente</MudText>
-
+    <MudDivider DividerType="DividerType.FullWidth"/>
     @if (Activity is null)
     {
         @for (var i = 0; i < 4; i++)

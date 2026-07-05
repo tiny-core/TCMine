@@ -1,5 +1,5 @@
-@namespace TCMine_Server.Components.Pages.Admin.Modpacks
 @using TCMine_Domain.Entities
+@namespace TCMine_Server.Components.Pages.Admin.Modpacks
 
 @* Aba "Novidades" do editor: newsletter por modpack em tabela (padrão das listas — MudDataGrid com
    busca + pager). Self-contained: carrega e persiste por conta própria. Ver NewsPanel.razor.cs. *@
@@ -45,7 +45,8 @@ else
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                         @if (!string.IsNullOrWhiteSpace(context.Item.Tag))
                         {
-                            <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">@context.Item.Tag</MudChip>
+                            <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                     Variant="Variant.Text">@context.Item.Tag</MudChip>
                         }
                         <div>
                             <MudText Typo="Typo.body2">@context.Item.Title</MudText>
@@ -62,11 +63,14 @@ else
                 <CellTemplate>
                     @if (context.Item.IsPublished)
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Publicado
+                        </MudChip>
                     }
                     else
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">Rascunho</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
+                            Rascunho
+                        </MudChip>
                     }
                 </CellTemplate>
             </TemplateColumn>

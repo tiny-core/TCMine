@@ -162,7 +162,7 @@
         <Setter Property="BorderBrush" Value="{DynamicResource BorderHover}" />
     </Style>
 
-    <!-- ── Toggle de auto-join (por servidor) ──────────────────────── -->
+    <!-- ── Toggle de autojoin (por servidor) ──────────────────────── -->
     <Style Selector="Button.autojoin">
         <Setter Property="Width" Value="28" />
         <Setter Property="Height" Value="28" />

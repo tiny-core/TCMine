@@ -13,10 +13,9 @@ namespace TCMine_Server.Components.Pages.Admin.Players;
 /// </summary>
 public partial class PlayerConfigs : ComponentBase
 {
-    private string _search = string.Empty;
-
     // null = carregando (BusyOverlay cobre a tela); Sets vazio = estado vazio
     private PlayerConfigOverviewDto? _overview;
+    private string _search = string.Empty;
 
     [Inject] private PlayerConfigAdminService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;

@@ -4,12 +4,11 @@ namespace TCMine_Server.Components.Shared;
 public sealed record FileTreeNode(string Path, string Name, bool IsFolder);
 
 /// <summary>
-/// Fonte de dados de uma árvore de arquivos editável — abstrai o backend para o componente compartilhado
-/// <c>FileTreeEditor</c> servir tanto os overrides de modpack quanto as configs de um servidor, sem
-/// duplicar a árvore/editor. Cada host cria a sua implementação amarrada ao contexto (modpack/instância).
-///
-/// As capacidades (<c>Can*</c>) controlam quais ações o toolbar mostra; uma operação não suportada não
-/// precisa ser implementada de fato (a UI nem a oferece).
+///     Fonte de dados de uma árvore de arquivos editável — abstrai o backend para o componente compartilhado
+///     <c>FileTreeEditor</c> servir tanto os overrides de modpack quanto as configs de um servidor, sem
+///     duplicar a árvore/editor. Cada host cria a sua implementação amarrada ao contexto (modpack/instância).
+///     As capacidades (<c>Can*</c>) controlam quais ações o toolbar mostra; uma operação não suportada não
+///     precisa ser implementada de fato (a UI nem a oferece).
 /// </summary>
 public interface IFileTreeSource
 {
@@ -21,7 +20,7 @@ public interface IFileTreeSource
     bool CanMove { get; }
     bool CanDelete { get; }
 
-    /// <summary>Filhos diretos de uma pasta (lazy). <paramref name="folder"/> vazio = raiz.</summary>
+    /// <summary>Filhos diretos de uma pasta (lazy). <paramref name="folder" /> vazio = raiz.</summary>
     IReadOnlyList<FileTreeNode> ListChildren(string folder);
 
     /// <summary>É um arquivo de texto editável? (binários abrem só-leitura no editor).</summary>
@@ -36,6 +35,6 @@ public interface IFileTreeSource
     Task UploadAsync(string fileName, Stream content);
     Task DeleteFileAsync(string path);
 
-    /// <summary>Move um arquivo (<paramref name="isFolder"/> false) ou pasta para a pasta de destino.</summary>
+    /// <summary>Move um arquivo (<paramref name="isFolder" /> false) ou pasta para a pasta de destino.</summary>
     Task MoveAsync(string sourcePath, string targetFolder, bool isFolder);
 }

@@ -1,13 +1,13 @@
-using TCMine_Server.Infrastructure.ServerInstances;
 using TCMine_Server.Components.Pages.Admin.Modpacks;
+using TCMine_Server.Infrastructure.ServerInstances;
 
 namespace TCMine_Server.Components.Shared;
 
 /// <summary>
-/// <see cref="IFileTreeSource"/> das configs de uma instância de servidor — adapta o
-/// <see cref="ServerInstanceService"/> para o <see cref="FileTreeEditor"/> (mesma árvore + Monaco dos
-/// overrides). Permite criar/apagar/editar arquivos de texto no diretório da instância; mover/enviar
-/// ficam desligados (não fazem sentido para as configs geradas).
+///     <see cref="IFileTreeSource" /> das configs de uma instância de servidor — adapta o
+///     <see cref="ServerInstanceService" /> para o <see cref="FileTreeEditor" /> (mesma árvore + Monaco dos
+///     overrides). Permite criar/apagar/editar arquivos de texto no diretório da instância; mover/enviar
+///     ficam desligados (não fazem sentido para as configs geradas).
 /// </summary>
 public sealed class ServerConfigTreeSource(ServerInstanceService service, Guid instanceId) : IFileTreeSource
 {

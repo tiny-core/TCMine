@@ -5,9 +5,9 @@ using TCMine_Domain.Entities;
 namespace TCMine_Server.Infrastructure.Persistence.Repositories;
 
 /// <summary>
-/// Implementação EF Core de <see cref="IServerSettingsStore"/>. Scoped — usa o
-/// <see cref="AppDbContext"/> da requisição. Toca apenas a linha única de settings; a cifra dos
-/// segredos e o cache ficam no <c>ServerSettingsService</c>.
+///     Implementação EF Core de <see cref="IServerSettingsStore" />. Scoped — usa o
+///     <see cref="AppDbContext" /> da requisição. Toca apenas a linha única de settings; a cifra dos
+///     segredos e o cache ficam no <c>ServerSettingsService</c>.
 /// </summary>
 public sealed class ServerSettingsStore(AppDbContext db) : IServerSettingsStore
 {

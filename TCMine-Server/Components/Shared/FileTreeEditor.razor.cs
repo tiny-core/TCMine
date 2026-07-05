@@ -9,40 +9,41 @@ using TCMine_Server.Services;
 namespace TCMine_Server.Components.Shared;
 
 /// <summary>
-/// Componente compartilhado de árvore de arquivos + editor Monaco. Dirige-se por um
-/// <see cref="IFileTreeSource"/> (overrides de modpack ou configs de servidor). O Monaco fica sempre
-/// montado; se a seleção acontecer antes do init, o conteúdo fica pendente e é aplicado no init. As
-/// operações (criar/enviar/apagar/mover) e o histórico/desfazer específicos do host ficam fora —
-/// expostos via capacidades do source e o slot <see cref="ToolbarExtra"/>.
+///     Componente compartilhado de árvore de arquivos + editor Monaco. Dirige-se por um
+///     <see cref="IFileTreeSource" /> (overrides de modpack ou configs de servidor). O Monaco fica sempre
+///     montado; se a seleção acontecer antes do init, o conteúdo fica pendente e é aplicado no init. As
+///     operações (criar/enviar/apagar/mover) e o histórico/desfazer específicos do host ficam fora —
+///     expostos via capacidades do source e o slot <see cref="ToolbarExtra" />.
 /// </summary>
 public partial class FileTreeEditor : ComponentBase
 {
+    private bool _binary;
+    private bool _dirty;
+    private string? _dragPath; // item arrastado (destaque do alvo é client-side via overrides-dnd.js)
+
+    private StandaloneCodeEditor? _editor;
+    private bool _editorReady;
+
+    private HashSet<string> _fileSet = [];
+    private string? _pendingContent;
+    private string? _pendingLang;
+    private string? _selected;
+    private List<TreeItemData<string>> _treeItems = [];
+    private int _treeKey; // bumpar reinstancia a árvore (lazy) para refletir o disco
     [Parameter] [EditorRequired] public IFileTreeSource Source { get; set; } = null!;
 
     /// <summary>Botões extras no toolbar (ex.: histórico/desfazer dos overrides).</summary>
-    [Parameter] public RenderFragment? ToolbarExtra { get; set; }
+    [Parameter]
+    public RenderFragment? ToolbarExtra { get; set; }
 
     /// <summary>Disparado após mudanças estruturais/salvar — o host atualiza o seu estado (ex.: histórico).</summary>
-    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
 
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;
-
-    private StandaloneCodeEditor? _editor;
-    private bool _editorReady;
-    private string? _pendingContent;
-    private string? _pendingLang;
-
-    private bool _binary;
-    private bool _dirty;
-    private string? _selected;
-    private string? _dragPath; // item arrastado (destaque do alvo é client-side via overrides-dnd.js)
-
-    private HashSet<string> _fileSet = [];
-    private List<TreeItemData<string>> _treeItems = [];
-    private int _treeKey; // bumpar reinstancia a árvore (lazy) para refletir o disco
 
     protected override async Task OnInitializedAsync()
     {

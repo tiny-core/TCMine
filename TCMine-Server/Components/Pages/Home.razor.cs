@@ -5,11 +5,11 @@ namespace TCMine_Server.Components.Pages;
 
 public partial class Home : ComponentBase
 {
-    // Catálogo de conteúdo da landing (modpacks publicados + estado do feed do launcher)
-    [Inject] private ContentCatalog Catalog { get; set; } = null!;
-
     // Modpacks publicados exibidos na grade (vazio enquanto carrega ou se não houver)
     private IReadOnlyList<ModpackWithServers> _modpacks = [];
+
+    // Catálogo de conteúdo da landing (modpacks publicados + estado do feed do launcher)
+    [Inject] private ContentCatalog Catalog { get; set; } = null!;
 
     private string? LauncherVersion { get; set; }
     private bool LauncherAvailable { get; set; }

@@ -1,12 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:TCMine_Launcher.ViewModels"
-             xmlns:conv="using:TCMine_Launcher.Converters"
              mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="540"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:TCMine_Launcher.ViewModels"
+             xmlns:conv="clr-namespace:TCMine_Launcher.Converters"
              x:Class="TCMine_Launcher.Views.ModpacksPageView"
-             x:DataType="vm:ModpacksPageViewModel">
+             x:DataType="viewModels:ModpacksPageViewModel">
 
     <Grid RowDefinitions="Auto,*" Margin="28,24" Background="Transparent">
 
@@ -28,7 +28,7 @@
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ModpackListItem">
+                        <DataTemplate x:DataType="viewModels:ModpackListItem">
                             <Border Classes="modpack-card" Margin="0,0,16,16">
                                 <StackPanel>
                                     <!-- Banner com a tag OFICIAL -->

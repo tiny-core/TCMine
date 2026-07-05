@@ -8,10 +8,10 @@ using TCMine_Domain.Modpack;
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Busca listas de versões oficiais para preencher os seletores do editor de modpack:
-/// versões do Minecraft (manifesto da Mojang) e versões de cada loader (NeoForge/Forge/Fabric/Quilt),
-/// cada uma do seu endpoint oficial. Resultados são cacheados em memória (mudam raramente) e cada
-/// busca é defensiva: falha de rede devolve lista vazia (o seletor cai para texto livre).
+///     Busca listas de versões oficiais para preencher os seletores do editor de modpack:
+///     versões do Minecraft (manifesto da Mojang) e versões de cada loader (NeoForge/Forge/Fabric/Quilt),
+///     cada uma do seu endpoint oficial. Resultados são cacheados em memória (mudam raramente) e cada
+///     busca é defensiva: falha de rede devolve lista vazia (o seletor cai para texto livre).
 /// </summary>
 public sealed class MinecraftVersionService(IHttpClientFactory http, IMemoryCache cache)
 {
@@ -40,8 +40,8 @@ public sealed class MinecraftVersionService(IHttpClientFactory http, IMemoryCach
     // ── Loaders ──────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Versões do loader escolhido, filtradas pela versão de Minecraft quando o loader é específico
-    /// por versão (NeoForge/Forge). Fabric/Quilt são independentes da versão MC.
+    ///     Versões do loader escolhido, filtradas pela versão de Minecraft quando o loader é específico
+    ///     por versão (NeoForge/Forge). Fabric/Quilt são independentes da versão MC.
     /// </summary>
     public Task<IReadOnlyList<VersionOptionDto>> GetLoaderVersionsAsync(
         ModLoader loader, string? minecraft, CancellationToken ct = default)
@@ -57,7 +57,7 @@ public sealed class MinecraftVersionService(IHttpClientFactory http, IMemoryCach
     }
 
     /// <summary>
-    /// Fabric e Quilt expõem o mesmo formato: lista de <c>{ version, stable? }</c>
+    ///     Fabric e Quilt expõem o mesmo formato: lista de <c>{ version, stable? }</c>
     /// </summary>
     private Task<IReadOnlyList<VersionOptionDto>> GetFabricLikeAsync(string key, string url, CancellationToken ct)
     {
@@ -173,13 +173,13 @@ public sealed class MinecraftVersionService(IHttpClientFactory http, IMemoryCach
 
     private sealed class MojangVersion
     {
-        [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
-        [JsonPropertyName("type")] public string Type { get; set; } = string.Empty;
+        [JsonPropertyName("id")] public string Id { get; } = string.Empty;
+        [JsonPropertyName("type")] public string Type { get; } = string.Empty;
     }
 
     private sealed class FabricLoader
     {
-        [JsonPropertyName("version")] public string Version { get; set; } = string.Empty;
+        [JsonPropertyName("version")] public string Version { get; } = string.Empty;
         [JsonPropertyName("stable")] public bool? Stable { get; set; }
     }
 

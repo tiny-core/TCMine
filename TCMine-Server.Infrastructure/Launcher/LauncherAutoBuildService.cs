@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using TCMine_Application.Contracts;
 using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Infrastructure.Launcher;
@@ -20,11 +19,24 @@ public sealed class LauncherAutoBuildService(
     private static readonly TimeSpan PollInterval = TimeSpan.FromHours(1);
     private CancellationTokenSource? _cts;
 
+    // O host descarta os hosted services IDisposable no shutdown (após o StopAsync).
+    public void Dispose()
+    {
+        _cts?.Dispose();
+    }
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _cts = new CancellationTokenSource();
         settings.Changed += OnSettingsChanged;
         _ = PollLoopAsync(_cts.Token);
+        return Task.CompletedTask;
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        settings.Changed -= OnSettingsChanged;
+        _cts?.Cancel();
         return Task.CompletedTask;
     }
 
@@ -62,18 +74,5 @@ public sealed class LauncherAutoBuildService(
     private void OnSettingsChanged(ServerSettings updated)
     {
         _ = TryOnceAsync(CancellationToken.None); // ex.: 1º deploy — settings configuradas agora
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        settings.Changed -= OnSettingsChanged;
-        _cts?.Cancel();
-        return Task.CompletedTask;
-    }
-
-    // O host descarta os hosted services IDisposable no shutdown (após o StopAsync).
-    public void Dispose()
-    {
-        _cts?.Dispose();
     }
 }

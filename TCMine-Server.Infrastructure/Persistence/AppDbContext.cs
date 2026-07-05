@@ -4,15 +4,14 @@ using TCMine_Domain.Entities;
 namespace TCMine_Server.Infrastructure.Persistence;
 
 /// <summary>
-/// Contexto EF Core com o conteúdo do servidor: novidades, modpacks, releases e
-/// configs do jogador.
-///
-/// É <b>abstrato</b> de propósito: o EF Core mantém um único snapshot de modelo por
-/// tipo de contexto, e migrations de SQLite e Postgres não são intercambiáveis (tipos
-/// de coluna diferem). Por isso cada provider tem a sua subclasse concreta
-/// (<see cref="SqliteAppDbContext"/> / <see cref="PostgresAppDbContext"/>),
-/// cada uma com o seu próprio conjunto de migrations. Os serviços dependem desta base —
-/// nunca da subclasse — e o DI resolve a concreta conforme o provider configurado.
+///     Contexto EF Core com o conteúdo do servidor: novidades, modpacks, releases e
+///     configs do jogador.
+///     É <b>abstrato</b> de propósito: o EF Core mantém um único snapshot de modelo por
+///     tipo de contexto, e migrations de SQLite e Postgres não são intercambiáveis (tipos
+///     de coluna diferem). Por isso cada provider tem a sua subclasse concreta
+///     (<see cref="SqliteAppDbContext" /> / <see cref="PostgresAppDbContext" />),
+///     cada uma com o seu próprio conjunto de migrations. Os serviços dependem desta base —
+///     nunca da subclasse — e o DI resolve a concreta conforme o provider configurado.
 /// </summary>
 public abstract class AppDbContext(DbContextOptions options) : DbContext(options)
 {

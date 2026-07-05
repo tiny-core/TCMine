@@ -4,20 +4,105 @@ using System.Text;
 namespace TCMine_Design;
 
 /// <summary>
-/// Tokens de cor centralizados do design system TCMine.
-/// Cor de marca base: #F97316 (orange-500).
-/// <para>
-/// As escalas <see cref="Primary"/>, <see cref="Secondary"/> e <see cref="Accent"/> são
-/// agnósticas de tema (a identidade da marca não muda entre claro/escuro).
-/// <see cref="Dark"/> e <see cref="Light"/> contêm os tokens de fundo, texto e estados
-/// semânticos próprios de cada tema, com os MESMOS nomes lógicos nos dois — só o valor muda.
-/// Isto permite, por exemplo, no Avalonia, manter as mesmas chaves de recurso e apenas
-/// trocar os valores ao alternar o tema em runtime.
-/// </para>
+///     Tokens de cor centralizados do design system TCMine.
+///     Cor de marca base: #F97316 (orange-500).
+///     <para>
+///         As escalas <see cref="Primary" />, <see cref="Secondary" /> e <see cref="Accent" /> são
+///         agnósticas de tema (a identidade da marca não muda entre claro/escuro).
+///         <see cref="Dark" /> e <see cref="Light" /> contêm os tokens de fundo, texto e estados
+///         semânticos próprios de cada tema, com os MESMOS nomes lógicos nos dois — só o valor muda.
+///         Isto permite, por exemplo, no Avalonia, manter as mesmas chaves de recurso e apenas
+///         trocar os valores ao alternar o tema em runtime.
+///     </para>
 /// </summary>
 [SuppressMessage("ReSharper", "MemberHidesStaticFromOuterClass")]
 public static class ColorTokens
 {
+    /// <summary>
+    ///     Converte os tokens num dicionário de variáveis CSS (sem o prefixo "--").
+    ///     As chaves são as mesmas independentemente de <paramref name="dark" /> — apenas
+    ///     os valores de fundo/texto/semântico mudam consoante o tema escolhido.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> ToCssVariables(bool dark = true)
+    {
+        return new Dictionary<string, string>
+        {
+            // Primary
+            ["color-primary-50"] = Primary.Shade50,
+            ["color-primary-100"] = Primary.Shade100,
+            ["color-primary-200"] = Primary.Shade200,
+            ["color-primary-300"] = Primary.Shade300,
+            ["color-primary-400"] = Primary.Shade400,
+            ["color-primary-500"] = Primary.Shade500,
+            ["color-primary-600"] = Primary.Shade600,
+            ["color-primary-700"] = Primary.Shade700,
+            ["color-primary-800"] = Primary.Shade800,
+            ["color-primary-900"] = Primary.Shade900,
+
+            // Secondary
+            ["color-secondary-50"] = Secondary.Shade50,
+            ["color-secondary-100"] = Secondary.Shade100,
+            ["color-secondary-200"] = Secondary.Shade200,
+            ["color-secondary-400"] = Secondary.Shade400,
+            ["color-secondary-500"] = Secondary.Shade500,
+            ["color-secondary-600"] = Secondary.Shade600,
+            ["color-secondary-700"] = Secondary.Shade700,
+            ["color-secondary-900"] = Secondary.Shade900,
+
+            // Accent
+            ["color-accent-400"] = Accent.Shade400,
+            ["color-accent-500"] = Accent.Shade500,
+            ["color-accent-600"] = Accent.Shade600,
+            ["color-accent-700"] = Accent.Shade700,
+
+            // Background (depende do tema)
+            ["color-bg-page"] = dark ? Dark.Background.Page : Light.Background.Page,
+            ["color-bg-default"] = dark ? Dark.Background.Default : Light.Background.Default,
+            ["color-bg-surface"] = dark ? Dark.Background.Surface : Light.Background.Surface,
+            ["color-bg-elevated"] = dark ? Dark.Background.Elevated : Light.Background.Elevated,
+            ["color-border"] = dark ? Dark.Background.Border : Light.Background.Border,
+            ["color-border-strong"] = dark ? Dark.Background.BorderStrong : Light.Background.BorderStrong,
+
+            // Text (depende do tema)
+            ["color-text-primary"] = dark ? Dark.Text.Primary : Light.Text.Primary,
+            ["color-text-secondary"] = dark ? Dark.Text.Secondary : Light.Text.Secondary,
+            ["color-text-disabled"] = dark ? Dark.Text.Disabled : Light.Text.Disabled,
+            ["color-text-on-primary"] = dark ? Dark.Text.OnPrimary : Light.Text.OnPrimary,
+
+            // Semantic (depende do tema)
+            ["color-success"] = dark ? Dark.Semantic.Success : Light.Semantic.Success,
+            ["color-success-bg"] = dark ? Dark.Semantic.SuccessBg : Light.Semantic.SuccessBg,
+            ["color-warning"] = dark ? Dark.Semantic.Warning : Light.Semantic.Warning,
+            ["color-warning-bg"] = dark ? Dark.Semantic.WarningBg : Light.Semantic.WarningBg,
+            ["color-error"] = dark ? Dark.Semantic.Error : Light.Semantic.Error,
+            ["color-error-bg"] = dark ? Dark.Semantic.ErrorBg : Light.Semantic.ErrorBg,
+            ["color-info"] = dark ? Dark.Semantic.Info : Light.Semantic.Info,
+            ["color-info-bg"] = dark ? Dark.Semantic.InfoBg : Light.Semantic.InfoBg
+        };
+    }
+
+    /// <summary>
+    ///     Gera o bloco CSS com as variáveis do tema indicado, por exemplo para injetar
+    ///     em <c>:root[data-theme="dark"]</c> / <c>:root[data-theme="light"]</c> no layout do Blazor Server.
+    /// </summary>
+    public static string ToCssBlock(bool dark = true, string? selector = null)
+    {
+        selector ??= dark ? ":root[data-theme=\"dark\"]" : ":root[data-theme=\"light\"]";
+
+        var sb = new StringBuilder();
+        sb.Append(selector).Append(" {\n");
+        foreach (var (name, value) in ToCssVariables(dark))
+            sb.Append("  --").Append(name).Append(": ").Append(value).Append(";\n");
+        sb.Append('}');
+        return sb.ToString();
+    }
+
+    /// <summary>Gera os dois blocos CSS (dark + light) de uma vez, prontos a injetar no layout.</summary>
+    public static string ToCssBlockBoth()
+    {
+        return ToCssBlock() + "\n\n" + ToCssBlock(false);
+    }
+
     /// <summary>Escala da cor primária (laranja) — marca TCMine. Igual nos dois temas.</summary>
     public static class Primary
     {
@@ -135,90 +220,5 @@ public static class ColorTokens
             public const string Info = "#0369A1";
             public const string InfoBg = "#EFF7FC";
         }
-    }
-
-    /// <summary>
-    /// Converte os tokens num dicionário de variáveis CSS (sem o prefixo "--").
-    /// As chaves são as mesmas independentemente de <paramref name="dark"/> — apenas
-    /// os valores de fundo/texto/semântico mudam consoante o tema escolhido.
-    /// </summary>
-    public static IReadOnlyDictionary<string, string> ToCssVariables(bool dark = true)
-    {
-        return new Dictionary<string, string>
-        {
-            // Primary
-            ["color-primary-50"] = Primary.Shade50,
-            ["color-primary-100"] = Primary.Shade100,
-            ["color-primary-200"] = Primary.Shade200,
-            ["color-primary-300"] = Primary.Shade300,
-            ["color-primary-400"] = Primary.Shade400,
-            ["color-primary-500"] = Primary.Shade500,
-            ["color-primary-600"] = Primary.Shade600,
-            ["color-primary-700"] = Primary.Shade700,
-            ["color-primary-800"] = Primary.Shade800,
-            ["color-primary-900"] = Primary.Shade900,
-
-            // Secondary
-            ["color-secondary-50"] = Secondary.Shade50,
-            ["color-secondary-100"] = Secondary.Shade100,
-            ["color-secondary-200"] = Secondary.Shade200,
-            ["color-secondary-400"] = Secondary.Shade400,
-            ["color-secondary-500"] = Secondary.Shade500,
-            ["color-secondary-600"] = Secondary.Shade600,
-            ["color-secondary-700"] = Secondary.Shade700,
-            ["color-secondary-900"] = Secondary.Shade900,
-
-            // Accent
-            ["color-accent-400"] = Accent.Shade400,
-            ["color-accent-500"] = Accent.Shade500,
-            ["color-accent-600"] = Accent.Shade600,
-            ["color-accent-700"] = Accent.Shade700,
-
-            // Background (depende do tema)
-            ["color-bg-page"] = dark ? Dark.Background.Page : Light.Background.Page,
-            ["color-bg-default"] = dark ? Dark.Background.Default : Light.Background.Default,
-            ["color-bg-surface"] = dark ? Dark.Background.Surface : Light.Background.Surface,
-            ["color-bg-elevated"] = dark ? Dark.Background.Elevated : Light.Background.Elevated,
-            ["color-border"] = dark ? Dark.Background.Border : Light.Background.Border,
-            ["color-border-strong"] = dark ? Dark.Background.BorderStrong : Light.Background.BorderStrong,
-
-            // Text (depende do tema)
-            ["color-text-primary"] = dark ? Dark.Text.Primary : Light.Text.Primary,
-            ["color-text-secondary"] = dark ? Dark.Text.Secondary : Light.Text.Secondary,
-            ["color-text-disabled"] = dark ? Dark.Text.Disabled : Light.Text.Disabled,
-            ["color-text-on-primary"] = dark ? Dark.Text.OnPrimary : Light.Text.OnPrimary,
-
-            // Semantic (depende do tema)
-            ["color-success"] = dark ? Dark.Semantic.Success : Light.Semantic.Success,
-            ["color-success-bg"] = dark ? Dark.Semantic.SuccessBg : Light.Semantic.SuccessBg,
-            ["color-warning"] = dark ? Dark.Semantic.Warning : Light.Semantic.Warning,
-            ["color-warning-bg"] = dark ? Dark.Semantic.WarningBg : Light.Semantic.WarningBg,
-            ["color-error"] = dark ? Dark.Semantic.Error : Light.Semantic.Error,
-            ["color-error-bg"] = dark ? Dark.Semantic.ErrorBg : Light.Semantic.ErrorBg,
-            ["color-info"] = dark ? Dark.Semantic.Info : Light.Semantic.Info,
-            ["color-info-bg"] = dark ? Dark.Semantic.InfoBg : Light.Semantic.InfoBg
-        };
-    }
-
-    /// <summary>
-    /// Gera o bloco CSS com as variáveis do tema indicado, por exemplo para injetar
-    /// em <c>:root[data-theme="dark"]</c> / <c>:root[data-theme="light"]</c> no layout do Blazor Server.
-    /// </summary>
-    public static string ToCssBlock(bool dark = true, string? selector = null)
-    {
-        selector ??= dark ? ":root[data-theme=\"dark\"]" : ":root[data-theme=\"light\"]";
-
-        var sb = new StringBuilder();
-        sb.Append(selector).Append(" {\n");
-        foreach (var (name, value) in ToCssVariables(dark))
-            sb.Append("  --").Append(name).Append(": ").Append(value).Append(";\n");
-        sb.Append('}');
-        return sb.ToString();
-    }
-
-    /// <summary>Gera os dois blocos CSS (dark + light) de uma vez, prontos a injetar no layout.</summary>
-    public static string ToCssBlockBoth()
-    {
-        return ToCssBlock() + "\n\n" + ToCssBlock(false);
     }
 }

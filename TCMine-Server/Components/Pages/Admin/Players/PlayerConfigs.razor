@@ -1,8 +1,8 @@
 @page "/admin/players"
-@layout AdminLayout
-@attribute [Authorize(Roles = "Owner,Admin")]
 @using Microsoft.AspNetCore.Authorization
 @using TCMine_Application.Contracts
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
 
 @* Gestão das configs player-owned que o launcher sincroniza (tcmine-data/player-configs). Agrupadas por
    jogador (uuid); cada linha é um modpack. Permite apagar um conjunto ou tudo de um jogador para liberar
@@ -91,10 +91,12 @@
                                     <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                                         <MudText Typo="Typo.body2" Color="Color.Secondary">Modpack removido</MudText>
                                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
-                                                 Color="Color.Warning">órfã</MudChip>
+                                                 Color="Color.Warning">órfã
+                                        </MudChip>
                                     </MudStack>
                                 }
-                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-family:monospace">@context.Item.ModpackId</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary"
+                                         Style="font-family:monospace">@context.Item.ModpackId</MudText>
                             </div>
                         </MudStack>
                     </CellTemplate>

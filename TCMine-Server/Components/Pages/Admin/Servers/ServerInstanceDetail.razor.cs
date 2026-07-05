@@ -6,19 +6,41 @@ using MudBlazor;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Entities;
 using TCMine_Server.Components.Pages.Admin.Servers.Dialogs;
-using TCMine_Server.Services;
 using TCMine_Server.Infrastructure.ServerInstances;
+using TCMine_Server.Services;
 
 namespace TCMine_Server.Components.Pages.Admin.Servers;
 
 /// <summary>
-/// Detalhe de uma instância: ações de ciclo de vida, console ao vivo (stream de logs do container +
-/// envio de comandos) e edição dos arquivos de config. O console transmite os logs no próprio circuito
-/// Blazor usando o <c>ContainerId</c> (sem tocar no DbContext durante o stream); o
-/// <see cref="DisposeAsync"/> cancela o stream ao sair da página.
+///     Detalhe de uma instância: ações de ciclo de vida, console ao vivo (stream de logs do container +
+///     envio de comandos) e edição dos arquivos de config. O console transmite os logs no próprio circuito
+///     Blazor usando o <c>ContainerId</c> (sem tocar no DbContext durante o stream); o
+///     <see cref="DisposeAsync" /> cancela o stream ao sair da página.
 /// </summary>
 public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 {
+    // Limite do buffer de log em memória (caracteres) — descarta o começo quando estoura
+    private const int MaxLogChars = 100_000;
+
+    // ── Console ───────────────────────────────────────────────────────────────────────────────────
+    private readonly StringBuilder _logBuffer = new();
+    private string _command = string.Empty;
+    private bool _consoleScrollPending; // sinaliza ao OnAfterRender para descer o console à última linha
+
+    private ServerInstanceDetailDto? _detail;
+
+    // ── Provisionamento (via coordenador de fundo; reconecta após refresh) ──────────────────────────
+    private ProvisionJobView? _job; // job em curso/concluído desta instância (null = nenhum)
+    private ElementReference _jobStepsEl; // container rolável do log de passos → auto-scroll
+    private string _log = string.Empty;
+
+    // ── Status de jogadores (Server List Ping, enquanto rodando) ──────────────────────────────────
+    private ServerPing? _ping;
+    private CancellationTokenSource? _pingCts;
+    private bool _scrollJobPending; // sinaliza ao OnAfterRender para descer ao passo atual
+    private CancellationTokenSource? _streamCts;
+    private string? _streamingContainerId; // container cujo stream está ativo (evita duplicar)
+    private bool _streamingFollow; // modo do stream ativo: follow (rodando) vs estático (parado/crash)
     [Inject] private ServerInstanceService Service { get; set; } = null!;
     [Inject] private ProvisioningCoordinator Provisioner { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
@@ -29,28 +51,27 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
 
     [Parameter] public Guid Id { get; set; }
 
-    private ServerInstanceDetailDto? _detail;
+    // Há um provisionamento em andamento para esta instância?
+    private bool IsProvisioning => _job is { State: ProvisionState.Running };
 
-    // ── Provisionamento (via coordenador de fundo; reconecta após refresh) ──────────────────────────
-    private ProvisionJobView? _job;            // job em curso/concluído desta instância (null = nenhum)
-    private ElementReference _jobStepsEl;       // container rolável do log de passos → auto-scroll
-    private bool _scrollJobPending;             // sinaliza ao OnAfterRender para descer ao passo atual
+    // Status "global" do painel: a fase atual (rótulo antes de " — "); o detalhe fica na lista de passos
+    private string JobGlobalStatus
+    {
+        get
+        {
+            var last = _job is { Steps.Count: > 0 } ? _job.Steps[^1] : "Provisionando…";
+            var i = last.IndexOf(" — ", StringComparison.Ordinal);
+            return i < 0 ? last : last[..i];
+        }
+    }
 
-    // ── Console ───────────────────────────────────────────────────────────────────────────────────
-    private readonly StringBuilder _logBuffer = new();
-    private string _log = string.Empty;
-    private string _command = string.Empty;
-    private CancellationTokenSource? _streamCts;
-    private string? _streamingContainerId; // container cujo stream está ativo (evita duplicar)
-    private bool _streamingFollow; // modo do stream ativo: follow (rodando) vs estático (parado/crash)
-    private bool _consoleScrollPending; // sinaliza ao OnAfterRender para descer o console à última linha
-
-    // ── Status de jogadores (Server List Ping, enquanto rodando) ──────────────────────────────────
-    private ServerPing? _ping;
-    private CancellationTokenSource? _pingCts;
-
-    // Limite do buffer de log em memória (caracteres) — descarta o começo quando estoura
-    private const int MaxLogChars = 100_000;
+    public ValueTask DisposeAsync()
+    {
+        Provisioner.Changed -= OnJobChanged;
+        StopLogStream();
+        StopPing();
+        return ValueTask.CompletedTask;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -75,29 +96,27 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
         if (_scrollJobPending)
         {
             _scrollJobPending = false;
-            try { await JS.InvokeVoidAsync("tcmineScrollToBottom", _jobStepsEl); }
-            catch { /* painel não renderizado — ignora */ }
+            try
+            {
+                await JS.InvokeVoidAsync("tcmineScrollToBottom", _jobStepsEl);
+            }
+            catch
+            {
+                /* painel não renderizado — ignora */
+            }
         }
 
         if (_consoleScrollPending)
         {
             _consoleScrollPending = false;
-            try { await JS.InvokeVoidAsync("tcmineConsole.scrollToBottom"); }
-            catch { /* console não renderizado (outra aba) — ignora */ }
-        }
-    }
-
-    // Há um provisionamento em andamento para esta instância?
-    private bool IsProvisioning => _job is { State: ProvisionState.Running };
-
-    // Status "global" do painel: a fase atual (rótulo antes de " — "); o detalhe fica na lista de passos
-    private string JobGlobalStatus
-    {
-        get
-        {
-            var last = _job is { Steps.Count: > 0 } ? _job.Steps[^1] : "Provisionando…";
-            var i = last.IndexOf(" — ", StringComparison.Ordinal);
-            return i < 0 ? last : last[..i];
+            try
+            {
+                await JS.InvokeVoidAsync("tcmineConsole.scrollToBottom");
+            }
+            catch
+            {
+                /* console não renderizado (outra aba) — ignora */
+            }
         }
     }
 
@@ -357,13 +376,5 @@ public partial class ServerInstanceDetail : ComponentBase, IAsyncDisposable
             ServerInstanceStatus.Crashed => Color.Error,
             _ => Color.Default
         };
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        Provisioner.Changed -= OnJobChanged;
-        StopLogStream();
-        StopPing();
-        return ValueTask.CompletedTask;
     }
 }

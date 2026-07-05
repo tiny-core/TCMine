@@ -4,7 +4,7 @@ using TCMine_Domain.Entities;
 
 namespace TCMine_Server.Authentication;
 
-/// <summary>Monta o <see cref="ClaimsPrincipal"/> de um usuário para o cookie de autenticação.</summary>
+/// <summary>Monta o <see cref="ClaimsPrincipal" /> de um usuário para o cookie de autenticação.</summary>
 public static class AuthClaims
 {
     public static ClaimsPrincipal BuildPrincipal(UserEntity user)

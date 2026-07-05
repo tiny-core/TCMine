@@ -1,35 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using TCMine_Application.Contracts;
+using TCMine_Domain.Entities;
 using TCMine_Server.Infrastructure.FileSystem;
 using TCMine_Server.Infrastructure.Persistence;
-using TCMine_Domain.Entities;
 using TCMine_Server.Infrastructure.Server;
 
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Gestão dos <b>overrides</b> de um modpack: a árvore de arquivos editável no painel
-/// (<c>tcmine-data/modpacks/{slug}/overrides/</c>) e o histórico de operações com desfazer. Extraído do
-/// <see cref="ModpackImportService"/> (que ficou grande demais): o import/save ainda extrai o bundle
-/// inicial, mas toda a edição interativa — criar/ler/gravar/mover/apagar arquivos e pastas, mais o
-/// undo — vive aqui, com o seu próprio conjunto de consumidores (a <c>OverridesPanel</c> e a árvore).
-///
-/// Os arquivos são a fonte da verdade em disco; a flag <see cref="Domain.Entities.ModpackEntity.HasOverrides"/>
-/// e o <see cref="OverrideHistoryEntry"/> vivem no banco. Toda alteração bumpa o <see cref="ContentNotifier"/>
-/// (SSE) e marca o modpack como alterado (sync incremental do launcher). Todo caminho passa por
-/// <see cref="SafeOverridePath"/> — defesa contra path traversal para fora da pasta do modpack.
+///     Gestão dos <b>overrides</b> de um modpack: a árvore de arquivos editável no painel
+///     (<c>tcmine-data/modpacks/{slug}/overrides/</c>) e o histórico de operações com desfazer. Extraído do
+///     <see cref="ModpackImportService" /> (que ficou grande demais): o import/save ainda extrai o bundle
+///     inicial, mas toda a edição interativa — criar/ler/gravar/mover/apagar arquivos e pastas, mais o
+///     undo — vive aqui, com o seu próprio conjunto de consumidores (a <c>OverridesPanel</c> e a árvore).
+///     Os arquivos são a fonte da verdade em disco; a flag <see cref="Domain.Entities.ModpackEntity.HasOverrides" />
+///     e o <see cref="OverrideHistoryEntry" /> vivem no banco. Toda alteração bumpa o <see cref="ContentNotifier" />
+///     (SSE) e marca o modpack como alterado (sync incremental do launcher). Todo caminho passa por
+///     <see cref="SafeOverridePath" /> — defesa contra path traversal para fora da pasta do modpack.
 /// </summary>
 public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier notifier, IHostEnvironment env)
 {
-    private readonly string _root = env.ContentRootPath;
-
     // Extensões consideradas texto editável no painel
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".txt", ".json", ".json5", ".jsonc", ".toml", ".cfg", ".conf", ".config", ".properties",
         ".yaml", ".yml", ".snbt", ".nbt", ".ini", ".lang", ".md", ".mcmeta", ".js", ".zs", ".xml", ".csv"
     };
+
+    private readonly string _root = env.ContentRootPath;
 
     /// <summary>É um arquivo de texto que o editor do painel pode abrir?</summary>
     public static bool IsTextOverride(string relativePath)
@@ -50,27 +49,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Lista os arquivos de overrides com tamanho, numa única varredura do disco. A página usa isto
-    /// para não fazer um <c>stat</c> por arquivo a cada seleção (caro com muitos arquivos) — o
-    /// <see cref="FileInfo.Length"/> já vem preenchido pela enumeração de <see cref="DirectoryInfo"/>.
-    /// </summary>
-    public IReadOnlyList<OverrideFileDto> ListOverrideFiles(Guid uid)
-    {
-        var dir = OverridesDir(uid);
-        if (!Directory.Exists(dir)) return [];
-
-        var baseDir = new DirectoryInfo(dir);
-        return baseDir.EnumerateFiles("*", SearchOption.AllDirectories)
-            .Select(f => new OverrideFileDto(
-                Path.GetRelativePath(dir, f.FullName).Replace('\\', '/'), f.Length))
-            .OrderBy(o => o.Path, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-    }
-
-    /// <summary>
-    /// Lista os **filhos diretos** (um nível) de uma pasta de overrides — para o carregamento
-    /// preguiçoso da árvore. <paramref name="relativeFolder"/> vazio = raiz. Pastas primeiro, depois
-    /// arquivos, cada grupo em ordem alfabética. Não recursivo.
+    ///     Lista os **filhos diretos** (um nível) de uma pasta de overrides — para o carregamento
+    ///     preguiçoso da árvore. <paramref name="relativeFolder" /> vazio = raiz. Pastas primeiro, depois
+    ///     arquivos, cada grupo em ordem alfabética. Não recursivo.
     /// </summary>
     public IReadOnlyList<OverrideNodeDto> ListOverrideChildren(Guid uid, string relativeFolder)
     {
@@ -104,8 +85,8 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Grava o conteúdo de texto de um arquivo de override existente (escrita direta em disco) e
-    /// registra a versão anterior no histórico (para o "desfazer").
+    ///     Grava o conteúdo de texto de um arquivo de override existente (escrita direta em disco) e
+    ///     registra a versão anterior no histórico (para o "desfazer").
     /// </summary>
     public async Task WriteOverrideAsync(
         Guid uid, string relativePath, string content, string? actor = null, CancellationToken ct = default)
@@ -124,9 +105,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Cria um arquivo de override novo (texto, opcionalmente com conteúdo). Cria os diretórios
-    /// pais e marca o modpack como tendo overrides. Devolve o estado da flag <c>HasOverrides</c>.
-    /// Lança se já existir um arquivo nesse caminho.
+    ///     Cria um arquivo de override novo (texto, opcionalmente com conteúdo). Cria os diretórios
+    ///     pais e marca o modpack como tendo overrides. Devolve o estado da flag <c>HasOverrides</c>.
+    ///     Lança se já existir um arquivo nesse caminho.
     /// </summary>
     public async Task<bool> CreateOverrideAsync(
         Guid uid, string relativePath, string content = "", CancellationToken ct = default)
@@ -142,8 +123,8 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Grava um arquivo de override enviado pelo admin (texto ou binário). Substitui se já existir,
-    /// cria os diretórios pais e marca o modpack como tendo overrides.
+    ///     Grava um arquivo de override enviado pelo admin (texto ou binário). Substitui se já existir,
+    ///     cria os diretórios pais e marca o modpack como tendo overrides.
     /// </summary>
     public async Task<bool> UploadOverrideAsync(
         Guid uid, string relativePath, Stream content, CancellationToken ct = default)
@@ -161,8 +142,8 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Apaga um arquivo de override e remove os diretórios que ficaram vazios. Reavalia e devolve
-    /// a flag <c>HasOverrides</c> (vira <c>false</c> se foi o último arquivo).
+    ///     Apaga um arquivo de override e remove os diretórios que ficaram vazios. Reavalia e devolve
+    ///     a flag <c>HasOverrides</c> (vira <c>false</c> se foi o último arquivo).
     /// </summary>
     public async Task<bool> DeleteOverrideAsync(
         Guid uid, string relativePath, string? actor = null, CancellationToken ct = default)
@@ -184,9 +165,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Move um arquivo de override para outra pasta (<paramref name="targetFolder"/> vazio = raiz),
-    /// preservando o nome. Lança se já houver arquivo de mesmo nome no destino. Devolve o novo
-    /// caminho relativo. Remove diretórios que ficaram vazios.
+    ///     Move um arquivo de override para outra pasta (<paramref name="targetFolder" /> vazio = raiz),
+    ///     preservando o nome. Lança se já houver arquivo de mesmo nome no destino. Devolve o novo
+    ///     caminho relativo. Remove diretórios que ficaram vazios.
     /// </summary>
     public async Task<string> MoveOverrideAsync(
         Guid uid, string sourceRelPath, string targetFolder, string? actor = null, CancellationToken ct = default)
@@ -215,9 +196,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Move uma pasta de overrides inteira para dentro de <paramref name="targetFolder"/> (vazio =
-    /// raiz), preservando o nome da pasta. Recusa mover para dentro de si mesma ou para um destino
-    /// já ocupado. Devolve o novo caminho da pasta. Registra no histórico (desfazer).
+    ///     Move uma pasta de overrides inteira para dentro de <paramref name="targetFolder" /> (vazio =
+    ///     raiz), preservando o nome da pasta. Recusa mover para dentro de si mesma ou para um destino
+    ///     já ocupado. Devolve o novo caminho da pasta. Registra no histórico (desfazer).
     /// </summary>
     public async Task<string> MoveOverrideFolderAsync(
         Guid uid, string sourceFolder, string targetFolder, string? actor = null, CancellationToken ct = default)
@@ -255,19 +236,6 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
         return destFolder;
     }
 
-    /// <summary>
-    /// Apaga uma pasta de overrides inteira (recursivo) e remove os diretórios vazios remanescentes.
-    /// Reavalia e devolve a flag <c>HasOverrides</c>. (Exclusão de pasta não é desfazível.)
-    /// </summary>
-    public async Task<bool> DeleteOverrideFolderAsync(Guid uid, string folderRelPath, CancellationToken ct = default)
-    {
-        var dir = SafeOverridePath(uid, folderRelPath);
-        if (dir is not null && Directory.Exists(dir)) Directory.Delete(dir, true);
-
-        CleanEmptyDirectories(OverridesDir(uid));
-        return await SetHasOverridesAsync(uid, ListOverrides(uid).Count > 0, ct);
-    }
-
     // ── Histórico / desfazer ─────────────────────────────────────────────────────────────────────
 
     /// <summary>Registra uma operação no histórico de overrides do modpack.</summary>
@@ -303,8 +271,8 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Desfaz a última operação registrada (aplica a inversa e remove a entrada). Devolve a entrada
-    /// desfeita (para a UI descrever o que aconteceu) ou null se não havia nada.
+    ///     Desfaz a última operação registrada (aplica a inversa e remove a entrada). Devolve a entrada
+    ///     desfeita (para a UI descrever o que aconteceu) ou null se não havia nada.
     /// </summary>
     public async Task<OverrideHistoryEntry?> UndoLastAsync(Guid uid, CancellationToken ct = default)
     {
@@ -322,9 +290,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Desfaz do mais recente até (inclusive) a entrada <paramref name="entryId"/>. Como o histórico
-    /// é uma pilha, desfazer uma ação antiga exige desfazer as mais novas primeiro. Devolve quantas
-    /// foram desfeitas (0 se a entrada já não existir).
+    ///     Desfaz do mais recente até (inclusive) a entrada <paramref name="entryId" />. Como o histórico
+    ///     é uma pilha, desfazer uma ação antiga exige desfazer as mais novas primeiro. Devolve quantas
+    ///     foram desfeitas (0 se a entrada já não existir).
     /// </summary>
     public async Task<int> UndoToAsync(Guid uid, int entryId, CancellationToken ct = default)
     {
@@ -397,16 +365,9 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
         }
     }
 
-    /// <summary>Tamanho em bytes de um arquivo de override (0 se não existir).</summary>
-    public long GetOverrideLength(Guid uid, string relativePath)
-    {
-        var path = SafeOverridePath(uid, relativePath);
-        return path is not null && File.Exists(path) ? new FileInfo(path).Length : 0;
-    }
-
     /// <summary>
-    /// Atualiza a flag <c>HasOverrides</c> do modpack no banco (se mudou) e avisa os launchers (SSE).
-    /// Devolve o valor final. No-op silencioso se o modpack ainda não existir na BD (rascunho novo).
+    ///     Atualiza a flag <c>HasOverrides</c> do modpack no banco (se mudou) e avisa os launchers (SSE).
+    ///     Devolve o valor final. No-op silencioso se o modpack ainda não existir na BD (rascunho novo).
     /// </summary>
     private async Task<bool> SetHasOverridesAsync(Guid uid, bool value, CancellationToken ct)
     {
@@ -420,7 +381,7 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
         return value;
     }
 
-    /// <summary>Remove recursivamente os subdiretórios vazios sob <paramref name="root"/> (mantém a raiz).</summary>
+    /// <summary>Remove recursivamente os subdiretórios vazios sob <paramref name="root" /> (mantém a raiz).</summary>
     private static void CleanEmptyDirectories(string root)
     {
         if (!Directory.Exists(root)) return;
@@ -438,8 +399,8 @@ public sealed class ModpackOverridesService(AppDbContext db, ContentNotifier not
     }
 
     /// <summary>
-    /// Resolve o caminho absoluto de um override garantindo que fica <b>dentro</b> da pasta do modpack
-    /// (defesa contra path traversal). Devolve null se escapar do diretório base.
+    ///     Resolve o caminho absoluto de um override garantindo que fica <b>dentro</b> da pasta do modpack
+    ///     (defesa contra path traversal). Devolve null se escapar do diretório base.
     /// </summary>
     private string? SafeOverridePath(Guid uid, string relativePath)
     {

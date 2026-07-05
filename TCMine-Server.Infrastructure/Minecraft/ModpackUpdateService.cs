@@ -1,22 +1,21 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine_Application.Contracts;
 using TCMine_Application.Modpack;
-using TCMine_Domain.Modpack;
-using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Domain.Entities;
+using TCMine_Domain.Modpack;
 using TCMine_Server.Infrastructure.CurseForge;
+using TCMine_Server.Infrastructure.Persistence;
 
 namespace TCMine_Server.Infrastructure.Minecraft;
 
 /// <summary>
-/// Checagem <b>econômica</b> de atualizações contra o CurseForge — do modpack (origem 1:1) e dos seus
-/// mods. Extraído do <see cref="ModpackImportService"/>: é uma preocupação de leitura pura (nunca é
-/// chamada dentro do fluxo de gravação), consumida só pela UI do editor.
-///
-/// - <b>Modpack</b>: usa a origem do import (<see cref="ModpackImportSourceEntity"/>) com cache/TTL de
-///   6h no banco (não rebate na API a cada abertura).
-/// - <b>Mods</b>: sob demanda, sem cache — 1 batch de <c>latestFilesIndexes</c> + 1 batch de arquivos
-///   só para os que mudaram.
+///     Checagem <b>econômica</b> de atualizações contra o CurseForge — do modpack (origem 1:1) e dos seus
+///     mods. Extraído do <see cref="ModpackImportService" />: é uma preocupação de leitura pura (nunca é
+///     chamada dentro do fluxo de gravação), consumida só pela UI do editor.
+///     - <b>Modpack</b>: usa a origem do import (<see cref="ModpackImportSourceEntity" />) com cache/TTL de
+///     6h no banco (não rebate na API a cada abertura).
+///     - <b>Mods</b>: sob demanda, sem cache — 1 batch de <c>latestFilesIndexes</c> + 1 batch de arquivos
+///     só para os que mudaram.
 /// </summary>
 public sealed class ModpackUpdateService(AppDbContext db, CurseForgeApiClient cf)
 {
@@ -27,19 +26,21 @@ public sealed class ModpackUpdateService(AppDbContext db, CurseForgeApiClient cf
     }
 
     /// <summary>
-    /// Verifica se o modpack importado tem versão nova no CF. Respeita um TTL (não rebate na API se
-    /// checou recentemente) salvo <paramref name="force"/>. Atualiza o cache (LatestFileId/Version/
-    /// LastCheckedAt) e devolve o estado, ou null se o modpack não tem origem CF.
+    ///     Verifica se o modpack importado tem versão nova no CF, atualizando o cache no banco
+    ///     (LatestFileId/Version/LastCheckedAt). Respeita um TTL (não rebate na API se checou recentemente)
+    ///     salvo <paramref name="force" />. Devolve <c>true</c> se o modpack tem origem CF (e portanto o
+    ///     estado foi atualizado/relido) — o consumidor relê o <see cref="ModpackImportSourceEntity" /> para
+    ///     os detalhes (versão instalada vs. mais recente, <c>UpdateAvailable</c>). <c>false</c> = sem origem CF.
     /// </summary>
-    public async Task<ModpackUpdateStatusDto?> CheckModpackUpdateAsync(
+    public async Task<bool> CheckModpackUpdateAsync(
         Guid modpackId, bool force = false, CancellationToken ct = default)
     {
         var src = await db.ModpackImportSources.FirstOrDefaultAsync(s => s.ModpackId == modpackId, ct);
-        if (src is null) return null;
+        if (src is null) return false;
 
         // TTL de 6h: evita bater na API a cada abertura; o botão "checar agora" passa force=true
         var fresh = src.LastCheckedAt is { } t && DateTime.UtcNow - t < TimeSpan.FromHours(6);
-        if (!force && fresh) return ToStatus(src);
+        if (!force && fresh) return true;
 
         var latest = await cf.GetLatestFileAsync(src.CurseProjectId, ct);
         src.LatestFileId = latest?.Id;
@@ -47,20 +48,13 @@ public sealed class ModpackUpdateService(AppDbContext db, CurseForgeApiClient cf
         src.LastCheckedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return ToStatus(src);
-    }
-
-    private static ModpackUpdateStatusDto ToStatus(ModpackImportSourceEntity s)
-    {
-        return new ModpackUpdateStatusDto(
-            s.CurseProjectName, s.InstalledVersion, s.InstalledFileId,
-            s.LatestFileId, s.LatestVersion, s.UpdateAvailable, s.LastCheckedAt);
+        return true;
     }
 
     /// <summary>
-    /// Procura atualizações para os mods do CurseForge (CurseModId &gt; 0) do rascunho, para a versão
-    /// MC + loader dados. **Sob demanda**, econômico: 1 batch de <c>latestFilesIndexes</c> para todos
-    /// os mods, e 1 batch de arquivos só para os que mudaram (resolve url/nome). Sem cache no banco.
+    ///     Procura atualizações para os mods do CurseForge (CurseModId &gt; 0) do rascunho, para a versão
+    ///     MC + loader dados. **Sob demanda**, econômico: 1 batch de <c>latestFilesIndexes</c> para todos
+    ///     os mods, e 1 batch de arquivos só para os que mudaram (resolve url/nome). Sem cache no banco.
     /// </summary>
     public async Task<List<ModUpdateDto>> CheckModUpdatesAsync(
         IReadOnlyList<ModEntryEntity> mods, string gameVersion, ModLoader loader,

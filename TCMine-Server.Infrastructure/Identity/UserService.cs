@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Identity;
 using TCMine_Application.Abstractions;
-using TCMine_Domain.Identity;
 using TCMine_Domain.Entities;
+using TCMine_Domain.Identity;
 
 namespace TCMine_Server.Infrastructure.Identity;
 
 /// <summary>
-/// Operações de usuários do painel: criação, validação de credenciais e consulta.
-/// Hash de senha com <see cref="PasswordHasher{TUser}"/> (PBKDF2). A persistência fica atrás de
-/// <see cref="IUserRepository"/> — este serviço orquestra as regras (normalização do login, hash,
-/// proteção do último Owner) e delega o acesso ao banco. Scoped.
+///     Operações de usuários do painel: criação, validação de credenciais e consulta.
+///     Hash de senha com <see cref="PasswordHasher{TUser}" /> (PBKDF2). A persistência fica atrás de
+///     <see cref="IUserRepository" /> — este serviço orquestra as regras (normalização do login, hash,
+///     proteção do último Owner) e delega o acesso ao banco. Scoped.
 /// </summary>
 public sealed class UserService(IUserRepository users)
 {
@@ -23,8 +23,8 @@ public sealed class UserService(IUserRepository users)
     }
 
     /// <summary>
-    /// Cria um usuário com a senha já transformada em hash. Lança
-    /// <see cref="InvalidOperationException"/> se o login já existir (é único).
+    ///     Cria um usuário com a senha já transformada em hash. Lança
+    ///     <see cref="InvalidOperationException" /> se o login já existir (é único).
     /// </summary>
     public async Task<UserEntity> CreateAsync(
         string username, string password, UserRole role, CancellationToken ct = default)
@@ -42,8 +42,8 @@ public sealed class UserService(IUserRepository users)
     }
 
     /// <summary>
-    /// Valida usuário+senha. Devolve o usuário em caso de sucesso (e atualiza LastLoginAt),
-    /// ou null se as credenciais forem inválidas ou a conta estiver inativa.
+    ///     Valida usuário+senha. Devolve o usuário em caso de sucesso (e atualiza LastLoginAt),
+    ///     ou null se as credenciais forem inválidas ou a conta estiver inativa.
     /// </summary>
     public async Task<UserEntity?> ValidateCredentialsAsync(
         string username, string password, CancellationToken ct = default)
@@ -69,15 +69,9 @@ public sealed class UserService(IUserRepository users)
         return users.GetAllOrderedAsync(ct);
     }
 
-    /// <summary>True se já existe um usuário com esse nome (login é único).</summary>
-    public Task<bool> UsernameExistsAsync(string username, CancellationToken ct = default)
-    {
-        return users.ExistsByUsernameAsync(Normalize(username), ct);
-    }
-
     /// <summary>
-    /// Quantos Owners ativos existem. Usado para impedir remover/rebaixar/desativar o último —
-    /// sem isso, dava para ficar trancado fora da gestão de usuários e dos secrets.
+    ///     Quantos Owners ativos existem. Usado para impedir remover/rebaixar/desativar o último —
+    ///     sem isso, dava para ficar trancado fora da gestão de usuários e dos secrets.
     /// </summary>
     public Task<int> CountActiveOwnersAsync(CancellationToken ct = default)
     {
@@ -85,10 +79,10 @@ public sealed class UserService(IUserRepository users)
     }
 
     /// <summary>
-    /// Atualiza um usuário existente: login, papel, estado ativo e, opcionalmente, a senha
-    /// (só regrava o hash quando <paramref name="newPassword"/> vem preenchido). Numa única
-    /// transação. Lança <see cref="InvalidOperationException"/> se o login novo colidir com
-    /// outro usuário ou se a mudança deixar o sistema sem nenhum Owner ativo.
+    ///     Atualiza um usuário existente: login, papel, estado ativo e, opcionalmente, a senha
+    ///     (só regrava o hash quando <paramref name="newPassword" /> vem preenchido). Numa única
+    ///     transação. Lança <see cref="InvalidOperationException" /> se o login novo colidir com
+    ///     outro usuário ou se a mudança deixar o sistema sem nenhum Owner ativo.
     /// </summary>
     public async Task UpdateAsync(
         Guid id, string username, UserRole role, bool isActive, string? newPassword,

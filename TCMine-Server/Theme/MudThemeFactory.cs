@@ -4,23 +4,23 @@ using TCMine_Design;
 namespace TCMine_Server.Theme;
 
 /// <summary>
-/// Constrói o <see cref="MudThemeFactory"/> do admin Blazor (TCMine) a partir dos tokens
-/// centralizados em <see cref="ColorTokens"/> — com <see cref="PaletteDark"/> e
-/// <see cref="PaletteLight"/> no mesmo theme, para alternar via <c>IsDarkMode</c>
-/// no <c>MudThemeProvider</c> sem trocar de instância de tema.
+///     Constrói o <see cref="MudThemeFactory" /> do admin Blazor (TCMine) a partir dos tokens
+///     centralizados em <see cref="ColorTokens" /> — com <see cref="PaletteDark" /> e
+///     <see cref="PaletteLight" /> no mesmo theme, para alternar via <c>IsDarkMode</c>
+///     no <c>MudThemeProvider</c> sem trocar de instância de tema.
 /// </summary>
 /// <remarks>
-/// Os nomes das propriedades de ColorTokens correspondem ao MudBlazor v9.5.
-/// Se o pacote instalado for uma versão diferente, confirma os nomes das propriedades
-/// (algumas foram renomeadas/adicionadas entre major versions).
+///     Os nomes das propriedades de ColorTokens correspondem ao MudBlazor v9.5.
+///     Se o pacote instalado for uma versão diferente, confirma os nomes das propriedades
+///     (algumas foram renomeadas/adicionadas entre major versions).
 /// </remarks>
 /// <example>
-/// <para>
-/// MudBlazor — <c>MudThemeFactory.Create()</c> agora devolve um único
-/// <c>MudTheme</c> com <c>PaletteDark</c> e <c>PaletteLight</c> preenchidos,
-/// no padrão idiomático do MudBlazor:
-/// </para>
-/// <code>
+///     <para>
+///         MudBlazor — <c>MudThemeFactory.Create()</c> agora devolve um único
+///         <c>MudTheme</c> com <c>PaletteDark</c> e <c>PaletteLight</c> preenchidos,
+///         no padrão idiomático do MudBlazor:
+///     </para>
+///     <code>
 ///     @code {
 ///         private readonly MudTheme _theme = MudThemeFactory.Create();
 ///         private bool _isDarkMode = true;

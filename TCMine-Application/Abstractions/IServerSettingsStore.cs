@@ -3,8 +3,8 @@ using TCMine_Domain.Entities;
 namespace TCMine_Application.Abstractions;
 
 /// <summary>
-/// Acesso à linha única de settings de runtime (<see cref="ServerSettingEntity"/>). Só persiste/
-/// consulta a linha — a cifra dos segredos (Data Protection) e o cache ficam no serviço de aplicação.
+///     Acesso à linha única de settings de runtime (<see cref="ServerSettingEntity" />). Só persiste/
+///     consulta a linha — a cifra dos segredos (Data Protection) e o cache ficam no serviço de aplicação.
 /// </summary>
 public interface IServerSettingsStore
 {

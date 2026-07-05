@@ -1,19 +1,20 @@
-﻿using System.ComponentModel.DataAnnotations;
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
-using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Authentication;
+using TCMine_Server.Infrastructure.Identity;
 
 namespace TCMine_Server.Components.Pages;
 
 /// <summary>
-/// Login do painel — SSR estático. Valida usuário+senha no banco e, em caso de sucesso,
-/// emite o cookie de autenticação (<c>SignInAsync</c>) e redireciona para o painel.
+///     Login do painel — SSR estático. Valida usuário+senha no banco e, em caso de sucesso,
+///     emite o cookie de autenticação (<c>SignInAsync</c>) e redireciona para o painel.
 /// </summary>
 public partial class Login : ComponentBase
 {
+    // Marca falha de credenciais para reexibir o formulário com alerta (sem redirect)
+    private bool _failed;
     [Inject] private UserService Users { get; set; } = null!;
     [Inject] private NavigationManager Navigation { get; set; } = null!;
 
@@ -24,14 +25,6 @@ public partial class Login : ComponentBase
     // pode sobrescrevê-lo com null no POST. Inicializa no OnInitialized para o EditForm ter um Model
     // não-nulo já no GET (sem isto, EditForm lança "requires a Model or EditContext").
     [SupplyParameterFromForm] public LoginInput Input { get; set; } = null!;
-
-    // Marca falha de credenciais para reexibir o formulário com alerta (sem redirect)
-    private bool _failed;
-
-    protected override void OnInitialized()
-    {
-        Input ??= new LoginInput();
-    }
 
     private async Task LoginUser()
     {
@@ -60,9 +53,9 @@ public partial class Login : ComponentBase
     }
 
     /// <summary>
-    /// Regras de validação do formulário de login, usando FluentValidation em vez de
-    /// DataAnnotations. Registado em DI (<c>AddValidatorsFromAssemblyContaining&lt;LoginInputValidator&gt;()</c>)
-    /// para que o <c>FluentValidationValidator</c> (Brazilla.FluentValidation) o resolva automaticamente.
+    ///     Regras de validação do formulário de login, usando FluentValidation em vez de
+    ///     DataAnnotations. Registado em DI (<c>AddValidatorsFromAssemblyContaining&lt;LoginInputValidator&gt;()</c>)
+    ///     para que o <c>FluentValidationValidator</c> (Brazilla.FluentValidation) o resolva automaticamente.
     /// </summary>
     public sealed class InputValidator : AbstractValidator<LoginInput>
     {

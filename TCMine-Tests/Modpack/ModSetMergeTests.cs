@@ -7,9 +7,6 @@ namespace TCMine_Tests.Modpack;
 // A ordem importa (o manifesto do launcher preserva a ordem de instalação dos mods).
 public class ModSetMergeTests
 {
-    // Item mínimo com chave (id) e um payload para distinguir "atualizado"
-    private sealed record Mod(long Id, string Tag);
-
     private static (int Added, int Updated) MergeTags(
         IEnumerable<Mod> current, IEnumerable<Mod> incoming, out List<Mod> items)
     {
@@ -89,4 +86,7 @@ public class ModSetMergeTests
         Assert.Equal([1, 2], items.Select(m => m.Id));
         Assert.Equal("a2", items[0].Tag);
     }
+
+    // Item mínimo com chave (id) e um payload para distinguir "atualizado"
+    private sealed record Mod(long Id, string Tag);
 }

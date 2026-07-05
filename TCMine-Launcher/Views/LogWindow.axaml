@@ -5,6 +5,7 @@
         mc:Ignorable="d" d:DesignWidth="520" d:DesignHeight="420"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views1="clr-namespace:TCMine_Launcher.Views"
         x:Class="TCMine_Launcher.Views.LogWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/icon.ico" Title="Eventos"
@@ -12,7 +13,7 @@
         WindowStartupLocation="CenterOwner" CanResize="False"
         WindowDecorations="None" Background="Transparent" TransparencyLevelHint="Transparent">
 
-    <views:WindowChrome>
+    <views1:WindowChrome>
         <Grid RowDefinitions="Auto,*">
             <views:TitleBar Grid.Row="0" Title="Registo de eventos" ShowMinimize="False" />
             <Border Grid.Row="1" Background="{DynamicResource BgConsole}" Padding="14" x:CompileBindings="False">
@@ -29,5 +30,5 @@
                 </ScrollViewer>
             </Border>
         </Grid>
-    </views:WindowChrome>
+    </views1:WindowChrome>
 </Window>

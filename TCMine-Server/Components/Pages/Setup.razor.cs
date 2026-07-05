@@ -3,14 +3,14 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Components;
 using TCMine_Domain.Identity;
-using TCMine_Server.Infrastructure.Identity;
 using TCMine_Server.Authentication;
+using TCMine_Server.Infrastructure.Identity;
 
 namespace TCMine_Server.Components.Pages;
 
 /// <summary>
-/// Setup de primeira execução — cria o usuário master (Owner). Após criar, emite o cookie
-/// e leva direto à página de Configurações para o Owner cadastrar os secrets (CF/Azure).
+///     Setup de primeira execução — cria o usuário master (Owner). Após criar, emite o cookie
+///     e leva direto à página de Configurações para o Owner cadastrar os secrets (CF/Azure).
 /// </summary>
 public partial class Setup : ComponentBase
 {

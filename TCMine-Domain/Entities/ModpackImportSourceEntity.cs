@@ -4,15 +4,16 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace TCMine_Domain.Entities;
 
 /// <summary>
-/// Origem CurseForge de um modpack importado (1:1 com <see cref="ModpackEntity"/>, PK = ModpackId).
-/// Registra de qual projeto/arquivo CF o modpack foi importado e a versão aplicada, para depois
-/// verificar atualizações e oferecer mesclar. Os campos <c>Latest*</c> + <c>LastCheckedAt</c> são um
-/// **cache** da última checagem — evitam bater na API do CurseForge a cada visualização.
+///     Origem CurseForge de um modpack importado (1:1 com <see cref="ModpackEntity" />, PK = ModpackId).
+///     Registra de qual projeto/arquivo CF o modpack foi importado e a versão aplicada, para depois
+///     verificar atualizações e oferecer mesclar. Os campos <c>Latest*</c> + <c>LastCheckedAt</c> são um
+///     **cache** da última checagem — evitam bater na API do CurseForge a cada visualização.
 /// </summary>
 public class ModpackImportSourceEntity
 {
     /// <summary>PK e FK 1:1 para o modpack do TCMine.</summary>
     public Guid ModpackId { get; set; }
+
     public ModpackEntity? Modpack { get; set; }
 
     /// <summary>Id do projeto (modpack) no CurseForge.</summary>
@@ -20,7 +21,7 @@ public class ModpackImportSourceEntity
 
     [MaxLength(200)] public string CurseProjectName { get; set; } = string.Empty;
 
-    /// <summary>Id do arquivo (.zip) do modpack CF aplicado agora (a "versão" instalada).</summary>
+    /// <summary>ID do arquivo (.zip) do modpack CF aplicado agora (a "versão" instalada).</summary>
     public long InstalledFileId { get; set; }
 
     [MaxLength(120)] public string? InstalledVersion { get; set; }
@@ -32,7 +33,7 @@ public class ModpackImportSourceEntity
     /// <summary>Quando foi a última checagem de atualização (null = nunca). Base do TTL.</summary>
     public DateTime? LastCheckedAt { get; set; }
 
-    /// <summary>Id do arquivo mais recente conhecido no CF (cache); null = desconhecido.</summary>
+    /// <summary>ID do arquivo mais recente conhecido no CF (cache); null = desconhecido.</summary>
     public long? LatestFileId { get; set; }
 
     [MaxLength(120)] public string? LatestVersion { get; set; }
