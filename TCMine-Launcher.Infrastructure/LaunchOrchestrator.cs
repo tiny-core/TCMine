@@ -44,7 +44,7 @@ public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : 
         {
             progress.Report(new LaunchProgress(
                 LaunchState.DownloadingAssets, 100, "A sincronizar configurações do jogador..."));
-            await _configSync.PullAsync(instance, session.UUID ?? "",
+            await _configSync.PullAsync(instance, session.UUID ?? "", session.AccessToken ?? "",
                 msg => progress.Report(new LaunchProgress(LaunchState.DownloadingAssets, 100, msg)), ct);
         }
         catch

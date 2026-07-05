@@ -48,6 +48,13 @@
                             Servidores
                         </MudNavLink>
                     </AuthorizeView>
+                    @* Configs dos jogadores — gestão/limpeza do que o launcher sincronizou (Owner/Admin) *@
+                    <AuthorizeView Roles="Owner,Admin" Context="players">
+                        <MudNavLink Href="/admin/players" Match="NavLinkMatch.Prefix"
+                                    Icon="@Icons.Material.Filled.FolderShared">
+                            Configs dos jogadores
+                        </MudNavLink>
+                    </AuthorizeView>
                     @* Novidades — globais + de modpacks (Owner/Admin gerenciam conteúdo) *@
                     <AuthorizeView Roles="Owner,Admin" Context="news">
                         <MudNavLink Href="/admin/news" Match="NavLinkMatch.Prefix"

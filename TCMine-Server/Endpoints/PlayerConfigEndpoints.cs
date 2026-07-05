@@ -32,22 +32,34 @@ public static class PlayerConfigEndpoints
 
     public static void MapPlayerConfigEndpoints(this IEndpointRouteBuilder app)
     {
-        // Manifesto atual (leitura aberta — settings de jogo, sem segredos).
-        app.MapGet("/players/{uuid}/configs/{modpackId}/manifest", (
-            string uuid, string modpackId, IHostEnvironment env) =>
+        // Cota de disco por conjunto (uuid, modpackId): teto do tamanho total declarado no manifesto de um
+        // push. Barra o abuso de encher o servidor mesmo com um token válido (ou durante o fail-open da
+        // validação Mojang). Configurável em PlayerConfigs:MaxSetMb; default 1 GB (cobre cache de mapa).
+        var maxSetBytes =
+            (app.ServiceProvider.GetRequiredService<IConfiguration>().GetValue<long?>("PlayerConfigs:MaxSetMb")
+             ?? 1024) * 1024 * 1024;
+
+        // Manifesto atual. Leitura AUTENTICADA: exige o token Minecraft do próprio UUID — sem isso, qualquer
+        // um que saiba um (uuid, modpackId) baixaria as configs alheias (UUID é público). Ver AuthorizeAsync.
+        app.MapGet("/players/{uuid}/configs/{modpackId}/manifest", async (
+            string uuid, string modpackId, HttpContext ctx, IHostEnvironment env,
+            MinecraftAuthService auth, CancellationToken ct) =>
         {
             if (!IsValidKey(uuid) || !IsValidKey(modpackId)) return Results.BadRequest();
+            if (await AuthorizeReadAsync(ctx, uuid, auth, ct) is { } denied) return denied;
 
             var path = Path.Combine(ConfigDir(env, uuid, modpackId), ManifestFile);
             return File.Exists(path) ? Results.File(path, "application/json") : Results.NotFound();
         }).RequireRateLimiting("configs");
 
         // Bundle: zip só com os caminhos pedidos que existem (o cliente baixa o que lhe falta no pull).
+        // Leitura AUTENTICADA (mesmo motivo do manifesto) — e evita o bundle virar amplificador de banda.
         app.MapPost("/players/{uuid}/configs/{modpackId}/bundle", async (
-            string uuid, string modpackId, PlayerConfigBundleRequest req, IHostEnvironment env,
-            CancellationToken ct) =>
+            string uuid, string modpackId, PlayerConfigBundleRequest req, HttpContext ctx,
+            IHostEnvironment env, MinecraftAuthService auth, CancellationToken ct) =>
         {
             if (!IsValidKey(uuid) || !IsValidKey(modpackId)) return Results.BadRequest();
+            if (await AuthorizeReadAsync(ctx, uuid, auth, ct) is { } denied) return denied;
 
             var dir = ConfigDir(env, uuid, modpackId);
             var root = Path.GetFullPath(dir);
@@ -109,6 +121,14 @@ public static class PlayerConfigEndpoints
                 await using (var ms = manifestEntry.Open())
                     incoming = await JsonSerializer.DeserializeAsync<PlayerConfigManifest>(ms, Json, ct);
                 if (incoming is null) return Results.BadRequest();
+
+                // Cota: rejeita se o conjunto declarado excede o teto por (uuid, modpackId). Barra o
+                // enchimento do disco mesmo com token válido / durante o fail-open da validação Mojang.
+                var declaredBytes = incoming.Files.Values.Sum(f => f.Size);
+                if (declaredBytes > maxSetBytes)
+                    return Results.Json(
+                        new { error = $"Configs excedem a cota de {maxSetBytes / 1024 / 1024} MB por modpack." },
+                        statusCode: StatusCodes.Status413PayloadTooLarge);
 
                 var oldManifest = ReadManifest(dir);
 
@@ -187,6 +207,20 @@ public static class PlayerConfigEndpoints
     {
         return !string.IsNullOrWhiteSpace(s) && s.Length <= 80 &&
                s.All(c => char.IsLetterOrDigit(c) || c is '-' or '_');
+    }
+
+    /// <summary>
+    /// Autoriza uma leitura (manifest/bundle): exige o token Minecraft do próprio UUID. Devolve o
+    /// <see cref="IResult"/> de recusa (401 sem token, 403 se não pertence ao UUID) ou <c>null</c> se
+    /// autorizado. Fail-open herdado do <see cref="MinecraftAuthService"/> (Mojang fora → autoriza).
+    /// </summary>
+    private static async Task<IResult?> AuthorizeReadAsync(
+        HttpContext ctx, string uuid, MinecraftAuthService auth, CancellationToken ct)
+    {
+        var token = BearerToken(ctx);
+        if (token is null) return Results.Unauthorized();
+        if (!await auth.AuthorizeAsync(token, uuid, ct)) return Results.StatusCode(403);
+        return null;
     }
 
     /// <summary>Extrai o token de "Authorization: Bearer &lt;token&gt;".</summary>

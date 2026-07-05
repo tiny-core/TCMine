@@ -31,11 +31,14 @@ internal sealed class PlayerConfigSync(ServerConfig config)
     /// no servidor (404) = nada a puxar.
     /// </summary>
     public async Task PullAsync(
-        InstalledModpack instance, string uuid, Action<string>? report = null, CancellationToken ct = default)
+        InstalledModpack instance, string uuid, string accessToken, Action<string>? report = null,
+        CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(uuid)) return;
+        // Sem token não dá para autenticar as leituras (o servidor exige o token Minecraft do UUID).
+        if (string.IsNullOrWhiteSpace(uuid) || string.IsNullOrWhiteSpace(accessToken)) return;
 
-        using var resp = await _http.GetAsync(ManifestUrl(uuid, instance.ModpackId), ct);
+        using var manifestReq = Authorized(HttpMethod.Get, ManifestUrl(uuid, instance.ModpackId), accessToken);
+        using var resp = await _http.SendAsync(manifestReq, ct);
         if (resp.StatusCode == HttpStatusCode.NotFound) return;
         resp.EnsureSuccessStatusCode();
 
@@ -56,8 +59,9 @@ internal sealed class PlayerConfigSync(ServerConfig config)
         if (need.Count > 0)
         {
             report?.Invoke($"A baixar configurações do jogador ({need.Count} ficheiros)…");
-            using var bundleResp = await _http.PostAsJsonAsync(
-                BundleUrl(uuid, instance.ModpackId), new PlayerConfigBundleRequest(need), Json, ct);
+            using var bundleReq = Authorized(HttpMethod.Post, BundleUrl(uuid, instance.ModpackId), accessToken);
+            bundleReq.Content = JsonContent.Create(new PlayerConfigBundleRequest(need), options: Json);
+            using var bundleResp = await _http.SendAsync(bundleReq, ct);
             bundleResp.EnsureSuccessStatusCode();
 
             var tmp = TempZip();
@@ -93,9 +97,10 @@ internal sealed class PlayerConfigSync(ServerConfig config)
         var gameDir = LauncherPaths.InstanceGameDir(instance.ModpackId);
         var local = await BuildManifestAsync(gameDir, ct);
 
-        // Manifesto atual do servidor (404 = servidor vazio).
+        // Manifesto atual do servidor (404 = servidor vazio). Leitura autenticada como o resto do sync.
         var serverFiles = new Dictionary<string, PlayerConfigFileInfo>();
-        using (var mResp = await _http.GetAsync(ManifestUrl(uuid, instance.ModpackId), ct))
+        using (var mReq = Authorized(HttpMethod.Get, ManifestUrl(uuid, instance.ModpackId), accessToken))
+        using (var mResp = await _http.SendAsync(mReq, ct))
             if (mResp.IsSuccessStatusCode &&
                 await mResp.Content.ReadFromJsonAsync<PlayerConfigManifest>(Json, ct) is { } server)
                 serverFiles = server.Files;
@@ -189,6 +194,14 @@ internal sealed class PlayerConfigSync(ServerConfig config)
             Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
             entry.ExtractToFile(dest, true);
         }
+    }
+
+    /// <summary>Requisição com o header <c>Authorization: Bearer</c> do access token Minecraft.</summary>
+    private static HttpRequestMessage Authorized(HttpMethod method, Uri uri, string accessToken)
+    {
+        var req = new HttpRequestMessage(method, uri);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        return req;
     }
 
     private Uri ManifestUrl(string uuid, string modpackId) =>

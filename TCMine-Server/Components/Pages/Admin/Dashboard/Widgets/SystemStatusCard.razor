@@ -11,13 +11,13 @@
         </MudStack>
     </MudStack>
 
-    @* Medidores de uso do host/contêiner — o pedido principal: anéis de progresso como referência visual *@
+    @* Medidores de uso GLOBAL do host/contêiner — anéis de progresso como referência visual *@
     <MudGrid Justify="Justify.Center" Class="mb-2">
         <MudItem xs="4">
-            @* CPU do processo do servidor (não do host global) — ver decisão no log 2026-07-01 *@
+            @* CPU de todos os núcleos do host (não só do processo do servidor) *@
             <MetricGauge Value="@_snapshot.CpuPercent"
                          Label="CPU" Icon="@Icons.Material.Filled.Memory"
-                         Caption="@($"servidor · {_snapshot.ProcessorCount} núcleos")"/>
+                         Caption="@($"host · {_snapshot.ProcessorCount} núcleos")"/>
         </MudItem>
         <MudItem xs="4">
             <MetricGauge Value="@_snapshot.RamPercent"
@@ -25,10 +25,10 @@
                          Caption="@($"{_snapshot.RamUsedGb:0.0} / {_snapshot.RamTotalGb:0.0} GB")"/>
         </MudItem>
         <MudItem xs="4">
-            @* Disco: uso APENAS da pasta de dados do projeto (tcmine-data), sobre a capacidade do drive *@
+            @* Disco: uso total do drive que hospeda os dados do projeto *@
             <MetricGauge Value="@_snapshot.DiskPercent"
-                         Label="Dados" Icon="@Icons.Material.Filled.Storage"
-                         Caption="@($"{_snapshot.DiskUsedLabel} de {_snapshot.DiskTotalGb:0} GB")"/>
+                         Label="Disco" Icon="@Icons.Material.Filled.Storage"
+                         Caption="@($"{_snapshot.DiskUsedGb:0.0} / {_snapshot.DiskTotalGb:0} GB")"/>
         </MudItem>
     </MudGrid>
 

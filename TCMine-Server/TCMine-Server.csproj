@@ -10,6 +10,7 @@
         <PackageProjectUrl>https://github.com/tiny-core/TCMine/tree/master/TCMine-Server</PackageProjectUrl>
         <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
         <PackageIcon>wwwroot\Images\favicon.png</PackageIcon>
+        <Version>1.1.2</Version>
     </PropertyGroup>
 
     <ItemGroup>

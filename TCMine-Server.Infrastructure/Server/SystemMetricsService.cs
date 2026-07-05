@@ -1,90 +1,144 @@
-using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.ComTypes;
 using TCMine_Server.Infrastructure.FileSystem;
 
 namespace TCMine_Server.Infrastructure.Server;
 
 /// <summary>
-/// Captura métricas instantâneas do processo do servidor E do host/contêiner (CPU, RAM, disco)
-/// para os medidores e o gráfico do dashboard. Singleton: o tempo de atividade é medido desde o
-/// arranque e a % de CPU precisa de estado entre amostras (compara dois instantes de tempo de CPU).
+/// Captura métricas instantâneas do HOST/contêiner (CPU, RAM, disco) para os medidores e o gráfico do
+/// dashboard. As leituras são <b>globais</b>: CPU de todos os núcleos do host, memória física do
+/// sistema/limite de cgroup e uso total do drive — não só do processo do servidor. Singleton: o uptime
+/// é medido desde o arranque e a % de CPU precisa de estado entre amostras (compara dois instantes de
+/// tempo de CPU acumulado).
 /// </summary>
 public sealed class SystemMetricsService
 {
     // Marca o momento em que o serviço iniciou (base do uptime)
     private readonly DateTime _startedUtc = DateTime.UtcNow;
 
-    // Raiz do projeto (content root) — dela derivamos a pasta de dados (tcmine-data) e o drive.
+    // Raiz do projeto (content root) — dela derivamos o drive que hospeda a pasta de dados (tcmine-data).
     private readonly string _dataRoot;
 
-    // Estado para o cálculo incremental de CPU. Protegido por lock: Capture() pode ser
-    // chamado por circuitos Blazor diferentes (o serviço é singleton, partilhado).
+    // Estado para o cálculo incremental de CPU global. Protegido por lock: Capture() pode ser chamado por
+    // circuitos Blazor diferentes (o serviço é singleton, partilhado). Guardamos os totais acumulados da
+    // última amostra: idle (ocioso) e total (todos os estados). O uso é o complemento do idle no delta.
     private readonly object _cpuLock = new();
-    private DateTime _lastCpuSampleUtc;
-    private TimeSpan _lastCpuTotal;
-
-    // Cache do uso de disco: varrer a pasta de dados recursivamente é caro e o Capture() roda a cada
-    // 2s. Recalculamos no máximo a cada DiskSampleInterval; entre amostras, devolvemos o último valor.
-    private static readonly TimeSpan DiskSampleInterval = TimeSpan.FromSeconds(30);
-    private readonly object _diskLock = new();
-    private DateTime _lastDiskSampleUtc = DateTime.MinValue;
-    private long _cachedDataUsed;
-    private long _cachedDiskTotal;
+    private ulong _lastCpuIdle;
+    private ulong _lastCpuTotal;
 
     public SystemMetricsService(string dataRoot)
     {
         _dataRoot = dataRoot;
 
         // Baseline da CPU: sem uma amostra anterior, a primeira leitura de % sairia distorcida.
-        using var p = Process.GetCurrentProcess();
-        _lastCpuSampleUtc = DateTime.UtcNow;
-        _lastCpuTotal = p.TotalProcessorTime;
+        var (idle, total) = ReadCpuTimes();
+        _lastCpuIdle = idle;
+        _lastCpuTotal = total;
     }
 
     public SystemSnapshot Capture()
     {
-        // Process.GetCurrentProcess() lê os contadores atuais do próprio processo
-        using var p = Process.GetCurrentProcess();
+        // Process.GetCurrentProcess() lê os contadores do próprio processo do servidor (memória/threads).
+        using var p = System.Diagnostics.Process.GetCurrentProcess();
 
         return new SystemSnapshot(
-            // WorkingSet64 = memória física em uso pelo processo
+            // WorkingSet64 = memória física em uso pelo processo do servidor
             p.WorkingSet64,
             // Heap gerenciado pelo GC (subconjunto da memória do processo)
             GC.GetTotalMemory(false),
             p.Threads.Count,
             DateTime.UtcNow - _startedUtc,
             Environment.ProcessorCount,
-            CaptureCpuPercent(p),
+            CaptureGlobalCpuPercent(),
             CaptureRam(),
             CaptureDisk());
     }
 
-    // ── CPU ──────────────────────────────────────────────────────────────────────────────────────
-    // % de CPU consumida pelo processo desde a última amostra, normalizada pelo nº de núcleos
-    // (0–100%). Abordagem cross-platform (não depende de PerformanceCounter/WMI, que são Windows-only):
-    // compara o tempo total de CPU gasto contra o tempo de relógio decorrido × núcleos.
-    private double CaptureCpuPercent(Process p)
+    // ── CPU (global do host) ──────────────────────────────────────────────────────────────────────────
+    // % de uso de CPU de TODOS os núcleos do host desde a última amostra (0–100). Cross-platform sem
+    // depender de PerformanceCounter/WMI: no Linux lê os contadores acumulados de /proc/stat (que no
+    // contêiner refletem o host — o accounting de CPU não é isolado por namespace); no Windows usa
+    // GetSystemTimes. Em ambos, o uso é (totalDelta − idleDelta) / totalDelta.
+    private double CaptureGlobalCpuPercent()
     {
+        var (idle, total) = ReadCpuTimes();
+
         lock (_cpuLock)
         {
-            var nowUtc = DateTime.UtcNow;
-            var nowCpu = p.TotalProcessorTime;
+            // Contadores são monotônicos, então os deltas nunca "voltam" (subtração de ulong segura)
+            var idleDelta = idle - _lastCpuIdle;
+            var totalDelta = total - _lastCpuTotal;
 
-            var wallMs = (nowUtc - _lastCpuSampleUtc).TotalMilliseconds;
-            var cpuMs = (nowCpu - _lastCpuTotal).TotalMilliseconds;
+            _lastCpuIdle = idle;
+            _lastCpuTotal = total;
 
-            _lastCpuSampleUtc = nowUtc;
-            _lastCpuTotal = nowCpu;
+            if (totalDelta == 0) return 0;
 
-            if (wallMs <= 0)
-                return 0;
-
-            // Divide pelo nº de núcleos: 100% = todos os núcleos saturados por este processo
-            var pct = cpuMs / (wallMs * Environment.ProcessorCount) * 100d;
-            return Math.Clamp(pct, 0, 100);
+            var busy = (double)(totalDelta - idleDelta) / totalDelta * 100d;
+            return Math.Clamp(busy, 0, 100);
         }
     }
 
-    // ── RAM ──────────────────────────────────────────────────────────────────────────────────────
+    // Lê os tempos acumulados de CPU do host: (idle, total). Plataformas sem suporte devolvem (0,0),
+    // o que faz a % ficar em 0 (medidor apagado) em vez de derrubar o dashboard.
+    private static (ulong Idle, ulong Total) ReadCpuTimes()
+    {
+        if (OperatingSystem.IsWindows()) return ReadWindowsCpuTimes();
+        if (OperatingSystem.IsLinux()) return ReadLinuxCpuTimes();
+        return (0, 0);
+    }
+
+    // /proc/stat primeira linha: "cpu  user nice system idle iowait irq softirq steal guest guest_nice".
+    // idle = idle + iowait; total = soma de todos os campos numéricos.
+    private static (ulong Idle, ulong Total) ReadLinuxCpuTimes()
+    {
+        try
+        {
+            var line = File.ReadLines("/proc/stat")
+                .FirstOrDefault(l => l.StartsWith("cpu ", StringComparison.Ordinal));
+            if (line is null) return (0, 0);
+
+            var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            ulong idle = 0, total = 0;
+            // parts[0] == "cpu"; os campos numéricos começam em parts[1]
+            for (var i = 1; i < parts.Length; i++)
+            {
+                if (!ulong.TryParse(parts[i], out var v)) continue;
+                total += v;
+                if (i is 4 or 5) idle += v; // idle (4) + iowait (5)
+            }
+
+            return (idle, total);
+        }
+        catch
+        {
+            return (0, 0); // /proc indisponível → sem métrica de CPU
+        }
+    }
+
+    // GetSystemTimes devolve tempos acumulados do sistema (100 ns). kernel INCLUI o idle, então
+    // total = kernel + user e idle é o próprio idle.
+    private static (ulong Idle, ulong Total) ReadWindowsCpuTimes()
+    {
+        if (!GetSystemTimes(out var idle, out var kernel, out var user))
+            return (0, 0);
+
+        var i = ToUInt64(idle);
+        var k = ToUInt64(kernel);
+        var u = ToUInt64(user);
+        return (i, k + u);
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetSystemTimes(out FILETIME idleTime, out FILETIME kernelTime, out FILETIME userTime);
+
+    private static ulong ToUInt64(FILETIME f)
+    {
+        return ((ulong)(uint)f.dwHighDateTime << 32) | (uint)f.dwLowDateTime;
+    }
+
+    // ── RAM (global do host/contêiner) ────────────────────────────────────────────────────────────────
     // Memória física do sistema/contêiner via GC. GetGCMemoryInfo() reflete os limites do Docker
     // (TotalAvailableMemoryBytes = limite físico/cgroup; MemoryLoadBytes = física em uso no host).
     private static (long Used, long Total) CaptureRam()
@@ -93,69 +147,24 @@ public sealed class SystemMetricsService
         return (info.MemoryLoadBytes, info.TotalAvailableMemoryBytes);
     }
 
-    // ── Disco ────────────────────────────────────────────────────────────────────────────────────
-    // Uso = tamanho ocupado APENAS pelos dados do projeto (tcmine-data), não o drive inteiro.
-    // Total = capacidade do drive que hospeda esses dados → o medidor mostra a fatia do disco que o
-    // projeto consome. Cacheado (DiskSampleInterval), pois a varredura recursiva é cara.
+    // ── Disco (global do drive) ───────────────────────────────────────────────────────────────────────
+    // Uso e capacidade do drive inteiro que hospeda os dados do projeto (não só a pasta tcmine-data).
+    // DriveInfo é barato, então lemos a cada Capture sem cache.
     private (long Used, long Total) CaptureDisk()
     {
-        lock (_diskLock)
+        try
         {
-            var now = DateTime.UtcNow;
-            if (now - _lastDiskSampleUtc < DiskSampleInterval)
-                return (_cachedDataUsed, _cachedDiskTotal);
-
-            _lastDiskSampleUtc = now;
-
-            try
-            {
-                var dataDir = ServerPaths.Data(_dataRoot);
-                _cachedDataUsed = DirectorySizeBytes(dataDir);
-
-                var root = Path.GetPathRoot(Path.GetFullPath(dataDir));
-                _cachedDiskTotal = !string.IsNullOrEmpty(root) && new DriveInfo(root) is { IsReady: true } drive
-                    ? drive.TotalSize
-                    : 0;
-            }
-            catch
-            {
-                // Pasta/drive indisponível → mantém o último valor conhecido em vez de derrubar o dashboard
-            }
-
-            return (_cachedDataUsed, _cachedDiskTotal);
+            var dataDir = ServerPaths.Data(_dataRoot);
+            var root = Path.GetPathRoot(Path.GetFullPath(dataDir));
+            if (!string.IsNullOrEmpty(root) && new DriveInfo(root) is { IsReady: true } drive)
+                return (drive.TotalSize - drive.AvailableFreeSpace, drive.TotalSize);
         }
-    }
-
-    // Soma o tamanho dos arquivos sob 'path' (recursivo, iterativo para não estourar a pilha). Pula
-    // reparse points (symlink/junction): o cache de runtime do servidor é linkado nas instâncias, então
-    // segui-los inflaria o total (contagem dupla) e poderia criar loops.
-    private static long DirectorySizeBytes(string path)
-    {
-        var root = new DirectoryInfo(path);
-        if (!root.Exists) return 0;
-
-        long total = 0;
-        var stack = new Stack<DirectoryInfo>();
-        stack.Push(root);
-
-        while (stack.Count > 0)
+        catch
         {
-            var dir = stack.Pop();
-
-            FileSystemInfo[] entries;
-            try { entries = dir.GetFileSystemInfos(); }
-            catch { continue; } // sem permissão / pasta removida durante a varredura
-
-            foreach (var entry in entries)
-            {
-                if ((entry.Attributes & FileAttributes.ReparsePoint) != 0) continue; // ignora links
-
-                if (entry is DirectoryInfo sub) stack.Push(sub);
-                else if (entry is FileInfo file) total += file.Length;
-            }
+            // Drive indisponível → devolve zeros (medidor apagado) em vez de derrubar o dashboard
         }
 
-        return total;
+        return (0, 0);
     }
 }
 
@@ -181,9 +190,4 @@ public readonly record struct SystemSnapshot(
     public double DiskUsedGb => Disk.Used / 1024d / 1024d / 1024d;
     public double DiskTotalGb => Disk.Total / 1024d / 1024d / 1024d;
     public double DiskPercent => Disk.Total > 0 ? Disk.Used / (double)Disk.Total * 100d : 0;
-
-    // Uso dos dados do projeto em unidade adaptativa (MB abaixo de 1 GB) — costuma ser pequeno
-    public string DiskUsedLabel => Disk.Used >= 1L << 30
-        ? $"{DiskUsedGb:0.0} GB"
-        : $"{Disk.Used / 1024d / 1024d:0} MB";
 }

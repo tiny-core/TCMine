@@ -1,0 +1,17 @@
+/* Título do card não pode empurrar o chip de status — trunca em uma linha */
+.metric-server-title {
+    min-width: 0;
+    overflow: hidden;
+}
+
+.metric-server-title .mud-typography {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Estado ocioso (instância parada): ocupa a mesma altura aproximada dos medidores para os cards
+   da grade ficarem alinhados quer estejam rodando ou não */
+.metric-server-idle {
+    min-height: 148px;
+}

@@ -1,0 +1,125 @@
+@page "/admin/players"
+@layout AdminLayout
+@attribute [Authorize(Roles = "Owner,Admin")]
+@using Microsoft.AspNetCore.Authorization
+@using TCMine_Application.Contracts
+
+@* Gestão das configs player-owned que o launcher sincroniza (tcmine-data/player-configs). Agrupadas por
+   jogador (uuid); cada linha é um modpack. Permite apagar um conjunto ou tudo de um jogador para liberar
+   disco — não há tabela no BD, então esta é a única forma de limpar. *@
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+    <div>
+        <MudText Typo="Typo.h4">Configs dos jogadores</MudText>
+        <MudText Typo="Typo.body1" Color="Color.Secondary">
+            Configurações player-owned (keybinds/opções/minimapa) sincronizadas pelo launcher, por jogador e modpack.
+        </MudText>
+    </div>
+    @if (_overview is not null)
+    {
+        <MudPaper Elevation="0" Outlined="true" Class="pa-3 text-center">
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Total em disco</MudText>
+            <MudText Typo="Typo.h6">@FormatSize(_overview.TotalBytes)</MudText>
+        </MudPaper>
+    }
+</MudStack>
+
+<MudPaper Elevation="0" Outlined="true">
+    @* Durante o carregamento o BusyOverlay global cobre a tela; aqui não renderizamos nada. *@
+    @if (_overview is null)
+    {
+    }
+    else if (_overview.Sets.Count == 0)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="py-12">
+            <MudIcon Icon="@Icons.Material.Filled.FolderOff" Color="Color.Secondary" Size="Size.Large"/>
+            <MudText Typo="Typo.h6">Nenhuma config sincronizada ainda</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                As configs aparecem aqui quando um jogador joga um modpack pelo launcher.
+            </MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudDataGrid T="PlayerConfigSetDto" Items="_overview.Sets" Dense="true" Hover="true" Elevation="0"
+                     FixedHeader="true" Height="68vh" Filterable="false" QuickFilter="Filter"
+                     Groupable="true" RowsPerPage="25">
+            <ToolBarContent>
+                <MudTextField @bind-Value="_search" Placeholder="Filtrar por jogador ou modpack…"
+                              Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true" Clearable="true" Class="mt-0" Margin="Margin.Dense"/>
+            </ToolBarContent>
+            <Columns>
+                @* Agrupa por jogador; a coluna fica escondida e só aparece como cabeçalho do grupo. *@
+                <PropertyColumn Property="x => x.Uuid" Title="Jogador" Grouping="true" Hidden="true">
+                    <GroupTemplate>
+                        @{
+                            var uuid = context.Grouping.Key?.ToString() ?? "";
+                            var items = context.Grouping.ToList();
+                            var total = items.Sum(i => i.SizeBytes);
+                        }
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween"
+                                  Style="width:100%">
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" Size="Size.Small" Color="Color.Primary"/>
+                                <div>
+                                    <MudText Typo="Typo.body2" Style="font-family:monospace">@uuid</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        @items.Count modpack(s) · @FormatSize(total)
+                                    </MudText>
+                                </div>
+                            </MudStack>
+                            <MudTooltip Text="Apagar todas as configs deste jogador">
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteSweep" Size="Size.Small"
+                                               Color="Color.Error"
+                                               OnClick="@(() => DeletePlayerAsync(uuid, items.Count))"/>
+                            </MudTooltip>
+                        </MudStack>
+                    </GroupTemplate>
+                </PropertyColumn>
+                <TemplateColumn Title="Modpack" Sortable="true" SortBy="x => x.ModpackName ?? x.ModpackId">
+                    <CellTemplate>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small" Color="Color.Primary"/>
+                            <div>
+                                @if (context.Item.ModpackName is { } name)
+                                {
+                                    <MudText Typo="Typo.body2">@name</MudText>
+                                }
+                                else
+                                {
+                                    <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                        <MudText Typo="Typo.body2" Color="Color.Secondary">Modpack removido</MudText>
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                 Color="Color.Warning">órfã</MudChip>
+                                    </MudStack>
+                                }
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Style="font-family:monospace">@context.Item.ModpackId</MudText>
+                            </div>
+                        </MudStack>
+                    </CellTemplate>
+                </TemplateColumn>
+                <PropertyColumn Property="x => x.FileCount" Title="Ficheiros"/>
+                <TemplateColumn Title="Tamanho" Sortable="true" SortBy="x => x.SizeBytes">
+                    <CellTemplate>@FormatSize(context.Item.SizeBytes)</CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Title="Último sync" Sortable="true" SortBy="x => x.UpdatedAt">
+                    <CellTemplate>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">@Updated(context.Item.UpdatedAt)</MudText>
+                    </CellTemplate>
+                </TemplateColumn>
+                <TemplateColumn Sortable="false" CellStyle="text-align:right">
+                    <CellTemplate>
+                        <MudTooltip Text="Apagar as configs deste modpack">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                           OnClick="@(() => DeleteSetAsync(context.Item))"/>
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="PlayerConfigSetDto" PageSizeOptions="new[] { 25, 50, 100 }"/>
+            </PagerContent>
+        </MudDataGrid>
+    }
+</MudPaper>

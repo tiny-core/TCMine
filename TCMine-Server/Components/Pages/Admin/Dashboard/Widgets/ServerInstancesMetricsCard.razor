@@ -1,0 +1,73 @@
+@using TCMine_Application.Contracts
+@using TCMine_Domain.Entities
+
+@* Métricas por instância de servidor: um card para cada instância, com medidores ao vivo de CPU/RAM
+   quando está rodando. Componente AUTOCONTIDO — gere o próprio Timer e re-renderiza só a si mesmo,
+   amostrando as instâncias e os stats dos containers a cada poucos segundos. *@
+
+@if (_rows is { Count: > 0 })
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2 mt-1">
+        <MudText Typo="Typo.h6">Servidores</MudText>
+        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+            <MudIcon Icon="@Icons.Material.Filled.FiberManualRecord" Color="Color.Success" Size="Size.Small"/>
+            <MudText Typo="Typo.caption" Color="Color.Secondary">Ao vivo</MudText>
+        </MudStack>
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+        @foreach (var row in _rows)
+        {
+            var stats = Stats(row);
+            <MudItem xs="12" sm="6" md="4" lg="3">
+                <MudPaper Class="pa-4 mud-height-full" Elevation="0" Outlined="true">
+                    @* Cabeçalho: nome + modpack e o chip de status *@
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                        <div class="metric-server-title">
+                            <MudText Typo="Typo.body1">@row.Name</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@row.ModpackName</MudText>
+                        </div>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@StatusColor(row.Status)" Icon="@StatusIcon(row.Status)">
+                            @StatusLabel(row.Status)
+                        </MudChip>
+                    </MudStack>
+
+                    @if (stats is { } s)
+                    {
+                        @* Medidores ao vivo: CPU do container e RAM usada sobre o -Xmx configurado *@
+                        <MudGrid Justify="Justify.Center">
+                            <MudItem xs="6">
+                                <MetricGauge Value="@s.CpuPercent"
+                                             Label="CPU" Icon="@Icons.Material.Filled.Memory"/>
+                            </MudItem>
+                            <MudItem xs="6">
+                                <MetricGauge Value="@RamPercent(s, row)"
+                                             Label="RAM" Icon="@Icons.Material.Filled.DeveloperBoard"
+                                             Caption="@($"{s.MemoryUsedGb:0.0} / {row.RamMb / 1024.0:0.0} GB")"/>
+                            </MudItem>
+                        </MudGrid>
+                    }
+                    else
+                    {
+                        @* Parada / sem container: sem métricas ao vivo (CPU/RAM), só o uso em disco abaixo *@
+                        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center" Class="metric-server-idle">
+                            <MudIcon Icon="@Icons.Material.Filled.PowerSettingsNew" Color="Color.Secondary" Size="Size.Large"/>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sem métricas ao vivo</MudText>
+                        </MudStack>
+                    }
+
+                    @* Uso em disco do diretório da instância — vale rodando ou parada *@
+                    <MudDivider Class="my-3"/>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small" Color="Color.Secondary"/>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Disco</MudText>
+                        </MudStack>
+                        <MudText Typo="Typo.body2">@DiskLabel(row)</MudText>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+        }
+    </MudGrid>
+}

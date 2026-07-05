@@ -18,6 +18,7 @@ using TCMine_Server.Services;
 using TCMine_Server.Infrastructure.CurseForge;
 using TCMine_Server.Infrastructure.Launcher;
 using TCMine_Server.Infrastructure.Minecraft;
+using TCMine_Server.Infrastructure.PlayerConfigs;
 using TCMine_Server.Infrastructure.Server;
 using TCMine_Server.Infrastructure.ServerInstances;
 
@@ -87,6 +88,9 @@ builder.Services.AddSingleton<MinecraftServerPinger>();
 builder.Services.AddSingleton<DockerEnvironment>();
 // Runner Java em container efêmero (instalador do loader). Singleton: sem estado por requisição.
 builder.Services.AddSingleton<IServerJavaRunner, DockerServerJavaRunner>();
+// Métricas ao vivo (CPU/RAM) dos containers das instâncias. Singleton: fala só com o daemon (sem BD),
+// então pode ser amostrado pelo Timer do dashboard fora do circuito Blazor.
+builder.Services.AddSingleton<ServerInstanceMetricsService>();
 // Ciclo de vida do container do servidor (start/stop/console/logs). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<DockerMinecraftManager>();
 // Cache de instalações de loader (dedup de disco) e provisionamento do diretório da instância.
@@ -164,6 +168,8 @@ builder.Services.AddSingleton<ContentNotifier>();
 // A validação do token Minecraft é singleton (cacheia em IMemoryCache; usa o IHttpClientFactory).
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<MinecraftAuthService>();
+// Fachada admin para gerir/limpar as configs em disco (listar por jogador, apagar). Scoped: usa o AppDbContext.
+builder.Services.AddScoped<PlayerConfigAdminService>();
 
 // ── Rate limiting dos endpoints públicos (por IP) ────────────────────────────────────────────────────────────────────
 // Protege o PUT de configs do jogador contra abuso (o proxy CurseForge entra aqui no futuro).

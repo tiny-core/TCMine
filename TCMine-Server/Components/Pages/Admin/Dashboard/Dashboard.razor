@@ -33,6 +33,9 @@
     </MudItem>
 </MudGrid>
 
+@* Métricas ao vivo por instância de servidor (um card cada) — autocontido, gere o próprio timer *@
+<ServerInstancesMetricsCard/>
+
 <MudGrid Class="mb-4">
     <MudItem xs="12" md="7">
         <RecentModpacksCard Modpacks="@(_data?.RecentModpacks)"/>
