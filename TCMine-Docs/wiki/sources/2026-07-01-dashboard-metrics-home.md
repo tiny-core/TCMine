@@ -13,6 +13,10 @@ feeds:
 
 # Dashboard com medidores de recurso + home pública revampada
 
+> **Parcialmente substituída** por [[sources/2026-07-05-global-metrics-per-instance]] (2026-07-05): a CPU
+> (aqui só-processo) e o disco (aqui só a pasta `tcmine-data`) passaram a ser **globais do host**. A parte
+> de RAM, `MetricGauge`, `ModDistributionCard` (donut) e home pública continua válida.
+
 Implementação a pedido do usuário: medir e mostrar **uso de RAM, CPU e disco** com
 anéis de progresso (referência visual: um `MudProgressCircular` estilo gauge), enriquecer
 a dashboard com mais métricas/gráficos e melhorar a **home pública**.

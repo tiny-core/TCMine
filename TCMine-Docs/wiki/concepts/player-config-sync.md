@@ -4,11 +4,12 @@ title: Sync de configs do jogador
 tags: [concept, player-config, sync, minecraft, auth]
 status: stable
 created: 2026-06-23
-updated: 2026-07-03
+updated: 2026-07-05
 aliases: [player config sync, configs do jogador, sync entre PCs]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
   - "[[sources/2026-07-03-player-config-sync-completo]]"
+  - "[[sources/2026-07-05-player-configs-admin-hardening]]"
 related:
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-server-infrastructure]]"
@@ -74,18 +75,40 @@ modpack, sem precisar de conta no painel — a identidade é a própria conta Mi
 
 ## Detalhes / Variações
 
-- **`GET …/manifest`** — leitura **aberta**. Serve o `.tcmine-manifest.json` atual
+> **Todas as três rotas são autenticadas** com o token Minecraft do próprio UUID
+> (desde 2026-07-05; ver [[sources/2026-07-05-player-configs-admin-hardening]]). Antes,
+> os dois GETs de leitura eram abertos — qualquer um que soubesse um `(uuid, modpackId)`
+> baixava as configs alheias (UUID é público) e o `bundle` virava amplificador de banda.
+
+- **`GET …/manifest`** — leitura **autenticada**. Serve o `.tcmine-manifest.json` atual
   (para o cliente diferenciar); `404` se ainda não há config. Rate-limited (`configs`).
-- **`POST …/bundle`** — leitura **aberta**. Corpo `{ paths: [...] }`; devolve um zip
+- **`POST …/bundle`** — leitura **autenticada**. Corpo `{ paths: [...] }`; devolve um zip
   **só** com esses ficheiros (o que ao cliente falta no pull), por streaming a partir
   de um temporário auto-apagável. Guarda de zip-slip nos caminhos. Rate-limited.
 - **`PUT …/push`** — escrita autenticada: exige `Authorization: Bearer <token>`
   (access token Minecraft) que **pertença ao UUID**, validado pelo `MinecraftAuthService`.
   Corpo = zip com os ficheiros novos/alterados **+ o `.tcmine-manifest.json` completo**;
   o servidor extrai os ficheiros, **apaga** os que saíram do manifesto e regrava o
-  manifesto com o seu `UpdatedAt`. Streaming para `.tmp`, teto de **256 MB**
+  manifesto com o seu `UpdatedAt`. Streaming para `.tmp`, teto de **256 MB** por pedido
   (`MaxConfigBytes`), limite de corpo do Kestrel levantado por pedido, `413` se exceder.
-  Devolve `{ updatedAt }`. Rate-limited (`configs`, 30/min por IP).
+  **Cota por conjunto**: rejeita (`413`) se o tamanho total declarado no manifesto exceder
+  `PlayerConfigs:MaxSetMb` (default **1 GB**) — barra o enchimento de disco mesmo com token
+  válido ou durante o fail-open. Devolve `{ updatedAt }`. Rate-limited (`configs`, 30/min por IP).
+- **Auth das leituras (launcher):** o `PlayerConfigSync` manda `Authorization: Bearer` em
+  todos os pedidos (o pull recebe o access token via `PullAsync(..., accessToken, ...)`,
+  passado pelo `LaunchOrchestrator` a partir da sessão). Best-effort mantém-se: `401/403`
+  no pull cai no `try/catch` e o launch segue com as configs locais.
+
+## Gestão admin (tela)
+
+Página **`/admin/players`** ("Configs dos jogadores", Owner/Admin) para **ver e limpar** o
+que está em disco — a única forma, já que não há tabela (só filesystem). Lista os conjuntos
+`(uuid, modpackId)` **agrupados por jogador** (`MudDataGrid` com grouping), cada um com
+tamanho, nº de ficheiros e último sync (do manifesto); resolve `modpackId`→nome do modpack
+(pastas sem modpack na BD aparecem como "órfã"). Ações: **apagar um conjunto** ou **tudo de um
+jogador** (`BusyOverlay` + confirmação). Backed por `PlayerConfigAdminService` (Infrastructure,
+scoped): varre `player-configs/`, mede tamanho (iterativo, pula reparse points) e apaga com
+guarda anti path-traversal.
 - **Validação do token (`MinecraftAuthService`):** consulta o perfil na Mojang
   (`api.minecraftservices.com/minecraft/profile`), compara o `id` com o UUID
   (normalizado: minúsculas, sem hífens), e **cacheia** ~10 min. Comportamento
@@ -130,8 +153,13 @@ modpack, sem precisar de conta no painel — a identidade é a própria conta Mi
   push vence (last-write-wins). Suficiente para keybinds/opções; não há resolução
   de conflito por campo.
 - **Custo de disco:** o cache de mapa continua a ocupar disco no servidor (o diff
-  poupa **rede**, não armazenamento). O teto de 256 MB é por push; com muitos jogadores
-  × modpacks, vigiar `tcmine-data/player-configs/`.
+  poupa **rede**, não armazenamento). Mitigado desde 2026-07-05 por uma **cota por conjunto**
+  (`PlayerConfigs:MaxSetMb`, default 1 GB) no push e pela **tela `/admin/players`** para
+  vigiar/limpar `tcmine-data/player-configs/`. O teto de 256 MB continua sendo por push.
+- **Fail-open ainda vale para as leituras:** com os GETs agora autenticados, uma
+  indisponibilidade da Mojang **reabre** temporariamente a leitura (o `MinecraftAuthService`
+  autoriza no fail-open). Trade-off aceite (settings de jogo, sem segredos); a cota limita o
+  dano no lado da escrita.
 - **Hashing a cada sync:** pull e push recalculam SHA-256 dos ficheiros locais. Com
   muitos tiles de mapa é CPU não-trivial; aceitável para servidor de comunidade, mas é
   o candidato óbvio a otimizar (cache size+mtime) se pesar.

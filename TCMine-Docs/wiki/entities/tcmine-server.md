@@ -4,12 +4,14 @@ title: TCMine-Server
 tags: [entity, tcmine, blazor, minimal-api, backend, admin]
 status: wip
 created: 2026-06-23
-updated: 2026-07-01
+updated: 2026-07-05
 aliases: [TCMine-Server, servidor, backend, painel admin]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
   - "[[sources/2026-06-24-modpack-admin-ui]]"
   - "[[sources/2026-07-01-dashboard-metrics-home]]"
+  - "[[sources/2026-07-05-global-metrics-per-instance]]"
+  - "[[sources/2026-07-05-player-configs-admin-hardening]]"
 related:
   - "[[entities/tcmine-solution]]"
   - "[[entities/tcmine-server-infrastructure]]"
@@ -65,13 +67,15 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
 - **Components (Blazor):** layouts (`RootLayout`/`AdminLayout`/`PublicLayout`/
   `MainLayout`); páginas `Home`, `Login`, `Setup`, `Error`, `NotFound`,
   `Admin/Dashboard` (+ widgets: `DashboardKpis`, `SystemStatusCard`,
-  `RecentActivityCard`, `RecentModpacksCard`, `ModDistributionCard`,
-  `DashboardHeader`), `Admin/Settings` (token CF + Azure ids + `PublicBaseUrl`);
+  `ServerInstancesMetricsCard`, `RecentActivityCard`, `RecentModpacksCard`,
+  `ModDistributionCard`, `DashboardHeader`), `Admin/Settings` (token CF + Azure ids + `PublicBaseUrl`);
   `Admin/Modpacks/` (lista + editor em abas + diálogos — ver
   [[concepts/modpack-admin-editor]]); `Admin/Mods/` (catálogo de todos os arquivos
   de mod + badges dos modpacks + marcador/limpeza de órfãos — ver
   [[decisions/mods-many-to-many]]); `Admin/News/` (novidades globais + de modpacks
-  num só lugar, seletor de modpack opcional no diálogo); `Admin/Users/` (gestão de
+  num só lugar, seletor de modpack opcional no diálogo); `Admin/Players/` (gestão/
+  limpeza das configs sincronizadas dos jogadores, agrupadas por jogador — ver
+  [[concepts/player-config-sync]]); `Admin/Users/` (gestão de
   usuários + `UserEditDialog`, só Owner — ver [[concepts/setup-auth-cookie]]); shared
   (`StatCard`, `CenterScreen`, `ErrorScreen`, `RelativeTime`, `BusyOverlay` — ver
   [[concepts/async-feedback-overlay]]).
@@ -146,6 +150,38 @@ SSE e sync de configs do jogador, e oferece a UI admin para gerir tudo.
     (versão/MC/loader/mods + nº de servidores). CSS escopado com `::deep` (num wrapper
     `.home-page`) porque o CSS escopado do Blazor não atinge elementos de componentes-filhos
     (MudPaper) sem `::deep`.
+
+- **[2026-07-05]** **Métricas do sistema tornadas globais + card por instância** (a pedido do
+  usuário — **substitui** a semântica de CPU/disco do item de 2026-07-01; ver
+  [[sources/2026-07-05-global-metrics-per-instance]]):
+  - `SystemMetricsService` reescrito: o medidor de **CPU** passou de só-processo para **global do
+    host** (todos os núcleos) — no Linux lê os contadores acumulados de `/proc/stat` (que no
+    contêiner refletem o host, pois o accounting de CPU não é isolado por namespace); no Windows,
+    P/Invoke `GetSystemTimes`; ambos calculam `(totalDelta − idleDelta) / totalDelta`. O **disco**
+    deixou de medir só a pasta `tcmine-data` e passou a mostrar o **uso total do drive** (removida a
+    varredura recursiva e o cache de 30s). **RAM** já era global (inalterada). `SystemStatusCard`
+    relabela "Dados"→"Disco" e a legenda da CPU "servidor"→"host".
+  - Novo `ServerInstanceMetricsService` (Infrastructure/`ServerInstances`, **singleton**, sem BD):
+    `SampleAsync` lê CPU/RAM ao vivo dos containers direto do daemon (`GetContainerStatsAsync`,
+    `Stream=false`), indexando por Id parseado do nome `tcmine-mc-{guid}` (CPU pela fórmula do
+    `docker stats`; memória = uso − page cache). `SampleDiskAsync` mede o **uso em disco** do
+    diretório de cada instância (`servers/{id}`, rodando ou parada), varredura cacheada 30s em
+    `Task.Run`. Record `ServerInstanceStats`.
+  - Novo widget `ServerInstancesMetricsCard` (autocontido, Timer de 5s): **um card por instância**
+    no dashboard — rodando → dois `MetricGauge` (CPU do container; RAM sobre o `-Xmx` configurado,
+    já que o container não tem limite de cgroup); parada → card ocioso com o status. **Ambos**
+    mostram o uso em disco no rodapé. Cruza a lista de `ServerInstanceService.ListAsync` com os
+    stats via `InvokeAsync` (contexto do circuito, sem disputar o DbContext scoped).
+
+- **[2026-07-05]** **Tela de configs dos jogadores + endurecimento da API de sync** (ver
+  [[sources/2026-07-05-player-configs-admin-hardening]] e [[concepts/player-config-sync]]):
+  - **Endurecimento** (`Endpoints/PlayerConfigEndpoints.cs`): `GET /manifest` e `POST /bundle`, antes
+    **abertos**, agora exigem o token Minecraft do UUID (helper `AuthorizeReadAsync`); `PUT /push` ganhou
+    **cota por conjunto** (`PlayerConfigs:MaxSetMb`, default 1 GB, `413` se exceder). O launcher passou a
+    mandar `Authorization: Bearer` também nas leituras.
+  - **Tela** `Admin/Players/` (`/admin/players`, Owner/Admin): `MudDataGrid` agrupado por jogador com
+    tamanho/ficheiros/último sync e ações de apagar (conjunto ou tudo do jogador), sobre o novo
+    `PlayerConfigAdminService` (Infrastructure, scoped). Nav link no `AdminLayout`.
 
 ## Relações
 

@@ -28,6 +28,38 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-05] ingest | Tela admin de configs dos jogadores + endurecimento da API de sync
+
+- **Fonte:** código vivo, a pedido do usuário (tela para gerir configs de player + dúvida sobre a segurança
+  da API de sync). TCMine-Server + Infrastructure + Launcher.Infrastructure.
+- **Páginas afetadas:** [[sources/2026-07-05-player-configs-admin-hardening]] (nova),
+  [[concepts/player-config-sync]] (reads agora autenticados + cota + gestão admin; contradições revisadas),
+  [[entities/tcmine-server]] (componentes + endpoints + histórico + frontmatter), `index.md`.
+- **Resumo:** confirmado que a **escrita** (`PUT /push`) já era autenticada pelo token Minecraft; as brechas
+  eram os **reads abertos** (`GET /manifest`, `POST /bundle`) e a **ausência de cota**. Fechados os reads
+  (mesma auth do push; launcher passou a mandar Bearer no pull) e adicionada **cota por conjunto**
+  (`PlayerConfigs:MaxSetMb`, default 1 GB). Nova tela `/admin/players` (Owner/Admin) com `MudDataGrid`
+  agrupado por jogador para ver/apagar configs, sobre o novo `PlayerConfigAdminService`. Build 0 erro;
+  servidor sobe (smoke test).
+- **Pendências:** verificação visual da tela pendente (atrás de login). Fail-open ainda reabre os reads
+  durante indisponibilidade da Mojang (trade-off aceite, registrado no concept).
+
+## [2026-07-05] ingest | Métricas do sistema globais + card de métricas por instância no dashboard
+
+- **Fonte:** código vivo — implementação a pedido do usuário (TCMine-Server + TCMine-Server.Infrastructure).
+- **Páginas afetadas:** [[sources/2026-07-05-global-metrics-per-instance]] (nova),
+  [[entities/tcmine-server]] (widgets + histórico + frontmatter),
+  [[sources/2026-07-01-dashboard-metrics-home]] (nota de supersessão), `index.md`.
+- **Resumo:** o card de sistema do dashboard passou a mostrar métricas **globais do host** — CPU de todos
+  os núcleos (`/proc/stat` no Linux, `GetSystemTimes` no Windows) e uso **total do drive** (antes: só o
+  processo e só a pasta `tcmine-data`; **substitui** essa parte de 2026-07-01). RAM já era global. Novo
+  `ServerInstanceMetricsService` (singleton, lê `GetContainerStatsAsync` do daemon) + novo widget
+  `ServerInstancesMetricsCard` que renderiza **um card por instância** (CPU/RAM ao vivo quando rodando;
+  ocioso quando parada) — cada card também mostra o **uso em disco** do diretório da instância
+  (`SampleDiskAsync`, varredura cacheada 30s, vale rodando ou parada). Build 0/0.
+- **Pendências:** verificação visual do dashboard admin pendente (atrás de login; medidores por instância
+  exigem containers em execução). Sem página `concepts/` própria — as métricas seguem descritas na entity.
+
 ## [2026-07-04] lint | Caça a bugs no fluxo DooD — clamp de RAM da instância (Xms > Xmx não subia)
 
 - **Fonte:** revisão pedida pelo usuário ("veja se existe mais algum bug"). Varredura focada no fluxo de

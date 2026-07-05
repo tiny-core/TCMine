@@ -2,7 +2,7 @@
 type: index
 title: Índice do Wiki TCMine-Docs
 tags: [index]
-updated: 2026-06-24
+updated: 2026-07-05
 ---
 
 # Índice do Wiki
@@ -79,6 +79,8 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-07-01-dashboard-metrics-home]] — medidores CPU/RAM/disco na dashboard + home pública revampada (code, dashboard, metrics, mudblazor)
 - [[sources/2026-07-01-launcher-build-velopack]] — o servidor compila o launcher (dotnet publish + vpk); validado ponta-a-ponta (code, launcher, velopack, build)
 - [[sources/2026-07-03-player-config-sync-completo]] — sync de configs do jogador completado fim-a-fim (blob no servidor + pull/push no launcher) (code, player-config, sync)
+- [[sources/2026-07-05-global-metrics-per-instance]] — métricas do sistema globais (CPU/disco do host) + card de métricas por instância no dashboard (code, dashboard, metrics, server-instance, docker)
+- [[sources/2026-07-05-player-configs-admin-hardening]] — tela admin de configs dos jogadores + fecho dos reads (auth) e cota de disco no sync (code, player-config, admin, segurança)
 
 ## Sínteses e páginas derivadas
 
