@@ -18,7 +18,7 @@ internal sealed class ModInstaller
 
     public async Task EnsureModsAsync(
         string modpackId, IReadOnlyList<ModDto> mods, IProgress<LaunchProgress> progress,
-        CancellationToken ct, bool prune)
+        bool prune, CancellationToken ct)
     {
         var gameDir = LauncherPaths.InstanceGameDir(modpackId);
         var modsDir = Path.Combine(gameDir, "mods");

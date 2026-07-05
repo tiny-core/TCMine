@@ -549,4 +549,11 @@ public sealed partial class MainWindowViewModel
         try { Process.Start(new ProcessStartInfo(url) { UseShellExecute = true }); }
         catch { /* ignora falhas a abrir o navegador */ }
     }
+
+    // Descarta o CTS do launch em curso (é recriado por launch e normalmente já descartado no finally;
+    // isto cobre o encerramento do app com um launch em andamento).
+    public void Dispose()
+    {
+        _launchCts?.Dispose();
+    }
 }

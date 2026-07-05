@@ -43,9 +43,9 @@ public sealed class SystemInfo : ISystemInfo
     private static extern bool GlobalMemoryStatusEx([In] [Out] MemoryStatusEx lpBuffer);
 
     [StructLayout(LayoutKind.Sequential)]
-    private class MemoryStatusEx
+    private sealed class MemoryStatusEx
     {
-        public uint dwLength = (uint)Marshal.SizeOf(typeof(MemoryStatusEx));
+        public uint dwLength = (uint)Marshal.SizeOf<MemoryStatusEx>();
         public uint dwMemoryLoad;
         public ulong ullTotalPhys;
         public ulong ullAvailPhys;

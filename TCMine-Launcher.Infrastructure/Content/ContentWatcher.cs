@@ -10,8 +10,9 @@ namespace TCMine_Launcher.Infrastructure.Content;
 /// <see cref="ContentChanged"/> sempre que recebe uma versão diferente (em stream ou após reconectar).
 /// Reconecta com backoff. Implementa <see cref="IContentWatcher"/>.
 /// </summary>
-public sealed class ContentWatcher(ServerConfig config) : IContentWatcher
+public sealed class ContentWatcher(ServerConfig config) : IContentWatcher, IDisposable
 {
+    // Compartilhado no app — NÃO é descartado aqui (o dono é o HttpClientProvider).
     private readonly HttpClient _http = HttpClientProvider.Shared;
     private CancellationTokenSource? _cts;
 
@@ -27,8 +28,15 @@ public sealed class ContentWatcher(ServerConfig config) : IContentWatcher
 
     public void Stop()
     {
+        // Cancela E descarta o CTS descartado (senão cada ciclo Start/Stop vazaria um handle)
         _cts?.Cancel();
+        _cts?.Dispose();
         _cts = null;
+    }
+
+    public void Dispose()
+    {
+        Stop();
     }
 
     private async Task LoopAsync(CancellationToken ct)

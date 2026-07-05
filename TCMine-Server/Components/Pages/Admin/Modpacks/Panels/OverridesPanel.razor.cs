@@ -16,7 +16,7 @@ public partial class OverridesPanel : ComponentBase
 {
     [Parameter] public Guid ModpackId { get; set; }
 
-    [Inject] private ModpackImportService Service { get; set; } = null!;
+    [Inject] private ModpackOverridesService Service { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
     [Inject] private BusyService Busy { get; set; } = null!;

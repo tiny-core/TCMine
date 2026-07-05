@@ -18,4 +18,5 @@
     <Project Path="TCMine-Launcher/TCMine-Launcher.csproj" />
     <Project Path="TCMine-Server/TCMine-Server.csproj" />
     <Project Path="TCMine-IconGenerator/TCMine-IconGenerator.csproj" />
+    <Project Path="TCMine-Tests/TCMine-Tests.csproj" />
 </Solution>

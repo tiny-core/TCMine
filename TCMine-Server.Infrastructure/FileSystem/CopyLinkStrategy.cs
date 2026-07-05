@@ -69,6 +69,13 @@ public sealed class CopyLinkStrategy : ILinkStrategy
     private static extern bool CreateHardLink(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
 
     // link(2) do libc: cria um novo nome (hardlink) para um arquivo existente na mesma partição.
+    // LPUTF8Str: paths no Linux são bytes UTF-8 — o marshaling explícito garante a codificação certa.
+    // CA2101 suprimido de propósito: a regra foi desenhada para o par ANSI/Unicode do Win32 e quer
+    // CharSet.Unicode (UTF-16), que estaria ERRADO para o libc no Linux. LPUTF8Str é o correto aqui.
+#pragma warning disable CA2101
     [DllImport("libc", EntryPoint = "link", SetLastError = true)]
-    private static extern int LinkUnix(string oldpath, string newpath);
+    private static extern int LinkUnix(
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string oldpath,
+        [MarshalAs(UnmanagedType.LPUTF8Str)] string newpath);
+#pragma warning restore CA2101
 }

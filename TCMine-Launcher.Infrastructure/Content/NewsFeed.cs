@@ -8,10 +8,11 @@ using TCMine_Launcher.Infrastructure.Configuration;
 namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>Lê o feed público de novidades (<c>/api/news</c>). Implementa <see cref="INewsFeed"/>.</summary>
-public sealed class NewsFeed(ServerConfig config) : INewsFeed
+public sealed class NewsFeed(ServerConfig config) : INewsFeed, IDisposable
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    // HttpClient próprio (handler custom) — descartado no Dispose.
     private readonly HttpClient _http = new(CreateHandler()) { Timeout = TimeSpan.FromSeconds(30) };
 
     public async Task<IReadOnlyList<NewsItemDto>> GetNewsAsync(CancellationToken ct = default) =>
@@ -25,5 +26,10 @@ public sealed class NewsFeed(ServerConfig config) : INewsFeed
             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 #endif
         return handler;
+    }
+
+    public void Dispose()
+    {
+        _http.Dispose();
     }
 }

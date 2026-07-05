@@ -27,7 +27,7 @@ public sealed record GitHubTracks(ServerTrack Server, LauncherTrack Launcher);
 ///     (devolve o último conhecido).
 /// </summary>
 public sealed class GitHubReleaseService(
-    IHttpClientFactory http, IConfiguration config, ILogger<GitHubReleaseService> logger)
+    IHttpClientFactory http, IConfiguration config, ILogger<GitHubReleaseService> logger) : IDisposable
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromHours(6);
 
@@ -105,6 +105,12 @@ public sealed class GitHubReleaseService(
     private bool Fresh()
     {
         return _cached is not null && DateTime.UtcNow - _cachedAtUtc < Ttl;
+    }
+
+    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa a atualização da cache.
+    public void Dispose()
+    {
+        _gate.Dispose();
     }
 
     private sealed record GhRelease(

@@ -26,6 +26,7 @@ public sealed record ServerSettings(
 /// preencher as settings, os getters devolvem null e os consumidores tratam como "não configurado".
 /// </summary>
 public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDataProtectionProvider protection)
+    : IDisposable
 {
     private readonly IDataProtector _protector = protection.CreateProtector("TCMine.ServerSettings.v1");
 
@@ -147,5 +148,11 @@ public sealed class ServerSettingsService(IServiceScopeFactory scopeFactory, IDa
     private static string? Normalize(string? s)
     {
         return string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+    }
+
+    // Singleton: o DI descarta no shutdown. Libera o semáforo que serializa leitura/gravação do cache.
+    public void Dispose()
+    {
+        _gate.Dispose();
     }
 }

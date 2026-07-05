@@ -17,8 +17,8 @@ internal sealed class GameLauncher
 {
     public async Task<Process> PrepareAsync(
         string gameDir, string mcVersion, string neoForgeVersion, MSession session, int ramMb,
-        string? javaPath, IProgress<LaunchProgress> progress, CancellationToken ct,
-        IReadOnlyList<ModpackServer> servers, ModpackServer? autoJoinServer)
+        string? javaPath, IProgress<LaunchProgress> progress,
+        IReadOnlyList<ModpackServer> servers, ModpackServer? autoJoinServer, CancellationToken ct)
     {
         Directory.CreateDirectory(gameDir);
 
@@ -63,7 +63,8 @@ internal sealed class GameLauncher
                 launchOption.ServerPort = autoJoinServer.Port;
             }
 
-            var process = await launcher.InstallAndBuildProcessAsync(versionName, launchOption);
+            // Encaminha o token: cancelar o launch (CancelLaunch) interrompe o install/build do CmlLib.
+            var process = await launcher.InstallAndBuildProcessAsync(versionName, launchOption, cancellationToken: ct);
 
             process.StartInfo.RedirectStandardOutput = true;
             process.StartInfo.RedirectStandardError = true;

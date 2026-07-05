@@ -152,7 +152,7 @@ public sealed record DraftImportDto<TModEntryEntity>(
     string? Description = null,
     string? CurseForgeUrl = null);
 
-/// <summary>Arquivo mais recente de um mod (do `latestFilesIndexes` do CF), filtrado por versão+loader.</summary>
+/// <summary>Arquivo mais recente de um mod (do 'latestFilesIndexes' do CF), filtrado por versão+loader.</summary>
 public sealed record CfLatestFileDto(long ModId, long FileId, string FileName);
 
 /// <summary>

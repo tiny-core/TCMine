@@ -8,10 +8,11 @@ using TCMine_Launcher.Infrastructure.Configuration;
 namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>Leitura do catálogo de modpacks do servidor. Implementa <see cref="IModpackCatalog"/>.</summary>
-public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog
+public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog, IDisposable
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
+    // HttpClient próprio (handler custom) — descartado no Dispose.
     private readonly HttpClient _http = new(CreateHandler()) { Timeout = TimeSpan.FromSeconds(30) };
 
     public async Task<IReadOnlyList<ModpackSummaryDto>> GetModpacksAsync(CancellationToken ct = default) =>
@@ -41,5 +42,10 @@ public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog
             HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
 #endif
         return handler;
+    }
+
+    public void Dispose()
+    {
+        _http.Dispose();
     }
 }

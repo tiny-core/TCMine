@@ -30,7 +30,7 @@ public enum ServerStatus
 /// <b>portas</b> (TCMine-Application) — as implementações vêm da infraestrutura, via composição (Splat).
 /// A parte de instâncias/launch está em <c>MainWindowViewModel.Play.cs</c>.
 /// </summary>
-public sealed partial class MainWindowViewModel : ViewModelBase
+public sealed partial class MainWindowViewModel : ViewModelBase, IDisposable
 {
     private readonly IAuthService _auth;
     private readonly IModpackCatalog _catalog;

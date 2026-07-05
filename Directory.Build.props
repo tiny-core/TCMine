@@ -10,6 +10,29 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>
+
+        <!--
+          Analisadores do .NET ligados em toda a solução: pegam dead code, awaits esquecidos,
+          dispose faltando, etc. em tempo de build (antes eram invisíveis). Nível "Recommended"
+          para não afogar em ruído. NÃO tratamos warnings como erro (o build não quebra) — são
+          sugestões acionáveis. EnforceCodeStyleInBuild traz as regras de estilo (IDExxxx).
+        -->
+        <AnalysisLevel>latest-Recommended</AnalysisLevel>
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+        <!--
+          Regras suprimidas por serem ruído/baixo valor NESTE projeto (mantêm o sinal das úteis
+          visível: CA1001 dispose, CA1068 ordem do CancellationToken, CA1859/CA1852 perf/sealed):
+            CA1848 — LoggerMessage delegates (micro-perf de log; overkill para este app)
+            CA1305/CA1307 — IFormatProvider/StringComparison em cultura (app não é localizado)
+            CA1707 — underscores em nomes (escolha de nomenclatura do projeto)
+            CA1822 — marcar membros como static (tropeça em padrões Blazor/DI)
+            CA1816 — GC.SuppressFinalize (sem finalizers relevantes aqui)
+            CA1861 — arrays constantes como estáticos (micro-perf)
+            CA1716 — identificadores que coincidem com keywords (conflita com PT-BR/domínio)
+            CA5350 — SHA-1: uso é de INTEGRIDADE (hash de jar/override), não de segurança
+        -->
+        <NoWarn>$(NoWarn);CA1848;CA1305;CA1307;CA1707;CA1822;CA1816;CA1861;CA1716;CA5350</NoWarn>
     </PropertyGroup>
 
     <!-- Metadados de pacote/empresa partilhados -->

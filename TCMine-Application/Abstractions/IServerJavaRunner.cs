@@ -10,7 +10,7 @@ public sealed record JavaRunResult(int ExitCode, string Output)
 }
 
 /// <summary>
-/// Porta para rodar um comando <c>java</c> até o fim num <b>container efêmero</b> e aguardar o exit
+/// Porta para rodar um comando <c>java</c> até o fim num <b>container efêmero</b> e aguardar o Exit
 /// code. É a costura entre o provisionamento (que precisa rodar o instalador do loader, ex.:
 /// <c>java -jar neoforge-installer.jar --installServer</c>) e a execução em Docker. A implementação
 /// concreta (Docker-out-of-Docker via Docker.DotNet) entra no passo do <c>DockerMinecraftManager</c>;

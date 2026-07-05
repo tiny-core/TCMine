@@ -15,7 +15,7 @@ namespace TCMine_Server.Infrastructure.Launcher;
 public sealed class LauncherAutoBuildService(
     LauncherBuildService build,
     ServerSettingsService settings,
-    ILogger<LauncherAutoBuildService> logger) : IHostedService
+    ILogger<LauncherAutoBuildService> logger) : IHostedService, IDisposable
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromHours(1);
     private CancellationTokenSource? _cts;
@@ -69,5 +69,11 @@ public sealed class LauncherAutoBuildService(
         settings.Changed -= OnSettingsChanged;
         _cts?.Cancel();
         return Task.CompletedTask;
+    }
+
+    // O host descarta os hosted services IDisposable no shutdown (após o StopAsync).
+    public void Dispose()
+    {
+        _cts?.Dispose();
     }
 }

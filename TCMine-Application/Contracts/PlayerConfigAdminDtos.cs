@@ -2,7 +2,7 @@ namespace TCMine_Application.Contracts;
 
 /// <summary>
 /// Um conjunto de configs player-owned em disco no servidor: o par <c>(uuid, modpackId)</c> com o seu
-/// tamanho, contagem de ficheiros e último sync. Projeção para a tela admin de gestão de configs.
+/// tamanho, contagem de arquivos e último sync. Projeção para a tela admin de gestão de configs.
 /// </summary>
 public sealed record PlayerConfigSetDto(
     string Uuid,

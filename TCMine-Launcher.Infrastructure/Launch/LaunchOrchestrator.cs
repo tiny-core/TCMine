@@ -31,10 +31,10 @@ public sealed class LaunchOrchestrator(AuthService auth, ServerConfig config) : 
 
         var process = await _launcher.PrepareAsync(
             gameDir, instance.Minecraft, instance.NeoForgeVersion, session, ramMb, javaPath,
-            progress, ct, instance.Servers, autoJoin);
+            progress, instance.Servers, autoJoin, ct);
 
         // Com overrides não fazemos prune (eles podem trazer jars próprios).
-        await _mods.EnsureModsAsync(instance.ModpackId, manifest.Mods, progress, ct, !instance.HasOverrides);
+        await _mods.EnsureModsAsync(instance.ModpackId, manifest.Mods, progress, !instance.HasOverrides, ct);
 
         progress.Report(new LaunchProgress(
             LaunchState.DownloadingAssets, 100, "A aplicar configuração do modpack..."));

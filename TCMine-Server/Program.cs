@@ -69,6 +69,10 @@ builder.Services.AddScoped<ICurseForgeApi>(sp => sp.GetRequiredService<CurseForg
 // Import e manutenção de modpacks (baixa jars, infere Side, persiste). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<ModpackImportService>();
 
+// Edição dos overrides do modpack (árvore de arquivos + histórico/desfazer). Extraído do
+// ModpackImportService para não acumular responsabilidades. Scoped: usa o AppDbContext.
+builder.Services.AddScoped<ModpackOverridesService>();
+
 // Newsletter por modpack (CRUD direto no banco). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<ModpackNewsService>();
 
@@ -295,12 +299,8 @@ app.Use(async (ctx, next) =>
     var path = ctx.Request.Path.Value ?? "/";
 
     // Deixa passar assets do framework (/_framework, /_blazor), conteúdo estático e arquivos
-    var isAsset = path.StartsWith("/_", StringComparison.Ordinal)
-                  || path.StartsWith("/css", StringComparison.Ordinal)
-                  || path.StartsWith("/js", StringComparison.Ordinal)
-                  || path.StartsWith("/images", StringComparison.Ordinal)
-                  || path.StartsWith("/favicon", StringComparison.Ordinal)
-                  || Path.HasExtension(path);
+    // (mesma classificação usada pelo buffer de 404 — ver IsAssetPath, fonte única)
+    var isAsset = IsAssetPath(ctx.Request.Path);
 
     // Páginas utilitárias do framework têm de renderizar mesmo antes do setup. Sem isto, o
     // re-execute de /not-found (StatusCodePages) e a página /Error seriam apanhados pelo redirect
@@ -338,10 +338,10 @@ app.MapGet("/auth/logout", async (HttpContext ctx) =>
 });
 
 // ── Endpoints do launcher ────────────────────────────────────────────────────────────────────────────────────────────
-// Catálogo/manifesto de modpacks + serving dos jars/overrides, proxy CurseForge, SSE de sync de
-// conteúdo, configs do jogador e atalho de download do launcher.
+// Catálogo/manifesto de modpacks + serving dos jars/overrides, SSE de sync de conteúdo, configs do
+// jogador e atalho de download do launcher. A API do CurseForge NÃO é exposta: o painel admin usa o
+// CurseForgeApiClient in-process e o launcher baixa os jars já cacheados de /files — não há proxy /v1.
 app.MapModpackEndpoints();
-app.MapCurseForgeProxy();
 app.MapEventsEndpoint();
 app.MapPlayerConfigEndpoints();
 app.MapLauncherFeedEndpoints();
@@ -354,7 +354,7 @@ return;
 // Rotas de API (consumidas pelo launcher) — devolvem o status cru, fora do buffer de 404 da UI.
 static bool IsApiPath(PathString path)
 {
-    return path.StartsWithSegments("/api") || path.StartsWithSegments("/v1") ||
+    return path.StartsWithSegments("/api") ||
            path.StartsWithSegments("/files") || path.StartsWithSegments("/players") ||
            path.StartsWithSegments("/events") || path.StartsWithSegments("/download") ||
            path.StartsWithSegments("/updates");

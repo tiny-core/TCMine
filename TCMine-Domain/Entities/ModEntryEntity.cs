@@ -4,7 +4,7 @@ using TCMine_Domain.Modpack;
 namespace TCMine_Domain.Entities;
 
 /// <summary>
-/// Modelo **plano** de um mod dentro de um modpack — usado como rascunho do editor e como item de
+/// Modelo **plano** de um mod em um modpack — usado como rascunho do editor e como item de
 /// import. Junta os campos do arquivo (<see cref="ModFileEntity"/>) com os atributos por-modpack
 /// (<c>Side</c>/<c>Target</c>) numa única estrutura conveniente para a UI. **Não** é uma entidade EF:
 /// a persistência decompõe isto em <see cref="ModFileEntity"/> (compartilhado) + <see cref="ModpackModEntity"/>
