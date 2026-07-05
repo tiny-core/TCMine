@@ -13,7 +13,7 @@ namespace TCMine_Server.Components.Pages.Admin.Mods;
 /// </summary>
 public partial class Mods : ComponentBase
 {
-    [Inject] private ModpackImportService Service { get; set; } = null!;
+    [Inject] private ModFileCacheService Service { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;

@@ -179,10 +179,12 @@ public static class Utility
 
     private static void Face(SKCanvas canvas, SKPoint[] pts, SKColor color)
     {
-        using var path = new SKPath();
-        path.MoveTo(pts[0]);
-        for (var i = 1; i < pts.Length; i++) path.LineTo(pts[i]);
-        path.Close();
+        // SkiaSharp 4.x depreciou a construção in-place do SKPath a favor do SKPathBuilder (imutável).
+        using var builder = new SKPathBuilder();
+        builder.MoveTo(pts[0]);
+        for (var i = 1; i < pts.Length; i++) builder.LineTo(pts[i]);
+        builder.Close();
+        using var path = builder.Snapshot();
         using var paint = new SKPaint();
         paint.Color = color;
         paint.IsAntialias = true;

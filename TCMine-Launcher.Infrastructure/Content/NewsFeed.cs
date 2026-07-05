@@ -18,7 +18,7 @@ public sealed class NewsFeed(ServerConfig config) : INewsFeed, IDisposable
     public async Task<IReadOnlyList<NewsItemDto>> GetNewsAsync(CancellationToken ct = default) =>
         await _http.GetFromJsonAsync<List<NewsItemDto>>(config.Resolve("/api/news"), Json, ct) ?? [];
 
-    private static HttpMessageHandler CreateHandler()
+    private static HttpClientHandler CreateHandler()
     {
         var handler = new HttpClientHandler();
 #if DEBUG

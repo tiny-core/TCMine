@@ -34,7 +34,7 @@ public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog, IDisp
         }
     }
 
-    private static HttpMessageHandler CreateHandler()
+    private static HttpClientHandler CreateHandler()
     {
         var handler = new HttpClientHandler();
 #if DEBUG

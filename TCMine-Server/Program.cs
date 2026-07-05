@@ -14,6 +14,7 @@ using TCMine_Server.Infrastructure.Persistence;
 using TCMine_Server.Components;
 using TCMine_Server.Components.Pages;
 using TCMine_Server.Endpoints;
+using TCMine_Server.Security;
 using TCMine_Server.Services;
 using TCMine_Server.Infrastructure.CurseForge;
 using TCMine_Server.Infrastructure.Launcher;
@@ -68,6 +69,14 @@ builder.Services.AddScoped<ICurseForgeApi>(sp => sp.GetRequiredService<CurseForg
 
 // Import e manutenção de modpacks (baixa jars, infere Side, persiste). Scoped: usa o AppDbContext.
 builder.Services.AddScoped<ModpackImportService>();
+
+// Cache de jars/SHA-1, marcação de órfãos e upload manual. Extraído do ModpackImportService.
+// Scoped: usa o AppDbContext.
+builder.Services.AddScoped<ModFileCacheService>();
+
+// Checagem de atualizações (modpack + mods) no CurseForge. Extraído do ModpackImportService.
+// Scoped: usa o AppDbContext.
+builder.Services.AddScoped<ModpackUpdateService>();
 
 // Edição dos overrides do modpack (árvore de arquivos + histórico/desfazer). Extraído do
 // ModpackImportService para não acumular responsabilidades. Scoped: usa o AppDbContext.
@@ -272,6 +281,10 @@ app.UseWhen(
     }));
 
 app.UseHttpsRedirection();
+
+// ── Cabeçalhos de segurança (CSP + anti-clickjacking) ────────────────────────────────────────────────────────────────
+// Cedo no pipeline para cobrir também os ficheiros estáticos abaixo. Ver TCMine_Server.Security.SecurityHeaders.
+app.UseSecurityHeaders();
 
 // ── Feed Velopack (arquivos estáticos em /updates) ──────────────────────────────────────────────────────────────────
 // O autoupdate do launcher consome RELEASES/nupkg/Setup.exe daqui. Servido cedo no pipeline (antes

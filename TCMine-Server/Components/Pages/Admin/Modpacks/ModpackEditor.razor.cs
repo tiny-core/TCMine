@@ -24,6 +24,8 @@ public partial class ModpackEditor : ComponentBase
     [Parameter] public string? Id { get; set; }
 
     [Inject] private ModpackImportService Service { get; set; } = null!;
+    [Inject] private ModFileCacheService Files { get; set; } = null!;
+    [Inject] private ModpackUpdateService Updates { get; set; } = null!;
     [Inject] private NavigationManager Nav { get; set; } = null!;
     [Inject] private IDialogService DialogService { get; set; } = null!;
     [Inject] private ISnackbar Snackbar { get; set; } = null!;
@@ -92,7 +94,7 @@ public partial class ModpackEditor : ComponentBase
                 // Achata os vínculos+arquivos no modelo plano que o editor edita
                 _mods = ModpackImportService.FlattenMods(existing);
                 // Origem CF (se houver) — para o banner de atualização. Não chama a API no load.
-                _importSource = await Service.GetImportSourceAsync(uid);
+                _importSource = await Updates.GetImportSourceAsync(uid);
             }
             else
             {
@@ -247,7 +249,7 @@ public partial class ModpackEditor : ComponentBase
         {
             await Busy.RunAsync("Buscando atualizações…", async () =>
             {
-                updates = await Service.CheckModUpdatesAsync(_mods, _draft.Minecraft, _draft.Loader);
+                updates = await Updates.CheckModUpdatesAsync(_mods, _draft.Minecraft, _draft.Loader);
             });
         }
         catch (Exception ex)
@@ -296,8 +298,8 @@ public partial class ModpackEditor : ComponentBase
         {
             await Busy.RunAsync("Verificando atualização do modpack…", async () =>
             {
-                var status = await Service.CheckModpackUpdateAsync(_draft.Id, force: true);
-                if (status is not null) _importSource = await Service.GetImportSourceAsync(_draft.Id);
+                var status = await Updates.CheckModpackUpdateAsync(_draft.Id, force: true);
+                if (status is not null) _importSource = await Updates.GetImportSourceAsync(_draft.Id);
             });
 
             Snackbar.Add(
@@ -330,7 +332,7 @@ public partial class ModpackEditor : ComponentBase
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
 
-                var entry = await Service.AddUploadedModAsync(file.Name, ms.ToArray());
+                var entry = await Files.AddUploadedModAsync(file.Name, ms.ToArray());
                 MergeMod(entry);
                 Snackbar.Add($"\"{entry.FileName}\" enviado.", Severity.Success);
             });
@@ -435,7 +437,7 @@ public partial class ModpackEditor : ComponentBase
             Snackbar.Add("Modpack guardado.", Severity.Success);
 
             // Recarrega a origem gravada (atualiza o banner; a versão instalada pode ter mudado)
-            if (!wasNew) _importSource = await Service.GetImportSourceAsync(_draft.Id);
+            if (!wasNew) _importSource = await Updates.GetImportSourceAsync(_draft.Id);
 
             if (wasNew)
                 // Recém-criado: vai para o hub do modpack (overrides/novidades/instâncias)

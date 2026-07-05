@@ -31,8 +31,10 @@
             CA1861 — arrays constantes como estáticos (micro-perf)
             CA1716 — identificadores que coincidem com keywords (conflita com PT-BR/domínio)
             CA5350 — SHA-1: uso é de INTEGRIDADE (hash de jar/override), não de segurança
+            CA1873 — custo de avaliar arg de log (boxing de Guid): mesma família do CA1848, baixo valor
+            CA1725 — renomear parâmetro p/ casar com a base (ex.: OnModelCreating 'b'): churn cosmético
         -->
-        <NoWarn>$(NoWarn);CA1848;CA1305;CA1307;CA1707;CA1822;CA1816;CA1861;CA1716;CA5350</NoWarn>
+        <NoWarn>$(NoWarn);CA1848;CA1305;CA1307;CA1707;CA1822;CA1816;CA1861;CA1716;CA5350;CA1873;CA1725</NoWarn>
     </PropertyGroup>
 
     <!-- Metadados de pacote/empresa partilhados -->

@@ -37,7 +37,7 @@ public sealed class PlayerConfigAdminService(AppDbContext db, IHostEnvironment e
         return new PlayerConfigOverviewDto(sets.Sum(s => s.SizeBytes), sets);
     }
 
-    private List<PlayerConfigSetDto> ScanSets(IReadOnlyDictionary<Guid, string> modpackNames)
+    private List<PlayerConfigSetDto> ScanSets(Dictionary<Guid, string> modpackNames)
     {
         var sets = new List<PlayerConfigSetDto>();
         if (!Directory.Exists(_root)) return sets;
