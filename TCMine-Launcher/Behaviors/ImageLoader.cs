@@ -5,7 +5,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using TCMine_Launcher.Infrastructure;
+using TCMine_Launcher.Infrastructure.FileSystem;
+using TCMine_Launcher.Infrastructure.Networking;
 
 namespace TCMine_Launcher.Behaviors;
 

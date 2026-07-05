@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
 using TCMine_Application.Launcher;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Platform;
 
 /// <summary>Info do sistema (RAM física, para limitar o slider de memória). Implementa <see cref="ISystemInfo"/>.</summary>
 public sealed class SystemInfo : ISystemInfo

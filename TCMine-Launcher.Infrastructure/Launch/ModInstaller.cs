@@ -1,8 +1,10 @@
 using System.Net.Http;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.FileSystem;
+using TCMine_Launcher.Infrastructure.Networking;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Baixa os mods do manifesto para uma cache partilhada e copia para a instância. Os jars são servidos

@@ -1,8 +1,9 @@
 using System.Text.Json;
 using TCMine_Application.Launcher;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.FileSystem;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Persistence;
 
 /// <summary>Persiste as <see cref="LauncherSettings"/> em <c>settings.json</c> (escrita atómica).</summary>
 public sealed class SettingsStore : ISettingsStore

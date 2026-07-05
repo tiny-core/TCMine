@@ -3,8 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using TCMine_Application.Contracts;
 using TCMine_Application.Launcher;
+using TCMine_Launcher.Infrastructure.Configuration;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>Leitura do catálogo de modpacks do servidor. Implementa <see cref="IModpackCatalog"/>.</summary>
 public sealed class ModpackCatalog(ServerConfig config) : IModpackCatalog

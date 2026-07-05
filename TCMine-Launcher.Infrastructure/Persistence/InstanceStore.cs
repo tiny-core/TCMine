@@ -2,8 +2,9 @@ using System.IO.Compression;
 using System.Text.Json;
 using TCMine_Application.Launcher;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.FileSystem;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Persistence;
 
 /// <summary>Persistência das instâncias instaladas (uma pasta por modpack). Implementa <see cref="IInstanceStore"/>.</summary>
 public sealed class InstanceStore : IInstanceStore

@@ -1,4 +1,6 @@
-namespace TCMine_Launcher.Infrastructure;
+using TCMine_Launcher.Infrastructure.Updates;
+
+namespace TCMine_Launcher.Infrastructure.Configuration;
 
 /// <summary>
 /// Aponta o launcher para o TCMine Server (catálogo, login, jars). A URL vem injetada no build

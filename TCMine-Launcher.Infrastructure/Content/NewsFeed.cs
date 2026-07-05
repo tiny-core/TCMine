@@ -3,8 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using TCMine_Application.Contracts;
 using TCMine_Application.Launcher;
+using TCMine_Launcher.Infrastructure.Configuration;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>Lê o feed público de novidades (<c>/api/news</c>). Implementa <see cref="INewsFeed"/>.</summary>
 public sealed class NewsFeed(ServerConfig config) : INewsFeed

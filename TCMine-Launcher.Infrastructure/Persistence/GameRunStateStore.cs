@@ -1,7 +1,8 @@
 using System.Text.Json;
 using TCMine_Application.Launcher;
+using TCMine_Launcher.Infrastructure.FileSystem;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Persistence;
 
 /// <summary>Persiste o jogo em execução (modpackId + PID). Implementa <see cref="IGameRunStateStore"/>.</summary>
 public sealed class GameRunStateStore : IGameRunStateStore

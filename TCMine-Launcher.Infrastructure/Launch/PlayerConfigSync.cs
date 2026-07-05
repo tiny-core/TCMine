@@ -7,8 +7,11 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using TCMine_Application.Contracts;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.Configuration;
+using TCMine_Launcher.Infrastructure.FileSystem;
+using TCMine_Launcher.Infrastructure.Networking;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Sync <b>incremental</b> das configs player-owned (keybinds/opções, shaders, minimapa — incluindo o

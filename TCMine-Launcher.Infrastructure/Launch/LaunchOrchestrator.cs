@@ -2,8 +2,11 @@ using System.Diagnostics;
 using TCMine_Application.Contracts;
 using TCMine_Application.Launcher;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.Auth;
+using TCMine_Launcher.Infrastructure.Configuration;
+using TCMine_Launcher.Infrastructure.FileSystem;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Orquestra a preparação do jogo (sem arrancar): NeoForge (CmlLib) + mods + overrides. Obtém a sessão

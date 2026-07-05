@@ -1,4 +1,5 @@
-namespace TCMine_Launcher.Infrastructure;
+
+namespace TCMine_Launcher.Infrastructure.FileSystem;
 
 /// <summary>Diretórios de dados do launcher, sob <c>%AppData%/TCMine</c>.</summary>
 public static class LauncherPaths

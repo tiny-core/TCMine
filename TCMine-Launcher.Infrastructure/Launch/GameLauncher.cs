@@ -7,7 +7,7 @@ using CmlLib.Core.Installers;
 using CmlLib.Core.ProcessBuilder;
 using TCMine_Domain.Launcher;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Instalação e lançamento reais do Minecraft + NeoForge via CmlLib.Core. NÃO chama <c>Start()</c> —

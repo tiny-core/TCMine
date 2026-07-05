@@ -1,4 +1,5 @@
-namespace TCMine_Launcher.Infrastructure;
+
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>Escreve a saída do jogo num ficheiro e mantém as últimas linhas em memória. Thread-safe.</summary>
 internal sealed class GameLogCapture : IDisposable

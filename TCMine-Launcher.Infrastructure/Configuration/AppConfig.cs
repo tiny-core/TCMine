@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Configuration;
 
 /// <summary>
 /// Config embutida no binário em build-time (não hardcoded, não editável): URL do servidor e Azure

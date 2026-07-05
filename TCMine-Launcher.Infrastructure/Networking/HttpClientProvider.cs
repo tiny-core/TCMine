@@ -1,6 +1,6 @@
 using System.Net.Http;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Networking;
 
 /// <summary>
 /// <see cref="HttpClient"/> partilhado para downloads (jars/overrides/imagens). Timeout infinito

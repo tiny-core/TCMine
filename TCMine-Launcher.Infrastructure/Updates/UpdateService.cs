@@ -1,7 +1,8 @@
 using TCMine_Application.Launcher;
 using Velopack;
+using TCMine_Launcher.Infrastructure.Configuration;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Updates;
 
 /// <summary>
 ///     Implementação Velopack de <see cref="IUpdateService" />: o <see cref="UpdateManager" /> aponta para

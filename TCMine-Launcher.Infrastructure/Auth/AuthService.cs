@@ -4,8 +4,9 @@ using Microsoft.Identity.Client;
 using TCMine_Application.Launcher;
 using TCMine_Domain.Launcher;
 using XboxAuthNet.Game.Msal;
+using TCMine_Launcher.Infrastructure.Configuration;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Auth;
 
 /// <summary>
 /// Login Microsoft/Xbox no próprio launcher via CmlLib + MSAL. Implementa a porta

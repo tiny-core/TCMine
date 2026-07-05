@@ -1,7 +1,9 @@
 using System.Net.Http;
 using TCMine_Application.Launcher;
+using TCMine_Launcher.Infrastructure.Configuration;
+using TCMine_Launcher.Infrastructure.Networking;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Content;
 
 /// <summary>
 /// Consome o SSE <c>/events</c> do servidor: fixa a versão inicial como baseline e dispara

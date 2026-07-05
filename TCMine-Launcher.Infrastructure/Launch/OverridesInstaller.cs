@@ -2,8 +2,11 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Http;
 using TCMine_Domain.Launcher;
+using TCMine_Launcher.Infrastructure.Configuration;
+using TCMine_Launcher.Infrastructure.FileSystem;
+using TCMine_Launcher.Infrastructure.Networking;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Aplica o bundle de overrides do modpack na pasta do jogo, gated por versão; numa atualização preserva

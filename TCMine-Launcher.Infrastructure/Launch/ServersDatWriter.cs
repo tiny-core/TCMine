@@ -1,7 +1,7 @@
 using fNbt;
 using TCMine_Domain.Launcher;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Launch;
 
 /// <summary>
 /// Escreve/atualiza o <c>servers.dat</c> (NBT) da instância — os servidores do modpack aparecem na lista

@@ -3,7 +3,14 @@ using Avalonia;
 using JetBrains.Annotations;
 using ReactiveUI.Avalonia;
 using Splat;
-using TCMine_Launcher.Infrastructure;
+using TCMine_Launcher.Infrastructure.Auth;
+using TCMine_Launcher.Infrastructure.Configuration;
+using TCMine_Launcher.Infrastructure.Content;
+using TCMine_Launcher.Infrastructure.Launch;
+using TCMine_Launcher.Infrastructure.Networking;
+using TCMine_Launcher.Infrastructure.Persistence;
+using TCMine_Launcher.Infrastructure.Platform;
+using TCMine_Launcher.Infrastructure.Updates;
 using TCMine_Launcher.ViewModels;
 using Velopack;
 

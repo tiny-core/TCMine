@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using TCMine_Application.Launcher;
 
-namespace TCMine_Launcher.Infrastructure;
+namespace TCMine_Launcher.Infrastructure.Networking;
 
 /// <summary>Server List Ping do Minecraft (estado online/jogadores/MOTD). Implementa <see cref="IServerPinger"/>.</summary>
 public sealed class ServerPinger : IServerPinger
