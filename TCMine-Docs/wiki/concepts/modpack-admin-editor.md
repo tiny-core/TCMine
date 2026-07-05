@@ -46,9 +46,13 @@ related:
     bloqueante durante o import), `OverridePathDialog`, `OverrideHistoryDialog`,
     `NewsEditDialog`.
 
-O backend é o `ModpackImportService` ([[entities/tcmine-server-infrastructure]]); a UI
-**não** fala com EF/CurseForge direto — só com esse serviço. A decomposição em
-componentes/partials/diálogos segue a regra **sem monolitos** do `CLAUDE.md`.
+O backend é o `ModpackImportService` ([[entities/tcmine-server-infrastructure]]) para
+import/add/save/update-check, e o `ModpackOverridesService` (extraído em 2026-07-05,
+ver [[sources/2026-07-05-refactor-p0-proxy-overrides]]) para toda a **edição
+interativa de overrides + histórico/desfazer**. A UI **não** fala com EF/CurseForge
+direto — só com esses serviços. A decomposição em componentes/partials/diálogos —
+e agora também a separação dos dois serviços — segue a regra **sem monolitos** do
+`CLAUDE.md`.
 
 ## Abas do editor
 

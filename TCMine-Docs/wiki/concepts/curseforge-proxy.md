@@ -1,13 +1,14 @@
 ---
 type: concept
-title: Proxy do CurseForge
-tags: [concept, curseforge, segurança, proxy]
-status: stable
+title: Proxy do CurseForge (descontinuado)
+tags: [concept, curseforge, segurança, proxy, descontinuado]
+status: descontinuada
 created: 2026-06-23
-updated: 2026-06-23
+updated: 2026-07-05
 aliases: [curseforge proxy, proxy /v1, x-api-key]
 sources:
   - "[[sources/2026-06-23-leitura-codigo-vivo]]"
+  - "[[sources/2026-07-05-refactor-p0-proxy-overrides]]"
 related:
   - "[[entities/tcmine-server]]"
   - "[[entities/tcmine-server-infrastructure]]"
@@ -15,48 +16,46 @@ related:
   - "[[concepts/shared-domain-logic]]"
 ---
 
-# Proxy do CurseForge
+# Proxy do CurseForge (descontinuado)
 
-> O CurseForge é sempre acessado **através do servidor** (`/v1/*`); a `x-api-key`
-> é injetada pelo servidor e **nunca sai** dele.
+> **⚠️ Descontinuado em 2026-07-05.** O endpoint `/v1/*` **não existe mais**. A
+> API do CurseForge **não é exposta** pelo servidor. Ver
+> [[sources/2026-07-05-refactor-p0-proxy-overrides]].
 
-## O que é
+## Por que foi removido
 
-`MapCurseForgeProxy` ([[entities/tcmine-server]]) expõe um catch-all
-`/v1/{**path}` (GET/POST) que repassa método, query e corpo para
-`api.curseforge.com/v1/...`, adicionando a `x-api-key`. É **passthrough
-transparente**: espelha status, content-type e corpo do upstream (um 404 do CF
-chega como 404), sem cache nem transformação.
+O proxy `/v1/{**path}` era um passthrough **público e sem autenticação** que
+injetava a `x-api-key` do servidor — qualquer um na internet podia usá-lo como um
+proxy CurseForge grátis e esgotar a cota da API. Ao revisar o código, constatou-se
+que **nenhum consumidor de primeira parte o usava**:
 
-## Por que importa para o TCMine
+- O **launcher** baixa os jars já cacheados de `/files/{fileId}/{fileName}`
+  (ver [[concepts/modpack-mods-locais]]) e o catálogo de `/api/modpacks`. Nunca
+  chamou `/v1`.
+- O **painel admin** (Blazor **Server**) usa o `CurseForgeApiClient` **in-process**
+  (injetado no `ModpackImportService`), que fala direto com `api.curseforge.com`
+  injetando a key **por requisição**. Não há chamada HTTP a proteger.
 
-A key do CurseForge é um segredo. Se o launcher falasse direto com o CF,
-precisaria embarcar a key (vazaria). Com o proxy, o cliente faz pesquisa/resolução
-de mods (UI de adição manual) **através do servidor**, que é a única ponta que
-conhece a key.
+Logo, o proxy era **código morto e superfície de ataque** ao mesmo tempo. Foi
+**removido** (endpoint + `MapCurseForgeProxy` + referência `/v1` no `IsApiPath`).
 
-## Detalhes / Variações
+## Como o CurseForge é acessado hoje
 
-- **Sem key configurada → 503** ("Token do CurseForge não configurado"): o
-  Owner ainda não a definiu nas settings (ver
-  [[concepts/secrets-data-protection]]).
-- **Servidor (import) não usa o proxy:** o `CurseForgeApiClient`
-  ([[entities/tcmine-server-infrastructure]]) fala direto com o CF, injetando a key lida
-  das settings **por requisição** (a key pode mudar em runtime). O proxy é a porta
-  do **cliente**.
-- A mesma `ICurseForgeApi` abstrai os dois acessos (direto vs proxy) — ver
-  [[concepts/shared-domain-logic]].
+- **Servidor (admin):** `CurseForgeApiClient`
+  ([[entities/tcmine-server-infrastructure]]) via `IHttpClientFactory`, com a
+  `x-api-key` lida das settings cifradas ([[concepts/secrets-data-protection]]).
+  A key **nunca** sai do servidor.
+- **Launcher:** só consome os endpoints próprios do TCMine-Server
+  (`/api/modpacks`, `/files`, `/events`, `/players`, `/updates`). O CurseForge é
+  invisível para ele — vê apenas jars já resolvidos e cacheados.
 
 ## Aplicação concreta
 
-- `TCMine-Server/Endpoints/CurseForgeProxyEndpoints.cs`;
-  `TCMine-Server.Infrastructure/CurseForge/CurseForgeApiClient.cs`.
-
-## Contradições / debates conhecidos
-
-- O proxy ainda **não** entra na política de rate limiting (hoje só o PUT de
-  configs do jogador é limitado) — o `Program.cs` cita isso como evolução futura.
+- `TCMine-Server.Infrastructure/CurseForge/CurseForgeApiClient.cs` (o único ponto
+  que fala com o CF hoje).
+- ~~`TCMine-Server/Endpoints/CurseForgeProxyEndpoints.cs`~~ (removido).
 
 ## Referências
 
-- [[sources/2026-06-23-leitura-codigo-vivo]]
+- [[sources/2026-06-23-leitura-codigo-vivo]] (design original)
+- [[sources/2026-07-05-refactor-p0-proxy-overrides]] (remoção)

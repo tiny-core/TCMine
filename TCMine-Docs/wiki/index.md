@@ -27,6 +27,7 @@ correspondente, com um resumo de uma linha.
 - [[entities/tcmine-launcher]] — app desktop Avalonia (só UI + composição): login MSAL + catálogo + jogar (avalonia, launcher)
 - [[entities/tcmine-launcher-infrastructure]] — infra do launcher: CmlLib/HTTP/filesystem que implementa as portas (launcher, infrastructure, cmllib)
 - [[entities/tcmine-icongenerator]] — gera ícones/assets para launcher e servidor (tooling, assets)
+- `TCMine-Tests` — xUnit sobre a lógica pura do core (ModSideRules/ModSetMerge/CurseForgeImporter/ModLoaders); 39 testes _(sem página própria ainda)_ (tests, core)
 
 ## Conceitos (`wiki/concepts/`)
 
@@ -37,7 +38,7 @@ correspondente, com um resumo de uma linha.
 - [[concepts/modside-rules]] — `ModSide`/`ModSideRules`: fonte única de filtragem cliente/servidor (modpack, domain)
 - [[concepts/dtos-as-records]] — DTOs de fio são `record` imutáveis, nunca classes (convenção, dtos)
 - [[concepts/design-tokens]] — `ColorTokens` como fonte única de cor para CSS, MudBlazor e Avalonia (design-system, theming)
-- [[concepts/curseforge-proxy]] — CurseForge via proxy `/v1`; a `x-api-key` nunca sai do servidor (curseforge, segurança)
+- [[concepts/curseforge-proxy]] — **descontinuado (2026-07-05)**: o proxy `/v1` foi removido; admin usa o client in-process, launcher baixa de `/files` (curseforge, segurança, descontinuado)
 - [[concepts/modpack-mods-locais]] — jars servidos pelo próprio servidor, manifesto reescrito (modpack, download)
 - [[concepts/modpack-admin-editor]] — UI Blazor de criar/editar modpack: mods, import CF, overrides com Monaco (modpack, admin, blazor)
 - [[concepts/sse-content-sync]] — `/events` empurra um contador de versão; launcher recarrega o catálogo (sse, sync)
@@ -82,6 +83,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-07-05-global-metrics-per-instance]] — métricas do sistema globais (CPU/disco do host) + card de métricas por instância no dashboard (code, dashboard, metrics, server-instance, docker)
 - [[sources/2026-07-05-player-configs-admin-hardening]] — tela admin de configs dos jogadores + fecho dos reads (auth) e cota de disco no sync (code, player-config, admin, segurança)
 - [[sources/2026-07-05-launcher-infra-folders]] — reorganização do TCMine-Launcher.Infrastructure em pastas por área de domínio (code, launcher, infrastructure, refactor)
+- [[sources/2026-07-05-refactor-p0-proxy-overrides]] — remoção do proxy CurseForge (morto + inseguro) + split do ModpackImportService em ModpackOverridesService (code, refactor, segurança, modpack, overrides)
 
 ## Sínteses e páginas derivadas
 

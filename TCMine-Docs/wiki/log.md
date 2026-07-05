@@ -28,6 +28,59 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-05] ingest | Refactor P1 — analisadores, dedup do isAsset e testes do core
+
+- **Fonte:** código vivo, continuação da sessão de refactor (após o P0). Ver
+  [[sources/2026-07-05-refactor-p0-proxy-overrides]].
+- **Páginas afetadas:** [[sources/2026-07-05-refactor-p0-proxy-overrides]] (pendências),
+  [[entities/tcmine-solution]] (novo projeto de teste), `index.md`.
+- **Resumo:** (1) **Analisadores** do .NET ligados em `Directory.Build.props`
+  (`AnalysisLevel=latest-Recommended` + `EnforceCodeStyleInBuild`), com um `NoWarn`
+  curado para as regras ruidosas/de baixo valor (CA1848/CA1305/CA1707/CA1822/CA1816/
+  CA1861/CA1716/CA5350) — sinal caiu de ~172 para ~36 warnings acionáveis. Corrigidas
+  já 3 mecânicas (P/Invoke `LinkUnix` com `LPUTF8Str` p/ paths UTF-8 no Linux +
+  supressão local do CA2101; `Marshal.SizeOf<T>`; `sealed`). (2) **Dedup** do `isAsset`
+  no `Program.cs` — passou a usar a fonte única `IsAssetPath`. (3) Novo projeto
+  **`TCMine-Tests`** (xUnit) com **39 testes** verdes sobre a lógica pura do core:
+  `ModSideRules`, `ModSetMerge`, `CurseForgeImporter` (InferSide/ClassToTarget/
+  ResolveDownloadUrl/BuildOverridesZip) e `ModLoaders.ParseId`.
+- **Pendências:** backlog de analisadores (CA1859/CS0618/CA1873/CA1725 de baixo valor).
+  Split futuro opcional de `ModpackUpdateService`/`ModFileCacheService`. Página
+  `entities/` própria para o `TCMine-Tests` se o projeto crescer. Security headers (CSP).
+
+## [2026-07-05] ingest | Fecho do backlog de analisadores (CA1068/CA1001/CA2016) + CI
+
+- **Fonte:** código vivo, continuação do P1.
+- **Páginas afetadas:** [[sources/2026-07-05-refactor-p0-proxy-overrides]], `index.md`.
+- **Resumo:** (1) **CA1068** — `CancellationToken` reordenado para último em
+  `GameLauncher.PrepareAsync` e `ModInstaller.EnsureModsAsync` (+ chamadas no
+  `LaunchOrchestrator`). (2) **CA1001** — `IDisposable` implementado nos 7 tipos com
+  campos descartáveis: `ContentWatcher` (+ fix de leak no `Stop`), `ModpackCatalog`,
+  `NewsFeed` (HttpClient próprio), `GitHubReleaseService`, `ServerSettingsService`
+  (SemaphoreSlim de singleton), `LauncherAutoBuildService` (CTS do hosted service) e
+  `MainWindowViewModel` (CTS do launch). (3) **Bônus — CA2016** expôs um bug real: o
+  install do CmlLib (`InstallAndBuildProcessAsync`) não recebia o token, então o
+  `CancelLaunch` não interrompia o download; corrigido. (4) Nova workflow **`ci.yml`**
+  (build da solução + `dotnet test` em push/PR na master). 39 testes verdes.
+- **Pendências:** 18 warnings de baixo valor (CA1859 perf, CS0618 SkiaSharp obsoleto no
+  IconGenerator, CA1873, CA1725). Security headers (CSP) como próximo item de segurança.
+
+## [2026-07-05] decisao | Refactor P0 — remoção do proxy CurseForge + split do ModpackImportService
+
+- **Fonte:** código vivo, sessão de análise completa da solução + refactor P0. Ver
+  [[sources/2026-07-05-refactor-p0-proxy-overrides]].
+- **Páginas afetadas:** [[concepts/curseforge-proxy]] (→ descontinuado),
+  [[concepts/modpack-admin-editor]], [[sources/2026-07-05-refactor-p0-proxy-overrides]].
+- **Resumo:** (1) O proxy CurseForge `/v1/*` foi **removido** — era público, sem auth
+  nem rate limiting, injetando a `x-api-key`, e **nenhum consumidor o usava** (launcher
+  baixa de `/files`; admin usa o `CurseForgeApiClient` in-process). Código morto +
+  buraco de segurança eliminados. (2) O monolito `ModpackImportService` (1223 linhas)
+  foi dividido: extraído `ModpackOverridesService` (~430 linhas: edição de overrides +
+  histórico/desfazer), sobrando 794 linhas com responsabilidade única. Build verde,
+  consumidores e DI atualizados. Decisão do proxy confirmada com o usuário.
+- **Pendências:** P1 — testes do core, dedup do `isAsset` no `Program.cs`, ligar
+  analisadores. Possível split futuro de `ModpackUpdateService`/`ModFileCacheService`.
+
 ## [2026-07-05] ingest | Reorganização do TCMine-Launcher.Infrastructure em pastas por área de domínio
 
 - **Fonte:** código vivo, a pedido do usuário (arquivos todos na raiz → organizar como o server infra).
