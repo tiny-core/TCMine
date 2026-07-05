@@ -81,6 +81,7 @@ correspondente, com um resumo de uma linha.
 - [[sources/2026-07-03-player-config-sync-completo]] — sync de configs do jogador completado fim-a-fim (blob no servidor + pull/push no launcher) (code, player-config, sync)
 - [[sources/2026-07-05-global-metrics-per-instance]] — métricas do sistema globais (CPU/disco do host) + card de métricas por instância no dashboard (code, dashboard, metrics, server-instance, docker)
 - [[sources/2026-07-05-player-configs-admin-hardening]] — tela admin de configs dos jogadores + fecho dos reads (auth) e cota de disco no sync (code, player-config, admin, segurança)
+- [[sources/2026-07-05-launcher-infra-folders]] — reorganização do TCMine-Launcher.Infrastructure em pastas por área de domínio (code, launcher, infrastructure, refactor)
 
 ## Sínteses e páginas derivadas
 

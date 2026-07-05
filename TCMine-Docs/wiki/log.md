@@ -28,6 +28,19 @@ Estrutura sugerida do corpo:
 
 ---
 
+## [2026-07-05] ingest | Reorganização do TCMine-Launcher.Infrastructure em pastas por área de domínio
+
+- **Fonte:** código vivo, a pedido do usuário (arquivos todos na raiz → organizar como o server infra).
+- **Páginas afetadas:** [[sources/2026-07-05-launcher-infra-folders]] (nova),
+  [[entities/tcmine-launcher-infrastructure]] (seção Organização + frontmatter), `index.md`.
+- **Resumo:** os ~21 arquivos da infra do launcher saíram da raiz para **9 pastas por área de domínio**
+  (`Auth/`, `Configuration/`, `Content/`, `FileSystem/`, `Launch/`, `Networking/`, `Persistence/`,
+  `Platform/`, `Updates/`), com **namespace casando** (`TCMine_Launcher.Infrastructure.<Pasta>`),
+  espelhando o `TCMine-Server.Infrastructure`. `git mv` + usings explícitos por arquivo; 2 consumidores
+  no projeto UI ajustados. Refactor puramente estrutural; solução compila 0 erro.
+- **Pendências:** nenhuma. (`SystemInfo` foi para `Platform/`, não `System/`, para não colidir com o
+  namespace `System`.)
+
 ## [2026-07-05] ingest | Tela admin de configs dos jogadores + endurecimento da API de sync
 
 - **Fonte:** código vivo, a pedido do usuário (tela para gerir configs de player + dúvida sobre a segurança

@@ -4,10 +4,11 @@ title: TCMine-Launcher.Infrastructure
 tags: [entity, tcmine, launcher, infrastructure, cmllib]
 status: wip
 created: 2026-06-29
-updated: 2026-06-29
+updated: 2026-07-05
 aliases: [Launcher Infrastructure, infra do launcher]
 sources:
   - "[[sources/2026-06-29-launcher-clean-architecture]]"
+  - "[[sources/2026-07-05-launcher-infra-folders]]"
 related:
   - "[[entities/tcmine-launcher]]"
   - "[[entities/tcmine-application]]"
@@ -42,6 +43,23 @@ pacotes CmlLib (`Core`, `Auth.Microsoft`, `Installer.NeoForge`), `XboxAuthNet.Ga
 - **Config/infra de rede:** `ServerConfig`/`AppConfig` (URL e Azure id injetados no build),
   `HttpClientProvider`, `LauncherPaths` (`%AppData%/TCMine`).
 
+## Organização (pastas)
+
+Desde **2026-07-05** os arquivos deixaram a raiz e foram agrupados por **área de domínio**,
+espelhando o `TCMine-Server.Infrastructure` (pastas com **namespace casando**:
+`TCMine_Launcher.Infrastructure.<Pasta>`). Ver [[sources/2026-07-05-launcher-infra-folders]].
+
+- **`Auth/`** — `AuthService` (login MSAL/CmlLib).
+- **`Configuration/`** — `AppConfig`, `ServerConfig` (URL/Azure id injetados no build; resolução de URLs).
+- **`Content/`** — `ModpackCatalog`, `NewsFeed`, `ContentWatcher` (catálogo/novidades/SSE do servidor).
+- **`FileSystem/`** — `LauncherPaths` (`%AppData%/TCMine`).
+- **`Launch/`** — pipeline de install/launch: `LaunchOrchestrator`, `GameLauncher`, `ModInstaller`,
+  `OverridesInstaller`, `ServersDatWriter`, `GameLogCapture`, `PlayerConfigSync`.
+- **`Networking/`** — `HttpClientProvider`, `ServerPinger`.
+- **`Persistence/`** — `InstanceStore`, `SettingsStore`, `GameRunStateStore` (stores JSON em disco).
+- **`Platform/`** — `SystemInfo` (RAM física). (Não `System/`, que colidiria com o namespace `System`.)
+- **`Updates/`** — `UpdateService` (Velopack).
+
 ## Relações
 
 - Implementa as portas de [[entities/tcmine-application]]; usa os models de [[entities/tcmine-domain]].
@@ -49,5 +67,5 @@ pacotes CmlLib (`Core`, `Auth.Microsoft`, `Installer.NeoForge`), `XboxAuthNet.Ga
 
 ## Referências
 
-- Código: `TCMine-Launcher.Infrastructure/*.cs`.
-- Fonte: [[sources/2026-06-29-launcher-clean-architecture]].
+- Código: `TCMine-Launcher.Infrastructure/<Pasta>/*.cs` (ver Organização acima).
+- Fontes: [[sources/2026-06-29-launcher-clean-architecture]], [[sources/2026-07-05-launcher-infra-folders]].
