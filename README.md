@@ -2,17 +2,17 @@
 
 > **A "Steam" de um servidor Minecraft com modpacks.** Um launcher desktop de um clique
 > (instala loader + mods, faz login na conta Microsoft, entra no servidor) apoiado por um
-> servidor web que hospeda o catálogo de modpacks, o painel de administração e — via Docker —
+> servidor, web que hospeda o catálogo de modpacks, o painel de administração e — via Docker —
 > orquestra as próprias instâncias de servidor Minecraft.
 
-O TCMine é uma solução **.NET 10** em **Clean Architecture** dividida em dois produtos que
+O TCMine é uma solução**.NET 10** em **Clean Architecture** dividida em dois produtos que
 partilham um núcleo comum:
 
 - **TCMine-Server** — backend web (ASP.NET Core: Minimal API + Blazor Server) com painel admin.
   Serve o catálogo de modpacks, faz proxy do CurseForge, entrega os jars/manifests ao launcher,
-  compila e publica o próprio launcher (auto-update Velopack) e provisiona servidores Minecraft
+  compila e publica o próprio launcher (autoupdate Velopack) e provisiona servidores Minecraft
   em containers.
-- **TCMine-Launcher** — app desktop (Avalonia, MVVM/ReactiveUI). Login Microsoft, catálogo de
+- **TCMine-Launcher** — aplicativo desktop (Avalonia, MVVM/ReactiveUI). Login Microsoft, catálogo de
   modpacks, instalar/atualizar/jogar com um clique, sync das configs do jogador entre PCs.
 
 ---
@@ -40,26 +40,26 @@ servidores e lança o Minecraft — entrando direto no servidor. As configs do j
 
 Do outro lado, o administrador usa o painel web para montar modpacks (busca/import do CurseForge,
 edição de mods e overrides), publicar notícias, **subir servidores Minecraft** em containers
-dedicados e **compilar/publicar o launcher** (o servidor hospeda o feed de auto-update).
+dedicados e **compilar/publicar o launcher** (o servidor hospeda o feed de autoupdate).
 
 ## Tecnologias
 
-| Área | Stack |
-|------|-------|
-| Plataforma | .NET 10, C# |
-| Backend | ASP.NET Core — Minimal API + **Blazor Server** |
-| UI admin | **MudBlazor** |
-| Launcher desktop | **Avalonia** (WinExe), MVVM + **ReactiveUI** |
-| Persistência | **EF Core** dual-provider — **SQLite** (padrão) ou **PostgreSQL** |
-| Login Minecraft | **MSAL** + **CmlLib.Core** (Microsoft/Xbox no launcher) |
-| Lançar o jogo | **CmlLib.Core** (instala NeoForge + assets, arranca o Minecraft) |
-| Auto-update launcher | **Velopack** (o servidor hospeda o feed em `/updates`) |
-| Mods | **CurseForge** via proxy do servidor (`/v1/*`), a `x-api-key` nunca sai do servidor |
-| Servidores Minecraft | **Docker-out-of-Docker (DooD)** — um container por instância |
-| Push de mudanças | **SSE** (`/events`) para o launcher |
-| Segredos em repouso | **Data Protection** (token CF cifrado no banco) |
-| Design system | `ColorTokens` compartilhado (CSS, MudBlazor e Avalonia) |
-| Empacotamento NuGet | **Central Package Management** (`Directory.Packages.props`) |
+| Área                 | Stack                                                                               |
+|----------------------|-------------------------------------------------------------------------------------|
+| Plataforma           | .NET 10, C#                                                                         |
+| Backend              | ASP.NET Core — Minimal API + **Blazor Server**                                      |
+| UI admin             | **MudBlazor**                                                                       |
+| Launcher desktop     | **Avalonia** (WinExe), MVVM + **ReactiveUI**                                        |
+| Persistência         | **EF Core** dual-provider — **SQLite** (padrão) ou **PostgreSQL**                   |
+| Login Minecraft      | **MSAL** + **CmlLib.Core** (Microsoft/Xbox no launcher)                             |
+| Lançar o jogo        | **CmlLib.Core** (instala NeoForge + assets, arranca o Minecraft)                    |
+| Auto-update launcher | **Velopack** (o servidor hospeda o feed em `/updates`)                              |
+| Mods                 | **CurseForge** via proxy do servidor (`/v1/*`), a `x-api-key` nunca sai do servidor |
+| Servidores Minecraft | **Docker-out-of-Docker (DooD)** — um container por instância                        |
+| Push de mudanças     | **SSE** (`/events`) para o launcher                                                 |
+| Segredos em repouso  | **Data Protection** (token CF cifrado no banco)                                     |
+| Design system        | `ColorTokens` compartilhado (CSS, MudBlazor e Avalonia)                             |
+| Empacotamento NuGet  | **Central Package Management** (`Directory.Packages.props`)                         |
 
 ## Arquitetura e projetos
 
@@ -67,16 +67,16 @@ Clean Architecture: as dependências apontam **para dentro** (Domain não conhec
 Infrastructure implementa as portas do core). Servidor e launcher têm **infra própria**, sem
 acoplamento cruzado, mas partilham Domain/Application.
 
-| Projeto | Papel |
-|---------|-------|
-| `TCMine-Domain` | Entidades, enums e regras puras de domínio (sem EF/ASP.NET) |
-| `TCMine-Application` | Portas (interfaces), contratos (DTOs `record`) e lógica pura de modpack |
-| `TCMine-Server.Infrastructure` | EF Core (SQLite/Postgres), CurseForge, filesystem, Minecraft, servidores |
-| `TCMine-Launcher.Infrastructure` | CmlLib, HTTP, filesystem do launcher (implementa as portas do core) |
-| `TCMine-Design` | Design system compartilhado (`ColorTokens`) — fonte única de cor |
-| `TCMine-Server` | ASP.NET Core: backend do launcher + painel admin (Blazor/MudBlazor) |
-| `TCMine-Launcher` | App Avalonia (só UI + composição): login, catálogo, jogar |
-| `TCMine-IconGenerator` | Console SkiaSharp que gera ícones/favicon/og-image |
+| Projeto                          | Papel                                                                    |
+|----------------------------------|--------------------------------------------------------------------------|
+| `TCMine-Domain`                  | Entidades, enums e regras puras de domínio (sem EF/ASP.NET)              |
+| `TCMine-Application`             | Portas (interfaces), contratos (DTOs `record`) e lógica pura de modpack  |
+| `TCMine-Server.Infrastructure`   | EF Core (SQLite/Postgres), CurseForge, filesystem, Minecraft, servidores |
+| `TCMine-Launcher.Infrastructure` | CmlLib, HTTP, filesystem do launcher (implementa as portas do core)      |
+| `TCMine-Design`                  | Design system compartilhado (`ColorTokens`) — fonte única de cor         |
+| `TCMine-Server`                  | ASP.NET Core: backend do launcher + painel admin (Blazor/MudBlazor)      |
+| `TCMine-Launcher`                | App Avalonia (só UI + composição): login, catálogo, jogar                |
+| `TCMine-IconGenerator`           | Console SkiaSharp que gera ícones/favicon/og-image                       |
 
 ## Documentação
 
@@ -140,19 +140,20 @@ DB_USER=tcmine
 DB_PASSWORD=troque-esta-senha
 ```
 
-| Variável | O que é | Obrigatória |
-|----------|---------|:-----------:|
+| Variável      | O que é                                 |  Obrigatória   |
+|---------------|-----------------------------------------|:--------------:|
 | `DB_PROVIDER` | Engine do banco: `Postgres` ou `Sqlite` | não (`Sqlite`) |
-| `DB_HOST` | Host do Postgres | sim (Postgres) |
-| `DB_PORT` | Porta do Postgres | não (`5432`) |
-| `DB_NAME` | Nome da database | sim (Postgres) |
-| `DB_USER` | Usuário | sim (Postgres) |
-| `DB_PASSWORD` | Senha | sim (Postgres) |
+| `DB_HOST`     | Host do Postgres                        | sim (Postgres) |
+| `DB_PORT`     | Porta do Postgres                       |  não (`5432`)  |
+| `DB_NAME`     | Nome da database                        | sim (Postgres) |
+| `DB_USER`     | Usuário                                 | sim (Postgres) |
+| `DB_PASSWORD` | Senha                                   | sim (Postgres) |
 
 > **Alternativa:** em vez das quatro variáveis, você pode passar uma única
 > `DB_CONNECTION=Host=...;Port=...;Database=...;Username=...;Password=...` — ela tem
 > prioridade. A resolução completa está em
-> [`DatabaseServiceCollectionExtensions.cs`](TCMine-Server.Infrastructure/Persistence/DatabaseServiceCollectionExtensions.cs)
+> [
+`DatabaseServiceCollectionExtensions.cs`](TCMine-Server.Infrastructure/Persistence/DatabaseServiceCollectionExtensions.cs)
 > e em [persistence-dual-provider](TCMine-Docs/wiki/decisions/persistence-dual-provider.md).
 >
 > As migrations são aplicadas **automaticamente no boot** — você não precisa rodar
@@ -195,12 +196,12 @@ volumes:
 ```
 
 **Docker-out-of-Docker (automático):** o servidor cria containers-irmãos (as instâncias Minecraft) que
-montam subpastas de `tcmine-data` **direto do host**. O caminho do host é **auto-detectado** — o servidor
+montam subpastas de `tcmine-data` **direto do host**. O caminho do host é **auto detectado** — o servidor
 inspeciona o próprio container e lê a origem do volume montado em `/app/tcmine-data`. **Você não precisa
 configurar nada** para isso (basta o `docker.sock` montado, que já é requisito). A pasta do host pode ter
 **qualquer nome**.
 
-> **Override (raro):** se a auto-detecção falhar, defina `ServerInstances__DataHostRoot` com o **caminho
+> **Override (raro):** se a auto detecção falhar, defina `ServerInstances__DataHostRoot` com o **caminho
 > no host** da pasta mapeada para `/app/tcmine-data` (o lado esquerdo do bind).
 
 > **Use bind-mount, não named volume:** as instâncias Minecraft precisam de um caminho de **host real**
@@ -218,7 +219,7 @@ Os papéis disponíveis são `Owner` / `Admin` / `Operator` / `Viewer`.
 
 Diferente do banco, os segredos de runtime **não** vão em variável de ambiente — são
 configurados **pelo painel admin** e guardados no banco (o token do CurseForge fica **cifrado**
-via Data Protection). Após logar como Owner, configure:
+via Data Protection). Após entrar como Owner, configure:
 
 - **Token da API do CurseForge** — habilita busca/import de mods e o proxy `/v1/*`.
 - **Azure Client Id / Tenant Id** — para o login Microsoft do launcher.
@@ -236,7 +237,7 @@ URL pública `https://…`.
 
 Com o servidor no ar, vá em **Admin → Releases** para **compilar e publicar o launcher**
 (`dotnet publish` + `vpk`, feito dentro do container). O servidor hospeda o feed Velopack em
-`/updates`; a partir daí os launchers instalados se auto-atualizam. Detalhes em
+`/updates`; a partir daí os launchers instalados se auto atualizam. Detalhes em
 [launcher-build-velopack](TCMine-Docs/wiki/concepts/launcher-build-velopack.md).
 
 ### Atualizar / manutenção

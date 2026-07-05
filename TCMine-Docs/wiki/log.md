@@ -48,6 +48,115 @@ Estrutura sugerida do corpo:
   Split futuro opcional de `ModpackUpdateService`/`ModFileCacheService`. Página
   `entities/` própria para o `TCMine-Tests` se o projeto crescer. Security headers (CSP).
 
+## [2026-07-05] ingest | Dashboard: gráficos lado a lado + card de disco + jogadores online
+
+- **Fonte:** pedido do usuário (chart mal formatado + implementar recomendações).
+- **Páginas afetadas:** [[sources/2026-07-01-dashboard-metrics-home]], [[entities/tcmine-server]].
+- **Resumo:** (1) reajuste do `SystemStatusCard`: removido o **medidor de rede** (rede é taxa, não
+  %) — restam CPU/RAM/Disco (md=4). Os dois gráficos (memória e rede) saíram de dentro do paper de
+  status e ganharam **papers próprios lado a lado** (`MudGrid` md=6, `Height="240px"`); o
+  `SystemStatusCard` passou a ocupar a largura total do dashboard. Revertido o `ValueText` do
+  `MetricGauge` e o `NetActivityPercent` (mortos após tirar o medidor de rede). (2) Novo widget
+  **`DataDiskUsageCard`**: quebra do uso de disco do `tcmine-data`
+  por área (cache de mods/modpacks/instâncias/cache de servidor/configs de jogador/feed do
+  launcher), com barras relativas; varredura off-thread no init. Colocado ao lado do
+  `RecentModpacksCard`. (3) **Jogadores online** no `ServerInstancesMetricsCard`: Server List Ping
+  (via `ServerInstanceService.PingAsync`) das instâncias em execução, em paralelo, mostrando
+  `Online / Max` por card. Cuidado: há dois `ServerPing` (Application vs Infrastructure); o correto
+  é o da Infra `(int Online, int Max, string? Description)`. Build zero warnings, boot limpo.
+- **Pendências:** verificação visual precisa de login admin. Outras sugestões em aberto: status do
+  CurseForge, feed de erros recentes, ações rápidas.
+
+## [2026-07-05] ingest | Dashboard: medidor+gráfico de rede; remoção do ModDistributionCard
+
+- **Fonte:** pedido do usuário (revamp do card de status do sistema).
+- **Páginas afetadas:** [[sources/2026-07-01-dashboard-metrics-home]], [[entities/tcmine-server]].
+- **Resumo:** (1) **Rede** adicionada ao `SystemStatusCard`: o `SystemMetricsService` passou a
+  amostrar a taxa de transferência (bytes/s recebidos+enviados) via `NetworkInterface`
+  (delta entre amostras, como o CPU; no contêiner reflete o tráfego do servidor). Novo campo
+  `Network` em `SystemSnapshot` + helpers `NetRecvMbps/NetSentMbps/NetTotalMbps`. O 4º medidor
+  (antes um disco duplicado) virou o de rede; como rede não tem "máximo" fixo, o anel mostra a
+  atividade relativa ao pico da janela e o centro/legenda a taxa real (`FormatRate`). O
+  `MetricGauge` ganhou um `ValueText` opcional (centro não-percentual). A rede tem o **seu
+  próprio gráfico** (separado da memória, que tem escala muito maior), com duas séries — ↓
+  Recebido e ↑ Enviado (mesma escala MB/s) — e legenda. (2) **`ModDistributionCard`
+  removido** — os KPIs (`DashboardKpis`) já mostram Cliente/Servidor/Ambos; os campos
+  `ClientMods/ServerMods/SharedMods` permanecem (usados pelos KPIs). `RecentModpacksCard` passou
+  a ocupar a largura toda.
+- **Pendências:** removida a `<AdditionalFiles>` pendente do `ModDistributionCard.razor` no
+  csproj (o Rider a tinha adicionado explícita; ao apagar o arquivo, quebrava o gerador Razor —
+  CS2001). Verificação visual do dashboard precisa de login admin.
+
+## [2026-07-05] meta | Fix: launcher não encontrava as Views (namespace + RootNamespace)
+
+- **Fonte:** relato do usuário ("Not Found: Views.HomePageView") + investigação.
+- **Páginas afetadas:** [[entities/tcmine-launcher]].
+- **Sintoma:** o `ViewLocator` resolve a View pelo nome do VM
+  (`FullName.Replace("ViewModel","View")` + `Type.GetType`). Um auto-fix da IDE (Rider,
+  "sync namespace with folder") **dropou o root namespace** de 7 ViewModels + Views/axaml,
+  gerando `namespace ViewModels`/`Views` em vez de `TCMine_Launcher.ViewModels`/`.Views`.
+  Resultado: o locator procurava `Views.HomePageView` (inexistente) — as páginas não
+  renderizavam.
+- **Causa raiz:** o `TCMine-Launcher.csproj` (e o `TCMine-Tests.csproj`) **não definiam
+  `<RootNamespace>`**. Como o nome do projeto tem hífen, a IDE derivava o root errado. Todos
+  os outros projetos já tinham `RootNamespace` explícito — por isso só esses dois quebravam.
+- **Fix:** (1) restaurados todos os namespaces/usings/`clr-namespace` para
+  `TCMine_Launcher.ViewModels`/`.Views` (e testes → `TCMine_Tests.Modpack`); (2) adicionado
+  `<RootNamespace>TCMine_Launcher</RootNamespace>` e `<RootNamespace>TCMine_Tests</RootNamespace>`
+  aos dois csproj — blindagem contra reincidência. Build zero warnings, 39 testes verdes.
+- **Pendências:** —
+
+## [2026-07-05] lint | Fix do loop infinito do HomePageViewModel + auditoria de loops
+
+- **Fonte:** código vivo — warning da IDE no `HomePageViewModel.ServerLoopAsync` + varredura.
+- **Páginas afetadas:** [[entities/tcmine-launcher]].
+- **Resumo:** `HomePageViewModel.ServerLoopAsync` era um `while (true)` sem `CancellationToken`
+  (fire-and-forget no construtor) que nunca parava e morria em silêncio se um ping lançasse.
+  Corrigido com o padrão do `ContentWatcher`: CTS + `IDisposable`, `while (!ct.IsCancellationRequested)`,
+  `Task.Delay(ct)`, e `try/catch` por ciclo (falha transitória re-tenta; cancelamento encerra).
+  O `MainWindowViewModel` (dono do `Home`) passou a descartá-lo no seu `Dispose`.
+  **Auditoria da solução inteira:** nenhum outro loop infinito sem cancelamento — os demais
+  loops de background (`ContentWatcher`, `LauncherAutoBuildService`, `ServerInstanceDetail`) já
+  têm CTS+IDisposable; os timers do dashboard descartam; os `while(true)` restantes são bounded
+  (undo, leitura de VarInt, wait do Docker); os fire-and-forget são one-shot. Sem `async void`.
+- **Pendências:** —
+
+## [2026-07-05] lint | Varredura completa de dead code (tipos, métodos, propriedades)
+
+- **Fonte:** código vivo, varredura solicitada (IDE0051/IDE0052 p/ privados + grep de
+  alcançabilidade p/ públicos).
+- **Páginas afetadas:** [[entities/tcmine-application]], [[entities/tcmine-server-infrastructure]].
+- **Resumo:** confirmado **zero** membros privados mortos (analisadores IDE). Removidos os
+  públicos sem nenhum chamador:
+  - **Tipos:** `ReleaseDto` e `OverrideFileDto` (records de contrato sem uso; o segundo ficou
+    órfão ao remover o método abaixo).
+  - **Métodos:** `ModpackOverridesService.ListOverrideFiles`/`GetOverrideLength`/
+    `DeleteOverrideFolderAsync`, `ModpackImportService.ExistsAsync`,
+    `UserService.UsernameExistsAsync`, `ServerInstanceService.RestartAsync`,
+    `CurseForgeImporter.ImportSingleAsync`.
+  - `ListOverrideFiles` era mencionado no log histórico de 2026-06-24 (quando a árvore migrou
+    para carregamento lazy via `ListOverrideChildren`) — o método ficou obsoleto ali e agora
+    foi removido; a entrada histórica permanece intacta (é registro append-only).
+  - Build zero warnings, 39 testes verdes.
+- **Pendências:** `ModSetMerge`+`MergeResultDto` e `CfManifestFileDto.Required` seguem no código
+  por **decisão explícita do usuário** (turno anterior), apesar de sem consumidor de produção.
+  Falsos positivos confirmados alcançáveis: endpoints (`MapXxx`), páginas Blazor (`@page`),
+  snapshots/factories do EF (tooling/reflection).
+
+## [2026-07-05] lint | Remoção de propriedades/DTOs de contrato não usados
+
+- **Fonte:** código vivo, varredura de propriedades de DTO sem uso (a pedido do usuário).
+- **Páginas afetadas:** [[entities/tcmine-application]] (contratos).
+- **Resumo:** removido dead code de `TCMine-Application/Contracts`: (1) o record **`NewsDto`**
+  inteiro (zero referências — os feeds usam `NewsItemDto`/`NewsRowDto`); (2)
+  `VersionOptionDto.**IsStable**` (alias `=> IsRelease` nunca lido); (3) **`ModpackUpdateStatusDto`**
+  inteiro — o `CheckModpackUpdateAsync` retornava esse DTO rico mas o único consumidor só o
+  null-checava (o banner lê tudo do entity `ModpackImportSourceEntity`); o método passou a
+  retornar `bool` e o `ToStatus` foi apagado. Build zero warnings, 39 testes verdes.
+- **Pendências (avaliadas, NÃO removidas por decisão do usuário):** `ModSetMerge`+`MergeResultDto`
+  (sem consumidor de produção, só testes — mas listado como lógica compartilhada intencional) e
+  `CfManifestFileDto.Required` (espelha o schema de fio do CF, nunca lido).
+
 ## [2026-07-05] ingest | Split do ModpackImportService em ModFileCacheService + ModpackUpdateService
 
 - **Fonte:** código vivo, item 1 do backlog (continuação do split de responsabilidades).
