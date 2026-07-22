@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/Launcher/" />
+  <Folder Name="/Server/" />
+  <Folder Name="/Shared/" />
+  <Folder Name="/_root/">
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+  </Folder>
+</Solution>
