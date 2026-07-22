@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Entidades e regras de negócio. Sem EF Core, sem ASP.NET Core, sem
+        nenhuma dependência de infraestrutura.
+    
+        Referencia Contracts apenas para reaproveitar enums de vocabulário
+        compartilhado (ModLoader, FileSide, GameServerStatus). Duplicar esses
+        enums seria pior que o acoplamento: eles descrevem o mesmo conceito nos
+        dois lados, e manter duas listas em sincronia manual é convite a bug.
+    
+        Isso não significa expor entidade como DTO — o mapeamento continua
+        sendo responsabilidade da camada Application.
+    -->
+    <ItemGroup>
+        <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+    </ItemGroup>
+
+</Project>

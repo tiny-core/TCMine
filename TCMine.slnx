@@ -1,6 +1,8 @@
 <Solution>
     <Folder Name="/Launcher/"/>
-    <Folder Name="/Server/"/>
+    <Folder Name="/Server/">
+        <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj"/>
+    </Folder>
     <Folder Name="/Shared/">
         <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj"/>
     </Folder>
