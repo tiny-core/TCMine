@@ -1,9 +1,7 @@
-﻿@* Emite as variáveis de token no <head>.
-   
-   Usar HeadContent em vez de um arquivo .css evita uma requisição extra e
-   elimina qualquer chance de o CSS ficar defasado em relação ao TcColors —
-   ele é construído a partir da mesma fonte, no mesmo processo. *@
+﻿@* Emite as variáveis de token direto, sem HeadContent.
 
-<HeadContent>
-    <style>@((MarkupString)Css)</style>
-</HeadContent>
+   HeadContent serve para páginas injetarem conteúdo no head a partir de
+   dentro da árvore roteada. Aqui já estamos no head do App.razor, então
+   o style vai direto. *@
+
+<style>@((MarkupString)Css)</style>
