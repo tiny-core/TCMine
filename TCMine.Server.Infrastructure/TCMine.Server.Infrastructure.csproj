@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <!--
+        Implementa as portas declaradas na Application: persistência, storage de
+        arquivos, orquestração de containers.
+    
+        Provider-agnóstico de propósito: aqui só entra EF Core Relational. Npgsql
+        e SQLite ficam nos projetos de migrations, porque o EF Core não consegue
+        manter migrations de dois providers no mesmo assembly.
+      -->
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
+        <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
+    </ItemGroup>
+
+</Project>
