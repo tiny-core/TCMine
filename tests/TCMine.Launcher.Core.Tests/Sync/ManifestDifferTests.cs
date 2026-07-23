@@ -112,8 +112,8 @@ public class ManifestDifferTests
     [Fact]
     public void Mod_removido_do_pack_e_apagado()
     {
-        // Sem esta limpeza o mod continuaria carregando e provavelmente
-        // travaria o jogo por incompatibilidade com a versão nova.
+        // Sem esta limpeza o mod continuaria carregando e travaria provavelmente
+        //  o jogo por incompatibilidade com a versão nova.
         var plano = Planejar(
             Manifest(Arquivo("mods/jei.jar", "aaa")),
             new Dictionary<string, string>
@@ -129,7 +129,7 @@ public class ManifestDifferTests
     [Fact]
     public void Arquivo_server_only_e_ignorado_no_cliente()
     {
-        // O mesmo .mrpack serve os dois lados. Baixar um mod de servidor não
+        // O mesmo mrpack serve os dois lados. Baixar um mod de servidor não
         // daria erro visível, mas gastaria banda e disco à toa.
         var plano = Planejar(Manifest(
             Arquivo("mods/spark.jar", "bbb", FileSide.ServerOnly)));

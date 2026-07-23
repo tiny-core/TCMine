@@ -7,6 +7,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
         <ProjectReference Include="..\..\src\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
+        <ProjectReference Include="..\..\src\server\TCMine.Server.Infrastructure\TCMine.Server.Infrastructure.csproj"/>
     </ItemGroup>
 
 </Project>
