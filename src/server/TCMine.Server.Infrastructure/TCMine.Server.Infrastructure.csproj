@@ -13,9 +13,9 @@
         <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
         <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
     </ItemGroup>
-    
+
     <ItemGroup>
-        <ProjectReference Include="..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
+        <ProjectReference Include="..\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
     </ItemGroup>
 
 </Project>

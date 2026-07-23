@@ -1,25 +1,26 @@
 <Solution>
     <Folder Name="/Launcher/">
-        <Project Path="src/launcher/TCMine.Launcher.Core/TCMine.Launcher.Core.csproj" />
+        <Project Path="src/launcher/TCMine.Launcher.Core/TCMine.Launcher.Core.csproj"/>
     </Folder>
     <Folder Name="/Server/">
-        <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj" />
-        <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj" />
-        <Project Path="TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj" />
+        <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj"/>
+        <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj"/>
+        <Project Path="src/server/TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj"/>
+        <Project Path="src/server/TCMine.Server.Infrastructure.Postgres/TCMine.Server.Infrastructure.Postgres.csproj"/>
     </Folder>
     <Folder Name="/Shared/">
-        <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj" />
+        <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj"/>
     </Folder>
     <Folder Name="/Tests/">
-        <File Path="tests/Directory.Build.props" />
-        <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj" />
-        <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj" />
-        <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
+        <File Path="tests/Directory.Build.props"/>
+        <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj"/>
+        <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj"/>
+        <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj"/>
     </Folder>
     <Folder Name="/_root/">
-        <File Path=".gitignore" />
-        <File Path="Directory.Build.props" />
-        <File Path="Directory.Packages.props" />
-        <File Path="global.json" />
+        <File Path=".gitignore"/>
+        <File Path="Directory.Build.props"/>
+        <File Path="Directory.Packages.props"/>
+        <File Path="global.json"/>
     </Folder>
 </Solution>

@@ -20,7 +20,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         // voltou. Precisa ser única, ou dois logins criariam dois usuários.
         builder.HasIndex(u => u.MicrosoftObjectId).IsUnique();
 
-        // Filtrado porque nem todo usuário tem conta Minecraft vinculada, e
+        // Filtrado porque alguns usuários não têm conta Minecraft vinculada, e
         // vários NULL num índice único quebrariam a restrição.
         builder.HasIndex(u => u.MinecraftUuid)
             .IsUnique()

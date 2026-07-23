@@ -17,24 +17,24 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<GameServer> GameServers => Set<GameServer>();
     public DbSet<Blob> Blobs => Set<Blob>();
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Varre o assembly atrás de IEntityTypeConfiguration<T>. Sem isto,
         // toda classe de configuração nova precisaria ser registrada à mão
         // aqui — e esquecer uma significa o EF inferir o mapeamento sozinho,
         // silenciosamente e quase sempre errado.
-        builder.ApplyConfigurationsFromAssembly(typeof(TcMineDbContext).Assembly);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(TcMineDbContext).Assembly);
     }
 
-    protected override void ConfigureConventions(ModelConfigurationBuilder builder)
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Sem isto, o EF trata string como texto ilimitado. No Postgres não
         // faz diferença prática, mas em índice é ruim e a intenção fica
         // implícita. Cada configuração pode sobrescrever quando precisar.
-        builder.Properties<string>().HaveMaxLength(512);
+        configurationBuilder.Properties<string>().HaveMaxLength(512);
 
         // DateTimeOffset é o padrão do projeto e o Postgres armazena como
         // timestamptz. Deixar explícito evita surpresa de fuso.
-        builder.Properties<DateTimeOffset>().HaveColumnType("timestamptz");
+        configurationBuilder.Properties<DateTimeOffset>().HaveColumnType("timestamptz");
     }
 }
