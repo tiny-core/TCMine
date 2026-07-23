@@ -19,5 +19,5 @@
         <ProjectReference Include="..\..\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
         <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
     </ItemGroup>
-    
+
 </Project>
