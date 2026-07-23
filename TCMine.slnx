@@ -18,6 +18,10 @@
         <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj" />
         <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
     </Folder>
+    <Folder Name="/_build/">
+        <File Path="build/add-migration.ps1" />
+        <File Path="build/add-migration.sh" />
+    </Folder>
     <Folder Name="/_root/">
         <File Path=".gitignore" />
         <File Path="Directory.Build.props" />
