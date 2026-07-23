@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using MudBlazor.Services;
 using Serilog;
 using TCMine.Server.Infrastructure;
+using TCMine.Server.Web.Components;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Endpoints;
 using TCMine.Server.Web.Extensions;
@@ -47,6 +49,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 builder.Services.AddHealthChecks();
 
+// ---------- Blazor ----------
+builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+
+builder.Services.AddMudServices();
+
 var app = builder.Build();
 
 // ---------- Pipeline ----------
@@ -57,5 +65,11 @@ app.MapHandshake();
 app.MapBlobs();
 
 app.MapHealthChecks("/health");
+
+app.UseStaticFiles();
+app.UseAntiforgery();
+
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
 
 app.Run();

@@ -1,0 +1,25 @@
+﻿@inherits LayoutComponentBase
+
+@* ObserveSystemDarkModeChange vem true por padrão: o provider observa a
+   preferência do sistema operacional e sobrescreve qualquer alternância
+   manual. Desligar é o que devolve o controle ao botão. *@
+<MudThemeProvider Theme="TcMineTheme.Default"
+                  @bind-IsDarkMode="_darkMode"
+                  ObserveSystemDarkModeChange="false"/>
+<MudPopoverProvider/>
+<MudDialogProvider/>
+<MudSnackbarProvider/>
+
+<MudLayout>
+    <MudAppBar Elevation="1">
+        <MudText Typo="Typo.h6">TCMine</MudText>
+        <MudSpacer/>
+        <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+                       Color="Color.Inherit"
+                       OnClick="@(() => _darkMode = !_darkMode)"/>
+    </MudAppBar>
+
+    <MudMainContent Class="pt-16 pa-4">
+        @Body
+    </MudMainContent>
+</MudLayout>

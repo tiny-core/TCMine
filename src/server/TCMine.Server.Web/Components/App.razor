@@ -1,0 +1,28 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <base href="/"/>
+
+    <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]"/>
+    <link rel="stylesheet" href="@Assets["_content/TCMine.UI.Shared/tokens.css"]"/>
+
+    <TcMineTokens/>
+
+    <link rel="stylesheet" href="@Assets["app.css"]"/>
+
+    <title>TCMine Server</title>
+
+    <HeadOutlet @rendermode="InteractiveServer"/>
+</head>
+<body>
+@* Marcar o Routes na raiz torna toda a árvore interativa — layout,
+       páginas e componentes. É o modo global, e evita ter que repetir a
+       diretiva em cada página. *@
+<Routes @rendermode="InteractiveServer"/>
+
+<script src="@Assets["_framework/blazor.web.js"]"></script>
+<script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
+</body>
+</html>

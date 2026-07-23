@@ -20,6 +20,7 @@
 
     <ItemGroup>
         <PackageReference Include="Serilog.AspNetCore"/>
+        <PackageReference Include="MudBlazor"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -29,6 +30,7 @@
         -->
         <ProjectReference Include="..\TCMine.Server.Infrastructure.Postgres\TCMine.Server.Infrastructure.Postgres.csproj"/>
         <ProjectReference Include="..\TCMine.Server.Infrastructure.Sqlite\TCMine.Server.Infrastructure.Sqlite.csproj"/>
+        <ProjectReference Include="..\..\shared\TCMine.UI.Shared\TCMine.UI.Shared.csproj"/>
     </ItemGroup>
 
 

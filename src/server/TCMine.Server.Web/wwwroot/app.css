@@ -1,0 +1,6 @@
+﻿/* Estilos do host. Tudo que for compartilhado com o launcher deve ir para
+   a RCL, não para cá. */
+
+html, body {
+    margin: 0;
+}

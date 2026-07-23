@@ -1,0 +1,16 @@
+﻿@page "/"
+
+<MudContainer MaxWidth="MaxWidth.Medium">
+    <MudText Typo="Typo.h4" GutterBottom="true">Painel</MudText>
+
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudText>Servidor no ar. Protocolo @ProtocolVersion.</MudText>
+
+        <MudStack Row="true" Class="mt-4" Spacing="2">
+            @foreach (var status in StatusExemplo)
+            {
+                <ServerStatusChip Status="status"/>
+            }
+        </MudStack>
+    </MudPaper>
+</MudContainer>
