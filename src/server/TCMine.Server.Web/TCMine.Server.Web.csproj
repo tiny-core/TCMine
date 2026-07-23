@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <UserSecretsId>tcmine-server-web</UserSecretsId>
+
+        <!--
+            A aplicação roda em container Linux e não precisa dos dados de
+            globalização do ICU. Desligar corta alguns MB da imagem e o tempo de
+            startup. Se um dia formatarmos data por cultura, isso precisa voltar.
+        -->
+        <InvariantGlobalization>true</InvariantGlobalization>
+
+        <!--
+            Blazor depende de reflection: PublishTrimmed quebra em runtime, de
+            formas difíceis de diagnosticar. ReadyToRun é seguro e melhora o
+            tempo de primeira requisição.
+        -->
+        <PublishReadyToRun>true</PublishReadyToRun>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Serilog.AspNetCore"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <!--
+            Referencia os dois projetos de migrations porque a escolha do provider
+            é feita em runtime, pela configuração. Só um deles é usado por vez.
+        -->
+        <ProjectReference Include="..\TCMine.Server.Infrastructure.Postgres\TCMine.Server.Infrastructure.Postgres.csproj"/>
+        <ProjectReference Include="..\TCMine.Server.Infrastructure.Sqlite\TCMine.Server.Infrastructure.Sqlite.csproj"/>
+    </ItemGroup>
+
+
+</Project>

@@ -58,7 +58,7 @@ public sealed partial class FileSystemBlobStore : IBlobStore
                 !hash.Equals(expectedSha256, StringComparison.OrdinalIgnoreCase))
                 // Confiar no hash informado pela origem equivale a não
                 // verificar nada: se o CDN devolveu outro arquivo, teríamos
-                // gravado conteúdo errado com o nome certo — e todo cliente
+                // gravado conteúdo errado com o nome certo — e o cliente
                 // que baixasse depois receberia o arquivo errado achando que
                 // está correto.
                 throw new InvalidDataException(
