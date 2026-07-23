@@ -2,10 +2,13 @@
     <Folder Name="/Launcher/"/>
     <Folder Name="/Server/">
         <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj"/>
-        <Project Path="TCMine.Server.Application/TCMine.Server.Application.csproj"/>
+        <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj"/>
     </Folder>
     <Folder Name="/Shared/">
         <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj"/>
+    </Folder>
+    <Folder Name="/Tests/">
+        <File Path="tests/Directory.Build.props"/>
     </Folder>
     <Folder Name="/_root/">
         <File Path=".gitignore"/>

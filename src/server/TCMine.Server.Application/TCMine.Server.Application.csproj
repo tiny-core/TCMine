@@ -14,9 +14,9 @@
         <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     </ItemGroup>
-    
+
     <ItemGroup>
-        <ProjectReference Include="..\src\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
-        <ProjectReference Include="..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+        <ProjectReference Include="..\..\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
+        <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
     </ItemGroup>
 </Project>
