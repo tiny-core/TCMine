@@ -1,0 +1,16 @@
+﻿/* Tokens que não existem na paleta do MudBlazor: fundos suaves de status.
+   Os nomes seguem o padrão do MudBlazor para não destoar. */
+
+:root {
+    --tc-status-success-bg: #ECFDF3;
+    --tc-status-error-bg: #FEF1F1;
+    --tc-status-warning-bg: #FFF8EB;
+    --tc-status-info-bg: #EFF7FC;
+}
+
+.mud-theme-dark, [data-theme="dark"] {
+    --tc-status-success-bg: #0F2E22;
+    --tc-status-error-bg: #3A1414;
+    --tc-status-warning-bg: #332408;
+    --tc-status-info-bg: #0D2A38;
+}

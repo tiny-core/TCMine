@@ -1,0 +1,9 @@
+﻿@* Emite as variáveis de token no <head>.
+   
+   Usar HeadContent em vez de um arquivo .css evita uma requisição extra e
+   elimina qualquer chance de o CSS ficar defasado em relação ao TcColors —
+   ele é construído a partir da mesma fonte, no mesmo processo. *@
+
+<HeadContent>
+    <style>@((MarkupString)Css)</style>
+</HeadContent>

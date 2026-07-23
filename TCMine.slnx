@@ -12,6 +12,7 @@
     </Folder>
     <Folder Name="/Shared/">
         <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj" />
+        <Project Path="src/shared/TCMine.UI.Shared/TCMine.UI.Shared.csproj" />
     </Folder>
     <Folder Name="/Tests/">
         <File Path="tests/Directory.Build.props" />
