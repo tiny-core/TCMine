@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <ItemGroup>
+        <PackageReference Include="NSubstitute"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
+        <ProjectReference Include="..\..\src\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
+    </ItemGroup>
+
+</Project>
