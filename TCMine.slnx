@@ -11,6 +11,7 @@
     </Folder>
     <Folder Name="/Tests/">
         <File Path="tests/Directory.Build.props" />
+        <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj" />
         <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
     </Folder>
     <Folder Name="/_root/">
