@@ -33,8 +33,8 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
         // implícita. Cada configuração pode sobrescrever quando precisar.
         configurationBuilder.Properties<string>().HaveMaxLength(512);
 
-        // DateTimeOffset é o padrão do projeto e o Postgres armazena como
-        // timestamptz. Deixar explícito evita surpresa de fuso.
-        configurationBuilder.Properties<DateTimeOffset>().HaveColumnType("timestamptz");
+        // O tipo de coluna de data fica a cargo de cada provider: o Npgsql
+        // mapeia DateTimeOffset para timestamptz por conta própria, e o
+        // SQLite guarda como texto. Fixar aqui quebraria um dos dois.
     }
 }

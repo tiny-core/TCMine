@@ -30,8 +30,8 @@
 
     <ItemGroup Label="step_05">
         <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0"/>
+        <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10"/>
         <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
     </ItemGroup>
-    
+
 </Project>
