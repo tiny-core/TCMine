@@ -44,5 +44,8 @@
         <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10"/>
         <PackageVersion Include="MudBlazor" Version="9.7.0"/>
     </ItemGroup>
-    
+
+    <ItemGroup Label="step_08">
+        <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.10"/>
+    </ItemGroup>
 </Project>

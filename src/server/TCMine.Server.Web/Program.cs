@@ -1,11 +1,15 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using Serilog;
+using TCMine.Contracts.Hubs;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure;
 using TCMine.Server.Web.Components;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Endpoints;
 using TCMine.Server.Web.Extensions;
+using TCMine.Server.Web.Hubs;
+using TCMine.Server.Web.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +59,29 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddMudServices();
 
+// ---------- SignalR ----------
+builder.Services
+    .AddSignalR(options =>
+    {
+        // Erro detalhado só em desenvolvimento: em produção a mensagem de
+        // exceção pode revelar estrutura interna a quem está sondando.
+        options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    })
+    // MessagePack é binário: mensagens menores e serialização mais rápida
+    // que JSON. Vale principalmente no stream de console, que é constante.
+    .AddMessagePackProtocol();
+
+builder.Services.AddScoped<LauncherNotifier>();
+
+// ---------- Identidade (provisória) ----------
+if (builder.Environment.IsDevelopment())
+    builder.Services.AddScoped<ICurrentUserScope, DevelopmentUserScope>();
+else
+    // Falha explícita e cedo. Subir em produção sem autorização real seria
+    // pior do que não subir.
+    throw new InvalidOperationException(
+        "Autenticação ainda não implementada. Esta build só roda em Development.");
+
 var app = builder.Build();
 
 // ---------- Pipeline ----------
@@ -71,5 +98,7 @@ app.UseAntiforgery();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+app.MapHub<MainHub>(HubRoutes.Main);
 
 app.Run();

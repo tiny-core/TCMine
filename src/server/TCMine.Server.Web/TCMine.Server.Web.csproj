@@ -21,6 +21,7 @@
     <ItemGroup>
         <PackageReference Include="Serilog.AspNetCore"/>
         <PackageReference Include="MudBlazor"/>
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>
     </ItemGroup>
 
     <ItemGroup>
