@@ -18,7 +18,12 @@ public static class DatabaseExtensions
         this IServiceCollection services,
         DatabaseOptions options)
     {
-        services.AddDbContext<TcMineDbContext>(builder =>
+        // AddDbContextFactory em vez de AddDbContext: no Blazor Server o scope
+        // dura a conexão inteira, então um DbContext scoped acumularia
+        // entidades de todas as telas e mais cedo ou mais tarde colidiria.
+        // A factory cria um contexto curto por operação — o padrão correto
+        // para Blazor Server.
+        services.AddDbContextFactory<TcMineDbContext>(builder =>
         {
             switch (options.Provider)
             {

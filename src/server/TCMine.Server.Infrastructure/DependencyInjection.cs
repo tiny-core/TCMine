@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Storage;
 
@@ -28,6 +29,14 @@ public static class DependencyInjection
         services.AddSingleton<IBlobStore, FileSystemBlobStore>();
 
         services.AddScoped<IModpackRepository, ModpackRepository>();
+
+        // O Modrinth pede um User-Agent identificável — a API rejeita
+        // requisições sem ele. A convenção deles é "nome/versão (contato)".
+        services.AddHttpClient<IModResolver, ModrinthModResolver>(client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
 
         return services;
     }

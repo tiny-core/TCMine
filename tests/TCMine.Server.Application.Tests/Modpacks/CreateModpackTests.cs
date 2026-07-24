@@ -30,8 +30,7 @@ public class CreateModpackTests
         var resultado = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeTrue();
-        _repo.Received(1).Add(Arg.Any<Modpack>());
-        await _repo.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _repo.Received(1).CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -43,7 +42,7 @@ public class CreateModpackTests
         var resultado = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeFalse();
-        _repo.DidNotReceive().Add(Arg.Any<Modpack>());
+        await _repo.DidNotReceive().CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -59,7 +58,7 @@ public class CreateModpackTests
         var resultado = await caso.HandleAsync(ComandoValido(slug), TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeFalse();
-        await _repo.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+        await _repo.DidNotReceive().CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -69,7 +68,7 @@ public class CreateModpackTests
         // resto minúsculo — então normaliza para um slug válido em vez de
         // rejeitar.
         Modpack? capturado = null;
-        _repo.When(r => r.Add(Arg.Any<Modpack>()))
+        _repo.When(r => r.CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>()))
             .Do(call => capturado = call.Arg<Modpack>());
         _repo.SlugExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
 

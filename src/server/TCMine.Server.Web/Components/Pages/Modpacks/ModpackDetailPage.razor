@@ -1,6 +1,80 @@
-﻿@page "/ModpackDetailPage"
-<h3>ModpackDetailPage</h3>
+﻿@page "/modpacks/{ModpackId:guid}"
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Domain.Modpacks
+@inject IModpackRepository Repository
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
-@code {
-    
+<PageTitle>@(_modpack?.Name ?? "Modpack") — TCMine</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_modpack is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff"
+                Title="Modpack não encontrado."
+                Description="Ele pode ter sido removido."/>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Navigation.NavigateTo("/modpacks"))"/>
+        <MudText Typo="Typo.h4">@_modpack.Name</MudText>
+    </MudStack>
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-12 mb-4">
+        @_modpack.Slug
+    </MudText>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudText Typo="Typo.h5">Versões</MudText>
+        <MudSpacer/>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateVersionDialog">
+            Nova versão
+        </MudButton>
+    </MudStack>
+
+    @if (_versions.Count is 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Layers"
+                    Title="Nenhuma versão ainda."
+                    Description="Crie uma versão, adicione os arquivos e publique."/>
+    }
+    else
+    {
+        <MudPaper Outlined="true">
+            <MudList T="ModpackVersion" Dense="false">
+                @foreach (var version in _versions)
+                {
+                    <MudListItem T="ModpackVersion"
+                                 OnClick="@(() => OpenVersion(version))">
+                        <div class="d-flex align-center" style="width: 100%; gap: 12px;">
+                            <MudText Typo="Typo.body1" Style="min-width: 80px;">
+                                @version.Version
+                            </MudText>
+
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                MC @version.MinecraftVersion · @version.Loader
+                            </MudText>
+
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                @version.Files.Count arquivo(s)
+                            </MudText>
+
+                            <MudSpacer/>
+
+                            <VersionStateChip State="version.State"/>
+                        </div>
+                    </MudListItem>
+                    <MudDivider/>
+                }
+            </MudList>
+        </MudPaper>
+    }
 }

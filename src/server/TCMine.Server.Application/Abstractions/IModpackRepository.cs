@@ -4,12 +4,10 @@ namespace TCMine.Server.Application.Abstractions;
 
 /// <summary>
 ///     Acesso à persistência de modpacks.
-///     A interface vive na Application e a implementação na Infrastructure: é o
-///     que permite testar os casos de uso com um repositório em memória, sem
-///     subir banco, e mantém o EF Core fora desta camada.
-///     Métodos deliberadamente estreitos — um por necessidade real de um caso
-///     de uso. Repositório genérico com IQueryable exposto vaza detalhe de EF
-///     para cima e torna a superfície difícil de testar.
+///     Cada método é atômico: abre um contexto, faz o trabalho, grava e fecha.
+///     Não há Add + SaveChanges separado porque, no Blazor Server, um contexto
+///     compartilhado entre operações acumula estado rastreado de toda a sessão e
+///     acaba colidindo. Contexto curto por operação é o padrão correto aqui.
 /// </summary>
 public interface IModpackRepository
 {
@@ -19,15 +17,21 @@ public interface IModpackRepository
 
     Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct);
 
-    void Add(Modpack modpack);
+    Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct);
+
+    Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct);
+
+    /// <summary>Persiste um modpack novo.</summary>
+    Task CreateAsync(Modpack modpack, CancellationToken ct);
+
+    /// <summary>Anexa uma versão a um modpack existente.</summary>
+    Task AddVersionAsync(ModpackVersion version, CancellationToken ct);
 
     /// <summary>
-    ///     Persiste as mudanças rastreadas.
-    ///     Separado do Add de propósito: um caso de uso pode alterar várias
-    ///     entidades e gravar tudo numa transação só. É o padrão Unit of Work,
-    ///     e o DbContext já é exatamente isso por baixo.
+    ///     Grava alterações numa versão já existente e seus arquivos.
+    ///     Recebe a entidade inteira e reconcilia: é o que permite ao caso de uso
+    ///     carregar, mexer no domínio (adicionar arquivo, mudar estado) e mandar
+    ///     gravar, sem se preocupar com rastreamento.
     /// </summary>
-    Task SaveChangesAsync(CancellationToken ct);
-
-    Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct);
+    Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct);
 }

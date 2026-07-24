@@ -1,0 +1,99 @@
+﻿@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@inject IModpackRepository Repository
+@inject AddManualFile AddManualFileUseCase
+@inject PublishModpackVersion PublishUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        @if (_version is null)
+        {
+            <MudProgressCircular Indeterminate="true"/>
+        }
+        else
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+                <VersionStateChip State="_version.State"/>
+                <MudSpacer/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    MC @_version.MinecraftVersion · @_version.Loader @_version.LoaderVersion
+                </MudText>
+            </MudStack>
+
+            @* Upload só faz sentido em rascunho: versão publicada é imutável.
+               A UI esconde a ação, e o caso de uso recusa de qualquer forma —
+               defesa em duas camadas. *@
+            @if (_version.State is ModpackVersionState.Draft)
+            {
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <MudSelect @bind-Value="_targetFolder" Label="Pasta de destino" Style="min-width: 160px;">
+                        <MudSelectItem Value="@("mods")">mods/</MudSelectItem>
+                        <MudSelectItem Value="@("config")">config/</MudSelectItem>
+                        <MudSelectItem Value="@("resourcepacks")">resourcepacks/</MudSelectItem>
+                        <MudSelectItem Value="@("shaderpacks")">shaderpacks/</MudSelectItem>
+                        <MudSelectItem Value="@("kubejs")">kubejs/</MudSelectItem>
+                    </MudSelect>
+
+                    <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected">
+                        <ActivatorContent>
+                            <MudButton Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.Upload"
+                                       Disabled="_isUploading">
+                                @if (_isUploading)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                }
+                                Adicionar arquivo
+                            </MudButton>
+                        </ActivatorContent>
+                    </MudFileUpload>
+                </MudStack>
+            }
+
+            @if (_version.Files.Count is 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                    Nenhum arquivo nesta versão.
+                </MudText>
+            }
+            else
+            {
+                <MudSimpleTable Dense="true" Hover="true">
+                    <thead>
+                    <tr>
+                        <th>Caminho</th>
+                        <th>Lado</th>
+                        <th style="text-align: right;">Tamanho</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var file in _version.Files)
+                    {
+                        <tr>
+                            <td>@file.Path</td>
+                            <td>@file.Side</td>
+                            <td style="text-align: right;">@FormatSize(file.SizeBytes)</td>
+                        </tr>
+                    }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Close">Fechar</MudButton>
+
+        @if (_version?.State is ModpackVersionState.Draft)
+        {
+            <MudButton Color="Color.Success"
+                       Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Publish"
+                       OnClick="PublishAsync"
+                       Disabled="_isPublishing || _version.Files.Count is 0">
+                Publicar
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>

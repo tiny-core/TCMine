@@ -6,8 +6,7 @@ using TCMine.Server.Domain.Modpacks;
 namespace TCMine.Server.Application.Modpacks;
 
 /// <summary>
-///     Cria uma nova versão de um modpack. Ela nasce em Draft, vazia — os
-///     arquivos são adicionados depois, e só então ela é publicada.
+///     Cria uma versão. Nasce em Draft, vazia; os arquivos vêm depois.
 /// </summary>
 public sealed class CreateModpackVersion(IModpackRepository repository)
 {
@@ -20,10 +19,9 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
 
         var versionText = command.Version.Trim();
 
-        // Duas versões com o mesmo número no mesmo pack seria ambígua para
-        // o launcher, que identifica a instância por (modpack, versão). O
-        // índice único do banco garante isso, mas checar antes dá mensagem
-        // melhor que um erro de constraint.
+        // O modpack veio com suas versões carregadas (Include), então dá para
+        // checar duplicata em memória. O índice único do banco é a garantia
+        // final contra corrida.
         if (modpack.Versions.Any(v => v.Version.Equals(versionText, StringComparison.OrdinalIgnoreCase)))
             return Result<Guid>.Fail($"A versão '{versionText}' já existe neste modpack.");
 
@@ -37,8 +35,7 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
             RecommendedMemoryMb = command.RecommendedMemoryMb
         };
 
-        modpack.Versions.Add(version);
-        await repository.SaveChangesAsync(ct);
+        await repository.AddVersionAsync(version, ct);
 
         return Result<Guid>.Success(version.Id);
     }

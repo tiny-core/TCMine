@@ -16,6 +16,7 @@ public class PublishModpackVersionTests
         return new PublishModpackVersion(_repo, _notifier);
     }
 
+    // Uma versão em rascunho, já com um arquivo — pronta para publicar.
     private static ModpackVersion VersaoComArquivo()
     {
         var version = new ModpackVersion
@@ -44,12 +45,12 @@ public class PublishModpackVersionTests
     {
         var version = VersaoComArquivo();
         _repo.GetVersionAsync(version.Id, Arg.Any<CancellationToken>()).Returns(version);
-        var ct = TestContext.Current.CancellationToken;
 
-        var resultado = await CasoDeUso().HandleAsync(version.Id, ct);
+        var resultado = await CasoDeUso().HandleAsync(version.Id, TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeTrue();
         version.State.ShouldBe(ModpackVersionState.Ready);
+        await _repo.Received(1).UpdateVersionAsync(version, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -80,8 +81,12 @@ public class PublishModpackVersionTests
         var resultado = await CasoDeUso().HandleAsync(version.Id, TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeFalse();
+
+        // Não avisa ninguém e não grava se a publicação foi recusada.
         await _notifier.DidNotReceive().NotifyModpackVersionPublishedAsync(
             Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await _repo.DidNotReceive().UpdateVersionAsync(
+            Arg.Any<ModpackVersion>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -90,8 +95,8 @@ public class PublishModpackVersionTests
         _repo.GetVersionAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns((ModpackVersion?)null);
 
-        var resultado = await CasoDeUso().HandleAsync(Guid.CreateVersion7(),
-            TestContext.Current.CancellationToken);
+        var resultado = await CasoDeUso().HandleAsync(
+            Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         resultado.Succeeded.ShouldBeFalse();
     }

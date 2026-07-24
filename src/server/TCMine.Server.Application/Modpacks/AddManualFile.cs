@@ -7,9 +7,7 @@ namespace TCMine.Server.Application.Modpacks;
 
 /// <summary>
 ///     Anexa um arquivo enviado manualmente pelo admin a uma versão em Draft.
-///     Só funciona em Draft: uma versão publicada é imutável, e alterar a lista
-///     de arquivos dela quebraria a promessa de que um pack que funcionava
-///     continua funcionando.
+///     Só funciona em Draft: versão publicada é imutável.
 /// </summary>
 public sealed class AddManualFile(
     IModpackRepository repository,
@@ -32,17 +30,14 @@ public sealed class AddManualFile(
         if (version.Files.Any(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
             return Result<ModpackFileDto>.Fail($"Já existe um arquivo em '{path}' nesta versão.");
 
-        // O blob store grava e devolve o hash real, calculado durante a
-        // escrita. É a chave do arquivo daqui para frente.
+        // O blob store grava e devolve o hash real, calculado na escrita.
         var sha256 = await blobStore.PutAsync(command.Content, null, command.ContentType, ct);
 
-        // O tamanho vem de uma segunda consulta ao store em vez de contar aqui
-        // porque o stream já foi consumido pela gravação. O store é a fonte
-        // da verdade sobre o que foi gravado.
+        // Tamanho vem do store porque o stream de entrada já foi consumido.
         await using var stored = await blobStore.OpenAsync(sha256, ct);
         var size = stored.Length;
 
-        var file = new ModpackFile
+        version.Files.Add(new ModpackFile
         {
             ModpackVersionId = version.Id,
             Path = path,
@@ -51,37 +46,31 @@ public sealed class AddManualFile(
             Side = command.Side,
             Optional = command.Optional,
             Origin = ModFileOrigin.ManualUpload
-        };
+        });
 
-        version.Files.Add(file);
-        await repository.SaveChangesAsync(ct);
+        // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
+        // arquivo novo entra junto.
+        await repository.UpdateVersionAsync(version, ct);
 
+        var added = version.Files[^1];
         var dto = new ModpackFileDto
         {
-            Path = file.Path,
-            Sha256 = file.Sha256,
-            SizeBytes = file.SizeBytes,
-            Side = file.Side,
-            Optional = file.Optional
+            Path = added.Path,
+            Sha256 = added.Sha256,
+            SizeBytes = added.SizeBytes,
+            Side = added.Side,
+            Optional = added.Optional
         };
 
         return Result<ModpackFileDto>.Success(dto);
     }
 
-    /// <summary>
-    ///     Normaliza e valida o caminho relativo.
-    ///     Rejeita path traversal: um caminho com ".." escaparia da pasta da
-    ///     instância no cliente. Barra invertida vira barra normal para o mesmo
-    ///     caminho funcionar nos dois sistemas.
-    /// </summary>
+    // Normaliza e valida o caminho relativo, rejeitando path traversal.
     private static string? NormalizePath(string raw)
     {
         var normalized = raw.Trim().Replace('\\', '/').TrimStart('/');
 
-        if (normalized.Length is 0)
-            return null;
-
-        if (normalized.Contains(".."))
+        if (normalized.Length is 0 || normalized.Contains(".."))
             return null;
 
         return normalized;

@@ -5,9 +5,6 @@ namespace TCMine.Server.Application.Modpacks;
 
 /// <summary>
 ///     Transiciona uma versão de Draft para Ready.
-///     Para arquivos manuais, publicar é direto: não há nada a resolver. Quando
-///     a ingestão a partir de Modrinth/CurseForge existir, ela passará por
-///     Resolving antes — mas o ponto de chegada é o mesmo MarkReady.
 /// </summary>
 public sealed class PublishModpackVersion(
     IModpackRepository repository,
@@ -22,9 +19,7 @@ public sealed class PublishModpackVersion(
 
         try
         {
-            // A máquina de estados vive no domínio. O caso de uso orquestra;
-            // quem decide se a transição é válida (tem arquivo? está no
-            // estado certo?) é a própria entidade.
+            // A máquina de estados vive no domínio; o caso de uso orquestra.
             version.MarkResolving();
             version.MarkReady();
         }
@@ -33,11 +28,10 @@ public sealed class PublishModpackVersion(
             return Result.Fail(ex.Message);
         }
 
-        await repository.SaveChangesAsync(ct);
+        await repository.UpdateVersionAsync(version, ct);
 
-        // Avisa os launchers conectados. É otimização — quem estiver offline
-        // descobre na próxima reconciliação —, então falha aqui não desfaz a
-        // publicação.
+        // Avisa os launchers. É otimização — offline reconcilia depois —, então
+        // falha aqui não desfaz a publicação.
         await notifier.NotifyModpackVersionPublishedAsync(version.ModpackId, version.Id, ct);
 
         return Result.Success();

@@ -1,0 +1,54 @@
+﻿@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Modpacks
+@inject CreateModpackVersion CreateVersionUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_version"
+                          Label="Versão"
+                          Required="true"
+                          RequiredError="Informe a versão."
+                          HelperText="Ex: 1.0.0"/>
+
+            <MudTextField @bind-Value="_minecraftVersion"
+                          Label="Versão do Minecraft"
+                          Required="true"
+                          RequiredError="Informe a versão do Minecraft."
+                          HelperText="Ex: 1.21.1"
+                          Class="mt-3"/>
+
+            <MudSelect @bind-Value="_loader"
+                       Label="Mod loader"
+                       Class="mt-3">
+                @foreach (var loader in Enum.GetValues<ModLoader>())
+                {
+                    <MudSelectItem Value="loader">@loader</MudSelectItem>
+                }
+            </MudSelect>
+
+            <MudTextField @bind-Value="_loaderVersion"
+                          Label="Versão do loader"
+                          Required="true"
+                          RequiredError="Informe a versão do loader."
+                          HelperText="Ex: 21.1.0"
+                          Class="mt-3"/>
+
+            <MudNumericField @bind-Value="_memoryMb"
+                             Label="RAM recomendada (MB)"
+                             HelperText="Opcional. Sugestão exibida ao jogador."
+                             Min="512"
+                             Class="mt-3"/>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSaving">
+            Criar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
