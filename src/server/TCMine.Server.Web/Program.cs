@@ -73,6 +73,7 @@ builder.Services
     .AddMessagePackProtocol();
 
 builder.Services.AddScoped<LauncherNotifier>();
+builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 
 // ---------- Identidade (provisória) ----------
 if (builder.Environment.IsDevelopment())

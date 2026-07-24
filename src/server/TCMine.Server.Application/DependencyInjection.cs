@@ -11,6 +11,10 @@ public static class DependencyInjection
         // de vida do DbContext.
         services.AddScoped<CreateModpack>();
 
+        services.AddScoped<CreateModpackVersion>();
+        services.AddScoped<AddManualFile>();
+        services.AddScoped<PublishModpackVersion>();
+
         return services;
     }
 }

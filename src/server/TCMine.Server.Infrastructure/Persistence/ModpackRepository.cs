@@ -44,4 +44,11 @@ public sealed class ModpackRepository(TcMineDbContext db) : IModpackRepository
     {
         return db.SaveChangesAsync(ct);
     }
+
+    public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
+    {
+        return db.ModpackVersions
+            .Include(v => v.Files)
+            .FirstOrDefaultAsync(v => v.Id == versionId, ct);
+    }
 }

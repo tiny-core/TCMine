@@ -28,4 +28,6 @@ public interface IModpackRepository
     ///     e o DbContext já é exatamente isso por baixo.
     /// </summary>
     Task SaveChangesAsync(CancellationToken ct);
+
+    Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct);
 }
