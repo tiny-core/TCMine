@@ -1,6 +1,7 @@
 <Solution>
     <Folder Name="/Launcher/">
         <Project Path="src/launcher/TCMine.Launcher.Core/TCMine.Launcher.Core.csproj" />
+        <Project Path="src/launcher/TCMine.Launcher.Infrastructure/TCMine.Launcher.Infrastructure.csproj" />
     </Folder>
     <Folder Name="/Server/">
         <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj" />
