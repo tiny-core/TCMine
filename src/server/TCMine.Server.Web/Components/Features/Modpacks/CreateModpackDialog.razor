@@ -1,0 +1,46 @@
+﻿@using TCMine.Server.Application.Modpacks
+@inject CreateModpack CreateModpackUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField Value="_name"
+                          ValueChanged="@((string v) => OnNameChanged(v))"
+                          Label="Nome"
+                          Required="true"
+                          RequiredError="Informe um nome."
+                          Immediate="true"
+                          HelperText="Nome exibido aos jogadores."/>
+
+            <MudTextField Value="_slug"
+                          ValueChanged="@((string v) => OnSlugChanged(v))"
+                          Label="Identificador"
+                          ReadOnly="@(!_slugEditedManually)"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.Edit"
+                          OnAdornmentClick="@(() => _slugEditedManually = true)"
+                          HelperText="Gerado a partir do nome. Clique no lápis para editar."
+                          Class="mt-3"/>
+
+            <MudTextField @bind-Value="_summary"
+                          Label="Descrição"
+                          Lines="3"
+                          HelperText="Opcional."
+                          Class="mt-3"/>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSaving">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Criar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

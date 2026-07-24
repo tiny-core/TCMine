@@ -1,0 +1,60 @@
+﻿@page "/modpacks"
+@using TCMine.Server.Application.Abstractions
+@inject IModpackRepository Repository
+@inject IDialogService DialogService
+
+<PageTitle>Modpacks — TCMine</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <MudText Typo="Typo.h4">Modpacks</MudText>
+    <MudSpacer/>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OpenCreateDialog">
+        Novo modpack
+    </MudButton>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_modpacks.Count is 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Inventory2"
+                Title="Nenhum modpack ainda."
+                Description="Crie o primeiro para começar a distribuir aos jogadores.">
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add"
+                   OnClick="OpenCreateDialog">
+            Criar modpack
+        </MudButton>
+    </EmptyState>
+}
+else
+{
+    <MudGrid>
+        @foreach (var pack in _modpacks)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Outlined="true">
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">@pack.Name</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Slug</MudText>
+                        @if (!string.IsNullOrWhiteSpace(pack.Summary))
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-2">@pack.Summary</MudText>
+                        }
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Href="@($"/modpacks/{pack.Id}")" Variant="Variant.Text" Color="Color.Primary">
+                            Abrir
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}

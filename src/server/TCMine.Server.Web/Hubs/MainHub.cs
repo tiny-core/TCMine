@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Web.Mapping;
 
 namespace TCMine.Server.Web.Hubs;
 
@@ -17,17 +18,21 @@ namespace TCMine.Server.Web.Hubs;
 ///     esconder um botão é conveniência, não proteção — quem tem a URL do hub
 ///     chama o método diretamente.
 /// </summary>
-public sealed class MainHub(ICurrentUserScope scope) : Hub<ILauncherClient>, IServerHub
+public sealed class MainHub(
+    ICurrentUserScope scope,
+    IModpackRepository modpacks) : Hub<ILauncherClient>, IServerHub
 {
-    public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
+    public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
-        // TODO: consultar via Application quando o caso de uso existir.
-        return Task.FromResult<IReadOnlyList<ModpackDto>>([]);
+        var packs = await modpacks.ListAsync(Context.ConnectionAborted);
+        return [.. packs.Select(m => m.ToDto())];
     }
 
-    public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId)
+    public async Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId)
     {
-        throw new HubException("Ainda não implementado.");
+        var version = await modpacks.GetVersionAsync(versionId, Context.ConnectionAborted);
+
+        return version is null ? throw new HubException("Versão não encontrada.") : version.ToDto();
     }
 
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync()

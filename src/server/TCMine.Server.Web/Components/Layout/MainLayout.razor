@@ -1,10 +1,7 @@
 ﻿@inherits LayoutComponentBase
 
-@* ObserveSystemDarkModeChange vem true por padrão: o provider observa a
-   preferência do sistema operacional e sobrescreve qualquer alternância
-   manual. Desligar é o que devolve o controle ao botão. *@
 <MudThemeProvider Theme="TcMineTheme.Default"
-                  @bind-IsDarkMode="_darkMode"
+                  @bind-IsDarkMode="_isDarkMode"
                   ObserveSystemDarkModeChange="false"/>
 <MudPopoverProvider/>
 <MudDialogProvider/>
@@ -12,12 +9,27 @@
 
 <MudLayout>
     <MudAppBar Elevation="1">
+        <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                       Color="Color.Inherit"
+                       Edge="Edge.Start"
+                       OnClick="@(() => _drawerOpen = !_drawerOpen)"/>
         <MudText Typo="Typo.h6">TCMine</MudText>
         <MudSpacer/>
-        <MudIconButton Icon="@(_darkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
+        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                        Color="Color.Inherit"
-                       OnClick="@(() => _darkMode = !_darkMode)"/>
+                       OnClick="@(() => _isDarkMode = !_isDarkMode)"/>
     </MudAppBar>
+
+    <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive">
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+                Painel
+            </MudNavLink>
+            <MudNavLink Href="/modpacks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">
+                Modpacks
+            </MudNavLink>
+        </MudNavMenu>
+    </MudDrawer>
 
     <MudMainContent Class="pt-16 pa-4">
         @Body

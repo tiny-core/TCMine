@@ -1,0 +1,28 @@
+﻿@* Estado vazio genérico para qualquer listagem.
+   Não sabe nada sobre o domínio — recebe ícone, texto e uma ação opcional
+   como parâmetros. É o que o torna reutilizável entre modpacks, servidores
+   e o que mais vier. *@
+
+<MudPaper Class="pa-8" Elevation="0" Outlined="true">
+    <MudStack AlignItems="AlignItems.Center" Spacing="2">
+        <MudIcon Icon="@Icon" Size="Size.Large" Color="Color.Secondary"/>
+
+        <MudText Typo="Typo.body1">@Title</MudText>
+
+        @if (!string.IsNullOrWhiteSpace(Description))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+                @Description
+            </MudText>
+        }
+
+        @* A ação é opcional: nem toda tela vazia oferece um botão. Só
+           renderiza se quem usa o componente passou um ChildContent. *@
+        @if (ChildContent is not null)
+        {
+            <div class="mt-2">
+                @ChildContent
+            </div>
+        }
+    </MudStack>
+</MudPaper>
