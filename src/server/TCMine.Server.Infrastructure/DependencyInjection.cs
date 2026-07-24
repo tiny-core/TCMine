@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Storage;
 
 namespace TCMine.Server.Infrastructure;
@@ -13,7 +14,7 @@ namespace TCMine.Server.Infrastructure;
 /// </summary>
 public static class DependencyInjection
 {
-    public static IServiceCollection AddTCMineInfrastructure(
+    public static IServiceCollection AddTcMineInfrastructure(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -25,6 +26,8 @@ public static class DependencyInjection
         // Singleton porque não guarda estado por requisição e a criação
         // envolve criar diretório — não vale repetir a cada chamada.
         services.AddSingleton<IBlobStore, FileSystemBlobStore>();
+
+        services.AddScoped<IModpackRepository, ModpackRepository>();
 
         return services;
     }

@@ -14,7 +14,7 @@ public static class DatabaseExtensions
     ///     é a contrapartida do split que fizemos: o EF não descobre sozinho
     ///     onde o histórico está.
     /// </summary>
-    public static IServiceCollection AddTCMineDatabase(
+    public static IServiceCollection AddTcMineDatabase(
         this IServiceCollection services,
         DatabaseOptions options)
     {

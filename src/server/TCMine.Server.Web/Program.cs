@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using MudBlazor.Services;
 using Serilog;
 using TCMine.Contracts.Hubs;
+using TCMine.Server.Application;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure;
 using TCMine.Server.Web.Components;
@@ -32,8 +33,8 @@ var databaseOptions = builder.Configuration
     .Get<DatabaseOptions>() ?? new DatabaseOptions();
 
 // ---------- Serviços ----------
-builder.Services.AddTCMineDatabase(databaseOptions);
-builder.Services.AddTCMineInfrastructure(builder.Configuration);
+builder.Services.AddTcMineDatabase(databaseOptions);
+builder.Services.AddTcMineInfrastructure(builder.Configuration);
 
 // Atrás de proxy reverso (Caddy, Traefik, nginx), sem isto a aplicação vê o
 // IP do proxy em vez do cliente e monta URLs com http em vez de https —
@@ -81,6 +82,8 @@ else
     // pior do que não subir.
     throw new InvalidOperationException(
         "Autenticação ainda não implementada. Esta build só roda em Development.");
+
+builder.Services.AddTcMineApplication();
 
 var app = builder.Build();
 
