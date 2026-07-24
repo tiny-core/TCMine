@@ -2,6 +2,7 @@
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Infrastructure.Configuration;
 using TCMine.Launcher.Infrastructure.Connectivity;
+using TCMine.Launcher.Infrastructure.Hub;
 
 namespace TCMine.Launcher.Infrastructure;
 
@@ -25,6 +26,8 @@ public static class DependencyInjection
             // servidor pode estar reiniciando após um update — vale
             // tentar de novo antes de dizer que está fora do ar.
             .AddStandardResilienceHandler();
+
+        services.AddSingleton<LauncherHubClientFactory>();
 
         return services;
     }
