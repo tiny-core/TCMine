@@ -19,6 +19,8 @@ internal sealed record ModrinthVersion
     [JsonPropertyName("loaders")] public required IReadOnlyList<string> Loaders { get; init; }
 
     [JsonPropertyName("files")] public required IReadOnlyList<ModrinthFile> Files { get; init; }
+
+    [JsonPropertyName("dependencies")] public IReadOnlyList<ModrinthDependency> Dependencies { get; init; } = [];
 }
 
 internal sealed record ModrinthFile
@@ -41,4 +43,13 @@ internal sealed record ModrinthHashes
     [JsonPropertyName("sha512")] public string? Sha512 { get; init; }
 
     [JsonPropertyName("sha1")] public string? Sha1 { get; init; }
+}
+
+internal sealed class ModrinthDependency
+{
+    [JsonPropertyName("project_id")] public string? ProjectId { get; init; }
+
+    [JsonPropertyName("version_id")] public string? VersionId { get; init; }
+
+    [JsonPropertyName("dependency_type")] public string? DependencyType { get; init; }
 }

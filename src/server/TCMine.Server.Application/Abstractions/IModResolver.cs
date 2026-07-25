@@ -46,7 +46,8 @@ public abstract record ModResolution
         string FileName,
         string? Sha1,
         long SizeBytes,
-        Uri DownloadUrl) : ModResolution;
+        Uri DownloadUrl,
+        IReadOnlyList<ModDependency> Dependencies) : ModResolution;
 
     /// <summary>
     ///     O autor marcou allowModDistribution = false.
@@ -57,4 +58,15 @@ public abstract record ModResolution
     public sealed record DistributionDenied(string ProjectName, Uri ProjectPage) : ModResolution;
 
     public sealed record NotFound(string Reason) : ModResolution;
+}
+
+/// <summary>Dependência declarada por uma versão de projeto na origem.</summary>
+public sealed record ModDependency(string ProjectId, ModDependencyKind Kind);
+
+public enum ModDependencyKind
+{
+    Required,
+    Optional,
+    Incompatible,
+    Embedded
 }

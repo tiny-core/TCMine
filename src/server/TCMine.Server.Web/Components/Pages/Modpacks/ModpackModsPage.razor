@@ -9,6 +9,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject PublishModpackVersion PublishUseCase
 
 <PageTitle>Mods — TCMine</PageTitle>
 
@@ -54,10 +55,16 @@ else
                 Enviar arquivo
             </MudButton>
 
-            <MudButton Variant="Variant.Filled" Color="Color.Success" Class="ml-2"
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Success"
                        StartIcon="@Icons.Material.Filled.Publish"
                        OnClick="Publish"
-                       Disabled="_version.Files.Count is 0">
+                       Class="ml-2"
+                       Disabled="_isPublishing || _isIngesting || _version.Files.Count == 0">
+                @if (_isPublishing)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
                 Publicar
             </MudButton>
         }

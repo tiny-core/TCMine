@@ -42,15 +42,48 @@ public sealed partial class ModpackIngestionService(
             return;
         }
 
+        // Fila de trabalho: começa com os itens pedidos e cresce com as
+        // dependências requeridas de cada mod resolvido (transitivo).
+        // 'processed' evita retrabalho e corta ciclos; 'existing' pula
+        // dependências já satisfeitas na versão.
+        var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var existing = version.Files
+            .Where(f => f.ProjectSlug is not null)
+            .Select(f => f.ProjectSlug!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var work = new Queue<(ModIngestionItem Item, bool IsDependency)>();
+        foreach (var it in items)
+            work.Enqueue((it, false));
+
         var failures = new List<string>();
 
-        foreach (var item in items)
+        while (work.Count > 0)
         {
             ct.ThrowIfCancellationRequested();
+            var (item, isDependency) = work.Dequeue();
+
+            // Dependência já satisfeita, ou já tratada nesta corrida: pula.
+            // Itens explícitos do admin sempre passam (permite atualizar um já
+            // presente, substituindo via UpsertFile).
+            if (isDependency && (existing.Contains(item.ProjectId) || processed.Contains(item.ProjectId)))
+                continue;
+
+            if (!processed.Add(item.ProjectId))
+                continue;
 
             var outcome = await ResolveAndDownloadAsync(version, item, ct);
-            if (outcome is not null)
-                failures.Add(outcome);
+            if (outcome.Error is not null)
+            {
+                failures.Add(outcome.Error);
+                continue;
+            }
+
+            // Enfileira as requeridas que ainda não temos. A dependência herda
+            // o lado do mod que a pediu (lib de mod cliente = cliente, etc.).
+            foreach (var depId in outcome.RequiredDependencies)
+                if (!processed.Contains(depId) && !existing.Contains(depId))
+                    work.Enqueue((new ModIngestionItem(item.Origin, depId, null, item.Side), true));
         }
 
         // Grava o estado final com os arquivos adicionados.
@@ -70,7 +103,7 @@ public sealed partial class ModpackIngestionService(
     /// <summary>
     ///     Retorna null em sucesso, ou uma descrição do erro em falha.
     /// </summary>
-    private async Task<string?> ResolveAndDownloadAsync(
+    private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
         ModIngestionItem item,
         CancellationToken ct)
@@ -79,7 +112,7 @@ public sealed partial class ModpackIngestionService(
         // mas está sem API key, IsAvailable é false e caímos no erro.
         var resolver = resolvers.FirstOrDefault(r => r.Origin == item.Origin && r.IsAvailable);
         if (resolver is null)
-            return $"{item.ProjectId} (origem {item.Origin} indisponível)";
+            return ResolveOutcome.Fail($"{item.ProjectId} (origem {item.Origin} indisponível)");
 
         var request = new ModRequest(
             item.ProjectId, item.FileId, version.MinecraftVersion, version.Loader);
@@ -89,18 +122,29 @@ public sealed partial class ModpackIngestionService(
         switch (resolution)
         {
             case ModResolution.Resolved resolved:
-                return await DownloadAndAttachAsync(version, item, resolved, ct);
+            {
+                var error = await DownloadAndAttachAsync(version, item, resolved, ct);
+                if (error is not null)
+                    return ResolveOutcome.Fail(error);
+
+                // Só as REQUERIDAS entram na fila. Embedded já vem dentro do jar;
+                // optional é escolha do usuário; incompatible nunca se puxa.
+                var required = resolved.Dependencies
+                    .Where(d => d.Kind is ModDependencyKind.Required)
+                    .Select(d => d.ProjectId)
+                    .ToList();
+
+                return ResolveOutcome.Ok(required);
+            }
 
             case ModResolution.DistributionDenied denied:
-                // O autor proibiu redistribuição. Sem contorno legítimo — o
-                // admin precisa subir o arquivo manualmente ou trocar o mod.
-                return $"{denied.ProjectName} (autor não permite redistribuição)";
+                return ResolveOutcome.Fail($"{denied.ProjectName} (autor não permite redistribuição)");
 
             case ModResolution.NotFound notFound:
-                return $"{item.ProjectId} ({notFound.Reason})";
+                return ResolveOutcome.Fail($"{item.ProjectId} ({notFound.Reason})");
 
             default:
-                return $"{item.ProjectId} (resultado desconhecido)";
+                return ResolveOutcome.Fail($"{item.ProjectId} (resultado desconhecido)");
         }
     }
 
@@ -177,4 +221,19 @@ public sealed partial class ModpackIngestionService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao baixar {Url}.")]
     private partial void LogDownloadError(Exception ex, string url);
+
+    // Resultado de resolver+baixar um item: erro (se houve) e as dependências
+    // requeridas a puxar em seguida.
+    private sealed record ResolveOutcome(string? Error, IReadOnlyList<string> RequiredDependencies)
+    {
+        public static ResolveOutcome Ok(IReadOnlyList<string> deps)
+        {
+            return new ResolveOutcome(null, deps);
+        }
+
+        public static ResolveOutcome Fail(string error)
+        {
+            return new ResolveOutcome(error, []);
+        }
+    }
 }

@@ -40,14 +40,16 @@ public sealed partial class ModrinthModSearch(
             if (response is null)
                 return [];
 
-            return response.Hits
-                .Select(h => new ModSearchResult(
-                    h.Slug ?? h.ProjectId,
-                    h.Title,
-                    h.Description,
-                    h.IconUrl,
-                    h.Downloads))
-                .ToList();
+            return
+            [
+                .. response.Hits
+                    .Select(h => new ModSearchResult(
+                        h.ProjectId,
+                        h.Title,
+                        h.Description,
+                        h.IconUrl,
+                        h.Downloads))
+            ];
         }
         catch (HttpRequestException ex)
         {

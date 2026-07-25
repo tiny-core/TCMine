@@ -1,38 +1,80 @@
-﻿using NSubstitute;
-using TCMine.Contracts.Modpacks;
+﻿using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
-public class PublishModpackVersionTests
+public sealed class PublishModpackVersionTests
 {
-    private readonly IServerHubNotifier _notifier = Substitute.For<IServerHubNotifier>();
-    private readonly IModpackRepository _repo = Substitute.For<IModpackRepository>();
-
-    private PublishModpackVersion CasoDeUso()
+    [Fact]
+    public async Task Publica_versao_em_rascunho_com_arquivos()
     {
-        return new PublishModpackVersion(_repo, _notifier);
+        var version = DraftWithFile();
+        var repo = new FakeModpackRepository { Version = version };
+        var notifier = new FakeHubNotifier();
+        var useCase = new PublishModpackVersion(repo, notifier);
+
+        var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(repo.Saved);
+        Assert.Equal(ModpackVersionState.Ready, repo.Saved!.State);
+        Assert.Equal(1, notifier.Calls); // avisou os launchers
     }
 
-    // Uma versão em rascunho, já com um arquivo — pronta para publicar.
-    private static ModpackVersion VersaoComArquivo()
+    [Fact]
+    public async Task Falha_quando_a_versao_nao_existe()
     {
-        var version = new ModpackVersion
+        var repo = new FakeModpackRepository { Version = null };
+        var notifier = new FakeHubNotifier();
+        var useCase = new PublishModpackVersion(repo, notifier);
+
+        var result = await useCase.HandleAsync(Guid.CreateVersion7(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Saved);
+        Assert.Equal(0, notifier.Calls);
+    }
+
+    [Fact]
+    public async Task Falha_ao_publicar_versao_vazia()
+    {
+        var version = NewDraftVersion(); // sem arquivos
+        var repo = new FakeModpackRepository { Version = version };
+        var notifier = new FakeHubNotifier();
+        var useCase = new PublishModpackVersion(repo, notifier);
+
+        var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Saved); // não gravou nada
+        Assert.Equal(0, notifier.Calls); // nem avisou
+    }
+
+    // ---- Fixtures ----
+
+    private static ModpackVersion NewDraftVersion()
+    {
+        return new ModpackVersion
         {
             ModpackId = Guid.CreateVersion7(),
-            Version = "1.0.0",
+            Version = "1.0",
             MinecraftVersion = "1.21.1",
             Loader = ModLoader.NeoForge,
-            LoaderVersion = "21.1.0"
+            LoaderVersion = "21.1.234"
         };
+    }
 
-        version.Files.Add(new ModpackFile
+    private static ModpackVersion DraftWithFile()
+    {
+        var version = NewDraftVersion();
+        version.UpsertFile(new ModpackFile
         {
             ModpackVersionId = version.Id,
+            ProjectSlug = "jei",
             Path = "mods/jei.jar",
-            Sha256 = new string('a', 64),
+            Sha256 = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N"),
             SizeBytes = 1024,
             Side = FileSide.Both
         });
@@ -40,64 +82,76 @@ public class PublishModpackVersionTests
         return version;
     }
 
-    [Fact]
-    public async Task Publica_versao_com_arquivos()
+    // ---- Fakes ----
+
+    // O publish só toca GetVersionAsync e UpdateVersionAsync. Os demais membros
+    // existem só para satisfazer a interface; se algum for chamado, o teste
+    // quebra alto (NotImplementedException), o que é o comportamento desejado.
+    private sealed class FakeModpackRepository : IModpackRepository
     {
-        var version = VersaoComArquivo();
-        _repo.GetVersionAsync(version.Id, Arg.Any<CancellationToken>()).Returns(version);
+        public ModpackVersion? Version { get; init; }
+        public ModpackVersion? Saved { get; private set; }
 
-        var resultado = await CasoDeUso().HandleAsync(version.Id, TestContext.Current.CancellationToken);
-
-        resultado.Succeeded.ShouldBeTrue();
-        version.State.ShouldBe(ModpackVersionState.Ready);
-        await _repo.Received(1).UpdateVersionAsync(version, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Avisa_os_launchers_ao_publicar()
-    {
-        var version = VersaoComArquivo();
-        _repo.GetVersionAsync(version.Id, Arg.Any<CancellationToken>()).Returns(version);
-
-        await CasoDeUso().HandleAsync(version.Id, TestContext.Current.CancellationToken);
-
-        await _notifier.Received(1).NotifyModpackVersionPublishedAsync(
-            version.ModpackId, version.Id, Arg.Any<CancellationToken>());
-    }
-
-    [Fact]
-    public async Task Recusa_publicar_versao_sem_arquivos()
-    {
-        var version = new ModpackVersion
+        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
         {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0.0",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.Fabric,
-            LoaderVersion = "0.16.0"
-        };
-        _repo.GetVersionAsync(version.Id, Arg.Any<CancellationToken>()).Returns(version);
+            return Task.FromResult(Version);
+        }
 
-        var resultado = await CasoDeUso().HandleAsync(version.Id, TestContext.Current.CancellationToken);
+        public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
+        {
+            Saved = version;
+            return Task.CompletedTask;
+        }
 
-        resultado.Succeeded.ShouldBeFalse();
+        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
 
-        // Não avisa ninguém e não grava se a publicação foi recusada.
-        await _notifier.DidNotReceive().NotifyModpackVersionPublishedAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-        await _repo.DidNotReceive().UpdateVersionAsync(
-            Arg.Any<ModpackVersion>(), Arg.Any<CancellationToken>());
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task CreateAsync(Modpack modpack, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 
-    [Fact]
-    public async Task Falha_quando_a_versao_nao_existe()
+    private sealed class FakeHubNotifier : IServerHubNotifier
     {
-        _repo.GetVersionAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
-            .Returns((ModpackVersion?)null);
+        public int Calls { get; private set; }
 
-        var resultado = await CasoDeUso().HandleAsync(
-            Guid.CreateVersion7(), TestContext.Current.CancellationToken);
-
-        resultado.Succeeded.ShouldBeFalse();
+        public Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct)
+        {
+            Calls++;
+            return Task.CompletedTask;
+        }
     }
 }

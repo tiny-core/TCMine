@@ -56,11 +56,17 @@ public sealed partial class ModrinthModResolver(
             // o primeiro serve.
             var file = version.Files.FirstOrDefault(f => f.Primary) ?? version.Files[0];
 
+            var dependencies = version.Dependencies
+                .Where(d => d.ProjectId is { Length: > 0 })
+                .Select(d => new ModDependency(d.ProjectId!, MapDependencyKind(d.DependencyType)))
+                .ToList();
+
             return new ModResolution.Resolved(
                 file.Filename,
-                file.Hashes.Sha1,
+                file.Hashes?.Sha1,
                 file.Size,
-                new Uri(file.Url));
+                new Uri(file.Url),
+                dependencies);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
@@ -71,6 +77,19 @@ public sealed partial class ModrinthModResolver(
             LogResolveError(ex, request.ProjectId);
             return new ModResolution.NotFound("Falha ao consultar o Modrinth.");
         }
+    }
+
+    // O Modrinth usa strings; convertemos para o enum do domínio de resolução.
+    private static ModDependencyKind MapDependencyKind(string? type)
+    {
+        return type switch
+        {
+            "required" => ModDependencyKind.Required,
+            "optional" => ModDependencyKind.Optional,
+            "incompatible" => ModDependencyKind.Incompatible,
+            "embedded" => ModDependencyKind.Embedded,
+            _ => ModDependencyKind.Optional // desconhecido: trata como opcional (não puxa)
+        };
     }
 
     // O nome do loader no domínio difere do que a API do Modrinth espera.

@@ -9,9 +9,10 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackModsPage : ComponentBase, IDisposable
 {
     private List<BreadcrumbItem> _breadcrumbs = [];
-
     private bool _isIngesting;
     private bool _isLoading = true;
+
+    private bool _isPublishing;
     private Timer? _pollTimer;
     private string _searchString = "";
     private ModpackVersion? _version;
@@ -136,11 +137,39 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
     private async Task Publish()
     {
-        // Reusa o caso de uso via o diálogo? Não — chamamos direto seria ideal,
-        // mas por simetria com o resto abrimos confirmação inline depois. Por
-        // ora, publicação fica no diálogo de versão. Placeholder:
-        Snackbar.Add("Use o botão de publicar no fluxo de versão por ora.", Severity.Info);
-        await Task.CompletedTask;
+        if (_version is null)
+            return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Publicar versão",
+            $"Publicar a versão {_version.Version}? A partir daqui ela fica imutável — não dá " +
+            "para adicionar, remover ou trocar mods. Para mudanças futuras, cria uma nova versão.",
+            "Publicar", cancelText: "Cancelar");
+
+        if (confirm is not true)
+            return;
+
+        _isPublishing = true;
+        StateHasChanged();
+        try
+        {
+            var result = await PublishUseCase.HandleAsync(VersionId, CancellationToken.None);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Versão publicada.", Severity.Success);
+                await LoadAsync(); // recarrega: chip vira Publicado, ações de edição somem
+            }
+            else
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+            }
+        }
+        finally
+        {
+            _isPublishing = false;
+            StateHasChanged();
+        }
     }
 
     private async Task RemoveFile(ModpackFile file)
