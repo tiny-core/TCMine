@@ -15,6 +15,8 @@ public static class DependencyInjection
         services.AddScoped<AddManualFile>();
         services.AddScoped<PublishModpackVersion>();
 
+        services.AddScoped<ModpackIngestionService>();
+
         return services;
     }
 }

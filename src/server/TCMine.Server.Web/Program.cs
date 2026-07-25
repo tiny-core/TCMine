@@ -5,6 +5,7 @@ using TCMine.Contracts.Hubs;
 using TCMine.Server.Application;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure;
+using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Endpoints;
@@ -85,6 +86,9 @@ else
         "Autenticação ainda não implementada. Esta build só roda em Development.");
 
 builder.Services.AddTcMineApplication();
+
+builder.Services.AddSingleton<IngestionQueue>();
+builder.Services.AddHostedService<IngestionWorker>();
 
 var app = builder.Build();
 
