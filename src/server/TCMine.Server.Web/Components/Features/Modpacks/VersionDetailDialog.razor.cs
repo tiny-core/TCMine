@@ -12,6 +12,7 @@ public partial class VersionDetailDialog : ComponentBase
     private bool _changed;
     private bool _isPublishing;
     private bool _isUploading;
+    private Timer? _pollTimer;
     private string _targetFolder = "mods";
 
     private ModpackVersion? _version;
@@ -20,9 +21,15 @@ public partial class VersionDetailDialog : ComponentBase
 
     [Parameter] public Guid VersionId { get; set; }
 
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+    }
+
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
+        StartPollingIfNeeded();
     }
 
     private async Task ReloadAsync()
@@ -72,6 +79,20 @@ public partial class VersionDetailDialog : ComponentBase
         StateHasChanged(); // garante que a tabela e o botão reflitam o novo estado
     }
 
+    private async Task OpenIngestDialog()
+    {
+        var parameters = new DialogParameters { ["VersionId"] = VersionId };
+        var dialog = await DialogService.ShowAsync<IngestModsDialog>("Buscar mods", parameters);
+        var result = await dialog.Result;
+
+        // Recarrega para pegar o estado Resolving assim que a ingestão começa.
+        if (result is { Canceled: false })
+        {
+            _changed = true;
+            await ReloadAsync();
+        }
+    }
+
     private async Task PublishAsync()
     {
         _isPublishing = true;
@@ -98,13 +119,30 @@ public partial class VersionDetailDialog : ComponentBase
         Dialog.Close(DialogResult.Ok(_changed));
     }
 
-    private static string FormatSize(long bytes)
+    // Enquanto a versão estiver processando, recarrega a cada 2s para a UI
+    // acompanhar a transição para Ready ou Failed sem o admin precisar
+    // atualizar a página. Para de sondar assim que sai de Resolving.
+    private void StartPollingIfNeeded()
     {
-        return bytes switch
+        if (_version?.State is not ModpackVersionState.Resolving)
+            return;
+
+        _pollTimer ??= new Timer(async _ =>
         {
-            < 1024 => $"{bytes} B",
-            < 1024 * 1024 => $"{bytes / 1024.0:F1} KB",
-            _ => $"{bytes / (1024.0 * 1024.0):F1} MB"
-        };
+            await ReloadAsync();
+
+            // InvokeAsync porque o callback do Timer roda fora do contexto de
+            // renderização do Blazor — sem ele, StateHasChanged lança.
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+
+                if (_version?.State is not ModpackVersionState.Resolving)
+                {
+                    _pollTimer?.Dispose();
+                    _pollTimer = null;
+                }
+            });
+        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
     }
 }

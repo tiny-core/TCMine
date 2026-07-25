@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Serilog;
 using TCMine.Contracts.Hubs;
 using TCMine.Server.Application;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure;
+using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components;
 using TCMine.Server.Web.Configuration;
@@ -88,9 +90,20 @@ else
 builder.Services.AddTcMineApplication();
 
 builder.Services.AddSingleton<IngestionQueue>();
+builder.Services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueue>());
 builder.Services.AddHostedService<IngestionWorker>();
 
 var app = builder.Build();
+
+// Só em Development: aplica migrations pendentes usando a connection string
+// real da App. Em produção NUNCA migramos no arranque — lá é bundle no deploy.
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TcMineDbContext>>();
+    await using var db = await factory.CreateDbContextAsync();
+    await db.Database.MigrateAsync();
+}
 
 // ---------- Pipeline ----------
 app.UseForwardedHeaders();

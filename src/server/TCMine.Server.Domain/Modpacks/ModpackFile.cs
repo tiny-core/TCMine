@@ -7,6 +7,16 @@ public sealed class ModpackFile : Entity
 {
     public required Guid ModpackVersionId { get; set; }
 
+    /// <summary>
+    ///     Identidade estável do mod, independente da versão do arquivo.
+    ///     Para mods resolvidos, é o slug do projeto (Modrinth) ou o id do
+    ///     projeto (CurseForge). Para uploads manuais, o admin informa ou
+    ///     derivamos do nome. É por este campo que sabemos que jei-1.2.jar e
+    ///     jei-1.5.jar são o MESMO mod em versões diferentes — e que só um deles
+    ///     pode existir na pasta ao mesmo tempo.
+    /// </summary>
+    public string? ProjectSlug { get; set; }
+
     /// <summary>Caminho relativo à raiz da instância, ex: "mods/jei.jar".</summary>
     public required string Path { get; set; }
 

@@ -1,0 +1,41 @@
+﻿@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Modpacks
+@inject AddManualFile AddManualFileUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudSelect @bind-Value="_targetFolder" Label="Pasta de destino" Dense="true">
+                <MudSelectItem Value="@("mods")">mods/</MudSelectItem>
+                <MudSelectItem Value="@("config")">config/</MudSelectItem>
+                <MudSelectItem Value="@("resourcepacks")">resourcepacks/</MudSelectItem>
+                <MudSelectItem Value="@("shaderpacks")">shaderpacks/</MudSelectItem>
+                <MudSelectItem Value="@("kubejs")">kubejs/</MudSelectItem>
+            </MudSelect>
+
+            <MudSelect @bind-Value="_side" Label="Lado" Dense="true">
+                <MudSelectItem Value="FileSide.Both">Ambos</MudSelectItem>
+                <MudSelectItem Value="FileSide.ClientOnly">Só cliente</MudSelectItem>
+                <MudSelectItem Value="FileSide.ServerOnly">Só servidor</MudSelectItem>
+            </MudSelect>
+
+            <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected">
+                <ActivatorContent>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.AttachFile"
+                               Disabled="_isUploading" FullWidth="true">
+                        @if (_isUploading)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Selecionar arquivo
+                    </MudButton>
+                </ActivatorContent>
+            </MudFileUpload>
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -1,9 +1,7 @@
 ﻿@page "/modpacks/{ModpackId:guid}"
 @using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Domain.Modpacks
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
-@inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <PageTitle>@(_modpack?.Name ?? "Modpack") — TCMine</PageTitle>
@@ -20,61 +18,89 @@ else if (_modpack is null)
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                       OnClick="@(() => Navigation.NavigateTo("/modpacks"))"/>
-        <MudText Typo="Typo.h4">@_modpack.Name</MudText>
-    </MudStack>
-    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="ml-12 mb-4">
-        @_modpack.Slug
-    </MudText>
+    @* Breadcrumb: navegação de volta ao catálogo. *@
+    <MudBreadcrumbs Items="_breadcrumbs" Class="px-0"/>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudText Typo="Typo.h5">Versões</MudText>
-        <MudSpacer/>
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   StartIcon="@Icons.Material.Filled.Add"
-                   OnClick="OpenCreateVersionDialog">
-            Nova versão
-        </MudButton>
-    </MudStack>
+    @* Cabeçalho: nome, chips de estado e o seletor de versão. *@
+    <MudPaper Class="pa-6 mb-4" Elevation="0" Outlined="true">
+        <MudStack AlignItems="AlignItems.Center" Spacing="3">
+            <MudText Typo="Typo.h4">@_modpack.Name</MudText>
 
-    @if (_versions.Count is 0)
+            @if (_selectedVersion is not null)
+            {
+                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                    <VersionStateChip State="_selectedVersion.State"/>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.SportsEsports"
+                             Size="Size.Small" Variant="Variant.Text">
+                        @_selectedVersion.MinecraftVersion
+                    </MudChip>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Build"
+                             Size="Size.Small" Variant="Variant.Text">
+                        @_selectedVersion.Loader @_selectedVersion.LoaderVersion
+                    </MudChip>
+                </MudStack>
+            }
+        </MudStack>
+    </MudPaper>
+
+    @if (_modpack.Versions.Count is 0)
     {
         <EmptyState Icon="@Icons.Material.Filled.Layers"
                     Title="Nenhuma versão ainda."
-                    Description="Crie uma versão, adicione os arquivos e publique."/>
+                    Description="Crie a primeira versão para gerenciar mods e publicar.">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateVersion">
+                Criar versão
+            </MudButton>
+        </EmptyState>
     }
     else
     {
-        <MudPaper Outlined="true">
-            <MudList T="ModpackVersion" Dense="false">
-                @foreach (var version in _versions)
+        @* Seletor de versão: no nosso modelo um modpack tem várias, e os
+           cards abaixo operam sobre a selecionada. *@
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+            <MudSelect T="Guid" Value="_selectedVersionId"
+                       ValueChanged="OnVersionChanged"
+                       Label="Versão" Variant="Variant.Outlined"
+                       Dense="true" Style="max-width: 260px;">
+                @foreach (var v in _modpack.Versions)
                 {
-                    <MudListItem T="ModpackVersion"
-                                 OnClick="@(() => OpenVersion(version))">
-                        <div class="d-flex align-center" style="width: 100%; gap: 12px;">
-                            <MudText Typo="Typo.body1" Style="min-width: 80px;">
-                                @version.Version
-                            </MudText>
-
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">
-                                MC @version.MinecraftVersion · @version.Loader
-                            </MudText>
-
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                @version.Files.Count arquivo(s)
-                            </MudText>
-
-                            <MudSpacer/>
-
-                            <VersionStateChip State="version.State"/>
-                        </div>
-                    </MudListItem>
-                    <MudDivider/>
+                    <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
                 }
-            </MudList>
-        </MudPaper>
+            </MudSelect>
+            <MudSpacer/>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateVersion">
+                Nova versão
+            </MudButton>
+        </MudStack>
+
+        @* Os cards de gerenciamento. Cada um abre uma tela específica. *@
+        <MudGrid>
+            <ManagementCard Icon="@Icons.Material.Filled.Extension"
+                            Title="@($"{FileCount} mod(s)")"
+                            Description="Mods do modpack (cliente e servidor)."
+                            OnManage="OpenMods"/>
+
+            <ManagementCard Icon="@Icons.Material.Filled.Folder"
+                            Title="Overrides"
+                            Description="Configs e arquivos extras."
+                            OnManage="OpenOverrides"
+                            Disabled="true"/>
+
+            <ManagementCard Icon="@Icons.Material.Filled.Campaign"
+                            Title="Novidades"
+                            Description="Posts exibidos no launcher."
+                            OnManage="OpenNews"
+                            Disabled="true"/>
+
+            <ManagementCard Icon="@Icons.Material.Filled.Dns"
+                            Title="Servidores"
+                            Description="Instâncias derivadas deste modpack."
+                            OnManage="OpenServers"
+                            Disabled="true"/>
+        </MudGrid>
     }
 }

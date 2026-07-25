@@ -38,5 +38,21 @@
         <Folder Include="data\"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <Compile Remove="data\blobs\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Remove="data\blobs\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Remove="data\blobs\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="data\blobs\**"/>
+    </ItemGroup>
+
 
 </Project>

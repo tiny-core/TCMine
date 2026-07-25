@@ -43,6 +43,12 @@ public static class DependencyInjection
         services.AddHttpClient<ModpackIngestionService>()
             .AddStandardResilienceHandler();
 
+        services.AddHttpClient<IModSearch, ModrinthModSearch>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.modrinth.com");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
         return services;
     }
 }

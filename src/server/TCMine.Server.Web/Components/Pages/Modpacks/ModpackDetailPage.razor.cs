@@ -7,11 +7,16 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackDetailPage : ComponentBase
 {
+    private List<BreadcrumbItem> _breadcrumbs = [];
+
     private bool _isLoading = true;
     private Modpack? _modpack;
-    private IReadOnlyList<ModpackVersion> _versions = [];
+    private ModpackVersion? _selectedVersion;
+    private Guid _selectedVersionId;
 
     [Parameter] public Guid ModpackId { get; set; }
+
+    private int FileCount => _selectedVersion?.Files.Count ?? 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -22,41 +27,65 @@ public partial class ModpackDetailPage : ComponentBase
     {
         _isLoading = true;
 
-        _modpack = await Repository.GetByIdAsync(ModpackId, CancellationToken.None);
+        _modpack = await Repository.GetWithVersionsAsync(ModpackId, CancellationToken.None);
 
         if (_modpack is not null)
-            _versions = await Repository.ListVersionsAsync(ModpackId, CancellationToken.None);
+        {
+            _breadcrumbs =
+            [
+                new BreadcrumbItem("Modpacks", "/modpacks"),
+                new BreadcrumbItem(_modpack.Name, null, true)
+            ];
+
+            // Seleciona a versão mais recente por padrão (a lista já vem
+            // ordenada por Id decrescente na consulta).
+            var first = _modpack.Versions
+                .OrderByDescending(v => v.Id)
+                .FirstOrDefault();
+
+            if (first is not null)
+            {
+                _selectedVersionId = first.Id;
+                _selectedVersion = first;
+            }
+        }
 
         _isLoading = false;
     }
 
-    private async Task OpenCreateVersionDialog()
+    private void OnVersionChanged(Guid versionId)
+    {
+        _selectedVersionId = versionId;
+        _selectedVersion = _modpack?.Versions.FirstOrDefault(v => v.Id == versionId);
+    }
+
+    private async Task OpenCreateVersion()
     {
         var parameters = new DialogParameters { ["ModpackId"] = ModpackId };
         var dialog = await DialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);
-        var result = await dialog.Result;
 
-        if (result is { Canceled: false })
+        if (await dialog.Result is { Canceled: false })
             await LoadAsync();
     }
 
-    private void OpenVersion(ModpackVersion version)
+    private void OpenMods()
     {
-        // A gestão de arquivos e a publicação vivem num diálogo próprio,
-        // aberto ao clicar na versão. Mantém esta página focada na lista.
-        _ = OpenVersionDetailAsync(version);
+        if (_selectedVersion is null)
+            return;
+
+        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods");
     }
 
-    private async Task OpenVersionDetailAsync(ModpackVersion version)
+    // Placeholders para os próximos passos.
+    private void OpenOverrides()
     {
-        var parameters = new DialogParameters { ["VersionId"] = version.Id };
-        var dialog = await DialogService.ShowAsync<VersionDetailDialog>(
-            $"Versão {version.Version}", parameters);
-        var result = await dialog.Result;
+    }
 
-        // Recarrega sempre: o diálogo pode ter adicionado arquivos ou
-        // publicado, e a lista precisa refletir o novo estado.
-        if (result is not null)
-            await LoadAsync();
+    private void OpenNews()
+    {
+    }
+
+    private void OpenServers()
+    {
     }
 }

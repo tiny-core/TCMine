@@ -1,0 +1,21 @@
+﻿@* Card de gerenciamento reutilizável, como os "Mods / Overrides / ..." da
+   tela de detalhe. Genérico: recebe ícone, textos e o callback de gerenciar. *@
+
+<MudItem xs="12" sm="6" md="3">
+    <MudCard Outlined="true" Class="@(Disabled ? "mud-elevation-0" : "")">
+        <MudCardContent Class="d-flex flex-column align-center text-center" Style="min-height: 140px;">
+            <MudIcon Icon="@Icon" Size="Size.Large"
+                     Color="@(Disabled ? Color.Default : Color.Primary)" Class="mb-2"/>
+            <MudText Typo="Typo.h6">@Title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Description</MudText>
+        </MudCardContent>
+        <MudCardActions Class="justify-center pb-3">
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Primary"
+                       Disabled="Disabled"
+                       OnClick="OnManage">
+                @(Disabled ? "Em breve" : "Gerenciar")
+            </MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudItem>

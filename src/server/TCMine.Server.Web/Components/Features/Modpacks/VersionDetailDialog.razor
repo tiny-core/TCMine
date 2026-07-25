@@ -1,10 +1,13 @@
-﻿@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Modpacks
-@inject IModpackRepository Repository
+﻿@inject IModpackRepository Repository
 @inject AddManualFile AddManualFileUseCase
 @inject PublishModpackVersion PublishUseCase
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@using TCMine.UI.Shared.Formatting
+@implements IDisposable
 
 <MudDialog>
     <DialogContent>
@@ -35,6 +38,13 @@
                         <MudSelectItem Value="@("shaderpacks")">shaderpacks/</MudSelectItem>
                         <MudSelectItem Value="@("kubejs")">kubejs/</MudSelectItem>
                     </MudSelect>
+
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.CloudDownload"
+                               OnClick="OpenIngestDialog"
+                               Class="ml-2">
+                        Buscar do Modrinth
+                    </MudButton>
 
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected">
                         <ActivatorContent>
@@ -74,7 +84,7 @@
                         <tr>
                             <td>@file.Path</td>
                             <td>@file.Side</td>
-                            <td style="text-align: right;">@FormatSize(file.SizeBytes)</td>
+                            <td style="text-align: right;">@HumanSize.Bytes(file.SizeBytes)</td>
                         </tr>
                     }
                     </tbody>

@@ -34,4 +34,13 @@ public interface IModpackRepository
     ///     gravar, sem se preocupar com rastreamento.
     /// </summary>
     Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct);
+
+    /// <summary>
+    ///     Traz o modpack com versões e a contagem de arquivos de cada uma, numa
+    ///     consulta só. Evita o N+1 de carregar cada versão separadamente para a
+    ///     tela de detalhe.
+    /// </summary>
+    Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct);
+
+    Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct);
 }

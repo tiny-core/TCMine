@@ -1,0 +1,36 @@
+﻿@using TCMine.Server.Application.Modpacks
+@inject QueueIngestion QueueIngestionUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            Cole os identificadores de projeto do Modrinth, um por linha. O
+            identificador é o texto na URL: modrinth.com/mod/<b>jei</b>.
+        </MudText>
+
+        <MudTextField @bind-Value="_rawIds"
+                      Label="Projetos do Modrinth"
+                      Lines="8"
+                      Placeholder="jei&#10;create&#10;sodium"
+                      HelperText="Um por linha."/>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2">
+            Os mods serão baixados e verificados agora. A versão fica em
+            processamento até terminar.
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary"
+                   Variant="Variant.Filled"
+                   OnClick="SubmitAsync"
+                   Disabled="_isSubmitting">
+            @if (_isSubmitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Iniciar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

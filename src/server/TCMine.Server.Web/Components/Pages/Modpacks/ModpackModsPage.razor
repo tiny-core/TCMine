@@ -1,0 +1,143 @@
+﻿@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/mods"
+@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@using TCMine.Server.Domain.Modpacks
+@using TCMine.UI.Shared.Formatting
+@inject IModpackRepository Repository
+@inject RemoveModpackFile RemoveFileUseCase
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Mods — TCMine</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_version is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Versão não encontrada."/>
+}
+else
+{
+    <MudBreadcrumbs Items="_breadcrumbs" Class="px-0"/>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@(() => Navigation.NavigateTo($"/modpacks/{ModpackId}"))"/>
+        <div>
+            <MudText Typo="Typo.h5">Mods</MudText>
+            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                <VersionStateChip State="_version.State"/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @_version.Version · MC @_version.MinecraftVersion · @_version.Loader
+                </MudText>
+            </MudStack>
+        </div>
+    </MudStack>
+
+    @* Barra de ações: só faz sentido editar em rascunho. *@
+    <MudToolBar Dense="true" Class="mb-2 px-0" Gutters="false">
+        @if (_version.State is ModpackVersionState.Draft)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.CloudDownload"
+                       OnClick="OpenIngest">
+                Buscar no Modrinth
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined" Class="ml-2"
+                       StartIcon="@Icons.Material.Filled.Upload"
+                       OnClick="OpenManualUpload">
+                Enviar arquivo
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Success" Class="ml-2"
+                       StartIcon="@Icons.Material.Filled.Publish"
+                       OnClick="Publish"
+                       Disabled="_version.Files.Count is 0">
+                Publicar
+            </MudButton>
+        }
+
+        <MudSpacer/>
+
+        <MudTextField @bind-Value="_searchString"
+                      Placeholder="Filtrar mods..."
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      IconSize="Size.Small"
+                      Immediate="true"
+                      Margin="Margin.Dense"
+                      Style="max-width: 280px;"/>
+    </MudToolBar>
+
+    @if (_isIngesting)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2"/>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
+    }
+
+
+    <MudDataGrid T="ModpackFile"
+                 Items="FilteredFiles"
+                 Dense="true"
+                 Hover="true"
+                 Filterable="false"
+                 SortMode="SortMode.Single"
+                 RowsPerPage="25"
+                 Elevation="1">
+        <Columns>
+            <PropertyColumn Property="f => f.Path" Title="Caminho"/>
+
+            <TemplateColumn Title="Tamanho">
+                <CellTemplate>
+                    @HumanSize.Bytes(context.Item.SizeBytes)
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Lado">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                        @context.Item.Side
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            <TemplateColumn Title="Origem">
+                <CellTemplate>
+                    <MudChip T="string" Size="Size.Small"
+                             Icon="@OriginIcon(context.Item.Origin)"
+                             Color="@OriginColor(context.Item.Origin)"
+                             Variant="Variant.Text">
+                        @context.Item.Origin
+                    </MudChip>
+                </CellTemplate>
+            </TemplateColumn>
+
+            @if (_version.State is ModpackVersionState.Draft)
+            {
+                <TemplateColumn Title="" Sortable="false">
+                    <CellTemplate>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error"
+                                       Size="Size.Small"
+                                       OnClick="@(() => RemoveFile(context.Item))"/>
+                    </CellTemplate>
+                </TemplateColumn>
+            }
+        </Columns>
+
+        <PagerContent>
+            <MudDataGridPager T="ModpackFile"/>
+        </PagerContent>
+
+        <NoRecordsContent>
+            <MudText Class="pa-4" Color="Color.Secondary">
+                Nenhum mod nesta versão. Use "Buscar no Modrinth" para começar.
+            </MudText>
+        </NoRecordsContent>
+    </MudDataGrid>
+}

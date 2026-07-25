@@ -37,29 +37,38 @@ public sealed class AddManualFile(
         await using var stored = await blobStore.OpenAsync(sha256, ct);
         var size = stored.Length;
 
-        version.Files.Add(new ModpackFile
+        var file = new ModpackFile
         {
             ModpackVersionId = version.Id,
+            ProjectSlug = command.ProjectSlug, // null hoje; forward-compatible
             Path = path,
             Sha256 = sha256,
             SizeBytes = size,
             Side = command.Side,
             Optional = command.Optional,
             Origin = ModFileOrigin.ManualUpload
-        });
+        };
+
+        var replacedId = version.UpsertFile(file);
+        if (replacedId is { } oldId)
+            await repository.RemoveFileAsync(version.Id, oldId, ct);
 
         // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
         // arquivo novo entra junto.
         await repository.UpdateVersionAsync(version, ct);
 
-        var added = version.Files[^1];
+
+        // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
+        // arquivo novo entra junto.
+        await repository.UpdateVersionAsync(version, ct);
+
         var dto = new ModpackFileDto
         {
-            Path = added.Path,
-            Sha256 = added.Sha256,
-            SizeBytes = added.SizeBytes,
-            Side = added.Side,
-            Optional = added.Optional
+            Path = file.Path,
+            Sha256 = file.Sha256,
+            SizeBytes = file.SizeBytes,
+            Side = file.Side,
+            Optional = file.Optional
         };
 
         return Result<ModpackFileDto>.Success(dto);
@@ -83,4 +92,5 @@ public sealed record AddManualFileCommand(
     Stream Content,
     string ContentType,
     FileSide Side,
-    bool Optional);
+    bool Optional,
+    string? ProjectSlug = null);

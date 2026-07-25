@@ -95,4 +95,53 @@ public sealed class ModpackVersion : Entity
         State = ModpackVersionState.Archived;
         Touch();
     }
+
+    /// <summary>
+    ///     Volta de Resolving para Draft ao fim de uma ingestao bem-sucedida.
+    ///     Resolver e baixar e uma coisa; publicar e decisao explicita do admin.
+    ///     Sem isto a versao ficaria presa em Resolving ou publicaria sozinha.
+    /// </summary>
+    public void ReturnToDraft()
+    {
+        if (State is not ModpackVersionState.Resolving)
+            throw new InvalidOperationException($"Nao e possivel voltar para rascunho a partir de {State}.");
+
+        State = ModpackVersionState.Draft;
+        FailureReason = null;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    /// <summary>
+    ///     Adiciona um arquivo respeitando a identidade do mod.
+    ///     Se já existe arquivo com o mesmo ProjectSlug, ele e removido da versao e
+    ///     seu ID e devolvido — o chamador apaga a linha antiga no banco. Assim
+    ///     atualizar/rebaixar um mod = trocar o .jar, nunca acumular dois em mods/
+    ///     (isso crasharia o jogo). Sem ProjectSlug, a unicidade fica por Path,
+    ///     checada no caso de uso.
+    /// </summary>
+    public Guid? UpsertFile(ModpackFile file)
+    {
+        if (State is not (ModpackVersionState.Draft or ModpackVersionState.Resolving))
+            throw new InvalidOperationException($"Nao e possivel alterar arquivos a partir de {State}.");
+
+        Guid? replacedId = null;
+
+        if (file.ProjectSlug is { Length: > 0 } slug)
+        {
+            var existing = Files.FirstOrDefault(f =>
+                string.Equals(f.ProjectSlug, slug, StringComparison.OrdinalIgnoreCase));
+
+            if (existing is not null)
+            {
+                replacedId = existing.Id;
+                Files.Remove(existing);
+            }
+        }
+
+        file.ModpackVersionId = Id;
+        Files.Add(file);
+        UpdatedAt = DateTimeOffset.UtcNow;
+
+        return replacedId;
+    }
 }

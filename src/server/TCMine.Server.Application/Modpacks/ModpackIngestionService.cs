@@ -6,9 +6,9 @@ namespace TCMine.Server.Application.Modpacks;
 
 /// <summary>
 ///     Resolve e baixa uma lista de mods para uma versão, transicionando-a por
-///     Resolving → Ready (ou Failed).
-///     A resolução acontece uma vez, na publicação. Mil jogadores depois baixam
-///     do nosso blob store, sem tocar em Modrinth ou CurseForge.
+///     Resolving → Draft (ou Failed). Publicar é um ato separado do admin.
+///     A resolução acontece uma vez, na ingestão. Mil jogadores depois baixam do
+///     nosso blob store, sem tocar em Modrinth ou CurseForge.
 /// </summary>
 public sealed partial class ModpackIngestionService(
     IModpackRepository repository,
@@ -53,15 +53,16 @@ public sealed partial class ModpackIngestionService(
                 failures.Add(outcome);
         }
 
-        // Recarrega para gravar o estado final com os arquivos 
-        // adicionados. A versão em memória já os tem, mas queremos garantir
-        // que a transição de estado e os arquivos persistam juntos.
+        // Grava o estado final com os arquivos adicionados.
         if (failures.Count > 0)
             // Falha parcial derruba tudo: um pack incompleto não deve ser
             // publicado. O admin vê a lista e decide (trocar mod, subir manual).
             version.MarkFailed($"Não foi possível resolver: {string.Join("; ", failures)}");
         else
-            version.MarkReady();
+            // Resolveu e baixou tudo — mas quem publica é o admin, após
+            // revisar. Publicar automático tornaria a versão imutável antes de
+            // ele poder trocar um mod.
+            version.ReturnToDraft();
 
         await repository.UpdateVersionAsync(version, ct);
     }
@@ -74,7 +75,7 @@ public sealed partial class ModpackIngestionService(
         ModIngestionItem item,
         CancellationToken ct)
     {
-        // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido
+        // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido,
         // mas está sem API key, IsAvailable é false e caímos no erro.
         var resolver = resolvers.FirstOrDefault(r => r.Origin == item.Origin && r.IsAvailable);
         if (resolver is null)
@@ -124,19 +125,40 @@ public sealed partial class ModpackIngestionService(
 
             var path = $"mods/{resolved.FileName}";
 
-            if (version.Files.Any(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase)))
-                return null; // já presente, não é erro
+            // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
+            // remover e re-adicionar a mesma linha numa re-ingestão.
+            if (version.Files.Any(f =>
+                    string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
+                    && f.Sha256 == sha256))
+                return null;
 
-            version.Files.Add(new ModpackFile
+            // Conflito raro: outro mod já ocupa este caminho. Dois arquivos no
+            // mesmo path não podem coexistir na instância.
+            if (version.Files.Any(f =>
+                    f.Path.Equals(path, StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)))
+                return $"{resolved.FileName} (conflito de caminho com outro mod)";
+
+            var file = new ModpackFile
             {
                 ModpackVersionId = version.Id,
+                ProjectSlug = item.ProjectId, // identidade estável do mod
                 Path = path,
                 Sha256 = sha256,
                 SizeBytes = stored.Length,
                 Side = item.Side,
                 Origin = item.Origin,
                 OriginReference = item.ProjectId
-            });
+            };
+
+            // Mesmo mod em outra versão do .jar (jei-1.2.0 → jei-1.5)? Substitui,
+            // nunca acumula dois arquivos do mesmo mod em mods/. O UpsertFile
+            // devolve o ID do arquivo trocado para apagarmos a linha antiga —
+            // o UpdateVersionAsync final (Update num grafo destacado) não apaga
+            // filhos removidos da coleção sozinho.
+            var replacedId = version.UpsertFile(file);
+            if (replacedId is { } oldId)
+                await repository.RemoveFileAsync(version.Id, oldId, ct);
 
             return null;
         }

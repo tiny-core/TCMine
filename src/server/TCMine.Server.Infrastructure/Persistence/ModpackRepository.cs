@@ -97,4 +97,31 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
 
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.Modpacks
+            .AsNoTracking()
+            .Include(m => m.Versions)
+            .ThenInclude(v => v.Files)
+            .FirstOrDefaultAsync(m => m.Id == id, ct);
+    }
+
+    public async Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Remove só o vínculo do arquivo com a versão. O blob em si permanece
+        // no store — pode estar em uso por outra versão, e a limpeza de blobs
+        // órfãos é uma rotina separada.
+        var file = await db.ModpackFiles
+            .FirstOrDefaultAsync(f => f.Id == fileId && f.ModpackVersionId == versionId, ct);
+
+        if (file is not null)
+        {
+            db.ModpackFiles.Remove(file);
+            await db.SaveChangesAsync(ct);
+        }
+    }
 }
