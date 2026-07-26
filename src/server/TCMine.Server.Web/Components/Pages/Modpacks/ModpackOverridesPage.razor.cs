@@ -79,7 +79,7 @@ public partial class ModpackOverridesPage
             }
         }
 
-        _treeItems = root.Values.Select(ToItem).ToList();
+        _treeItems = [.. root.Values.Select(ToItem)];
     }
 
     private async Task OnEditorInit()

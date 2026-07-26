@@ -23,7 +23,7 @@ public partial class CheckUpdatesDialog : ComponentBase
 
         if (result.Succeeded)
         {
-            _updates = result.Value!.ToList();
+            _updates = [.. result.Value!];
             foreach (var u in _updates) // tudo selecionado por padrão
                 _selected.Add(u.ProjectSlug);
             _newVersion = SuggestNextVersion(SourceVersion);

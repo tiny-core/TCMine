@@ -40,9 +40,11 @@ public partial class ServerFormDialog : ComponentBase
         }
 
         // Novo: só publicadas; a mais recente já vem selecionada.
-        _versions = (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
+        _versions =
+        [
+            .. (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
             .Where(v => v.State is ModpackVersionState.Ready)
-            .ToList();
+        ];
         _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 

@@ -8,6 +8,7 @@ using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Instances;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Storage;
+using TCMine.Server.Infrastructure.Versions;
 
 namespace TCMine.Server.Infrastructure;
 
@@ -70,6 +71,17 @@ public static class DependencyInjection
         services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();
 
         services.AddScoped<IServerOrchestrator, DockerServerOrchestrator>();
+
+        services.AddMemoryCache();
+
+        services.AddHttpClient<MinecraftVersionSource>();
+        services.AddHttpClient<NeoForgeVersionSource>();
+        services.AddHttpClient<ForgeVersionSource>();
+        services.AddHttpClient<FabricVersionSource>();
+        services.AddHttpClient<QuiltVersionSource>();
+
+        services.AddSingleton<IVersionCatalog, VersionCatalog>();
+
         return services;
     }
 }

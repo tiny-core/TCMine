@@ -20,7 +20,7 @@ public partial class ModpacksPage : ComponentBase
         _isLoading = true;
 
         var entities = await Repository.ListAsync(CancellationToken.None);
-        _modpacks = entities.Select(m => m.ToDto()).ToList();
+        _modpacks = [.. entities.Select(m => m.ToDto())];
 
         _isLoading = false;
     }

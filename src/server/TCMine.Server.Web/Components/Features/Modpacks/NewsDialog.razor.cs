@@ -28,7 +28,7 @@ public partial class NewsDialog : ComponentBase
     private async Task LoadAsync()
     {
         _isLoading = true;
-        _posts = (await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)).ToList();
+        _posts = [.. await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
         _isLoading = false;
     }
 
