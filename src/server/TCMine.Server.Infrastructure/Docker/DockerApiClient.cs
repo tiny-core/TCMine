@@ -69,6 +69,24 @@ public sealed class DockerApiClient
             response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>
+    ///     Remove um container pelo nome, se existir. Idempotente — silêncio se não
+    ///     houver nenhum. Usado antes de criar, para o nome nunca colidir com um
+    ///     resto de tentativa anterior.
+    /// </summary>
+    public async Task RemoveContainerByNameAsync(string name, CancellationToken ct)
+    {
+        // O filtro do Docker casa por substring, então confirmamos o nome exato
+        // ("/name", como o daemon devolve) antes de remover.
+        var filters = Uri.EscapeDataString($"{{\"name\":[\"{name}\"]}}");
+        var found = await _http.GetFromJsonAsync<List<DockerContainer>>(
+            $"{_prefix}/containers/json?all=true&filters={filters}", ct);
+
+        var match = found?.FirstOrDefault(c => c.Names.Any(n => n.TrimStart('/') == name));
+        if (match is not null)
+            await RemoveContainerAsync(match.Id, true, ct);
+    }
+
     /// <summary>Estado atual do container, ou null se não existe (404).</summary>
     public async Task<ContainerInspect?> InspectContainerAsync(string id, CancellationToken ct)
     {

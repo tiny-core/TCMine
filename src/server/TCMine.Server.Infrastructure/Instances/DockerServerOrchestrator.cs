@@ -26,13 +26,24 @@ public sealed class DockerServerOrchestrator(
         var version = await modpacks.GetVersionAsync(server.ModpackVersionId, ct)
                       ?? throw new InvalidOperationException("Versão fixada não encontrada.");
 
-        // Se já existe container, reusa (não recria por cima de um em uso).
+        var containerName = $"tcmine-{gameServerId}";
+
+        // 1. Se temos um ContainerId e ele ainda existe, reusa.
         if (server.ContainerId is not null)
         {
             var existing = await docker.InspectContainerAsync(server.ContainerId, ct);
             if (existing is not null)
                 return existing.Id;
+
+            // Apontava para um container que já não existe (apagado à mão, por
+            // ex.). Limpa a referência morta antes de seguir.
+            server.ContainerId = null;
         }
+
+        // 2. Pode existir um container com o nosso nome de uma tentativa anterior
+        //    (recria após crash, ContainerId dessincronizado). Remove-o para o
+        //    create não colidir por nome.
+        await docker.RemoveContainerByNameAsync(containerName, ct);
 
         // Escreve mods/overrides na pasta da instância (mundo preservado).
         await materializer.MaterializeAsync(gameServerId, version, ct);
@@ -73,7 +84,7 @@ public sealed class DockerServerOrchestrator(
             }
         };
 
-        var containerId = await docker.CreateContainerAsync($"tcmine-{gameServerId}", spec, ct);
+        var containerId = await docker.CreateContainerAsync(containerName, spec, ct);
 
         // Persiste o ContainerId para os próximos ciclos o reencontrarem.
         server.ContainerId = containerId;
@@ -111,8 +122,9 @@ public sealed class DockerServerOrchestrator(
         return inspect.State switch
         {
             { Running: true } => GameServerStatus.Running,
+            { Status: "restarting" } => GameServerStatus.Starting, // loop de reinício
             { Status: "created" } => GameServerStatus.Stopped,
-            { ExitCode: not 0 } => GameServerStatus.Crashed, // saiu com erro
+            { ExitCode: not 0 } => GameServerStatus.Crashed,
             _ => GameServerStatus.Stopped
         };
     }

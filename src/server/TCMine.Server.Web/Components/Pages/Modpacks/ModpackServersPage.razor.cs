@@ -28,6 +28,7 @@ public partial class ModpackServersPage
 
     [Inject] private StartGameServer StartUseCase { get; set; } = default!;
     [Inject] private StopGameServer StopUseCase { get; set; } = default!;
+    [Inject] private IServerOrchestrator Orchestrator { get; set; } = default!;
 
     private async Task Start(GameServer server)
     {
@@ -70,8 +71,21 @@ public partial class ModpackServersPage
     {
         _isLoading = true;
         _servers = [.. await ServerRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
+
+        // A coluna Status é cache; o Docker é a verdade. Sincroniza ao carregar,
+        // para refletir paradas/crashes que aconteceram por fora do painel.
+        foreach (var server in _servers)
+        {
+            var real = await Orchestrator.GetStatusAsync(server.Id, CancellationToken.None);
+            if (real == server.Status) continue;
+
+            server.Status = real;
+            await ServerRepository.UpdateAsync(server, CancellationToken.None);
+        }
+
         _versionsById = (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
             .ToDictionary(v => v.Id);
+
         _breadcrumbs =
         [
             new BreadcrumbItem("Modpacks", "/modpacks"),
