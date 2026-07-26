@@ -34,5 +34,18 @@ public sealed class GameServer : Entity, IOwnedEntity
     /// </summary>
     public required string RconSecret { get; set; }
 
+    /// <summary>
+    ///     Quando o mundo deste servidor foi inicializado (primeiro boot que gerou
+    ///     o level.dat). Null = nunca ligou, ainda nao tem mundo.
+    ///     E o seam do backup: trocar a versao de um servidor COM mundo exige
+    ///     snapshot antes (mods removidos/rebaixados podem corromper o save). Sem
+    ///     mundo, a troca e o re-apontar simples e imediato. Nada preenche isto na
+    ///     fatia 1 — so a orquestracao (fatia 3) o fara ao subir o container.
+    /// </summary>
+    public DateTimeOffset? WorldInitializedAt { get; set; }
+
+    /// <summary>Já tem mundo gravado? Deriva de WorldInitializedAt.</summary>
+    public bool HasWorld => WorldInitializedAt is not null;
+
     public Guid OwnerId { get; set; }
 }

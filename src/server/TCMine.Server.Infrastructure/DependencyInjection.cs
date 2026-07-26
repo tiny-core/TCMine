@@ -58,6 +58,8 @@ public static class DependencyInjection
 
         services.AddScoped<INewsRepository, NewsRepository>();
 
+        services.AddScoped<IServerRepository, ServerRepository>();
+
         return services;
     }
 }

@@ -12,6 +12,9 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
 
         builder.HasKey(s => s.Id);
 
+        // HasWorld é computado (deriva de WorldInitializedAt) — não é coluna.
+        builder.Ignore(s => s.HasWorld);
+
         builder.Property(s => s.Name).HasMaxLength(128).IsRequired();
         builder.Property(s => s.ConnectAddress).HasMaxLength(256).IsRequired();
         builder.Property(s => s.ContainerId).HasMaxLength(128);
@@ -31,6 +34,7 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
 
         builder.HasIndex(s => s.OwnerId);
         builder.HasIndex(s => s.ModpackVersionId);
+        builder.HasIndex(s => s.ModpackId);
 
         // Sem navegação para Modpack de propósito: GameServer e Modpack são
         // agregados diferentes. Referência por Id evita que uma consulta de

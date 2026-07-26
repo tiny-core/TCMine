@@ -1,0 +1,36 @@
+﻿@using TCMine.Server.Application.Servers
+@inject CreateGameServer CreateUseCase
+@inject UpdateGameServer UpdateUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">@(_isNew ? "Novo servidor" : "Editar servidor")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="_name" Label="Nome" Immediate="true" Class="mb-2"/>
+        <MudTextField @bind-Value="_connectAddress" Label="Endereço de conexão"
+                      HelperText="Host:porta que os jogadores usam, ex.: play.meuserver.com:25565"
+                      Immediate="true" Class="mb-2"/>
+        <MudGrid>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="_memoryMb" Label="Memória (MB)" Min="1024" Step="512"/>
+            </MudItem>
+            <MudItem xs="6">
+                <MudNumericField @bind-Value="_maxPlayers" Label="Máx. jogadores" Min="1"/>
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="Save"
+                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Salvar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

@@ -88,8 +88,8 @@ public partial class ModpackDetailPage : ComponentBase
         await DialogService.ShowAsync<NewsDialog>("Novidades", parameters, options);
     }
 
-    // Placeholders para os próximos passos.
     private void OpenServers()
     {
+        Navigation.NavigateTo($"/modpacks/{ModpackId}/servers");
     }
 }

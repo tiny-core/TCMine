@@ -1,0 +1,59 @@
+﻿@page "/modpacks/{ModpackId:guid}/servers"
+
+<MudBreadcrumbs Items="_breadcrumbs"/>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/modpacks/{ModpackId}")"/>
+    <MudText Typo="Typo.h5">Servidores</MudText>
+    <MudSpacer/>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenForm(null))">
+        Criar servidor
+    </MudButton>
+</MudStack>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+    Instâncias gerenciadas derivadas deste modpack.
+</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_servers.Count == 0)
+{
+    <MudPaper Outlined="true" Class="pa-6">
+        <MudText Align="Align.Center" Color="Color.Secondary">
+            Nenhum servidor ainda. Crie um a partir de uma versão publicada.
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudStack Spacing="2">
+        @foreach (var server in _servers)
+        {
+            <MudPaper Outlined="true" Class="pa-3">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns"/>
+                    <div style="flex: 1;">
+                        <MudText Typo="Typo.body1">@server.Name</MudText>
+                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                            <ServerStatusChip Status="server.Status"/>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@server.ConnectAddress</MudText>
+                            @if (server.HasWorld)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                         Icon="@Icons.Material.Filled.Public" Color="Color.Info">com mundo
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </div>
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="@(() => OpenForm(server))"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="@(() => Delete(server))"/>
+                </MudStack>
+            </MudPaper>
+        }
+    </MudStack>
+}
