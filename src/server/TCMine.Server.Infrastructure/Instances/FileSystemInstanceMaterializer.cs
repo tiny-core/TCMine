@@ -14,11 +14,17 @@ public sealed class FileSystemInstanceMaterializer(
     // aqui, então nunca são removidos numa re-materialização.
     private const string ManifestFileName = ".tcmine-manifest.json";
 
+
     private readonly InstanceOptions _options = options.Value;
+
+    // Resolve relativo→absoluto já aqui. O bind mount do Docker exige caminho
+    // absoluto; e o CWD do processo pode não ser o que esperamos, então fixamos
+    // uma vez em vez de depender do diretório atual a cada chamada.
+    private readonly string _rootPath = Path.GetFullPath(options.Value.RootPath);
 
     public string GetInstancePath(Guid gameServerId)
     {
-        return Path.Combine(_options.RootPath, gameServerId.ToString());
+        return Path.Combine(_rootPath, gameServerId.ToString());
     }
 
     public async Task MaterializeAsync(Guid gameServerId, ModpackVersion version, CancellationToken ct)

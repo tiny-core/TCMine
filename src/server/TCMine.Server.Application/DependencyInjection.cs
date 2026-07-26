@@ -38,6 +38,9 @@ public static class DependencyInjection
 
         services.AddScoped<ChangeServerVersion>();
 
+        services.AddScoped<StartGameServer>();
+        services.AddScoped<StopGameServer>();
+
         return services;
     }
 }

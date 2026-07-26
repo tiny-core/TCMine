@@ -16,8 +16,9 @@ public sealed class DockerApiClient
 
     public DockerApiClient(DockerHttpClientFactory factory, IOptions<DockerOptions> options)
     {
+        var v = options.Value.ApiVersion;
         _http = factory.Create();
-        _prefix = $"/{options.Value.ApiVersion}";
+        _prefix = string.IsNullOrWhiteSpace(v) ? "" : $"/{v}";
     }
 
     /// <summary>Testa a conexão com o daemon. Devolve true se responder "OK".</summary>
@@ -84,6 +85,25 @@ public sealed class DockerApiClient
             $"{_prefix}/containers/{id}?force={force.ToString().ToLowerInvariant()}", ct);
         if (response.StatusCode is not HttpStatusCode.NotFound)
             response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>
+    ///     Puxa uma imagem do registry. A rota devolve progresso em stream (uma
+    ///     linha JSON por evento); drenamos até ao fim, que é quando o pull acaba.
+    /// </summary>
+    public async Task PullImageAsync(string image, CancellationToken ct)
+    {
+        var response = await _http.PostAsync(
+            $"{_prefix}/images/create?fromImage={Uri.EscapeDataString(image)}", null, ct);
+        response.EnsureSuccessStatusCode();
+
+        // Consumir o stream até ao fim é o que "espera o pull terminar".
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(stream);
+        while (await reader.ReadLineAsync(ct) is not null)
+        {
+            // Poderíamos parsear o progresso para a UI; por ora só drenamos.
+        }
     }
 }
 

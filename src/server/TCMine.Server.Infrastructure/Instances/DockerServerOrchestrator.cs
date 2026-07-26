@@ -41,6 +41,10 @@ public sealed class DockerServerOrchestrator(
         // Porta do jogo: extrai do ConnectAddress se tiver ":porta", senão 25565.
         var hostPort = ExtractPort(server.ConnectAddress);
 
+        // A Engine API não puxa no create — garantimos a imagem primeiro.
+        // Idempotente: se já está local, o pull retorna rápido.
+        await docker.PullImageAsync(Image, ct);
+
         var spec = new CreateContainerRequest
         {
             Image = Image,

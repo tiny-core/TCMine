@@ -10,6 +10,7 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackServersPage
 {
+    private readonly HashSet<Guid> _busy = [];
     private List<BreadcrumbItem> _breadcrumbs = [];
 
     private bool _isLoading = true;
@@ -24,6 +25,41 @@ public partial class ModpackServersPage
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
+
+    [Inject] private StartGameServer StartUseCase { get; set; } = default!;
+    [Inject] private StopGameServer StopUseCase { get; set; } = default!;
+
+    private async Task Start(GameServer server)
+    {
+        _busy.Add(server.Id);
+        try
+        {
+            var result = await StartUseCase.HandleAsync(server.Id, CancellationToken.None);
+            if (!result.Succeeded)
+                Snackbar.Add(result.Error!, Severity.Error);
+            await LoadAsync(); // recarrega para o chip refletir o novo status
+        }
+        finally
+        {
+            _busy.Remove(server.Id);
+        }
+    }
+
+    private async Task Stop(GameServer server)
+    {
+        _busy.Add(server.Id);
+        try
+        {
+            var result = await StopUseCase.HandleAsync(server.Id, CancellationToken.None);
+            if (!result.Succeeded)
+                Snackbar.Add(result.Error!, Severity.Error);
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy.Remove(server.Id);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

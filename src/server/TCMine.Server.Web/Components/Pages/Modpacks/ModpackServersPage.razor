@@ -1,5 +1,6 @@
 ﻿@page "/modpacks/{ModpackId:guid}/servers"
 @using TCMine.Contracts.Modpacks
+@using TCMine.Contracts.Servers
 
 <MudBreadcrumbs Items="_breadcrumbs"/>
 
@@ -63,6 +64,21 @@ else
                             }
                         </MudStack>
                     </div>
+                    @if (_busy.Contains(server.Id))
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mx-2"/>
+                    }
+                    else if (server.Status is GameServerStatus.Running or GameServerStatus.Starting)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small"
+                                       Title="Parar" OnClick="@(() => Stop(server))"/>
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success" Size="Size.Small"
+                                       Title="Iniciar" OnClick="@(() => Start(server))"/>
+                    }
+
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                    OnClick="@(() => OpenForm(server))"/>
                     <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
