@@ -2,8 +2,10 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Infrastructure.Docker;
 using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
+using TCMine.Server.Infrastructure.Instances;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Storage;
 
@@ -59,6 +61,13 @@ public static class DependencyInjection
         services.AddScoped<INewsRepository, NewsRepository>();
 
         services.AddScoped<IServerRepository, ServerRepository>();
+
+        services.Configure<DockerOptions>(configuration.GetSection("Docker"));
+        services.AddSingleton<DockerHttpClientFactory>();
+        services.AddSingleton<DockerApiClient>();
+
+        services.Configure<InstanceOptions>(configuration.GetSection("Instances"));
+        services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();
 
         return services;
     }

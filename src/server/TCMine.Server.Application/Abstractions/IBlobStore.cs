@@ -28,4 +28,11 @@ public interface IBlobStore
     ///     o cliente baixar direto do storage, sem passar pelo seu processo.
     /// </summary>
     Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct);
+
+    /// <summary>
+    ///     Caminho físico do blob no host, quando o backend é disco local e
+    ///     permite hardlink. Null em backends sem caminho local (object storage),
+    ///     onde o materializador copia via stream.
+    /// </summary>
+    Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct);
 }

@@ -165,6 +165,11 @@ public sealed class ModpackIngestionServiceTests
         {
             return Task.FromResult<Uri?>(null);
         }
+
+        public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class FakeModpackRepository : IModpackRepository

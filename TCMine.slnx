@@ -20,6 +20,7 @@
         <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj" />
         <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj" />
         <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
+        <Project Path="tests/TCMine.Server.Infrastructure.Tests/TCMine.Server.Infrastructure.Tests.csproj" />
     </Folder>
     <Folder Name="/_build/">
         <File Path="build/add-migration.ps1" />

@@ -86,7 +86,7 @@ public sealed partial class FileSystemBlobStore : IBlobStore
             }
             catch (IOException) when (File.Exists(finalPath))
             {
-                // Duas requisições gravaram o mesmo conteúdo ao mesmo tempo e
+                // Duas requisições gravaram o mesmo conteúdo ao mesmo tempo, e
                 // a outra chegou primeiro. O resultado é idêntico, então não
                 // há nada a corrigir.
                 File.Delete(tempPath);
@@ -134,6 +134,12 @@ public sealed partial class FileSystemBlobStore : IBlobStore
     public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct)
     {
         return Task.FromResult<Uri?>(null);
+    }
+
+    public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct)
+    {
+        var path = ResolvePath(sha256);
+        return Task.FromResult(File.Exists(path) ? path : null);
     }
 
     // ---------- Internos ----------
