@@ -14,7 +14,7 @@ public sealed partial class ModpackIngestionService(
     IModpackRepository repository,
     IBlobStore blobStore,
     IEnumerable<IModResolver> resolvers,
-    HttpClient http,
+    IModDownloader downloader,
     ILogger<ModpackIngestionService> logger)
 {
     private readonly ILogger<ModpackIngestionService> _logger = logger;
@@ -100,9 +100,7 @@ public sealed partial class ModpackIngestionService(
         await repository.UpdateVersionAsync(version, ct);
     }
 
-    /// <summary>
-    ///     Retorna null em sucesso, ou uma descrição do erro em falha.
-    /// </summary>
+    /// <summary>Retorna null em sucesso…</summary>
     private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
         ModIngestionItem item,
@@ -156,7 +154,7 @@ public sealed partial class ModpackIngestionService(
     {
         try
         {
-            await using var stream = await http.GetStreamAsync(resolved.DownloadUrl, ct);
+            await using var stream = await downloader.OpenAsync(resolved.DownloadUrl, ct);
 
             // O blob store recalcula o SHA-256 durante a gravação. Não
             // passamos expectedSha256 porque o Modrinth informa SHA-1/512, e o
@@ -192,7 +190,7 @@ public sealed partial class ModpackIngestionService(
                 SizeBytes = stored.Length,
                 Side = item.Side,
                 Origin = item.Origin,
-                OriginReference = item.ProjectId
+                OriginReference = resolved.VersionId // id da versão fixada (base do check de updates)
             };
 
             // Mesmo mod em outra versão do .jar (jei-1.2.0 → jei-1.5)? Substitui,

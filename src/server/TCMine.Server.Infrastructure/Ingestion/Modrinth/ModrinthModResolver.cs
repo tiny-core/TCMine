@@ -62,6 +62,7 @@ public sealed partial class ModrinthModResolver(
                 .ToList();
 
             return new ModResolution.Resolved(
+                version.Id,
                 file.Filename,
                 file.Hashes?.Sha1,
                 file.Size,

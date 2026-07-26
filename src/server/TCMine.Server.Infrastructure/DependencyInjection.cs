@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Storage;
@@ -40,8 +41,7 @@ public static class DependencyInjection
             .AddStandardResilienceHandler();
 
         // HttpClient nomeado para o download dos mods durante a ingestão.
-        services.AddHttpClient<ModpackIngestionService>()
-            .AddStandardResilienceHandler();
+        services.AddScoped<ModpackIngestionService>();
 
         services.AddHttpClient<IModSearch, ModrinthModSearch>(client =>
             {
@@ -49,6 +49,13 @@ public static class DependencyInjection
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
             })
             .AddStandardResilienceHandler();
+
+        services.AddHttpClient<IModDownloader, HttpModDownloader>(client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
+
         return services;
     }
 }

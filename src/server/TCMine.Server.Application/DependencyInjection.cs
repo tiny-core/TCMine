@@ -16,7 +16,8 @@ public static class DependencyInjection
         services.AddScoped<ModpackIngestionService>();
         services.AddScoped<QueueIngestion>();
         services.AddScoped<RemoveModpackFile>();
-
+        services.AddScoped<CheckModpackVersionUpdates>();
+        services.AddScoped<CloneVersion>();
         return services;
     }
 }

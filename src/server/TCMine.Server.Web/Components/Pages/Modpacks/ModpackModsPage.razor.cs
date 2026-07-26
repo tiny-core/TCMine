@@ -215,4 +215,20 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
             _ => Color.Default
         };
     }
+
+    private async Task OpenCheckUpdates()
+    {
+        var parameters = new DialogParameters
+        {
+            ["SourceVersionId"] = _version!.Id,
+            ["SourceVersion"] = _version.Version
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<CheckUpdatesDialog>("Verificar atualizações", parameters, options);
+
+        // Ok devolve o Id do Draft novo — leva o admin direto para lá.
+        if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
+            Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
+    }
 }

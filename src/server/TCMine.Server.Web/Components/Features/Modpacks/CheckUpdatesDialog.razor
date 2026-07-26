@@ -1,0 +1,78 @@
+﻿@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@inject CheckModpackVersionUpdates CheckUseCase
+@inject CloneVersion CloneUseCase
+@inject IIngestionQueue IngestionQueue
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Verificar atualizações</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (_isChecking)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Comparando cada mod com a origem…</MudText>
+        }
+        else if (_updates.Count == 0)
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Text">
+                Tudo atualizado. Nenhum mod tem versão mais nova compatível.
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                @_updates.Count mod(s) com atualização. Isto não altera a versão @SourceVersion —
+                cria uma versão nova em rascunho com as trocas selecionadas.
+            </MudText>
+
+            <div style="max-height:45vh; overflow-y:auto;">
+                @foreach (var u in _updates)
+                {
+                    <MudPaper Outlined="true" Elevation="0" Class="pa-2 mb-1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudCheckBox T="bool"
+                                         Value="_selected.Contains(u.ProjectSlug)"
+                                         ValueChanged="@(v => Toggle(u.ProjectSlug, v))"/>
+                            <div>
+                                <MudText Typo="Typo.body1">@u.ProjectSlug</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @u.CurrentFileName → @u.LatestFileName
+                                </MudText>
+                            </div>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </div>
+
+            <MudTextField @bind-Value="_newVersion"
+                          Label="Número da nova versão"
+                          Class="mt-3"
+                          Disabled="_isCreating"/>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_updates.Count == 0 && !_isChecking)
+        {
+            <MudButton OnClick="Close">Fechar</MudButton>
+        }
+        else if (_updates.Count > 0)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
+                @_selected.Count selecionado(s)
+            </MudText>
+            <MudButton OnClick="Close" Disabled="_isCreating">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="Create"
+                       Disabled="_selected.Count == 0 || string.IsNullOrWhiteSpace(_newVersion) || _isCreating">
+                @if (_isCreating)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
+                Criar nova versão
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>

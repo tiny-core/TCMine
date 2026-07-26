@@ -69,6 +69,17 @@ else
             </MudButton>
         }
 
+        @if (_version?.State is ModpackVersionState.Ready)
+        {
+            <MudSpacer/>
+            
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
+                       OnClick="OpenCheckUpdates">
+                Verificar atualizações
+            </MudButton>
+        }
+
         <MudSpacer/>
 
         <MudTextField @bind-Value="_searchString"
@@ -131,6 +142,7 @@ else
                         <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                        Color="Color.Error"
                                        Size="Size.Small"
+                                       Disabled="_isIngesting"
                                        OnClick="@(() => RemoveFile(context.Item))"/>
                     </CellTemplate>
                 </TemplateColumn>

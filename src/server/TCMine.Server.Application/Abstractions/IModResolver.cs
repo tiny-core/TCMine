@@ -43,6 +43,7 @@ public abstract record ModResolution
 
     /// <summary>Encontrado e liberado para download.</summary>
     public sealed record Resolved(
+        string VersionId,
         string FileName,
         string? Sha1,
         long SizeBytes,
