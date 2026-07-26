@@ -69,6 +69,7 @@ public static class DependencyInjection
         services.Configure<InstanceOptions>(configuration.GetSection("Instances"));
         services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();
 
+        services.AddScoped<IServerOrchestrator, DockerServerOrchestrator>();
         return services;
     }
 }
