@@ -79,6 +79,7 @@ public partial class ModpackDetailPage : ComponentBase
     // Placeholders para os próximos passos.
     private void OpenOverrides()
     {
+        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersionId}/overrides", true);
     }
 
     private void OpenNews()

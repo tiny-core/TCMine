@@ -18,6 +18,9 @@ public static class DependencyInjection
         services.AddScoped<RemoveModpackFile>();
         services.AddScoped<CheckModpackVersionUpdates>();
         services.AddScoped<CloneVersion>();
+        services.AddScoped<ReadOverride>();
+        services.AddScoped<SaveOverride>();
+        services.AddScoped<DeleteOverride>();
         return services;
     }
 }

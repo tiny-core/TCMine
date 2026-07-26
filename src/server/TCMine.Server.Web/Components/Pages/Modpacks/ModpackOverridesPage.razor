@@ -1,0 +1,98 @@
+﻿@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/overrides"
+@using TCMine.Contracts.Modpacks
+
+<MudBreadcrumbs Items="_breadcrumbs"/>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_version is null)
+{
+    <MudAlert Severity="Severity.Error">Versão não encontrada.</MudAlert>
+}
+else
+{
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/modpacks/{ModpackId}")"/>
+        <MudText Typo="Typo.h5">Overrides</MudText>
+        <VersionStateChip State="_version.State"/>
+    </MudStack>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+        Configs e arquivos extras aplicados sobre o modpack. Só editáveis em rascunho.
+    </MudText>
+
+    @if (_version.State is ModpackVersionState.Draft)
+    {
+        <MudToolBar Dense="true" Gutters="false" Class="mb-2 px-0">
+            @if (_creatingNew)
+            {
+                <MudTextField @bind-Value="_newPath" Placeholder="config/mod.toml"
+                              Margin="Margin.Dense" Immediate="true" Style="max-width: 320px;"/>
+                <MudButton Color="Color.Primary" Class="ml-2" OnClick="ConfirmNew"
+                           Disabled="string.IsNullOrWhiteSpace(_newPath)">Criar
+                </MudButton>
+                <MudButton Class="ml-1" OnClick="@(() => _creatingNew = false)">Cancelar</MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.NoteAdd"
+                           OnClick="@(() =>
+                                    {
+                                        _creatingNew = true;
+                                        _newPath = string.Empty;
+                                    })">
+                    Novo arquivo
+                </MudButton>
+            }
+        </MudToolBar>
+    }
+
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudPaper Outlined="true" Class="pa-2" Style="height: 70vh; overflow: auto;">
+                @if (_treeItems.Count == 0)
+                {
+                    <MudText Class="pa-2" Color="Color.Secondary">Nenhum override ainda.</MudText>
+                }
+                else
+                {
+                    <MudTreeView T="string" Items="_treeItems"
+                                 SelectedValue="_selectedPath"
+                                 SelectedValueChanged="OnSelect"
+                                 Hover="true" Dense="true">
+                        <ItemTemplate>
+                            <MudTreeViewItem Value="@context.Value" Text="@context.Text"
+                                             Icon="@context.Icon" Items="@context.Children"
+                                             Expandable="@context.Expandable"/>
+                        </ItemTemplate>
+                    </MudTreeView>
+                }
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                <MudText Typo="Typo.subtitle2">@(_selectedPath ?? "Selecione um arquivo")</MudText>
+                <MudSpacer/>
+                @if (_version.State is ModpackVersionState.Draft && _selectedPath is not null)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="Save" Disabled="_isSaving || !_dirty">Salvar
+                    </MudButton>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                   Size="Size.Small" OnClick="Delete" Disabled="_isSaving"/>
+                }
+            </MudStack>
+            <div class="tc-editor-host">
+                <StandaloneCodeEditor @ref="_editor"
+                                      CssClass="tc-monaco"
+                                      ConstructionOptions="EditorOptions"
+                                      OnDidInit="OnEditorInit"
+                                      OnDidChangeModelContent="@(() => _dirty = true)"/>
+            </div>
+        </MudItem>
+    </MudGrid>
+}

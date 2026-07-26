@@ -21,11 +21,17 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
     // Filtro em memória: a lista de mods de uma versão cabe tranquilamente,
     // então não vale ida ao banco a cada tecla.
-    private IEnumerable<ModpackFile> FilteredFiles =>
-        string.IsNullOrWhiteSpace(_searchString)
-            ? _version?.Files ?? []
-            : (_version?.Files ?? []).Where(f =>
-                f.Path.Contains(_searchString, StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<ModpackFile> FilteredFiles
+    {
+        get
+        {
+            // Overrides (config/extras) têm a sua própria tela; fora daqui.
+            var files = (_version?.Files ?? []).Where(f => f.Origin != ModFileOrigin.Override);
+            return string.IsNullOrWhiteSpace(_searchString)
+                ? files
+                : files.Where(f => f.Path.Contains(_searchString, StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     public void Dispose()
     {

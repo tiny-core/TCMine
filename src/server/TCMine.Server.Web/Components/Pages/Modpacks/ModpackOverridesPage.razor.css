@@ -1,0 +1,12 @@
+﻿.tc-editor-host {
+    height: 70vh;
+    border: 1px solid var(--mud-palette-lines-default);
+    position: relative;
+}
+
+/* O CssClass="tc-monaco" cai no div onde o Monaco monta. Damos-lhe a altura
+   toda do host — sem depender do nome da classe interna do BlazorMonaco. */
+.tc-editor-host ::deep .tc-monaco {
+    height: 100%;
+    width: 100%;
+}

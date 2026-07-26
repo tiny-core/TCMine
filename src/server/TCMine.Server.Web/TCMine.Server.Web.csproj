@@ -22,6 +22,7 @@
         <PackageReference Include="Serilog.AspNetCore"/>
         <PackageReference Include="MudBlazor"/>
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>
+        <PackageReference Include="BlazorMonaco"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -33,19 +34,5 @@
         <ProjectReference Include="..\TCMine.Server.Infrastructure.Sqlite\TCMine.Server.Infrastructure.Sqlite.csproj"/>
         <ProjectReference Include="..\..\shared\TCMine.UI.Shared\TCMine.UI.Shared.csproj"/>
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="data\blobs\.tmp\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="data\blobs\48\2c\482c90e0e6fe72f33fe7abb079e5fda581cd660ee53c38c44448a64283e1044c" />
-      <Content Include="data\blobs\51\16\5116cc1703384aac88b8d7a3b57f172aea5da32b6df7355fb2f8247d23813c8f" />
-      <Content Include="data\blobs\da\6c\da6c3b66238586603d1dcaa2afb012d36815fbce0a2d5938fbb2936701d42279" />
-      <Content Include="data\blobs\dd\f4\ddf4b16d3b0bbf231ab38e52243e884351e5cf143df90f10cc8f9b19d13b5e30" />
-      <Content Include="data\blobs\ef\87\ef87fe5709f1ba1f5b8bb20a2925b5afb4669e178fd6d8bf10c167759eefe37a" />
-      <Content Include="data\blobs\ff\5e\ff5e8c9895c45ed99352c2995c9b7ae9541b467e8e3b5e0a26543ee727c3bb47" />
-    </ItemGroup>
-
-
+    
 </Project>
