@@ -76,16 +76,19 @@ public partial class ModpackDetailPage : ComponentBase
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods");
     }
 
-    // Placeholders para os próximos passos.
     private void OpenOverrides()
     {
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersionId}/overrides", true);
     }
 
-    private void OpenNews()
+    private async void OpenNews()
     {
+        var parameters = new DialogParameters { ["ModpackId"] = ModpackId };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        await DialogService.ShowAsync<NewsDialog>("Novidades", parameters, options);
     }
 
+    // Placeholders para os próximos passos.
     private void OpenServers()
     {
     }

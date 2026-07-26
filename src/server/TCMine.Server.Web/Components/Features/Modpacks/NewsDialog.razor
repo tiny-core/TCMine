@@ -1,0 +1,93 @@
+﻿@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@using TCMine.Server.Domain.Modpacks
+@inject INewsRepository NewsRepository
+@inject CreateNews CreateUseCase
+@inject UpdateNews UpdateUseCase
+@inject DeleteNews DeleteUseCase
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Novidades do modpack</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudGrid>
+            <MudItem xs="12" sm="5">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                    <MudText Typo="Typo.subtitle2">Posts</MudText>
+                    <MudSpacer/>
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="NewPost">Novo
+                    </MudButton>
+                </MudStack>
+
+                @if (_isLoading)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+                }
+                else if (_posts.Count == 0)
+                {
+                    <MudText Color="Color.Secondary" Class="pa-2">Nenhuma novidade ainda.</MudText>
+                }
+                else
+                {
+                    <MudList T="News" SelectedValue="_editing" Dense="true">
+                        @foreach (var post in _posts)
+                        {
+                            <MudListItem T="News" Value="post" OnClick="@(() => Edit(post))">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudText>@post.Title</MudText>
+                                    @if (!post.IsPublished)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="Color.Default">rascunho
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudItem>
+
+            <MudItem xs="12" sm="7">
+                @if (_editing is null)
+                {
+                    <MudText Color="Color.Secondary" Class="pa-4">
+                        Selecione um post ou crie um novo.
+                    </MudText>
+                }
+                else
+                {
+                    <MudTextField @bind-Value="_title" Label="Título" Immediate="true" Class="mb-2"/>
+                    <MudTextField @bind-Value="_body" Label="Corpo" Lines="8" Class="mb-2"/>
+                    <MudSwitch @bind-Value="_isPublished" Color="Color.Primary"
+                               Label="Publicado (visível no launcher)" Class="mb-2"/>
+
+                    <MudStack Row="true" Spacing="1">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="Save"
+                                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_title)">
+                            @if (_isSaving)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            }
+                            Salvar
+                        </MudButton>
+                        @if (!_isNew)
+                        {
+                            <MudButton Variant="Variant.Text" Color="Color.Error"
+                                       OnClick="Delete" Disabled="_isSaving">Apagar
+                            </MudButton>
+                        }
+                    </MudStack>
+                }
+            </MudItem>
+        </MudGrid>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Close())">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>

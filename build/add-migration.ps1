@@ -9,5 +9,5 @@ foreach ($provider in @("Postgres", "Sqlite"))
     dotnet ef migrations add $Nome `
         --project $projeto `
         --startup-project $projeto `
-        --context TCMineDbContext
+        --context TcMineDbContext
 }

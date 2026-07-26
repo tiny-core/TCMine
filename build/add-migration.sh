@@ -16,5 +16,5 @@ for PROVIDER in Postgres Sqlite; do
   dotnet ef migrations add "$NOME" \
     --project "$PROJETO" \
     --startup-project "$PROJETO" \
-    --context TCMineDbContext
+    --context TcMineDbContext
 done

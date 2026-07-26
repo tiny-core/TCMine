@@ -17,6 +17,8 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<GameServer> GameServers => Set<GameServer>();
     public DbSet<Blob> Blobs => Set<Blob>();
 
+    public DbSet<News> News => Set<News>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Varre o assembly atrás de IEntityTypeConfiguration<T>. Sem isto,

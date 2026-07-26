@@ -21,6 +21,10 @@ public static class DependencyInjection
         services.AddScoped<ReadOverride>();
         services.AddScoped<SaveOverride>();
         services.AddScoped<DeleteOverride>();
+        services.AddScoped<CreateNews>();
+        services.AddScoped<UpdateNews>();
+        services.AddScoped<DeleteNews>();
+
         return services;
     }
 }

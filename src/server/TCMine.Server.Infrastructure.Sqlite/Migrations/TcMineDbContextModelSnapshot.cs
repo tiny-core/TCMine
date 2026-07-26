@@ -290,6 +290,41 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("modpack_versions", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.News", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(20000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackId");
+
+                    b.ToTable("news", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Servers.GameServer", b =>
                 {
                     b.Property<Guid>("Id")

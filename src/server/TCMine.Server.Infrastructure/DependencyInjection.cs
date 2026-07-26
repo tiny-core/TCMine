@@ -56,6 +56,8 @@ public static class DependencyInjection
             })
             .AddStandardResilienceHandler();
 
+        services.AddScoped<INewsRepository, NewsRepository>();
+
         return services;
     }
 }
