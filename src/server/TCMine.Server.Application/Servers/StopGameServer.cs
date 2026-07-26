@@ -19,11 +19,21 @@ public sealed class StopGameServer(
 
         try
         {
-            await orchestrator.StopAsync(serverId, StopTimeout, ct);
+            // EnsureCreated (dentro do Start) materializa a pasta, cria o
+            // container e persiste o ContainerId. É idempotente.
+            await orchestrator.StartAsync(serverId, ct);
 
-            server.Status = await orchestrator.GetStatusAsync(serverId, ct);
-            server.UpdatedAt = DateTimeOffset.UtcNow;
-            await servers.UpdateAsync(server, ct);
+            // Recarrega: o StartAsync gravou o ContainerId numa instância própria.
+            // A nossa cópia 'server' está velha (ContainerId ainda null) — gravar
+            // por cima dela apagaria o Id recém-persistido, porque Update marca
+            // todas as colunas.
+            var fresh = await servers.GetByIdAsync(serverId, ct);
+            if (fresh is null)
+                return Result.Fail("Servidor não encontrado após iniciar.");
+
+            fresh.Status = await orchestrator.GetStatusAsync(serverId, ct);
+            fresh.UpdatedAt = DateTimeOffset.UtcNow;
+            await servers.UpdateAsync(fresh, ct);
 
             return Result.Success();
         }

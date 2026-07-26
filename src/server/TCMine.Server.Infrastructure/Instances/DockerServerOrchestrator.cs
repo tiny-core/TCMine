@@ -115,14 +115,28 @@ public sealed class DockerServerOrchestrator(
         if (server?.ContainerId is null)
             return GameServerStatus.Stopped;
 
-        var inspect = await docker.InspectContainerAsync(server.ContainerId, ct);
+        ContainerInspect? inspect;
+        try
+        {
+            inspect = await docker.InspectContainerAsync(server.ContainerId, ct);
+        }
+        catch (Exception ex)
+        {
+            // Não deixa uma falha de inspect derrubar a reconciliação da página.
+            Console.WriteLine($"[Docker] inspect falhou para {server.ContainerId}: {ex.Message}");
+            return server.Status; // mantém o último conhecido
+        }
+
         if (inspect is null)
-            return GameServerStatus.Stopped; // container sumiu
+            return GameServerStatus.Stopped;
+
+        Console.WriteLine(
+            $"[Docker] {server.ContainerId[..12]} Running={inspect.State.Running} Status={inspect.State.Status} Exit={inspect.State.ExitCode}");
 
         return inspect.State switch
         {
             { Running: true } => GameServerStatus.Running,
-            { Status: "restarting" } => GameServerStatus.Starting, // loop de reinício
+            { Status: "restarting" } => GameServerStatus.Starting,
             { Status: "created" } => GameServerStatus.Stopped,
             { ExitCode: not 0 } => GameServerStatus.Crashed,
             _ => GameServerStatus.Stopped

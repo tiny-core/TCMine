@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 
@@ -94,7 +95,9 @@ public sealed class DockerApiClient
         if (response.StatusCode is HttpStatusCode.NotFound)
             return null;
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadFromJsonAsync<ContainerInspect>(ct);
+
+        return await response.Content.ReadFromJsonAsync<ContainerInspect>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct);
     }
 
     public async Task RemoveContainerAsync(string id, bool force, CancellationToken ct)
