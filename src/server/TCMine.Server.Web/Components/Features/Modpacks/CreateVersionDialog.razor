@@ -6,11 +6,8 @@
 <MudDialog>
     <DialogContent>
         <MudForm @ref="_form">
-            <MudTextField @bind-Value="_version"
-                          Label="Versão"
-                          Required="true"
-                          RequiredError="Informe a versão."
-                          HelperText="Ex: 1.0.0"/>
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Versão do modpack</MudText>
+            <VersionEditor @bind-Value="_version"/>
 
             <MudTextField @bind-Value="_minecraftVersion"
                           Label="Versão do Minecraft"

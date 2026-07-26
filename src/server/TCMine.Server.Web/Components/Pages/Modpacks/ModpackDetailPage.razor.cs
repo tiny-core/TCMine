@@ -38,7 +38,7 @@ public partial class ModpackDetailPage : ComponentBase
             ];
 
             // Seleciona a versão mais recente por padrão (a lista já vem
-            // ordenada por Id decrescente na consulta).
+            // ordenada por ID decrescente na consulta).
             var first = _modpack.Versions
                 .OrderByDescending(v => v.Id)
                 .FirstOrDefault();
@@ -61,7 +61,20 @@ public partial class ModpackDetailPage : ComponentBase
 
     private async Task OpenCreateVersion()
     {
-        var parameters = new DialogParameters { ["ModpackId"] = ModpackId };
+        var latest = _modpack?.Versions
+            .OrderByDescending(v => v.Id)
+            .FirstOrDefault();
+
+        var parameters = new DialogParameters
+        {
+            ["ModpackId"] = ModpackId,
+            ["DefaultVersion"] = latest?.Version,
+            ["DefaultMinecraftVersion"] = latest?.MinecraftVersion,
+            ["DefaultLoader"] = latest?.Loader,
+            ["DefaultLoaderVersion"] = latest?.LoaderVersion,
+            ["DefaultMemoryMb"] = latest?.RecommendedMemoryMb
+        };
+
         var dialog = await DialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);
 
         if (await dialog.Result is { Canceled: false })

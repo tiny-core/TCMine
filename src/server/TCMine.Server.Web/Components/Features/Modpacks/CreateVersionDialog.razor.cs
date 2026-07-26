@@ -19,6 +19,27 @@ public partial class CreateVersionDialog : ComponentBase
 
     [Parameter] public Guid ModpackId { get; set; }
 
+    [Parameter] public string? DefaultMinecraftVersion { get; set; }
+    [Parameter] public ModLoader? DefaultLoader { get; set; }
+    [Parameter] public string? DefaultLoaderVersion { get; set; }
+    [Parameter] public int? DefaultMemoryMb { get; set; }
+    [Parameter] public string? DefaultVersion { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Versão sugerida: patch da última + 1, marcada alpha. Só o número muda
+        // entre versões; MC/loader/RAM herdam da última publicação.
+        _version = PackVersion.SuggestNext(DefaultVersion);
+
+        // Pré-preenche com a última versão: MC, loader e RAM raramente mudam
+        // entre versões do mesmo pack. Só o número da versão fica em branco.
+        if (DefaultMinecraftVersion is not null) _minecraftVersion = DefaultMinecraftVersion;
+        if (DefaultLoader is not null) _loader = DefaultLoader.Value;
+        if (DefaultLoaderVersion is not null) _loaderVersion = DefaultLoaderVersion;
+
+        _memoryMb = DefaultMemoryMb;
+    }
+
     private void Cancel()
     {
         Dialog.Cancel();

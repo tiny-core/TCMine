@@ -1,0 +1,19 @@
+﻿@namespace TCMine.Server.Web.Components.Features.Modpacks
+
+<MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+    <MudNumericField T="int" @bind-Value="Major" Label="Maior" Min="0"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 84px;"/>
+    <MudText Typo="Typo.h6">.</MudText>
+    <MudNumericField T="int" @bind-Value="Minor" Label="Menor" Min="0"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 84px;"/>
+    <MudText Typo="Typo.h6">.</MudText>
+    <MudNumericField T="int" @bind-Value="Patch" Label="Correção" Min="0"
+                     Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 84px;"/>
+    <MudSelect T="VersionChannel" @bind-Value="Channel" Label="Canal"
+               Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 120px;">
+        <MudSelectItem Value="VersionChannel.Alpha">alpha</MudSelectItem>
+        <MudSelectItem Value="VersionChannel.Release">release</MudSelectItem>
+    </MudSelect>
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Filled" Color="Color.Default">@Value</MudChip>
+</MudStack>
+
