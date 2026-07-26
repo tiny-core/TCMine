@@ -1,0 +1,64 @@
+﻿@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Servers
+@inject IModpackRepository ModpackRepository
+@inject ChangeServerVersion ChangeUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Versão do servidor</MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (Server.HasWorld)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
+                Este servidor já tem mundo gerado. Trocar a versão agora pode corromper o save —
+                mods removidos deixam registros órfãos, e rebaixar mods pode quebrar o formato dos dados.
+                A troca segura (backup do mundo + recriação do container) fica disponível quando a
+                orquestração estiver ativa.
+            </MudAlert>
+        }
+        else if (_isLoading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                Servidor sem mundo — a troca é imediata e segura.
+            </MudText>
+            <MudRadioGroup T="Guid" @bind-Value="_selectedVersionId">
+                @foreach (var v in _versions)
+                {
+                    <MudRadio T="Guid" Value="v.Id" Class="d-block">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText>@v.Version</MudText>
+                            <VersionStateChip State="v.State"/>
+                            @if (v.Id == Server.ModpackVersionId)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                         Variant="Variant.Text">atual
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudRadio>
+                }
+            </MudRadioGroup>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Fechar</MudButton>
+        @if (!Server.HasWorld)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="Apply"
+                       Disabled="_isSaving || _selectedVersionId == Server.ModpackVersionId || _selectedVersionId == Guid.Empty">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
+                Aplicar
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>

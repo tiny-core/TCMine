@@ -1,7 +1,9 @@
-﻿@using TCMine.Server.Application.Servers
+﻿@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Servers
 @inject CreateGameServer CreateUseCase
 @inject UpdateGameServer UpdateUseCase
 @inject ISnackbar Snackbar
+@inject IModpackRepository ModpackRepository
 
 <MudDialog>
     <TitleContent>
@@ -23,14 +25,31 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        @if (_isNew)
+        {
+            <MudSelect T="Guid" @bind-Value="_selectedVersionId" Label="Versão do modpack" Class="mb-1">
+                @foreach (var v in _versions)
+                {
+                    <MudSelectItem T="Guid" Value="v.Id">@v.Version</MudSelectItem>
+                }
+            </MudSelect>
+            @if (_selected is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mb-3 d-block">
+                    Minecraft @_selected.MinecraftVersion · @_selected.Loader @_selected.LoaderVersion · @SelectedModCount mod(s)
+                </MudText>
+            }
+        }
+
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    OnClick="Save"
-                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress)">
+                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress) || (_isNew && _selectedVersionId == Guid.Empty)">
             @if (_isSaving)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }
             Salvar
         </MudButton>
+
     </DialogActions>
 </MudDialog>

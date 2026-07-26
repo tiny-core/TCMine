@@ -12,26 +12,35 @@ public sealed class CreateGameServer(
     ICurrentUserScope userScope)
 {
     public async Task<Result<Guid>> HandleAsync(
-        Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers, CancellationToken ct)
+        Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
+        Guid modpackVersionId, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
         if (string.IsNullOrWhiteSpace(connectAddress))
             return Result<Guid>.Fail("Informe o endereço de conexão.");
 
-        // Fixa a versão publicada mais recente. Sem versão publicada não há o
-        // que rodar — o servidor precisa de arquivos resolvidos e imutáveis.
-        var versions = await modpacks.ListVersionsAsync(modpackId, ct);
-        var latestReady = versions.FirstOrDefault(v => v.State is ModpackVersionState.Ready);
-        if (latestReady is null)
+        // Só versões publicadas podem rodar (arquivos resolvidos e imutáveis).
+        var ready = (await modpacks.ListVersionsAsync(modpackId, ct))
+            .Where(v => v.State is ModpackVersionState.Ready)
+            .ToList();
+        if (ready.Count == 0)
             return Result<Guid>.Fail("Publique uma versão do modpack antes de criar um servidor.");
+
+        // A versão vem do formulário. Guid.Empty = usa a mais recente (a lista
+        // já vem do mais novo para o mais antigo).
+        var pinned = modpackVersionId == Guid.Empty
+            ? ready[0]
+            : ready.FirstOrDefault(v => v.Id == modpackVersionId);
+        if (pinned is null)
+            return Result<Guid>.Fail("Selecione uma versão publicada válida.");
 
         var server = new GameServer
         {
             OwnerId = userScope.OwnerId,
             Name = name.Trim(),
             ModpackId = modpackId,
-            ModpackVersionId = latestReady.Id,
+            ModpackVersionId = pinned.Id,
             ConnectAddress = connectAddress.Trim(),
             MemoryMb = memoryMb,
             MaxPlayers = maxPlayers,

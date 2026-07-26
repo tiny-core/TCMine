@@ -36,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<UpdateGameServer>();
         services.AddScoped<DeleteGameServer>();
 
+        services.AddScoped<ChangeServerVersion>();
+
         return services;
     }
 }

@@ -1,4 +1,5 @@
 ﻿@page "/modpacks/{ModpackId:guid}/servers"
+@using TCMine.Contracts.Modpacks
 
 <MudBreadcrumbs Items="_breadcrumbs"/>
 
@@ -40,6 +41,20 @@ else
                         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
                             <ServerStatusChip Status="server.Status"/>
                             <MudText Typo="Typo.caption" Color="Color.Secondary">@server.ConnectAddress</MudText>
+                            @if (_versionsById.TryGetValue(server.ModpackVersionId, out var ver))
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                         Icon="@Icons.Material.Filled.Sell" Color="Color.Default">
+                                    v@(ver.Version)
+                                </MudChip>
+                                @if (ver.State is ModpackVersionState.Archived)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
+                                        arquivada
+                                    </MudChip>
+                                }
+                            }
+
                             @if (server.HasWorld)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
@@ -50,6 +65,9 @@ else
                     </div>
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                    OnClick="@(() => OpenForm(server))"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
+                                   Title="Versão fixada"
+                                   OnClick="@(() => ChangeVersion(server))"/>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                    OnClick="@(() => Delete(server))"/>
                 </MudStack>

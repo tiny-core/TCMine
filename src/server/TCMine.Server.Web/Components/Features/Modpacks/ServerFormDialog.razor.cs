@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
+using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
@@ -13,21 +15,35 @@ public partial class ServerFormDialog : ComponentBase
     private int _maxPlayers = 20;
     private int _memoryMb = 4096;
     private string _name = "";
+    private Guid _selectedVersionId;
+    private List<ModpackVersion> _versions = [];
+
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public GameServer? Existing { get; set; }
 
-    protected override void OnInitialized()
+    private ModpackVersion? _selected => _versions.FirstOrDefault(v => v.Id == _selectedVersionId);
+    private int SelectedModCount => _selected?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
+
+    protected override async void OnInitialized()
     {
         _isNew = Existing is null;
+
         if (Existing is not null)
         {
             _name = Existing.Name;
             _connectAddress = Existing.ConnectAddress;
             _memoryMb = Existing.MemoryMb;
             _maxPlayers = Existing.MaxPlayers;
+            return;
         }
+
+        // Novo: só publicadas; a mais recente já vem selecionada.
+        _versions = (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
+            .Where(v => v.State is ModpackVersionState.Ready)
+            .ToList();
+        _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
     private async Task Save()
@@ -38,7 +54,9 @@ public partial class ServerFormDialog : ComponentBase
             if (_isNew)
             {
                 var result = await CreateUseCase.HandleAsync(
-                    ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, CancellationToken.None);
+                    ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
+                    CancellationToken.None);
+
                 if (!result.Succeeded)
                 {
                     Snackbar.Add(result.Error!, Severity.Error);
