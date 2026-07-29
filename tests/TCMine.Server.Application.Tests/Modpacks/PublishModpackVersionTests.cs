@@ -133,6 +133,11 @@ public sealed class PublishModpackVersionTests
             throw new NotImplementedException();
         }
 
+        public Task RemoveAsync(Guid id, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task CreateAsync(Modpack modpack, CancellationToken ct)
         {
             throw new NotImplementedException();

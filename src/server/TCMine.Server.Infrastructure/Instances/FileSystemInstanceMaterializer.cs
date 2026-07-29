@@ -14,7 +14,6 @@ public sealed class FileSystemInstanceMaterializer(
     // aqui, então nunca são removidos numa re-materialização.
     private const string ManifestFileName = ".tcmine-manifest.json";
 
-
     private readonly InstanceOptions _options = options.Value;
 
     // Resolve relativo→absoluto já aqui. O bind mount do Docker exige caminho
@@ -25,6 +24,25 @@ public sealed class FileSystemInstanceMaterializer(
     public string GetInstancePath(Guid gameServerId)
     {
         return Path.Combine(_rootPath, gameServerId.ToString());
+    }
+
+    public Task DeleteInstanceAsync(Guid gameServerId, CancellationToken ct)
+    {
+        var path = GetInstancePath(gameServerId);
+
+        // Guarda de sanidade: só apagamos algo que está mesmo debaixo da raiz
+        // de instâncias. Se o caminho resolvido escapar da raiz (id estranho,
+        // config errada), recusamos — apagar recursivamente a pasta errada é
+        // catastrófico.
+        var fullRoot = Path.GetFullPath(_rootPath + Path.DirectorySeparatorChar);
+        var fullPath = Path.GetFullPath(path);
+        if (!fullPath.StartsWith(fullRoot, StringComparison.Ordinal))
+            throw new InvalidOperationException($"Caminho de instância fora da raiz: {path}");
+
+        if (Directory.Exists(fullPath))
+            Directory.Delete(fullPath, true);
+
+        return Task.CompletedTask;
     }
 
     public async Task MaterializeAsync(Guid gameServerId, ModpackVersion version, CancellationToken ct)

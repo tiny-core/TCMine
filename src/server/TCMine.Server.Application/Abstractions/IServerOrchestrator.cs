@@ -32,6 +32,13 @@ public interface IServerOrchestrator
     ///     repassar ao Hub.
     /// </summary>
     IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct);
+
+    /// <summary>
+    ///     Para (se preciso) e remove o container da instância. Idempotente:
+    ///     silêncio se o container já não existe. Não apaga a pasta da instância
+    ///     nem o mundo — isso é decisão à parte de quem chama.
+    /// </summary>
+    Task RemoveAsync(Guid gameServerId, CancellationToken ct);
 }
 
 /// <summary>

@@ -1,7 +1,10 @@
 ﻿@page "/modpacks"
 @using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
+@inject DeleteModpack DeleteUseCase
+@inject ISnackbar Snackbar
 
 <PageTitle>Modpacks — TCMine</PageTitle>
 
@@ -52,6 +55,9 @@ else
                         <MudButton Href="@($"/modpacks/{pack.Id}")" Variant="Variant.Text" Color="Color.Primary">
                             Abrir
                         </MudButton>
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                       Color="Color.Error" Size="Size.Small"
+                                       OnClick="@(() => Delete(pack))"/>
                     </MudCardActions>
                 </MudCard>
             </MudItem>

@@ -21,6 +21,8 @@ public interface IModpackRepository
 
     Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct);
 
+    Task RemoveAsync(Guid id, CancellationToken ct);
+
     /// <summary>Persiste um modpack novo.</summary>
     Task CreateAsync(Modpack modpack, CancellationToken ct);
 

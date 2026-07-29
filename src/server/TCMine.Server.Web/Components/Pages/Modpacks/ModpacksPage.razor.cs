@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Web.Components.Features.Modpacks;
 using TCMine.Server.Web.Mapping;
@@ -23,6 +24,28 @@ public partial class ModpacksPage : ComponentBase
         _modpacks = [.. entities.Select(m => m.ToDto())];
 
         _isLoading = false;
+    }
+
+    private async Task Delete(ModpackDto pack)
+    {
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Apagar modpack",
+            $"Apagar \"{pack.Name}\"? Todas as versões e arquivos serão removidos. Isto é irreversível.",
+            "Apagar", cancelText: "Cancelar");
+        if (confirm is not true)
+            return;
+
+        var result = await DeleteUseCase.HandleAsync(pack.Id, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Modpack apagado.", Severity.Success);
+            await LoadAsync(); // ou o método que recarrega _modpacks
+        }
+        else
+        {
+            // A barreira dos servidores volta como mensagem clara aqui.
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
     }
 
     private async Task OpenCreateDialog()

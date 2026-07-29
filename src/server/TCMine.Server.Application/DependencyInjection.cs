@@ -11,6 +11,7 @@ public static class DependencyInjection
         // Casos de uso são scoped: um por requisição, alinhado com o tempo
         // de vida do DbContext.
         services.AddScoped<CreateModpack>();
+        services.AddScoped<DeleteModpack>();
         services.AddScoped<CreateModpackVersion>();
 
         services.AddScoped<AddManualFile>();

@@ -14,4 +14,10 @@ public interface IInstanceMaterializer
 
     /// <summary>Caminho raiz da instância no host, para o orquestrador montar -v.</summary>
     string GetInstancePath(Guid gameServerId);
+
+    /// <summary>
+    ///     Apaga a pasta inteira da instância (mods, configs E o mundo).
+    ///     Irreversível. Idempotente: silêncio se a pasta já não existe.
+    /// </summary>
+    Task DeleteInstanceAsync(Guid gameServerId, CancellationToken ct);
 }

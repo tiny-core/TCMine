@@ -221,6 +221,11 @@ public sealed class ModpackIngestionServiceTests
             throw new NotImplementedException();
         }
 
+        public Task RemoveAsync(Guid id, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task CreateAsync(Modpack modpack, CancellationToken ct)
         {
             throw new NotImplementedException();

@@ -98,6 +98,13 @@ public sealed class DockerServerOrchestrator(
         return containerId;
     }
 
+    public async Task RemoveAsync(Guid gameServerId, CancellationToken ct)
+    {
+        // force=true para no RemoveContainerByNameAsync: para e remove mesmo que
+        // esteja a correr. Ao apagar o servidor, é o comportamento esperado.
+        await docker.RemoveContainerByNameAsync($"tcmine-{gameServerId}", ct);
+    }
+
     public async Task StartAsync(Guid gameServerId, CancellationToken ct)
     {
         var containerId = await EnsureCreatedAsync(gameServerId, ct);
