@@ -1,4 +1,5 @@
-﻿@using TCMine.Server.Application.Modpacks
+﻿@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Modpacks
 @inject CreateModpack CreateModpackUseCase
 @inject ISnackbar Snackbar
 
@@ -28,6 +29,20 @@
                           Lines="3"
                           HelperText="Opcional."
                           Class="mt-3"/>
+
+            <MudAutocomplete T="string" @bind-Value="_minecraftVersion"
+                             Label="Versão do Minecraft" SearchFunc="SearchMc"
+                             CoerceValue="true" MaxItems="50" Required="true"
+                             RequiredError="Escolha a versão do Minecraft." Class="mt-3"/>
+            <MudSwitch T="bool" @bind-Value="_mcReleasesOnly" @bind-Value:after="ReloadMc"
+                       Color="Color.Primary" Label="Só releases" Class="mt-1"/>
+
+            <MudSelect T="ModLoader" @bind-Value="_loader" Label="Mod loader" Class="mt-3">
+                @foreach (var l in Enum.GetValues<ModLoader>())
+                {
+                    <MudSelectItem T="ModLoader" Value="l">@l</MudSelectItem>
+                }
+            </MudSelect>
         </MudForm>
     </DialogContent>
     <DialogActions>

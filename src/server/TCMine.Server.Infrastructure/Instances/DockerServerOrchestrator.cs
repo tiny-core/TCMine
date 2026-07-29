@@ -23,6 +23,10 @@ public sealed class DockerServerOrchestrator(
         var server = await servers.GetByIdAsync(gameServerId, ct)
                      ?? throw new InvalidOperationException($"Servidor {gameServerId} não encontrado.");
 
+        // MC e loader agora vivem no modpack. Carrega para o itzg (TYPE/VERSION).
+        var modpack = await modpacks.GetByIdAsync(server.ModpackId, ct)
+                      ?? throw new InvalidOperationException($"Modpack {server.ModpackId} não encontrado.");
+
         var version = await modpacks.GetVersionAsync(server.ModpackVersionId, ct)
                       ?? throw new InvalidOperationException("Versão fixada não encontrada.");
 
@@ -62,9 +66,9 @@ public sealed class DockerServerOrchestrator(
             Env =
             [
                 "EULA=TRUE",
-                $"TYPE={ItzgEnv.ToServerType(version.Loader)}",
-                $"VERSION={version.MinecraftVersion}",
-                $"{ItzgEnv.ToServerType(version.Loader)}_VERSION={version.LoaderVersion}",
+                $"TYPE={ItzgEnv.ToServerType(modpack.Loader)}",
+                $"VERSION={modpack.MinecraftVersion}",
+                $"{ItzgEnv.ToServerType(modpack.Loader)}_VERSION={version.LoaderVersion}",
                 $"MEMORY={server.MemoryMb}M",
                 $"MAX_PLAYERS={server.MaxPlayers}",
                 "ENABLE_RCON=TRUE",

@@ -13,7 +13,6 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         builder.HasKey(v => v.Id);
 
         builder.Property(v => v.Version).HasMaxLength(32).IsRequired();
-        builder.Property(v => v.MinecraftVersion).HasMaxLength(32).IsRequired();
         builder.Property(v => v.LoaderVersion).HasMaxLength(64).IsRequired();
         builder.Property(v => v.FailureReason).HasMaxLength(2048);
 
@@ -24,11 +23,6 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         // catastrófico. Como string, o custo é alguns bytes e o dump do
         // banco fica legível.
         builder.Property(v => v.State)
-            .HasConversion<string>()
-            .HasMaxLength(32)
-            .IsRequired();
-
-        builder.Property(v => v.Loader)
             .HasConversion<string>()
             .HasMaxLength(32)
             .IsRequired();

@@ -1,7 +1,4 @@
-﻿@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Modpacks
-@using TCMine.Server.Domain.Modpacks
+﻿@using TCMine.Server.Application.Abstractions
 @inject IModSearch Search
 @inject IIngestionQueue Queue
 @inject ISnackbar Snackbar
@@ -18,7 +15,7 @@
                           AdornmentIcon="@Icons.Material.Filled.Search"
                           Immediate="true"
                           OnKeyUp="OnKeyUp"
-                          Disabled="_isSearching" />
+                          Disabled="_isSearching"/>
             <MudButton Variant="Variant.Filled"
                        Color="Color.Primary"
                        OnClick="DoSearch"
@@ -33,7 +30,7 @@
 
         @if (_isSearching)
         {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3" />
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
         }
 
         <div style="max-height:50vh; overflow-y:auto;" class="mt-2">
@@ -58,15 +55,15 @@
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
                         <MudCheckBox T="bool"
                                      Value="_selected.Contains(r.ProjectId)"
-                                     ValueChanged="@(v => Toggle(r.ProjectId, v))" />
+                                     ValueChanged="@(v => Toggle(r.ProjectId, v))"/>
                         <MudAvatar Rounded="true">
                             @if (!string.IsNullOrEmpty(r.IconUrl))
                             {
-                                <MudImage Src="@r.IconUrl" />
+                                <MudImage Src="@r.IconUrl"/>
                             }
                             else
                             {
-                                <MudIcon Icon="@Icons.Material.Filled.Extension" />
+                                <MudIcon Icon="@Icons.Material.Filled.Extension"/>
                             }
                         </MudAvatar>
                         <div>
@@ -88,7 +85,7 @@
                    Disabled="_selected.Count == 0 || _isAdding">
             @if (_isAdding)
             {
-                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }
             Adicionar
         </MudButton>

@@ -7,6 +7,8 @@ public sealed record ModpackDto
     public required string Name { get; init; }
     public string? Summary { get; init; }
     public Uri? IconUrl { get; init; }
+    public required string MinecraftVersion { get; init; }
+    public required ModLoader Loader { get; init; }
 }
 
 /// <summary>
@@ -25,8 +27,6 @@ public sealed record ModpackVersionDto
     /// <summary>SemVer da versão do pack, ex: "1.4.0".</summary>
     public required string Version { get; init; }
 
-    public required string MinecraftVersion { get; init; }
-    public required ModLoader Loader { get; init; }
     public required string LoaderVersion { get; init; }
 
     public required ModpackVersionState State { get; init; }

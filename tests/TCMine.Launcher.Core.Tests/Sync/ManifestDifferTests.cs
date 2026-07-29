@@ -20,8 +20,6 @@ public class ManifestDifferTests
             Id = Instancia.ModpackVersionId,
             ModpackId = Instancia.ModpackId,
             Version = "1.0.0",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge,
             LoaderVersion = "21.1.0",
             State = ModpackVersionState.Ready,
             PublishedAt = DateTimeOffset.UtcNow,

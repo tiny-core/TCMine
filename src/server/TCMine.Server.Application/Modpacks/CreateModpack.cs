@@ -1,4 +1,5 @@
 ﻿using System.Text.RegularExpressions;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
@@ -26,12 +27,17 @@ public sealed partial class CreateModpack(
         if (await repository.SlugExistsAsync(slug, ct))
             return Result<Guid>.Fail($"Já existe um modpack com o identificador '{slug}'.");
 
+        if (string.IsNullOrWhiteSpace(command.MinecraftVersion))
+            return Result<Guid>.Fail("Informe a versão do Minecraft.");
+
         var modpack = new Modpack
         {
             OwnerId = scope.OwnerId,
             Slug = slug,
             Name = command.Name.Trim(),
-            Summary = string.IsNullOrWhiteSpace(command.Summary) ? null : command.Summary.Trim()
+            Summary = string.IsNullOrWhiteSpace(command.Summary) ? null : command.Summary.Trim(),
+            MinecraftVersion = command.MinecraftVersion.Trim(),
+            Loader = command.Loader
         };
 
         await repository.CreateAsync(modpack, ct);
@@ -54,4 +60,9 @@ public sealed partial class CreateModpack(
     private static partial Regex SlugPattern();
 }
 
-public sealed record CreateModpackCommand(string Slug, string Name, string? Summary);
+public sealed record CreateModpackCommand(
+    string Slug,
+    string Name,
+    string? Summary,
+    string MinecraftVersion,
+    ModLoader Loader);

@@ -19,7 +19,9 @@ public static class ModpackMappings
             Slug = modpack.Slug,
             Name = modpack.Name,
             Summary = modpack.Summary,
-            IconUrl = null // preenchido quando houver endpoint de ícone
+            IconUrl = null, // preenchido quando houver endpoint de ícone
+            MinecraftVersion = modpack.MinecraftVersion,
+            Loader = modpack.Loader
         };
     }
 
@@ -30,8 +32,6 @@ public static class ModpackMappings
             Id = version.Id,
             ModpackId = version.ModpackId,
             Version = version.Version,
-            MinecraftVersion = version.MinecraftVersion,
-            Loader = version.Loader,
             LoaderVersion = version.LoaderVersion,
             State = version.State,
             PublishedAt = version.PublishedAt ?? default,

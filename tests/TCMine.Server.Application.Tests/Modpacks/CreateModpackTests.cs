@@ -1,4 +1,5 @@
 ﻿using NSubstitute;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
@@ -18,7 +19,7 @@ public class CreateModpackTests
 
     private CreateModpackCommand ComandoValido(string slug = "tech-medieval")
     {
-        return new CreateModpackCommand(slug, "Tecnologia Medieval", null);
+        return new CreateModpackCommand(slug, "Tecnologia Medieval", null, "1.21.1", ModLoader.NeoForge);
     }
 
     [Fact]
@@ -75,7 +76,7 @@ public class CreateModpackTests
         var caso = CriarCasoDeUso();
 
         await caso.HandleAsync(
-            new CreateModpackCommand("Tech Medieval", "Nome", null),
+            new CreateModpackCommand("Tech Medieval", "Nome", null, "1.21.1", ModLoader.NeoForge),
             TestContext.Current.CancellationToken);
 
         capturado!.Slug.ShouldBe("tech-medieval");

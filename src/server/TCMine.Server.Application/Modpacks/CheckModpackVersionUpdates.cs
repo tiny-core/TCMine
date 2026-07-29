@@ -20,6 +20,11 @@ public sealed class CheckModpackVersionUpdates(
         if (version is null)
             return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Versão não encontrada.");
 
+        // MC e loader agora vivem no modpack (fixos para todas as versões).
+        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        if (modpack is null)
+            return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Modpack não encontrado.");
+
         var updates = new List<ModUpdateInfo>();
 
         foreach (var file in version.Files)
@@ -35,7 +40,7 @@ public sealed class CheckModpackVersionUpdates(
             if (resolver is null)
                 continue;
 
-            var request = new ModRequest(file.ProjectSlug, null, version.MinecraftVersion, version.Loader);
+            var request = new ModRequest(file.ProjectSlug, null, modpack.MinecraftVersion, modpack.Loader);
             var resolution = await resolver.ResolveAsync(request, ct);
 
             // Só a versão mais recente compatível é diferente do que está fixado?

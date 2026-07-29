@@ -19,6 +19,12 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
 
         var versionText = command.Version.Trim();
 
+        // Um Draft de cada vez: força terminar e publicar antes de começar a
+        // próxima. Evita duas versões meio-feitas em paralelo.
+        var versions = await repository.ListVersionsAsync(modpack.Id, ct);
+        if (versions.Any(v => v.State is ModpackVersionState.Draft))
+            return Result<Guid>.Fail("Já existe uma versão em rascunho. Publique-a antes de criar outra.");
+
         // O modpack veio com suas versões carregadas (Include), então dá para
         // checar duplicata em memória. O índice único do banco é a garantia
         // final contra corrida.
@@ -29,8 +35,6 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
         {
             ModpackId = modpack.Id,
             Version = versionText,
-            MinecraftVersion = command.MinecraftVersion.Trim(),
-            Loader = command.Loader,
             LoaderVersion = command.LoaderVersion.Trim(),
             RecommendedMemoryMb = command.RecommendedMemoryMb
         };

@@ -76,8 +76,6 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
         {
             ModpackId = Guid.CreateVersion7(),
             Version = "1.0",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge,
             LoaderVersion = "21.1.234"
         };
         foreach (var f in files) v.UpsertFile(f);
@@ -110,7 +108,7 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
         public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct)
         {
             var p = Path.Combine(root, sha256);
-            return Task.FromResult<string?>(File.Exists(p) ? p : null);
+            return Task.FromResult(File.Exists(p) ? p : null);
         }
 
         public Task<Stream> OpenAsync(string sha256, CancellationToken ct)

@@ -16,6 +16,8 @@ public sealed class ModpackConfiguration : IEntityTypeConfiguration<Modpack>
         builder.Property(m => m.Name).HasMaxLength(128).IsRequired();
         builder.Property(m => m.Summary).HasMaxLength(1024);
         builder.Property(m => m.IconBlobSha256).HasMaxLength(64);
+        builder.Property(m => m.MinecraftVersion).HasMaxLength(32).IsRequired();
+        builder.Property(m => m.Loader).HasConversion<string>().HasMaxLength(32).IsRequired();
 
         // O slug vai na URL, então precisa ser único. Deixar essa garantia
         // só na validação da aplicação não basta: duas requisições

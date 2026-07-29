@@ -7,25 +7,22 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class CreateVersionDialog : ComponentBase
 {
+    private readonly IReadOnlyList<string> _mcVersions = [];
     private MudForm _form = null!;
     private bool _isSaving;
-    private ModLoader _loader = ModLoader.NeoForge;
     private bool _loaderReleasesOnly = true;
     private string _loaderVersion = "";
     private IReadOnlyList<string> _loaderVersions = [];
 
     private bool _mcReleasesOnly = true;
-    private IReadOnlyList<string> _mcVersions = [];
     private int? _memoryMb;
-    private string _minecraftVersion = "";
     private string _version = "";
 
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
 
+    [Parameter] public string MinecraftVersion { get; set; } = "";
+    [Parameter] public ModLoader Loader { get; set; }
     [Parameter] public Guid ModpackId { get; set; }
-
-    [Parameter] public string? DefaultMinecraftVersion { get; set; }
-    [Parameter] public ModLoader? DefaultLoader { get; set; }
     [Parameter] public string? DefaultLoaderVersion { get; set; }
     [Parameter] public int? DefaultMemoryMb { get; set; }
     [Parameter] public string? DefaultVersion { get; set; }
@@ -36,34 +33,23 @@ public partial class CreateVersionDialog : ComponentBase
         // entre versões; MC/loader/RAM herdam da última publicação.
         _version = PackVersion.SuggestNext(DefaultVersion);
 
-        // Pré-preenche com a última versão: MC, loader e RAM raramente mudam
-        // entre versões do mesmo pack. Só o número da versão fica em branco.
-        if (DefaultMinecraftVersion is not null) _minecraftVersion = DefaultMinecraftVersion;
-        if (DefaultLoader is not null) _loader = DefaultLoader.Value;
         if (DefaultLoaderVersion is not null) _loaderVersion = DefaultLoaderVersion;
 
         _memoryMb = DefaultMemoryMb;
 
-        await ReloadMcVersions();
         await ReloadLoaderVersions();
-    }
-
-    private async Task ReloadMcVersions()
-    {
-        _mcVersions = await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None);
     }
 
     private async Task ReloadLoaderVersions()
     {
-        // Sem Minecraft escolhido, não há como filtrar as versões do loader.
-        if (string.IsNullOrWhiteSpace(_minecraftVersion))
+        if (string.IsNullOrWhiteSpace(MinecraftVersion))
         {
             _loaderVersions = [];
             return;
         }
 
         _loaderVersions = await Catalog.GetLoaderVersionsAsync(
-            _loader, _minecraftVersion, _loaderReleasesOnly, CancellationToken.None);
+            Loader, MinecraftVersion, _loaderReleasesOnly, CancellationToken.None);
     }
 
     private Task<IEnumerable<string>> SearchMc(string value, CancellationToken ct)
@@ -99,8 +85,8 @@ public partial class CreateVersionDialog : ComponentBase
         var command = new CreateModpackVersionCommand(
             ModpackId,
             _version,
-            _minecraftVersion,
-            _loader,
+            MinecraftVersion,
+            Loader,
             _loaderVersion,
             _memoryMb);
 

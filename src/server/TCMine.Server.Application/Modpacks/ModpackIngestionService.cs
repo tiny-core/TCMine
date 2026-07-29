@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Modpacks;
 
@@ -26,6 +27,14 @@ public sealed partial class ModpackIngestionService(
     {
         var version = await repository.GetVersionAsync(versionId, ct);
         if (version is null)
+        {
+            LogVersionMissing(versionId);
+            return;
+        }
+
+        // MC e loader vêm do modpack agora. Carrega uma vez; o loop reusa.
+        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        if (modpack is null)
         {
             LogVersionMissing(versionId);
             return;
@@ -72,7 +81,7 @@ public sealed partial class ModpackIngestionService(
             if (!processed.Add(item.ProjectId))
                 continue;
 
-            var outcome = await ResolveAndDownloadAsync(version, item, ct);
+            var outcome = await ResolveAndDownloadAsync(version, item, modpack.MinecraftVersion, modpack.Loader, ct);
             if (outcome.Error is not null)
             {
                 failures.Add(outcome.Error);
@@ -104,6 +113,8 @@ public sealed partial class ModpackIngestionService(
     private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
         ModIngestionItem item,
+        string minecraftVersion,
+        ModLoader loader,
         CancellationToken ct)
     {
         // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido,
@@ -112,8 +123,7 @@ public sealed partial class ModpackIngestionService(
         if (resolver is null)
             return ResolveOutcome.Fail($"{item.ProjectId} (origem {item.Origin} indisponível)");
 
-        var request = new ModRequest(
-            item.ProjectId, item.FileId, version.MinecraftVersion, version.Loader);
+        var request = new ModRequest(item.ProjectId, item.FileId, minecraftVersion, loader);
 
         var resolution = await resolver.ResolveAsync(request, ct);
 

@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
@@ -8,6 +10,11 @@ public partial class CreateModpackDialog : ComponentBase
 {
     private MudForm _form = null!;
     private bool _isSaving;
+    private ModLoader _loader = ModLoader.NeoForge;
+    private bool _mcReleasesOnly = true;
+    private IReadOnlyList<string> _mcVersions = [];
+
+    private string _minecraftVersion = "";
     private string _name = "";
     private string _slug = "";
 
@@ -17,7 +24,26 @@ public partial class CreateModpackDialog : ComponentBase
     private bool _slugEditedManually;
     private string _summary = "";
 
+    [Inject] private IVersionCatalog Catalog { get; set; } = default!;
+
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadMc();
+    }
+
+    private async Task ReloadMc()
+    {
+        _mcVersions = await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None);
+    }
+
+    private Task<IEnumerable<string>> SearchMc(string value, CancellationToken ct)
+    {
+        return Task.FromResult(string.IsNullOrWhiteSpace(value)
+            ? _mcVersions.AsEnumerable()
+            : _mcVersions.Where(v => v.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
 
     private void OnNameChanged(string value)
     {
@@ -47,9 +73,9 @@ public partial class CreateModpackDialog : ComponentBase
         _isSaving = true;
 
         var command = new CreateModpackCommand(
-            _slug,
-            _name,
-            string.IsNullOrWhiteSpace(_summary) ? null : _summary);
+            _slug, _name,
+            string.IsNullOrWhiteSpace(_summary) ? null : _summary,
+            _minecraftVersion, _loader);
 
         var result = await CreateModpackUseCase.HandleAsync(command, CancellationToken.None);
 

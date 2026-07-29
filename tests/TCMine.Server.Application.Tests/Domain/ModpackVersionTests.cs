@@ -136,8 +136,6 @@ public sealed class ModpackVersionTests
         {
             ModpackId = Guid.CreateVersion7(),
             Version = "1.0",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge,
             LoaderVersion = "21.1.234"
         };
     }

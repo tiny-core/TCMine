@@ -1,5 +1,4 @@
-﻿@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Abstractions
+﻿@using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
 @inject CreateModpackVersion CreateVersionUseCase
 @inject ISnackbar Snackbar
@@ -10,22 +9,7 @@
         <MudForm @ref="_form">
             <MudText Typo="Typo.subtitle2" Class="mb-1">Versão do modpack</MudText>
             <VersionEditor @bind-Value="_version"/>
-
-            <MudAutocomplete T="string" @bind-Value="_minecraftVersion" @bind-Value:after="ReloadLoaderVersions"
-                             Label="Versão do Minecraft" SearchFunc="SearchMc"
-                             CoerceValue="true" MaxItems="50" Required="true"
-                             RequiredError="Informe a versão do Minecraft." Class="mt-3"/>
-            <MudSwitch T="bool" @bind-Value="_mcReleasesOnly" @bind-Value:after="ReloadMcVersions"
-                       Color="Color.Primary" Label="Só releases" Class="mt-1"/>
-
-            <MudSelect @bind-Value="_loader" @bind-Value:after="ReloadLoaderVersions"
-                       Label="Mod loader" Class="mt-3">
-                @foreach (var loader in Enum.GetValues<ModLoader>())
-                {
-                    <MudSelectItem Value="loader">@loader</MudSelectItem>
-                }
-            </MudSelect>
-
+            
             <MudAutocomplete T="string" @bind-Value="_loaderVersion"
                              Label="Versão do loader" SearchFunc="SearchLoader"
                              CoerceValue="true" MaxItems="50" Required="true"

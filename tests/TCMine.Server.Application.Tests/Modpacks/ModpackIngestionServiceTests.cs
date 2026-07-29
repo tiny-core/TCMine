@@ -84,8 +84,6 @@ public sealed class ModpackIngestionServiceTests
         {
             ModpackId = Guid.CreateVersion7(),
             Version = "1.0",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge,
             LoaderVersion = "21.1.234"
         };
     }
@@ -203,7 +201,14 @@ public sealed class ModpackIngestionServiceTests
 
         public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
         {
-            throw new NotImplementedException();
+            // O caso de uso lê MinecraftVersion/Loader do modpack agora.
+            return Task.FromResult<Modpack?>(new Modpack
+            {
+                Slug = "test",
+                Name = "Test",
+                MinecraftVersion = "1.21.1",
+                Loader = ModLoader.NeoForge
+            });
         }
 
         public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)

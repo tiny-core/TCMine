@@ -69,8 +69,8 @@ public partial class ModpackDetailPage : ComponentBase
         {
             ["ModpackId"] = ModpackId,
             ["DefaultVersion"] = latest?.Version,
-            ["DefaultMinecraftVersion"] = latest?.MinecraftVersion,
-            ["DefaultLoader"] = latest?.Loader,
+            ["MinecraftVersion"] = _modpack?.MinecraftVersion,
+            ["Loader"] = _modpack?.Loader,
             ["DefaultLoaderVersion"] = latest?.LoaderVersion,
             ["DefaultMemoryMb"] = latest?.RecommendedMemoryMb
         };

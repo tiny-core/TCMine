@@ -25,8 +25,6 @@ public sealed class CloneVersion(IModpackRepository repository)
         {
             ModpackId = source.ModpackId,
             Version = newVersion.Trim(),
-            MinecraftVersion = source.MinecraftVersion,
-            Loader = source.Loader,
             LoaderVersion = source.LoaderVersion
         };
 

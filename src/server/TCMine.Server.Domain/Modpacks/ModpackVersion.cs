@@ -23,8 +23,6 @@ public sealed class ModpackVersion : Entity
     /// <summary>SemVer, ex: "1.4.0".</summary>
     public required string Version { get; set; }
 
-    public required string MinecraftVersion { get; set; }
-    public required ModLoader Loader { get; set; }
     public required string LoaderVersion { get; set; }
 
     // Os três abaixo têm setter privado: só mudam pelos métodos de transição.

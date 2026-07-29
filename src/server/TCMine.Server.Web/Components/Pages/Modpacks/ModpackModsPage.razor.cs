@@ -13,9 +13,11 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     private bool _isLoading = true;
 
     private bool _isPublishing;
+    private Modpack? _modpack;
     private Timer? _pollTimer;
     private string _searchString = "";
     private ModpackVersion? _version;
+
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public Guid VersionId { get; set; }
 
@@ -47,6 +49,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     {
         _isLoading = true;
         _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
+        _modpack = await Repository.GetByIdAsync(ModpackId, CancellationToken.None);
 
         _breadcrumbs =
         [
@@ -86,8 +89,8 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         var parameters = new DialogParameters
         {
             ["VersionId"] = VersionId,
-            ["MinecraftVersion"] = _version!.MinecraftVersion,
-            ["Loader"] = _version.Loader
+            ["MinecraftVersion"] = _modpack!.MinecraftVersion,
+            ["Loader"] = _modpack.Loader
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
 

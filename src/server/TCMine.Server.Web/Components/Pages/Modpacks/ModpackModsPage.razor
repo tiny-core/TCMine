@@ -33,7 +33,7 @@ else
             <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
                 <VersionStateChip State="_version.State"/>
                 <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @_version.Version · MC @_version.MinecraftVersion · @_version.Loader
+                    @_version.Version · MC @_modpack?.MinecraftVersion · @_modpack?.Loader
                 </MudText>
             </MudStack>
         </div>
@@ -72,7 +72,7 @@ else
         @if (_version?.State is ModpackVersionState.Ready)
         {
             <MudSpacer/>
-            
+
             <MudButton Variant="Variant.Outlined"
                        StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
                        OnClick="OpenCheckUpdates">

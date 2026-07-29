@@ -1,4 +1,5 @@
-﻿using TCMine.Server.Domain.Common;
+﻿using TCMine.Contracts.Modpacks;
+using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Domain.Modpacks;
 
@@ -14,5 +15,8 @@ public sealed class Modpack : Entity, IOwnedEntity
     public string? IconBlobSha256 { get; set; }
 
     public List<ModpackVersion> Versions { get; } = [];
+
+    public required string MinecraftVersion { get; set; }
+    public required ModLoader Loader { get; set; }
     public Guid OwnerId { get; set; }
 }
