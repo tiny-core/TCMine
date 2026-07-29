@@ -81,6 +81,18 @@ public partial class ModpackDetailPage : ComponentBase
             await LoadAsync();
     }
 
+    private async Task OpenEditVersion()
+    {
+        var p = new DialogParameters
+        {
+            ["VersionId"] = _selectedVersion!.Id,
+            ["Version"] = _selectedVersion.Version,
+            ["MemoryMb"] = _selectedVersion.RecommendedMemoryMb
+        };
+        var dialog = await DialogService.ShowAsync<EditVersionDialog>("Editar versão", p);
+        if (await dialog.Result is { Canceled: false }) await LoadAsync();
+    }
+
     private void OpenMods()
     {
         if (_selectedVersion is null)

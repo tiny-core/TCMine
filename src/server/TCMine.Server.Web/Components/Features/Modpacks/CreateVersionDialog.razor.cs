@@ -85,8 +85,6 @@ public partial class CreateVersionDialog : ComponentBase
         var command = new CreateModpackVersionCommand(
             ModpackId,
             _version,
-            MinecraftVersion,
-            Loader,
             _loaderVersion,
             _memoryMb);
 

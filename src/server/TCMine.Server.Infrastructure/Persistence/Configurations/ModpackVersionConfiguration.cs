@@ -16,6 +16,8 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         builder.Property(v => v.LoaderVersion).HasMaxLength(64).IsRequired();
         builder.Property(v => v.FailureReason).HasMaxLength(2048);
 
+        builder.Ignore(v => v.IsPreRelease);
+
         // Enum como string na coluna.
         //
         // Como int, inserir um valor no meio do enum reescreveria o

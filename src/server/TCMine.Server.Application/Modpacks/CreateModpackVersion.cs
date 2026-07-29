@@ -48,7 +48,5 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
 public sealed record CreateModpackVersionCommand(
     Guid ModpackId,
     string Version,
-    string MinecraftVersion,
-    ModLoader Loader,
     string LoaderVersion,
     int? RecommendedMemoryMb);

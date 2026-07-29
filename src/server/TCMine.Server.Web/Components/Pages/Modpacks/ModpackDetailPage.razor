@@ -1,4 +1,5 @@
 ﻿@page "/modpacks/{ModpackId:guid}"
+@using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
@@ -39,6 +40,12 @@ else
                         @_modpack.Loader @_selectedVersion.LoaderVersion
                     </MudChip>
                 </MudStack>
+            }
+
+            @if (_selectedVersion?.State is ModpackVersionState.Draft)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                               OnClick="OpenEditVersion"/>
             }
         </MudStack>
     </MudPaper>

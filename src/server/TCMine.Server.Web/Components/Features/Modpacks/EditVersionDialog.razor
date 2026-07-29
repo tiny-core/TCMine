@@ -1,0 +1,26 @@
+﻿@using TCMine.Server.Application.Modpacks
+@inject UpdateModpackVersion UpdateUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Editar versão</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.subtitle2" Class="mb-1">Número da versão</MudText>
+        <VersionEditor @bind-Value="_version"/>
+        <MudNumericField @bind-Value="_memoryMb" Label="RAM recomendada (MB)"
+                         Min="1024" Step="512" Class="mt-3"/>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save"
+                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_version)">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Salvar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

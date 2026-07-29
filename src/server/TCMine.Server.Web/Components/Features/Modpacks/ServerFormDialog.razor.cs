@@ -43,7 +43,7 @@ public partial class ServerFormDialog : ComponentBase
         _versions =
         [
             .. (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
-            .Where(v => v.State is ModpackVersionState.Ready)
+            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
         ];
         _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
     }

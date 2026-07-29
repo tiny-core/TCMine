@@ -152,6 +152,11 @@ public sealed class PublishModpackVersionTests
         {
             throw new NotImplementedException();
         }
+
+        public Task UpdateAsync(Modpack modpack, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
     }
 
     private sealed class FakeHubNotifier : IServerHubNotifier

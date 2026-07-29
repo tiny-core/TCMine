@@ -21,11 +21,13 @@ public sealed class CreateGameServer(
             return Result<Guid>.Fail("Informe o endereço de conexão.");
 
         // Só versões publicadas podem rodar (arquivos resolvidos e imutáveis).
+        // Somente versões publicadas E estáveis rodam. Alpha/beta ficam de fora —
+        // é onde os mods ainda podem partir o servidor.
         var ready = (await modpacks.ListVersionsAsync(modpackId, ct))
-            .Where(v => v.State is ModpackVersionState.Ready)
+            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
             .ToList();
         if (ready.Count == 0)
-            return Result<Guid>.Fail("Publique uma versão do modpack antes de criar um servidor.");
+            return Result<Guid>.Fail("Publique uma versão estável (não-alpha) antes de criar um servidor.");
 
         // A versão vem do formulário. Guid.Empty = usa a mais recente (a lista
         // já vem do mais novo para o mais antigo).

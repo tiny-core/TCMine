@@ -23,6 +23,7 @@ public static class DependencyInjection
 
         services.AddScoped<PublishModpackVersion>();
         services.AddScoped<CheckModpackVersionUpdates>();
+        services.AddScoped<UpdateModpackVersion>();
         services.AddScoped<CloneVersion>();
 
         services.AddScoped<ReadOverride>();
@@ -41,7 +42,7 @@ public static class DependencyInjection
 
         services.AddScoped<StartGameServer>();
         services.AddScoped<StopGameServer>();
-
+        services.AddScoped<UpdateModpack>();
         return services;
     }
 }

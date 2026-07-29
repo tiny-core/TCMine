@@ -45,4 +45,6 @@ public interface IModpackRepository
     Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct);
 
     Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct);
+
+    Task UpdateAsync(Modpack modpack, CancellationToken ct);
 }

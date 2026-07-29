@@ -37,8 +37,8 @@ public sealed class ChangeServerVersion(
         if (target is null || target.ModpackId != server.ModpackId)
             return Result.Fail("Versão inválida para este modpack.");
 
-        if (target.State is not (ModpackVersionState.Ready or ModpackVersionState.Archived))
-            return Result.Fail("Só é possível fixar uma versão publicada ou arquivada.");
+        if (target.State is not (ModpackVersionState.Ready or ModpackVersionState.Archived) || target.IsPreRelease)
+            return Result.Fail("Só é possível fixar uma versão estável publicada ou arquivada.");
 
         server.ModpackVersionId = targetVersionId;
         server.UpdatedAt = DateTimeOffset.UtcNow;

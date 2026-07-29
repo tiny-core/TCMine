@@ -194,6 +194,11 @@ public sealed class ModpackIngestionServiceTests
             return Task.CompletedTask;
         }
 
+        public Task UpdateAsync(Modpack modpack, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
         {
             throw new NotImplementedException();

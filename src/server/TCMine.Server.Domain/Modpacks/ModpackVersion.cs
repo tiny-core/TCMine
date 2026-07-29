@@ -20,6 +20,12 @@ public sealed class ModpackVersion : Entity
 {
     public required Guid ModpackId { get; set; }
 
+    /// <summary>
+    ///     Versão pré-release (tem sufixo, ex: "-alpha"). SemVer: qualquer coisa
+    ///     depois do hífen é pré-release. Servidores só rodam releases estáveis.
+    /// </summary>
+    public bool IsPreRelease => Version.Contains('-');
+
     /// <summary>SemVer, ex: "1.4.0".</summary>
     public required string Version { get; set; }
 
