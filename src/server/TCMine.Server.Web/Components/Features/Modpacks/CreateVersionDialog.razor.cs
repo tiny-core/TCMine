@@ -9,6 +9,7 @@ public partial class CreateVersionDialog : ComponentBase
 {
     private readonly IReadOnlyList<string> _mcVersions = [];
     private MudForm _form = null!;
+    private bool _inheritFiles = true;
     private bool _isSaving;
     private bool _loaderReleasesOnly = true;
     private string _loaderVersion = "";
@@ -86,7 +87,8 @@ public partial class CreateVersionDialog : ComponentBase
             ModpackId,
             _version,
             _loaderVersion,
-            _memoryMb);
+            _memoryMb,
+            _inheritFiles);
 
         var result = await CreateVersionUseCase.HandleAsync(command, CancellationToken.None);
 

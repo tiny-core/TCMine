@@ -25,27 +25,10 @@ else
     @if (_version.State is ModpackVersionState.Draft)
     {
         <MudToolBar Dense="true" Gutters="false" Class="mb-2 px-0">
-            @if (_creatingNew)
-            {
-                <MudTextField @bind-Value="_newPath" Placeholder="config/mod.toml"
-                              Margin="Margin.Dense" Immediate="true" Style="max-width: 320px;"/>
-                <MudButton Color="Color.Primary" Class="ml-2" OnClick="ConfirmNew"
-                           Disabled="string.IsNullOrWhiteSpace(_newPath)">Criar
-                </MudButton>
-                <MudButton Class="ml-1" OnClick="@(() => _creatingNew = false)">Cancelar</MudButton>
-            }
-            else
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.NoteAdd"
-                           OnClick="@(() =>
-                                    {
-                                        _creatingNew = true;
-                                        _newPath = string.Empty;
-                                    })">
-                    Novo arquivo
-                </MudButton>
-            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.NoteAdd"
+                       OnClick="OpenNewFile">Novo arquivo
+            </MudButton>
         </MudToolBar>
     }
 

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Components.Features.Modpacks;
 
@@ -10,6 +11,8 @@ public partial class ModpackDetailPage : ComponentBase
     private List<BreadcrumbItem> _breadcrumbs = [];
 
     private bool _isLoading = true;
+
+    private bool _isPublishing;
     private Modpack? _modpack;
     private ModpackVersion? _selectedVersion;
     private Guid _selectedVersionId;
@@ -17,6 +20,11 @@ public partial class ModpackDetailPage : ComponentBase
     [Parameter] public Guid ModpackId { get; set; }
 
     private int FileCount => _selectedVersion?.Files.Count ?? 0;
+
+    [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -79,6 +87,64 @@ public partial class ModpackDetailPage : ComponentBase
 
         if (await dialog.Result is { Canceled: false })
             await LoadAsync();
+    }
+
+    private async Task DeleteVersion()
+    {
+        if (_selectedVersion is null)
+            return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Apagar rascunho",
+            $"Apagar a versão {_selectedVersion.Version}? Os mods e overrides desta versão são removidos. Irreversível.",
+            "Apagar", cancelText: "Cancelar");
+        if (confirm is not true)
+            return;
+
+        var result = await DeleteVersionUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Rascunho apagado.", Severity.Success);
+            _selectedVersionId = Guid.Empty; // a seleção atual já não existe
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task Publish()
+    {
+        if (_selectedVersion is null)
+            return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Publicar versão",
+            $"Publicar a versão {_selectedVersion.Version}? A partir daqui ela fica imutável — "
+            + "para mudanças, cria uma nova versão.",
+            "Publicar", cancelText: "Cancelar");
+        if (confirm is not true)
+            return;
+
+        _isPublishing = true;
+        try
+        {
+            var result = await PublishUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Versão publicada.", Severity.Success);
+                await LoadAsync(); // recarrega: o chip vira Publicado, o Publicar some
+            }
+            else
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+            }
+        }
+        finally
+        {
+            _isPublishing = false;
+        }
     }
 
     private async Task OpenEditVersion()

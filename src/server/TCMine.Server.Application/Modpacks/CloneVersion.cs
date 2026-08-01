@@ -43,6 +43,7 @@ public sealed class CloneVersion(IModpackRepository repository)
             });
 
         await repository.AddVersionAsync(clone, ct);
+
         return Result<Guid>.Success(clone.Id);
     }
 }

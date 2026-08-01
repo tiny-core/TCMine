@@ -29,6 +29,8 @@ public interface IModpackRepository
     /// <summary>Anexa uma versão a um modpack existente.</summary>
     Task AddVersionAsync(ModpackVersion version, CancellationToken ct);
 
+    Task RemoveVersionAsync(Guid versionId, CancellationToken ct);
+
     /// <summary>
     ///     Grava alterações numa versão já existente e seus arquivos.
     ///     Recebe a entidade inteira e reconcilia: é o que permite ao caso de uso

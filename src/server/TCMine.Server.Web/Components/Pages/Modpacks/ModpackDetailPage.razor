@@ -46,6 +46,26 @@ else
             {
                 <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                OnClick="OpenEditVersion"/>
+
+                @if (_selectedVersion?.State is ModpackVersionState.Draft)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success"
+                               StartIcon="@Icons.Material.Filled.Publish"
+                               OnClick="Publish"
+                               Disabled="_isPublishing || _selectedVersion.Files.Count == 0">
+                        @if (_isPublishing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Publicar
+                    </MudButton>
+
+
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                   OnClick="OpenEditVersion"/>
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
+                                   OnClick="DeleteVersion"/>
+                }
             }
         </MudStack>
     </MudPaper>

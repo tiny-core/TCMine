@@ -43,6 +43,13 @@ public static class DependencyInjection
         services.AddScoped<StartGameServer>();
         services.AddScoped<StopGameServer>();
         services.AddScoped<UpdateModpack>();
+
+        services.AddSingleton<OverrideUndoService>();
+        services.AddScoped<MoveOverride>();
+        services.AddScoped<UndoOverrideMove>();
+
+        services.AddScoped<DeleteModpackVersion>();
+
         return services;
     }
 }

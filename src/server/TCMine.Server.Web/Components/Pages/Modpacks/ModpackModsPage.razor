@@ -54,19 +54,6 @@ else
                        OnClick="OpenManualUpload">
                 Enviar arquivo
             </MudButton>
-
-            <MudButton Variant="Variant.Filled"
-                       Color="Color.Success"
-                       StartIcon="@Icons.Material.Filled.Publish"
-                       OnClick="Publish"
-                       Class="ml-2"
-                       Disabled="_isPublishing || _isIngesting || _version.Files.Count == 0">
-                @if (_isPublishing)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                }
-                Publicar
-            </MudButton>
         }
 
         @if (_version?.State is ModpackVersionState.Ready)

@@ -39,8 +39,39 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
             RecommendedMemoryMb = command.RecommendedMemoryMb
         };
 
-        await repository.AddVersionAsync(version, ct);
+        if (command.InheritFiles)
+        {
+            // Herda mods + overrides da última versão publicada. O admin depois
+            // poda na grade o que já não serve — a ausência na nova versão faz o
+            // launcher apagar o arquivo no update (diff declarativo).
+            var latestReadyId = modpack.Versions
+                .Where(v => v.State is ModpackVersionState.Ready)
+                .OrderByDescending(v => v.Id) // GUID v7 = mais recente primeiro
+                .Select(v => (Guid?)v.Id)
+                .FirstOrDefault();
 
+            if (latestReadyId is { } sourceId)
+            {
+                // GetVersionAsync inclui os Files; modpack.Versions não os traz.
+                var source = await repository.GetVersionAsync(sourceId, ct);
+                if (source is not null)
+                    foreach (var f in source.Files)
+                        version.UpsertFile(new ModpackFile
+                        {
+                            ModpackVersionId = version.Id,
+                            Path = f.Path,
+                            Sha256 = f.Sha256, // mesmo blob — content-addressed, não copia bytes
+                            SizeBytes = f.SizeBytes,
+                            Side = f.Side,
+                            Optional = f.Optional,
+                            Origin = f.Origin,
+                            OriginReference = f.OriginReference,
+                            ProjectSlug = f.ProjectSlug
+                        });
+            }
+        }
+
+        await repository.AddVersionAsync(version, ct);
         return Result<Guid>.Success(version.Id);
     }
 }
@@ -49,4 +80,5 @@ public sealed record CreateModpackVersionCommand(
     Guid ModpackId,
     string Version,
     string LoaderVersion,
-    int? RecommendedMemoryMb);
+    int? RecommendedMemoryMb,
+    bool InheritFiles);

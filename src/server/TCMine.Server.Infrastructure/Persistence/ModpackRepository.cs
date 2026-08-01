@@ -33,6 +33,12 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         await db.Modpacks.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
     }
 
+    public async Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.ModpackVersions.Where(v => v.Id == versionId).ExecuteDeleteAsync(ct);
+    }
+
     public async Task UpdateAsync(Modpack modpack, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

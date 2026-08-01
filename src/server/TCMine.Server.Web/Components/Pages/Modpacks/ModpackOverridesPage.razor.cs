@@ -5,19 +5,17 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Web.Components.Features.Modpacks;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackOverridesPage
 {
     private List<BreadcrumbItem> _breadcrumbs = [];
-    private bool _creatingNew;
     private bool _dirty;
     private StandaloneCodeEditor _editor = default!;
-
     private bool _isLoading = true;
     private bool _isSaving;
-    private string _newPath = "";
     private string? _selectedPath;
     private List<TreeItemData<string>> _treeItems = [];
     private ModpackVersion? _version;
@@ -182,25 +180,44 @@ public partial class ModpackOverridesPage
         }
     }
 
-    private async Task ConfirmNew()
+    private async Task OpenNewFile()
     {
-        var path = _newPath.Trim().Replace('\\', '/').TrimStart('/');
-        if (string.IsNullOrWhiteSpace(path))
-            return;
+        var parameters = new DialogParameters
+        {
+            ["VersionId"] = VersionId,
+            ["Folders"] = ExistingFolders()
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 
-        // Cria vazio e já abre para edição.
-        var result = await SaveUseCase.HandleAsync(VersionId, path, "", CancellationToken.None);
-        if (result.Succeeded)
+        var dialog = await DialogService.ShowAsync<NewOverrideDialog>("Novo arquivo", parameters, options);
+        if (await dialog.Result is { Canceled: false, Data: string path })
         {
-            _creatingNew = false;
-            _newPath = "";
             await LoadAsync();
-            await OnSelect(path);
+            await OnSelect(path); // abre o recém-criado no editor
         }
-        else
+    }
+
+    // Todas as pastas distintas onde já há overrides (para o seletor do modal).
+    private IReadOnlyList<string> ExistingFolders()
+    {
+        var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in (_version?.Files ?? []).Where(f => f.Origin == ModFileOrigin.Override))
         {
-            Snackbar.Add(result.Error!, Severity.Error);
+            var slash = file.Path.LastIndexOf('/');
+            if (slash <= 0) continue;
+
+            // Inclui a pasta e todas as ancestrais: "config/mod/x.toml" →
+            // "config" e "config/mod".
+            var dir = file.Path[..slash];
+            while (dir.Length > 0)
+            {
+                folders.Add(dir);
+                var up = dir.LastIndexOf('/');
+                dir = up < 0 ? "" : dir[..up];
+            }
         }
+
+        return folders.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private StandaloneEditorConstructionOptions EditorOptions(StandaloneCodeEditor editor)

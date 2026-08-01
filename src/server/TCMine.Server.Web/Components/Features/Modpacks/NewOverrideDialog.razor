@@ -1,0 +1,54 @@
+﻿@using TCMine.Server.Application.Modpacks
+@inject SaveOverride SaveUseCase
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Novo arquivo</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudSelect T="string" @bind-Value="_folder" Label="Pasta" Class="mb-2"
+                   HelperText="Onde o arquivo vai ficar.">
+            <MudSelectItem T="string" Value="@("")">(raiz)</MudSelectItem>
+            @foreach (var f in Folders)
+            {
+                <MudSelectItem T="string" Value="@f">@f</MudSelectItem>
+            }
+            <MudSelectItem T="string" Value="@NewFolderSentinel">+ Nova pasta…</MudSelectItem>
+        </MudSelect>
+
+        @if (_folder == NewFolderSentinel)
+        {
+            <MudTextField @bind-Value="_customFolder" Label="Nova pasta"
+                          Placeholder="config/meumod" Immediate="true" Class="mb-2"/>
+        }
+
+        <MudTextField @bind-Value="_fileName" Label="Nome do arquivo"
+                      Placeholder="settings.toml" Immediate="true" Class="mb-3"
+                      Disabled="_uploadName is not null"
+                      HelperText="@NameHelper"/>
+
+        <MudFileUpload T="IBrowserFile" FilesChanged="OnFilePicked" MaximumFileCount="1">
+            <ActivatorContent>
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">
+                    @(_uploadName ?? "Enviar arquivo (opcional)")
+                </MudButton>
+            </ActivatorContent>
+        </MudFileUpload>
+        @if (_uploadName is not null)
+        {
+            <MudButton Size="Size.Small" Class="mt-1" OnClick="ClearUpload">Limpar envio</MudButton>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
+                   Disabled="_isSaving || !CanConfirm">
+            @if (_isSaving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Criar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

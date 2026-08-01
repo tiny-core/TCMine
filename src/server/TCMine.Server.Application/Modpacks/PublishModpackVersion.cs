@@ -8,7 +8,8 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class PublishModpackVersion(
     IModpackRepository repository,
-    IServerHubNotifier notifier)
+    IServerHubNotifier notifier,
+    OverrideUndoService undo)
 {
     public async Task<Result> HandleAsync(Guid versionId, CancellationToken ct)
     {
@@ -33,6 +34,9 @@ public sealed class PublishModpackVersion(
         // Avisa os launchers. É otimização — offline reconcilia depois —, então
         // falha aqui não desfaz a publicação.
         await notifier.NotifyModpackVersionPublishedAsync(version.ModpackId, version.Id, ct);
+
+        // ...depois do UpdateVersionAsync + notifier, no ramo de sucesso:
+        undo.Clear(versionId);
 
         return Result.Success();
     }

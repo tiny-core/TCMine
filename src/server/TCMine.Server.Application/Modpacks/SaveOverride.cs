@@ -10,6 +10,14 @@ public sealed class SaveOverride(IModpackRepository repository, IBlobStore blobS
 {
     public async Task<Result> HandleAsync(Guid versionId, string path, string content, CancellationToken ct)
     {
+        var bytes = Encoding.UTF8.GetBytes(content);
+        using var stream = new MemoryStream(bytes);
+        return await HandleAsync(versionId, path, stream, "text/plain; charset=utf-8", ct);
+    }
+
+    public async Task<Result> HandleAsync(
+        Guid versionId, string path, Stream content, string contentType, CancellationToken ct)
+    {
         if (string.IsNullOrWhiteSpace(path))
             return Result.Fail("Informe o caminho do arquivo.");
 
@@ -22,18 +30,18 @@ public sealed class SaveOverride(IModpackRepository repository, IBlobStore blobS
 
         var normalized = path.Trim().Replace('\\', '/').TrimStart('/');
 
-        // Grava o texto como blob. Content-addressed: se o conteúdo não mudou,
-        // o SHA é o mesmo e o store deduplica sozinho.
-        var bytes = Encoding.UTF8.GetBytes(content);
-        using var stream = new MemoryStream(bytes);
-        var sha256 = await blobStore.PutAsync(stream, null, "text/plain; charset=utf-8", ct);
+        var sha256 = await blobStore.PutAsync(content, null, contentType, ct);
+
+        // O tamanho vem do que ficou no store (o stream pode não ser seekável).
+        await using var stored = await blobStore.OpenAsync(sha256, ct);
+        var size = stored.Length;
 
         var file = new ModpackFile
         {
             ModpackVersionId = version.Id,
             Path = normalized,
             Sha256 = sha256,
-            SizeBytes = bytes.Length,
+            SizeBytes = size,
             Side = FileSide.Both,
             Origin = ModFileOrigin.Override,
             // Para overrides o caminho É a identidade. Um slug sintético faz o
