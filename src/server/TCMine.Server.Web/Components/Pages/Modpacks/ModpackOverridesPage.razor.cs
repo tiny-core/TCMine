@@ -39,6 +39,16 @@ public partial class ModpackOverridesPage
     [Inject] private OverrideUndoService UndoService { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
 
+    // Tema do app, cascateado pelo MainLayout. O Monaco monta fora do
+    // MudThemeProvider, então precisa deste sinal para casar claro/escuro.
+    [CascadingParameter(Name = "IsDarkMode")] private bool IsDarkMode { get; set; }
+
+    private bool _editorReady;
+    private bool? _appliedDarkMode;
+
+    // Nome do tema Monaco correspondente ao tema atual do app.
+    private string MonacoTheme => IsDarkMode ? "vs-dark" : "vs";
+
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
@@ -95,6 +105,20 @@ public partial class ModpackOverridesPage
         // explícito, uma volta de render depois, força-o a remedir os 70vh.
         await Task.Yield();
         await _editor.Layout();
+
+        _editorReady = true;
+        _appliedDarkMode = IsDarkMode;
+    }
+
+    // O tema do Monaco é global no JS; quando o admin alterna claro/escuro no
+    // app, aplicamos aqui para o editor acompanhar sem recarregar a página.
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_editorReady && _appliedDarkMode != IsDarkMode)
+        {
+            await Global.SetTheme(JsRuntime, MonacoTheme);
+            _appliedDarkMode = IsDarkMode;
+        }
     }
 
     private static TreeItemData<string> ToItem(Node node)
@@ -300,7 +324,7 @@ public partial class ModpackOverridesPage
         return new StandaloneEditorConstructionOptions
         {
             AutomaticLayout = true,
-            Theme = "vs-dark",
+            Theme = MonacoTheme,
             Language = "plaintext",
             Value = "",
             ReadOnly = _version?.State is not ModpackVersionState.Draft

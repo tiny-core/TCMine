@@ -16,7 +16,11 @@ public sealed class SqliteTestFactory : IDbContextFactory<TcMineDbContext>, IDis
 
     public SqliteTestFactory()
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
+        // Foreign Keys=True: o SQLite não força FKs por omissão. Ligamos para o
+        // teste se comportar como a produção (Postgres) — sem isso, cascatas de
+        // deleção e violações de FK passariam despercebidas, dando falsa
+        // confiança.
+        _connection = new SqliteConnection("DataSource=:memory:;Foreign Keys=True");
         _connection.Open(); // mantém o banco vivo enquanto a factory existir
 
         _options = new DbContextOptionsBuilder<TcMineDbContext>()

@@ -32,6 +32,10 @@
     </MudDrawer>
 
     <MudMainContent Class="pt-16 pa-4">
-        @Body
+        @* Expõe o tema atual para páginas que renderizam fora do MudThemeProvider
+           (ex.: o editor Monaco, que precisa casar vs-dark/vs com o app). *@
+        <CascadingValue Value="_isDarkMode" Name="IsDarkMode">
+            @Body
+        </CascadingValue>
     </MudMainContent>
 </MudLayout>
