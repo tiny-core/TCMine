@@ -1,0 +1,31 @@
+@* Cabeçalho padrão de página: breadcrumbs opcionais, título/subtítulo e um slot
+   de ações à direita. Centraliza o que toda página repetia (h4 + spacer + botão)
+   e aplica o fade-in de entrada, dando consistência a todas as telas. *@
+
+<div class="tc-fade-in mb-6">
+    @if (Breadcrumbs is { Count: > 0 })
+    {
+        <MudBreadcrumbs Items="Breadcrumbs" Class="px-0 pb-2"/>
+    }
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+        @if (!string.IsNullOrWhiteSpace(Icon))
+        {
+            <MudIcon Icon="@Icon" Size="Size.Large" Color="Color.Primary"/>
+        }
+
+        <div>
+            <MudText Typo="Typo.h4">@Title</MudText>
+            @if (!string.IsNullOrWhiteSpace(Subtitle))
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">@Subtitle</MudText>
+            }
+        </div>
+
+        @if (ChildContent is not null)
+        {
+            <MudSpacer/>
+            @ChildContent
+        }
+    </MudStack>
+</div>

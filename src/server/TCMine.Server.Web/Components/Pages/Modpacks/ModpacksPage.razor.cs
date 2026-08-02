@@ -55,4 +55,22 @@ public partial class ModpacksPage : ComponentBase
         if (result is { Canceled: false })
             await LoadAsync();
     }
+
+    private async Task OpenEditDialog(ModpackDto pack)
+    {
+        var parameters = new DialogParameters
+        {
+            ["ModpackId"] = pack.Id,
+            ["Name"] = pack.Name,
+            ["Summary"] = pack.Summary,
+            ["Slug"] = pack.Slug,
+            ["MinecraftVersion"] = pack.MinecraftVersion,
+            ["Loader"] = pack.Loader
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<EditModpackDialog>("Editar modpack", parameters, options);
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
+    }
 }

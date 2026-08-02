@@ -1,4 +1,4 @@
-﻿@page "/modpacks"
+@page "/modpacks"
 @using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
 @inject IModpackRepository Repository
@@ -8,20 +8,20 @@
 
 <PageTitle>Modpacks — TCMine</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <MudText Typo="Typo.h4">Modpacks</MudText>
-    <MudSpacer/>
+<PageHeader Title="Modpacks"
+            Subtitle="Catálogos que você distribui aos jogadores."
+            Icon="@Icons.Material.Filled.Inventory2">
     <MudButton Variant="Variant.Filled"
                Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add"
                OnClick="OpenCreateDialog">
         Novo modpack
     </MudButton>
-</MudStack>
+</PageHeader>
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    <LoadingCards/>
 }
 else if (_modpacks.Count is 0)
 {
@@ -38,26 +38,64 @@ else if (_modpacks.Count is 0)
 }
 else
 {
-    <MudGrid>
+    <MudGrid Class="tc-fade-in">
         @foreach (var pack in _modpacks)
         {
             <MudItem xs="12" sm="6" md="4">
-                <MudCard Outlined="true">
-                    <MudCardContent>
-                        <MudText Typo="Typo.h6">@pack.Name</MudText>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Slug</MudText>
+                <MudCard Class="tc-card d-flex flex-column" Elevation="2">
+                    <MudCardContent Class="flex-grow-1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-3">
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true">
+                                @if (pack.IconUrl is not null)
+                                {
+                                    <MudImage Src="@pack.IconUrl.ToString()"/>
+                                }
+                                else
+                                {
+                                    @(pack.Name.Length > 0 ? pack.Name[..1].ToUpperInvariant() : "?")
+                                }
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.h6">@pack.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Slug</MudText>
+                            </div>
+                        </MudStack>
+
+                        <MudStack Row="true" Spacing="1" Class="mb-2" Wrap="Wrap.Wrap">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Widgets">
+                                MC @pack.MinecraftVersion
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
+                                @pack.Loader
+                            </MudChip>
+                        </MudStack>
+
                         @if (!string.IsNullOrWhiteSpace(pack.Summary))
                         {
-                            <MudText Typo="Typo.body2" Class="mt-2">@pack.Summary</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@pack.Summary</MudText>
                         }
                     </MudCardContent>
+
                     <MudCardActions>
-                        <MudButton Href="@($"/modpacks/{pack.Id}")" Variant="Variant.Text" Color="Color.Primary">
+                        <MudButton Href="@($"/modpacks/{pack.Id}")"
+                                   Variant="Variant.Text" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.OpenInNew">
                             Abrir
                         </MudButton>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Color="Color.Error" Size="Size.Small"
-                                       OnClick="@(() => Delete(pack))"/>
+                        <MudSpacer/>
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small"
+                                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                                 title="Mais ações">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                         OnClick="@(() => OpenEditDialog(pack))">
+                                Editar
+                            </MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                         OnClick="@(() => Delete(pack))">
+                                Apagar
+                            </MudMenuItem>
+                        </MudMenu>
                     </MudCardActions>
                 </MudCard>
             </MudItem>

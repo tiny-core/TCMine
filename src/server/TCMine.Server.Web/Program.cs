@@ -116,8 +116,13 @@ app.MapBlobs();
 
 app.MapHealthChecks("/health");
 
-app.UseStaticFiles();
 app.UseAntiforgery();
+
+// MapStaticAssets (em vez de UseStaticFiles) casa com o @Assets[...] usado no
+// App.razor: serve os estáticos com fingerprint por conteúdo + cache imutável.
+// Assim uma mudança no app.css muda a URL e o navegador nunca serve CSS velho —
+// em dev e em produção.
+app.MapStaticAssets();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

@@ -4,3 +4,38 @@
 html, body {
   margin: 0;
 }
+
+/* --------------------------------------------------------------------------
+   TCMine — utilitárias de UI (leves). Só animação/realce; layout fica com os
+   componentes MudBlazor. Usa as CSS vars do MudBlazor para casar com o tema.
+   -------------------------------------------------------------------------- */
+
+/* Entrada suave de conteúdo (headers, grades, cards). */
+@keyframes tc-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.tc-fade-in { animation: tc-fade-in 0.3s ease both; }
+
+/* Realce sutil de hover para cards clicáveis: apenas aprofunda a sombra, SEM
+   mover o card. height:100% mantém os cards de uma linha do MudGrid alinhados. */
+.tc-card {
+  height: 100%;
+  transition: box-shadow 0.2s ease;
+}
+
+.tc-card:hover {
+  box-shadow: var(--mud-elevation-6);
+}
+
+/* Disco tintado atrás do ícone do estado vazio. */
+.tc-empty-icon {
+  background: rgba(var(--mud-palette-primary-rgb), 0.12);
+}
+
+/* Acessibilidade: quem pede menos movimento não recebe as animações. */
+@media (prefers-reduced-motion: reduce) {
+  .tc-fade-in { animation: none; }
+  .tc-card { transition: none; }
+}

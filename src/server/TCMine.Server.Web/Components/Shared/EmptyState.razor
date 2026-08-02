@@ -1,17 +1,23 @@
-﻿@* Estado vazio genérico para qualquer listagem.
+@* Estado vazio genérico para qualquer listagem.
    Não sabe nada sobre o domínio — recebe ícone, texto e uma ação opcional
    como parâmetros. É o que o torna reutilizável entre modpacks, servidores
    e o que mais vier. *@
 
-<MudPaper Class="pa-8" Elevation="0" Outlined="true">
-    <MudStack AlignItems="AlignItems.Center" Spacing="2">
-        <MudIcon Icon="@Icon" Size="Size.Large" Color="Color.Secondary"/>
+<MudPaper Class="pa-8 tc-fade-in" Elevation="0" Outlined="true">
+    <MudStack AlignItems="AlignItems.Center" Spacing="3">
+        @* Ícone num disco tintado: dá peso visual e foco sem poluir. *@
+        <MudPaper Elevation="0"
+                  Class="tc-empty-icon rounded-circle d-flex align-center justify-center"
+                  Style="width:72px;height:72px;">
+            <MudIcon Icon="@Icon" Size="Size.Large" Color="Color.Primary"/>
+        </MudPaper>
 
-        <MudText Typo="Typo.body1">@Title</MudText>
+        <MudText Typo="Typo.h6">@Title</MudText>
 
         @if (!string.IsNullOrWhiteSpace(Description))
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Align="Align.Center"
+                     Style="max-width:420px;">
                 @Description
             </MudText>
         }

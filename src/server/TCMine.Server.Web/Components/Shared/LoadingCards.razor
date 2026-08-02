@@ -1,0 +1,22 @@
+@* Grade de cards "fantasma" (skeleton) para o estado de carregamento. Sugere o
+   layout que está por vir — mais informativo que uma barra de progresso solta. *@
+
+<MudGrid>
+    @for (var i = 0; i < Count; i++)
+    {
+        <MudItem xs="12" sm="6" md="4">
+            <MudCard Elevation="0" Outlined="true">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudSkeleton SkeletonType="SkeletonType.Circle" Width="40px" Height="40px"/>
+                        <div style="flex:1;">
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="70%" Height="24px"/>
+                            <MudSkeleton SkeletonType="SkeletonType.Text" Width="40%"/>
+                        </div>
+                    </MudStack>
+                    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="44px" Class="mt-3"/>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    }
+</MudGrid>

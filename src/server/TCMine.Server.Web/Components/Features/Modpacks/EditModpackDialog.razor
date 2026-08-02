@@ -1,0 +1,39 @@
+@using TCMine.Contracts.Modpacks
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Editar modpack</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_name" Label="Nome" Required="true"
+                          RequiredError="Informe um nome." Immediate="true"
+                          HelperText="Nome exibido aos jogadores."/>
+
+            <MudTextField @bind-Value="_summary" Label="Descrição" Lines="3"
+                          HelperText="Opcional." Class="mt-3"/>
+
+            @* Fixos após a criação — mostrados só como contexto. *@
+            <MudStack Row="true" Spacing="1" Class="mt-3" Wrap="Wrap.Wrap">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                         Icon="@Icons.Material.Filled.Tag">@Slug</MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                         Icon="@Icons.Material.Filled.Widgets">MC @MinecraftVersion</MudChip>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Primary">
+                    @Loader
+                </MudChip>
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="IsBusy">
+            @if (IsBusy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Salvar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
