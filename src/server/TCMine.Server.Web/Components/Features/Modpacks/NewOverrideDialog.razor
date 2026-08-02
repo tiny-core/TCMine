@@ -1,6 +1,4 @@
-﻿@using TCMine.Server.Application.Modpacks
-@inject SaveOverride SaveUseCase
-@inject ISnackbar Snackbar
+﻿@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -42,10 +40,10 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Confirm"
-                   Disabled="_isSaving || !CanConfirm">
-            @if (_isSaving)
+                   Disabled="IsBusy || !CanConfirm">
+            @if (IsBusy)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }

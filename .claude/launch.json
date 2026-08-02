@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "TCMine.Server.Web",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/server/TCMine.Server.Web", "--launch-profile", "http"],
+      "port": 5144,
+      "url": "http://localhost:5144"
+    }
+  ]
+}

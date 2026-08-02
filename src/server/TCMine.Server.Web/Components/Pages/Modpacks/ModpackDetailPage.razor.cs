@@ -163,7 +163,7 @@ public partial class ModpackDetailPage : ComponentBase
     private void OpenOverrides() =>
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersionId}/overrides", true);
 
-    private async void OpenNews()
+    private async Task OpenNews()
     {
         var parameters = new DialogParameters { ["ModpackId"] = ModpackId };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };

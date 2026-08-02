@@ -1,25 +1,28 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class NewOverrideDialog : ComponentBase
+public partial class NewOverrideDialog
 {
+    // Sentinela para a opção "+ Nova pasta…" do seletor. Prefixo NUL para não
+    // colidir com nenhum nome de pasta real digitável pelo admin.
     private const string NewFolderSentinel = "\u0000new";
     private string _customFolder = "";
     private string _fileName = "";
 
     private string _folder = "";
-    private bool _isSaving;
     private IBrowserFile? _upload;
     private string? _uploadName;
     private string? NameHelper => _uploadName is not null ? "Usando o nome do arquivo enviado." : null;
 
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
     [Parameter] public Guid VersionId { get; set; }
     [Parameter] public IReadOnlyList<string> Folders { get; set; } = [];
+
+    [Inject] private SaveOverride SaveUseCase { get; set; } = default!;
 
     private string EffectiveFolder =>
         _folder == NewFolderSentinel ? _customFolder.Trim().Trim('/') : _folder;
@@ -42,10 +45,9 @@ public partial class NewOverrideDialog : ComponentBase
         _uploadName = null;
     }
 
-    private async Task Confirm()
+    private Task Confirm()
     {
-        _isSaving = true;
-        try
+        return RunAsync(async () =>
         {
             var path = string.IsNullOrEmpty(EffectiveFolder)
                 ? EffectiveName
@@ -66,10 +68,6 @@ public partial class NewOverrideDialog : ComponentBase
                 Dialog.Close(DialogResult.Ok(path)); // devolve o path criado
             else
                 Snackbar.Add(result.Error!, Severity.Error);
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        });
     }
 }

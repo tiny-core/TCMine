@@ -1,7 +1,4 @@
-﻿@using TCMine.Server.Application.Abstractions
-@inject IModSearch Search
-@inject IIngestionQueue Queue
-@inject ISnackbar Snackbar
+﻿@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -79,11 +76,11 @@
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
             @_selected.Count selecionado(s)
         </MudText>
-        <MudButton OnClick="Cancel" Disabled="_isAdding">Cancelar</MudButton>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    OnClick="Add"
-                   Disabled="_selected.Count == 0 || _isAdding">
-            @if (_isAdding)
+                   Disabled="_selected.Count == 0 || IsBusy">
+            @if (IsBusy)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }

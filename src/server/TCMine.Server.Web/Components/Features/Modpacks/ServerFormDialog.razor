@@ -1,9 +1,4 @@
-﻿@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Servers
-@inject CreateGameServer CreateUseCase
-@inject UpdateGameServer UpdateUseCase
-@inject ISnackbar Snackbar
-@inject IModpackRepository ModpackRepository
+﻿@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -24,7 +19,7 @@
         </MudGrid>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Cancelar</MudButton>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
         @if (_isNew)
         {
             <MudSelect T="Guid" @bind-Value="_selectedVersionId" Label="Versão do modpack" Class="mb-1">
@@ -43,8 +38,8 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    OnClick="Save"
-                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress) || (_isNew && _selectedVersionId == Guid.Empty)">
-            @if (_isSaving)
+                   Disabled="IsBusy || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress) || (_isNew && _selectedVersionId == Guid.Empty)">
+            @if (IsBusy)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }

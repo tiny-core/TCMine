@@ -1,9 +1,4 @@
-﻿@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Modpacks
-@inject CheckModpackVersionUpdates CheckUseCase
-@inject CloneVersion CloneUseCase
-@inject IIngestionQueue IngestionQueue
-@inject ISnackbar Snackbar
+﻿@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -50,24 +45,24 @@
             <MudTextField @bind-Value="_newVersion"
                           Label="Número da nova versão"
                           Class="mt-3"
-                          Disabled="_isCreating"/>
+                          Disabled="IsBusy"/>
         }
     </DialogContent>
     <DialogActions>
         @if (_updates.Count == 0 && !_isChecking)
         {
-            <MudButton OnClick="Close">Fechar</MudButton>
+            <MudButton OnClick="Cancel">Fechar</MudButton>
         }
         else if (_updates.Count > 0)
         {
             <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
                 @_selected.Count selecionado(s)
             </MudText>
-            <MudButton OnClick="Close" Disabled="_isCreating">Cancelar</MudButton>
+            <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        OnClick="Create"
-                       Disabled="_selected.Count == 0 || string.IsNullOrWhiteSpace(_newVersion) || _isCreating">
-                @if (_isCreating)
+                       Disabled="_selected.Count == 0 || string.IsNullOrWhiteSpace(_newVersion) || IsBusy">
+                @if (IsBusy)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                 }

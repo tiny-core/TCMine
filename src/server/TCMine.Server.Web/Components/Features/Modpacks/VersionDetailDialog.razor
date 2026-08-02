@@ -1,12 +1,6 @@
-﻿@inject IModpackRepository Repository
-@inject AddManualFile AddManualFileUseCase
-@inject PublishModpackVersion PublishUseCase
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
-@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Modpacks
+﻿@using TCMine.Contracts.Modpacks
 @using TCMine.UI.Shared.Formatting
+@inherits DialogComponentBase
 @implements IDisposable
 
 <MudDialog>

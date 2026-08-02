@@ -1,21 +1,24 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class CheckUpdatesDialog : ComponentBase
+public partial class CheckUpdatesDialog
 {
     private readonly HashSet<string> _selected = [];
 
     private bool _isChecking = true;
-    private bool _isCreating;
     private string _newVersion = "";
     private List<ModUpdateInfo> _updates = [];
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] public Guid SourceVersionId { get; set; }
     [Parameter] public string SourceVersion { get; set; } = "";
+
+    [Inject] private CheckModpackVersionUpdates CheckUseCase { get; set; } = default!;
+    [Inject] private CloneVersion CloneUseCase { get; set; } = default!;
+    [Inject] private IIngestionQueue IngestionQueue { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,10 +43,9 @@ public partial class CheckUpdatesDialog : ComponentBase
         else _selected.Remove(slug);
     }
 
-    private async Task Create()
+    private Task Create()
     {
-        _isCreating = true;
-        try
+        return RunAsync(async () =>
         {
             // 1. Clona a versão publicada num Draft novo (arquivos copiados).
             var clone = await CloneUseCase.HandleAsync(SourceVersionId, _newVersion, CancellationToken.None);
@@ -66,14 +68,8 @@ public partial class CheckUpdatesDialog : ComponentBase
 
             Snackbar.Add($"Versão {_newVersion} criada; atualizando {items.Count} mod(s)…", Severity.Success);
             Dialog.Close(DialogResult.Ok(newVersionId));
-        }
-        finally
-        {
-            _isCreating = false;
-        }
+        });
     }
-
-    private void Close() => Dialog.Cancel();
 
     // Incrementa o último segmento numérico: "7.1" → "7.2", "1.0.3" → "1.0.4".
     private static string SuggestNextVersion(string current)

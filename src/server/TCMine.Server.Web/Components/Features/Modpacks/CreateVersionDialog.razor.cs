@@ -1,22 +1,20 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class CreateVersionDialog : ComponentBase
+public partial class CreateVersionDialog
 {
     private MudForm _form = null!;
     private bool _inheritFiles = true;
-    private bool _isSaving;
     private bool _loaderReleasesOnly = true;
     private string _loaderVersion = "";
     private IReadOnlyList<string> _loaderVersions = [];
     private int? _memoryMb;
     private string _version = "";
-
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
 
     [Parameter] public string MinecraftVersion { get; set; } = "";
     [Parameter] public ModLoader Loader { get; set; }
@@ -25,7 +23,10 @@ public partial class CreateVersionDialog : ComponentBase
     [Parameter] public int? DefaultMemoryMb { get; set; }
     [Parameter] public string? DefaultVersion { get; set; }
 
-    protected override async void OnInitialized()
+    [Inject] private IVersionCatalog Catalog { get; set; } = default!;
+    [Inject] private CreateModpackVersion CreateVersionUseCase { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
     {
         // Versão sugerida: patch da última + 1, marcada alpha. Só o número muda
         // entre versões; MC/loader/RAM herdam da última publicação.
@@ -50,8 +51,10 @@ public partial class CreateVersionDialog : ComponentBase
             Loader, MinecraftVersion, _loaderReleasesOnly, CancellationToken.None);
     }
 
-    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct) =>
-        Task.FromResult(Filter(_loaderVersions, value));
+    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct)
+    {
+        return Task.FromResult(Filter(_loaderVersions, value));
+    }
 
     private static IEnumerable<string> Filter(IReadOnlyList<string> all, string? value)
     {
@@ -60,15 +63,11 @@ public partial class CreateVersionDialog : ComponentBase
             : all.Where(v => v.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void Cancel() => Dialog.Cancel();
-
-    private async Task SubmitAsync()
+    private async Task Submit()
     {
         await _form.ValidateAsync();
         if (!_form.IsValid)
             return;
-
-        _isSaving = true;
 
         var command = new CreateModpackVersionCommand(
             ModpackId,
@@ -77,16 +76,8 @@ public partial class CreateVersionDialog : ComponentBase
             _memoryMb,
             _inheritFiles);
 
-        var result = await CreateVersionUseCase.HandleAsync(command, CancellationToken.None);
-
-        _isSaving = false;
-
-        if (result.Succeeded)
-        {
-            Snackbar.Add("Versão criada como rascunho.", Severity.Success);
-            Dialog.Close(DialogResult.Ok(result.Value));
-        }
-        else
-            Snackbar.Add(result.Error!, Severity.Error);
+        await SubmitAsync(
+            () => CreateVersionUseCase.HandleAsync(command, CancellationToken.None),
+            "Versão criada como rascunho.");
     }
 }

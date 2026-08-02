@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -6,10 +6,9 @@ using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class CreateModpackDialog : ComponentBase
+public partial class CreateModpackDialog
 {
     private MudForm _form = null!;
-    private bool _isSaving;
     private ModLoader _loader = ModLoader.NeoForge;
     private bool _mcReleasesOnly = true;
     private IReadOnlyList<string> _mcVersions = [];
@@ -25,8 +24,7 @@ public partial class CreateModpackDialog : ComponentBase
     private string _summary = "";
 
     [Inject] private IVersionCatalog Catalog { get; set; } = default!;
-
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
+    [Inject] private CreateModpack CreateModpackUseCase { get; set; } = default!;
 
     protected override async Task OnInitializedAsync() => await ReloadMc();
 
@@ -54,40 +52,26 @@ public partial class CreateModpackDialog : ComponentBase
         _slugEditedManually = true;
     }
 
-    private void Cancel() => Dialog.Cancel();
-
-    private async Task SubmitAsync()
+    private async Task Submit()
     {
         await _form.ValidateAsync();
         if (!_form.IsValid)
             return;
-
-        _isSaving = true;
 
         var command = new CreateModpackCommand(
             _slug, _name,
             string.IsNullOrWhiteSpace(_summary) ? null : _summary,
             _minecraftVersion, _loader);
 
-        var result = await CreateModpackUseCase.HandleAsync(command, CancellationToken.None);
-
-        _isSaving = false;
-
-        if (result.Succeeded)
-        {
-            Snackbar.Add("Modpack criado.", Severity.Success);
-            Dialog.Close(DialogResult.Ok(result.Value));
-        }
-        else
-        {
-            // A validação de regra de negócio (slug duplicado, formato) volta
-            // como mensagem, não exceção — e aqui vira feedback direto.
-            Snackbar.Add(result.Error!, Severity.Error);
-        }
+        // A validação de regra de negócio (slug duplicado, formato) volta como
+        // mensagem via Result, não exceção — a base transforma em snackbar.
+        await SubmitAsync(
+            () => CreateModpackUseCase.HandleAsync(command, CancellationToken.None),
+            "Modpack criado.");
     }
 
-    // Deriva um slug a partir do nome: minúsculas, e tudo que não for letra
-    // ou dígito vira hífen. O caso de uso valida de novo do lado do servidor.
+    // Deriva um slug a partir do nome: minúsculas, e tudo que não for letra ou
+    // dígito vira hífen. O caso de uso valida de novo do lado do servidor.
     private static string Slugify(string text)
     {
         return new string(text.Trim().ToLowerInvariant()

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
@@ -8,20 +8,21 @@ using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class ModrinthSearchDialog : ComponentBase
+public partial class ModrinthSearchDialog
 {
     private readonly HashSet<string> _selected = [];
-    private bool _isAdding;
     private bool _isSearching;
 
     private string _query = "";
     private IReadOnlyList<ModSearchResult> _results = [];
     private bool _searched;
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] public Guid VersionId { get; set; }
     [Parameter] public string MinecraftVersion { get; set; } = "";
     [Parameter] public ModLoader Loader { get; set; }
+
+    [Inject] private IModSearch Search { get; set; } = default!;
+    [Inject] private IIngestionQueue Queue { get; set; } = default!;
 
     private async Task OnKeyUp(KeyboardEventArgs e)
     {
@@ -55,10 +56,9 @@ public partial class ModrinthSearchDialog : ComponentBase
             _selected.Remove(projectId);
     }
 
-    private async Task Add()
+    private Task Add()
     {
-        _isAdding = true;
-        try
+        return RunAsync(async () =>
         {
             // Slug como ProjectId → vira ProjectSlug no arquivo, identidade
             // estável do mod. Lado Both por padrão; a grade permite ajustar
@@ -71,12 +71,6 @@ public partial class ModrinthSearchDialog : ComponentBase
             await Queue.EnqueueAsync(VersionId, items, CancellationToken.None);
             Snackbar.Add($"{items.Count} mod(s) na fila de importação.", Severity.Info);
             Dialog.Close(DialogResult.Ok(true));
-        }
-        finally
-        {
-            _isAdding = false;
-        }
+        });
     }
-
-    private void Cancel() => Dialog.Cancel();
 }

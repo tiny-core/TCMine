@@ -1,7 +1,5 @@
 ﻿@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Modpacks
-@inject AddManualFile AddManualFileUseCase
-@inject ISnackbar Snackbar
+@inherits DialogComponentBase
 
 <MudDialog>
     <DialogContent>
@@ -24,9 +22,9 @@
                 <CustomContent Context="fileUpload">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                StartIcon="@Icons.Material.Filled.AttachFile"
-                               Disabled="_isUploading" FullWidth="true"
+                               Disabled="IsBusy" FullWidth="true"
                                OnClick="@fileUpload.OpenFilePickerAsync">
-                        @if (_isUploading)
+                        @if (IsBusy)
                         {
                             <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                         }
@@ -37,6 +35,6 @@
         </MudStack>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => Dialog.Cancel())">Fechar</MudButton>
+        <MudButton OnClick="Cancel">Fechar</MudButton>
     </DialogActions>
 </MudDialog>

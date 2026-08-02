@@ -1,12 +1,5 @@
-﻿@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Modpacks
-@using TCMine.Server.Domain.Modpacks
-@inject INewsRepository NewsRepository
-@inject CreateNews CreateUseCase
-@inject UpdateNews UpdateUseCase
-@inject DeleteNews DeleteUseCase
-@inject ISnackbar Snackbar
-@inject IDialogService DialogService
+﻿@using TCMine.Server.Domain.Modpacks
+@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -69,8 +62,8 @@
                     <MudStack Row="true" Spacing="1">
                         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                                    OnClick="Save"
-                                   Disabled="_isSaving || string.IsNullOrWhiteSpace(_title)">
-                            @if (_isSaving)
+                                   Disabled="IsBusy || string.IsNullOrWhiteSpace(_title)">
+                            @if (IsBusy)
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                             }
@@ -79,7 +72,7 @@
                         @if (!_isNew)
                         {
                             <MudButton Variant="Variant.Text" Color="Color.Error"
-                                       OnClick="Delete" Disabled="_isSaving">Apagar
+                                       OnClick="Delete" Disabled="IsBusy">Apagar
                             </MudButton>
                         }
                     </MudStack>

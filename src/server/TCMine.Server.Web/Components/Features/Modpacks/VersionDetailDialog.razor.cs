@@ -1,13 +1,16 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class VersionDetailDialog : ComponentBase
+// Mantém dois estados de "ocupado" distintos (upload e publicação) em vez do
+// IsBusy único da base, porque são botões separados na mesma tela.
+public partial class VersionDetailDialog
 {
     private bool _changed;
     private bool _isPublishing;
@@ -17,9 +20,12 @@ public partial class VersionDetailDialog : ComponentBase
 
     private ModpackVersion? _version;
 
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
-
     [Parameter] public Guid VersionId { get; set; }
+
+    [Inject] private IModpackRepository Repository { get; set; } = default!;
+    [Inject] private AddManualFile AddManualFileUseCase { get; set; } = default!;
+    [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
 
     public void Dispose()
     {
@@ -33,43 +39,50 @@ public partial class VersionDetailDialog : ComponentBase
         StartPollingIfNeeded();
     }
 
-    private async Task ReloadAsync() => _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
+    private async Task ReloadAsync()
+    {
+        _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
+    }
 
     private async Task OnFileSelected(IBrowserFile file)
     {
         _isUploading = true;
-
-        // A pasta vem da escolha do admin; o nome, do arquivo. Assim um
-        // config.json vai para config/ e um mod para mods/, em vez de tudo
-        // cair em mods/ como antes.
-        var path = $"{_targetFolder}/{file.Name}";
-
-        // OpenReadStream tem limite padrão baixo (512 KB). Mods passam disso
-        // com folga, então elevamos — 200 MB cobre até os maiores.
-        await using var stream = file.OpenReadStream(200 * 1024 * 1024);
-
-        var command = new AddManualFileCommand(
-            VersionId,
-            path,
-            stream,
-            file.ContentType,
-            FileSide.Both,
-            false);
-
-        var result = await AddManualFileUseCase.HandleAsync(command, CancellationToken.None);
-
-        _isUploading = false;
-
-        if (result.Succeeded)
+        try
         {
-            Snackbar.Add($"Arquivo '{path}' adicionado.", Severity.Success);
-            _changed = true;
-            await ReloadAsync();
-        }
-        else
-            Snackbar.Add(result.Error!, Severity.Error);
+            // A pasta vem da escolha do admin; o nome, do arquivo. Assim um
+            // config.json vai para config/ e um mod para mods/, em vez de tudo
+            // cair em mods/ como antes.
+            var path = $"{_targetFolder}/{file.Name}";
 
-        StateHasChanged(); // garante que a tabela e o botão reflitam o novo estado
+            // OpenReadStream tem limite padrão baixo (512 KB). Mods passam disso
+            // com folga, então elevamos — 200 MB cobre até os maiores.
+            await using var stream = file.OpenReadStream(200 * 1024 * 1024);
+
+            var command = new AddManualFileCommand(
+                VersionId,
+                path,
+                stream,
+                file.ContentType,
+                FileSide.Both,
+                false);
+
+            var result = await AddManualFileUseCase.HandleAsync(command, CancellationToken.None);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add($"Arquivo '{path}' adicionado.", Severity.Success);
+                _changed = true;
+                await ReloadAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+            }
+        }
+        finally
+        {
+            _isUploading = false;
+        }
     }
 
     private async Task OpenIngestDialog()
@@ -89,19 +102,25 @@ public partial class VersionDetailDialog : ComponentBase
     private async Task PublishAsync()
     {
         _isPublishing = true;
-
-        var result = await PublishUseCase.HandleAsync(VersionId, CancellationToken.None);
-
-        _isPublishing = false;
-
-        if (result.Succeeded)
+        try
         {
-            Snackbar.Add("Versão publicada.", Severity.Success);
-            _changed = true;
-            await ReloadAsync();
+            var result = await PublishUseCase.HandleAsync(VersionId, CancellationToken.None);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Versão publicada.", Severity.Success);
+                _changed = true;
+                await ReloadAsync();
+            }
+            else
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+            }
         }
-        else
-            Snackbar.Add(result.Error!, Severity.Error);
+        finally
+        {
+            _isPublishing = false;
+        }
     }
 
     private void Close()
@@ -111,8 +130,8 @@ public partial class VersionDetailDialog : ComponentBase
     }
 
     // Enquanto a versão estiver processando, recarrega a cada 2s para a UI
-    // acompanhar a transição para Ready ou Failed sem o admin precisar
-    // atualizar a página. Para de sondar assim que sai de Resolving.
+    // acompanhar a transição para Ready ou Failed sem o admin precisar atualizar
+    // a página. Para de sondar assim que sai de Resolving.
     private void StartPollingIfNeeded()
     {
         if (_version?.State is not ModpackVersionState.Resolving)

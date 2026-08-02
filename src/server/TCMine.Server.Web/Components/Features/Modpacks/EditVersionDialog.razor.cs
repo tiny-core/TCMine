@@ -1,18 +1,18 @@
-﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
+using Microsoft.AspNetCore.Components;
+using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class EditVersionDialog : ComponentBase
+public partial class EditVersionDialog
 {
-    private bool _isSaving;
     private int? _memoryMb;
-
     private string _version = "";
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
+
     [Parameter] public Guid VersionId { get; set; }
     [Parameter] public string Version { get; set; } = "";
     [Parameter] public int? MemoryMb { get; set; }
+
+    [Inject] private UpdateModpackVersion UpdateUseCase { get; set; } = default!;
 
     protected override void OnInitialized()
     {
@@ -20,18 +20,9 @@ public partial class EditVersionDialog : ComponentBase
         _memoryMb = MemoryMb;
     }
 
-    private async Task Save()
+    private Task Save()
     {
-        _isSaving = true;
-        try
-        {
-            var result = await UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None);
-            if (result.Succeeded) Dialog.Close(DialogResult.Ok(true));
-            else Snackbar.Add(result.Error!, Severity.Error);
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        return SubmitAsync(
+            () => UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None));
     }
 }

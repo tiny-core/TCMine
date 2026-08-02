@@ -1,32 +1,34 @@
-﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
+using Microsoft.AspNetCore.Components;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class ServerFormDialog : ComponentBase
+public partial class ServerFormDialog
 {
     private string _connectAddress = "";
-
     private bool _isNew;
-    private bool _isSaving;
     private int _maxPlayers = 20;
     private int _memoryMb = 4096;
     private string _name = "";
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
 
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
-
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public GameServer? Existing { get; set; }
+
+    [Inject] private CreateGameServer CreateUseCase { get; set; } = default!;
+    [Inject] private UpdateGameServer UpdateUseCase { get; set; } = default!;
+    [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
 
     private ModpackVersion? _selected => _versions.FirstOrDefault(v => v.Id == _selectedVersionId);
     private int SelectedModCount => _selected?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
 
-    protected override async void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         _isNew = Existing is null;
 
@@ -48,40 +50,22 @@ public partial class ServerFormDialog : ComponentBase
         _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
-    private async Task Save()
+    private Task Save()
     {
-        _isSaving = true;
-        try
-        {
-            if (_isNew)
-            {
-                var result = await CreateUseCase.HandleAsync(
-                    ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
-                    CancellationToken.None);
+        return SubmitAsync(SaveCoreAsync, "Servidor salvo.");
+    }
 
-                if (!result.Succeeded)
-                {
-                    Snackbar.Add(result.Error!, Severity.Error);
-                    return;
-                }
-            }
-            else
-            {
-                var result = await UpdateUseCase.HandleAsync(
-                    Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, CancellationToken.None);
-                if (!result.Succeeded)
-                {
-                    Snackbar.Add(result.Error!, Severity.Error);
-                    return;
-                }
-            }
+    // Create devolve Result<Guid> e Update devolve Result; aqui só interessa o
+    // sucesso/erro, então normalizamos para Result (o diálogo fecha com true).
+    private async Task<Result> SaveCoreAsync()
+    {
+        if (!_isNew)
+            return await UpdateUseCase.HandleAsync(
+                Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, CancellationToken.None);
 
-            Snackbar.Add("Servidor salvo.", Severity.Success);
-            Dialog.Close(DialogResult.Ok(true));
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        var created = await CreateUseCase.HandleAsync(
+            ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
+            CancellationToken.None);
+        return created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
     }
 }

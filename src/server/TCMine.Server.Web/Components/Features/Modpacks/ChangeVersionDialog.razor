@@ -1,8 +1,4 @@
-﻿@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Application.Servers
-@inject IModpackRepository ModpackRepository
-@inject ChangeServerVersion ChangeUseCase
-@inject ISnackbar Snackbar
+﻿@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -47,13 +43,13 @@
         }
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="@(() => Dialog.Cancel())" Disabled="_isSaving">Fechar</MudButton>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Fechar</MudButton>
         @if (!Server.HasWorld)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
                        OnClick="Apply"
-                       Disabled="_isSaving || _selectedVersionId == Server.ModpackVersionId || _selectedVersionId == Guid.Empty">
-                @if (_isSaving)
+                       Disabled="IsBusy || _selectedVersionId == Server.ModpackVersionId || _selectedVersionId == Guid.Empty">
+                @if (IsBusy)
                 {
                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                 }

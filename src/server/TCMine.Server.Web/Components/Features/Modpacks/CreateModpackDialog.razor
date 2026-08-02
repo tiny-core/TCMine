@@ -1,7 +1,5 @@
 ﻿@using TCMine.Contracts.Modpacks
-@using TCMine.Server.Application.Modpacks
-@inject CreateModpack CreateModpackUseCase
-@inject ISnackbar Snackbar
+@inherits DialogComponentBase
 
 <MudDialog>
     <DialogContent>
@@ -49,9 +47,9 @@
         <MudButton OnClick="Cancel">Cancelar</MudButton>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
-                   OnClick="SubmitAsync"
-                   Disabled="_isSaving">
-            @if (_isSaving)
+                   OnClick="Submit"
+                   Disabled="IsBusy">
+            @if (IsBusy)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
             }

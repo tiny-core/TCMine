@@ -1,20 +1,22 @@
-﻿using Microsoft.AspNetCore.Components;
-using MudBlazor;
+using Microsoft.AspNetCore.Components;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class ChangeVersionDialog : ComponentBase
+public partial class ChangeVersionDialog
 {
     private bool _isLoading = true;
-    private bool _isSaving;
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] public GameServer Server { get; set; } = default!;
+
+    [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
+    [Inject] private ChangeServerVersion ChangeUseCase { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -36,23 +38,10 @@ public partial class ChangeVersionDialog : ComponentBase
         _isLoading = false;
     }
 
-    private async Task Apply()
+    private Task Apply()
     {
-        _isSaving = true;
-        try
-        {
-            var result = await ChangeUseCase.HandleAsync(Server.Id, _selectedVersionId, CancellationToken.None);
-            if (result.Succeeded)
-            {
-                Snackbar.Add("Versão do servidor alterada.", Severity.Success);
-                Dialog.Close(DialogResult.Ok(true));
-            }
-            else
-                Snackbar.Add(result.Error!, Severity.Error);
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        return SubmitAsync(
+            () => ChangeUseCase.HandleAsync(Server.Id, _selectedVersionId, CancellationToken.None),
+            "Versão do servidor alterada.");
     }
 }

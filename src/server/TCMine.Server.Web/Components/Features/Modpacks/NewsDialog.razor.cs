@@ -1,10 +1,13 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class NewsDialog : ComponentBase
+public partial class NewsDialog
 {
     private string _body = "";
 
@@ -13,12 +16,16 @@ public partial class NewsDialog : ComponentBase
     private bool _isLoading = true;
     private bool _isNew;
     private bool _isPublished;
-    private bool _isSaving;
     private List<News> _posts = [];
     private string _title = "";
-    [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] public Guid ModpackId { get; set; }
+
+    [Inject] private INewsRepository NewsRepository { get; set; } = default!;
+    [Inject] private CreateNews CreateUseCase { get; set; } = default!;
+    [Inject] private UpdateNews UpdateUseCase { get; set; } = default!;
+    [Inject] private DeleteNews DeleteUseCase { get; set; } = default!;
+    [Inject] private IDialogService DialogService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -47,40 +54,37 @@ public partial class NewsDialog : ComponentBase
         _isPublished = post.IsPublished;
     }
 
-    private async Task Save()
+    private Task Save()
     {
-        _isSaving = true;
-        try
+        // Fica aberto após salvar (recarrega a lista), então usa RunAsync em vez
+        // do submit padrão que fecharia o diálogo.
+        return RunAsync(async () =>
         {
+            // Create devolve Result<Guid> e Update devolve Result; normalizamos
+            // para Result porque aqui só interessa o sucesso/erro.
+            Result result;
             if (_isNew)
             {
-                var result = await CreateUseCase.HandleAsync(
+                var created = await CreateUseCase.HandleAsync(
                     ModpackId, _title, _body, _isPublished, CancellationToken.None);
-                if (!result.Succeeded)
-                {
-                    Snackbar.Add(result.Error!, Severity.Error);
-                    return;
-                }
+                result = created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
             }
             else
             {
-                var result = await UpdateUseCase.HandleAsync(
+                result = await UpdateUseCase.HandleAsync(
                     _editing!.Id, _title, _body, _isPublished, CancellationToken.None);
-                if (!result.Succeeded)
-                {
-                    Snackbar.Add(result.Error!, Severity.Error);
-                    return;
-                }
+            }
+
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+                return;
             }
 
             Snackbar.Add("Novidade salva.", Severity.Success);
             _editing = null;
             await LoadAsync();
-        }
-        finally
-        {
-            _isSaving = false;
-        }
+        });
     }
 
     private async Task Delete()
@@ -90,14 +94,17 @@ public partial class NewsDialog : ComponentBase
         if (confirm is not true)
             return;
 
-        var result = await DeleteUseCase.HandleAsync(_editing!.Id, CancellationToken.None);
-        if (result.Succeeded)
+        await RunAsync(async () =>
         {
-            Snackbar.Add("Novidade apagada.", Severity.Success);
-            _editing = null;
-            await LoadAsync();
-        }
-        else
-            Snackbar.Add(result.Error!, Severity.Error);
+            var result = await DeleteUseCase.HandleAsync(_editing!.Id, CancellationToken.None);
+            if (result.Succeeded)
+            {
+                Snackbar.Add("Novidade apagada.", Severity.Success);
+                _editing = null;
+                await LoadAsync();
+            }
+            else
+                Snackbar.Add(result.Error!, Severity.Error);
+        });
     }
 }
