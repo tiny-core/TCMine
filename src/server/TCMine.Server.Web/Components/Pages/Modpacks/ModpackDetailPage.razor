@@ -44,9 +44,6 @@ else
 
             @if (_selectedVersion?.State is ModpackVersionState.Draft)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                               OnClick="OpenEditVersion"/>
-
                 @if (_selectedVersion?.State is ModpackVersionState.Draft)
                 {
                     <MudButton Variant="Variant.Filled" Color="Color.Success"

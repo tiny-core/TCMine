@@ -29,12 +29,19 @@ else
                        StartIcon="@Icons.Material.Filled.NoteAdd"
                        OnClick="OpenNewFile">Novo arquivo
             </MudButton>
+            <MudSpacer/>
+            <MudButton StartIcon="@Icons.Material.Filled.Undo" OnClick="Undo"
+                       Disabled="@(!UndoService.HasUndo(VersionId))">
+                Desfazer
+            </MudButton>
         </MudToolBar>
     }
 
     <MudGrid>
         <MudItem xs="12" md="4">
-            <MudPaper Outlined="true" Class="pa-2" Style="height: 70vh; overflow: auto;">
+            <MudPaper Outlined="true" Class="pa-2" Style="height: 70vh; overflow: auto;"
+                      @ondragover:preventDefault="true"
+                      @ondrop="@(() => OnDropRoot())">
                 @if (_treeItems.Count == 0)
                 {
                     <MudText Class="pa-2" Color="Color.Secondary">Nenhum override ainda.</MudText>
@@ -42,13 +49,37 @@ else
                 else
                 {
                     <MudTreeView T="string" Items="_treeItems"
-                                 SelectedValue="_selectedPath"
-                                 SelectedValueChanged="OnSelect"
-                                 Hover="true" Dense="true">
-                        <ItemTemplate>
-                            <MudTreeViewItem Value="@context.Value" Text="@context.Text"
-                                             Icon="@context.Icon" Items="@context.Children"
-                                             Expandable="@context.Expandable"/>
+                                 SelectedValue="_selectedPath" SelectedValueChanged="OnSelect"
+                                 Hover="true" Dense="true"
+                                 @key="_treeRevision">
+                        <ItemTemplate Context="node">
+                            <MudTreeViewItem T="string" Value="@node.Value"
+                                             Items="@node.Children" Expandable="@node.Expandable"
+                                             Icon="@node.Icon">
+                                <BodyContent>
+                                    <div class="d-flex align-center flex-grow-1" style="min-width:0;"
+                                         @ondragover:preventDefault="true"
+                                         @ondrop="@(() => OnDrop(node.Value))">
+                                        <MudText Class="flex-grow-1 text-truncate" Style="cursor:pointer"
+                                                 @onclick="@(() => OnSelect(node.Value))">
+                                            @node.Text
+                                        </MudText>
+                                        @if (_version?.State is ModpackVersionState.Draft)
+                                        {
+                                            <span draggable="true" style="cursor:grab; padding:0 4px;"
+                                                  @ondragstart="@(() => _dragPath = node.Value)"
+                                                  @ondragend="@(() =>
+                                                              {
+                                                                  _dragPath = null;
+                                                                  _dropTarget = null;
+                                                              })">
+                                                <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
+                                                         Size="Size.Small" Color="Color.Default"/>
+                                            </span>
+                                        }
+                                    </div>
+                                </BodyContent>
+                            </MudTreeViewItem>
                         </ItemTemplate>
                     </MudTreeView>
                 }

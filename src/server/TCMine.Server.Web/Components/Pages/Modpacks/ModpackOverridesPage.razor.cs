@@ -13,11 +13,15 @@ public partial class ModpackOverridesPage
 {
     private List<BreadcrumbItem> _breadcrumbs = [];
     private bool _dirty;
+
+    private string? _dragPath; // path a ser arrastado (definido no handle)
+    private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
     private StandaloneCodeEditor _editor = default!;
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _selectedPath;
     private List<TreeItemData<string>> _treeItems = [];
+    private int _treeRevision;
     private ModpackVersion? _version;
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public Guid VersionId { get; set; }
@@ -28,6 +32,10 @@ public partial class ModpackOverridesPage
     [Inject] private DeleteOverride DeleteUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private MoveOverride MoveUseCase { get; set; } = default!;
+
+    [Inject] private UndoOverrideMove UndoUseCase { get; set; } = default!;
+    [Inject] private OverrideUndoService UndoService { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -78,6 +86,7 @@ public partial class ModpackOverridesPage
         }
 
         _treeItems = [.. root.Values.Select(ToItem)];
+        _treeRevision++; // muda a identidade do MudTreeView → força recriação
     }
 
     private async Task OnEditorInit()
@@ -218,6 +227,85 @@ public partial class ModpackOverridesPage
         }
 
         return folders.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    // Realça a linha só se for um alvo válido para o que está a ser arrastado.
+    private bool IsDropTarget(TreeItemData<string> item)
+    {
+        return _dragPath is not null && _dropTarget == item.Value && item.Value != _dragPath;
+    }
+
+    private async Task OnDrop(string targetPath)
+    {
+        var from = _dragPath;
+        _dragPath = null;
+        _dropTarget = null;
+        if (from is null)
+            return;
+
+        // Se o alvo é uma pasta, entra nela; se é ficheiro, vai para a pasta dele.
+        var isFolder = !(_version?.Files ?? []).Any(f =>
+            f.Origin == ModFileOrigin.Override
+            && f.Path.Equals(targetPath, StringComparison.OrdinalIgnoreCase));
+        var targetFolder = isFolder ? targetPath : ParentOf(targetPath);
+
+        var name = from[(from.LastIndexOf('/') + 1)..];
+        var to = string.IsNullOrEmpty(targetFolder) ? name : $"{targetFolder}/{name}";
+
+        if (from == to)
+            return;
+        if (to.StartsWith(from + "/", StringComparison.OrdinalIgnoreCase))
+        {
+            Snackbar.Add("Não é possível mover uma pasta para dentro dela mesma.", Severity.Warning);
+            return;
+        }
+
+        var result = await MoveUseCase.HandleAsync(VersionId, from, to, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            if (_selectedPath == from) _selectedPath = to;
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private async Task Undo()
+    {
+        var result = await UndoUseCase.HandleAsync(VersionId, CancellationToken.None);
+        if (result.Succeeded)
+            await LoadAsync();
+        else
+            Snackbar.Add(result.Error!, Severity.Info);
+    }
+
+    private async Task OnDropRoot()
+    {
+        var from = _dragPath;
+        _dragPath = null;
+        _dropTarget = null;
+        if (from is null || !from.Contains('/'))
+            return; // já está na raiz
+
+        var name = from[(from.LastIndexOf('/') + 1)..];
+        var result = await MoveUseCase.HandleAsync(VersionId, from, name, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            if (_selectedPath == from) _selectedPath = name;
+            await LoadAsync();
+        }
+        else
+        {
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
+    }
+
+    private static string ParentOf(string path)
+    {
+        var slash = path.LastIndexOf('/');
+        return slash < 0 ? "" : path[..slash];
     }
 
     private StandaloneEditorConstructionOptions EditorOptions(StandaloneCodeEditor editor)
