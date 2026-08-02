@@ -114,11 +114,7 @@ public class ManifestDifferTests
         //  o jogo por incompatibilidade com a versão nova.
         var plano = Planejar(
             Manifest(Arquivo("mods/jei.jar", "aaa")),
-            new Dictionary<string, string>
-            {
-                ["mods/jei.jar"] = "aaa",
-                ["mods/removido.jar"] = "ccc"
-            },
+            new Dictionary<string, string> { ["mods/jei.jar"] = "aaa", ["mods/removido.jar"] = "ccc" },
             ["aaa"]);
 
         plano.ToDelete.ShouldBe(["mods/removido.jar"]);
@@ -219,8 +215,7 @@ public class ManifestDifferTests
         var manifest = Manifest(Arquivo("mods/jei.jar", "aaa"));
         var disco = new Dictionary<string, string>
         {
-            ["mods/jei.jar"] = "aaa",
-            ["config/velho.toml"] = "bbb" // sobra da versão anterior
+            ["mods/jei.jar"] = "aaa", ["config/velho.toml"] = "bbb" // sobra da versão anterior
         };
 
         var plano = Planejar(manifest, disco);
@@ -246,7 +241,7 @@ public class ManifestDifferTests
         var plano = Planejar(manifest, disco);
 
         Assert.Empty(plano.ToDelete);
-        Assert.DoesNotContain(plano.ToDelete, p => p.StartsWith("saves/"));
+        Assert.DoesNotContain(plano.ToDelete, p => p.StartsWith("saves/", StringComparison.Ordinal));
     }
 
     [Fact]

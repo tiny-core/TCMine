@@ -29,11 +29,12 @@
                       HelperText="@NameHelper"/>
 
         <MudFileUpload T="IBrowserFile" FilesChanged="OnFilePicked" MaximumFileCount="1">
-            <ActivatorContent>
-                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">
+            <CustomContent Context="fileUpload">
+                <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload"
+                           OnClick="@fileUpload.OpenFilePickerAsync">
                     @(_uploadName ?? "Enviar arquivo (opcional)")
                 </MudButton>
-            </ActivatorContent>
+            </CustomContent>
         </MudFileUpload>
         @if (_uploadName is not null)
         {

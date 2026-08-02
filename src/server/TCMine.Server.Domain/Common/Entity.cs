@@ -21,10 +21,7 @@ public abstract class Entity
 
     public DateTimeOffset? UpdatedAt { get; set; }
 
-    protected void Touch()
-    {
-        UpdatedAt = DateTimeOffset.UtcNow;
-    }
+    protected void Touch() => UpdatedAt = DateTimeOffset.UtcNow;
 }
 
 /// <summary>

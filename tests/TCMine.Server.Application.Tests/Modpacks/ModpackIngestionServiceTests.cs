@@ -17,10 +17,7 @@ public sealed class ModpackIngestionServiceTests
         // A precisa de B (requerida) e C (opcional). B precisa de D (requerida).
         var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>>
         {
-            ["A"] = [Req("B"), Opt("C")],
-            ["B"] = [Req("D")],
-            ["C"] = [],
-            ["D"] = []
+            ["A"] = [Req("B"), Opt("C")], ["B"] = [Req("D")], ["C"] = [], ["D"] = []
         });
 
         var service = NewService(repo, resolver);
@@ -40,8 +37,7 @@ public sealed class ModpackIngestionServiceTests
 
         var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>>
         {
-            ["A"] = [Req("B")],
-            ["B"] = [Req("A")] // ciclo
+            ["A"] = [Req("B")], ["B"] = [Req("A")] // ciclo
         });
 
         var service = NewService(repo, resolver);
@@ -80,28 +76,15 @@ public sealed class ModpackIngestionServiceTests
 
     private static ModpackVersion NewDraftVersion()
     {
-        return new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
     }
 
-    private static ModIngestionItem Item(string projectId)
-    {
-        return new ModIngestionItem(ModFileOrigin.Modrinth, projectId, null, FileSide.Both);
-    }
+    private static ModIngestionItem Item(string projectId) =>
+        new(ModFileOrigin.Modrinth, projectId, null, FileSide.Both);
 
-    private static ModDependency Req(string id)
-    {
-        return new ModDependency(id, ModDependencyKind.Required);
-    }
+    private static ModDependency Req(string id) => new(id, ModDependencyKind.Required);
 
-    private static ModDependency Opt(string id)
-    {
-        return new ModDependency(id, ModDependencyKind.Optional);
-    }
+    private static ModDependency Opt(string id) => new(id, ModDependencyKind.Optional);
 
     // ---- Fakes ----
 
@@ -134,116 +117,68 @@ public sealed class ModpackIngestionServiceTests
 
     private sealed class FakeDownloader : IModDownloader
     {
-        public Task<Stream> OpenAsync(Uri url, CancellationToken ct)
-        {
-            return Task.FromResult<Stream>(new MemoryStream(new byte[10]));
-        }
+        public Task<Stream> OpenAsync(Uri url, CancellationToken ct) =>
+            Task.FromResult<Stream>(new MemoryStream(new byte[10]));
     }
 
     private sealed class FakeBlobStore : IBlobStore
     {
-        public Task<bool> ExistsAsync(string sha256, CancellationToken ct)
-        {
-            return Task.FromResult(false);
-        }
+        public Task<bool> ExistsAsync(string sha256, CancellationToken ct) => Task.FromResult(false);
 
         // Sha fixo: os arquivos só diferem por ProjectSlug/Path, então o
         // conteúdo idêntico não atrapalha a dedup (que também olha o slug).
-        public Task<string> PutAsync(Stream content, string? expectedSha256, string contentType, CancellationToken ct)
-        {
-            return Task.FromResult(new string('a', 64));
-        }
+        public Task<string>
+            PutAsync(Stream content, string? expectedSha256, string contentType, CancellationToken ct) =>
+            Task.FromResult(new string('a', 64));
 
-        public Task<Stream> OpenAsync(string sha256, CancellationToken ct)
-        {
-            return Task.FromResult<Stream>(new MemoryStream(new byte[10]));
-        }
+        public Task<Stream> OpenAsync(string sha256, CancellationToken ct) =>
+            Task.FromResult<Stream>(new MemoryStream(new byte[10]));
 
-        public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct)
-        {
-            return Task.FromResult<Uri?>(null);
-        }
+        public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
+            Task.FromResult<Uri?>(null);
 
-        public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct)
-        {
+        public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
     }
 
     private sealed class FakeModpackRepository : IModpackRepository
     {
         public ModpackVersion? Version { get; init; }
 
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
-        {
-            return Task.FromResult(Version);
-        }
+        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
 
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
-        {
+        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
+
+        public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
+
+        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
-        {
-            return Task.CompletedTask;
-        }
+        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
 
         public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
         {
             // O caso de uso lê MinecraftVersion/Loader do modpack agora.
             return Task.FromResult<Modpack?>(new Modpack
             {
-                Slug = "test",
-                Name = "Test",
-                MinecraftVersion = "1.21.1",
-                Loader = ModLoader.NeoForge
+                Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
             });
         }
 
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
-        {
+        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task RemoveAsync(Guid id, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task CreateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
-        {
+        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
     }
 }

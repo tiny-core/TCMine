@@ -60,18 +60,10 @@ public sealed class MoveOverride(IModpackRepository repository, OverrideUndoServ
         return Result.Success();
     }
 
-    private static string Normalize(string p)
-    {
-        return p.Replace('\\', '/').Trim('/');
-    }
+    private static string Normalize(string p) => p.Replace('\\', '/').Trim('/');
 
-    private static bool PathEquals(string a, string b)
-    {
-        return string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool PathEquals(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsUnder(string path, string folder)
-    {
-        return path.StartsWith(folder + "/", StringComparison.OrdinalIgnoreCase);
-    }
+    private static bool IsUnder(string path, string folder) =>
+        path.StartsWith(folder + "/", StringComparison.OrdinalIgnoreCase);
 }

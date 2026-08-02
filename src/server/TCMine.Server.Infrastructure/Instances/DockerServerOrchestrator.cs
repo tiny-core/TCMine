@@ -82,8 +82,11 @@ public sealed class DockerServerOrchestrator(
             {
                 Binds = [$"{instancePath}:/data"],
                 Memory = (long)server.MemoryMb * 1024 * 1024,
-                PortBindings = new Dictionary<string, PortBinding[]>
-                    { ["25565/tcp"] = [new PortBinding { HostPort = hostPort }] },
+                PortBindings =
+                    new Dictionary<string, PortBinding[]>
+                    {
+                        ["25565/tcp"] = [new PortBinding { HostPort = hostPort }]
+                    },
                 RestartPolicy = new RestartPolicy { Name = "unless-stopped" }
             }
         };

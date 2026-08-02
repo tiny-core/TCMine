@@ -54,7 +54,7 @@ else
                                  @key="_treeRevision">
                         <ItemTemplate Context="node">
                             <MudTreeViewItem T="string" Value="@node.Value"
-                                             Items="@node.Children" Expandable="@node.Expandable"
+                                             Items="@node.Children" CanExpand="@node.Expandable"
                                              Icon="@node.Icon">
                                 <BodyContent>
                                     <div class="d-flex align-center flex-grow-1" style="min-width:0;"

@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-       Lógica portável do launcher: diff de manifest, chaves de instância,
-       e as portas que a infraestrutura implementa.
-    
-       REGRA: nada de API específica de Windows aqui. No dia em que quisermos
-       rodar no Linux, portar significa escrever um novo projeto de
-       Infrastructure — este continua intacto. Existe um teste de arquitetura,
-       mais adiante, que garante isso automaticamente.
-     -->
-    <ItemGroup>
-        <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
-    </ItemGroup>
+  <!--
+     Lógica portável do launcher: diff de manifest, chaves de instância,
+     e as portas que a infraestrutura implementa.
+
+     REGRA: nada de API específica de Windows aqui. No dia em que quisermos
+     rodar no Linux, portar significa escrever um novo projeto de
+     Infrastructure — este continua intacto. Existe um teste de arquitetura,
+     mais adiante, que garante isso automaticamente.
+   -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+  </ItemGroup>
 
 </Project>

@@ -21,8 +21,10 @@ public sealed class DeleteModpack(
 
         var dependents = await servers.ListByModpackAsync(modpackId, ct);
         if (dependents.Count > 0)
+        {
             return Result.Fail(
                 $"Este modpack tem {dependents.Count} servidor(es). Remova-os antes de apagar o modpack.");
+        }
 
         // Os blobs (jars/overrides) ficam no store — são content-addressed e
         // podem ser partilhados por outros packs. A limpeza de blobs órfãos é

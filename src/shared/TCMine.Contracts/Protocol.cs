@@ -27,8 +27,5 @@ public class Protocol
     /// <summary>
     ///     Há interseção entre o intervalo do outro lado e o nosso?
     /// </summary>
-    public static bool IsCompatible(int otherMin, int otherMax)
-    {
-        return otherMax >= MinimumSupported && otherMin <= Current;
-    }
+    public static bool IsCompatible(int otherMin, int otherMax) => otherMax >= MinimumSupported && otherMin <= Current;
 }

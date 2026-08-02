@@ -110,9 +110,11 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             .ToListAsync(ct);
 
         foreach (var file in version.Files)
+        {
             db.Entry(file).State = existingIds.Contains(file.Id)
                 ? EntityState.Modified // existente: pode ter mudado (move, edição)
                 : EntityState.Added; // novo: INSERT
+        }
 
         await db.SaveChangesAsync(ct);
     }

@@ -20,10 +20,7 @@ public partial class NewsDialog : ComponentBase
 
     [Parameter] public Guid ModpackId { get; set; }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -101,8 +98,6 @@ public partial class NewsDialog : ComponentBase
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 }

@@ -1,33 +1,33 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
+  <!--
+      Biblioteca de UI compartilhada entre o painel do servidor e o launcher.
+
+      É o que impede a duplicação visual: o tema, os tokens de cor e os
+      componentes comuns existem uma vez só. Mudar a cor primária aqui reflete
+      nos dois lados sem copiar nada.
+  -->
+  <PropertyGroup>
     <!--
-        Biblioteca de UI compartilhada entre o painel do servidor e o launcher.
-        
-        É o que impede a duplicação visual: o tema, os tokens de cor e os
-        componentes comuns existem uma vez só. Mudar a cor primária aqui reflete
-        nos dois lados sem copiar nada.
+        Define o prefixo dos assets estáticos. Um CSS colocado em wwwroot/
+        deste projeto fica acessível em /_content/TCMine.UI.Shared/... para
+        quem referenciar.
     -->
-    <PropertyGroup>
-        <!--
-            Define o prefixo dos assets estáticos. Um CSS colocado em wwwroot/
-            deste projeto fica acessível em /_content/TCMine.UI.Shared/... para
-            quem referenciar.
-        -->
-        <StaticWebAssetBasePath>_content/TCMine.UI.Shared</StaticWebAssetBasePath>
-    </PropertyGroup>
+    <StaticWebAssetBasePath>_content/TCMine.UI.Shared</StaticWebAssetBasePath>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
-        <PackageReference Include="MudBlazor"/>
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
+    <PackageReference Include="MudBlazor"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\TCMine.Contracts\TCMine.Contracts.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Contracts\TCMine.Contracts.csproj"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <_ContentIncludedByDefault Remove="wwwroot\background.png"/>
-        <_ContentIncludedByDefault Remove="wwwroot\exampleJsInterop.js"/>
-    </ItemGroup>
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="wwwroot\background.png"/>
+    <_ContentIncludedByDefault Remove="wwwroot\exampleJsInterop.js"/>
+  </ItemGroup>
 
 </Project>

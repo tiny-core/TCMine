@@ -98,9 +98,7 @@ public sealed class OverrideMoveTests
     {
         var version = new ModpackVersion
         {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
+            ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234"
         };
         foreach (var f in files)
             version.UpsertFile(f);
@@ -132,69 +130,33 @@ public sealed class OverrideMoveTests
     // mudanças do move ficam visíveis nas asserções (in-place, como o EF faria).
     private sealed class FakeRepo(ModpackVersion version) : IModpackRepository
     {
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
-        {
-            return Task.FromResult<ModpackVersion?>(version);
-        }
+        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+            Task.FromResult<ModpackVersion?>(version);
 
-        public Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct)
-        {
-            return Task.CompletedTask;
-        }
+        public Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
 
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
-        {
-            return Task.CompletedTask;
-        }
+        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
-        {
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
+
+        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task AddVersionAsync(ModpackVersion v, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task RemoveAsync(Guid id, CancellationToken ct)
-        {
+        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task CreateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task AddVersionAsync(ModpackVersion v, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
     }
 }

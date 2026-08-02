@@ -70,10 +70,7 @@ public static class ManifestDiffer
 
         return new SyncPlan
         {
-            Instance = instance,
-            ToDownload = baixar,
-            ToMaterialize = materializar,
-            ToDelete = apagar
+            Instance = instance, ToDownload = baixar, ToMaterialize = materializar, ToDelete = apagar
         };
     }
 }

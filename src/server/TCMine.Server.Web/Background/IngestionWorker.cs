@@ -18,6 +18,7 @@ public sealed partial class IngestionWorker(
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         await foreach (var job in queue.ReadAllAsync(stoppingToken))
+        {
             try
             {
                 // Um scope por job: o mesmo motivo da factory de DbContext —
@@ -38,6 +39,7 @@ public sealed partial class IngestionWorker(
                 // fila trava para todos os próximos.
                 LogJobFailed(ex, job.VersionId);
             }
+        }
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao processar ingestão da versão {VersionId}.")]

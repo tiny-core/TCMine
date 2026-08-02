@@ -18,15 +18,10 @@ public sealed class IngestionQueue : IIngestionQueue
     public ValueTask EnqueueAsync(
         Guid versionId,
         IReadOnlyList<ModIngestionItem> items,
-        CancellationToken ct)
-    {
-        return _channel.Writer.WriteAsync(new IngestionJob(versionId, items), ct);
-    }
+        CancellationToken ct) =>
+        _channel.Writer.WriteAsync(new IngestionJob(versionId, items), ct);
 
-    public IAsyncEnumerable<IngestionJob> ReadAllAsync(CancellationToken ct)
-    {
-        return _channel.Reader.ReadAllAsync(ct);
-    }
+    public IAsyncEnumerable<IngestionJob> ReadAllAsync(CancellationToken ct) => _channel.Reader.ReadAllAsync(ct);
 }
 
 public sealed record IngestionJob(Guid VersionId, IReadOnlyList<ModIngestionItem> Items);

@@ -71,39 +71,26 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
 
     public HubConnectionState State => _connection.State;
 
-    public ValueTask DisposeAsync()
-    {
-        return _connection.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => _connection.DisposeAsync();
 
     // ---------- Envio: IServerHub ----------
     // Cada método traduz uma chamada tipada para o InvokeAsync correspondente.
     // O nameof garante que o nome enviado é o do método da interface.
 
-    public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
-    {
-        return _connection.InvokeAsync<IReadOnlyList<ModpackDto>>(nameof(IServerHub.GetModpacksAsync));
-    }
+    public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync() =>
+        _connection.InvokeAsync<IReadOnlyList<ModpackDto>>(nameof(IServerHub.GetModpacksAsync));
 
-    public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId)
-    {
-        return _connection.InvokeAsync<ModpackVersionDto>(nameof(IServerHub.GetModpackVersionAsync), versionId);
-    }
+    public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId) =>
+        _connection.InvokeAsync<ModpackVersionDto>(nameof(IServerHub.GetModpackVersionAsync), versionId);
 
-    public Task<IReadOnlyList<GameServerDto>> GetServersAsync()
-    {
-        return _connection.InvokeAsync<IReadOnlyList<GameServerDto>>(nameof(IServerHub.GetServersAsync));
-    }
+    public Task<IReadOnlyList<GameServerDto>> GetServersAsync() =>
+        _connection.InvokeAsync<IReadOnlyList<GameServerDto>>(nameof(IServerHub.GetServersAsync));
 
-    public Task SubscribeServerAsync(Guid serverId)
-    {
-        return _connection.InvokeAsync(nameof(IServerHub.SubscribeServerAsync), serverId);
-    }
+    public Task SubscribeServerAsync(Guid serverId) =>
+        _connection.InvokeAsync(nameof(IServerHub.SubscribeServerAsync), serverId);
 
-    public Task UnsubscribeServerAsync(Guid serverId)
-    {
-        return _connection.InvokeAsync(nameof(IServerHub.UnsubscribeServerAsync), serverId);
-    }
+    public Task UnsubscribeServerAsync(Guid serverId) =>
+        _connection.InvokeAsync(nameof(IServerHub.UnsubscribeServerAsync), serverId);
 
     public Task<CommandResultDto> SendCommandAsync(Guid serverId, string command, IReadOnlyList<string> args)
     {
@@ -122,10 +109,7 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
     /// <summary>Disparado ao reconectar. É o gatilho da reconciliação.</summary>
     public event Func<Task>? Reconnected;
 
-    public Task ConnectAsync(CancellationToken ct)
-    {
-        return _connection.StartAsync(ct);
-    }
+    public Task ConnectAsync(CancellationToken ct) => _connection.StartAsync(ct);
 
     // ---------- Recebimento: ILauncherClient ----------
 

@@ -16,10 +16,7 @@ public partial class IngestModsDialog : ComponentBase
 
     [Parameter] public Guid VersionId { get; set; }
 
-    private void Cancel()
-    {
-        Dialog.Cancel();
-    }
+    private void Cancel() => Dialog.Cancel();
 
     private async Task SubmitAsync()
     {
@@ -53,8 +50,6 @@ public partial class IngestModsDialog : ComponentBase
             Dialog.Close(DialogResult.Ok(true));
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 }

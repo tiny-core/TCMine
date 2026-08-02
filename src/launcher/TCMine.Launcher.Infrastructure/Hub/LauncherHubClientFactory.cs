@@ -10,8 +10,6 @@ namespace TCMine.Launcher.Infrastructure.Hub;
 /// </summary>
 public sealed class LauncherHubClientFactory(ILoggerFactory loggerFactory)
 {
-    public LauncherHubClient Create(Uri serverUrl, Func<Task<string?>> accessTokenProvider)
-    {
-        return new LauncherHubClient(serverUrl, accessTokenProvider, loggerFactory.CreateLogger<LauncherHubClient>());
-    }
+    public LauncherHubClient Create(Uri serverUrl, Func<Task<string?>> accessTokenProvider) => new(serverUrl,
+        accessTokenProvider, loggerFactory.CreateLogger<LauncherHubClient>());
 }

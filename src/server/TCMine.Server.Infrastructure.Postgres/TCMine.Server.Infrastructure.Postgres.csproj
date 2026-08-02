@@ -1,27 +1,27 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Este projeto existe por uma limitação do EF Core: migrations de providers
-        diferentes não convivem no mesmo assembly. Aqui mora exclusivamente o
-        histórico de migrations do Postgres.
-    
-        Nenhuma lógica de aplicação entra aqui.
-    -->
-    <ItemGroup>
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-            <!--
-                PrivateAssets impede que o pacote de design-time vaze para quem
-                referenciar este projeto. Ele só é necessário para rodar os comandos
-                do dotnet ef, nunca em produção.
-            -->
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <!--
+      Este projeto existe por uma limitação do EF Core: migrations de providers
+      diferentes não convivem no mesmo assembly. Aqui mora exclusivamente o
+      histórico de migrations do Postgres.
 
-    <ItemGroup>
-        <ProjectReference Include="..\TCMine.Server.Infrastructure\TCMine.Server.Infrastructure.csproj"/>
-    </ItemGroup>
+      Nenhuma lógica de aplicação entra aqui.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <!--
+          PrivateAssets impede que o pacote de design-time vaze para quem
+          referenciar este projeto. Ele só é necessário para rodar os comandos
+          do dotnet ef, nunca em produção.
+      -->
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Server.Infrastructure\TCMine.Server.Infrastructure.csproj"/>
+  </ItemGroup>
 
 </Project>

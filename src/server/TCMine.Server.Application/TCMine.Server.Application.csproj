@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Casos de uso e portas.
-        
-        Depende de Domain e Contracts, e de mais nada concreto. Não conhece EF
-        Core, Docker nem HTTP — quem conhece é a Infrastructure, que implementa
-        as interfaces declaradas aqui.
-        
-        A dependência aponta para dentro: Infrastructure → Application → Domain.
-        Nunca o contrário.
-    -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-    </ItemGroup>
+  <!--
+      Casos de uso e portas.
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
-        <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
-    </ItemGroup>
+      Depende de Domain e Contracts, e de mais nada concreto. Não conhece EF
+      Core, Docker nem HTTP — quem conhece é a Infrastructure, que implementa
+      as interfaces declaradas aqui.
+
+      A dependência aponta para dentro: Infrastructure → Application → Domain.
+      Nunca o contrário.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
+    <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+  </ItemGroup>
 
 </Project>

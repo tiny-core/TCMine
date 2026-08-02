@@ -17,10 +17,8 @@ public class CreateModpackTests
         return new CreateModpack(_repo, _scope);
     }
 
-    private CreateModpackCommand ComandoValido(string slug = "tech-medieval")
-    {
-        return new CreateModpackCommand(slug, "Tecnologia Medieval", null, "1.21.1", ModLoader.NeoForge);
-    }
+    private static CreateModpackCommand ComandoValido(string slug = "tech-medieval") =>
+        new(slug, "Tecnologia Medieval", null, "1.21.1", ModLoader.NeoForge);
 
     [Fact]
     public async Task Cria_modpack_com_dados_validos()

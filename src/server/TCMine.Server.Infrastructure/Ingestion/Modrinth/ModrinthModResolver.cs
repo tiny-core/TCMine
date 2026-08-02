@@ -42,8 +42,10 @@ public sealed partial class ModrinthModResolver(
                 url, ModrinthJsonContext.Default.IReadOnlyListModrinthVersion, ct);
 
             if (versions is null || versions.Count is 0)
+            {
                 return new ModResolution.NotFound(
                     $"Nenhuma versão de '{request.ProjectId}' para Minecraft {request.MinecraftVersion} com {loader}.");
+            }
 
             // Se um FileId específico foi pedido, procura por ele; senão pega a
             // versão mais recente compatível.

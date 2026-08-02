@@ -29,9 +29,7 @@ public partial class CheckUpdatesDialog : ComponentBase
             _newVersion = SuggestNextVersion(SourceVersion);
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
 
         _isChecking = false;
     }
@@ -75,21 +73,20 @@ public partial class CheckUpdatesDialog : ComponentBase
         }
     }
 
-    private void Close()
-    {
-        Dialog.Cancel();
-    }
+    private void Close() => Dialog.Cancel();
 
     // Incrementa o último segmento numérico: "7.1" → "7.2", "1.0.3" → "1.0.4".
     private static string SuggestNextVersion(string current)
     {
         var parts = current.Split('.');
         for (var i = parts.Length - 1; i >= 0; i--)
+        {
             if (int.TryParse(parts[i], out var n))
             {
                 parts[i] = (n + 1).ToString();
                 return string.Join('.', parts);
             }
+        }
 
         return string.IsNullOrWhiteSpace(current) ? "1.0" : current + ".1";
     }

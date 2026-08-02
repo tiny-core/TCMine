@@ -33,10 +33,8 @@ public sealed partial class FileSystemBlobStore : IBlobStore
 
     private string TempDirectory => Path.Combine(_options.RootPath, ".tmp");
 
-    public Task<bool> ExistsAsync(string sha256, CancellationToken ct)
-    {
-        return Task.FromResult(File.Exists(ResolvePath(sha256)));
-    }
+    public Task<bool> ExistsAsync(string sha256, CancellationToken ct) =>
+        Task.FromResult(File.Exists(ResolvePath(sha256)));
 
     public async Task<string> PutAsync(
         Stream content,
@@ -61,8 +59,10 @@ public sealed partial class FileSystemBlobStore : IBlobStore
                 // gravado conteúdo errado com o nome certo — e o cliente
                 // que baixasse depois receberia o arquivo errado achando que
                 // está correto.
+            {
                 throw new InvalidDataException(
                     $"Hash divergente. Esperado {expectedSha256}, obtido {hash}.");
+            }
 
             var finalPath = ResolvePath(hash);
 
@@ -131,10 +131,8 @@ public sealed partial class FileSystemBlobStore : IBlobStore
     ///     A implementação de object storage devolve URL aqui, e aí os bytes nem
     ///     passam pelo processo do TCMine.
     /// </summary>
-    public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct)
-    {
-        return Task.FromResult<Uri?>(null);
-    }
+    public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
+        Task.FromResult<Uri?>(null);
 
     public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct)
     {
@@ -195,10 +193,7 @@ public sealed partial class FileSystemBlobStore : IBlobStore
             normalizado);
     }
 
-    private static bool IsValidHash(string value)
-    {
-        return value.Length is 64 && value.All(char.IsAsciiHexDigit);
-    }
+    private static bool IsValidHash(string value) => value.Length is 64 && value.All(char.IsAsciiHexDigit);
 
     private void TryDelete(string path)
     {

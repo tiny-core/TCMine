@@ -1,5 +1,6 @@
 ﻿using BlazorMonaco.Editor;
 using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -36,11 +37,9 @@ public partial class ModpackOverridesPage
 
     [Inject] private UndoOverrideMove UndoUseCase { get; set; } = default!;
     [Inject] private OverrideUndoService UndoService { get; set; } = default!;
+    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -132,7 +131,7 @@ public partial class ModpackOverridesPage
         }
 
         var model = await _editor.GetModel();
-        await Global.SetModelLanguage(model, LanguageFor(path));
+        await Global.SetModelLanguage(JsRuntime, model, LanguageFor(path));
         await _editor.SetValue(result.Value ?? "");
         _dirty = false;
     }
@@ -155,9 +154,7 @@ public partial class ModpackOverridesPage
                 BuildTree(); // sem recarregar do banco: a árvore muda só se o path for novo
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {
@@ -184,18 +181,12 @@ public partial class ModpackOverridesPage
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private async Task OpenNewFile()
     {
-        var parameters = new DialogParameters
-        {
-            ["VersionId"] = VersionId,
-            ["Folders"] = ExistingFolders()
-        };
+        var parameters = new DialogParameters { ["VersionId"] = VersionId, ["Folders"] = ExistingFolders() };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 
         var dialog = await DialogService.ShowAsync<NewOverrideDialog>("Novo arquivo", parameters, options);
@@ -207,7 +198,7 @@ public partial class ModpackOverridesPage
     }
 
     // Todas as pastas distintas onde já há overrides (para o seletor do modal).
-    private IReadOnlyList<string> ExistingFolders()
+    private List<string> ExistingFolders()
     {
         var folders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var file in (_version?.Files ?? []).Where(f => f.Origin == ModFileOrigin.Override))
@@ -230,17 +221,17 @@ public partial class ModpackOverridesPage
     }
 
     // Realça a linha só se for um alvo válido para o que está a ser arrastado.
-    private bool IsDropTarget(TreeItemData<string> item)
-    {
-        return _dragPath is not null && _dropTarget == item.Value && item.Value != _dragPath;
-    }
+    private bool IsDropTarget(TreeItemData<string> item) =>
+        _dragPath is not null && _dropTarget == item.Value && item.Value != _dragPath;
 
-    private async Task OnDrop(string targetPath)
+    private async Task OnDrop(string? targetPath)
     {
         var from = _dragPath;
         _dragPath = null;
         _dropTarget = null;
-        if (from is null)
+        // targetPath vem de ITreeItemData.Value, que é anulável; sem alvo válido
+        // não há para onde mover.
+        if (from is null || targetPath is null)
             return;
 
         // Se o alvo é uma pasta, entra nela; se é ficheiro, vai para a pasta dele.
@@ -267,9 +258,7 @@ public partial class ModpackOverridesPage
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private async Task Undo()
@@ -297,9 +286,7 @@ public partial class ModpackOverridesPage
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private static string ParentOf(string path)

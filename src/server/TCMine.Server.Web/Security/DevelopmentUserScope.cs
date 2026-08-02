@@ -24,8 +24,6 @@ public sealed class DevelopmentUserScope : ICurrentUserScope
 
     public bool IsInstanceAdmin => true;
 
-    public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct)
-    {
-        return Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
-    }
+    public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
+        Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
 }

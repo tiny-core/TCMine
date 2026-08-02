@@ -132,12 +132,7 @@ public sealed class ModpackVersionTests
 
     private static ModpackVersion NewDraftVersion()
     {
-        return new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
     }
 
     private static ModpackVersion NewReadyVersion()

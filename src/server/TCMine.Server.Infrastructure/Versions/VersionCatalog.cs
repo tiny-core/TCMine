@@ -14,10 +14,8 @@ public sealed class VersionCatalog(
 {
     private static readonly TimeSpan Ttl = TimeSpan.FromMinutes(30);
 
-    public Task<IReadOnlyList<string>> GetMinecraftVersionsAsync(bool releasesOnly, CancellationToken ct)
-    {
-        return Cached($"mc:{releasesOnly}", () => minecraft.GetAsync(releasesOnly, ct));
-    }
+    public Task<IReadOnlyList<string>> GetMinecraftVersionsAsync(bool releasesOnly, CancellationToken ct) =>
+        Cached($"mc:{releasesOnly}", () => minecraft.GetAsync(releasesOnly, ct));
 
     public Task<IReadOnlyList<string>> GetLoaderVersionsAsync(
         ModLoader loader, string minecraftVersion, bool releasesOnly, CancellationToken ct)

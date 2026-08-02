@@ -14,10 +14,7 @@ public sealed class CreateNews(INewsRepository repository)
 
         var news = new News
         {
-            ModpackId = modpackId,
-            Title = title.Trim(),
-            Body = body ?? "",
-            IsPublished = isPublished
+            ModpackId = modpackId, Title = title.Trim(), Body = body ?? "", IsPublished = isPublished
         };
 
         await repository.AddAsync(news, ct);

@@ -1,20 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Referencia todos os projetos que participam das regras. Sem a referência,
-        o assembly não é carregado e o teste passaria sem verificar nada — falso
-        positivo silencioso, o pior tipo.
-    -->
-    <ItemGroup>
-        <PackageReference Include="NetArchTest.Rules"/>
-    </ItemGroup>
+  <!--
+      Referencia todos os projetos que participam das regras. Sem a referência,
+      o assembly não é carregado e o teste passaria sem verificar nada — falso
+      positivo silencioso, o pior tipo.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
-        <ProjectReference Include="..\..\src\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
-        <ProjectReference Include="..\..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
-        <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+    <ProjectReference Include="..\..\src\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
+    <ProjectReference Include="..\..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+  </ItemGroup>
 
 
 </Project>

@@ -11,10 +11,7 @@ public partial class ModpacksPage : ComponentBase
     private bool _isLoading = true;
     private IReadOnlyList<ModpackDto> _modpacks = [];
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {

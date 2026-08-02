@@ -48,9 +48,7 @@ public partial class ChangeVersionDialog : ComponentBase
                 Dialog.Close(DialogResult.Ok(true));
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {

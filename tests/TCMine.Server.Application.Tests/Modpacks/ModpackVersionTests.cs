@@ -7,12 +7,7 @@ public class ModpackVersionTests
 {
     private static ModpackVersion NovaVersao()
     {
-        return new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0.0",
-            LoaderVersion = "21.1.0"
-        };
+        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.0" };
     }
 
     private static ModpackFile ArquivoQualquer(Guid versaoId)
@@ -28,10 +23,7 @@ public class ModpackVersionTests
     }
 
     [Fact]
-    public void Versao_nova_comeca_em_draft()
-    {
-        NovaVersao().State.ShouldBe(ModpackVersionState.Draft);
-    }
+    public void Versao_nova_comeca_em_draft() => NovaVersao().State.ShouldBe(ModpackVersionState.Draft);
 
     [Fact]
     public void Nao_publica_pulando_a_resolucao()

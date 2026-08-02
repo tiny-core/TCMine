@@ -1,22 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Migrations do SQLite. Usado só em desenvolvimento local e para quem
-        quiser rodar o TCMine sem subir um Postgres.
-        
-        Em produção com Docker, SQLite em bind mount tem comportamento de
-        locking traiçoeiro — vá de Postgres.
-    -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-    </ItemGroup>
+  <!--
+      Migrations do SQLite. Usado só em desenvolvimento local e para quem
+      quiser rodar o TCMine sem subir um Postgres.
 
-    <ItemGroup>
-        <ProjectReference Include="..\TCMine.Server.Infrastructure\TCMine.Server.Infrastructure.csproj"/>
-    </ItemGroup>
+      Em produção com Docker, SQLite em bind mount tem comportamento de
+      locking traiçoeiro — vá de Postgres.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Server.Infrastructure\TCMine.Server.Infrastructure.csproj"/>
+  </ItemGroup>
 
 </Project>

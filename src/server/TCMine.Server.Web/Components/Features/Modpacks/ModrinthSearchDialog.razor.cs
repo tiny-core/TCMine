@@ -78,8 +78,5 @@ public partial class ModrinthSearchDialog : ComponentBase
         }
     }
 
-    private void Cancel()
-    {
-        Dialog.Cancel();
-    }
+    private void Cancel() => Dialog.Cancel();
 }

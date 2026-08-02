@@ -12,15 +12,9 @@ public readonly record struct Result
     public bool Succeeded { get; private init; }
     public string? Error { get; private init; }
 
-    public static Result Success()
-    {
-        return new Result { Succeeded = true };
-    }
+    public static Result Success() => new() { Succeeded = true };
 
-    public static Result Fail(string error)
-    {
-        return new Result { Succeeded = false, Error = error };
-    }
+    public static Result Fail(string error) => new() { Succeeded = false, Error = error };
 }
 
 /// <summary>Resultado que também carrega um valor em caso de sucesso.</summary>
@@ -30,13 +24,7 @@ public readonly record struct Result<T>
     public T? Value { get; private init; }
     public string? Error { get; private init; }
 
-    public static Result<T> Success(T value)
-    {
-        return new Result<T> { Succeeded = true, Value = value };
-    }
+    public static Result<T> Success(T value) => new() { Succeeded = true, Value = value };
 
-    public static Result<T> Fail(string error)
-    {
-        return new Result<T> { Succeeded = false, Error = error };
-    }
+    public static Result<T> Fail(string error) => new() { Succeeded = false, Error = error };
 }

@@ -27,9 +27,11 @@ public sealed class ChangeServerVersion(
         // Barreira do mundo: enquanto não há backup+orquestração, não deixamos
         // trocar a versão de um servidor com mundo gerado.
         if (server.HasWorld)
+        {
             return Result.Fail(
                 "Este servidor já tem mundo. Trocar a versão pode corromper o save e exige backup — "
                 + "disponível quando a orquestração estiver ativa.");
+        }
 
         // A versão alvo tem de ser do mesmo modpack e instalável (publicada ou
         // arquivada). Draft/Resolving/Failed não servem para rodar.

@@ -55,7 +55,9 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
                 // GetVersionAsync inclui os Files; modpack.Versions não os traz.
                 var source = await repository.GetVersionAsync(sourceId, ct);
                 if (source is not null)
+                {
                     foreach (var f in source.Files)
+                    {
                         version.UpsertFile(new ModpackFile
                         {
                             ModpackVersionId = version.Id,
@@ -68,6 +70,8 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
                             OriginReference = f.OriginReference,
                             ProjectSlug = f.ProjectSlug
                         });
+                    }
+                }
             }
         }
 

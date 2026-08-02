@@ -84,8 +84,10 @@ if (builder.Environment.IsDevelopment())
 else
     // Falha explícita e cedo. Subir em produção sem autorização real seria
     // pior do que não subir.
+{
     throw new InvalidOperationException(
         "Autenticação ainda não implementada. Esta build só roda em Development.");
+}
 
 builder.Services.AddTcMineApplication();
 

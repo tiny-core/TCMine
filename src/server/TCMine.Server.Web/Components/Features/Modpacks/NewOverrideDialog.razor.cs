@@ -60,9 +60,7 @@ public partial class NewOverrideDialog : ComponentBase
                     VersionId, path, stream, _upload.ContentType, CancellationToken.None);
             }
             else
-            {
                 result = await SaveUseCase.HandleAsync(VersionId, path, "", CancellationToken.None);
-            }
 
             if (result.Succeeded)
                 Dialog.Close(DialogResult.Ok(path)); // devolve o path criado

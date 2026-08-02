@@ -91,8 +91,10 @@ public sealed partial class ModpackIngestionService(
             // Enfileira as requeridas que ainda não temos. A dependência herda
             // o lado do mod que a pediu (lib de mod cliente = cliente, etc.).
             foreach (var depId in outcome.RequiredDependencies)
+            {
                 if (!processed.Contains(depId) && !existing.Contains(depId))
                     work.Enqueue((new ModIngestionItem(item.Origin, depId, null, item.Side), true));
+            }
         }
 
         // Grava o estado final com os arquivos adicionados.
@@ -234,14 +236,8 @@ public sealed partial class ModpackIngestionService(
     // requeridas a puxar em seguida.
     private sealed record ResolveOutcome(string? Error, IReadOnlyList<string> RequiredDependencies)
     {
-        public static ResolveOutcome Ok(IReadOnlyList<string> deps)
-        {
-            return new ResolveOutcome(null, deps);
-        }
+        public static ResolveOutcome Ok(IReadOnlyList<string> deps) => new(null, deps);
 
-        public static ResolveOutcome Fail(string error)
-        {
-            return new ResolveOutcome(error, []);
-        }
+        public static ResolveOutcome Fail(string error) => new(error, []);
     }
 }

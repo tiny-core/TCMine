@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
-        <ProjectReference Include="..\..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
-        <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+    <ProjectReference Include="..\..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
+  </ItemGroup>
 
 </Project>

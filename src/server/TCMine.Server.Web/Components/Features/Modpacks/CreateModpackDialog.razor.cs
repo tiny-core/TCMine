@@ -28,15 +28,10 @@ public partial class CreateModpackDialog : ComponentBase
 
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = null!;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await ReloadMc();
-    }
+    protected override async Task OnInitializedAsync() => await ReloadMc();
 
-    private async Task ReloadMc()
-    {
+    private async Task ReloadMc() =>
         _mcVersions = await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None);
-    }
 
     private Task<IEnumerable<string>> SearchMc(string value, CancellationToken ct)
     {
@@ -59,10 +54,7 @@ public partial class CreateModpackDialog : ComponentBase
         _slugEditedManually = true;
     }
 
-    private void Cancel()
-    {
-        Dialog.Cancel();
-    }
+    private void Cancel() => Dialog.Cancel();
 
     private async Task SubmitAsync()
     {

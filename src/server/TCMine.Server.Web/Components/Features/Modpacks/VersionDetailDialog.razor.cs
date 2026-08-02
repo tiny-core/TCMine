@@ -24,6 +24,7 @@ public partial class VersionDetailDialog : ComponentBase
     public void Dispose()
     {
         _pollTimer?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     protected override async Task OnInitializedAsync()
@@ -32,10 +33,7 @@ public partial class VersionDetailDialog : ComponentBase
         StartPollingIfNeeded();
     }
 
-    private async Task ReloadAsync()
-    {
-        _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
-    }
+    private async Task ReloadAsync() => _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
 
     private async Task OnFileSelected(IBrowserFile file)
     {
@@ -67,14 +65,9 @@ public partial class VersionDetailDialog : ComponentBase
             Snackbar.Add($"Arquivo '{path}' adicionado.", Severity.Success);
             _changed = true;
             await ReloadAsync();
-
-            // TEMPORÁRIO: diagnóstico
-            Snackbar.Add($"Após reload: {_version?.Files.Count ?? -1} arquivo(s).", Severity.Info);
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
 
         StateHasChanged(); // garante que a tabela e o botão reflitam o novo estado
     }
@@ -108,9 +101,7 @@ public partial class VersionDetailDialog : ComponentBase
             await ReloadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private void Close()

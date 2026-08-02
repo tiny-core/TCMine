@@ -7,15 +7,12 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class CreateVersionDialog : ComponentBase
 {
-    private readonly IReadOnlyList<string> _mcVersions = [];
     private MudForm _form = null!;
     private bool _inheritFiles = true;
     private bool _isSaving;
     private bool _loaderReleasesOnly = true;
     private string _loaderVersion = "";
     private IReadOnlyList<string> _loaderVersions = [];
-
-    private bool _mcReleasesOnly = true;
     private int? _memoryMb;
     private string _version = "";
 
@@ -53,15 +50,8 @@ public partial class CreateVersionDialog : ComponentBase
             Loader, MinecraftVersion, _loaderReleasesOnly, CancellationToken.None);
     }
 
-    private Task<IEnumerable<string>> SearchMc(string value, CancellationToken ct)
-    {
-        return Task.FromResult(Filter(_mcVersions, value));
-    }
-
-    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct)
-    {
-        return Task.FromResult(Filter(_loaderVersions, value));
-    }
+    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct) =>
+        Task.FromResult(Filter(_loaderVersions, value));
 
     private static IEnumerable<string> Filter(IReadOnlyList<string> all, string? value)
     {
@@ -70,10 +60,7 @@ public partial class CreateVersionDialog : ComponentBase
             : all.Where(v => v.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
-    private void Cancel()
-    {
-        Dialog.Cancel();
-    }
+    private void Cancel() => Dialog.Cancel();
 
     private async Task SubmitAsync()
     {
@@ -100,8 +87,6 @@ public partial class CreateVersionDialog : ComponentBase
             Dialog.Close(DialogResult.Ok(result.Value));
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 }

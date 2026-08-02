@@ -50,6 +50,7 @@ public sealed class CheckModpackVersionUpdates(
             if (resolution is ModResolution.Resolved resolved
                 && !string.Equals(resolved.VersionId, file.OriginReference, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(resolved.FileName, Path.GetFileName(file.Path), StringComparison.OrdinalIgnoreCase))
+            {
                 updates.Add(new ModUpdateInfo(
                     file.ProjectSlug,
                     Path.GetFileName(file.Path),
@@ -58,6 +59,7 @@ public sealed class CheckModpackVersionUpdates(
                     resolved.FileName,
                     file.Side,
                     file.Origin));
+            }
         }
 
         return Result<IReadOnlyList<ModUpdateInfo>>.Success(updates);

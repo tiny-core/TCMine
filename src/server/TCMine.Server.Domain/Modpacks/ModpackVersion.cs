@@ -47,8 +47,10 @@ public sealed class ModpackVersion : Entity
     public void MarkResolving()
     {
         if (State is not (ModpackVersionState.Draft or ModpackVersionState.Failed))
+        {
             throw new InvalidOperationException(
                 $"Não é possível iniciar a resolução a partir do estado {State}.");
+        }
 
         State = ModpackVersionState.Resolving;
         FailureReason = null;
@@ -62,8 +64,10 @@ public sealed class ModpackVersion : Entity
     public void MarkReady()
     {
         if (State is not ModpackVersionState.Resolving)
+        {
             throw new InvalidOperationException(
                 $"Não é possível publicar a partir do estado {State}.");
+        }
 
         if (Files.Count is 0)
             throw new InvalidOperationException("Não é possível publicar uma versão sem arquivos.");
@@ -93,8 +97,10 @@ public sealed class ModpackVersion : Entity
     public void Archive()
     {
         if (State is not ModpackVersionState.Ready)
+        {
             throw new InvalidOperationException(
                 $"Só é possível arquivar uma versão publicada. Estado atual: {State}.");
+        }
 
         State = ModpackVersionState.Archived;
         Touch();

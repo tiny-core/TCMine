@@ -47,17 +47,18 @@
                     </MudButton>
 
                     <MudFileUpload T="IBrowserFile" FilesChanged="OnFileSelected">
-                        <ActivatorContent>
+                        <CustomContent Context="fileUpload">
                             <MudButton Variant="Variant.Outlined"
                                        StartIcon="@Icons.Material.Filled.Upload"
-                                       Disabled="_isUploading">
+                                       Disabled="_isUploading"
+                                       OnClick="@fileUpload.OpenFilePickerAsync">
                                 @if (_isUploading)
                                 {
                                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                                 }
                                 Adicionar arquivo
                             </MudButton>
-                        </ActivatorContent>
+                        </CustomContent>
                     </MudFileUpload>
                 </MudStack>
             }

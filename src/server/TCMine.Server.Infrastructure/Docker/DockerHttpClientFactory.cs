@@ -41,10 +41,7 @@ public sealed class DockerHttpClientFactory(IOptions<DockerOptions> options)
             }
         };
 
-        return new HttpClient(handler)
-        {
-            BaseAddress = new Uri("http://localhost")
-        };
+        return new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
     }
 
     // "unix:///var/run/docker.sock" → ("unix", "/var/run/docker.sock")

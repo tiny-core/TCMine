@@ -62,10 +62,7 @@ public partial class ModpackServersPage
         }
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -108,11 +105,7 @@ public partial class ModpackServersPage
 
     private async Task OpenForm(GameServer? existing)
     {
-        var parameters = new DialogParameters
-        {
-            ["ModpackId"] = ModpackId,
-            ["Existing"] = existing
-        };
+        var parameters = new DialogParameters { ["ModpackId"] = ModpackId, ["Existing"] = existing };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 
         var dialog = await DialogService.ShowAsync<ServerFormDialog>(
@@ -138,8 +131,6 @@ public partial class ModpackServersPage
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 }

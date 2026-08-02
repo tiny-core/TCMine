@@ -86,8 +86,6 @@ public class ConsoleCommandPolicyTests
     [InlineData(ServerRoleDto.Moderator)]
     [InlineData(ServerRoleDto.Admin)]
     [InlineData(ServerRoleDto.Owner)]
-    public void Moderador_para_cima_le_o_console(ServerRoleDto papel)
-    {
+    public void Moderador_para_cima_le_o_console(ServerRoleDto papel) =>
         ConsoleCommandPolicy.CanReadConsole(papel).ShouldBeTrue();
-    }
 }

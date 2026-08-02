@@ -59,12 +59,7 @@ public sealed class PublishModpackVersionTests
 
     private static ModpackVersion NewDraftVersion()
     {
-        return new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
     }
 
     private static ModpackVersion DraftWithFile()
@@ -93,15 +88,9 @@ public sealed class PublishModpackVersionTests
         public ModpackVersion? Version { get; init; }
         public ModpackVersion? Saved { get; private set; }
 
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
-        {
-            return Task.FromResult(Version);
-        }
+        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
 
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
 
         public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
         {
@@ -109,62 +98,36 @@ public sealed class PublishModpackVersionTests
             return Task.CompletedTask;
         }
 
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
-        {
+        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
 
         public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
         {
             // O caso de uso lê MinecraftVersion/Loader do modpack agora.
             return Task.FromResult<Modpack?>(new Modpack
             {
-                Slug = "test",
-                Name = "Test",
-                MinecraftVersion = "1.21.1",
-                Loader = ModLoader.NeoForge
+                Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
             });
         }
 
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
 
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
-        {
+        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task RemoveAsync(Guid id, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task CreateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
-        {
+        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
-        {
+        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct)
-        {
-            throw new NotImplementedException();
-        }
+        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
     }
 
     private sealed class FakeHubNotifier : IServerHubNotifier

@@ -42,10 +42,12 @@ public sealed partial class HandshakeClient(
                 TcMineJsonContext.Default.HandshakeResponse, ct);
 
             if (handshake is null)
+            {
                 return new HandshakeResult(
                     HandshakeOutcome.InvalidResponse,
                     null,
                     "O endereço respondeu, mas não parece ser um servidor TCMine.");
+            }
 
             return Evaluate(handshake);
         }
@@ -89,11 +91,13 @@ public sealed partial class HandshakeClient(
             return new HandshakeResult(HandshakeOutcome.Ok, handshake, null);
 
         if (handshake.ProtocolMin > Protocol.Current)
+        {
             return new HandshakeResult(
                 HandshakeOutcome.LauncherTooOld,
                 handshake,
                 $"Seu launcher está desatualizado para o servidor {handshake.ServerName}. " +
                 "Baixe a versão nova na página do servidor.");
+        }
 
         return new HandshakeResult(
             HandshakeOutcome.LauncherTooNew,

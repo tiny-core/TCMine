@@ -28,18 +28,10 @@ public sealed class SqliteTestFactory : IDbContextFactory<TcMineDbContext>, IDis
         db.Database.EnsureCreated();
     }
 
-    public TcMineDbContext CreateDbContext()
-    {
-        return new TcMineDbContext(_options);
-    }
+    public TcMineDbContext CreateDbContext() => new(_options);
 
-    public Task<TcMineDbContext> CreateDbContextAsync(CancellationToken ct = default)
-    {
-        return Task.FromResult(CreateDbContext());
-    }
+    public Task<TcMineDbContext> CreateDbContextAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(CreateDbContext());
 
-    public void Dispose()
-    {
-        _connection.Dispose();
-    }
+    public void Dispose() => _connection.Dispose();
 }

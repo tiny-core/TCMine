@@ -50,7 +50,8 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
         // O servidor gerou um mundo entre um boot e outro.
         var root = materializer.GetInstancePath(serverId);
         Directory.CreateDirectory(Path.Combine(root, "world"));
-        await File.WriteAllTextAsync(Path.Combine(root, "world/level.dat"), "mundo");
+        await File.WriteAllTextAsync(Path.Combine(root, "world/level.dat"), "mundo",
+            TestContext.Current.CancellationToken);
 
         // v2: só jei (sodium saiu)
         await materializer.MaterializeAsync(serverId,
@@ -60,7 +61,8 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(root, "mods/jei.jar")));
         Assert.False(File.Exists(Path.Combine(root, "mods/sodium.jar"))); // removido
         Assert.True(File.Exists(Path.Combine(root, "world/level.dat"))); // mundo preservado
-        Assert.Equal("mundo", await File.ReadAllTextAsync(Path.Combine(root, "world/level.dat")));
+        Assert.Equal("mundo", await File.ReadAllTextAsync(Path.Combine(root, "world/level.dat"),
+            TestContext.Current.CancellationToken));
     }
 
     private (FileSystemInstanceMaterializer, FakeBlobStore) Build()
@@ -72,12 +74,7 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
 
     private static ModpackVersion NewVersion(params ModpackFile[] files)
     {
-        var v = new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        var v = new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
         foreach (var f in files) v.UpsertFile(f);
         return v;
     }
@@ -86,8 +83,13 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
     {
         return new ModpackFile
         {
-            ModpackVersionId = Guid.Empty, ProjectSlug = path, Path = path,
-            Sha256 = sha, SizeBytes = 10, Side = side, Origin = ModFileOrigin.Modrinth
+            ModpackVersionId = Guid.Empty,
+            ProjectSlug = path,
+            Path = path,
+            Sha256 = sha,
+            SizeBytes = 10,
+            Side = side,
+            Origin = ModFileOrigin.Modrinth
         };
     }
 
@@ -95,8 +97,12 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
     {
         return new ModpackFile
         {
-            ModpackVersionId = Guid.Empty, Path = path,
-            Sha256 = sha, SizeBytes = 10, Side = FileSide.Both, Origin = ModFileOrigin.Override
+            ModpackVersionId = Guid.Empty,
+            Path = path,
+            Sha256 = sha,
+            SizeBytes = 10,
+            Side = FileSide.Both,
+            Origin = ModFileOrigin.Override
         };
     }
 
@@ -111,25 +117,17 @@ public sealed class FileSystemInstanceMaterializerTests : IDisposable
             return Task.FromResult(File.Exists(p) ? p : null);
         }
 
-        public Task<Stream> OpenAsync(string sha256, CancellationToken ct)
-        {
-            return Task.FromResult<Stream>(File.OpenRead(Path.Combine(root, sha256)));
-        }
+        public Task<Stream> OpenAsync(string sha256, CancellationToken ct) =>
+            Task.FromResult<Stream>(File.OpenRead(Path.Combine(root, sha256)));
 
-        public Task<bool> ExistsAsync(string sha256, CancellationToken ct)
-        {
-            return Task.FromResult(File.Exists(Path.Combine(root, sha256)));
-        }
+        public Task<bool> ExistsAsync(string sha256, CancellationToken ct) =>
+            Task.FromResult(File.Exists(Path.Combine(root, sha256)));
 
-        public Task<string> PutAsync(Stream c, string? e, string ct2, CancellationToken ct)
-        {
+        public Task<string> PutAsync(Stream c, string? e, string ct2, CancellationToken ct) =>
             throw new NotImplementedException();
-        }
 
-        public Task<Uri?> TryGetDirectUrlAsync(string s, TimeSpan l, CancellationToken ct)
-        {
-            return Task.FromResult<Uri?>(null);
-        }
+        public Task<Uri?> TryGetDirectUrlAsync(string s, TimeSpan l, CancellationToken ct) =>
+            Task.FromResult<Uri?>(null);
 
         public string Put(string content)
         {

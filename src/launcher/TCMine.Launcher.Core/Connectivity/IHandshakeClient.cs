@@ -24,8 +24,5 @@ public sealed record HandshakeResult(
     ///     no lugar disso impediria publicar uma funcionalidade no launcher antes
     ///     do servidor.
     /// </summary>
-    public bool HasCapability(string capability)
-    {
-        return Response?.Capabilities.Contains(capability) is true;
-    }
+    public bool HasCapability(string capability) => Response?.Capabilities.Contains(capability) is true;
 }

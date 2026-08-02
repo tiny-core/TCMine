@@ -71,18 +71,18 @@ else
                     else if (server.Status is GameServerStatus.Running or GameServerStatus.Starting)
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small"
-                                       Title="Parar" OnClick="@(() => Stop(server))"/>
+                                       title="Parar" OnClick="@(() => Stop(server))"/>
                     }
                     else
                     {
                         <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success" Size="Size.Small"
-                                       Title="Iniciar" OnClick="@(() => Start(server))"/>
+                                       title="Iniciar" OnClick="@(() => Start(server))"/>
                     }
 
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
                                    OnClick="@(() => OpenForm(server))"/>
                     <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                                   Title="Versão fixada"
+                                   title="Versão fixada"
                                    OnClick="@(() => ChangeVersion(server))"/>
                     <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
                                    OnClick="@(() => Delete(server))"/>

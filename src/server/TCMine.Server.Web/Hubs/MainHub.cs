@@ -35,10 +35,7 @@ public sealed class MainHub(
         return version is null ? throw new HubException("Versão não encontrada.") : version.ToDto();
     }
 
-    public Task<IReadOnlyList<GameServerDto>> GetServersAsync()
-    {
-        return Task.FromResult<IReadOnlyList<GameServerDto>>([]);
-    }
+    public Task<IReadOnlyList<GameServerDto>> GetServersAsync() => Task.FromResult<IReadOnlyList<GameServerDto>>([]);
 
     public async Task SubscribeServerAsync(Guid serverId)
     {
@@ -53,10 +50,8 @@ public sealed class MainHub(
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupFor(serverId));
     }
 
-    public Task UnsubscribeServerAsync(Guid serverId)
-    {
-        return Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupFor(serverId));
-    }
+    public Task UnsubscribeServerAsync(Guid serverId) =>
+        Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupFor(serverId));
 
     public async Task<CommandResultDto> SendCommandAsync(
         Guid serverId,
@@ -68,10 +63,12 @@ public sealed class MainHub(
         if (!ConsoleCommandPolicy.IsAllowed(role, command))
             // Não vaza qual seria o papel necessário: informação de
             // autorização é pista para quem está sondando o sistema.
+        {
             return new CommandResultDto(
                 false,
                 null,
                 "Comando não permitido para o seu nível de acesso.");
+        }
 
         // TODO: traduzir para RCON via IRconClient. A senha do RCON nunca
         // sai do servidor — é aqui que a tradução acontece.
@@ -83,10 +80,7 @@ public sealed class MainHub(
     ///     para não haver divergência entre o join e o envio — um typo ali
     ///     significaria eventos indo para o vazio, sem erro nenhum.
     /// </summary>
-    public static string GroupFor(Guid serverId)
-    {
-        return $"server:{serverId}";
-    }
+    public static string GroupFor(Guid serverId) => $"server:{serverId}";
 
     private async Task<ServerRoleDto> RequireRoleAsync(Guid serverId)
     {

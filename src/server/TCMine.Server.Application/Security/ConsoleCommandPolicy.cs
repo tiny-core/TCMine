@@ -14,7 +14,15 @@ public static class ConsoleCommandPolicy
     private static readonly HashSet<string> ComandosDeModerador =
         new(StringComparer.OrdinalIgnoreCase)
         {
-            "kick", "ban", "pardon", "mute", "tp", "whitelist", "list", "say", "msg"
+            "kick",
+            "ban",
+            "pardon",
+            "mute",
+            "tp",
+            "whitelist",
+            "list",
+            "say",
+            "msg"
         };
 
     public static bool IsAllowed(ServerRoleDto role, string command)
@@ -32,8 +40,5 @@ public static class ConsoleCommandPolicy
     ///     O log traz o IP de cada jogador que entra e o chat inteiro da partida.
     ///     Não é tela de "membro", por mais inofensivo que "só ler" pareça.
     /// </summary>
-    public static bool CanReadConsole(ServerRoleDto role)
-    {
-        return role >= ServerRoleDto.Moderator;
-    }
+    public static bool CanReadConsole(ServerRoleDto role) => role >= ServerRoleDto.Moderator;
 }

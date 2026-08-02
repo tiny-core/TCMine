@@ -1,13 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Wire format entre server e launcher: DTOs, interfaces de Hub, LauncherConfig.
-    
-        REGRA: zero dependências de pacote. Se você sentir vontade de referenciar
-        EF Core ou MudBlazor aqui, significa que o tipo está no projeto errado.
-    -->
-    <PropertyGroup>
-        <IsAotCompatible>true</IsAotCompatible>
-    </PropertyGroup>
+  <!--
+      Wire format entre server e launcher: DTOs, interfaces de Hub, LauncherConfig.
+
+      REGRA: zero dependências de pacote. Se você sentir vontade de referenciar
+      EF Core ou MudBlazor aqui, significa que o tipo está no projeto errado.
+  -->
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
 
 </Project>

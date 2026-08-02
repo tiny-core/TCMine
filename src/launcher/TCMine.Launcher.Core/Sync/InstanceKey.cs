@@ -18,8 +18,5 @@ public readonly record struct InstanceKey(Guid ModpackId, Guid ModpackVersionId)
     ///     quebram em algum sistema de arquivos, e renomear o pack renomearia a
     ///     pasta, forçando download completo de novo.
     /// </summary>
-    public string ToDirectoryName()
-    {
-        return $"{ModpackId:N}{ModpackVersionId:N}"[..24];
-    }
+    public string ToDirectoryName() => $"{ModpackId:N}{ModpackVersionId:N}"[..24];
 }

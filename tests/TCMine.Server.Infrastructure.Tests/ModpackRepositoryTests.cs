@@ -8,10 +8,7 @@ public sealed class ModpackRepositoryTests : IDisposable
 {
     private readonly SqliteTestFactory _factory = new();
 
-    public void Dispose()
-    {
-        _factory.Dispose();
-    }
+    public void Dispose() => _factory.Dispose();
 
     [Fact]
     public async Task UpdateVersionAsync_persiste_mudanca_de_path_de_arquivo_existente()
@@ -24,17 +21,11 @@ public sealed class ModpackRepositoryTests : IDisposable
         // Um modpack + uma versão com um override, gravados de verdade.
         var modpack = new Modpack
         {
-            Slug = "teste", Name = "Teste",
-            MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
+            Slug = "teste", Name = "Teste", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         };
         await repo.CreateAsync(modpack, CancellationToken.None);
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id,
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0", LoaderVersion = "21.1.234" };
         version.UpsertFile(new ModpackFile
         {
             ModpackVersionId = version.Id,

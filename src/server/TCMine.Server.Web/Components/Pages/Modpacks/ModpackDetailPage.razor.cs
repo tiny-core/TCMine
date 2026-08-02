@@ -26,10 +26,7 @@ public partial class ModpackDetailPage : ComponentBase
 
     [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -109,9 +106,7 @@ public partial class ModpackDetailPage : ComponentBase
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private async Task Publish()
@@ -137,9 +132,7 @@ public partial class ModpackDetailPage : ComponentBase
                 await LoadAsync(); // recarrega: o chip vira Publicado, o Publicar some
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {
@@ -167,10 +160,8 @@ public partial class ModpackDetailPage : ComponentBase
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods");
     }
 
-    private void OpenOverrides()
-    {
+    private void OpenOverrides() =>
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersionId}/overrides", true);
-    }
 
     private async void OpenNews()
     {
@@ -179,8 +170,5 @@ public partial class ModpackDetailPage : ComponentBase
         await DialogService.ShowAsync<NewsDialog>("Novidades", parameters, options);
     }
 
-    private void OpenServers()
-    {
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/servers");
-    }
+    private void OpenServers() => Navigation.NavigateTo($"/modpacks/{ModpackId}/servers");
 }

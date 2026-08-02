@@ -30,7 +30,7 @@ public sealed partial class TcMineJsonContext : JsonSerializerContext
     ///     configurações diferentes, um escreve camelCase e o outro, espera
     ///     PascalCase — e o bug só aparece em produção.
     /// </summary>
-    public new static readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
+    public static new readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
     {
         TypeInfoResolver = Default
     };

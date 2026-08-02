@@ -1,61 +1,73 @@
 <Project>
 
-    <PropertyGroup>
-        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-        <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
-    </PropertyGroup>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
 
-    <ItemGroup Label="step_01">
-        <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10"/>
-    </ItemGroup>
+  <ItemGroup Label="step_01">
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_02">
-        <PackageVersion Include="NSubstitute" Version="6.0.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_02">
+    <PackageVersion Include="NSubstitute" Version="6.0.0"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_03">
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1"/>
-        <PackageVersion Include="xunit.v3" Version="3.2.2"/>
-        <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5"/>
-        <PackageVersion Include="NetArchTest.Rules" Version="1.3.2"/>
-        <PackageVersion Include="Shouldly" Version="4.3.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_03">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1"/>
+    <PackageVersion Include="xunit.v3" Version="3.2.2"/>
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5"/>
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2"/>
+    <PackageVersion Include="Shouldly" Version="4.3.0"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_04">
-        <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.10"/>
-    </ItemGroup>
+  <ItemGroup Label="step_04">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.10"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_05">
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10"/>
-        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
-    </ItemGroup>
+  <ItemGroup Label="step_05">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10"/>
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_06">
-        <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0"/>
-        <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0"/>
-        <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_06">
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_07">
-        <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10"/>
-        <PackageVersion Include="MudBlazor" Version="9.7.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_07">
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10"/>
+    <PackageVersion Include="MudBlazor" Version="9.7.0"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_08">
-        <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.10"/>
-    </ItemGroup>
+  <ItemGroup Label="step_08">
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.10"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_09">
-        <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.10"/>
-        <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_09">
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.10"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.8.0"/>
+  </ItemGroup>
 
-    <ItemGroup Label="step_10">
-        <PackageVersion Include="BlazorMonaco" Version="3.5.0"/>
-    </ItemGroup>
+  <ItemGroup Label="step_10">
+    <PackageVersion Include="BlazorMonaco" Version="3.5.0"/>
+  </ItemGroup>
+
+  <!--
+    Pin transitivo de segurança: o EF Core Sqlite 10.0.10 ainda arrasta
+    SQLitePCLRaw 2.1.11, que tem vulnerabilidade high severity
+    (GHSA-2m69-gcr7-jv3q, NU1903). A 2.1.12 traz o SQLite nativo corrigido.
+    Com CentralPackageTransitivePinningEnabled, fixar aqui força a versão
+    segura em toda a cadeia. Remover quando o EF passar a referenciar >=2.1.12.
+  -->
+  <ItemGroup Label="step_11">
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12"/>
+  </ItemGroup>
 </Project>

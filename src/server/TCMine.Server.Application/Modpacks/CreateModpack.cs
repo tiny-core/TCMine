@@ -18,8 +18,10 @@ public sealed partial class CreateModpack(
         var slug = Normalize(command.Slug);
 
         if (!IsValidSlug(slug))
+        {
             return Result<Guid>.Fail(
                 "O identificador deve ter de 3 a 64 caracteres, apenas letras minúsculas, números e hífen.");
+        }
 
         // Checagem amigável antes de gravar. Não substitui o índice único do
         // banco — duas requisições simultâneas passariam as duas por aqui —
@@ -46,15 +48,9 @@ public sealed partial class CreateModpack(
     }
 
     // Normaliza para minúsculas e troca espaços por hífen antes de validar.
-    private static string Normalize(string slug)
-    {
-        return slug.Trim().ToLowerInvariant().Replace(' ', '-');
-    }
+    private static string Normalize(string slug) => slug.Trim().ToLowerInvariant().Replace(' ', '-');
 
-    private static bool IsValidSlug(string slug)
-    {
-        return slug.Length is >= 3 and <= 64 && SlugPattern().IsMatch(slug);
-    }
+    private static bool IsValidSlug(string slug) => slug.Length is >= 3 and <= 64 && SlugPattern().IsMatch(slug);
 
     [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
     private static partial Regex SlugPattern();

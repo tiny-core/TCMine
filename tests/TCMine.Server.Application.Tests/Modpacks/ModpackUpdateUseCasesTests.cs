@@ -20,8 +20,7 @@ public sealed class CheckModpackVersionUpdatesTests
         // O resolver diz: jei tem v2 (novo); sodium continua em v1 (igual).
         var resolver = new FakeResolver(new Dictionary<string, string>
         {
-            ["jei"] = "jei-v2",
-            ["sodium"] = "sodium-v1"
+            ["jei"] = "jei-v2", ["sodium"] = "sodium-v1"
         });
 
         var useCase = new CheckModpackVersionUpdates(repo, [resolver]);
@@ -136,12 +135,7 @@ internal static class Fakes
 {
     public static ModpackVersion NewDraftVersion()
     {
-        return new ModpackVersion
-        {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0",
-            LoaderVersion = "21.1.234"
-        };
+        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
     }
 
     public static ModpackFile ModrinthFile(ModpackVersion version, string slug, string pinnedVersionId)
@@ -189,10 +183,8 @@ internal sealed class FakeModpackRepository : IModpackRepository
 
     public ModpackVersion? Added { get; private set; }
 
-    public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
-    {
-        return Task.FromResult(_versions.GetValueOrDefault(versionId));
-    }
+    public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+        Task.FromResult(_versions.GetValueOrDefault(versionId));
 
     public Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
     {
@@ -201,70 +193,35 @@ internal sealed class FakeModpackRepository : IModpackRepository
         return Task.CompletedTask;
     }
 
-    public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
-    {
-        return Task.CompletedTask;
-    }
+    public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
 
-    public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
-    {
-        return Task.CompletedTask;
-    }
+    public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-    public Task UpdateAsync(Modpack modpack, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         // O caso de uso lê MinecraftVersion/Loader do modpack agora.
         return Task.FromResult<Modpack?>(new Modpack
         {
-            Slug = "test",
-            Name = "Test",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge
+            Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         });
     }
 
-    public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
 
-    public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
-    {
+    public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
         throw new NotImplementedException();
-    }
 
-    public Task RemoveAsync(Guid id, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task CreateAsync(Modpack modpack, CancellationToken ct)
-    {
-        throw new NotImplementedException();
-    }
+    public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
-    public void Seed(ModpackVersion version)
-    {
-        _versions[version.Id] = version;
-    }
+    public void Seed(ModpackVersion version) => _versions[version.Id] = version;
 }

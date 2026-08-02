@@ -21,10 +21,7 @@ public sealed class FileSystemInstanceMaterializer(
     // uma vez em vez de depender do diretório atual a cada chamada.
     private readonly string _rootPath = Path.GetFullPath(options.Value.RootPath);
 
-    public string GetInstancePath(Guid gameServerId)
-    {
-        return Path.Combine(_rootPath, gameServerId.ToString());
-    }
+    public string GetInstancePath(Guid gameServerId) => Path.Combine(_rootPath, gameServerId.ToString());
 
     public Task DeleteInstanceAsync(Guid gameServerId, CancellationToken ct)
     {
@@ -104,10 +101,7 @@ public sealed class FileSystemInstanceMaterializer(
         await blob.CopyToAsync(dest, ct);
     }
 
-    private static string Normalize(string path)
-    {
-        return path.Replace('\\', '/').TrimStart('/');
-    }
+    private static string Normalize(string path) => path.Replace('\\', '/').TrimStart('/');
 
     private static void GuardInside(string root, string target)
     {

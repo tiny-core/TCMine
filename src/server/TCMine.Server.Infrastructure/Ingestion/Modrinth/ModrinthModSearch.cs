@@ -25,9 +25,7 @@ public sealed partial class ModrinthModSearch(
         // com o loader do pack.
         var facets = JsonSerializer.Serialize(new[]
         {
-            FacetsValue,
-            [$"versions:{query.MinecraftVersion}"],
-            [$"categories:{ToModrinthLoader(query.Loader)}"]
+            FacetsValue, [$"versions:{query.MinecraftVersion}"], [$"categories:{ToModrinthLoader(query.Loader)}"]
         });
 
         var url = $"/v2/search?query={Uri.EscapeDataString(query.Text)}"

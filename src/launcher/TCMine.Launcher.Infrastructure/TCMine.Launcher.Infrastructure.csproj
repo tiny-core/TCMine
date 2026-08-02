@@ -1,23 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-    <!--
-        Infraestrutura portável do launcher: HTTP, SignalR, leitura de .mrpack,
-        content store, CmlLib.
-        
-        Nada de P/Invoke nem de API específica de Windows aqui — isso vive em
-        Infrastructure.Windows. A separação é o que torna um port para Linux um
-        projeto novo em vez de uma reescrita.
-    -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Extensions.Http"/>
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client"/>
-        <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>
-    </ItemGroup>
+  <!--
+      Infraestrutura portável do launcher: HTTP, SignalR, leitura de .mrpack,
+      content store, CmlLib.
 
-    <ItemGroup>
-        <ProjectReference Include="..\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
-    </ItemGroup>
+      Nada de P/Invoke nem de API específica de Windows aqui — isso vive em
+      Infrastructure.Windows. A separação é o que torna um port para Linux um
+      projeto novo em vez de uma reescrita.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client"/>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+  </ItemGroup>
 
 </Project>

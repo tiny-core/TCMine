@@ -31,10 +31,7 @@ public sealed class FileSystemBlobStoreTests : IDisposable
             NullLogger<FileSystemBlobStore>.Instance);
     }
 
-    private static Stream Conteudo(string texto)
-    {
-        return new MemoryStream(Encoding.UTF8.GetBytes(texto));
-    }
+    private static MemoryStream Conteudo(string texto) => new(Encoding.UTF8.GetBytes(texto));
 
     [Fact]
     public async Task Grava_e_devolve_o_hash_do_conteudo()
