@@ -201,6 +201,11 @@ internal sealed class FakeModpackRepository : IModpackRepository
         return Task.CompletedTask;
     }
 
+    public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
+    {
+        throw new NotImplementedException();
+    }
+
     public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
     {
         return Task.CompletedTask;

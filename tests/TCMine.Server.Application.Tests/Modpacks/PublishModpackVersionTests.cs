@@ -13,7 +13,8 @@ public sealed class PublishModpackVersionTests
         var version = DraftWithFile();
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
-        var useCase = new PublishModpackVersion(repo, notifier);
+        var undo = new OverrideUndoService();
+        var useCase = new PublishModpackVersion(repo, notifier, undo);
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
@@ -28,7 +29,8 @@ public sealed class PublishModpackVersionTests
     {
         var repo = new FakeModpackRepository { Version = null };
         var notifier = new FakeHubNotifier();
-        var useCase = new PublishModpackVersion(repo, notifier);
+        var undo = new OverrideUndoService();
+        var useCase = new PublishModpackVersion(repo, notifier, undo);
 
         var result = await useCase.HandleAsync(Guid.CreateVersion7(), CancellationToken.None);
 
@@ -43,7 +45,8 @@ public sealed class PublishModpackVersionTests
         var version = NewDraftVersion(); // sem arquivos
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
-        var useCase = new PublishModpackVersion(repo, notifier);
+        var undo = new OverrideUndoService();
+        var useCase = new PublishModpackVersion(repo, notifier, undo);
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
@@ -93,6 +96,11 @@ public sealed class PublishModpackVersionTests
         public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct)
         {
             return Task.FromResult(Version);
+        }
+
+        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
         }
 
         public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)

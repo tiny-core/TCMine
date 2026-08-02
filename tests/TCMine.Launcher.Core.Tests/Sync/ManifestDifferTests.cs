@@ -211,4 +211,55 @@ public class ManifestDifferTests
 
         plano.IsUpToDate.ShouldBeTrue();
     }
+
+    [Fact]
+    public void Arquivo_fora_do_manifesto_entra_em_ToDelete()
+    {
+        // v1.0.3 tinha config/velho.toml; v1.0.4 já não o lista.
+        var manifest = Manifest(Arquivo("mods/jei.jar", "aaa"));
+        var disco = new Dictionary<string, string>
+        {
+            ["mods/jei.jar"] = "aaa",
+            ["config/velho.toml"] = "bbb" // sobra da versão anterior
+        };
+
+        var plano = Planejar(manifest, disco);
+
+        Assert.Contains("config/velho.toml", plano.ToDelete);
+        Assert.DoesNotContain("mods/jei.jar", plano.ToDelete);
+    }
+
+    [Fact]
+    public void Dados_do_jogador_nunca_entram_em_ToDelete()
+    {
+        // GUARD CRÍTICO: o disco passado ao differ é o conjunto GERIDO — mundos,
+        // screenshots e afins não estão aqui, então nunca podem ser marcados
+        // para apagar. Este teste fixa o contrato para o futuro applier: ele
+        // NUNCA deve passar saves/ ao differ.
+        var manifest = Manifest(Arquivo("mods/jei.jar", "aaa"));
+        var disco = new Dictionary<string, string>
+        {
+            ["mods/jei.jar"] = "aaa"
+            // saves/ e screenshots/ NÃO estão no conjunto gerido → ausentes aqui
+        };
+
+        var plano = Planejar(manifest, disco);
+
+        Assert.Empty(plano.ToDelete);
+        Assert.DoesNotContain(plano.ToDelete, p => p.StartsWith("saves/"));
+    }
+
+    [Fact]
+    public void Server_only_nao_conta_para_o_cliente()
+    {
+        // Um arquivo ServerOnly no manifesto não deve ser exigido no cliente,
+        // nem marcar como sobra o que o cliente tem.
+        var manifest = Manifest(Arquivo("mods/servermod.jar", "sss", FileSide.ServerOnly));
+        var disco = new Dictionary<string, string>();
+
+        var plano = Planejar(manifest, disco);
+
+        Assert.Empty(plano.ToMaterialize); // cliente não materializa server-only
+        Assert.Empty(plano.ToDelete);
+    }
 }

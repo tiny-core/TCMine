@@ -179,6 +179,11 @@ public sealed class ModpackIngestionServiceTests
             return Task.FromResult(Version);
         }
 
+        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
+        {
+            throw new NotImplementedException();
+        }
+
         public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
         {
             return Task.CompletedTask;
