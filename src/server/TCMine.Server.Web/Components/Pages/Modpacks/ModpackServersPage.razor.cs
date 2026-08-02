@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
@@ -29,6 +30,15 @@ public partial class ModpackServersPage
     [Inject] private StartGameServer StartUseCase { get; set; } = default!;
     [Inject] private StopGameServer StopUseCase { get; set; } = default!;
     [Inject] private IServerOrchestrator Orchestrator { get; set; } = default!;
+    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+
+    // Copia o endereço para a área de transferência — atalho útil para colar no
+    // launcher/cliente. Usa a Clipboard API do navegador via interop.
+    private async Task CopyAddress(string address)
+    {
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", address);
+        Snackbar.Add("Endereço copiado.", Severity.Info);
+    }
 
     private async Task Start(GameServer server)
     {

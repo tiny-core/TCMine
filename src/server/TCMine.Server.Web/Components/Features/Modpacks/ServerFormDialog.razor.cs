@@ -50,18 +50,17 @@ public partial class ServerFormDialog
         _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
-    private Task Save()
-    {
-        return SubmitAsync(SaveCoreAsync, "Servidor salvo.");
-    }
+    private Task Save() => SubmitAsync(SaveCoreAsync, "Servidor salvo.");
 
     // Create devolve Result<Guid> e Update devolve Result; aqui só interessa o
     // sucesso/erro, então normalizamos para Result (o diálogo fecha com true).
     private async Task<Result> SaveCoreAsync()
     {
         if (!_isNew)
+        {
             return await UpdateUseCase.HandleAsync(
                 Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, CancellationToken.None);
+        }
 
         var created = await CreateUseCase.HandleAsync(
             ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,

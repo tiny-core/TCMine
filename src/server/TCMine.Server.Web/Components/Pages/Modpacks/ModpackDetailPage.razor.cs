@@ -21,6 +21,13 @@ public partial class ModpackDetailPage : ComponentBase
 
     private int FileCount => _selectedVersion?.Files.Count ?? 0;
 
+    // Mods e overrides moram na mesma coleção Files, separados pela Origin.
+    private int ModCount =>
+        _selectedVersion?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
+
+    private int OverrideCount =>
+        _selectedVersion?.Files.Count(f => f.Origin == ModFileOrigin.Override) ?? 0;
+
     [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 

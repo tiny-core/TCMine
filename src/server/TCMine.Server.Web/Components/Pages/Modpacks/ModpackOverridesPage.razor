@@ -1,41 +1,37 @@
 ﻿@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/overrides"
 @using TCMine.Contracts.Modpacks
 
-<MudBreadcrumbs Items="_breadcrumbs"/>
-
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
 else if (_version is null)
 {
-    <MudAlert Severity="Severity.Error">Versão não encontrada.</MudAlert>
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Versão não encontrada."/>
 }
 else
 {
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/modpacks/{ModpackId}")"/>
-        <MudText Typo="Typo.h5">Overrides</MudText>
-        <VersionStateChip State="_version.State"/>
-    </MudStack>
-    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-        Configs e arquivos extras aplicados sobre o modpack. Só editáveis em rascunho.
-    </MudText>
-
-    @if (_version.State is ModpackVersionState.Draft)
-    {
-        <MudToolBar Dense="true" Gutters="false" Class="mb-2 px-0">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.NoteAdd"
-                       OnClick="OpenNewFile">Novo arquivo
-            </MudButton>
-            <MudSpacer/>
+    <PageHeader Title="Overrides"
+                Subtitle="Configs e arquivos extras aplicados sobre o modpack. Só editáveis em rascunho."
+                Icon="@Icons.Material.Filled.Folder"
+                Breadcrumbs="_breadcrumbs">
+        @if (_version.State is ModpackVersionState.Draft)
+        {
             <MudButton StartIcon="@Icons.Material.Filled.Undo" OnClick="Undo"
                        Disabled="@(!UndoService.HasUndo(VersionId))">
                 Desfazer
             </MudButton>
-        </MudToolBar>
-    }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.NoteAdd"
+                       OnClick="OpenNewFile">
+                Novo arquivo
+            </MudButton>
+        }
+    </PageHeader>
+
+    <div class="mb-4">
+        <VersionStateChip State="_version.State"/>
+    </div>
 
     <MudGrid>
         <MudItem xs="12" md="4">

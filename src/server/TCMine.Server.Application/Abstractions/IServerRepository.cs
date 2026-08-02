@@ -4,6 +4,9 @@ namespace TCMine.Server.Application.Abstractions;
 
 public interface IServerRepository
 {
+    /// <summary>Todos os servidores, de todos os modpacks — usado pelo painel.</summary>
+    Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct);
+
     Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct);
     Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct);
     Task AddAsync(GameServer server, CancellationToken ct);

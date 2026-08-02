@@ -1,4 +1,4 @@
-﻿@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/mods"
+@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/mods"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
@@ -14,7 +14,7 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
 else if (_version is null)
 {
@@ -22,24 +22,10 @@ else if (_version is null)
 }
 else
 {
-    <MudBreadcrumbs Items="_breadcrumbs" Class="px-0"/>
-
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
-                       OnClick="@(() => Navigation.NavigateTo($"/modpacks/{ModpackId}"))"/>
-        <div>
-            <MudText Typo="Typo.h5">Mods</MudText>
-            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
-                <VersionStateChip State="_version.State"/>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                    @_version.Version · MC @_modpack?.MinecraftVersion · @_modpack?.Loader
-                </MudText>
-            </MudStack>
-        </div>
-    </MudStack>
-
-    @* Barra de ações: só faz sentido editar em rascunho. *@
-    <MudToolBar Dense="true" Class="mb-2 px-0" Gutters="false">
+    <PageHeader Title="Mods"
+                Subtitle="@($"{_version.Version} · MC {_modpack?.MinecraftVersion} · {_modpack?.Loader}")"
+                Icon="@Icons.Material.Filled.Extension"
+                Breadcrumbs="_breadcrumbs">
         @if (_version.State is ModpackVersionState.Draft)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary"
@@ -47,27 +33,30 @@ else
                        OnClick="OpenIngest">
                 Buscar no Modrinth
             </MudButton>
-
-            <MudButton Variant="Variant.Outlined" Class="ml-2"
+            <MudButton Variant="Variant.Outlined"
                        StartIcon="@Icons.Material.Filled.Upload"
                        OnClick="OpenManualUpload">
                 Enviar arquivo
             </MudButton>
         }
-
-        @if (_version?.State is ModpackVersionState.Ready)
+        else if (_version.State is ModpackVersionState.Ready)
         {
-            <MudSpacer/>
-
             <MudButton Variant="Variant.Outlined"
                        StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
                        OnClick="OpenCheckUpdates">
                 Verificar atualizações
             </MudButton>
         }
+    </PageHeader>
 
+    @if (_isIngesting)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
+        <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
+    }
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
         <MudSpacer/>
-
         <MudTextField @bind-Value="_searchString"
                       Placeholder="Filtrar mods..."
                       Adornment="Adornment.Start"
@@ -75,15 +64,9 @@ else
                       IconSize="Size.Small"
                       Immediate="true"
                       Margin="Margin.Dense"
+                      Variant="Variant.Outlined"
                       Style="max-width: 280px;"/>
-    </MudToolBar>
-
-    @if (_isIngesting)
-    {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-2"/>
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
-    }
-
+    </MudStack>
 
     <MudDataGrid T="ModpackFile"
                  Items="FilteredFiles"
@@ -92,7 +75,8 @@ else
                  Filterable="false"
                  SortMode="SortMode.Single"
                  RowsPerPage="25"
-                 Elevation="1">
+                 Elevation="1"
+                 Class="tc-fade-in">
         <Columns>
             <PropertyColumn Property="f => f.Path" Title="Caminho"/>
 
@@ -125,11 +109,13 @@ else
             {
                 <TemplateColumn Title="" Sortable="false">
                     <CellTemplate>
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                       Color="Color.Error"
-                                       Size="Size.Small"
-                                       Disabled="_isIngesting"
-                                       OnClick="@(() => RemoveFile(context.Item))"/>
+                        <MudTooltip Text="Remover">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           Disabled="_isIngesting"
+                                           OnClick="@(() => RemoveFile(context.Item))"/>
+                        </MudTooltip>
                     </CellTemplate>
                 </TemplateColumn>
             }

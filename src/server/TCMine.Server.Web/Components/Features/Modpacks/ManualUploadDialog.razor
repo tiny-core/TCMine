@@ -2,6 +2,9 @@
 @inherits DialogComponentBase
 
 <MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Upload" Text="Enviar arquivo"/>
+    </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
             <MudSelect @bind-Value="_targetFolder" Label="Pasta de destino" Dense="true">

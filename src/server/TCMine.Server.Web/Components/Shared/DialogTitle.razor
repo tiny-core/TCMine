@@ -1,0 +1,12 @@
+@* Cabeçalho padrão de diálogo: ícone + título, para todos os diálogos terem a
+   mesma cara. Vai dentro do <TitleContent> do MudDialog. *@
+
+<MudText Typo="Typo.h6" Class="d-flex align-center">
+    <MudIcon Icon="@Icon" Color="Color.Primary" Class="mr-2"/>
+    @Text
+</MudText>
+
+@code {
+    [Parameter] [EditorRequired] public string Icon { get; set; } = "";
+    [Parameter] [EditorRequired] public string Text { get; set; } = "";
+}

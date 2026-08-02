@@ -6,6 +6,14 @@ namespace TCMine.Server.Infrastructure.Persistence;
 
 public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory) : IServerRepository
 {
+    public async Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.GameServers.AsNoTracking()
+            .OrderByDescending(s => s.Id) // GUID v7 = cronológico
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

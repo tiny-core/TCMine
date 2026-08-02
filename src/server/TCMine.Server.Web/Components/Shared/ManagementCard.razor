@@ -1,21 +1,35 @@
-﻿@* Card de gerenciamento reutilizável, como os "Mods / Overrides / ..." da
-   tela de detalhe. Genérico: recebe ícone, textos e o callback de gerenciar. *@
+@* Card de gerenciamento reutilizável, como os "Mods / Overrides / ..." da
+   tela de detalhe. Genérico: recebe ícone, textos e o callback de gerenciar.
+   O card inteiro é clicável (mais alvo, mais intuitivo); quando Disabled, fica
+   apagado e sem ação. *@
 
 <MudItem xs="12" sm="6" md="3">
-    <MudCard Outlined="true" Class="@(Disabled ? "mud-elevation-0" : "")">
-        <MudCardContent Class="d-flex flex-column align-center text-center" Style="min-height: 140px;">
-            <MudIcon Icon="@Icon" Size="Size.Large"
-                     Color="@(Disabled ? Color.Default : Color.Primary)" Class="mb-2"/>
+    <MudCard Class="@CardClass" Elevation="@(Disabled ? 0 : 2)"
+             Style="@CardStyle" @onclick="HandleClick">
+        <MudCardContent Class="d-flex flex-column align-center text-center" Style="min-height: 150px;">
+            <MudAvatar Variant="Variant.Outlined"
+                       Color="@(Disabled ? Color.Default : Color.Primary)" Class="mb-3">
+                <MudIcon Icon="@Icon"/>
+            </MudAvatar>
             <MudText Typo="Typo.h6">@Title</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">@Description</MudText>
+            @if (Disabled)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Class="mt-2">Em breve</MudChip>
+            }
         </MudCardContent>
-        <MudCardActions Class="justify-center pb-3">
-            <MudButton Variant="Variant.Text"
-                       Color="Color.Primary"
-                       Disabled="Disabled"
-                       OnClick="OnManage">
-                @(Disabled ? "Em breve" : "Gerenciar")
-            </MudButton>
-        </MudCardActions>
     </MudCard>
 </MudItem>
+
+@code {
+
+    private string CardClass => Disabled ? "d-flex flex-column" : "tc-card d-flex flex-column";
+
+    private string CardStyle => Disabled ? "opacity:0.6;" : "cursor:pointer;";
+
+    private Task HandleClick()
+    {
+        return Disabled ? Task.CompletedTask : OnManage.InvokeAsync();
+    }
+
+}

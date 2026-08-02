@@ -1,0 +1,17 @@
+@* Menu de navegação lateral. Extraído do MainLayout para isolar a estrutura de
+   navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
+   destaca o item ativo pela rota. *@
+
+<MudNavMenu>
+    <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="px-4 pt-3 pb-1">
+        Geral
+    </MudText>
+
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+        Painel
+    </MudNavLink>
+
+    <MudNavLink Href="/modpacks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">
+        Modpacks
+    </MudNavLink>
+</MudNavMenu>

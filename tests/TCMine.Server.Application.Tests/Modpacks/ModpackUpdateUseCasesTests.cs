@@ -133,10 +133,8 @@ public sealed class CloneVersionTests
 
 internal static class Fakes
 {
-    public static ModpackVersion NewDraftVersion()
-    {
-        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
-    }
+    public static ModpackVersion NewDraftVersion() =>
+        new() { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
 
     public static ModpackFile ModrinthFile(ModpackVersion version, string slug, string pinnedVersionId)
     {

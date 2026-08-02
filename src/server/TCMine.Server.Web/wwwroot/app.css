@@ -12,11 +12,19 @@ html, body {
 
 /* Entrada suave de conteúdo (headers, grades, cards). */
 @keyframes tc-fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: none; }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.tc-fade-in { animation: tc-fade-in 0.3s ease both; }
+.tc-fade-in {
+  animation: tc-fade-in 0.3s ease both;
+}
 
 /* Realce sutil de hover para cards clicáveis: apenas aprofunda a sombra, SEM
    mover o card. height:100% mantém os cards de uma linha do MudGrid alinhados. */
@@ -36,6 +44,11 @@ html, body {
 
 /* Acessibilidade: quem pede menos movimento não recebe as animações. */
 @media (prefers-reduced-motion: reduce) {
-  .tc-fade-in { animation: none; }
-  .tc-card { transition: none; }
+  .tc-fade-in {
+    animation: none;
+  }
+
+  .tc-card {
+    transition: none;
+  }
 }

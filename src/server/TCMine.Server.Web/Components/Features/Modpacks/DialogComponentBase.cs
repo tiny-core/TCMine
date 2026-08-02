@@ -20,10 +20,7 @@ public abstract class DialogComponentBase : ComponentBase
     // um MudProgressCircular condicionado a ela.
     protected bool IsBusy { get; private set; }
 
-    protected void Cancel()
-    {
-        Dialog.Cancel();
-    }
+    protected void Cancel() => Dialog.Cancel();
 
     /// <summary>
     ///     Executa uma ação marcando IsBusy, com try/finally garantido e guarda
@@ -47,9 +44,9 @@ public abstract class DialogComponentBase : ComponentBase
     }
 
     /// <summary>
-    ///     Submit padrão para casos de uso que devolvem <see cref="Result"/>: no
+    ///     Submit padrão para casos de uso que devolvem <see cref="Result" />: no
     ///     sucesso mostra a mensagem (se houver) e fecha o diálogo com
-    ///     <paramref name="closeResult"/> (por omissão true = "algo mudou"); no
+    ///     <paramref name="closeResult" /> (por omissão true = "algo mudou"); no
     ///     erro mostra o erro e mantém o diálogo aberto.
     /// </summary>
     protected Task SubmitAsync(
@@ -67,14 +64,12 @@ public abstract class DialogComponentBase : ComponentBase
                 Dialog.Close(DialogResult.Ok(closeResult ?? true));
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         });
     }
 
     /// <summary>
-    ///     Submit padrão para casos de uso que devolvem <see cref="Result{T}"/>:
+    ///     Submit padrão para casos de uso que devolvem <see cref="Result{T}" />:
     ///     no sucesso fecha devolvendo o valor produzido (ex.: o Id do novo
     ///     rascunho).
     /// </summary>
@@ -92,9 +87,7 @@ public abstract class DialogComponentBase : ComponentBase
                 Dialog.Close(DialogResult.Ok(result.Value));
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         });
     }
 }

@@ -12,12 +12,15 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackOverridesPage
 {
+    private bool? _appliedDarkMode;
     private List<BreadcrumbItem> _breadcrumbs = [];
     private bool _dirty;
 
     private string? _dragPath; // path a ser arrastado (definido no handle)
     private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
     private StandaloneCodeEditor _editor = default!;
+
+    private bool _editorReady;
     private bool _isLoading = true;
     private bool _isSaving;
     private string? _selectedPath;
@@ -41,10 +44,8 @@ public partial class ModpackOverridesPage
 
     // Tema do app, cascateado pelo MainLayout. O Monaco monta fora do
     // MudThemeProvider, então precisa deste sinal para casar claro/escuro.
-    [CascadingParameter(Name = "IsDarkMode")] private bool IsDarkMode { get; set; }
-
-    private bool _editorReady;
-    private bool? _appliedDarkMode;
+    [CascadingParameter(Name = "IsDarkMode")]
+    private bool IsDarkMode { get; set; }
 
     // Nome do tema Monaco correspondente ao tema atual do app.
     private string MonacoTheme => IsDarkMode ? "vs-dark" : "vs";

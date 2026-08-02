@@ -2,7 +2,7 @@
 
 <MudDialog>
     <TitleContent>
-        <MudText Typo="Typo.h6">@(_isNew ? "Novo servidor" : "Editar servidor")</MudText>
+        <DialogTitle Icon="@Icons.Material.Filled.Dns" Text="@(_isNew ? "Novo servidor" : "Editar servidor")"/>
     </TitleContent>
     <DialogContent>
         <MudTextField @bind-Value="_name" Label="Nome" Immediate="true" Class="mb-2"/>

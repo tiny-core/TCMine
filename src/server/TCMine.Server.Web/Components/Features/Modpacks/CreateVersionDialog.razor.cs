@@ -51,10 +51,8 @@ public partial class CreateVersionDialog
             Loader, MinecraftVersion, _loaderReleasesOnly, CancellationToken.None);
     }
 
-    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct)
-    {
-        return Task.FromResult(Filter(_loaderVersions, value));
-    }
+    private Task<IEnumerable<string>> SearchLoader(string value, CancellationToken ct) =>
+        Task.FromResult(Filter(_loaderVersions, value));
 
     private static IEnumerable<string> Filter(IReadOnlyList<string> all, string? value)
     {

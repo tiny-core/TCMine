@@ -1,16 +1,77 @@
-﻿@page "/"
+@page "/"
 
-<MudContainer MaxWidth="MaxWidth.Medium">
-    <MudText Typo="Typo.h4" GutterBottom="true">Painel</MudText>
+<PageTitle>Painel — TCMine</PageTitle>
 
-    <MudPaper Class="pa-4" Elevation="1">
-        <MudText>Servidor no ar. Protocolo @ProtocolVersion.</MudText>
+<PageHeader Title="Painel"
+            Subtitle="Visão geral do seu servidor TCMine."
+            Icon="@Icons.Material.Filled.Dashboard"/>
 
-        <MudStack Row="true" Class="mt-4" Spacing="2">
-            @foreach (var status in StatusExemplo)
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+}
+else
+{
+    <MudGrid Class="tc-fade-in">
+        <StatCard Icon="@Icons.Material.Filled.Inventory2" Label="Modpacks"
+                  Value="@_modpacks.Count.ToString()"/>
+        <StatCard Icon="@Icons.Material.Filled.Dns" Label="Servidores"
+                  Value="@_servers.Count.ToString()"/>
+        <StatCard Icon="@Icons.Material.Filled.PlayCircle" Label="Rodando"
+                  Value="@RunningServers.ToString()" IconColor="Color.Success"/>
+        <StatCard Icon="@Icons.Material.Filled.Hub" Label="Protocolo"
+                  Value="@ProtocolVersion.ToString()" IconColor="Color.Info"/>
+    </MudGrid>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-8 mb-3">
+        <MudText Typo="Typo.h6">Modpacks recentes</MudText>
+        <MudSpacer/>
+        <MudButton Href="/modpacks" Variant="Variant.Text" Color="Color.Primary"
+                   EndIcon="@Icons.Material.Filled.ArrowForward">
+            Ver todos
+        </MudButton>
+    </MudStack>
+
+    @if (_modpacks.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.Inventory2"
+                    Title="Nenhum modpack ainda."
+                    Description="Crie o primeiro para começar a distribuir aos jogadores.">
+            <MudButton Href="/modpacks" Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add">
+                Ir para Modpacks
+            </MudButton>
+        </EmptyState>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var pack in _modpacks.Take(3))
             {
-                <ServerStatusChip Status="status"/>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Class="tc-card d-flex flex-column" Elevation="2">
+                        <MudCardContent Class="flex-grow-1">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true">
+                                    @(pack.Name.Length > 0 ? pack.Name[..1].ToUpperInvariant() : "?")
+                                </MudAvatar>
+                                <div>
+                                    <MudText Typo="Typo.h6">@pack.Name</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                        MC @pack.MinecraftVersion · @pack.Loader
+                                    </MudText>
+                                </div>
+                            </MudStack>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Href="@($"/modpacks/{pack.Id}")" Variant="Variant.Text"
+                                       Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew">
+                                Abrir
+                            </MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
             }
-        </MudStack>
-    </MudPaper>
-</MudContainer>
+        </MudGrid>
+    }
+}

@@ -103,7 +103,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         var repo = new ModpackRepository(_factory);
         var modpack = await SeedModpackAsync(repo);
 
-        var v1 = NovaVersao(modpack.Id, "1.0");
+        var v1 = NovaVersao(modpack.Id);
         v1.UpsertFile(Arquivo(v1.Id, "mods/jei.jar", "jei"));
         await repo.AddVersionAsync(v1, CancellationToken.None);
 

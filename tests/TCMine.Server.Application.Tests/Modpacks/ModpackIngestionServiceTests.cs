@@ -74,10 +74,8 @@ public sealed class ModpackIngestionServiceTests
             NullLogger<ModpackIngestionService>.Instance);
     }
 
-    private static ModpackVersion NewDraftVersion()
-    {
-        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
-    }
+    private static ModpackVersion NewDraftVersion() =>
+        new() { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
 
     private static ModIngestionItem Item(string projectId) =>
         new(ModFileOrigin.Modrinth, projectId, null, FileSide.Both);

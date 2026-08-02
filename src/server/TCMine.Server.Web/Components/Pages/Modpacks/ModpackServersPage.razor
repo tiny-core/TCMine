@@ -1,93 +1,122 @@
-﻿@page "/modpacks/{ModpackId:guid}/servers"
+@page "/modpacks/{ModpackId:guid}/servers"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Contracts.Servers
 
-<MudBreadcrumbs Items="_breadcrumbs"/>
+<PageTitle>Servidores — TCMine</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
-    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Href="@($"/modpacks/{ModpackId}")"/>
-    <MudText Typo="Typo.h5">Servidores</MudText>
-    <MudSpacer/>
+<PageHeader Title="Servidores"
+            Subtitle="Instâncias gerenciadas derivadas deste modpack."
+            Icon="@Icons.Material.Filled.Dns"
+            Breadcrumbs="_breadcrumbs">
     <MudButton Variant="Variant.Filled" Color="Color.Primary"
                StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenForm(null))">
         Criar servidor
     </MudButton>
-</MudStack>
-<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
-    Instâncias gerenciadas derivadas deste modpack.
-</MudText>
+</PageHeader>
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
 else if (_servers.Count == 0)
 {
-    <MudPaper Outlined="true" Class="pa-6">
-        <MudText Align="Align.Center" Color="Color.Secondary">
-            Nenhum servidor ainda. Crie um a partir de uma versão publicada.
-        </MudText>
-    </MudPaper>
+    <EmptyState Icon="@Icons.Material.Filled.Dns"
+                Title="Nenhum servidor ainda."
+                Description="Crie um a partir de uma versão publicada para começar a hospedar.">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => OpenForm(null))">
+            Criar servidor
+        </MudButton>
+    </EmptyState>
 }
 else
 {
-    <MudStack Spacing="2">
+    <MudStack Spacing="3" Class="tc-fade-in">
         @foreach (var server in _servers)
         {
-            <MudPaper Outlined="true" Class="pa-3">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                    <MudIcon Icon="@Icons.Material.Filled.Dns"/>
-                    <div style="flex: 1;">
-                        <MudText Typo="Typo.body1">@server.Name</MudText>
-                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                            <ServerStatusChip Status="server.Status"/>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@server.ConnectAddress</MudText>
-                            @if (_versionsById.TryGetValue(server.ModpackVersionId, out var ver))
-                            {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                         Icon="@Icons.Material.Filled.Sell" Color="Color.Default">
-                                    v@(ver.Version)
-                                </MudChip>
-                                @if (ver.State is ModpackVersionState.Archived)
+            <MudCard Class="tc-card" Elevation="2">
+                <MudCardContent>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+                            <MudIcon Icon="@Icons.Material.Filled.Dns"/>
+                        </MudAvatar>
+
+                        <div style="flex: 1; min-width: 0;">
+                            <MudText Typo="Typo.h6">@server.Name</MudText>
+                            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                <ServerStatusChip Status="server.Status"/>
+
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    @server.ConnectAddress
+                                </MudText>
+                                <MudTooltip Text="Copiar endereço">
+                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                                   OnClick="@(() => CopyAddress(server.ConnectAddress))"/>
+                                </MudTooltip>
+
+                                @if (_versionsById.TryGetValue(server.ModpackVersionId, out var ver))
                                 {
-                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Warning">
-                                        arquivada
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                             Icon="@Icons.Material.Filled.Sell" Color="Color.Default">
+                                        v@(ver.Version)
+                                    </MudChip>
+                                    @if (ver.State is ModpackVersionState.Archived)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="Color.Warning">
+                                            arquivada
+                                        </MudChip>
+                                    }
+                                }
+
+                                @if (server.HasWorld)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                             Icon="@Icons.Material.Filled.Public" Color="Color.Info">
+                                        com mundo
                                     </MudChip>
                                 }
-                            }
+                            </MudStack>
+                        </div>
 
-                            @if (server.HasWorld)
-                            {
-                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
-                                         Icon="@Icons.Material.Filled.Public" Color="Color.Info">com mundo
-                                </MudChip>
-                            }
-                        </MudStack>
-                    </div>
-                    @if (_busy.Contains(server.Id))
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mx-2"/>
-                    }
-                    else if (server.Status is GameServerStatus.Running or GameServerStatus.Starting)
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Warning" Size="Size.Small"
-                                       title="Parar" OnClick="@(() => Stop(server))"/>
-                    }
-                    else
-                    {
-                        <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success" Size="Size.Small"
-                                       title="Iniciar" OnClick="@(() => Start(server))"/>
-                    }
+                        @if (_busy.Contains(server.Id))
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mx-2"/>
+                        }
+                        else if (server.Status is GameServerStatus.Running or GameServerStatus.Starting)
+                        {
+                            <MudTooltip Text="Parar">
+                                <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Warning"
+                                               OnClick="@(() => Stop(server))"/>
+                            </MudTooltip>
+                        }
+                        else
+                        {
+                            <MudTooltip Text="Iniciar">
+                                <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success"
+                                               OnClick="@(() => Start(server))"/>
+                            </MudTooltip>
+                        }
 
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                   OnClick="@(() => OpenForm(server))"/>
-                    <MudIconButton Icon="@Icons.Material.Filled.Tune" Size="Size.Small"
-                                   title="Versão fixada"
-                                   OnClick="@(() => ChangeVersion(server))"/>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                   OnClick="@(() => Delete(server))"/>
-                </MudStack>
-            </MudPaper>
+                        <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                                 AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                                 title="Mais ações">
+                            <MudMenuItem Icon="@Icons.Material.Filled.Edit"
+                                         OnClick="@(() => OpenForm(server))">
+                                Editar
+                            </MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Tune"
+                                         OnClick="@(() => ChangeVersion(server))">
+                                Trocar versão
+                            </MudMenuItem>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                         OnClick="@(() => Delete(server))">
+                                Apagar
+                            </MudMenuItem>
+                        </MudMenu>
+                    </MudStack>
+                </MudCardContent>
+            </MudCard>
         }
     </MudStack>
 }

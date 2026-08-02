@@ -22,7 +22,6 @@ public partial class EditVersionDialog
 
     private Task Save()
     {
-        return SubmitAsync(
-            () => UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None));
+        return SubmitAsync(() => UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None));
     }
 }

@@ -57,10 +57,8 @@ public sealed class PublishModpackVersionTests
 
     // ---- Fixtures ----
 
-    private static ModpackVersion NewDraftVersion()
-    {
-        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
-    }
+    private static ModpackVersion NewDraftVersion() =>
+        new() { ModpackId = Guid.CreateVersion7(), Version = "1.0", LoaderVersion = "21.1.234" };
 
     private static ModpackVersion DraftWithFile()
     {

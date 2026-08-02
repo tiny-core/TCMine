@@ -39,10 +39,7 @@ public partial class VersionDetailDialog
         StartPollingIfNeeded();
     }
 
-    private async Task ReloadAsync()
-    {
-        _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
-    }
+    private async Task ReloadAsync() => _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
 
     private async Task OnFileSelected(IBrowserFile file)
     {
@@ -75,9 +72,7 @@ public partial class VersionDetailDialog
                 await ReloadAsync();
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {
@@ -113,9 +108,7 @@ public partial class VersionDetailDialog
                 await ReloadAsync();
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {

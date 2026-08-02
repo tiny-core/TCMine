@@ -5,10 +5,8 @@ namespace TCMine.Server.Application.Tests.Modpacks;
 
 public class ModpackVersionTests
 {
-    private static ModpackVersion NovaVersao()
-    {
-        return new ModpackVersion { ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.0" };
-    }
+    private static ModpackVersion NovaVersao() =>
+        new() { ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.0" };
 
     private static ModpackFile ArquivoQualquer(Guid versaoId)
     {

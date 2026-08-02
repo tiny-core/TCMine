@@ -1,9 +1,12 @@
-﻿@using TCMine.Contracts.Modpacks
+﻿@inherits DialogComponentBase
+@using TCMine.Contracts.Modpacks
 @using TCMine.UI.Shared.Formatting
-@inherits DialogComponentBase
 @implements IDisposable
 
 <MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Layers" Text="Detalhes da versão"/>
+    </TitleContent>
     <DialogContent>
         @if (_version is null)
         {

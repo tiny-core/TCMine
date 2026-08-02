@@ -1,4 +1,4 @@
-﻿@page "/modpacks/{ModpackId:guid}"
+@page "/modpacks/{ModpackId:guid}"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
 @inject IModpackRepository Repository
@@ -9,7 +9,7 @@
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
 else if (_modpack is null)
 {
@@ -19,53 +19,19 @@ else if (_modpack is null)
 }
 else
 {
-    @* Breadcrumb: navegação de volta ao catálogo. *@
-    <MudBreadcrumbs Items="_breadcrumbs" Class="px-0"/>
-
-    @* Cabeçalho: nome, chips de estado e o seletor de versão. *@
-    <MudPaper Class="pa-6 mb-4" Elevation="0" Outlined="true">
-        <MudStack AlignItems="AlignItems.Center" Spacing="3">
-            <MudText Typo="Typo.h4">@_modpack.Name</MudText>
-
-            @if (_selectedVersion is not null)
-            {
-                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
-                    <VersionStateChip State="_selectedVersion.State"/>
-                    <MudChip T="string" Icon="@Icons.Material.Filled.SportsEsports"
-                             Size="Size.Small" Variant="Variant.Text">
-                        @_modpack.MinecraftVersion
-                    </MudChip>
-                    <MudChip T="string" Icon="@Icons.Material.Filled.Build"
-                             Size="Size.Small" Variant="Variant.Text">
-                        @_modpack.Loader @_selectedVersion.LoaderVersion
-                    </MudChip>
-                </MudStack>
-            }
-
-            @if (_selectedVersion?.State is ModpackVersionState.Draft)
-            {
-                @if (_selectedVersion?.State is ModpackVersionState.Draft)
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Success"
-                               StartIcon="@Icons.Material.Filled.Publish"
-                               OnClick="Publish"
-                               Disabled="_isPublishing || _selectedVersion.Files.Count == 0">
-                        @if (_isPublishing)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                        }
-                        Publicar
-                    </MudButton>
-
-
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                   OnClick="OpenEditVersion"/>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small"
-                                   OnClick="DeleteVersion"/>
-                }
-            }
-        </MudStack>
-    </MudPaper>
+    <PageHeader Title="@_modpack.Name"
+                Subtitle="@($"MC {_modpack.MinecraftVersion} · {_modpack.Loader}")"
+                Icon="@Icons.Material.Filled.Inventory2"
+                Breadcrumbs="_breadcrumbs">
+        @if (_modpack.Versions.Count > 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="OpenCreateVersion">
+                Nova versão
+            </MudButton>
+        }
+    </PageHeader>
 
     @if (_modpack.Versions.Count is 0)
     {
@@ -81,36 +47,71 @@ else
     }
     else
     {
-        @* Seletor de versão: no nosso modelo um modpack tem várias, e os
-           cards abaixo operam sobre a selecionada. *@
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
-            <MudSelect T="Guid" Value="_selectedVersionId"
-                       ValueChanged="OnVersionChanged"
-                       Label="Versão" Variant="Variant.Outlined"
-                       Dense="true" Style="max-width: 260px;">
-                @foreach (var v in _modpack.Versions)
+        @* Barra da versão selecionada: seletor + estado + ações de rascunho.
+           Os cards abaixo operam sobre a versão escolhida aqui. *@
+        <MudPaper Class="pa-4 mb-4 tc-fade-in" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                <MudSelect T="Guid" Value="_selectedVersionId"
+                           ValueChanged="OnVersionChanged"
+                           Label="Versão" Variant="Variant.Outlined"
+                           Dense="true" Style="max-width: 220px;">
+                    @foreach (var v in _modpack.Versions)
+                    {
+                        <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                @if (_selectedVersion is not null)
                 {
-                    <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
+                    <VersionStateChip State="_selectedVersion.State"/>
+                    <MudChip T="string" Icon="@Icons.Material.Filled.Build"
+                             Size="Size.Small" Variant="Variant.Text">
+                        @_modpack.Loader @_selectedVersion.LoaderVersion
+                    </MudChip>
+                    @if (_selectedVersion.RecommendedMemoryMb is { } ram)
+                    {
+                        <MudChip T="string" Icon="@Icons.Material.Filled.Memory"
+                                 Size="Size.Small" Variant="Variant.Text">
+                            @ram MB
+                        </MudChip>
+                    }
                 }
-            </MudSelect>
-            <MudSpacer/>
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateVersion">
-                Nova versão
-            </MudButton>
 
-        </MudStack>
+                <MudSpacer/>
 
-        @* Os cards de gerenciamento. Cada um abre uma tela específica. *@
-        <MudGrid>
+                @if (_selectedVersion?.State is ModpackVersionState.Draft)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success"
+                               StartIcon="@Icons.Material.Filled.Publish"
+                               OnClick="Publish"
+                               Disabled="_isPublishing || _selectedVersion.Files.Count == 0">
+                        @if (_isPublishing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Publicar
+                    </MudButton>
+                    <MudTooltip Text="Editar versão">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
+                                       OnClick="OpenEditVersion"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Apagar rascunho">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                       Size="Size.Small" OnClick="DeleteVersion"/>
+                    </MudTooltip>
+                }
+            </MudStack>
+        </MudPaper>
+
+        @* Cards de gerenciamento. Cada um abre uma tela/diálogo específico. *@
+        <MudGrid Class="tc-fade-in">
             <ManagementCard Icon="@Icons.Material.Filled.Extension"
-                            Title="@($"{FileCount} mod(s)")"
-                            Description="Mods do modpack (cliente e servidor)."
+                            Title="@($"{ModCount} mod(s)")"
+                            Description="Mods do cliente e do servidor."
                             OnManage="OpenMods"/>
 
             <ManagementCard Icon="@Icons.Material.Filled.Folder"
-                            Title="Overrides"
+                            Title="@($"{OverrideCount} override(s)")"
                             Description="Configs e arquivos extras."
                             OnManage="OpenOverrides"/>
 
