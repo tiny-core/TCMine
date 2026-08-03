@@ -49,6 +49,8 @@ public static class DependencyInjection
         services.AddScoped<UndoOverrideMove>();
 
         services.AddScoped<DeleteModpackVersion>();
+        services.AddScoped<ArchiveModpackVersion>();
+        services.AddScoped<RestoreModpackVersion>();
 
         return services;
     }

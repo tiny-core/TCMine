@@ -1,0 +1,87 @@
+@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Domain.Modpacks
+
+@* Shell compartilhado do workspace de um modpack: identidade (nome, MC/loader),
+   seletor de versão, stepper do ciclo de vida e a barra de abas com rota. Cada
+   página (Visão geral, Mods, Overrides, Servidores, Novidades) envolve o próprio
+   conteúdo neste componente, passando a aba ativa. Assim o cabeçalho é idêntico
+   em todas e a navegação entre abas mantém URL própria (deep-link + Monaco com
+   forceLoad na aba de overrides). *@
+
+<div class="tc-fade-in">
+    <MudBreadcrumbs Items="Breadcrumbs" Class="px-0 pb-2"/>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
+        <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Rounded="true" Size="Size.Large">
+            <MudIcon Icon="@Icons.Material.Filled.Inventory2"/>
+        </MudAvatar>
+        <div>
+            <MudText Typo="Typo.h4">@Modpack.Name</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                MC @Modpack.MinecraftVersion · @Modpack.Loader
+            </MudText>
+        </div>
+        <MudSpacer/>
+        @HeaderActions
+    </MudStack>
+
+    @if ((ShowVersionSelector && Modpack.Versions.Count > 0) || SelectedVersion is not null)
+    {
+        <MudPaper Class="pa-4 mb-4" Elevation="2">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4" Wrap="Wrap.Wrap">
+                @if (ShowVersionSelector && Modpack.Versions.Count > 0)
+                {
+                    <MudSelect T="Guid" Value="SelectedVersionId"
+                               ValueChanged="OnVersionChanged"
+                               Label="Versão" Variant="Variant.Outlined"
+                               Dense="true" Style="max-width: 200px;">
+                        @foreach (var v in Modpack.Versions)
+                        {
+                            <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                @if (SelectedVersion is not null)
+                {
+                    <div class="tc-stepper">
+                        @foreach (var step in Steps)
+                        {
+                            <div class="tc-step @StepClass(step.Index)">
+                                <div class="tc-dot">@StepGlyph(step.Index)</div>
+                                <div class="tc-cap">@step.Label</div>
+                            </div>
+                        }
+                    </div>
+                }
+            </MudStack>
+        </MudPaper>
+    }
+
+    <nav class="tc-tabs">
+        <a class="tc-tab @Cls(ModpackTab.Overview)" href="@($"/modpacks/{Modpack.Id}")">
+            Visão geral
+        </a>
+        @if (SelectedVersionId != Guid.Empty)
+        {
+            <a class="tc-tab @Cls(ModpackTab.Mods)"
+               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/mods")">
+                Mods
+            </a>
+            @* forceLoad (data-enhance-nav=false): a enhanced navigation desfaz o
+               DOM que o Monaco monta e quebra o editor de overrides. *@
+            <a class="tc-tab @Cls(ModpackTab.Overrides)" data-enhance-nav="false"
+               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/overrides")">
+                Overrides
+            </a>
+        }
+        <a class="tc-tab @Cls(ModpackTab.Servers)" href="@($"/modpacks/{Modpack.Id}/servers")">
+            Servidores
+        </a>
+        <a class="tc-tab @Cls(ModpackTab.News)" href="@($"/modpacks/{Modpack.Id}/news")">
+            Novidades
+        </a>
+    </nav>
+</div>
+
+@ChildContent

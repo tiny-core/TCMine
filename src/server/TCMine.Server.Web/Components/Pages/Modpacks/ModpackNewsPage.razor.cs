@@ -5,35 +5,40 @@ using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
-namespace TCMine.Server.Web.Components.Features.Modpacks;
+namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
-public partial class NewsDialog
+public partial class ModpackNewsPage : ComponentBase
 {
     private string _body = "";
-
     private News? _editing;
-
     private bool _isLoading = true;
     private bool _isNew;
     private bool _isPublished;
+    private bool _isSaving;
+    private Modpack? _modpack;
     private List<News> _posts = [];
     private string _title = "";
 
     [Parameter] public Guid ModpackId { get; set; }
 
+    [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private INewsRepository NewsRepository { get; set; } = default!;
     [Inject] private CreateNews CreateUseCase { get; set; } = default!;
     [Inject] private UpdateNews UpdateUseCase { get; set; } = default!;
     [Inject] private DeleteNews DeleteUseCase { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
-
-    private async Task LoadAsync()
+    protected override async Task OnInitializedAsync()
     {
-        _isLoading = true;
-        _posts = [.. await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
+        _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
+        await LoadPostsAsync();
         _isLoading = false;
+    }
+
+    private async Task LoadPostsAsync()
+    {
+        _posts = [.. await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
     }
 
     private void NewPost()
@@ -54,14 +59,12 @@ public partial class NewsDialog
         _isPublished = post.IsPublished;
     }
 
-    private Task Save()
+    private async Task Save()
     {
-        // Fica aberto após salvar (recarrega a lista), então usa RunAsync em vez
-        // do submit padrão que fecharia o diálogo.
-        return RunAsync(async () =>
+        _isSaving = true;
+        try
         {
-            // Create devolve Result<Guid> e Update devolve Result; normalizamos
-            // para Result porque aqui só interessa o sucesso/erro.
+            // Create devolve Result<Guid> e Update devolve Result; normalizamos.
             Result result;
             if (_isNew)
             {
@@ -83,8 +86,12 @@ public partial class NewsDialog
 
             Snackbar.Add("Novidade salva.", Severity.Success);
             _editing = null;
-            await LoadAsync();
-        });
+            await LoadPostsAsync();
+        }
+        finally
+        {
+            _isSaving = false;
+        }
     }
 
     private async Task Delete()
@@ -94,17 +101,14 @@ public partial class NewsDialog
         if (confirm is not true)
             return;
 
-        await RunAsync(async () =>
+        var result = await DeleteUseCase.HandleAsync(_editing!.Id, CancellationToken.None);
+        if (result.Succeeded)
         {
-            var result = await DeleteUseCase.HandleAsync(_editing!.Id, CancellationToken.None);
-            if (result.Succeeded)
-            {
-                Snackbar.Add("Novidade apagada.", Severity.Success);
-                _editing = null;
-                await LoadAsync();
-            }
-            else
-                Snackbar.Add(result.Error!, Severity.Error);
-        });
+            Snackbar.Add("Novidade apagada.", Severity.Success);
+            _editing = null;
+            await LoadPostsAsync();
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
     }
 }

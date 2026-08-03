@@ -16,119 +16,117 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
-else if (_version is null)
+else if (_modpack is null || _version is null)
 {
     <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Versão não encontrada."/>
 }
 else
 {
-    <PageHeader Title="Mods"
-                Subtitle="@($"{_version.Version} · MC {_modpack?.MinecraftVersion} · {_modpack?.Loader}")"
-                Icon="@Icons.Material.Filled.Extension"
-                Breadcrumbs="_breadcrumbs">
-        @if (_version.State is ModpackVersionState.Draft)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.CloudDownload"
-                       OnClick="OpenIngest">
-                Buscar no Modrinth
-            </MudButton>
-            <MudButton Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.Upload"
-                       OnClick="OpenManualUpload">
-                Enviar arquivo
-            </MudButton>
-        }
-        else if (_version.State is ModpackVersionState.Ready)
-        {
-            <MudButton Variant="Variant.Outlined"
-                       StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
-                       OnClick="OpenCheckUpdates">
-                Verificar atualizações
-            </MudButton>
-        }
-    </PageHeader>
-
-    @if (_isIngesting)
-    {
-        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
-        <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
-    }
-
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-        <MudSpacer/>
-        <MudTextField @bind-Value="_searchString"
-                      Placeholder="Filtrar mods..."
-                      Adornment="Adornment.Start"
-                      AdornmentIcon="@Icons.Material.Filled.Search"
-                      IconSize="Size.Small"
-                      Immediate="true"
-                      Margin="Margin.Dense"
-                      Variant="Variant.Outlined"
-                      Style="max-width: 280px;"/>
-    </MudStack>
-
-    <MudDataGrid T="ModpackFile"
-                 Items="FilteredFiles"
-                 Dense="true"
-                 Hover="true"
-                 Filterable="false"
-                 SortMode="SortMode.Single"
-                 RowsPerPage="25"
-                 Elevation="1"
-                 Class="tc-fade-in">
-        <Columns>
-            <PropertyColumn Property="f => f.Path" Title="Caminho"/>
-
-            <TemplateColumn Title="Tamanho">
-                <CellTemplate>
-                    @HumanSize.Bytes(context.Item.SizeBytes)
-                </CellTemplate>
-            </TemplateColumn>
-
-            <TemplateColumn Title="Lado">
-                <CellTemplate>
-                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                        @context.Item.Side
-                    </MudChip>
-                </CellTemplate>
-            </TemplateColumn>
-
-            <TemplateColumn Title="Origem">
-                <CellTemplate>
-                    <MudChip T="string" Size="Size.Small"
-                             Icon="@OriginIcon(context.Item.Origin)"
-                             Color="@OriginColor(context.Item.Origin)"
-                             Variant="Variant.Text">
-                        @context.Item.Origin
-                    </MudChip>
-                </CellTemplate>
-            </TemplateColumn>
-
+    <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Mods"
+                      SelectedVersionId="VersionId" SelectedVersion="_version"
+                      SelectedVersionIdChanged="OnVersionChanged">
+        <HeaderActions>
             @if (_version.State is ModpackVersionState.Draft)
             {
-                <TemplateColumn Title="" Sortable="false">
-                    <CellTemplate>
-                        <MudTooltip Text="Remover">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           Disabled="_isIngesting"
-                                           OnClick="@(() => RemoveFile(context.Item))"/>
-                        </MudTooltip>
-                    </CellTemplate>
-                </TemplateColumn>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.CloudDownload" OnClick="OpenIngest">
+                    Buscar no Modrinth
+                </MudButton>
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.Upload" OnClick="OpenManualUpload">
+                    Enviar arquivo
+                </MudButton>
             }
-        </Columns>
+            else if (_version.State is ModpackVersionState.Ready)
+            {
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.SystemUpdateAlt" OnClick="OpenCheckUpdates">
+                    Verificar atualizações
+                </MudButton>
+            }
+        </HeaderActions>
+        <ChildContent>
+            @if (_isIngesting)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
+            }
 
-        <PagerContent>
-            <MudDataGridPager T="ModpackFile"/>
-        </PagerContent>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudSpacer/>
+                <MudTextField @bind-Value="_searchString"
+                              Placeholder="Filtrar mods..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              IconSize="Size.Small"
+                              Immediate="true"
+                              Margin="Margin.Dense"
+                              Variant="Variant.Outlined"
+                              Style="max-width: 280px;"/>
+            </MudStack>
 
-        <NoRecordsContent>
-            <MudText Class="pa-4" Color="Color.Secondary">
-                Nenhum mod nesta versão. Use "Buscar no Modrinth" para começar.
-            </MudText>
-        </NoRecordsContent>
-    </MudDataGrid>
+            <MudDataGrid T="ModpackFile"
+                         Items="FilteredFiles"
+                         Dense="true"
+                         Hover="true"
+                         Filterable="false"
+                         SortMode="SortMode.Single"
+                         RowsPerPage="25"
+                         Elevation="1">
+                <Columns>
+                    <PropertyColumn Property="f => f.Path" Title="Caminho"/>
+
+                    <TemplateColumn Title="Tamanho">
+                        <CellTemplate>
+                            @HumanSize.Bytes(context.Item.SizeBytes)
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Lado">
+                        <CellTemplate>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                @context.Item.Side
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Origem">
+                        <CellTemplate>
+                            <MudChip T="string" Size="Size.Small"
+                                     Icon="@OriginIcon(context.Item.Origin)"
+                                     Color="@OriginColor(context.Item.Origin)"
+                                     Variant="Variant.Text">
+                                @context.Item.Origin
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    @if (_version.State is ModpackVersionState.Draft)
+                    {
+                        <TemplateColumn Title="" Sortable="false">
+                            <CellTemplate>
+                                <MudTooltip Text="Remover">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                                   Color="Color.Error"
+                                                   Size="Size.Small"
+                                                   Disabled="_isIngesting"
+                                                   OnClick="@(() => RemoveFile(context.Item))"/>
+                                </MudTooltip>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                </Columns>
+
+                <PagerContent>
+                    <MudDataGridPager T="ModpackFile"/>
+                </PagerContent>
+
+                <NoRecordsContent>
+                    <MudText Class="pa-4" Color="Color.Secondary">
+                        Nenhum mod nesta versão. Use "Buscar no Modrinth" para começar.
+                    </MudText>
+                </NoRecordsContent>
+            </MudDataGrid>
+        </ChildContent>
+    </ModpackWorkspace>
 }

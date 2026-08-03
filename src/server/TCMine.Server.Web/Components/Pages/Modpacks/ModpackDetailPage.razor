@@ -1,6 +1,8 @@
 @page "/modpacks/{ModpackId:guid}"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Domain.Modpacks
+@using TCMine.UI.Shared.Formatting
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
@@ -19,111 +21,149 @@ else if (_modpack is null)
 }
 else
 {
-    <PageHeader Title="@_modpack.Name"
-                Subtitle="@($"MC {_modpack.MinecraftVersion} · {_modpack.Loader}")"
-                Icon="@Icons.Material.Filled.Inventory2"
-                Breadcrumbs="_breadcrumbs">
-        @if (_modpack.Versions.Count > 0)
-        {
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateVersion">
-                Nova versão
-            </MudButton>
-        }
-    </PageHeader>
-
-    @if (_modpack.Versions.Count is 0)
-    {
-        <EmptyState Icon="@Icons.Material.Filled.Layers"
-                    Title="Nenhuma versão ainda."
-                    Description="Crie a primeira versão para gerenciar mods e publicar.">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add"
-                       OnClick="OpenCreateVersion">
-                Criar versão
-            </MudButton>
-        </EmptyState>
-    }
-    else
-    {
-        @* Barra da versão selecionada: seletor + estado + ações de rascunho.
-           Os cards abaixo operam sobre a versão escolhida aqui. *@
-        <MudPaper Class="pa-4 mb-4 tc-fade-in" Elevation="2">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
-                <MudSelect T="Guid" Value="_selectedVersionId"
-                           ValueChanged="OnVersionChanged"
-                           Label="Versão" Variant="Variant.Outlined"
-                           Dense="true" Style="max-width: 220px;">
-                    @foreach (var v in _modpack.Versions)
-                    {
-                        <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
-                    }
-                </MudSelect>
-
-                @if (_selectedVersion is not null)
-                {
-                    <VersionStateChip State="_selectedVersion.State"/>
-                    <MudChip T="string" Icon="@Icons.Material.Filled.Build"
-                             Size="Size.Small" Variant="Variant.Text">
-                        @_modpack.Loader @_selectedVersion.LoaderVersion
-                    </MudChip>
-                    @if (_selectedVersion.RecommendedMemoryMb is { } ram)
-                    {
-                        <MudChip T="string" Icon="@Icons.Material.Filled.Memory"
-                                 Size="Size.Small" Variant="Variant.Text">
-                            @ram MB
-                        </MudChip>
-                    }
-                }
-
-                <MudSpacer/>
-
-                @if (_selectedVersion?.State is ModpackVersionState.Draft)
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Success"
-                               StartIcon="@Icons.Material.Filled.Publish"
-                               OnClick="Publish"
-                               Disabled="_isPublishing || _selectedVersion.Files.Count == 0">
-                        @if (_isPublishing)
-                        {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                        }
-                        Publicar
+    <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Overview"
+                      SelectedVersionId="_selectedVersionId" SelectedVersion="_selectedVersion"
+                      SelectedVersionIdChanged="OnVersionChanged">
+        <HeaderActions>
+            @if (_modpack.Versions.Count > 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateVersion">
+                    Nova versão
+                </MudButton>
+            }
+        </HeaderActions>
+        <ChildContent>
+            @if (_modpack.Versions.Count is 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.Layers"
+                            Title="Nenhuma versão ainda."
+                            Description="Crie a primeira versão para gerenciar mods e publicar.">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateVersion">
+                        Criar versão
                     </MudButton>
-                    <MudTooltip Text="Editar versão">
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small"
-                                       OnClick="OpenEditVersion"/>
-                    </MudTooltip>
-                    <MudTooltip Text="Apagar rascunho">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                       Size="Size.Small" OnClick="DeleteVersion"/>
-                    </MudTooltip>
-                }
-            </MudStack>
-        </MudPaper>
+                </EmptyState>
+            }
+            else if (_selectedVersion is not null)
+            {
+                @* Próximo passo: a ação certa conforme o estado da versão. *@
+                <MudAlert Severity="@NextSeverity(_selectedVersion.State)" Variant="Variant.Outlined" Class="mb-4">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap"
+                              Style="width:100%;">
+                        <div style="flex:1; min-width:200px;">
+                            <MudText Typo="Typo.body1" Style="font-weight:600;">
+                                @NextTitle(_selectedVersion.State)
+                            </MudText>
+                            <MudText Typo="Typo.body2">@NextHint(_selectedVersion.State)</MudText>
+                        </div>
+                        @if (_selectedVersion.State is ModpackVersionState.Draft)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       Href="@($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods")"
+                                       StartIcon="@Icons.Material.Filled.Add">Adicionar mods</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.Publish"
+                                       OnClick="Publish"
+                                       Disabled="_isPublishing || _selectedVersion.Files.Count == 0">Publicar</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="OpenEditVersion">Editar</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       OnClick="DeleteVersion">Apagar</MudButton>
+                        }
+                        else if (_selectedVersion.State is ModpackVersionState.Ready)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       Href="@($"/modpacks/{ModpackId}/servers")"
+                                       StartIcon="@Icons.Material.Filled.Dns">Criar servidor</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                                       StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
+                                       OnClick="OpenCheckUpdates">Verificar atualizações</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                       StartIcon="@Icons.Material.Filled.Archive"
+                                       OnClick="Archive">Arquivar</MudButton>
+                        }
+                        else if (_selectedVersion.State is ModpackVersionState.Resolving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                        }
+                        else if (_selectedVersion.State is ModpackVersionState.Archived)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Unarchive"
+                                       OnClick="Restore">Restaurar</MudButton>
+                        }
+                    </MudStack>
+                </MudAlert>
 
-        @* Cards de gerenciamento. Cada um abre uma tela/diálogo específico. *@
-        <MudGrid Class="tc-fade-in">
-            <ManagementCard Icon="@Icons.Material.Filled.Extension"
-                            Title="@($"{ModCount} mod(s)")"
-                            Description="Mods do cliente e do servidor."
-                            OnManage="OpenMods"/>
+                <MudGrid Class="mb-2">
+                    <StatCard Icon="@Icons.Material.Filled.Extension" Label="Mods"
+                              Value="@ModCount.ToString()"/>
+                    <StatCard Icon="@Icons.Material.Filled.Folder" Label="Overrides"
+                              Value="@OverrideCount.ToString()"/>
+                    <StatCard Icon="@Icons.Material.Filled.Storage" Label="Tamanho total"
+                              Value="@HumanSize.Bytes(TotalSizeBytes)"/>
+                    <StatCard Icon="@Icons.Material.Filled.Dns" Label="Servidores"
+                              Value="@_serverCount.ToString()" IconColor="Color.Info"/>
+                </MudGrid>
 
-            <ManagementCard Icon="@Icons.Material.Filled.Folder"
-                            Title="@($"{OverrideCount} override(s)")"
-                            Description="Configs e arquivos extras."
-                            OnManage="OpenOverrides"/>
-
-            <ManagementCard Icon="@Icons.Material.Filled.Campaign"
-                            Title="Novidades"
-                            Description="Posts exibidos no launcher."
-                            OnManage="OpenNews"/>
-
-            <ManagementCard Icon="@Icons.Material.Filled.Dns"
-                            Title="Servidores"
-                            Description="Instâncias derivadas deste modpack."
-                            OnManage="OpenServers"/>
-        </MudGrid>
-    }
+                <MudGrid>
+                    <MudItem xs="12" md="7">
+                        <MudPaper Class="pa-5" Elevation="2">
+                            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Filled.History" Class="mr-2"
+                                         Style="vertical-align:middle;"/>
+                                Linha do tempo de versões
+                            </MudText>
+                            <MudStack Spacing="3">
+                                @foreach (var v in _modpack.Versions.OrderByDescending(v => v.Id))
+                                {
+                                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                        <MudText Typo="Typo.body1"
+                                                 Style="@(v.Id == _selectedVersionId ? "font-weight:700;" : "")">
+                                            @v.Version
+                                        </MudText>
+                                        <VersionStateChip State="v.State"/>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @v.Files.Count arquivo(s)
+                                        </MudText>
+                                        @if (v.Id != _selectedVersionId)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                                       OnClick="@(() => OnVersionChanged(v.Id))">
+                                                Selecionar
+                                            </MudButton>
+                                        }
+                                    </MudStack>
+                                }
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" md="5">
+                        <MudPaper Class="pa-5" Elevation="2">
+                            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                                <MudIcon Icon="@Icons.Material.Filled.Info" Class="mr-2"
+                                         Style="vertical-align:middle;"/>
+                                Detalhes da versão
+                            </MudText>
+                            <MudStack Spacing="0">
+                                <div class="tc-kv"><span>Minecraft</span><b>@_modpack.MinecraftVersion</b></div>
+                                <div class="tc-kv"><span>Loader</span><b>@_modpack.Loader @_selectedVersion.LoaderVersion</b></div>
+                                <div class="tc-kv">
+                                    <span>RAM recomendada</span>
+                                    <b>@(_selectedVersion.RecommendedMemoryMb is { } r ? $"{r} MB" : "—")</b>
+                                </div>
+                                <div class="tc-kv">
+                                    <span>Canal</span>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                             Color="@(_selectedVersion.IsPreRelease ? Color.Warning : Color.Primary)">
+                                        @(_selectedVersion.IsPreRelease ? "pré-lançamento" : "release")
+                                    </MudChip>
+                                </div>
+                            </MudStack>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            }
+        </ChildContent>
+    </ModpackWorkspace>
 }

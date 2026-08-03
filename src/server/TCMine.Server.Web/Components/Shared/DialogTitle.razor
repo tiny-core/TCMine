@@ -1,12 +1,16 @@
-@* Cabeçalho padrão de diálogo: ícone + título, para todos os diálogos terem a
-   mesma cara. Vai dentro do <TitleContent> do MudDialog. *@
+@* Cabeçalho padrão de diálogo: ícone num avatar + título (e subtítulo opcional).
+   Dá a todos os diálogos a mesma cara — mais sólida que um texto solto. Vai
+   dentro do <TitleContent> do MudDialog. *@
 
-<MudText Typo="Typo.h6" Class="d-flex align-center">
-    <MudIcon Icon="@Icon" Color="Color.Primary" Class="mr-2"/>
-    @Text
-</MudText>
-
-@code {
-    [Parameter] [EditorRequired] public string Icon { get; set; } = "";
-    [Parameter] [EditorRequired] public string Text { get; set; } = "";
-}
+<MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+    <MudAvatar Color="Color.Primary" Variant="Variant.Outlined">
+        <MudIcon Icon="@Icon"/>
+    </MudAvatar>
+    <div>
+        <MudText Typo="Typo.h6">@Text</MudText>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@Subtitle</MudText>
+        }
+    </div>
+</MudStack>

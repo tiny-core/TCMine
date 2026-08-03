@@ -1,13 +1,16 @@
-﻿/* Estilos do host. Tudo que for compartilhado com o launcher deve ir para
-   a RCL, não para cá. */
+/* Estilos do host. Só o que é GLOBAL por natureza mora aqui:
+   - utilitárias aplicadas em várias telas (fade-in, hover de card);
+   - overrides do MudBlazor cujo DOM é renderizado fora da árvore do componente
+     (diálogos, via DialogProvider) e por isso não alcançáveis por CSS isolado.
+   CSS específico de um componente vive no .razor.css dele (isolation). */
 
 html, body {
   margin: 0;
 }
 
 /* --------------------------------------------------------------------------
-   TCMine — utilitárias de UI (leves). Só animação/realce; layout fica com os
-   componentes MudBlazor. Usa as CSS vars do MudBlazor para casar com o tema.
+   Utilitárias globais de UI (leves). Usa as CSS vars do MudBlazor p/ casar
+   com o tema.
    -------------------------------------------------------------------------- */
 
 /* Entrada suave de conteúdo (headers, grades, cards). */
@@ -37,9 +40,29 @@ html, body {
   box-shadow: var(--mud-elevation-6);
 }
 
-/* Disco tintado atrás do ícone do estado vazio. */
-.tc-empty-icon {
-  background: rgba(var(--mud-palette-primary-rgb), 0.12);
+/* --------------------------------------------------------------------------
+   Diálogos (MudDialog): renderizados pelo DialogProvider, fora da árvore de
+   qualquer componente — precisam ficar globais. Estrutura + respiro.
+   -------------------------------------------------------------------------- */
+.mud-dialog .mud-dialog-title {
+  border-bottom: 1px solid var(--mud-palette-divider);
+  padding-bottom: 16px;
+}
+
+.mud-dialog .mud-dialog-actions {
+  border-top: 1px solid var(--mud-palette-divider);
+  padding: 12px 24px;
+  gap: 8px;
+}
+
+.mud-dialog .mud-dialog-content {
+  padding: 24px;
+}
+
+/* Espaço vertical entre campos consecutivos, para o formulário não amontoar. */
+.mud-dialog .mud-dialog-content .mud-input-control + .mud-input-control,
+.mud-dialog .mud-dialog-content .mud-input-control + .mud-form-control {
+  margin-top: 16px;
 }
 
 /* Acessibilidade: quem pede menos movimento não recebe as animações. */

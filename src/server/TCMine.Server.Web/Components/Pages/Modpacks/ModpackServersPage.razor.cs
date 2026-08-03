@@ -12,7 +12,7 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackServersPage
 {
     private readonly HashSet<Guid> _busy = [];
-    private List<BreadcrumbItem> _breadcrumbs = [];
+    private Modpack? _modpack;
 
     private bool _isLoading = true;
     private List<GameServer> _servers = [];
@@ -93,12 +93,7 @@ public partial class ModpackServersPage
         _versionsById = (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
             .ToDictionary(v => v.Id);
 
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Modpacks", "/modpacks"),
-            new BreadcrumbItem("Modpack", $"/modpacks/{ModpackId}"),
-            new BreadcrumbItem("Servidores", null, true)
-        ];
+        _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
         _isLoading = false;
     }
 

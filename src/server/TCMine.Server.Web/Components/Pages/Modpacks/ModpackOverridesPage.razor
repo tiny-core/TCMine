@@ -5,33 +5,30 @@
 {
     <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
 }
-else if (_version is null)
+else if (_modpack is null || _version is null)
 {
     <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Versão não encontrada."/>
 }
 else
 {
-    <PageHeader Title="Overrides"
-                Subtitle="Configs e arquivos extras aplicados sobre o modpack. Só editáveis em rascunho."
-                Icon="@Icons.Material.Filled.Folder"
-                Breadcrumbs="_breadcrumbs">
-        @if (_version.State is ModpackVersionState.Draft)
-        {
-            <MudButton StartIcon="@Icons.Material.Filled.Undo" OnClick="Undo"
-                       Disabled="@(!UndoService.HasUndo(VersionId))">
-                Desfazer
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.NoteAdd"
-                       OnClick="OpenNewFile">
-                Novo arquivo
-            </MudButton>
-        }
-    </PageHeader>
-
-    <div class="mb-4">
-        <VersionStateChip State="_version.State"/>
-    </div>
+    <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Overrides"
+                      SelectedVersionId="VersionId" SelectedVersion="_version"
+                      SelectedVersionIdChanged="OnVersionChanged">
+        <HeaderActions>
+            @if (_version.State is ModpackVersionState.Draft)
+            {
+                <MudButton StartIcon="@Icons.Material.Filled.Undo" OnClick="Undo"
+                           Disabled="@(!UndoService.HasUndo(VersionId))">
+                    Desfazer
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.NoteAdd"
+                           OnClick="OpenNewFile">
+                    Novo arquivo
+                </MudButton>
+            }
+        </HeaderActions>
+        <ChildContent>
 
     <MudGrid>
         <MudItem xs="12" md="4">
@@ -105,4 +102,7 @@ else
             </div>
         </MudItem>
     </MudGrid>
+
+        </ChildContent>
+    </ModpackWorkspace>
 }

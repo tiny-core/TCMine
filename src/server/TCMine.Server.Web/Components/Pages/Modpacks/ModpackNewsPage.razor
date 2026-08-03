@@ -1,0 +1,100 @@
+@page "/modpacks/{ModpackId:guid}/news"
+@using TCMine.Server.Domain.Modpacks
+
+<PageTitle>Novidades — TCMine</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+}
+else if (_modpack is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Modpack não encontrado."/>
+}
+else
+{
+    <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.News" ShowVersionSelector="false">
+        <HeaderActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add" OnClick="NewPost">
+                Novo post
+            </MudButton>
+        </HeaderActions>
+        <ChildContent>
+            <MudGrid>
+                <MudItem xs="12" md="5">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        <MudText Typo="Typo.subtitle1" Class="mb-3">Posts</MudText>
+                        @if (_posts.Count == 0)
+                        {
+                            <MudText Color="Color.Secondary" Typo="Typo.body2">Nenhuma novidade ainda.</MudText>
+                        }
+                        else
+                        {
+                            <MudList T="News" SelectedValue="_editing" Dense="true">
+                                @foreach (var post in _posts)
+                                {
+                                    <MudListItem T="News" Value="post" OnClick="@(() => Edit(post))">
+                                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                            <MudText>@post.Title</MudText>
+                                            @if (post.IsPublished)
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                         Color="Color.Success">publicado</MudChip>
+                                            }
+                                            else
+                                            {
+                                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                         Color="Color.Default">rascunho</MudChip>
+                                            }
+                                        </MudStack>
+                                    </MudListItem>
+                                }
+                            </MudList>
+                        }
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="7">
+                    <MudPaper Class="pa-4" Elevation="2">
+                        @if (_editing is null)
+                        {
+                            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                                Selecione um post ou crie um novo.
+                            </MudText>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.subtitle1" Class="mb-3">
+                                @(_isNew ? "Novo post" : "Editar post")
+                            </MudText>
+                            <MudTextField @bind-Value="_title" Label="Título" Immediate="true" Class="mb-3"/>
+                            <MudTextField @bind-Value="_body" Label="Corpo" Lines="8" Class="mb-3"/>
+                            <MudSwitch @bind-Value="_isPublished" Color="Color.Primary"
+                                       Label="Publicado (visível no launcher)" Class="mb-3"/>
+
+                            <MudStack Row="true" Spacing="2">
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                           OnClick="Save"
+                                           Disabled="_isSaving || string.IsNullOrWhiteSpace(_title)">
+                                    @if (_isSaving)
+                                    {
+                                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                    }
+                                    Salvar
+                                </MudButton>
+                                @if (!_isNew)
+                                {
+                                    <MudButton Variant="Variant.Text" Color="Color.Error"
+                                               OnClick="Delete" Disabled="_isSaving">
+                                        Apagar
+                                    </MudButton>
+                                }
+                            </MudStack>
+                        }
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </ChildContent>
+    </ModpackWorkspace>
+}

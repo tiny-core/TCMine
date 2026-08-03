@@ -107,6 +107,22 @@ public sealed class ModpackVersion : Entity
     }
 
     /// <summary>
+    ///     Desfaz o arquivamento: volta uma versão arquivada a Ready, tornando-a
+    ///     de novo oferecível a novos clientes. É o inverso de <see cref="Archive" />.
+    /// </summary>
+    public void Restore()
+    {
+        if (State is not ModpackVersionState.Archived)
+        {
+            throw new InvalidOperationException(
+                $"Só é possível restaurar uma versão arquivada. Estado atual: {State}.");
+        }
+
+        State = ModpackVersionState.Ready;
+        Touch();
+    }
+
+    /// <summary>
     ///     Volta de Resolving para Draft ao fim de uma ingestao bem-sucedida.
     ///     Resolver e baixar e uma coisa; publicar e decisao explicita do admin.
     ///     Sem isto a versao ficaria presa em Resolving ou publicaria sozinha.

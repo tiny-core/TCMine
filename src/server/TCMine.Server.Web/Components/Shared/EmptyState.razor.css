@@ -1,0 +1,4 @@
+/* Disco tintado atrás do ícone do estado vazio. */
+.tc-empty-icon {
+  background: rgba(var(--mud-palette-primary-rgb), 0.12);
+}

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Modpacks;
@@ -8,7 +8,6 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackModsPage : ComponentBase, IDisposable
 {
-    private List<BreadcrumbItem> _breadcrumbs = [];
     private bool _isIngesting;
     private bool _isLoading = true;
     private Modpack? _modpack;
@@ -25,7 +24,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     {
         get
         {
-            // Overrides (config/extras) têm a sua própria tela; fora daqui.
+            // Overrides (config/extras) têm a sua própria aba; fora daqui.
             var files = (_version?.Files ?? []).Where(f => f.Origin != ModFileOrigin.Override);
             return string.IsNullOrWhiteSpace(_searchString)
                 ? files
@@ -39,23 +38,28 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         _isLoading = true;
-        _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
-        _modpack = await Repository.GetByIdAsync(ModpackId, CancellationToken.None);
 
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Modpacks", "/modpacks"),
-            new BreadcrumbItem("Modpack", $"/modpacks/{ModpackId}"),
-            new BreadcrumbItem("Mods", null, true)
-        ];
+        // Carrega o modpack com todas as versões (para o seletor do workspace) e
+        // pega a versão da rota entre elas — uma consulta só.
+        _modpack = await Repository.GetWithVersionsAsync(ModpackId, CancellationToken.None);
+        _version = _modpack?.Versions.FirstOrDefault(v => v.Id == VersionId);
 
         _isLoading = false;
         StartPollingIfResolving();
+    }
+
+    private void OnVersionChanged(Guid versionId)
+    {
+        // Troca de versão numa aba por versão = navega para a mesma aba da nova.
+        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/mods");
     }
 
     // Enquanto a ingestão roda, a versão fica em Resolving. Recarrega até sair
@@ -93,15 +97,13 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         var dialog = await DialogService.ShowAsync<ModrinthSearchDialog>(
             "Buscar mods no Modrinth", parameters, options);
 
-        // Se o diálogo enfileirou uma ingestão, acompanhamos até terminar.
         if (await dialog.Result is { Canceled: false })
             await WatchIngestionAsync();
     }
 
     // Acompanha a versão após enfileirar a ingestão. Cobre a corrida
-    // Draft → Resolving → Draft: em vez de sondar só "enquanto Resolving",
-    // recarrega a grade a cada tick e para quando a versão assenta (voltou a
-    // Draft depois de processar, entrou em Failed, ou estourou o tempo).
+    // Draft → Resolving → Draft: recarrega a grade a cada tick e para quando a
+    // versão assenta (voltou a Draft, entrou em Failed, ou estourou o tempo).
     private async Task WatchIngestionAsync()
     {
         _isIngesting = true;
@@ -158,7 +160,9 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
             await LoadAsync();
         }
         else
+        {
             Snackbar.Add(result.Error!, Severity.Error);
+        }
     }
 
     private static string OriginIcon(ModFileOrigin origin)
@@ -186,13 +190,13 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     {
         var parameters = new DialogParameters
         {
-            ["SourceVersionId"] = _version!.Id, ["SourceVersion"] = _version.Version
+            ["SourceVersionId"] = _version!.Id,
+            ["SourceVersion"] = _version.Version
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 
         var dialog = await DialogService.ShowAsync<CheckUpdatesDialog>("Verificar atualizações", parameters, options);
 
-        // Ok devolve o Id do Draft novo — leva o admin direto para lá.
         if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
             Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
     }

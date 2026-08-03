@@ -1,0 +1,17 @@
+/* Linha chave/valor dos "Detalhes da versão". */
+.tc-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--mud-palette-divider);
+  font-size: 14px;
+}
+
+.tc-kv:last-child {
+  border-bottom: 0;
+}
+
+.tc-kv > span {
+  color: var(--mud-palette-text-secondary);
+}

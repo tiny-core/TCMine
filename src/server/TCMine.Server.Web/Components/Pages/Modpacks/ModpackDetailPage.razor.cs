@@ -1,25 +1,24 @@
-﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Components.Features.Modpacks;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
-public partial class ModpackDetailPage : ComponentBase
+public partial class ModpackDetailPage : ComponentBase, IDisposable
 {
-    private List<BreadcrumbItem> _breadcrumbs = [];
-
     private bool _isLoading = true;
-
     private bool _isPublishing;
     private Modpack? _modpack;
+    private Timer? _pollTimer;
     private ModpackVersion? _selectedVersion;
     private Guid _selectedVersionId;
+    private int _serverCount;
 
     [Parameter] public Guid ModpackId { get; set; }
-
-    private int FileCount => _selectedVersion?.Files.Count ?? 0;
 
     // Mods e overrides moram na mesma coleção Files, separados pela Origin.
     private int ModCount =>
@@ -28,10 +27,20 @@ public partial class ModpackDetailPage : ComponentBase
     private int OverrideCount =>
         _selectedVersion?.Files.Count(f => f.Origin == ModFileOrigin.Override) ?? 0;
 
+    private long TotalSizeBytes => _selectedVersion?.Files.Sum(f => f.SizeBytes) ?? 0;
+
     [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
-
     [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
+    [Inject] private ArchiveModpackVersion ArchiveUseCase { get; set; } = default!;
+    [Inject] private RestoreModpackVersion RestoreUseCase { get; set; } = default!;
+    [Inject] private IServerRepository ServerRepository { get; set; } = default!;
+
+    public void Dispose()
+    {
+        _pollTimer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -43,39 +52,59 @@ public partial class ModpackDetailPage : ComponentBase
 
         if (_modpack is not null)
         {
-            _breadcrumbs =
-            [
-                new BreadcrumbItem("Modpacks", "/modpacks"),
-                new BreadcrumbItem(_modpack.Name, null, true)
-            ];
+            // Preserva a versão selecionada entre recargas (poll, publish); se ela
+            // sumiu ou não havia seleção, cai na mais recente (lista por Id desc).
+            var selected = _selectedVersionId != Guid.Empty
+                ? _modpack.Versions.FirstOrDefault(v => v.Id == _selectedVersionId)
+                : null;
+            selected ??= _modpack.Versions.OrderByDescending(v => v.Id).FirstOrDefault();
 
-            // Seleciona a versão mais recente por padrão (a lista já vem
-            // ordenada por ID decrescente na consulta).
-            var first = _modpack.Versions
-                .OrderByDescending(v => v.Id)
-                .FirstOrDefault();
-
-            if (first is not null)
+            if (selected is not null)
             {
-                _selectedVersionId = first.Id;
-                _selectedVersion = first;
+                _selectedVersionId = selected.Id;
+                _selectedVersion = selected;
             }
+
+            _serverCount = (await ServerRepository.ListByModpackAsync(ModpackId, CancellationToken.None)).Count;
         }
 
         _isLoading = false;
+        StartPollingIfResolving();
+    }
+
+    // Enquanto a versão selecionada está resolvendo, recarrega a cada 2s para o
+    // stepper e os contadores acompanharem a transição (→ Draft/Ready/Failed) sem
+    // o admin atualizar a página. Para de sondar quando sai de Resolving.
+    private void StartPollingIfResolving()
+    {
+        if (_selectedVersion?.State is not ModpackVersionState.Resolving)
+            return;
+
+        _pollTimer ??= new Timer(async _ =>
+        {
+            await LoadAsync();
+            await InvokeAsync(() =>
+            {
+                StateHasChanged();
+                if (_selectedVersion?.State is not ModpackVersionState.Resolving)
+                {
+                    _pollTimer?.Dispose();
+                    _pollTimer = null;
+                }
+            });
+        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
     }
 
     private void OnVersionChanged(Guid versionId)
     {
+        // Troca em memória: a Visão geral já tem todas as versões carregadas.
         _selectedVersionId = versionId;
         _selectedVersion = _modpack?.Versions.FirstOrDefault(v => v.Id == versionId);
     }
 
     private async Task OpenCreateVersion()
     {
-        var latest = _modpack?.Versions
-            .OrderByDescending(v => v.Id)
-            .FirstOrDefault();
+        var latest = _modpack?.Versions.OrderByDescending(v => v.Id).FirstOrDefault();
 
         var parameters = new DialogParameters
         {
@@ -88,7 +117,6 @@ public partial class ModpackDetailPage : ComponentBase
         };
 
         var dialog = await DialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);
-
         if (await dialog.Result is { Canceled: false })
             await LoadAsync();
     }
@@ -109,7 +137,7 @@ public partial class ModpackDetailPage : ComponentBase
         if (result.Succeeded)
         {
             Snackbar.Add("Rascunho apagado.", Severity.Success);
-            _selectedVersionId = Guid.Empty; // a seleção atual já não existe
+            _selectedVersionId = Guid.Empty;
             await LoadAsync();
         }
         else
@@ -136,7 +164,7 @@ public partial class ModpackDetailPage : ComponentBase
             if (result.Succeeded)
             {
                 Snackbar.Add("Versão publicada.", Severity.Success);
-                await LoadAsync(); // recarrega: o chip vira Publicado, o Publicar some
+                await LoadAsync();
             }
             else
                 Snackbar.Add(result.Error!, Severity.Error);
@@ -156,26 +184,95 @@ public partial class ModpackDetailPage : ComponentBase
             ["MemoryMb"] = _selectedVersion.RecommendedMemoryMb
         };
         var dialog = await DialogService.ShowAsync<EditVersionDialog>("Editar versão", p);
-        if (await dialog.Result is { Canceled: false }) await LoadAsync();
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
     }
 
-    private void OpenMods()
+    private async Task OpenCheckUpdates()
     {
         if (_selectedVersion is null)
             return;
 
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods");
+        var parameters = new DialogParameters
+        {
+            ["SourceVersionId"] = _selectedVersion.Id,
+            ["SourceVersion"] = _selectedVersion.Version
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<CheckUpdatesDialog>("Verificar atualizações", parameters, options);
+
+        // Ok devolve o Id do Draft novo — leva o admin direto para os mods dele.
+        if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
+            Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
     }
 
-    private void OpenOverrides() =>
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{_selectedVersionId}/overrides", true);
-
-    private async Task OpenNews()
+    private async Task Archive()
     {
-        var parameters = new DialogParameters { ["ModpackId"] = ModpackId };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
-        await DialogService.ShowAsync<NewsDialog>("Novidades", parameters, options);
+        if (_selectedVersion is null)
+            return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Arquivar versão",
+            $"Arquivar a versão {_selectedVersion.Version}? Ela some de novas instalações, mas quem "
+            + "já a usa continua rodando. Dá para restaurar depois.",
+            "Arquivar", cancelText: "Cancelar");
+        if (confirm is not true)
+            return;
+
+        var result = await ArchiveUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Versão arquivada.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
     }
 
-    private void OpenServers() => Navigation.NavigateTo($"/modpacks/{ModpackId}/servers");
+    private async Task Restore()
+    {
+        if (_selectedVersion is null)
+            return;
+
+        var result = await RestoreUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Versão restaurada.", Severity.Success);
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
+    }
+
+    // ---- Card "próximo passo": severidade e textos conforme o estado ----
+
+    private static Severity NextSeverity(ModpackVersionState state) => state switch
+    {
+        ModpackVersionState.Ready => Severity.Success,
+        ModpackVersionState.Failed => Severity.Error,
+        ModpackVersionState.Resolving => Severity.Info,
+        ModpackVersionState.Archived => Severity.Normal,
+        _ => Severity.Info
+    };
+
+    private static string NextTitle(ModpackVersionState state) => state switch
+    {
+        ModpackVersionState.Draft => "Rascunho editável",
+        ModpackVersionState.Resolving => "Processando mods…",
+        ModpackVersionState.Ready => "Versão publicada e imutável",
+        ModpackVersionState.Failed => "A resolução falhou",
+        ModpackVersionState.Archived => "Versão arquivada",
+        _ => ""
+    };
+
+    private static string NextHint(ModpackVersionState state) => state switch
+    {
+        ModpackVersionState.Draft => "Adicione mods e overrides; publique quando estiver pronto.",
+        ModpackVersionState.Resolving => "Baixando e verificando os arquivos. Isto atualiza sozinho.",
+        ModpackVersionState.Ready => "Pronta para uso. Crie um servidor ou verifique se há mods mais novos.",
+        ModpackVersionState.Failed => "Revise os mods e tente novamente numa nova versão.",
+        ModpackVersionState.Archived => "Some de novas instalações, mas quem já a fixou continua rodando.",
+        _ => ""
+    };
 }

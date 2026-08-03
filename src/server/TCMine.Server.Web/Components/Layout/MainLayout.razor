@@ -4,7 +4,15 @@
                   @bind-IsDarkMode="_isDarkMode"
                   ObserveSystemDarkModeChange="false"/>
 <MudPopoverProvider/>
-<MudDialogProvider/>
+@* Defaults consistentes para todos os diálogos: botão de fechar, fechar com ESC
+   ou clique no fundo, largura padrão. Diálogos que passam DialogOptions próprios
+   sobrescrevem estes. *@
+<MudDialogProvider CloseButton="true"
+                   CloseOnEscapeKey="true"
+                   BackdropClick="true"
+                   MaxWidth="MaxWidth.Small"
+                   FullWidth="true"
+                   Position="DialogPosition.Center"/>
 <MudSnackbarProvider/>
 
 <MudLayout>
@@ -19,7 +27,7 @@
         <MudTooltip Text="@(_isDarkMode ? "Tema claro" : "Tema escuro")">
             <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Filled.LightMode : Icons.Material.Filled.DarkMode)"
                            Color="Color.Inherit"
-                           OnClick="@(() => _isDarkMode = !_isDarkMode)"/>
+                           OnClick="ToggleDarkMode"/>
         </MudTooltip>
     </MudAppBar>
 

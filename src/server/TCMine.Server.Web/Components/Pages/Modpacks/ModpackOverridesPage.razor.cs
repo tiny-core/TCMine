@@ -13,7 +13,7 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackOverridesPage
 {
     private bool? _appliedDarkMode;
-    private List<BreadcrumbItem> _breadcrumbs = [];
+    private Modpack? _modpack;
     private bool _dirty;
 
     private string? _dragPath; // path a ser arrastado (definido no handle)
@@ -41,6 +41,7 @@ public partial class ModpackOverridesPage
     [Inject] private UndoOverrideMove UndoUseCase { get; set; } = default!;
     [Inject] private OverrideUndoService UndoService { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     // Tema do app, cascateado pelo MainLayout. O Monaco monta fora do
     // MudThemeProvider, então precisa deste sinal para casar claro/escuro.
@@ -52,17 +53,20 @@ public partial class ModpackOverridesPage
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
+    // Trocar versão numa aba por versão navega para a mesma aba da nova. Como o
+    // Monaco quebra com enhanced navigation, força recarregar (forceLoad).
+    private void OnVersionChanged(Guid versionId)
+    {
+        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/overrides", true);
+    }
+
     private async Task LoadAsync()
     {
         _isLoading = true;
-        _version = await Repository.GetVersionAsync(VersionId, CancellationToken.None);
 
-        _breadcrumbs =
-        [
-            new BreadcrumbItem("Modpacks", "/modpacks"),
-            new BreadcrumbItem("Modpack", $"/modpacks/{ModpackId}"),
-            new BreadcrumbItem("Overrides", null, true)
-        ];
+        // Modpack com versões (para o seletor do workspace) + a versão da rota.
+        _modpack = await Repository.GetWithVersionsAsync(ModpackId, CancellationToken.None);
+        _version = _modpack?.Versions.FirstOrDefault(v => v.Id == VersionId);
 
         BuildTree();
         _isLoading = false;
