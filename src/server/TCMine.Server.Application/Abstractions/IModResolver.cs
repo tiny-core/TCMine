@@ -48,7 +48,8 @@ public abstract record ModResolution
         string? Sha1,
         long SizeBytes,
         Uri DownloadUrl,
-        IReadOnlyList<ModDependency> Dependencies) : ModResolution;
+        IReadOnlyList<ModDependency> Dependencies,
+        string? IconUrl = null) : ModResolution;
 
     /// <summary>
     ///     O autor marcou allowModDistribution = false.

@@ -53,3 +53,9 @@ internal sealed class ModrinthDependency
 
     [JsonPropertyName("dependency_type")] public string? DependencyType { get; init; }
 }
+
+// Só o que precisamos do endpoint /v2/project/{id}: a URL do ícone.
+internal sealed record ModrinthProject
+{
+    [JsonPropertyName("icon_url")] public string? IconUrl { get; init; }
+}

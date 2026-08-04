@@ -63,13 +63,18 @@ public sealed partial class ModrinthModResolver(
                 .Select(d => new ModDependency(d.ProjectId!, MapDependencyKind(d.DependencyType)))
                 .ToList();
 
+            // O ícone é cosmético (grade do painel) e mora no endpoint do projeto,
+            // não no da versão — uma chamada extra, best-effort.
+            var iconUrl = await TryGetIconAsync(request.ProjectId, ct);
+
             return new ModResolution.Resolved(
                 version.Id,
                 file.Filename,
                 file.Hashes?.Sha1,
                 file.Size,
                 new Uri(file.Url),
-                dependencies);
+                dependencies,
+                iconUrl);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
@@ -79,6 +84,27 @@ public sealed partial class ModrinthModResolver(
         {
             LogResolveError(ex, request.ProjectId);
             return new ModResolution.NotFound("Falha ao consultar o Modrinth.");
+        }
+    }
+
+    // Busca a URL do ícone do projeto. Falha aqui nunca derruba a ingestão — o
+    // ícone é enfeite. Cancelamento (ct) propaga; erros de rede/JSON viram null.
+    private async Task<string?> TryGetIconAsync(string projectId, CancellationToken ct)
+    {
+        try
+        {
+            var project = await http.GetFromJsonAsync(
+                $"https://api.modrinth.com/v2/project/{Uri.EscapeDataString(projectId)}",
+                ModrinthJsonContext.Default.ModrinthProject, ct);
+            return project?.IconUrl;
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return null;
         }
     }
 

@@ -13,7 +13,14 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mb-4">
         <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Rounded="true" Size="Size.Large">
-            <MudIcon Icon="@Icons.Material.Filled.Inventory2"/>
+            @if (Modpack.IconBlobSha256 is { } sha)
+            {
+                <MudImage Src="@($"/api/v1/blobs/{sha}")"/>
+            }
+            else
+            {
+                <MudIcon Icon="@Icons.Material.Filled.Inventory2"/>
+            }
         </MudAvatar>
         <div>
             <MudText Typo="Typo.h4">@Modpack.Name</MudText>

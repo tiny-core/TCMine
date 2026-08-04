@@ -65,7 +65,8 @@ public partial class ModpacksPage : ComponentBase
             ["Summary"] = pack.Summary,
             ["Slug"] = pack.Slug,
             ["MinecraftVersion"] = pack.MinecraftVersion,
-            ["Loader"] = pack.Loader
+            ["Loader"] = pack.Loader,
+            ["IconUrl"] = pack.IconUrl?.ToString()
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 

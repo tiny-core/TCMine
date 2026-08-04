@@ -13,6 +13,28 @@
             <MudTextField @bind-Value="_summary" Label="Descrição" Lines="3"
                           HelperText="Opcional." Class="mt-3"/>
 
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Class="mt-3">
+                <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Rounded="true" Size="Size.Large">
+                    @if (IconUrl is not null)
+                    {
+                        <MudImage Src="@IconUrl"/>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Image"/>
+                    }
+                </MudAvatar>
+                <MudFileUpload T="IBrowserFile" FilesChanged="OnIconPicked" Accept="image/*"
+                               MaximumFileCount="1">
+                    <CustomContent Context="up">
+                        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image"
+                                   OnClick="@up.OpenFilePickerAsync">
+                            @(_iconName ?? "Trocar capa")
+                        </MudButton>
+                    </CustomContent>
+                </MudFileUpload>
+            </MudStack>
+
             @* Fixos após a criação — mostrados só como contexto. *@
             <MudStack Row="true" Spacing="1" Class="mt-3" Wrap="Wrap.Wrap">
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text"

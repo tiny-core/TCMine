@@ -19,7 +19,11 @@ public static class ModpackMappings
             Slug = modpack.Slug,
             Name = modpack.Name,
             Summary = modpack.Summary,
-            IconUrl = null, // preenchido quando houver endpoint de ícone
+            // A capa é um blob servido pelo endpoint genérico de blobs. Sem hash,
+            // fica null e a UI cai no avatar com a inicial.
+            IconUrl = modpack.IconBlobSha256 is { } sha
+                ? new Uri($"/api/v1/blobs/{sha}", UriKind.Relative)
+                : null,
             MinecraftVersion = modpack.MinecraftVersion,
             Loader = modpack.Loader
         };

@@ -32,6 +32,18 @@ else
                     Nova versão
                 </MudButton>
             }
+            @* Ações do modpack em si (não da versão), fora do caminho principal. *@
+            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                     AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                     title="Ações do modpack">
+                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="OpenEditModpack">
+                    Editar modpack
+                </MudMenuItem>
+                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                             OnClick="DeleteModpackAsync">
+                    Apagar modpack
+                </MudMenuItem>
+            </MudMenu>
         </HeaderActions>
         <ChildContent>
             @if (_modpack.Versions.Count is 0)

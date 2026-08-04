@@ -21,6 +21,7 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
         builder.Property(f => f.Side).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(f => f.Origin).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(f => f.OriginReference).HasMaxLength(256);
+        builder.Property(f => f.IconUrl).HasMaxLength(512);
 
         // Mesmo caminho duas vezes na mesma versão seria ambíguo na hora de
         // materializar a instância.

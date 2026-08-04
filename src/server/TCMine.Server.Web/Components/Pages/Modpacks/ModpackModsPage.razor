@@ -74,6 +74,21 @@ else
                          RowsPerPage="25"
                          Elevation="1">
                 <Columns>
+                    <TemplateColumn Title="" Sortable="false">
+                        <CellTemplate>
+                            <MudAvatar Size="Size.Small" Variant="Variant.Outlined">
+                                @if (!string.IsNullOrEmpty(context.Item.IconUrl))
+                                {
+                                    <MudImage Src="@context.Item.IconUrl"/>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@OriginIcon(context.Item.Origin)" Size="Size.Small"/>
+                                }
+                            </MudAvatar>
+                        </CellTemplate>
+                    </TemplateColumn>
+
                     <PropertyColumn Property="f => f.Path" Title="Caminho"/>
 
                     <TemplateColumn Title="Tamanho">

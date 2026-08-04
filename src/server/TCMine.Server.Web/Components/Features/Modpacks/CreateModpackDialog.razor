@@ -44,6 +44,16 @@
                     <MudSelectItem T="ModLoader" Value="l">@l</MudSelectItem>
                 }
             </MudSelect>
+
+            <MudFileUpload T="IBrowserFile" FilesChanged="OnIconPicked" Accept="image/*"
+                           MaximumFileCount="1" Class="mt-3">
+                <CustomContent Context="up">
+                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Image"
+                               OnClick="@up.OpenFilePickerAsync">
+                        @(_iconName ?? "Escolher capa (opcional)")
+                    </MudButton>
+                </CustomContent>
+            </MudFileUpload>
         </MudForm>
     </DialogContent>
     <DialogActions>

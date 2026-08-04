@@ -202,7 +202,8 @@ public sealed partial class ModpackIngestionService(
                 SizeBytes = stored.Length,
                 Side = item.Side,
                 Origin = item.Origin,
-                OriginReference = resolved.VersionId // id da versão fixada (base do check de updates)
+                OriginReference = resolved.VersionId, // id da versão fixada (base do check de updates)
+                IconUrl = resolved.IconUrl // cosmético: exibido na grade de mods
             };
 
             // Mesmo mod em outra versão do .jar (jei-1.2.0 → jei-1.5)? Substitui,

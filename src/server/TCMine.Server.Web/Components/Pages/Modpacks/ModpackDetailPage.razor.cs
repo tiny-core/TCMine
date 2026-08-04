@@ -34,6 +34,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
     [Inject] private ArchiveModpackVersion ArchiveUseCase { get; set; } = default!;
     [Inject] private RestoreModpackVersion RestoreUseCase { get; set; } = default!;
+    [Inject] private DeleteModpack DeleteModpackUseCase { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
 
     public void Dispose()
@@ -205,6 +206,56 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         // Ok devolve o Id do Draft novo — leva o admin direto para os mods dele.
         if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
             Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
+    }
+
+    // ---- Ações do modpack (não da versão) ----
+
+    private async Task OpenEditModpack()
+    {
+        if (_modpack is null)
+            return;
+
+        var parameters = new DialogParameters
+        {
+            ["ModpackId"] = _modpack.Id,
+            ["Name"] = _modpack.Name,
+            ["Summary"] = _modpack.Summary,
+            ["Slug"] = _modpack.Slug,
+            ["MinecraftVersion"] = _modpack.MinecraftVersion,
+            ["Loader"] = _modpack.Loader,
+            ["IconUrl"] = _modpack.IconBlobSha256 is { } sha ? $"/api/v1/blobs/{sha}" : null
+        };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = await DialogService.ShowAsync<EditModpackDialog>("Editar modpack", parameters, options);
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
+    }
+
+    private async Task DeleteModpackAsync()
+    {
+        if (_modpack is null)
+            return;
+
+        var confirm = await DialogService.ShowMessageBoxAsync(
+            "Apagar modpack",
+            $"Apagar \"{_modpack.Name}\"? Todas as versões e arquivos serão removidos. Isto é irreversível.",
+            "Apagar", cancelText: "Cancelar");
+        if (confirm is not true)
+            return;
+
+        var result = await DeleteModpackUseCase.HandleAsync(_modpack.Id, CancellationToken.None);
+        if (result.Succeeded)
+        {
+            Snackbar.Add("Modpack apagado.", Severity.Success);
+            // O modpack desta página deixou de existir; volta para o catálogo.
+            Navigation.NavigateTo("/modpacks");
+        }
+        else
+        {
+            // A barreira dos servidores volta como mensagem clara aqui.
+            Snackbar.Add(result.Error!, Severity.Error);
+        }
     }
 
     private async Task Archive()

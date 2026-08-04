@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -9,6 +10,8 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 public partial class CreateModpackDialog
 {
     private MudForm _form = null!;
+    private IBrowserFile? _icon;
+    private string? _iconName;
     private ModLoader _loader = ModLoader.NeoForge;
     private bool _mcReleasesOnly = true;
     private IReadOnlyList<string> _mcVersions = [];
@@ -25,6 +28,7 @@ public partial class CreateModpackDialog
 
     [Inject] private IVersionCatalog Catalog { get; set; } = default!;
     [Inject] private CreateModpack CreateModpackUseCase { get; set; } = default!;
+    [Inject] private SetModpackIcon IconUseCase { get; set; } = default!;
 
     protected override async Task OnInitializedAsync() => await ReloadMc();
 
@@ -52,22 +56,54 @@ public partial class CreateModpackDialog
         _slugEditedManually = true;
     }
 
-    private async Task Submit()
+    private void OnIconPicked(IBrowserFile file)
     {
-        await _form.ValidateAsync();
-        if (!_form.IsValid)
+        _icon = file;
+        _iconName = file.Name;
+    }
+
+    private Task Submit()
+    {
+        // Fluxo próprio (em vez do SubmitAsync padrão) porque a capa é um segundo
+        // passo depois de criar: criamos o modpack, e só então enviamos a imagem
+        // para o Id recém-criado.
+        return RunAsync(async () =>
+        {
+            await _form.ValidateAsync();
+            if (!_form.IsValid)
+                return;
+
+            var command = new CreateModpackCommand(
+                _slug, _name,
+                string.IsNullOrWhiteSpace(_summary) ? null : _summary,
+                _minecraftVersion, _loader);
+
+            var result = await CreateModpackUseCase.HandleAsync(command, CancellationToken.None);
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+                return;
+            }
+
+            await UploadIconIfAnyAsync(result.Value);
+
+            Snackbar.Add("Modpack criado.", Severity.Success);
+            Dialog.Close(DialogResult.Ok(result.Value));
+        });
+    }
+
+    // Envia a capa (se escolhida) para o modpack. Falhar aqui não desfaz a
+    // criação — o modpack existe, só ficou sem capa; avisamos e seguimos.
+    private async Task UploadIconIfAnyAsync(Guid modpackId)
+    {
+        if (_icon is null)
             return;
 
-        var command = new CreateModpackCommand(
-            _slug, _name,
-            string.IsNullOrWhiteSpace(_summary) ? null : _summary,
-            _minecraftVersion, _loader);
-
-        // A validação de regra de negócio (slug duplicado, formato) volta como
-        // mensagem via Result, não exceção — a base transforma em snackbar.
-        await SubmitAsync(
-            () => CreateModpackUseCase.HandleAsync(command, CancellationToken.None),
-            "Modpack criado.");
+        // Limite defensivo de 5 MB para um ícone.
+        await using var stream = _icon.OpenReadStream(5 * 1024 * 1024);
+        var result = await IconUseCase.HandleAsync(modpackId, stream, _icon.ContentType, CancellationToken.None);
+        if (!result.Succeeded)
+            Snackbar.Add($"Modpack criado, mas a capa falhou: {result.Error}", Severity.Warning);
     }
 
     // Deriva um slug a partir do nome: minúsculas, e tudo que não for letra ou

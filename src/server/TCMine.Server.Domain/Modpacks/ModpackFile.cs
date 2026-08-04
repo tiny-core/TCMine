@@ -35,6 +35,12 @@ public sealed class ModpackFile : Entity
 
     /// <summary>ID do projeto/arquivo na origem, quando houver.</summary>
     public string? OriginReference { get; set; }
+
+    /// <summary>
+    ///     URL do ícone do mod na origem (ex.: Modrinth), quando houver. Puramente
+    ///     cosmético — exibido na grade de mods do painel. Nunca vai ao launcher.
+    /// </summary>
+    public string? IconUrl { get; set; }
 }
 
 public enum ModFileOrigin

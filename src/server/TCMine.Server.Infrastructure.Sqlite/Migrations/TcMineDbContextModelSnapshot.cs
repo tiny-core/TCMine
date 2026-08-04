@@ -191,6 +191,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("IconUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("ModpackVersionId")
                         .HasColumnType("TEXT");
 
