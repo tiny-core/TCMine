@@ -119,9 +119,18 @@ public sealed partial class ModpackIngestionService(
         ModLoader loader,
         CancellationToken ct)
     {
-        // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido,
-        // mas está sem API key, IsAvailable é false e caímos no erro.
-        var resolver = resolvers.FirstOrDefault(r => r.Origin == item.Origin && r.IsAvailable);
+        // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido, mas
+        // está sem API key, ele se declara indisponível e caímos no erro.
+        IModResolver? resolver = null;
+        foreach (var candidate in resolvers.Where(r => r.Origin == item.Origin))
+        {
+            if (!await candidate.IsAvailableAsync(ct))
+                continue;
+
+            resolver = candidate;
+            break;
+        }
+
         if (resolver is null)
             return ResolveOutcome.Fail($"{item.ProjectId} (origem {item.Origin} indisponível)");
 

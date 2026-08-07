@@ -93,7 +93,7 @@ public sealed class ModpackIngestionServiceTests
         private readonly HashSet<string> _notFound = notFound ?? [];
 
         public ModFileOrigin Origin => ModFileOrigin.Modrinth;
-        public bool IsAvailable => true;
+        public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
 
         public Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct)
         {

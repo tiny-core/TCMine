@@ -8,10 +8,15 @@ using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class ModrinthSearchDialog
+public partial class ModSearchDialog
 {
+    /// <summary>Origens utilizáveis agora (CurseForge só aparece com API key).</summary>
+    private readonly List<ModFileOrigin> _available = [];
+
     private readonly HashSet<string> _selected = [];
+
     private bool _isSearching;
+    private ModFileOrigin _origin = ModFileOrigin.Modrinth;
 
     private string _query = "";
     private IReadOnlyList<ModSearchResult> _results = [];
@@ -21,8 +26,34 @@ public partial class ModrinthSearchDialog
     [Parameter] public string MinecraftVersion { get; set; } = "";
     [Parameter] public ModLoader Loader { get; set; }
 
-    [Inject] private IModSearch Search { get; set; } = default!;
+    [Inject] private IEnumerable<IModSearch> Searches { get; set; } = default!;
     [Inject] private IIngestionQueue Queue { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var search in Searches)
+        {
+            if (await search.IsAvailableAsync(CancellationToken.None))
+                _available.Add(search.Origin);
+        }
+
+        // Sem Modrinth configurado seria estranho, mas não presumimos: fica a
+        // primeira origem disponível.
+        if (!_available.Contains(_origin) && _available.Count > 0)
+            _origin = _available[0];
+    }
+
+    private async Task OnOriginChanged(ModFileOrigin origin)
+    {
+        // Resultados de uma origem não valem para outra: limpa e refaz a busca.
+        _origin = origin;
+        _selected.Clear();
+        _results = [];
+        _searched = false;
+
+        if (!string.IsNullOrWhiteSpace(_query))
+            await DoSearch();
+    }
 
     private async Task OnKeyUp(KeyboardEventArgs e)
     {
@@ -35,11 +66,15 @@ public partial class ModrinthSearchDialog
         if (string.IsNullOrWhiteSpace(_query))
             return;
 
+        var search = Searches.FirstOrDefault(s => s.Origin == _origin);
+        if (search is null)
+            return;
+
         _isSearching = true;
         try
         {
             var q = new ModSearchQuery(_query.Trim(), MinecraftVersion, Loader);
-            _results = await Search.SearchAsync(q, CancellationToken.None);
+            _results = await search.SearchAsync(q, CancellationToken.None);
             _searched = true;
         }
         finally
@@ -60,12 +95,13 @@ public partial class ModrinthSearchDialog
     {
         return RunAsync(async () =>
         {
-            // Slug como ProjectId → vira ProjectSlug no arquivo, identidade
-            // estável do mod. Lado Both por padrão; a grade permite ajustar
-            // depois. FileId null = versão mais recente compatível.
+            // O ProjectId da busca vira ProjectSlug do arquivo — identidade
+            // estável do mod (slug no Modrinth, id numérico no CurseForge).
+            // Lado Both por padrão; a grade permite ajustar depois.
+            // FileId null = versão mais recente compatível.
             var items = _results
                 .Where(r => _selected.Contains(r.ProjectId))
-                .Select(r => new ModIngestionItem(ModFileOrigin.Modrinth, r.ProjectId, null, FileSide.Both))
+                .Select(r => new ModIngestionItem(_origin, r.ProjectId, null, FileSide.Both))
                 .ToList();
 
             await Queue.EnqueueAsync(VersionId, items, CancellationToken.None);

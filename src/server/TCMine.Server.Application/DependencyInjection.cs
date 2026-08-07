@@ -1,8 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Security;
-using TCMine.Server.Application.Settings;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Application.Settings;
 
 namespace TCMine.Server.Application;
 

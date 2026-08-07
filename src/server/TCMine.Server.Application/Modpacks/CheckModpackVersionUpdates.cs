@@ -29,14 +29,24 @@ public sealed class CheckModpackVersionUpdates(
 
         foreach (var file in version.Files)
         {
-            // Só mods com identidade e version id fixado (Modrinth, por ora) se
-            // checam. CurseForge importado e uploads manuais ficam de fora.
-            if (file.Origin != ModFileOrigin.Modrinth
+            // Só mods com identidade e id de arquivo fixado se checam — agora
+            // Modrinth e CurseForge, já que ambos têm resolver. Uploads manuais
+            // e overrides ficam de fora: não há origem a consultar.
+            if (file.Origin is not (ModFileOrigin.Modrinth or ModFileOrigin.CurseForge)
                 || file.ProjectSlug is null
                 || file.OriginReference is null)
                 continue;
 
-            var resolver = resolvers.FirstOrDefault(r => r.Origin == file.Origin && r.IsAvailable);
+            IModResolver? resolver = null;
+            foreach (var candidate in resolvers.Where(r => r.Origin == file.Origin))
+            {
+                if (!await candidate.IsAvailableAsync(ct))
+                    continue;
+
+                resolver = candidate;
+                break;
+            }
+
             if (resolver is null)
                 continue;
 

@@ -23,7 +23,7 @@ public sealed partial class ModrinthModResolver(
     public ModFileOrigin Origin => ModFileOrigin.Modrinth;
 
     // Sempre disponível: não depende de configuração nenhuma.
-    public bool IsAvailable => true;
+    public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
 
     public async Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct)
     {

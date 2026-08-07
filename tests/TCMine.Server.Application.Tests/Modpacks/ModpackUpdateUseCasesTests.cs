@@ -156,7 +156,7 @@ internal static class Fakes
 internal sealed class FakeResolver(Dictionary<string, string> latestVersionIds) : IModResolver
 {
     public ModFileOrigin Origin => ModFileOrigin.Modrinth;
-    public bool IsAvailable => true;
+    public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
 
     public Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct)
     {

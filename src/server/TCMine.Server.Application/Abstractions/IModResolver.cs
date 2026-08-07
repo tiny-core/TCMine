@@ -17,8 +17,10 @@ public interface IModResolver
     ///     Está configurado e pronto para uso? CurseForge sem API key devolve
     ///     false, e o sistema segue funcionando só com Modrinth — não force
     ///     ninguém a criar conta no CurseForge para usar o TCMine.
+    ///     Assíncrono porque a chave vive na configuração da instalação (banco),
+    ///     e pode ser trocada em tempo de execução pelo painel.
     /// </summary>
-    bool IsAvailable { get; }
+    ValueTask<bool> IsAvailableAsync(CancellationToken ct);
 
     Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct);
 }

@@ -91,8 +91,8 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
-        var dialog = await DialogService.ShowAsync<ModrinthSearchDialog>(
-            "Buscar mods no Modrinth", parameters, options);
+        var dialog = await DialogService.ShowAsync<ModSearchDialog>(
+            "Buscar mods", parameters, options);
 
         if (await dialog.Result is { Canceled: false })
             await WatchIngestionAsync();

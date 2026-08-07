@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Application.Abstractions;
@@ -95,7 +96,7 @@ public sealed class SettingsRepository : ISettingsRepository
         {
             return _protector.Unprotect(ciphertext);
         }
-        catch (System.Security.Cryptography.CryptographicException)
+        catch (CryptographicException)
         {
             // Chaves de proteção trocadas (máquina nova, keyring perdido): o
             // valor virou lixo. Tratar como "não configurado" é melhor do que

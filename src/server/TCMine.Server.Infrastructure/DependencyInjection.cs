@@ -4,6 +4,7 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Infrastructure.Docker;
 using TCMine.Server.Infrastructure.Ingestion;
+using TCMine.Server.Infrastructure.Ingestion.CurseForge;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Instances;
 using TCMine.Server.Infrastructure.Persistence;
@@ -53,6 +54,21 @@ public static class DependencyInjection
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
             })
             .AddStandardResilienceHandler();
+
+        // ---- CurseForge ----
+        // A chave da API não entra aqui: ela vive na configuração da instalação
+        // e é lida a cada chamada, para trocá-la pelo painel valer na hora.
+        services.AddHttpClient<CurseForgeApiClient>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.curseforge.com");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
+
+        // Registro por origem: a ingestão e a busca recebem IEnumerable<> e
+        // escolhem a implementação pela Origin de cada item.
+        services.AddScoped<IModResolver, CurseForgeModResolver>();
+        services.AddScoped<IModSearch, CurseForgeModSearch>();
 
         services.AddHttpClient<IModDownloader, HttpModDownloader>(client =>
             {

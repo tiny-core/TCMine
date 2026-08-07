@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Ingestion.Modrinth;
 
@@ -17,6 +18,11 @@ public sealed partial class ModrinthModSearch(
 {
     private static readonly string[] FacetsValue = ["project_type:mod"];
     private readonly ILogger<ModrinthModSearch> _logger = logger;
+
+    public ModFileOrigin Origin => ModFileOrigin.Modrinth;
+
+    // Não depende de chave nenhuma: está sempre à disposição.
+    public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
 
     public async Task<IReadOnlyList<ModSearchResult>> SearchAsync(ModSearchQuery query, CancellationToken ct)
     {

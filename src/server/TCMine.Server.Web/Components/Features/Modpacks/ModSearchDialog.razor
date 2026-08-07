@@ -1,10 +1,25 @@
-﻿@inherits DialogComponentBase
+@using TCMine.Server.Domain.Modpacks
+@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
-        <DialogTitle Icon="@Icons.Material.Filled.CloudDownload" Text="Buscar mods no Modrinth"/>
+        <DialogTitle Icon="@Icons.Material.Filled.CloudDownload" Text="Buscar mods"/>
     </TitleContent>
     <DialogContent>
+        @* Origem: só aparece quando há mais de uma disponível. O CurseForge
+           entra na lista assim que a chave de API é configurada. *@
+        @if (_available.Count > 1)
+        {
+            <MudToggleGroup T="ModFileOrigin" Value="_origin" ValueChanged="OnOriginChanged"
+                            Color="Color.Primary" Size="Size.Small" CheckMark="true"
+                            SelectionMode="SelectionMode.SingleSelection" Class="mb-3">
+                @foreach (var origin in _available)
+                {
+                    <MudToggleItem T="ModFileOrigin" Value="origin" Text="@origin.ToString()"/>
+                }
+            </MudToggleGroup>
+        }
+
         <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
             <MudTextField @bind-Value="_query"
                           Placeholder="Nome do mod…"
@@ -22,8 +37,15 @@
         </MudStack>
 
         <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-1">
-            Filtrando por Minecraft @MinecraftVersion · @Loader
+            @_origin · Minecraft @MinecraftVersion · @Loader
         </MudText>
+
+        @if (_available.Count == 1 && _origin is ModFileOrigin.Modrinth)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
+                Configure a chave da API em Configurações para buscar também no CurseForge.
+            </MudText>
+        }
 
         @if (_isSearching)
         {
