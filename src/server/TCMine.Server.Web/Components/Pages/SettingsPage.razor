@@ -1,0 +1,141 @@
+@page "/settings"
+@using TCMine.Contracts.Modpacks
+
+<PageTitle>Configurações — TCMine</PageTitle>
+
+<PageHeader Title="Configurações"
+            Subtitle="Padrões e integrações desta instalação."
+            Icon="@Icons.Material.Filled.Settings">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Save"
+               OnClick="Save" Disabled="_isSaving || _isLoading">
+        @if (_isSaving)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+        }
+        Salvar
+    </MudButton>
+</PageHeader>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+}
+else
+{
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
+
+        <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Valores já preenchidos ao criar um modpack ou uma versão. Nada aqui altera
+                o que já existe.
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudTextField @bind-Value="_defaultMcVersion" Label="Versão do Minecraft padrão"
+                                  Variant="Variant.Outlined" Placeholder="ex.: 1.21.1"
+                                  HelperText="Deixe vazio para não sugerir nenhuma."/>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudSelect T="ModLoader" @bind-Value="_defaultLoader" Label="Loader padrão"
+                               Variant="Variant.Outlined">
+                        @foreach (var loader in Enum.GetValues<ModLoader>())
+                        {
+                            <MudSelectItem T="ModLoader" Value="loader">@loader</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_defaultMemoryMb" Label="RAM padrão (MB)"
+                                     Variant="Variant.Outlined" Min="512" Step="512"/>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">
+            <MudText Typo="Typo.subtitle1" Class="mb-1">CurseForge</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Sem a chave da API, o TCMine funciona só com o Modrinth. A chave é
+                guardada cifrada e nunca é exibida de volta.
+            </MudText>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                @if (_hasCurseForgeKey)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.CheckCircle">
+                        Chave configurada
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.RemoveCircleOutline">
+                        Sem chave
+                    </MudChip>
+                }
+            </MudStack>
+
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_curseForgeKey" Label="Chave da API"
+                                  InputType="InputType.Password" Variant="Variant.Outlined"
+                                  Disabled="_clearCurseForgeKey"
+                                  HelperText="@(_hasCurseForgeKey ? "Deixe vazio para manter a chave atual." : "Cole a chave gerada no console do CurseForge.")"/>
+                </MudItem>
+                @if (_hasCurseForgeKey)
+                {
+                    <MudItem xs="12" md="4" Class="d-flex align-center">
+                        <MudCheckBox @bind-Value="_clearCurseForgeKey" Color="Color.Error"
+                                     Label="Remover a chave"/>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="E-mail" Icon="@Icons.Material.Filled.Email" Class="pa-6">
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+                Usado na recuperação de senha. Enquanto não houver servidor configurado,
+                as mensagens vão para o log do servidor em vez de serem enviadas.
+            </MudText>
+
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_smtpHost" Label="Servidor SMTP"
+                                  Variant="Variant.Outlined" Placeholder="smtp.exemplo.com"/>
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_smtpPort" Label="Porta"
+                                     Variant="Variant.Outlined" Min="1" Max="65535"/>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_smtpUser" Label="Usuário"
+                                  Variant="Variant.Outlined"/>
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField @bind-Value="_smtpPassword" Label="Senha"
+                                  InputType="InputType.Password" Variant="Variant.Outlined"
+                                  Disabled="_clearSmtpPassword"
+                                  HelperText="@(_hasSmtpPassword ? "Deixe vazio para manter a senha atual." : null)"/>
+                </MudItem>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_smtpFrom" Label="Remetente"
+                                  Variant="Variant.Outlined"
+                                  Placeholder="TCMine &lt;nao-responda@exemplo.com&gt;"/>
+                </MudItem>
+                <MudItem xs="12" md="4" Class="d-flex align-center">
+                    <MudSwitch @bind-Value="_smtpUseTls" Color="Color.Primary" Label="Usar TLS"/>
+                </MudItem>
+                @if (_hasSmtpPassword)
+                {
+                    <MudItem xs="12">
+                        <MudCheckBox @bind-Value="_clearSmtpPassword" Color="Color.Error"
+                                     Label="Remover a senha salva"/>
+                    </MudItem>
+                }
+            </MudGrid>
+        </MudTabPanel>
+
+    </MudTabs>
+}

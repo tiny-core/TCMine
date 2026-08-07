@@ -65,6 +65,7 @@ public static class DependencyInjection
         services.AddScoped<IServerRepository, ServerRepository>();
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
 
         // Sem SMTP ainda: o link de recuperação vai para o log. Trocar por um

@@ -413,6 +413,61 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("game_servers", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Settings.InstallationSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CurseForgeApiKeyEncrypted")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DefaultLoader")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("DefaultMemoryMb")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("DefaultMinecraftVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SmtpFrom")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SmtpHost")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SmtpPasswordEncrypted")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SmtpPort")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("SmtpUseTls")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SmtpUser")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("installation_settings", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.ModpackFile", b =>
                 {
                     b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)

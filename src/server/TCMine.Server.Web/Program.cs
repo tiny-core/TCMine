@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -78,6 +79,16 @@ builder.Services
 
 builder.Services.AddScoped<LauncherNotifier>();
 builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
+
+// ---------- Proteção de dados ----------
+// Chaves persistidas em disco: sem isto elas são regeradas a cada arranque, o
+// que derrubaria toda sessão e tornaria ilegível o que foi cifrado antes (a
+// chave da API do CurseForge, a senha de SMTP).
+builder.Services
+    .AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        Path.Combine(builder.Environment.ContentRootPath, "data", "keys")))
+    .SetApplicationName("TCMine");
 
 // ---------- Identidade ----------
 // Cookie de sessão para o painel. O launcher usa outro caminho (handshake +

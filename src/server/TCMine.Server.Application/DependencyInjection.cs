@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Application.Servers;
 
 namespace TCMine.Server.Application;
@@ -57,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<AuthenticateUser>();
         services.AddScoped<CreateFirstAdmin>();
         services.AddScoped<ChangePassword>();
+        services.AddScoped<UpdateSettings>();
         services.AddScoped<RequestPasswordReset>();
         services.AddScoped<ResetPassword>();
 

@@ -3,6 +3,7 @@ using TCMine.Server.Domain.Blobs;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Infrastructure.Persistence;
 
@@ -18,6 +19,8 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<Blob> Blobs => Set<Blob>();
 
     public DbSet<News> News => Set<News>();
+
+    public DbSet<InstallationSettings> InstallationSettings => Set<InstallationSettings>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
