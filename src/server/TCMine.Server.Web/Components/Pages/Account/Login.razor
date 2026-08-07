@@ -1,0 +1,34 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@* SSR estático: gravar o cookie de sessão exige HttpContext, que não existe
+   dentro do circuito interativo. O formulário posta para /auth/login.
+   Os componentes MudBlazor renderizam normalmente em SSR; o name="..." em cada
+   campo é o que faz o form nativo enviar os valores. *@
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+<PageTitle>Entrar — TCMine</PageTitle>
+
+<AuthShell Title="Entrar" Subtitle="Painel de administração." Error="@Error">
+    <form method="post" action="/auth/login">
+        <AntiforgeryToken/>
+        <input type="hidden" name="returnUrl" value="@ReturnUrl"/>
+
+        <MudStack Spacing="4">
+            <MudTextField T="string" name="email" autofocus="true" InputType="InputType.Email"
+                          Label="E-mail" Variant="Variant.Outlined" Required="true"/>
+
+            <MudTextField T="string" name="password" InputType="InputType.Password"
+                          Label="Senha" Variant="Variant.Outlined" Required="true"/>
+
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                       Color="Color.Primary" Size="Size.Large" FullWidth="true">
+                Entrar
+            </MudButton>
+
+            <MudLink Href="/forgot-password" Typo="Typo.body2" Class="d-block text-center">
+                Esqueci minha senha
+            </MudLink>
+        </MudStack>
+    </form>
+</AuthShell>

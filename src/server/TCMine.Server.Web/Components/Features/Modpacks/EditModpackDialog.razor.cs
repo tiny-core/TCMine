@@ -22,7 +22,8 @@ public partial class EditModpackDialog
     [Parameter] public ModLoader Loader { get; set; }
 
     /// <summary>URL da capa atual, para preview (null = ainda sem capa).</summary>
-    [Parameter] public string? IconUrl { get; set; }
+    [Parameter]
+    public string? IconUrl { get; set; }
 
     [Inject] private UpdateModpack UpdateUseCase { get; set; } = default!;
     [Inject] private SetModpackIcon IconUseCase { get; set; } = default!;

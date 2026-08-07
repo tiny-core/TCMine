@@ -70,4 +70,9 @@
     <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12"/>
     <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12"/>
   </ItemGroup>
+
+  <!-- Autenticação: hash de senha (PBKDF2 vetado) e login federado Microsoft. -->
+  <ItemGroup Label="step_12">
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="10.0.10"/>
+  </ItemGroup>
 </Project>

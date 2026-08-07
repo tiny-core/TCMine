@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -78,16 +79,32 @@ builder.Services
 builder.Services.AddScoped<LauncherNotifier>();
 builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 
-// ---------- Identidade (provisória) ----------
-if (builder.Environment.IsDevelopment())
-    builder.Services.AddScoped<ICurrentUserScope, DevelopmentUserScope>();
-else
-    // Falha explícita e cedo. Subir em produção sem autorização real seria
-    // pior do que não subir.
-{
-    throw new InvalidOperationException(
-        "Autenticação ainda não implementada. Esta build só roda em Development.");
-}
+// ---------- Identidade ----------
+// Cookie de sessão para o painel. O launcher usa outro caminho (handshake +
+// download por hash), que segue anônimo — ver os endpoints marcados abaixo.
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/login";
+        options.LogoutPath = "/auth/logout";
+        options.AccessDeniedPath = "/login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
+
+        // HttpOnly + SameSite=Lax: o cookie não é legível por script e não
+        // acompanha requisição cross-site, o que corta CSRF e roubo por XSS.
+        options.Cookie.Name = "tcmine.auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    });
+
+builder.Services.AddAuthorization();
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ICurrentUserScope, HttpContextUserScope>();
 
 builder.Services.AddTcMineApplication();
 
@@ -116,6 +133,9 @@ app.MapBlobs();
 
 app.MapHealthChecks("/health");
 
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 // MapStaticAssets (em vez de UseStaticFiles) casa com o @Assets[...] usado no
@@ -124,9 +144,15 @@ app.UseAntiforgery();
 // em dev e em produção.
 app.MapStaticAssets();
 
-app.MapRazorComponents<App>()
-    .AddInteractiveServerRenderMode();
+app.MapAuth();
 
-app.MapHub<MainHub>(HubRoutes.Main);
+// RequireAuthorization no painel inteiro: o padrão passa a ser "precisa de
+// sessão", e as exceções (login, setup) se marcam com [AllowAnonymous]. O
+// inverso — proteger página a página — esquece uma cedo ou tarde.
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode()
+    .RequireAuthorization();
+
+app.MapHub<MainHub>(HubRoutes.Main).RequireAuthorization();
 
 app.Run();

@@ -5,10 +5,34 @@ namespace TCMine.Server.Domain.Identity;
 public sealed class User : Entity
 {
     /// <summary>
-    ///     Object ID da Microsoft (claim "oid"). É a chave estável de identidade:
-    ///     e-mail e nome de exibição mudam, o oid não.
+    ///     E-mail: é por ele que se faz login com conta local, e é o que liga uma
+    ///     conta local à conta Microsoft quando a mesma pessoa usa as duas.
     /// </summary>
-    public required string MicrosoftObjectId { get; set; }
+    public required string Email { get; set; }
+
+    /// <summary>
+    ///     Hash da senha da conta local. Nulo quando o usuário só entra pela
+    ///     Microsoft — nunca guardamos senha em claro, e conta sem senha
+    ///     simplesmente não passa pelo login local.
+    /// </summary>
+    public string? PasswordHash { get; set; }
+
+    /// <summary>
+    ///     Object ID da Microsoft (claim "oid"). É a chave estável de identidade
+    ///     do lado Microsoft: e-mail e nome de exibição mudam, o oid não. Nulo
+    ///     enquanto a conta for só local.
+    /// </summary>
+    public string? MicrosoftObjectId { get; set; }
+
+    /// <summary>
+    ///     Hash SHA-256 do token de recuperação de senha em aberto. Guardamos o
+    ///     hash, não o token: se o banco vazar, os links de reset já emitidos não
+    ///     servem para nada. Nulo quando não há pedido pendente.
+    /// </summary>
+    public string? PasswordResetTokenHash { get; set; }
+
+    /// <summary>Quando o token de recuperação expira. Nulo se não há pedido.</summary>
+    public DateTimeOffset? PasswordResetTokenExpiresAt { get; set; }
 
     /// <summary>UUID da conta Minecraft, sem hífens. Nulo até o primeiro login no jogo.</summary>
     public string? MinecraftUuid { get; set; }

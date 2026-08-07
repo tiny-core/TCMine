@@ -7,6 +7,7 @@ using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Instances;
 using TCMine.Server.Infrastructure.Persistence;
+using TCMine.Server.Infrastructure.Security;
 using TCMine.Server.Infrastructure.Storage;
 using TCMine.Server.Infrastructure.Versions;
 
@@ -62,6 +63,13 @@ public static class DependencyInjection
         services.AddScoped<INewsRepository, NewsRepository>();
 
         services.AddScoped<IServerRepository, ServerRepository>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
+
+        // Sem SMTP ainda: o link de recuperação vai para o log. Trocar por um
+        // SmtpEmailSender quando a tela de Configurações existir.
+        services.AddSingleton<IEmailSender, LoggingEmailSender>();
 
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();

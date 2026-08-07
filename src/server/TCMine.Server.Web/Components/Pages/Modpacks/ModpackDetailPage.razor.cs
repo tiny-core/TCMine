@@ -196,8 +196,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
         var parameters = new DialogParameters
         {
-            ["SourceVersionId"] = _selectedVersion.Id,
-            ["SourceVersion"] = _selectedVersion.Version
+            ["SourceVersionId"] = _selectedVersion.Id, ["SourceVersion"] = _selectedVersion.Version
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 

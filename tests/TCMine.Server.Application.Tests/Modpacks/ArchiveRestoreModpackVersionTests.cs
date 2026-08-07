@@ -124,8 +124,12 @@ public sealed class ArchiveRestoreModpackVersionTests
             throw new NotImplementedException();
 
         public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) => throw new NotImplementedException();
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
+
+        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
+            throw new NotImplementedException();
 
         public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) =>
             throw new NotImplementedException();

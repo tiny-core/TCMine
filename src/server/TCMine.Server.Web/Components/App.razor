@@ -16,13 +16,16 @@
 
     <title>TCMine Server</title>
 
-    <HeadOutlet @rendermode="InteractiveServer"/>
+    <HeadOutlet @rendermode="@RenderModeForPage"/>
 </head>
 <body>
-@* Marcar o Routes na raiz torna toda a árvore interativa — layout,
-       páginas e componentes. É o modo global, e evita ter que repetir a
-       diretiva em cada página. *@
-<Routes @rendermode="InteractiveServer"/>
+@* Marcar o Routes na raiz torna toda a árvore interativa — layout, páginas e
+       componentes —, evitando repetir a diretiva em cada página.
+       A exceção são as páginas marcadas com [ExcludeFromInteractiveRouting]
+       (login e setup): elas precisam renderizar como SSR estático, porque
+       gravar o cookie de autenticação exige um HttpContext vivo, coisa que não
+       existe dentro do circuito SignalR. *@
+<Routes @rendermode="@RenderModeForPage"/>
 
 <script src="@Assets["_framework/blazor.web.js"]"></script>
 <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>

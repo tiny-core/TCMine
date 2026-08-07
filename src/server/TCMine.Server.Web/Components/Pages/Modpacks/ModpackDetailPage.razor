@@ -1,7 +1,6 @@
 @page "/modpacks/{ModpackId:guid}"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Domain.Modpacks
 @using TCMine.UI.Shared.Formatting
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
@@ -73,26 +72,33 @@ else
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                                        Href="@($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods")"
-                                       StartIcon="@Icons.Material.Filled.Add">Adicionar mods</MudButton>
+                                       StartIcon="@Icons.Material.Filled.Add">Adicionar mods
+                            </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
                                        StartIcon="@Icons.Material.Filled.Publish"
                                        OnClick="Publish"
-                                       Disabled="_isPublishing || _selectedVersion.Files.Count == 0">Publicar</MudButton>
-                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="OpenEditVersion">Editar</MudButton>
+                                       Disabled="_isPublishing || _selectedVersion.Files.Count == 0">Publicar
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="OpenEditVersion">Editar
+                            </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
-                                       OnClick="DeleteVersion">Apagar</MudButton>
+                                       OnClick="DeleteVersion">Apagar
+                            </MudButton>
                         }
                         else if (_selectedVersion.State is ModpackVersionState.Ready)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                                        Href="@($"/modpacks/{ModpackId}/servers")"
-                                       StartIcon="@Icons.Material.Filled.Dns">Criar servidor</MudButton>
+                                       StartIcon="@Icons.Material.Filled.Dns">Criar servidor
+                            </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Outlined"
                                        StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
-                                       OnClick="OpenCheckUpdates">Verificar atualizações</MudButton>
+                                       OnClick="OpenCheckUpdates">Verificar atualizações
+                            </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Text"
                                        StartIcon="@Icons.Material.Filled.Archive"
-                                       OnClick="Archive">Arquivar</MudButton>
+                                       OnClick="Archive">Arquivar
+                            </MudButton>
                         }
                         else if (_selectedVersion.State is ModpackVersionState.Resolving)
                         {
@@ -102,7 +108,8 @@ else
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.Unarchive"
-                                       OnClick="Restore">Restaurar</MudButton>
+                                       OnClick="Restore">Restaurar
+                            </MudButton>
                         }
                     </MudStack>
                 </MudAlert>
@@ -159,7 +166,8 @@ else
                             </MudText>
                             <MudStack Spacing="0">
                                 <div class="tc-kv"><span>Minecraft</span><b>@_modpack.MinecraftVersion</b></div>
-                                <div class="tc-kv"><span>Loader</span><b>@_modpack.Loader @_selectedVersion.LoaderVersion</b></div>
+                                <div class="tc-kv">
+                                    <span>Loader</span><b>@_modpack.Loader @_selectedVersion.LoaderVersion</b></div>
                                 <div class="tc-kv">
                                     <span>RAM recomendada</span>
                                     <b>@(_selectedVersion.RecommendedMemoryMb is { } r ? $"{r} MB" : "—")</b>

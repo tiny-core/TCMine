@@ -1,0 +1,36 @@
+@* Moldura das telas de autenticação (login, setup, recuperação): centraliza um
+   cartão com a marca, título, subtítulo e um espaço para o formulário.
+   Tudo em MudBlazor, inclusive em SSR estático. *@
+
+<MudThemeProvider Theme="TcMineTheme.Default" IsDarkMode="true"/>
+
+<div class="tc-auth-page">
+    <MudPaper Class="pa-8" Elevation="4" Style="width:100%; max-width:420px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-6">
+            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true">T</MudAvatar>
+            <MudText Typo="Typo.h6">TCMine</MudText>
+        </MudStack>
+
+        <MudText Typo="Typo.h5">@Title</MudText>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">@Subtitle</MudText>
+        }
+
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4" Dense="true">
+                @Error
+            </MudAlert>
+        }
+
+        @if (!string.IsNullOrEmpty(Info))
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="mb-4" Dense="true">
+                @Info
+            </MudAlert>
+        }
+
+        @ChildContent
+    </MudPaper>
+</div>

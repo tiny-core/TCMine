@@ -18,8 +18,17 @@ public static class BlobEndpoints
                 IBlobStore store,
                 CancellationToken ct) =>
             {
-                if (!await store.ExistsAsync(sha256, ct))
-                    return Results.NotFound();
+                // O hash vem da URL, então é entrada de cliente: formato inválido
+                // é erro DELE (400), não nosso (500). O store valida e lança.
+                try
+                {
+                    if (!await store.ExistsAsync(sha256, ct))
+                        return Results.NotFound();
+                }
+                catch (ArgumentException)
+                {
+                    return Results.BadRequest();
+                }
 
                 // Se o backend souber gerar URL pré-assinada (object storage),
                 // redireciona e os bytes nem passam por este processo.

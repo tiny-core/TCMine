@@ -13,7 +13,6 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackOverridesPage
 {
     private bool? _appliedDarkMode;
-    private Modpack? _modpack;
     private bool _dirty;
 
     private string? _dragPath; // path a ser arrastado (definido no handle)
@@ -23,6 +22,7 @@ public partial class ModpackOverridesPage
     private bool _editorReady;
     private bool _isLoading = true;
     private bool _isSaving;
+    private Modpack? _modpack;
     private string? _selectedPath;
     private List<TreeItemData<string>> _treeItems = [];
     private int _treeRevision;
@@ -55,10 +55,8 @@ public partial class ModpackOverridesPage
 
     // Trocar versão numa aba por versão navega para a mesma aba da nova. Como o
     // Monaco quebra com enhanced navigation, força recarregar (forceLoad).
-    private void OnVersionChanged(Guid versionId)
-    {
+    private void OnVersionChanged(Guid versionId) =>
         Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/overrides", true);
-    }
 
     private async Task LoadAsync()
     {

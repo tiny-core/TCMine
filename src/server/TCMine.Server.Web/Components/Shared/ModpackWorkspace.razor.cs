@@ -26,26 +26,26 @@ public partial class ModpackWorkspace : ComponentBase
     [Parameter] public ModpackVersion? SelectedVersion { get; set; }
 
     /// <summary>Seletor de versão só faz sentido em abas por versão (não em Servidores).</summary>
-    [Parameter] public bool ShowVersionSelector { get; set; } = true;
+    [Parameter]
+    public bool ShowVersionSelector { get; set; } = true;
 
     /// <summary>Disparado quando o admin troca a versão no seletor.</summary>
-    [Parameter] public EventCallback<Guid> SelectedVersionIdChanged { get; set; }
+    [Parameter]
+    public EventCallback<Guid> SelectedVersionIdChanged { get; set; }
 
     /// <summary>Ações à direita do cabeçalho (ex.: "Nova versão").</summary>
-    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    [Parameter]
+    public RenderFragment? HeaderActions { get; set; }
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 
     private List<BreadcrumbItem> Breadcrumbs =>
     [
-        new BreadcrumbItem("Modpacks", "/modpacks"),
-        new BreadcrumbItem(Modpack.Name, $"/modpacks/{Modpack.Id}", Active == ModpackTab.Overview)
+        new("Modpacks", "/modpacks"),
+        new(Modpack.Name, $"/modpacks/{Modpack.Id}", Active == ModpackTab.Overview)
     ];
 
-    private Task OnVersionChanged(Guid versionId)
-    {
-        return SelectedVersionIdChanged.InvokeAsync(versionId);
-    }
+    private Task OnVersionChanged(Guid versionId) => SelectedVersionIdChanged.InvokeAsync(versionId);
 
     private string Cls(ModpackTab tab) => Active == tab ? "active" : "";
 

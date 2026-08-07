@@ -1,0 +1,7 @@
+@inherits LayoutComponentBase
+
+@* Layout sem shell (sem drawer/appbar): login e setup são SSR estático e não
+   têm sessão, então nada do painel faz sentido ali. Também não usa MudBlazor,
+   porque os provedores do Mud dependem do circuito interativo. *@
+
+@Body

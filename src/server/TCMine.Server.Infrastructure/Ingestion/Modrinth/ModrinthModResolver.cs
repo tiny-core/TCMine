@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -102,7 +103,7 @@ public sealed partial class ModrinthModResolver(
         {
             return null;
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return null;
         }

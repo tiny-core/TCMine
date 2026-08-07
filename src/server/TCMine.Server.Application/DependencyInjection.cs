@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
 
 namespace TCMine.Server.Application;
@@ -52,6 +53,12 @@ public static class DependencyInjection
         services.AddScoped<DeleteModpackVersion>();
         services.AddScoped<ArchiveModpackVersion>();
         services.AddScoped<RestoreModpackVersion>();
+
+        services.AddScoped<AuthenticateUser>();
+        services.AddScoped<CreateFirstAdmin>();
+        services.AddScoped<ChangePassword>();
+        services.AddScoped<RequestPasswordReset>();
+        services.AddScoped<ResetPassword>();
 
         return services;
     }

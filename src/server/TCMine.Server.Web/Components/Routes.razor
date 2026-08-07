@@ -1,7 +1,13 @@
-﻿@using TCMine.Server.Web.Components.Layout
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)"/>
+        @* AuthorizeRouteView respeita o [Authorize] das páginas. Sem sessão, o
+           NotAuthorized manda para o login. A autorização de verdade é feita no
+           servidor pelo middleware — isto aqui é a camada de UI. *@
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(MainLayout)">
+            <NotAuthorized>
+                <RedirectToLogin/>
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1"/>
     </Found>
 </Router>

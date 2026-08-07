@@ -30,78 +30,78 @@ else
         </HeaderActions>
         <ChildContent>
 
-    <MudGrid>
-        <MudItem xs="12" md="4">
-            <MudPaper Outlined="true" Class="pa-2" Style="height: 70vh; overflow: auto;"
-                      @ondragover:preventDefault="true"
-                      @ondrop="@(() => OnDropRoot())">
-                @if (_treeItems.Count == 0)
-                {
-                    <MudText Class="pa-2" Color="Color.Secondary">Nenhum override ainda.</MudText>
-                }
-                else
-                {
-                    <MudTreeView T="string" Items="_treeItems"
-                                 SelectedValue="_selectedPath" SelectedValueChanged="OnSelect"
-                                 Hover="true" Dense="true"
-                                 @key="_treeRevision">
-                        <ItemTemplate Context="node">
-                            <MudTreeViewItem T="string" Value="@node.Value"
-                                             Items="@node.Children" CanExpand="@node.Expandable"
-                                             Icon="@node.Icon">
-                                <BodyContent>
-                                    <div class="d-flex align-center flex-grow-1" style="min-width:0;"
-                                         @ondragover:preventDefault="true"
-                                         @ondrop="@(() => OnDrop(node.Value))">
-                                        <MudText Class="flex-grow-1 text-truncate" Style="cursor:pointer"
-                                                 @onclick="@(() => OnSelect(node.Value))">
-                                            @node.Text
-                                        </MudText>
-                                        @if (_version?.State is ModpackVersionState.Draft)
-                                        {
-                                            <span draggable="true" style="cursor:grab; padding:0 4px;"
-                                                  @ondragstart="@(() => _dragPath = node.Value)"
-                                                  @ondragend="@(() =>
-                                                              {
-                                                                  _dragPath = null;
-                                                                  _dropTarget = null;
-                                                              })">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudPaper Outlined="true" Class="pa-2" Style="height: 70vh; overflow: auto;"
+                              @ondragover:preventDefault="true"
+                              @ondrop="@(() => OnDropRoot())">
+                        @if (_treeItems.Count == 0)
+                        {
+                            <MudText Class="pa-2" Color="Color.Secondary">Nenhum override ainda.</MudText>
+                        }
+                        else
+                        {
+                            <MudTreeView T="string" Items="_treeItems"
+                                         SelectedValue="_selectedPath" SelectedValueChanged="OnSelect"
+                                         Hover="true" Dense="true"
+                                         @key="_treeRevision">
+                                <ItemTemplate Context="node">
+                                    <MudTreeViewItem T="string" Value="@node.Value"
+                                                     Items="@node.Children" CanExpand="@node.Expandable"
+                                                     Icon="@node.Icon">
+                                        <BodyContent>
+                                            <div class="d-flex align-center flex-grow-1" style="min-width:0;"
+                                                 @ondragover:preventDefault="true"
+                                                 @ondrop="@(() => OnDrop(node.Value))">
+                                                <MudText Class="flex-grow-1 text-truncate" Style="cursor:pointer"
+                                                         @onclick="@(() => OnSelect(node.Value))">
+                                                    @node.Text
+                                                </MudText>
+                                                @if (_version?.State is ModpackVersionState.Draft)
+                                                {
+                                                    <span draggable="true" style="cursor:grab; padding:0 4px;"
+                                                          @ondragstart="@(() => _dragPath = node.Value)"
+                                                          @ondragend="@(() =>
+                                                                      {
+                                                                          _dragPath = null;
+                                                                          _dropTarget = null;
+                                                                      })">
                                                 <MudIcon Icon="@Icons.Material.Filled.DragIndicator"
                                                          Size="Size.Small" Color="Color.Default"/>
                                             </span>
-                                        }
-                                    </div>
-                                </BodyContent>
-                            </MudTreeViewItem>
-                        </ItemTemplate>
-                    </MudTreeView>
-                }
-            </MudPaper>
-        </MudItem>
+                                                }
+                                            </div>
+                                        </BodyContent>
+                                    </MudTreeViewItem>
+                                </ItemTemplate>
+                            </MudTreeView>
+                        }
+                    </MudPaper>
+                </MudItem>
 
-        <MudItem xs="12" md="8">
-            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
-                <MudText Typo="Typo.subtitle2">@(_selectedPath ?? "Selecione um arquivo")</MudText>
-                <MudSpacer/>
-                @if (_version.State is ModpackVersionState.Draft && _selectedPath is not null)
-                {
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
-                               StartIcon="@Icons.Material.Filled.Save"
-                               OnClick="Save" Disabled="_isSaving || !_dirty">Salvar
-                    </MudButton>
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
-                                   Size="Size.Small" OnClick="Delete" Disabled="_isSaving"/>
-                }
-            </MudStack>
-            <div class="tc-editor-host">
-                <StandaloneCodeEditor @ref="_editor"
-                                      CssClass="tc-monaco"
-                                      ConstructionOptions="EditorOptions"
-                                      OnDidInit="OnEditorInit"
-                                      OnDidChangeModelContent="@(() => _dirty = true)"/>
-            </div>
-        </MudItem>
-    </MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
+                        <MudText Typo="Typo.subtitle2">@(_selectedPath ?? "Selecione um arquivo")</MudText>
+                        <MudSpacer/>
+                        @if (_version.State is ModpackVersionState.Draft && _selectedPath is not null)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="Save" Disabled="_isSaving || !_dirty">Salvar
+                            </MudButton>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
+                                           Size="Size.Small" OnClick="Delete" Disabled="_isSaving"/>
+                        }
+                    </MudStack>
+                    <div class="tc-editor-host">
+                        <StandaloneCodeEditor @ref="_editor"
+                                              CssClass="tc-monaco"
+                                              ConstructionOptions="EditorOptions"
+                                              OnDidInit="OnEditorInit"
+                                              OnDidChangeModelContent="@(() => _dirty = true)"/>
+                    </div>
+                </MudItem>
+            </MudGrid>
 
         </ChildContent>
     </ModpackWorkspace>

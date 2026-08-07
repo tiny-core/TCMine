@@ -20,8 +20,6 @@ public partial class EditVersionDialog
         _memoryMb = MemoryMb;
     }
 
-    private Task Save()
-    {
-        return SubmitAsync(() => UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None));
-    }
+    private Task Save() =>
+        SubmitAsync(() => UpdateUseCase.HandleAsync(VersionId, _version, _memoryMb, CancellationToken.None));
 }

@@ -65,6 +65,19 @@ html, body {
   margin-top: 16px;
 }
 
+/* --------------------------------------------------------------------------
+   Telas de autenticação (login, setup, recuperação de senha): só o
+   centralizador de página. O cartão, os campos e os botões são MudBlazor —
+   ver AuthShell.razor.
+   -------------------------------------------------------------------------- */
+.tc-auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--mud-palette-background, #0B0B14);
+}
+
 /* Acessibilidade: quem pede menos movimento não recebe as animações. */
 @media (prefers-reduced-motion: reduce) {
   .tc-fade-in {

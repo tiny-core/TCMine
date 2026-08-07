@@ -36,10 +36,8 @@ public partial class ModpackNewsPage : ComponentBase
         _isLoading = false;
     }
 
-    private async Task LoadPostsAsync()
-    {
-        _posts = [.. await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
-    }
+    private async Task LoadPostsAsync() => _posts =
+        [.. await NewsRepository.ListByModpackAsync(ModpackId, CancellationToken.None)];
 
     private void NewPost()
     {

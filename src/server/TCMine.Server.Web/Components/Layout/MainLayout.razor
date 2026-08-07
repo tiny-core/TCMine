@@ -29,12 +29,38 @@
                            Color="Color.Inherit"
                            OnClick="ToggleDarkMode"/>
         </MudTooltip>
+
+        <AuthorizeView>
+            <Authorized>
+                <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit"
+                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                         title="Conta">
+                    <MudText Typo="Typo.body2" Class="px-4 py-2">
+                        @context.User.Identity?.Name
+                    </MudText>
+                    <MudDivider/>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Password" OnClick="OpenChangePassword">
+                        Alterar senha
+                    </MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
+                        Sair
+                    </MudMenuItem>
+                </MudMenu>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
 
     <MudDrawer @bind-Open="_drawerOpen" Elevation="1" Variant="DrawerVariant.Responsive"
                ClipMode="DrawerClipMode.Always">
         <NavMenu/>
     </MudDrawer>
+
+    @* Sair precisa ser POST (apagar o cookie exige HttpContext vivo, e um
+       logout por GET seria acionável por terceiros). O item de menu submete
+       este form escondido. *@
+    <form id="tc-logout-form" method="post" action="/auth/logout" hidden>
+        <AntiforgeryToken/>
+    </form>
 
     <MudMainContent Class="pt-16 pa-4">
         @* Expõe o tema atual para páginas que renderizam fora do MudThemeProvider

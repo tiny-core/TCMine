@@ -12,9 +12,9 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackServersPage
 {
     private readonly HashSet<Guid> _busy = [];
-    private Modpack? _modpack;
 
     private bool _isLoading = true;
+    private Modpack? _modpack;
     private List<GameServer> _servers = [];
 
     private Dictionary<Guid, ModpackVersion> _versionsById = new();

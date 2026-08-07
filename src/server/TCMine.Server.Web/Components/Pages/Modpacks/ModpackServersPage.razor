@@ -47,14 +47,16 @@ else
 
                                     <div style="flex: 1; min-width: 0;">
                                         <MudText Typo="Typo.h6">@server.Name</MudText>
-                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap">
+                                        <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center"
+                                                  Wrap="Wrap.Wrap">
                                             <ServerStatusChip Status="server.Status"/>
 
                                             <MudText Typo="Typo.caption" Color="Color.Secondary">
                                                 @server.ConnectAddress
                                             </MudText>
                                             <MudTooltip Text="Copiar endereço">
-                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                               Size="Size.Small"
                                                                OnClick="@(() => CopyAddress(server.ConnectAddress))"/>
                                             </MudTooltip>
 

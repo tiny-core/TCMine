@@ -38,10 +38,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected override async Task OnInitializedAsync()
-    {
-        await LoadAsync();
-    }
+    protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
@@ -160,9 +157,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 
     private static string OriginIcon(ModFileOrigin origin)
@@ -190,8 +185,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     {
         var parameters = new DialogParameters
         {
-            ["SourceVersionId"] = _version!.Id,
-            ["SourceVersion"] = _version.Version
+            ["SourceVersionId"] = _version!.Id, ["SourceVersion"] = _version.Version
         };
         var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
 
