@@ -120,6 +120,9 @@ public sealed partial class CurseForgePackSource(
             VersionLabel = manifest.Version ?? file.FileName ?? "",
             Name = manifest.Name ?? mod?.Name ?? "Modpack importado",
             Author = manifest.Author,
+
+            // Prefere a imagem cheia à miniatura: aqui ela vira a capa do card.
+            IconUrl = mod?.Logo?.Url ?? mod?.Logo?.ThumbnailUrl,
             MinecraftVersion = manifest.Minecraft.Version,
             Loader = loader,
             LoaderVersion = loaderVersion,

@@ -76,6 +76,31 @@ public sealed class ImportUpstreamPackTests
     }
 
     [Fact]
+    public async Task Traz_a_capa_do_pack_junto()
+    {
+        var repo = new FakeRepo();
+        var useCase = Build(repo, PackComDoisModsEUmOverride() with { IconUrl = "https://cdn.test/capa.png" });
+
+        await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
+
+        // Sem isto, um catálogo importado vira um mural de cards cinzentos e o
+        // admin teria de subir cada capa à mão.
+        Assert.NotNull(repo.Created!.IconBlobSha256);
+    }
+
+    [Fact]
+    public async Task Capa_indisponivel_nao_derruba_a_importacao()
+    {
+        var repo = new FakeRepo();
+        var useCase = Build(repo, PackComDoisModsEUmOverride()); // sem IconUrl
+
+        var result = await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(repo.Created!.IconBlobSha256);
+    }
+
+    [Fact]
     public async Task Recusa_importar_o_mesmo_pack_duas_vezes()
     {
         var repo = new FakeRepo { JaImportado = true };
@@ -93,7 +118,8 @@ public sealed class ImportUpstreamPackTests
         var repo = new FakeRepo();
         var source = new FakeSource(PackComDoisModsEUmOverride()) { Disponivel = false };
         var useCase = new ImportUpstreamPack(
-            [source], repo, new FakeBlobStore(), new FakeQueue(), new FakeJobProgress(), new FakeScope());
+            [source], repo, new FakeBlobStore(), new FakeQueue(), new FakeJobProgress(),
+            new FakeDownloader(), new FakeScope());
 
         var result = await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
 
@@ -105,7 +131,7 @@ public sealed class ImportUpstreamPackTests
 
     private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeQueue? queue = null) =>
         new([new FakeSource(pack)], repo, new FakeBlobStore(), queue ?? new FakeQueue(),
-            new FakeJobProgress(), new FakeScope());
+            new FakeJobProgress(), new FakeDownloader(), new FakeScope());
 
     private static UpstreamPack PackComDoisModsEUmOverride() => new()
     {
@@ -147,6 +173,12 @@ public sealed class ImportUpstreamPackTests
 
         public override Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct) =>
             Task.FromResult<string?>(null);
+    }
+
+    private sealed class FakeDownloader : IModDownloader
+    {
+        public Task<Stream> OpenAsync(Uri url, CancellationToken ct) =>
+            Task.FromResult<Stream>(new MemoryStream([1, 2, 3, 4]));
     }
 
     private sealed class FakeQueue : IIngestionQueue

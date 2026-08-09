@@ -51,6 +51,9 @@ public sealed record UpstreamPack
 
     public required string Name { get; init; }
     public string? Author { get; init; }
+
+    /// <summary>Capa do pack na origem. Best-effort: nulo não impede a importação.</summary>
+    public string? IconUrl { get; init; }
     public required string MinecraftVersion { get; init; }
     public required ModLoader Loader { get; init; }
 

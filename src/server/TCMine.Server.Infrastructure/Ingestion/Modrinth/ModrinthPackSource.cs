@@ -117,6 +117,7 @@ public sealed partial class ModrinthPackSource(
                 VersionLabel = index.VersionId ?? version.VersionNumber ?? version.Id,
                 Name = index.Name ?? version.Name ?? "Modpack importado",
                 Author = null,
+                IconUrl = await TryGetIconAsync(projectId, ct),
                 MinecraftVersion = minecraft,
                 Loader = loader,
                 LoaderVersion = loaderVersion,
@@ -133,6 +134,26 @@ public sealed partial class ModrinthPackSource(
         {
             // Zip corrompido ou resposta que não é um .mrpack.
             LogFetchError(ex, projectId);
+            return null;
+        }
+    }
+
+    /// <summary>
+    ///     Capa do projeto. Chamada à parte porque o índice do .mrpack não a traz;
+    ///     falha aqui não impede a importação — o pack entra sem capa.
+    /// </summary>
+    private async Task<string?> TryGetIconAsync(string projectId, CancellationToken ct)
+    {
+        try
+        {
+            var project = await http.GetFromJsonAsync(
+                $"/v2/project/{Uri.EscapeDataString(projectId)}",
+                ModrinthJsonContext.Default.ModrinthProject, ct);
+
+            return project?.IconUrl;
+        }
+        catch (HttpRequestException)
+        {
             return null;
         }
     }

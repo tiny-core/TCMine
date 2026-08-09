@@ -19,8 +19,15 @@ public sealed partial class ImportUpstreamPack(
     IBlobStore blobStore,
     IIngestionQueue ingestionQueue,
     IJobProgressReporter progress,
+    IModDownloader downloader,
     ICurrentUserScope scope)
 {
+    /// <summary>
+    ///     Teto da capa. Origem devolve PNG/JPG de alguns KB; acima disto é sinal
+    ///     de que o link não é a imagem que se esperava.
+    /// </summary>
+    private const long MaxIconBytes = 8L * 1024 * 1024;
+
     /// <summary>
     ///     <paramref name="jobId" /> identifica a importação para o acompanhamento
     ///     antes de existir uma versão: a UI já mostra "baixando o pack" enquanto
@@ -77,7 +84,11 @@ public sealed partial class ImportUpstreamPack(
             MinecraftVersion = pack.MinecraftVersion,
             Loader = pack.Loader,
             UpstreamProvider = origin,
-            UpstreamProjectId = pack.ProjectId
+            UpstreamProjectId = pack.ProjectId,
+
+            // A capa entra junto: um catálogo importado sem imagem fica um mural
+            // de cards cinzentos, e o admin teria de subir cada uma à mão.
+            IconBlobSha256 = await TryStoreIconAsync(pack.IconUrl, ct)
         };
 
         await repository.CreateAsync(modpack, ct);
@@ -125,6 +136,46 @@ public sealed partial class ImportUpstreamPack(
 
         return Result<Guid>.Success(modpack.Id);
     }
+
+    /// <summary>
+    ///     Baixa a capa e guarda no blob store, devolvendo o hash.
+    ///     Best-effort de propósito: capa é cosmética, e uma imagem fora do ar não
+    ///     pode derrubar a importação de um pack de 500 mods.
+    /// </summary>
+    private async Task<string?> TryStoreIconAsync(string? iconUrl, CancellationToken ct)
+    {
+        if (iconUrl is not { Length: > 0 } || !Uri.TryCreate(iconUrl, UriKind.Absolute, out var uri))
+            return null;
+
+        try
+        {
+            await using var stream = await downloader.OpenAsync(uri, ct);
+
+            // Copia com teto: um stream sem Content-Length não pode encher a
+            // memória do servidor.
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, ct);
+            if (buffer.Length is 0 or > MaxIconBytes)
+                return null;
+
+            buffer.Position = 0;
+            return await blobStore.PutAsync(buffer, null, ContentTypeOf(uri), ct);
+        }
+        catch (ModDownloadException)
+        {
+            return null;
+        }
+    }
+
+    private static string ContentTypeOf(Uri uri) =>
+        Path.GetExtension(uri.AbsolutePath).ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "application/octet-stream"
+        };
 
     private async Task<Dictionary<string, string>> StoreOverridesAsync(
         ModpackVersion version,
