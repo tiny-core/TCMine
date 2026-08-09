@@ -3,6 +3,8 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
+using TCMine.Server.Application.Tests.Fakes;
+
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public sealed class OverrideMoveTests
@@ -128,35 +130,14 @@ public sealed class OverrideMoveTests
 
     // Repositório fake: devolve sempre a MESMA instância da versão, então as
     // mudanças do move ficam visíveis nas asserções (in-place, como o EF faria).
-    private sealed class FakeRepo(ModpackVersion version) : IModpackRepository
+    private sealed class FakeRepo(ModpackVersion version) : FakeModpackRepositoryBase
     {
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
             Task.FromResult<ModpackVersion?>(version);
 
-        public Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
+        public override Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
 
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
+        public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task AddVersionAsync(ModpackVersion v, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
     }
 }

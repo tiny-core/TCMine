@@ -3,6 +3,8 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
+using TCMine.Server.Application.Tests.Fakes;
+
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public sealed class CheckModpackVersionUpdatesTests
@@ -175,35 +177,27 @@ internal sealed class FakeResolver(Dictionary<string, string> latestVersionIds) 
     }
 }
 
-internal sealed class FakeModpackRepository : IModpackRepository
+internal sealed class FakeModpackRepository : FakeModpackRepositoryBase
 {
     private readonly Dictionary<Guid, ModpackVersion> _versions = new();
 
     public ModpackVersion? Added { get; private set; }
 
-    public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+    public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
         Task.FromResult(_versions.GetValueOrDefault(versionId));
 
-    public Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
+    public override Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
     {
         Added = version;
         _versions[version.Id] = version;
         return Task.CompletedTask;
     }
 
-    public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
+    public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
 
-    public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
+    public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-    public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-    public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
-
-    public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-    public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
-
-    public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
+    public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
     {
         // O caso de uso lê MinecraftVersion/Loader do modpack agora.
         return Task.FromResult<Modpack?>(new Modpack
@@ -211,15 +205,6 @@ internal sealed class FakeModpackRepository : IModpackRepository
             Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         });
     }
-
-    public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
-
-    public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
-        throw new NotImplementedException();
-
-    public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-    public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
 
     public void Seed(ModpackVersion version) => _versions[version.Id] = version;
 }

@@ -44,6 +44,32 @@ public sealed class CurseForgeApiClient(HttpClient http, ISettingsRepository set
     }
 
     /// <summary>
+    ///     POST com corpo JSON. Existe para o endpoint /v1/mods em lote: pedir o
+    ///     nome de 480 mods um a um seriam 480 chamadas e estouraria a cota — em
+    ///     lote é uma só.
+    /// </summary>
+    internal async Task<TResponse?> PostAsync<TRequest, TResponse>(
+        string url, TRequest body, JsonTypeInfo<TRequest> requestInfo, JsonTypeInfo<TResponse> responseInfo,
+        CancellationToken ct)
+    {
+        var apiKey = await settings.GetCurseForgeApiKeyAsync(ct);
+        if (string.IsNullOrWhiteSpace(apiKey))
+            return default;
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, url);
+        request.Headers.Add("x-api-key", apiKey);
+        request.Content = JsonContent.Create(body, requestInfo);
+
+        using var response = await http.SendAsync(request, ct);
+        if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Unauthorized
+            or HttpStatusCode.Forbidden or HttpStatusCode.BadRequest)
+            return default;
+
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync(responseInfo, ct);
+    }
+
+    /// <summary>
     ///     O CurseForge identifica o loader por número. "Any" (0) serviria, mas
     ///     traz arquivos de loaders incompatíveis — sempre filtramos.
     /// </summary>

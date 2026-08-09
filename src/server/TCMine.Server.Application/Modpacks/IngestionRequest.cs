@@ -13,4 +13,5 @@ public sealed record ModIngestionItem(
     ModFileOrigin Origin,
     string ProjectId,
     string? FileId,
-    FileSide Side);
+    FileSide Side,
+    bool Optional = false);

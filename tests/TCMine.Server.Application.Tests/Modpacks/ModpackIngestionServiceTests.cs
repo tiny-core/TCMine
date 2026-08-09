@@ -4,6 +4,8 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
+using TCMine.Server.Application.Tests.Fakes;
+
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public sealed class ModpackIngestionServiceTests
@@ -49,7 +51,7 @@ public sealed class ModpackIngestionServiceTests
     }
 
     [Fact]
-    public async Task Falha_de_dependencia_marca_a_versao_como_falha()
+    public async Task Mod_sem_arquivo_compativel_vira_pendencia_sem_reprovar_a_versao()
     {
         var version = NewDraftVersion();
         var repo = new FakeModpackRepository { Version = version };
@@ -63,15 +65,70 @@ public sealed class ModpackIngestionServiceTests
 
         await service.IngestAsync(version.Id, [Item("A")], CancellationToken.None);
 
-        Assert.Equal(ModpackVersionState.Failed, version.State);
+        // Antes isto reprovava a versão inteira. Num pack de centenas de mods
+        // uma dúzia de indisponíveis é a norma, e reprovar deixava o pack
+        // eternamente impublicável — agora fica registrado para upload manual.
+        Assert.Equal(ModpackVersionState.Draft, version.State);
+
+        var pendente = Assert.Single(version.PendingMods);
+        Assert.Equal("X", pendente.ProjectSlug);
+        Assert.Equal(PendingModReason.NoCompatibleFile, pendente.Reason);
     }
 
     // ---- Fixtures ----
 
-    private static ModpackIngestionService NewService(FakeModpackRepository repo, FakeResolver resolver)
+    private static ModpackIngestionService NewService(
+        FakeModpackRepository repo, FakeResolver resolver, FakeJobProgress? progress = null)
     {
         return new ModpackIngestionService(repo, new FakeBlobStore(), [resolver], new FakeDownloader(),
-            NullLogger<ModpackIngestionService>.Instance);
+            progress ?? new FakeJobProgress(), NullLogger<ModpackIngestionService>.Instance);
+    }
+
+    [Fact]
+    public async Task Lado_declarado_pela_origem_ganha_do_lado_pedido()
+    {
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+
+        // O Modrinth diz que este mod não roda no servidor.
+        var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>> { ["A"] = [] })
+        {
+            SideByProject = { ["A"] = FileSide.ClientOnly }
+        };
+
+        await NewService(repo, resolver).IngestAsync(
+            version.Id,
+            [new ModIngestionItem(ModFileOrigin.Modrinth, "A", null, FileSide.Both)],
+            CancellationToken.None);
+
+        // Supor Both quando a origem sabe o lado colocaria um mod de cliente
+        // dentro do servidor de jogo.
+        var file = Assert.Single(version.Files);
+        Assert.Equal(FileSide.ClientOnly, file.Side);
+    }
+
+    [Fact]
+    public async Task Total_do_progresso_nao_sobe_com_dependencias_transitivas()
+    {
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+
+        // Um mod pedido que arrasta duas dependências.
+        var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>>
+        {
+            ["A"] = [Req("B"), Req("C")]
+        });
+
+        var progress = new FakeJobProgress();
+        await NewService(repo, resolver, progress).IngestAsync(
+            version.Id, [Item("A")], CancellationToken.None);
+
+        // O bug era o denominador crescer enquanto baixava ("88/567" virando
+        // "230/629"), o que faz a barra andar para trás e não informa nada.
+        Assert.All(progress.Reported, r => Assert.Equal(1, r.Total));
+
+        // As dependências continuam visíveis, mas à parte.
+        Assert.Equal(2, progress.Reported[^1].Dependencies);
     }
 
     private static ModpackVersion NewDraftVersion() =>
@@ -92,6 +149,9 @@ public sealed class ModpackIngestionServiceTests
     {
         private readonly HashSet<string> _notFound = notFound ?? [];
 
+        /// <summary>Lado que a origem declara, quando declara.</summary>
+        public Dictionary<string, FileSide> SideByProject { get; } = [];
+
         public ModFileOrigin Origin => ModFileOrigin.Modrinth;
         public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
 
@@ -107,7 +167,8 @@ public sealed class ModpackIngestionServiceTests
                 null,
                 10,
                 new Uri($"https://example.test/{request.ProjectId}.jar"),
-                d);
+                d,
+                Side: SideByProject.TryGetValue(request.ProjectId, out var side) ? side : null);
 
             return Task.FromResult<ModResolution>(resolved);
         }
@@ -119,46 +180,35 @@ public sealed class ModpackIngestionServiceTests
             Task.FromResult<Stream>(new MemoryStream(new byte[10]));
     }
 
-    private sealed class FakeBlobStore : IBlobStore
+    private sealed class FakeBlobStore : FakeBlobStoreBase
     {
-        public Task<bool> ExistsAsync(string sha256, CancellationToken ct) => Task.FromResult(false);
+        public override Task<bool> ExistsAsync(string sha256, CancellationToken ct) => Task.FromResult(false);
 
         // Sha fixo: os arquivos só diferem por ProjectSlug/Path, então o
         // conteúdo idêntico não atrapalha a dedup (que também olha o slug).
-        public Task<string>
+        public override Task<string>
             PutAsync(Stream content, string? expectedSha256, string contentType, CancellationToken ct) =>
             Task.FromResult(new string('a', 64));
 
-        public Task<Stream> OpenAsync(string sha256, CancellationToken ct) =>
+        public override Task<Stream> OpenAsync(string sha256, CancellationToken ct) =>
             Task.FromResult<Stream>(new MemoryStream(new byte[10]));
 
-        public Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
+        public override Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
             Task.FromResult<Uri?>(null);
 
-        public Task<string?> TryGetLocalPathAsync(string sha256, CancellationToken ct) =>
-            throw new NotImplementedException();
     }
 
-    private sealed class FakeModpackRepository : IModpackRepository
+    private sealed class FakeModpackRepository : FakeModpackRepositoryBase
     {
         public ModpackVersion? Version { get; init; }
 
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
+        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
 
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
+        public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
 
-        public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
+        public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
-
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
+        public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
         {
             // O caso de uso lê MinecraftVersion/Loader do modpack agora.
             return Task.FromResult<Modpack?>(new Modpack
@@ -167,16 +217,5 @@ public sealed class ModpackIngestionServiceTests
             });
         }
 
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
-            throw new NotImplementedException();
     }
 }

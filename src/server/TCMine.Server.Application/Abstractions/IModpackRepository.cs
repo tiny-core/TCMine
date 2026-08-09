@@ -13,6 +13,18 @@ public interface IModpackRepository
 {
     Task<bool> SlugExistsAsync(string slug, CancellationToken ct);
 
+    /// <summary>Já existe modpack importado deste pack externo?</summary>
+    Task<bool> ExistsFromUpstreamAsync(ModFileOrigin origin, string projectId, CancellationToken ct);
+
+    /// <summary>
+    ///     Contagens por versão, agregadas no banco.
+    ///     Existe para a tela de detalhe não precisar materializar milhares de
+    ///     linhas de arquivo só para exibir "471 mods" — num pack importado isso
+    ///     é a diferença entre a página abrir na hora e parecer travada.
+    /// </summary>
+    Task<IReadOnlyDictionary<Guid, ModpackVersionStats>> GetVersionStatsAsync(
+        Guid modpackId, CancellationToken ct);
+
     Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct);
@@ -48,5 +60,26 @@ public interface IModpackRepository
 
     Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct);
 
+    /// <summary>
+    ///     Apaga uma pendência resolvida. Como no caso dos arquivos, remover da
+    ///     coleção de um grafo destacado não apaga a linha sozinho.
+    /// </summary>
+    Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct);
+
+    /// <summary>
+    ///     Versões presas em Resolving — o processo caiu no meio da ingestão.
+    ///     A fila vive em memória, então o job morreu junto: sem isto a versão
+    ///     ficaria "resolvendo" para sempre e a tela mentiria ao admin.
+    /// </summary>
+    Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct);
+
     Task UpdateAsync(Modpack modpack, CancellationToken ct);
+}
+
+/// <summary>Contagens de uma versão, sem carregar os arquivos.</summary>
+public sealed record ModpackVersionStats(int ModCount, int OverrideCount, long TotalSizeBytes)
+{
+    public int TotalCount => ModCount + OverrideCount;
+
+    public static ModpackVersionStats Empty { get; } = new(0, 0, 0);
 }

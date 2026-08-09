@@ -69,3 +69,9 @@ internal sealed record CurseForgeDependency
     [JsonPropertyName("relationType")]
     public int RelationType { get; init; }
 }
+
+/// <summary>Corpo do POST /v1/mods — consulta em lote de metadados.</summary>
+internal sealed record CurseForgeModsRequest
+{
+    public required IReadOnlyList<int> ModIds { get; init; }
+}

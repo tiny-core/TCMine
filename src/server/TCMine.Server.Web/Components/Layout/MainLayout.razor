@@ -62,11 +62,16 @@
         <AntiforgeryToken/>
     </form>
 
-    <MudMainContent Class="pt-16 pa-4">
+    <MudMainContent Class="pt-16">
+        @* Acompanhamento global: qualquer trabalho em background aparece aqui,
+           em qualquer página. É o que dispensa prender o admin numa tela. *@
+        <ActiveJobsBar/>
         @* Expõe o tema atual para páginas que renderizam fora do MudThemeProvider
            (ex.: o editor Monaco, que precisa casar vs-dark/vs com o app). *@
-        <CascadingValue Value="_isDarkMode" Name="IsDarkMode">
-            @Body
-        </CascadingValue>
+        <div class="pa-4">
+            <CascadingValue Value="_isDarkMode" Name="IsDarkMode">
+                @Body
+            </CascadingValue>
+        </div>
     </MudMainContent>
 </MudLayout>

@@ -19,6 +19,16 @@ public sealed class ModpackConfiguration : IEntityTypeConfiguration<Modpack>
         builder.Property(m => m.MinecraftVersion).HasMaxLength(32).IsRequired();
         builder.Property(m => m.Loader).HasConversion<string>().HasMaxLength(32).IsRequired();
 
+        builder.Property(m => m.UpstreamProvider).HasConversion<string>().HasMaxLength(32);
+        builder.Property(m => m.UpstreamProjectId).HasMaxLength(64);
+
+        // Computada a partir dos dois campos acima: não vira coluna.
+        builder.Ignore(m => m.HasUpstream);
+
+        // Responde "que modpack veio deste pack do CurseForge?" — usado para
+        // detectar atualizações e para impedir importar o mesmo pack duas vezes.
+        builder.HasIndex(m => new { m.UpstreamProvider, m.UpstreamProjectId });
+
         // O slug vai na URL, então precisa ser único. Deixar essa garantia
         // só na validação da aplicação não basta: duas requisições
         // simultâneas passariam pela checagem antes de qualquer uma gravar.

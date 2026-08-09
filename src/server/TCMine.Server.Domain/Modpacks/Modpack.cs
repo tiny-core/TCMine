@@ -19,4 +19,22 @@ public sealed class Modpack : Entity, IOwnedEntity
     public required string MinecraftVersion { get; set; }
     public required ModLoader Loader { get; set; }
     public Guid OwnerId { get; set; }
+
+    // ---------- Origem externa (pack importado) ----------
+
+    /// <summary>
+    ///     De onde este modpack foi importado (CurseForge, por ora). Nulo quando
+    ///     foi criado do zero aqui.
+    /// </summary>
+    public ModFileOrigin? UpstreamProvider { get; set; }
+
+    /// <summary>
+    ///     Id do pack na origem. Identidade ESTÁVEL do pack lá fora — é por ela
+    ///     que perguntamos "saiu versão nova?". Fica no Modpack, e não na versão,
+    ///     porque não muda quando o autor publica uma atualização.
+    /// </summary>
+    public string? UpstreamProjectId { get; set; }
+
+    /// <summary>Veio de um pack externo?</summary>
+    public bool HasUpstream => UpstreamProvider is not null && UpstreamProjectId is not null;
 }

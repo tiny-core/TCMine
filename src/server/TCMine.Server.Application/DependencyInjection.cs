@@ -59,6 +59,9 @@ public static class DependencyInjection
         services.AddScoped<CreateFirstAdmin>();
         services.AddScoped<ChangePassword>();
         services.AddScoped<UpdateSettings>();
+        services.AddScoped<ImportUpstreamPack>();
+        services.AddScoped<RetryModResolution>();
+        services.AddScoped<CheckUpstreamUpdate>();
         services.AddScoped<RequestPasswordReset>();
         services.AddScoped<ResetPassword>();
 

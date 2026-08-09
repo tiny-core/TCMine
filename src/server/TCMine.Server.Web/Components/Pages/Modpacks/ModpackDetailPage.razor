@@ -67,6 +67,17 @@ else
                                 @NextTitle(_selectedVersion.State)
                             </MudText>
                             <MudText Typo="Typo.body2">@NextHint(_selectedVersion.State)</MudText>
+                            @if (_selectedVersion.State is ModpackVersionState.Failed
+                                 && !string.IsNullOrWhiteSpace(_selectedVersion.FailureReason))
+                            {
+                                @* O motivo já era gravado mas nunca aparecia: sem ele o
+                                   admin não sabe se foi rede, cota da API ou um mod que
+                                   proíbe distribuição — e não sabe se adianta reparar. *@
+                                <MudText Typo="Typo.caption" Class="d-block mt-1"
+                                         Style="opacity:.85; word-break:break-word;">
+                                    @_selectedVersion.FailureReason
+                                </MudText>
+                            }
                         </div>
                         @if (_selectedVersion.State is ModpackVersionState.Draft)
                         {
@@ -77,7 +88,7 @@ else
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
                                        StartIcon="@Icons.Material.Filled.Publish"
                                        OnClick="Publish"
-                                       Disabled="_isPublishing || _selectedVersion.Files.Count == 0">Publicar
+                                       Disabled="_isPublishing || SelectedStats.TotalCount == 0">Publicar
                             </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="OpenEditVersion">Editar
                             </MudButton>
@@ -102,7 +113,55 @@ else
                         }
                         else if (_selectedVersion.State is ModpackVersionState.Resolving)
                         {
-                            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                            @* Progresso vindo do worker, não da contagem de arquivos:
+                               mostra o mod que está sendo baixado agora, e não só
+                               "N de M" que só mexe quando um download inteiro acaba. *@
+                            <div style="min-width:240px;">
+                                @if (Progress is { } p)
+                                {
+                                    @if (p.IsDeterminate)
+                                    {
+                                        <MudProgressLinear Color="Color.Info" Value="@p.Percent" Class="mb-1"/>
+                                        <MudText Typo="Typo.caption">
+                                            @p.Done de @p.Total mods@(p.Dependencies > 0
+                                                                        ? $" · +{p.Dependencies} dependências"
+                                                                        : "") — @p.Step
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudProgressLinear Color="Color.Info" Indeterminate="true" Class="mb-1"/>
+                                        <MudText Typo="Typo.caption">@p.Step</MudText>
+                                    }
+                                }
+                                else if (_expectedModCount is { } total && total > 0)
+                                {
+                                    @* Sem job vivo no processo (reiniciou no meio):
+                                       cai para a contagem do banco, que é grosseira
+                                       mas honesta. *@
+                                    <MudProgressLinear Color="Color.Info" Striped="true"
+                                                       Value="@(ModCount * 100.0 / total)" Class="mb-1"/>
+                                    <MudText Typo="Typo.caption">@ModCount de @total mods</MudText>
+                                }
+                                else
+                                {
+                                    <MudProgressLinear Color="Color.Info" Indeterminate="true"/>
+                                }
+                            </div>
+                        }
+                        else if (_selectedVersion.State is ModpackVersionState.Failed)
+                        {
+                            <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Refresh"
+                                       OnClick="Retry" Disabled="_isRetrying">Tentar novamente
+                            </MudButton>
+                            @if (_isRetrying)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                            }
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
+                                       OnClick="DeleteVersion">Apagar
+                            </MudButton>
                         }
                         else if (_selectedVersion.State is ModpackVersionState.Archived)
                         {
@@ -113,6 +172,15 @@ else
                         }
                     </MudStack>
                 </MudAlert>
+
+                @if (_selectedVersion.HasPendingMods)
+                {
+                    <PendingModsPanel Pending="_selectedVersion.PendingMods"
+                                      CanUpload="@(_selectedVersion.State is ModpackVersionState.Draft)"
+                                      IsBusy="_isRetrying"
+                                      OnUpload="UploadForPending"
+                                      OnRetry="Retry"/>
+                }
 
                 <MudGrid Class="mb-2">
                     <StatCard Icon="@Icons.Material.Filled.Extension" Label="Mods"
@@ -143,7 +211,7 @@ else
                                         </MudText>
                                         <VersionStateChip State="v.State"/>
                                         <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                            @v.Files.Count arquivo(s)
+                                            @FileCountOf(v.Id) arquivo(s)
                                         </MudText>
                                         @if (v.Id != _selectedVersionId)
                                         {
@@ -172,6 +240,51 @@ else
                                     <span>RAM recomendada</span>
                                     <b>@(_selectedVersion.RecommendedMemoryMb is { } r ? $"{r} MB" : "—")</b>
                                 </div>
+                                <div class="tc-kv">
+                                    <span>Origem</span>
+                                    @if (_modpack.UpstreamProvider is { } origem)
+                                    {
+                                        @* Link direto para o projeto lá fora: é para
+                                           onde o admin vai quando precisa baixar um mod
+                                           bloqueado ou conferir o changelog do autor. *@
+                                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                                 Color="Color.Info" Icon="@Icons.Material.Filled.CloudDownload"
+                                                 Href="@UpstreamUrl" Target="_blank">
+                                            @origem
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <b>Criado aqui</b>
+                                    }
+                                </div>
+
+                                @if (_selectedVersion.UpstreamVersionLabel is { Length: > 0 } autorLabel)
+                                {
+                                    @* A numeração do autor é outra coisa da nossa: "1.0.0" é
+                                       nossa, "4.2" é dele. Mostrar as duas evita o admin achar
+                                       que publicou a versão errada. *@
+                                    <div class="tc-kv">
+                                        <span>Versão do autor</span>
+                                        @if (_upstream is { HasUpdate: true } atualizacao)
+                                        {
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <b>@autorLabel</b>
+                                                <MudIcon Icon="@Icons.Material.Filled.ArrowForward"
+                                                         Size="Size.Small" Color="Color.Warning"/>
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                                         Variant="Variant.Filled">
+                                                    @atualizacao.LatestLabel
+                                                </MudChip>
+                                            </MudStack>
+                                        }
+                                        else
+                                        {
+                                            <b>@autorLabel</b>
+                                        }
+                                    </div>
+                                }
+
                                 <div class="tc-kv">
                                     <span>Canal</span>
                                     <MudChip T="string" Size="Size.Small" Variant="Variant.Text"

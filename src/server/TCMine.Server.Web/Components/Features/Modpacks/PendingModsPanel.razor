@@ -1,0 +1,67 @@
+@* Mods que a ingestão não trouxe. Não é erro a corrigir: no CurseForge é comum
+   o autor bloquear a redistribuição, e a única saída legítima é o admin baixar
+   da página do mod e subir o .jar aqui. *@
+
+<MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.CloudOff" Color="Color.Warning"/>
+        <MudText Typo="Typo.subtitle1" Style="font-weight:600;">
+            @Pending.Count mod(s) aguardando upload manual
+        </MudText>
+        <MudSpacer/>
+        @if (CanRetry)
+        {
+            <MudButton Size="Size.Small" Variant="Variant.Text"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="OnRetry" Disabled="IsBusy">
+                Tentar de novo
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudText Typo="Typo.body2" Class="mb-3" Style="opacity:.8;">
+        A versão continua utilizável — estes mods simplesmente não vieram. Baixe o
+        arquivo na página do mod e envie aqui; a pendência some sozinha quando o
+        arquivo entrar.
+    </MudText>
+
+    <MudList T="string" Dense="true">
+        @foreach (var mod in Pending)
+        {
+            <MudListItem T="string" @key="mod.Id">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                             Color="@ColorFor(mod.Reason)">
+                        @LabelFor(mod.Reason)
+                    </MudChip>
+
+                    <div style="flex:1; min-width:180px;">
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@mod.DisplayName</MudText>
+                        @if (mod.Detail is { Length: > 0 })
+                        {
+                            <MudText Typo="Typo.caption" Style="opacity:.8;">@mod.Detail</MudText>
+                        }
+                    </div>
+
+                    @if (mod.PageUrl is { Length: > 0 } url)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Text"
+                                   StartIcon="@Icons.Material.Filled.OpenInNew"
+                                   Href="@url" Target="_blank">
+                            Abrir na origem
+                        </MudButton>
+                    }
+
+                    @if (CanUpload)
+                    {
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Upload"
+                                   OnClick="@(() => OnUpload.InvokeAsync(mod))">
+                            Enviar .jar
+                        </MudButton>
+                    }
+                </MudStack>
+            </MudListItem>
+        }
+    </MudList>
+</MudPaper>

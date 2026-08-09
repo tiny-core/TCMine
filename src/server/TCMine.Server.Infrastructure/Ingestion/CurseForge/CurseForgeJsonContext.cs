@@ -7,4 +7,6 @@ namespace TCMine.Server.Infrastructure.Ingestion.CurseForge;
 [JsonSerializable(typeof(CurseForgeResponse<CurseForgeMod>))]
 [JsonSerializable(typeof(CurseForgeResponse<IReadOnlyList<CurseForgeMod>>))]
 [JsonSerializable(typeof(CurseForgeResponse<IReadOnlyList<CurseForgeFile>>))]
+[JsonSerializable(typeof(CurseForgeManifest))]
+[JsonSerializable(typeof(CurseForgeModsRequest))]
 internal sealed partial class CurseForgeJsonContext : JsonSerializerContext;

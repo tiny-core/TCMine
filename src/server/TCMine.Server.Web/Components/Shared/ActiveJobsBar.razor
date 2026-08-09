@@ -1,0 +1,42 @@
+@* Faixa de trabalhos em curso, logo abaixo da barra do topo.
+
+   Fica no layout de propósito: o progresso vive num singleton do servidor, então
+   o admin pode navegar à vontade que o acompanhamento continua — não há motivo
+   para prender a navegação. É o que o torna seguro. *@
+
+@if (_jobs.Count > 0)
+{
+    <MudPaper Elevation="0" Square="true" Class="pa-2"
+              Style="border-bottom:1px solid var(--mud-palette-divider);">
+        <MudStack Spacing="1">
+            @foreach (var (id, job) in _jobs)
+            {
+                <div @key="id">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary"/>
+                        <MudText Typo="Typo.body2" Style="font-weight:600;">@job.Title</MudText>
+                        <MudText Typo="Typo.caption" Style="opacity:.8; flex:1; min-width:0;"
+                                 Class="text-truncate">
+                            @job.Step
+                        </MudText>
+                        @if (job.IsDeterminate)
+                        {
+                            <MudText Typo="Typo.caption">
+                                @job.Done / @job.Total@(job.Dependencies > 0 ? $" +{job.Dependencies} dep." : "")
+                            </MudText>
+                        }
+                    </MudStack>
+
+                    @if (job.IsDeterminate)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Value="@job.Percent" Class="mt-1"/>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-1"/>
+                    }
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+}

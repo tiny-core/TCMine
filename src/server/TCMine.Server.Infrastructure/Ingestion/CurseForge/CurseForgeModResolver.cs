@@ -1,3 +1,4 @@
+using TCMine.Contracts.Modpacks;
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using TCMine.Server.Application.Abstractions;
@@ -78,7 +79,8 @@ public sealed partial class CurseForgeModResolver(
                 file.FileLength,
                 new Uri(file.DownloadUrl),
                 dependencies,
-                iconUrl);
+                iconUrl,
+                SideOf(file.GameVersions));
         }
         catch (HttpRequestException ex)
         {
@@ -120,6 +122,28 @@ public sealed partial class CurseForgeModResolver(
         5 => ModDependencyKind.Incompatible,
         _ => ModDependencyKind.Optional // tool/include: não puxa nada
     };
+
+    /// <summary>
+    ///     Lado do mod conforme as tags de ambiente do CurseForge.
+    ///     Elas não são um campo próprio: o CurseForge modela ambiente como
+    ///     "game version", então "Client" e "Server" chegam misturados com
+    ///     "26.1.2" e "NeoForge" na mesma lista. Obrigatórias para mods de
+    ///     Minecraft desde 15/07/2026 — arquivos publicados antes podem não ter
+    ///     nenhuma, e aí devolvemos null (desconhecido) em vez de chutar.
+    /// </summary>
+    private static FileSide? SideOf(IReadOnlyList<string> gameVersions)
+    {
+        var client = gameVersions.Contains("Client", StringComparer.OrdinalIgnoreCase);
+        var server = gameVersions.Contains("Server", StringComparer.OrdinalIgnoreCase);
+
+        return (client, server) switch
+        {
+            (true, false) => FileSide.ClientOnly,
+            (false, true) => FileSide.ServerOnly,
+            (true, true) => FileSide.Both,
+            _ => null // sem tag: o arquivo é anterior à exigência
+        };
+    }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Erro ao resolver '{ProjectId}' no CurseForge.")]
     private partial void LogResolveError(Exception ex, string projectId);

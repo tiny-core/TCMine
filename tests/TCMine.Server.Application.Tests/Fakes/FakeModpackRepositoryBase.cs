@@ -1,0 +1,65 @@
+using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Domain.Modpacks;
+
+namespace TCMine.Server.Application.Tests.Fakes;
+
+/// <summary>
+///     Base para os repositórios fake dos testes: implementa a interface inteira
+///     lançando <see cref="NotImplementedException" /> e deixa cada teste
+///     sobrescrever só o que usa.
+///     Existe porque cada método novo em <see cref="IModpackRepository" /> quebrava
+///     oito fakes escritos à mão de uma vez — ruído puro, sem nenhum teste a mais.
+///     Um método não sobrescrito que seja chamado ainda explode, que é o
+///     comportamento desejado: o teste diz o que espera usar.
+/// </summary>
+public abstract class FakeModpackRepositoryBase : IModpackRepository
+{
+    public virtual Task<bool> SlugExistsAsync(string slug, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<bool> ExistsFromUpstreamAsync(ModFileOrigin origin, string projectId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<IReadOnlyDictionary<Guid, ModpackVersionStats>> GetVersionStatsAsync(
+        Guid modpackId, CancellationToken ct) => throw new NotImplementedException();
+
+    public virtual Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
+
+    public virtual Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
+
+    public virtual Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task RemoveVersionAsync(Guid versionId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
+}

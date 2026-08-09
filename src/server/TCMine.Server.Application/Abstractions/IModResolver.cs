@@ -44,6 +44,11 @@ public abstract record ModResolution
     }
 
     /// <summary>Encontrado e liberado para download.</summary>
+    /// <summary>
+    ///     <paramref name="Side" /> só vem preenchido quando a ORIGEM declara em
+    ///     que lado o mod roda (hoje só o Modrinth). Nulo significa "a origem não
+    ///     sabe" — e aí vale o lado pedido na ingestão, nunca um chute.
+    /// </summary>
     public sealed record Resolved(
         string VersionId,
         string FileName,
@@ -51,7 +56,8 @@ public abstract record ModResolution
         long SizeBytes,
         Uri DownloadUrl,
         IReadOnlyList<ModDependency> Dependencies,
-        string? IconUrl = null) : ModResolution;
+        string? IconUrl = null,
+        FileSide? Side = null) : ModResolution;
 
     /// <summary>
     ///     O autor marcou allowModDistribution = false.

@@ -191,12 +191,22 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UpstreamProjectId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpstreamProvider")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex("UpstreamProvider", "UpstreamProjectId");
 
                     b.ToTable("modpacks", (string)null);
                 });
@@ -300,6 +310,18 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UpstreamFileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpstreamSnapshotJson")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UpstreamVersionLabel")
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Version")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -346,6 +368,66 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasIndex("ModpackId");
 
                     b.ToTable("news", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.PendingMod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ModpackVersionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PageUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProjectSlug")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Side")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackVersionId", "ProjectSlug")
+                        .IsUnique();
+
+                    b.ToTable("pending_mods", (string)null);
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Servers.GameServer", b =>
@@ -486,6 +568,15 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.PendingMod", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)
+                        .WithMany("PendingMods")
+                        .HasForeignKey("ModpackVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.Modpack", b =>
                 {
                     b.Navigation("Versions");
@@ -494,6 +585,8 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.ModpackVersion", b =>
                 {
                     b.Navigation("Files");
+
+                    b.Navigation("PendingMods");
                 });
 #pragma warning restore 612, 618
         }

@@ -53,10 +53,14 @@ public sealed class AddManualFile(
         if (replacedId is { } oldId)
             await repository.RemoveFileAsync(version.Id, oldId, ct);
 
-        // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
-        // arquivo novo entra junto.
-        await repository.UpdateVersionAsync(version, ct);
-
+        // Era este o mod que faltava? A pendência morre com a chegada do arquivo
+        // — é assim que o upload manual fecha o ciclo sem o admin ter de marcar
+        // nada à mão.
+        if (command.ProjectSlug is { Length: > 0 } slug
+            && version.ResolvePending(slug) is { } pendingId)
+        {
+            await repository.RemovePendingAsync(version.Id, pendingId, ct);
+        }
 
         // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
         // arquivo novo entra junto.

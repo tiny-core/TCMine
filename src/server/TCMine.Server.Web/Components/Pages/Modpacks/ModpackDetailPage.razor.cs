@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components.Features.Modpacks;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
@@ -12,22 +13,37 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 {
     private bool _isLoading = true;
     private bool _isPublishing;
+    private bool _isRetrying;
     private Modpack? _modpack;
-    private Timer? _pollTimer;
     private ModpackVersion? _selectedVersion;
     private Guid _selectedVersionId;
     private int _serverCount;
 
     [Parameter] public Guid ModpackId { get; set; }
 
-    // Mods e overrides moram na mesma coleção Files, separados pela Origin.
-    private int ModCount =>
-        _selectedVersion?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
+    /// <summary>Contagens por versão, agregadas no banco (ver GetVersionStatsAsync).</summary>
+    private IReadOnlyDictionary<Guid, ModpackVersionStats> _stats =
+        new Dictionary<Guid, ModpackVersionStats>();
 
-    private int OverrideCount =>
-        _selectedVersion?.Files.Count(f => f.Origin == ModFileOrigin.Override) ?? 0;
+    private ModpackVersionStats SelectedStats =>
+        _selectedVersionId != Guid.Empty && _stats.TryGetValue(_selectedVersionId, out var s)
+            ? s
+            : ModpackVersionStats.Empty;
 
-    private long TotalSizeBytes => _selectedVersion?.Files.Sum(f => f.SizeBytes) ?? 0;
+    private int ModCount => SelectedStats.ModCount;
+    private int OverrideCount => SelectedStats.OverrideCount;
+    private long TotalSizeBytes => SelectedStats.TotalSizeBytes;
+
+    /// <summary>Contagem de arquivos de uma versão qualquer (linha do tempo).</summary>
+    private int FileCountOf(Guid versionId) =>
+        _stats.TryGetValue(versionId, out var s) ? s.TotalCount : 0;
+
+    /// <summary>
+    ///     Quantos mods o pack de origem declara. Só existe em versão importada —
+    ///     é o que permite mostrar "120 de 471" em vez de um spinner sem fim.
+    ///     Calculado no load; desserializar o snapshot a cada render seria caro.
+    /// </summary>
+    private int? _expectedModCount;
 
     [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -36,20 +52,46 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     [Inject] private RestoreModpackVersion RestoreUseCase { get; set; } = default!;
     [Inject] private DeleteModpack DeleteModpackUseCase { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
+    [Inject] private RetryModResolution RetryUseCase { get; set; } = default!;
+    [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
+    [Inject] private CheckUpstreamUpdate UpstreamCheck { get; set; } = default!;
+
+    /// <summary>Resultado da consulta à origem. Nulo enquanto não consultou (ou se falhou).</summary>
+    private UpstreamUpdateStatus? _upstream;
+
+    /// <summary>
+    ///     Página do pack na origem. O CurseForge não expõe o slug no manifest,
+    ///     mas /projects/{id} redireciona para a página certa — evita guardar uma
+    ///     URL que envelhece se o autor renomear o pack.
+    /// </summary>
+    private string? UpstreamUrl => (_modpack?.UpstreamProvider, _modpack?.UpstreamProjectId) switch
+    {
+        (ModFileOrigin.CurseForge, { Length: > 0 } id) => $"https://www.curseforge.com/projects/{id}",
+        (ModFileOrigin.Modrinth, { Length: > 0 } id) => $"https://modrinth.com/modpack/{id}",
+        _ => null
+    };
 
     public void Dispose()
     {
-        _pollTimer?.Dispose();
+        Jobs.Changed -= OnJobChanged;
         GC.SuppressFinalize(this);
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Jobs.Changed += OnJobChanged;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {
         _isLoading = true;
 
-        _modpack = await Repository.GetWithVersionsAsync(ModpackId, CancellationToken.None);
+        // GetByIdAsync traz o modpack com as versões, mas SEM os arquivos: num
+        // pack importado são milhares de linhas que a tela não usa — só precisa
+        // das contagens, que vêm agregadas do banco logo abaixo.
+        _modpack = await Repository.GetByIdAsync(ModpackId, CancellationToken.None);
+        _stats = await Repository.GetVersionStatsAsync(ModpackId, CancellationToken.None);
 
         if (_modpack is not null)
         {
@@ -64,36 +106,74 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
             {
                 _selectedVersionId = selected.Id;
                 _selectedVersion = selected;
+                _expectedModCount = UpstreamSnapshot.FromJson(selected.UpstreamSnapshotJson)?.Mods.Count;
             }
 
             _serverCount = (await ServerRepository.ListByModpackAsync(ModpackId, CancellationToken.None)).Count;
         }
 
         _isLoading = false;
-        StartPollingIfResolving();
+
+        // Consulta à origem depois de pintar a tela: é rede, e prender o
+        // carregamento da página por ela seria trocar um travamento por outro.
+        _ = CheckUpstreamAsync();
     }
 
-    // Enquanto a versão selecionada está resolvendo, recarrega a cada 2s para o
-    // stepper e os contadores acompanharem a transição (→ Draft/Ready/Failed) sem
-    // o admin atualizar a página. Para de sondar quando sai de Resolving.
-    private void StartPollingIfResolving()
+    private async Task CheckUpstreamAsync()
     {
-        if (_selectedVersion?.State is not ModpackVersionState.Resolving)
-            return;
-
-        _pollTimer ??= new Timer(async _ =>
+        if (_selectedVersion?.UpstreamFileId is null)
         {
-            await LoadAsync();
-            await InvokeAsync(() =>
+            _upstream = null;
+            return;
+        }
+
+        var result = await UpstreamCheck.HandleAsync(_selectedVersionId, CancellationToken.None);
+
+        // Falha aqui é silenciosa de propósito: a origem estar fora do ar não é
+        // problema do admin que só queria ver a versão.
+        _upstream = result.Succeeded ? result.Value : null;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>Progresso empurrado pelo worker para a versão selecionada.</summary>
+    private JobProgress? Progress =>
+        _selectedVersionId == Guid.Empty ? null : Jobs.Get(_selectedVersionId);
+
+    // Assina o registro de progresso: o worker avisa e a página se redesenha.
+    // Antes isto era um Timer de 2s por circuito — progresso atrasado, grosseiro
+    // (só mudava quando um mod inteiro terminava) e uma consulta por tique.
+    private void OnJobChanged()
+    {
+        // Terminou: o estado da versão mudou no banco, então recarrega — é o
+        // único momento em que vale reler.
+        if (_selectedVersionId != Guid.Empty && Jobs.TryConsumeCompletion(_selectedVersionId, out var error))
+        {
+            _ = InvokeAsync(async () =>
             {
+                await LoadAsync();
+                if (error is { Length: > 0 })
+                    Snackbar.Add(error, Severity.Error);
                 StateHasChanged();
-                if (_selectedVersion?.State is not ModpackVersionState.Resolving)
-                {
-                    _pollTimer?.Dispose();
-                    _pollTimer = null;
-                }
             });
-        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+            return;
+        }
+
+        // A versão entrou em Resolving depois que a página carregou (é o caso do
+        // reparo): sem reler, o cabeçalho continuaria dizendo "rascunho" enquanto
+        // a barra já mostra o download andando.
+        if (_selectedVersion is { State: not ModpackVersionState.Resolving }
+            && _selectedVersionId != Guid.Empty
+            && Jobs.Get(_selectedVersionId) is not null)
+        {
+            _ = InvokeAsync(async () =>
+            {
+                await LoadAsync();
+                StateHasChanged();
+            });
+            return;
+        }
+
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnVersionChanged(Guid versionId)
@@ -150,18 +230,30 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         if (_selectedVersion is null)
             return;
 
+        // Com pendências o texto muda: publicar assim entrega um pack a que
+        // faltam mods, e o admin precisa ver isso antes de decidir.
+        var pending = _selectedVersion.PendingMods;
+        var message = pending.Count > 0
+            ? $"A versão {_selectedVersion.Version} tem {pending.Count} mod(s) que não vieram: "
+              + $"{string.Join(", ", pending.Take(5).Select(p => p.DisplayName))}"
+              + (pending.Count > 5 ? "…" : "")
+              + ". Quem instalar não terá esses mods. Publicar assim mesmo?"
+            : $"Publicar a versão {_selectedVersion.Version}? A partir daqui ela fica imutável — "
+              + "para mudanças, cria uma nova versão.";
+
         var confirm = await DialogService.ShowMessageBoxAsync(
-            "Publicar versão",
-            $"Publicar a versão {_selectedVersion.Version}? A partir daqui ela fica imutável — "
-            + "para mudanças, cria uma nova versão.",
-            "Publicar", cancelText: "Cancelar");
+            pending.Count > 0 ? "Publicar com mods faltando" : "Publicar versão",
+            message,
+            pending.Count > 0 ? "Publicar mesmo assim" : "Publicar",
+            cancelText: "Cancelar");
         if (confirm is not true)
             return;
 
         _isPublishing = true;
         try
         {
-            var result = await PublishUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+            var result = await PublishUseCase.HandleAsync(
+                _selectedVersion.Id, CancellationToken.None, acceptPending: pending.Count > 0);
             if (result.Succeeded)
             {
                 Snackbar.Add("Versão publicada.", Severity.Success);
@@ -174,6 +266,20 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         {
             _isPublishing = false;
         }
+    }
+
+    private async Task UploadForPending(PendingMod pending)
+    {
+        var p = new DialogParameters
+        {
+            ["VersionId"] = _selectedVersion!.Id,
+            ["ProjectSlug"] = pending.ProjectSlug,
+            ["PendingName"] = pending.DisplayName
+        };
+
+        var dialog = await DialogService.ShowAsync<ManualUploadDialog>("Enviar arquivo", p);
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
     }
 
     private async Task OpenEditVersion()
@@ -280,6 +386,36 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
             Snackbar.Add(result.Error!, Severity.Error);
     }
 
+    private async Task Retry()
+    {
+        if (_selectedVersion is null || _isRetrying)
+            return;
+
+        _isRetrying = true;
+        try
+        {
+            var result = await RetryUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+                return;
+            }
+
+            Snackbar.Add(
+                result.Value > 0
+                    ? $"Reparando: {result.Value} mods reenfileirados. O que já baixou foi mantido."
+                    : "Versão devolvida para rascunho. Nada ficou faltando para rebaixar.",
+                Severity.Success);
+
+            // Não precisa sondar: a partir daqui o worker empurra o progresso.
+            await LoadAsync();
+        }
+        finally
+        {
+            _isRetrying = false;
+        }
+    }
+
     private async Task Restore()
     {
         if (_selectedVersion is null)
@@ -321,7 +457,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         ModpackVersionState.Draft => "Adicione mods e overrides; publique quando estiver pronto.",
         ModpackVersionState.Resolving => "Baixando e verificando os arquivos. Isto atualiza sozinho.",
         ModpackVersionState.Ready => "Pronta para uso. Crie um servidor ou verifique se há mods mais novos.",
-        ModpackVersionState.Failed => "Revise os mods e tente novamente numa nova versão.",
+        ModpackVersionState.Failed => "Nada foi perdido: o reparo devolve a versão para rascunho e rebaixa só o que faltou.",
         ModpackVersionState.Archived => "Some de novas instalações, mas quem já a fixou continua rodando.",
         _ => ""
     };

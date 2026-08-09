@@ -70,6 +70,13 @@ public static class DependencyInjection
         services.AddScoped<IModResolver, CurseForgeModResolver>();
         services.AddScoped<IModSearch, CurseForgeModSearch>();
 
+        // Importação de packs inteiros (zip + manifest + overrides).
+        services.AddHttpClient<IUpstreamPackSource, CurseForgePackSource>(client =>
+            {
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
+
         services.AddHttpClient<IModDownloader, HttpModDownloader>(client =>
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");

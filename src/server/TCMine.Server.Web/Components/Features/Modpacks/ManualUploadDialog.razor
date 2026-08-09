@@ -7,6 +7,13 @@
     </TitleContent>
     <DialogContent>
         <MudStack Spacing="3">
+            @if (PendingName is { Length: > 0 } pendente)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    Enviando o arquivo de <b>@pendente</b>. A pendência some assim que ele entrar.
+                </MudAlert>
+            }
+
             <MudSelect @bind-Value="_targetFolder" Label="Pasta de destino" Dense="true">
                 <MudSelectItem Value="@("mods")">mods/</MudSelectItem>
                 <MudSelectItem Value="@("config")">config/</MudSelectItem>

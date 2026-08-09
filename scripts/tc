@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# tc — atalhos do TCMine com SAÍDA CURTA.
+#
+# Por que isto existe: cada `dotnet build` cospe ~30 linhas e cada `dotnet test`
+# ~20 por suíte, mesmo quando está tudo verde. Numa sessão de agente isso é
+# contexto queimado para reler "Compilação com êxito" quinze vezes. Aqui cada
+# comando devolve no máximo um punhado de linhas e só o que interessa: o que
+# falhou, e quantos passaram.
+#
+# Uso: scripts/tc <comando> [args]
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+DB="$ROOT/src/server/TCMine.Server.Web/data/tcmine.db"
+
+die() { echo "erro: $*" >&2; exit 1; }
+
+# O `dotnet run` deixa o TCMine.Server.Web.exe segurando as DLLs; sem matar
+# antes, o build falha com MSB3026 num muro de texto.
+kill_app() {
+  taskkill //F //IM TCMine.Server.Web.exe >/dev/null 2>&1 || true
+}
+
+cmd_build() {
+  kill_app
+  local out
+  out="$(cd "$ROOT" && dotnet build -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
+  local code=$?
+  echo "$out" | grep -E ": (error|warning) " | sed 's/ \[[^]]*\.csproj\]$//' | sort -u | head -25
+  if [ $code -eq 0 ]; then echo "BUILD OK"; else echo "BUILD FALHOU"; fi
+  return $code
+}
+
+cmd_test() {
+  local out
+  out="$(cd "$ROOT" && dotnet test --nologo -clp:NoSummary -v q "$@" 2>&1)"
+  local code=$?
+  # Só as falhas, com a mensagem — e o placar por suíte.
+  echo "$out" | grep -E "^\s+(Com falha|Falha)" | head -20
+  echo "$out" | grep -E "Mensagem de erro|Assert\." | head -10
+  echo "$out" | grep -oE "(Aprovado!|Com falha!) [^-]*" | sed 's/  */ /g' | head -6
+  if [ $code -ne 0 ]; then echo "TESTES FALHARAM"; fi
+  return $code
+}
+
+# Verificação completa numa tacada: é isto que um agente de verificação roda.
+cmd_check() {
+  cmd_build || return 1
+  cmd_test || return 1
+  echo "CHECK OK"
+}
+
+# Consulta a base de dev. Aceita SQL direto ou um atalho.
+cmd_db() {
+  [ -f "$DB" ] || die "base não encontrada em $DB"
+  local sql="${1:-}"
+  case "$sql" in
+    "" | state)
+      sql="select v.Version, v.State, m.Name, (select count(*) from modpack_files f where f.ModpackVersionId=v.Id) files, (select count(*) from pending_mods p where p.ModpackVersionId=v.Id) pending from modpack_versions v join modpacks m on m.Id=v.ModpackId" ;;
+    tables) sql="select name from sqlite_master where type='table'" ;;
+  esac
+  python3 - "$DB" "$sql" <<'PY'
+import sqlite3, sys
+db, sql = sys.argv[1], sys.argv[2]
+con = sqlite3.connect(f'file:{db}?mode=ro', uri=True)
+cur = con.execute(sql)
+cols = [d[0] for d in cur.description] if cur.description else []
+if cols: print(' | '.join(cols))
+for row in cur.fetchall()[:40]:
+    print(' | '.join('' if v is None else str(v)[:60] for v in row))
+PY
+}
+
+# Fumaça sem browser: o Blazor Server pré-renderiza no SSR, então o HTML da
+# resposta já prova que a página montou e traz o texto renderizado. Cobre a
+# maioria das verificações sem abrir aba nem gastar ida-e-volta de JS.
+cmd_smoke() {
+  local path="${1:-/}"
+  local url="http://localhost:5144${path}"
+  local body code
+  body="$(curl -s -m 20 -w '\n%{http_code}' "$url")" || die "servidor fora do ar em 5144"
+  code="$(echo "$body" | tail -1)"
+  echo "HTTP $code  $path"
+  # Texto visível, sem tags, comprimido — o suficiente para afirmar o que a
+  # página diz sem despejar HTML.
+  echo "$body" | head -n -1 \
+    | python3 -c "import sys,re,html; t=sys.stdin.read(); t=re.sub(r'(?s)<(script|style|svg).*?</\1>',' ',t); t=re.sub(r'<[^>]+>',' ',t); t=html.unescape(t); print(re.sub(r'\s+',' ',t).strip()[:1200])"
+}
+
+cmd_logs() {
+  cd "$ROOT" && dotnet build -v q >/dev/null 2>&1
+  echo "use: scripts/tc smoke <rota> — para logs do servidor use preview_logs"
+}
+
+case "${1:-}" in
+  build) shift; cmd_build "$@" ;;
+  test)  shift; cmd_test "$@" ;;
+  check) shift; cmd_check "$@" ;;
+  db)    shift; cmd_db "$@" ;;
+  smoke) shift; cmd_smoke "$@" ;;
+  kill)  kill_app; echo "ok" ;;
+  *) cat <<'USAGE'
+tc build            build com -warnaserror, só erros/avisos
+tc test [proj]      testes, só falhas + placar
+tc check            build + test (usado pelo agente de verificação)
+tc db [sql|state]   consulta a base de dev (state = versões/pendências)
+tc smoke <rota>     GET na app e devolve o texto renderizado (sem browser)
+tc kill             mata o TCMine.Server.Web.exe que trava o build
+USAGE
+    ;;
+esac

@@ -1,5 +1,6 @@
 ﻿@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/overrides"
 @using TCMine.Contracts.Modpacks
+@using TCMine.UI.Shared.Formatting
 
 @if (_isLoading)
 {
@@ -41,7 +42,11 @@ else
                         }
                         else
                         {
-                            <MudTreeView T="string" Items="_treeItems"
+                            @* ServerData: os filhos de uma pasta só existem quando
+                               ela é aberta. Sem isto, um pack importado montava os
+                               3380 overrides como componentes de uma vez — a página
+                               levava dezenas de segundos e o circuito engasgava. *@
+                            <MudTreeView T="string" Items="_treeItems" ServerData="LoadChildrenAsync"
                                          SelectedValue="_selectedPath" SelectedValueChanged="OnSelect"
                                          Hover="true" Dense="true"
                                          @key="_treeRevision">
@@ -83,17 +88,43 @@ else
                     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-1">
                         <MudText Typo="Typo.subtitle2">@(_selectedPath ?? "Selecione um arquivo")</MudText>
                         <MudSpacer/>
+                        @if (_isOpening)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                        }
                         @if (_version.State is ModpackVersionState.Draft && _selectedPath is not null)
                         {
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                        StartIcon="@Icons.Material.Filled.Save"
-                                       OnClick="Save" Disabled="_isSaving || !_dirty">Salvar
+                                       OnClick="Save" Disabled="_isSaving || !_dirty || _notEditable is not null">
+                                Salvar
                             </MudButton>
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error"
                                            Size="Size.Small" OnClick="Delete" Disabled="_isSaving"/>
                         }
                     </MudStack>
-                    <div class="tc-editor-host">
+
+                    @if (_notEditable is { } blocked)
+                    {
+                        @* PNG, .jar e .zip vêm dentro dos overrides de um pack.
+                           Despejá-los no Monaco travava a aba — aqui o arquivo
+                           continua acessível, só que por download. *@
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-2">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                                <div style="flex:1; min-width:200px;">
+                                    <MudText Typo="Typo.body2">@blocked.Reason</MudText>
+                                    <MudText Typo="Typo.caption">@HumanSize.Bytes(blocked.SizeBytes)</MudText>
+                                </div>
+                                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Download"
+                                           Href="@($"/api/v1/blobs/{blocked.Sha256}")" Target="_blank">
+                                    Baixar
+                                </MudButton>
+                            </MudStack>
+                        </MudAlert>
+                    }
+
+                    <div class="tc-editor-host" style="@(_notEditable is null ? "" : "display:none;")">
                         <StandaloneCodeEditor @ref="_editor"
                                               CssClass="tc-monaco"
                                               ConstructionOptions="EditorOptions"

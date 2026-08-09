@@ -16,6 +16,7 @@ public sealed partial class ModpackIngestionService(
     IBlobStore blobStore,
     IEnumerable<IModResolver> resolvers,
     IModDownloader downloader,
+    IJobProgressReporter progress,
     ILogger<ModpackIngestionService> logger)
 {
     private readonly ILogger<ModpackIngestionService> _logger = logger;
@@ -67,26 +68,72 @@ public sealed partial class ModpackIngestionService(
 
         var failures = new List<string>();
 
+        // Nomes legíveis, quando a importação os gravou. "Baixando Just Enough
+        // Items" diz algo; "Baixando 238222" não.
+        var names = UpstreamSnapshot.FromJson(version.UpstreamSnapshotJson)?.Names
+                    ?? new Dictionary<string, string>();
+
+        // O total é o do pack e NÃO se mexe: dependências transitivas são
+        // contadas à parte, senão o denominador cresceria enquanto baixa e a
+        // barra andaria para trás.
+        var total = work.Count;
+        var done = 0;
+        var deps = 0;
+        var title = $"Resolvendo {modpack.Name} {version.Version}";
+
+        void Report(string step) =>
+            progress.Report(versionId, new JobProgress(title, step, done, total) { Dependencies = deps });
+
         while (work.Count > 0)
         {
             ct.ThrowIfCancellationRequested();
             var (item, isDependency) = work.Dequeue();
 
+            var label = names.GetValueOrDefault(item.ProjectId, item.ProjectId);
+
             // Dependência já satisfeita, ou já tratada nesta corrida: pula.
             // Itens explícitos do admin sempre passam (permite atualizar um já
             // presente, substituindo via UpsertFile).
             if (isDependency && (existing.Contains(item.ProjectId) || processed.Contains(item.ProjectId)))
+            {
+                // Já satisfeita: avança o contador mesmo assim. Sem isto, uma
+                // reingestão passava por centenas de itens sem a barra mexer e
+                // parecia travada até tudo aparecer de uma vez no fim.
+                deps++;
+                Report($"{label} — já presente");
                 continue;
+            }
 
             if (!processed.Add(item.ProjectId))
                 continue;
 
+            // Item explícito já presente NÃO é pulado: é assim que se atualiza um
+            // mod (o UpsertFile troca o .jar). Só o feedback muda.
+            Report(existing.Contains(item.ProjectId) ? $"Verificando {label}" : $"Baixando {label}");
+
             var outcome = await ResolveAndDownloadAsync(version, item, modpack.MinecraftVersion, modpack.Loader, ct);
+
+            if (isDependency)
+                deps++;
+            else
+                done++;
+
+            if (outcome.Pending is { } pending)
+            {
+                // Não é falha da versão: fica registrado para upload manual.
+                version.UpsertPending(pending);
+                continue;
+            }
+
             if (outcome.Error is not null)
             {
                 failures.Add(outcome.Error);
                 continue;
             }
+
+            // Chegou o mod que faltava — a pendência (se havia) morre aqui.
+            if (version.ResolvePending(item.ProjectId) is { } resolvedPendingId)
+                await repository.RemovePendingAsync(version.Id, resolvedPendingId, ct);
 
             // Enfileira as requeridas que ainda não temos. A dependência herda
             // o lado do mod que a pediu (lib de mod cliente = cliente, etc.).
@@ -97,16 +144,26 @@ public sealed partial class ModpackIngestionService(
             }
         }
 
+        // Um último retrato com os contadores fechados: sem ele o acompanhamento
+        // congelava no penúltimo item, porque o Report acontece ANTES de
+        // processar cada um.
+        Report("Finalizando");
+
         // Grava o estado final com os arquivos adicionados.
         if (failures.Count > 0)
-            // Falha parcial derruba tudo: um pack incompleto não deve ser
-            // publicado. O admin vê a lista e decide (trocar mod, subir manual).
+        {
+            // Sobrou falha de verdade (conflito de caminho, origem sem API key):
+            // aí a versão não tem como seguir e o admin precisa intervir.
             version.MarkFailed($"Não foi possível resolver: {string.Join("; ", failures)}");
+            progress.Complete(versionId, version.FailureReason);
+        }
         else
-            // Resolveu e baixou tudo — mas quem publica é o admin, após
-            // revisar. Publicar automático tornaria a versão imutável antes de
-            // ele poder trocar um mod.
+        {
+            // Resolveu o que dava — mods sem redistribuição viraram pendência, não
+            // reprovação. Quem publica é o admin, após revisar as pendências.
             version.ReturnToDraft();
+            progress.Complete(versionId);
+        }
 
         await repository.UpdateVersionAsync(version, ct);
     }
@@ -132,6 +189,8 @@ public sealed partial class ModpackIngestionService(
         }
 
         if (resolver is null)
+            // Origem inteira fora (sem API key, por exemplo): isso não é pendência
+            // de um mod, é configuração faltando — a versão precisa reprovar.
             return ResolveOutcome.Fail($"{item.ProjectId} (origem {item.Origin} indisponível)");
 
         var request = new ModRequest(item.ProjectId, item.FileId, minecraftVersion, loader);
@@ -157,10 +216,33 @@ public sealed partial class ModpackIngestionService(
             }
 
             case ModResolution.DistributionDenied denied:
-                return ResolveOutcome.Fail($"{denied.ProjectName} (autor não permite redistribuição)");
+                // Decisão do autor, não erro nosso: nenhuma nova tentativa muda
+                // isso. Vira pendência para o admin subir o .jar à mão.
+                return ResolveOutcome.Postpone(new PendingMod
+                {
+                    ModpackVersionId = version.Id,
+                    ProjectSlug = item.ProjectId,
+                    DisplayName = denied.ProjectName,
+                    Origin = item.Origin,
+                    FileId = item.FileId,
+                    Side = item.Side,
+                    Reason = PendingModReason.DistributionDenied,
+                    Detail = "O autor não permite redistribuição automática.",
+                    PageUrl = denied.ProjectPage.ToString()
+                });
 
             case ModResolution.NotFound notFound:
-                return ResolveOutcome.Fail($"{item.ProjectId} ({notFound.Reason})");
+                return ResolveOutcome.Postpone(new PendingMod
+                {
+                    ModpackVersionId = version.Id,
+                    ProjectSlug = item.ProjectId,
+                    DisplayName = item.ProjectId,
+                    Origin = item.Origin,
+                    FileId = item.FileId,
+                    Side = item.Side,
+                    Reason = PendingModReason.NoCompatibleFile,
+                    Detail = notFound.Reason
+                });
 
             default:
                 return ResolveOutcome.Fail($"{item.ProjectId} (resultado desconhecido)");
@@ -209,7 +291,10 @@ public sealed partial class ModpackIngestionService(
                 Path = path,
                 Sha256 = sha256,
                 SizeBytes = stored.Length,
-                Side = item.Side,
+                // O lado declarado pela origem ganha do pedido: o Modrinth sabe
+                // se o mod roda no cliente ou no servidor, nós só supomos.
+                Side = resolved.Side ?? item.Side,
+                Optional = item.Optional,
                 Origin = item.Origin,
                 OriginReference = resolved.VersionId, // id da versão fixada (base do check de updates)
                 IconUrl = resolved.IconUrl // cosmético: exibido na grade de mods
@@ -244,10 +329,15 @@ public sealed partial class ModpackIngestionService(
 
     // Resultado de resolver+baixar um item: erro (se houve) e as dependências
     // requeridas a puxar em seguida.
-    private sealed record ResolveOutcome(string? Error, IReadOnlyList<string> RequiredDependencies)
+    private sealed record ResolveOutcome(
+        string? Error,
+        IReadOnlyList<string> RequiredDependencies,
+        PendingMod? Pending = null)
     {
         public static ResolveOutcome Ok(IReadOnlyList<string> deps) => new(null, deps);
 
         public static ResolveOutcome Fail(string error) => new(error, []);
+
+        public static ResolveOutcome Postpone(PendingMod pending) => new(null, [], pending);
     }
 }

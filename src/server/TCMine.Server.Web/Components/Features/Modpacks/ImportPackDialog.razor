@@ -1,0 +1,109 @@
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.CloudSync" Text="Importar modpack"/>
+    </TitleContent>
+    <DialogContent>
+        @if (_source is null)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Nenhuma origem configurada. Cadastre a chave da API do CurseForge em
+                <MudLink Href="/settings">Configurações</MudLink> para importar packs.
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                O pack entra como um modpack novo aqui, com a primeira versão em rascunho:
+                mods, configs e scripts. A versão do @_source.Origin fica registrada à parte,
+                para avisarmos quando o autor publicar uma atualização.
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                <MudTextField @bind-Value="_query"
+                              Placeholder="Nome do modpack…"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Immediate="true"
+                              OnKeyUp="OnKeyUp"
+                              Disabled="_isSearching || IsBusy"/>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           OnClick="DoSearch"
+                           Disabled="_isSearching || IsBusy || string.IsNullOrWhiteSpace(_query)">
+                    Buscar
+                </MudButton>
+            </MudStack>
+
+            @if (_isSearching)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
+            }
+
+            <div style="max-height:45vh; overflow-y:auto;" class="mt-2">
+                @if (!_isSearching && _searched && _results.Count == 0)
+                {
+                    <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                        Nenhum pack encontrado para "@_query".
+                    </MudText>
+                }
+                else if (!_searched)
+                {
+                    <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                        Busque um modpack pelo nome.
+                    </MudText>
+                }
+
+                @foreach (var pack in _results)
+                {
+                    <MudPaper Outlined="true" Elevation="0"
+                              Class="@(_selected?.ProjectId == pack.ProjectId ? "pa-2 mb-1 mud-theme-primary" : "pa-2 mb-1")"
+                              @onclick="@(() => _selected = pack)"
+                              Style="cursor:pointer;">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            @* Seleção única: o ícone reflete o estado sem precisar
+                               de um MudRadioGroup em volta da lista inteira. *@
+                            <MudIcon Icon="@(_selected?.ProjectId == pack.ProjectId
+                                               ? Icons.Material.Filled.RadioButtonChecked
+                                               : Icons.Material.Filled.RadioButtonUnchecked)"
+                                     Color="@(_selected?.ProjectId == pack.ProjectId ? Color.Primary : Color.Default)"/>
+                            <MudAvatar Rounded="true">
+                                @if (!string.IsNullOrEmpty(pack.IconUrl))
+                                {
+                                    <MudImage Src="@pack.IconUrl"/>
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Inventory2"/>
+                                }
+                            </MudAvatar>
+                            <div>
+                                <MudText Typo="Typo.body1">@pack.Name</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Summary</MudText>
+                            </div>
+                        </MudStack>
+                    </MudPaper>
+                }
+            </div>
+
+            @if (IsBusy)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                    Baixando e lendo o pack… isso pode levar um minuto.
+                </MudAlert>
+            }
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="Import"
+                   Disabled="_selected is null || IsBusy">
+            @if (IsBusy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Importar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

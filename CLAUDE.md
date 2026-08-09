@@ -300,3 +300,50 @@ TCMINE_DESIGN_CONNECTION="Data Source=data/tcmine.db" \
   Application → Infrastructure → Web) e deixe o compilador guiar os consumidores.
 - **Antes de dar por concluído**: rode os testes, verifique se não repetiu código, e me diga se enxergou algo adjacente
   que valha melhorar.
+
+---
+
+## 12. Economia de contexto (leia antes de verificar qualquer coisa)
+
+Uma sessão de agente gasta a maior parte do orçamento **relendo saída que não
+mudou**: build verde, testes verdes, HTML de página. As regras abaixo existem
+para cortar isso.
+
+### 12.1 Use `scripts/tc`, nunca `dotnet` cru
+
+| Em vez de | Use | Por quê |
+|---|---|---|
+| `dotnet build` | `./scripts/tc build` | devolve só erros/avisos + `BUILD OK` |
+| `dotnet test` | `./scripts/tc test` | devolve só falhas + placar |
+| ambos | `./scripts/tc check` | build + testes numa chamada |
+| abrir sqlite à mão | `./scripts/tc db state` | versões, arquivos e pendências em 5 linhas |
+| abrir o browser | `./scripts/tc smoke /rota` | o Blazor pré-renderiza no SSR: o texto da página vem no GET |
+
+`tc build` mata o `TCMine.Server.Web.exe` antes — era ele que fazia o build
+falhar com um muro de MSB3026.
+
+### 12.2 Delegue a verificação ao subagente `verify`
+
+Para confirmar que uma fatia ficou de pé, chame o agente `verify` em vez de
+rodar build/teste na conversa principal. A saída longa morre no contexto dele;
+volta só o veredito.
+
+### 12.3 Browser: último recurso
+
+Dirigir a UI por `javascript_tool` é o caminho mais caro que existe — cada
+clique é uma ida-e-volta com resposta e raciocínio. Regras:
+
+- Prefira `tc smoke`. Ele já prova que a página renderizou e mostra o texto.
+- Se precisar mesmo do browser, **agrupe tudo numa chamada só**: navegar,
+  esperar, clicar e devolver as asserções num único `JSON.stringify`.
+- Nunca sonde em laço (`n0`, depois `n1`, depois `n2`). Um `await sleep()`
+  dentro da mesma chamada custa zero contexto; uma segunda chamada custa tudo.
+
+### 12.4 Edição
+
+- Não releia um arquivo inteiro para trocar três linhas: `Grep` com contexto
+  localiza, `Edit` troca.
+- Não releia depois de editar para "conferir" — o `Edit` teria falhado.
+- Mudou uma porta (`IModpackRepository`, `IBlobStore`, `IUpstreamPackSource`)?
+  Os fakes de teste herdam de `tests/.../Fakes/Fake*Base.cs`. Acrescente o
+  membro **só na base**; nenhum teste precisa mudar.

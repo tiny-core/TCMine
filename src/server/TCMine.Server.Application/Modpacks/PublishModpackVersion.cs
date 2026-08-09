@@ -11,12 +11,24 @@ public sealed class PublishModpackVersion(
     IServerHubNotifier notifier,
     OverrideUndoService undo)
 {
-    public async Task<Result> HandleAsync(Guid versionId, CancellationToken ct)
+    /// <summary>
+    ///     <paramref name="acceptPending" /> é o "eu sei o que estou fazendo" do
+    ///     admin: publicar com mods pendentes gera um pack incompleto, então
+    ///     exigimos que a decisão seja explícita em vez de deixar passar calado.
+    /// </summary>
+    public async Task<Result> HandleAsync(Guid versionId, CancellationToken ct, bool acceptPending = false)
     {
         var version = await repository.GetVersionAsync(versionId, ct);
 
         if (version is null)
             return Result.Fail("Versão não encontrada.");
+
+        if (version.HasPendingMods && !acceptPending)
+        {
+            return Result.Fail(
+                $"{version.PendingMods.Count} mod(s) pendentes de upload manual. "
+                + "Envie os arquivos ou confirme a publicação sem eles.");
+        }
 
         try
         {

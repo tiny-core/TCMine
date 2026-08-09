@@ -123,6 +123,19 @@ builder.Services.AddSingleton<IngestionQueue>();
 builder.Services.AddSingleton<IIngestionQueue>(sp => sp.GetRequiredService<IngestionQueue>());
 builder.Services.AddHostedService<IngestionWorker>();
 
+// Registro do progresso: singleton porque o acompanhamento tem de sobreviver à
+// navegação — o admin sai da página e volta sem perder o que estava vendo.
+builder.Services.AddSingleton<JobProgressRegistry>();
+builder.Services.AddSingleton<IJobProgressReporter>(sp => sp.GetRequiredService<JobProgressRegistry>());
+
+builder.Services.AddSingleton<ImportQueue>();
+builder.Services.AddSingleton<IImportQueue>(sp => sp.GetRequiredService<ImportQueue>());
+builder.Services.AddHostedService<ImportWorker>();
+
+// Reconciliação no arranque: as filas vivem em memória, então um processo que
+// cai deixa versões presas em Resolving para sempre.
+builder.Services.AddHostedService<StuckVersionReconciler>();
+
 var app = builder.Build();
 
 // Só em Development: aplica migrations pendentes usando a connection string

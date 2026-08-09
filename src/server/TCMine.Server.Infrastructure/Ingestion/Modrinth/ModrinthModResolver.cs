@@ -66,7 +66,7 @@ public sealed partial class ModrinthModResolver(
 
             // O ícone é cosmético (grade do painel) e mora no endpoint do projeto,
             // não no da versão — uma chamada extra, best-effort.
-            var iconUrl = await TryGetIconAsync(request.ProjectId, ct);
+            var project = await TryGetProjectAsync(request.ProjectId, ct);
 
             return new ModResolution.Resolved(
                 version.Id,
@@ -75,7 +75,8 @@ public sealed partial class ModrinthModResolver(
                 file.Size,
                 new Uri(file.Url),
                 dependencies,
-                iconUrl);
+                project?.IconUrl,
+                SideOf(project));
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
@@ -88,16 +89,37 @@ public sealed partial class ModrinthModResolver(
         }
     }
 
-    // Busca a URL do ícone do projeto. Falha aqui nunca derruba a ingestão — o
-    // ícone é enfeite. Cancelamento (ct) propaga; erros de rede/JSON viram null.
-    private async Task<string?> TryGetIconAsync(string projectId, CancellationToken ct)
+    /// <summary>
+    ///     Traduz client_side/server_side do Modrinth para o nosso FileSide.
+    ///     "unsupported" de um lado é o sinal forte; quando os dois lados aceitam
+    ///     (ou o projeto não declarou), fica Both — instalar dos dois lados é o
+    ///     padrão seguro, e marcar errado tira um mod do servidor de jogo.
+    /// </summary>
+    private static FileSide? SideOf(ModrinthProject? project)
+    {
+        if (project is null)
+            return null;
+
+        var clientOff = string.Equals(project.ClientSide, "unsupported", StringComparison.OrdinalIgnoreCase);
+        var serverOff = string.Equals(project.ServerSide, "unsupported", StringComparison.OrdinalIgnoreCase);
+
+        return (clientOff, serverOff) switch
+        {
+            (false, true) => FileSide.ClientOnly,
+            (true, false) => FileSide.ServerOnly,
+            _ => FileSide.Both
+        };
+    }
+
+    // Busca o projeto (ícone + lados). Falha aqui nunca derruba a ingestão — sem
+    // ele o mod entra com o lado pedido e sem ícone. Cancelamento (ct) propaga.
+    private async Task<ModrinthProject?> TryGetProjectAsync(string projectId, CancellationToken ct)
     {
         try
         {
-            var project = await http.GetFromJsonAsync(
+            return await http.GetFromJsonAsync(
                 $"https://api.modrinth.com/v2/project/{Uri.EscapeDataString(projectId)}",
                 ModrinthJsonContext.Default.ModrinthProject, ct);
-            return project?.IconUrl;
         }
         catch (HttpRequestException)
         {

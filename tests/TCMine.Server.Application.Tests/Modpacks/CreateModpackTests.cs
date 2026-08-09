@@ -4,6 +4,8 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
+using TCMine.Server.Application.Tests.Fakes;
+
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public class CreateModpackTests

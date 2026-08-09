@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Modpacks;
 
@@ -16,6 +17,40 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.Modpacks.AnyAsync(m => m.Slug == slug, ct);
+    }
+
+    public async Task<bool> ExistsFromUpstreamAsync(ModFileOrigin origin, string projectId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.Modpacks
+            .AnyAsync(m => m.UpstreamProvider == origin && m.UpstreamProjectId == projectId, ct);
+    }
+
+    public async Task<IReadOnlyDictionary<Guid, ModpackVersionStats>> GetVersionStatsAsync(
+        Guid modpackId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // GroupBy no banco: volta uma linha por versão, não uma por arquivo.
+        var rows = await db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => db.ModpackVersions
+                .Where(v => v.ModpackId == modpackId)
+                .Select(v => v.Id)
+                .Contains(f.ModpackVersionId))
+            .GroupBy(f => f.ModpackVersionId)
+            .Select(g => new
+            {
+                VersionId = g.Key,
+                ModCount = g.Count(f => f.Origin != ModFileOrigin.Override),
+                OverrideCount = g.Count(f => f.Origin == ModFileOrigin.Override),
+                TotalSizeBytes = g.Sum(f => f.SizeBytes)
+            })
+            .ToListAsync(ct);
+
+        return rows.ToDictionary(
+            r => r.VersionId,
+            r => new ModpackVersionStats(r.ModCount, r.OverrideCount, r.TotalSizeBytes));
     }
 
     public async Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
@@ -61,17 +96,22 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return await db.ModpackVersions
             .AsNoTracking()
             .Include(v => v.Files)
+            .Include(v => v.PendingMods)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
     }
 
     public async Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        // Split pelo mesmo motivo do GetWithVersionsAsync: numa consulta única os
+        // dados da versão se repetem em cada linha de arquivo.
         return await db.ModpackVersions
             .AsNoTracking()
             .Include(v => v.Files)
             .Where(v => v.ModpackId == modpackId)
             .OrderByDescending(v => v.Id)
+            .AsSplitQuery()
             .ToListAsync(ct);
     }
 
@@ -116,17 +156,55 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
                 : EntityState.Added; // novo: INSERT
         }
 
+        // Mesma regra para as pendências.
+        var existingPendingIds = await db.PendingMods
+            .Where(p => p.ModpackVersionId == version.Id)
+            .Select(p => p.Id)
+            .ToListAsync(ct);
+
+        foreach (var pending in version.PendingMods)
+        {
+            db.Entry(pending).State = existingPendingIds.Contains(pending.Id)
+                ? EntityState.Modified
+                : EntityState.Added;
+        }
+
         await db.SaveChangesAsync(ct);
     }
 
     public async Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        // AsSplitQuery: sem isto o EF junta versões × arquivos numa consulta só e
+        // repete os dados da versão em cada linha de arquivo. Num pack importado
+        // (centenas de mods, milhares de overrides) esse produto cartesiano faz a
+        // página de detalhe levar dezenas de segundos. Consultas separadas trazem
+        // o mesmo grafo sem a explosão.
         return await db.Modpacks
             .AsNoTracking()
             .Include(m => m.Versions)
             .ThenInclude(v => v.Files)
+            .Include(m => m.Versions)
+            .ThenInclude(v => v.PendingMods)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
+    }
+
+    public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.PendingMods
+            .Where(p => p.Id == pendingId && p.ModpackVersionId == versionId)
+            .ExecuteDeleteAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.ModpackVersions
+            .AsNoTracking()
+            .Where(v => v.State == ModpackVersionState.Resolving)
+            .ToListAsync(ct);
     }
 
     public async Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)

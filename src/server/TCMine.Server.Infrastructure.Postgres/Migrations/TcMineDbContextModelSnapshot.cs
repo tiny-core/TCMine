@@ -196,12 +196,22 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("UpstreamProjectId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("UpstreamProvider")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("Slug")
                         .IsUnique();
+
+                    b.HasIndex("UpstreamProvider", "UpstreamProjectId");
 
                     b.ToTable("modpacks", (string)null);
                 });
@@ -305,6 +315,18 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("UpstreamFileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("UpstreamSnapshotJson")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("UpstreamVersionLabel")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<string>("Version")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -351,6 +373,66 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasIndex("ModpackId");
 
                     b.ToTable("news", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.PendingMod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detail")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("FileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("ModpackVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("PageUrl")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("ProjectSlug")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("Side")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackVersionId", "ProjectSlug")
+                        .IsUnique();
+
+                    b.ToTable("pending_mods", (string)null);
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Servers.GameServer", b =>
@@ -491,6 +573,15 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.PendingMod", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)
+                        .WithMany("PendingMods")
+                        .HasForeignKey("ModpackVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.Modpack", b =>
                 {
                     b.Navigation("Versions");
@@ -499,6 +590,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.ModpackVersion", b =>
                 {
                     b.Navigation("Files");
+
+                    b.Navigation("PendingMods");
                 });
 #pragma warning restore 612, 618
         }

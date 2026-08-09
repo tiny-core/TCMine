@@ -15,6 +15,7 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<Modpack> Modpacks => Set<Modpack>();
     public DbSet<ModpackVersion> ModpackVersions => Set<ModpackVersion>();
     public DbSet<ModpackFile> ModpackFiles => Set<ModpackFile>();
+    public DbSet<PendingMod> PendingMods => Set<PendingMod>();
     public DbSet<GameServer> GameServers => Set<GameServer>();
     public DbSet<Blob> Blobs => Set<Blob>();
 

@@ -3,6 +3,8 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
+using TCMine.Server.Application.Tests.Fakes;
+
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public sealed class PublishModpackVersionTests
@@ -81,27 +83,20 @@ public sealed class PublishModpackVersionTests
     // O publish só toca GetVersionAsync e UpdateVersionAsync. Os demais membros
     // existem só para satisfazer a interface; se algum for chamado, o teste
     // quebra alto (NotImplementedException), o que é o comportamento desejado.
-    private sealed class FakeModpackRepository : IModpackRepository
+    private sealed class FakeModpackRepository : FakeModpackRepositoryBase
     {
         public ModpackVersion? Version { get; init; }
         public ModpackVersion? Saved { get; private set; }
 
-        public Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
+        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
 
-        public Task RemoveVersionAsync(Guid versionId, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
+        public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
         {
             Saved = version;
             return Task.CompletedTask;
         }
 
-        public Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
+        public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct)
         {
             // O caso de uso lê MinecraftVersion/Loader do modpack agora.
             return Task.FromResult<Modpack?>(new Modpack
@@ -110,22 +105,6 @@ public sealed class PublishModpackVersionTests
             });
         }
 
-        public Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) => throw new NotImplementedException();
-
-        public Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
-
-        public Task AddVersionAsync(ModpackVersion version, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
     }
 
     private sealed class FakeHubNotifier : IServerHubNotifier

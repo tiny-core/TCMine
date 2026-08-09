@@ -22,9 +22,21 @@ public partial class ModpackOverridesPage
     private bool _editorReady;
     private bool _isLoading = true;
     private bool _isSaving;
+
+    /// <summary>Leitura do arquivo em curso — o clique numa árvore grande não é instantâneo.</summary>
+    private bool _isOpening;
+
+    /// <summary>Preenchido quando o arquivo aberto não cabe no editor (binário ou grande).</summary>
+    private OverrideContent? _notEditable;
     private Modpack? _modpack;
     private string? _selectedPath;
     private List<TreeItemData<string>> _treeItems = [];
+
+    /// <summary>
+    ///     A árvore inteira em memória (barata: são strings), indexada por caminho.
+    ///     Só vira componente o galho que o admin abre — ver LoadChildrenAsync.
+    /// </summary>
+    private Dictionary<string, Node> _nodesByPath = new(StringComparer.OrdinalIgnoreCase);
     private int _treeRevision;
     private ModpackVersion? _version;
     [Parameter] public Guid ModpackId { get; set; }
@@ -97,8 +109,43 @@ public partial class ModpackOverridesPage
             }
         }
 
-        _treeItems = [.. root.Values.Select(ToItem)];
+        _nodesByPath = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
+        IndexNodes(root.Values);
+
+        _treeItems = [.. root.Values.OrderBy(n => n.IsFile).ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(ToItem)];
         _treeRevision++; // muda a identidade do MudTreeView → força recriação
+    }
+
+    // Indexa a árvore por caminho para o ServerData encontrar os filhos em O(1).
+    private void IndexNodes(IEnumerable<Node> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            _nodesByPath[node.FullPath] = node;
+            IndexNodes(node.Children.Values);
+        }
+    }
+
+    /// <summary>
+    ///     Chamado pelo MudTreeView ao expandir uma pasta: devolve só os filhos
+    ///     diretos dela.
+    /// </summary>
+    private Task<IReadOnlyCollection<TreeItemData<string>>> LoadChildrenAsync(string? path)
+    {
+        if (path is null || !_nodesByPath.TryGetValue(path, out var node))
+            return Task.FromResult<IReadOnlyCollection<TreeItemData<string>>>([]);
+
+        // Pastas primeiro, depois arquivos — a ordem que todo explorador usa.
+        IReadOnlyCollection<TreeItemData<string>> children =
+        [
+            .. node.Children.Values
+                .OrderBy(n => n.IsFile)
+                .ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(ToItem)
+        ];
+
+        return Task.FromResult(children);
     }
 
     private async Task OnEditorInit()
@@ -132,14 +179,18 @@ public partial class ModpackOverridesPage
             Value = node.FullPath,
             Icon = node.IsFile ? Icons.Material.Filled.Description : Icons.Material.Filled.Folder,
             Expandable = !node.IsFile,
-            Expanded = true,
-            Children = node.IsFile ? null : node.Children.Values.Select(ToItem).ToList()
+            Expanded = false,
+
+            // Children null + Expandable = o MudTreeView pede os filhos ao
+            // ServerData quando (e se) a pasta for aberta.
+            Children = null
         };
     }
 
     private async Task OnSelect(string? path)
     {
         _selectedPath = path;
+        _notEditable = null;
         if (path is null)
             return;
 
@@ -150,18 +201,35 @@ public partial class ModpackOverridesPage
         if (!isFile)
             return;
 
-        var result = await ReadUseCase.HandleAsync(VersionId, path, CancellationToken.None);
-        if (!result.Succeeded)
+        _isOpening = true;
+        try
         {
-            Snackbar.Add(result.Error!, Severity.Error);
-            return;
-        }
+            var result = await ReadUseCase.HandleAsync(VersionId, path, CancellationToken.None);
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+                return;
+            }
 
-        var model = await _editor.GetModel();
-        await Global.SetModelLanguage(JsRuntime, model, LanguageFor(path));
-        await _editor.SetValue(result.Value ?? "");
-        _dirty = false;
+            // Binário ou grande demais: mostra o cartão com download e nem
+            // encosta no Monaco — era isso que travava a aba.
+            if (result.Value!.Text is null)
+            {
+                _notEditable = result.Value;
+                return;
+            }
+
+            var model = await _editor.GetModel();
+            await Global.SetModelLanguage(JsRuntime, model, LanguageFor(path));
+            await _editor.SetValue(result.Value.Text);
+            _dirty = false;
+        }
+        finally
+        {
+            _isOpening = false;
+        }
     }
+
 
     private async Task Save()
     {

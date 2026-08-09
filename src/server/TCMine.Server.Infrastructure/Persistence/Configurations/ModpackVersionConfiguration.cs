@@ -16,7 +16,14 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         builder.Property(v => v.LoaderVersion).HasMaxLength(64).IsRequired();
         builder.Property(v => v.FailureReason).HasMaxLength(2048);
 
+        builder.Property(v => v.UpstreamFileId).HasMaxLength(64);
+        builder.Property(v => v.UpstreamVersionLabel).HasMaxLength(128);
+
+        // Sem limite: o snapshot cresce com o tamanho do pack (centenas de mods).
+        builder.Property(v => v.UpstreamSnapshotJson);
+
         builder.Ignore(v => v.IsPreRelease);
+        builder.Ignore(v => v.HasPendingMods);
 
         // Enum como string na coluna.
         //
@@ -40,6 +47,15 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         builder.HasMany(v => v.Files)
             .WithOne()
             .HasForeignKey(f => f.ModpackVersionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Metadata
+            .FindNavigation(nameof(ModpackVersion.PendingMods))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(v => v.PendingMods)
+            .WithOne()
+            .HasForeignKey(p => p.ModpackVersionId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

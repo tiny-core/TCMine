@@ -38,7 +38,36 @@ public sealed class ModpackVersion : Entity
 
     public int? RecommendedMemoryMb { get; set; }
 
+    // ---------- Origem externa (versão importada de um pack) ----------
+
+    /// <summary>
+    ///     Release do pack de origem que esta versão espelha (fileId no
+    ///     CurseForge). É comparando isto com a release mais recente lá fora que
+    ///     sabemos se há atualização — e é o que mantém a versão do CurseForge
+    ///     separada da nossa numeração.
+    /// </summary>
+    public string? UpstreamFileId { get; set; }
+
+    /// <summary>Rótulo da versão na origem, ex.: "1.20.1-4.2". Só para exibir.</summary>
+    public string? UpstreamVersionLabel { get; set; }
+
+    /// <summary>
+    ///     Retrato do pack como veio da origem (JSON): a lista de mods e os
+    ///     overrides com seus hashes. É a BASE do merge de três vias — comparando
+    ///     base × origem nova × estado atual dá para saber o que o autor mudou, o
+    ///     que o admin mudou, e onde os dois se chocam.
+    /// </summary>
+    public string? UpstreamSnapshotJson { get; set; }
+
     public List<ModpackFile> Files { get; } = [];
+
+    /// <summary>
+    ///     Mods que a ingestão não trouxe e que esperam upload manual. Não
+    ///     impedem a versão de existir — impedem publicar sem o admin assumir.
+    /// </summary>
+    public List<PendingMod> PendingMods { get; } = [];
+
+    public bool HasPendingMods => PendingMods.Count > 0;
 
     /// <summary>
     ///     Início da ingestão. Só faz sentido a partir de Draft ou de uma
@@ -87,6 +116,23 @@ public sealed class ModpackVersion : Entity
     {
         State = ModpackVersionState.Failed;
         FailureReason = reason;
+        Touch();
+    }
+
+    /// <summary>
+    ///     Volta uma versão que falhou para rascunho, para o admin corrigir e
+    ///     tentar de novo na MESMA versão.
+    ///     Sem isto, uma falha de resolução (um mod fora do ar, cota de API
+    ///     estourada) obrigaria a jogar a versão inteira fora e recomeçar — e o
+    ///     que já foi baixado com sucesso continua válido.
+    /// </summary>
+    public void RetryAfterFailure()
+    {
+        if (State is not ModpackVersionState.Failed)
+            throw new InvalidOperationException($"Só é possível reparar uma versão que falhou. Estado atual: {State}.");
+
+        State = ModpackVersionState.Draft;
+        FailureReason = null;
         Touch();
     }
 
@@ -145,6 +191,42 @@ public sealed class ModpackVersion : Entity
     ///     (isso crasharia o jogo). Sem ProjectSlug, a unicidade fica por Path,
     ///     checada no caso de uso.
     /// </summary>
+    /// <summary>
+    ///     Registra (ou atualiza) uma pendência. Chave é o ProjectSlug: reingerir
+    ///     não pode acumular a mesma pendência duas vezes.
+    /// </summary>
+    public void UpsertPending(PendingMod pending)
+    {
+        pending.ModpackVersionId = Id;
+
+        var existing = FindPending(pending.ProjectSlug);
+        if (existing is not null)
+            PendingMods.Remove(existing);
+
+        PendingMods.Add(pending);
+        Touch();
+    }
+
+    /// <summary>
+    ///     Baixa a pendência quando o mod finalmente entrou (upload manual ou
+    ///     nova tentativa bem-sucedida). Devolve o Id removido para o repositório
+    ///     apagar a linha — grafo destacado não cascateia remoção de coleção.
+    /// </summary>
+    public Guid? ResolvePending(string projectSlug)
+    {
+        var existing = FindPending(projectSlug);
+        if (existing is null)
+            return null;
+
+        PendingMods.Remove(existing);
+        Touch();
+        return existing.Id;
+    }
+
+    private PendingMod? FindPending(string projectSlug) =>
+        PendingMods.FirstOrDefault(p =>
+            string.Equals(p.ProjectSlug, projectSlug, StringComparison.OrdinalIgnoreCase));
+
     public Guid? UpsertFile(ModpackFile file)
     {
         if (State is not (ModpackVersionState.Draft or ModpackVersionState.Resolving))

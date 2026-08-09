@@ -58,4 +58,9 @@ internal sealed class ModrinthDependency
 internal sealed record ModrinthProject
 {
     [JsonPropertyName("icon_url")] public string? IconUrl { get; init; }
+
+    // "required" | "optional" | "unsupported". O Modrinth declara isto por
+    // projeto — é a única origem que diz de verdade em que lado o mod roda.
+    [JsonPropertyName("client_side")] public string? ClientSide { get; init; }
+    [JsonPropertyName("server_side")] public string? ServerSide { get; init; }
 }
