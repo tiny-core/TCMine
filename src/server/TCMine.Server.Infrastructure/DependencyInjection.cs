@@ -77,6 +77,13 @@ public static class DependencyInjection
             })
             .AddStandardResilienceHandler();
 
+        services.AddHttpClient<IUpstreamPackSource, ModrinthPackSource>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.modrinth.com");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
+
         services.AddHttpClient<IModDownloader, HttpModDownloader>(client =>
             {
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");

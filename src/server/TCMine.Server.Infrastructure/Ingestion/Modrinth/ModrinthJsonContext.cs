@@ -7,4 +7,8 @@ namespace TCMine.Server.Infrastructure.Ingestion.Modrinth;
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(IReadOnlyList<ModrinthVersion>))]
 [JsonSerializable(typeof(ModrinthProject))]
+[JsonSerializable(typeof(ModrinthPackIndex))]
+[JsonSerializable(typeof(ModrinthPackVersion))]
+[JsonSerializable(typeof(IReadOnlyList<ModrinthPackVersion>))]
+[JsonSerializable(typeof(ModrinthPackSearchResponse))]
 internal sealed partial class ModrinthJsonContext : JsonSerializerContext;

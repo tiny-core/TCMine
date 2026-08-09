@@ -61,6 +61,22 @@ public interface IModpackRepository
     Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct);
 
     /// <summary>
+    ///     Insere arquivos numa versão existente, sem reanexar o grafo.
+    ///     Existe para a ingestão gravar em lotes enquanto baixa: com
+    ///     <see cref="UpdateVersionAsync" />, cada save custaria reanexar as
+    ///     milhares de linhas já presentes — O(n) por lote, O(n²) na corrida.
+    /// </summary>
+    Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct);
+
+    /// <summary>
+    ///     Grava só a versão (estado, timestamps) e suas pendências, deixando os
+    ///     arquivos em paz. Par de <see cref="AddFilesAsync" />: quem já gravou os
+    ///     arquivos pontualmente não pode pagar por um UPDATE em cada um deles no
+    ///     fecho da ingestão.
+    /// </summary>
+    Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct);
+
+    /// <summary>
     ///     Apaga uma pendência resolvida. Como no caso dos arquivos, remover da
     ///     coleção de um grafo destacado não apaga a linha sozinho.
     /// </summary>

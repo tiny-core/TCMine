@@ -190,6 +190,50 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             .FirstOrDefaultAsync(m => m.Id == id, ct);
     }
 
+    public async Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)
+    {
+        if (files.Count is 0)
+            return;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        foreach (var file in files)
+            file.ModpackVersionId = versionId;
+
+        // AddRange + um SaveChanges: uma transação só para o lote inteiro.
+        db.ModpackFiles.AddRange(files);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        db.Attach(version);
+        db.Entry(version).State = EntityState.Modified;
+
+        // Anexar a versão arrasta a coleção de arquivos junto. Marcá-los
+        // Unchanged é o ponto deste método: eles já foram gravados enquanto a
+        // ingestão corria, e reescrever milhares de linhas idênticas no fim é
+        // exatamente o custo que se quer evitar.
+        foreach (var file in version.Files)
+            db.Entry(file).State = EntityState.Unchanged;
+
+        var existingPendingIds = await db.PendingMods
+            .Where(p => p.ModpackVersionId == version.Id)
+            .Select(p => p.Id)
+            .ToListAsync(ct);
+
+        foreach (var pending in version.PendingMods)
+        {
+            db.Entry(pending).State = existingPendingIds.Contains(pending.Id)
+                ? EntityState.Modified
+                : EntityState.Added;
+        }
+
+        await db.SaveChangesAsync(ct);
+    }
+
     public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

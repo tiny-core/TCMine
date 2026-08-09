@@ -276,6 +276,11 @@ else
                                                          Variant="Variant.Filled">
                                                     @atualizacao.LatestLabel
                                                 </MudChip>
+                                                <MudTooltip Text="Traz a atualização do autor para um rascunho novo, preservando o que você mudou">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt"
+                                                                   Size="Size.Small" Color="Color.Warning"
+                                                                   OnClick="OpenUpstreamUpdate"/>
+                                                </MudTooltip>
                                             </MudStack>
                                         }
                                         else

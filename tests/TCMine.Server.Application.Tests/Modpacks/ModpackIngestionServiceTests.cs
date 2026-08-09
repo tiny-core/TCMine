@@ -85,6 +85,51 @@ public sealed class ModpackIngestionServiceTests
     }
 
     [Fact]
+    public async Task Grava_em_lotes_enquanto_baixa_em_vez_de_so_no_fim()
+    {
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+
+        // 60 mods: com lote de 25, dá dois lotes cheios e a sobra no fecho.
+        var ids = Enumerable.Range(1, 60).Select(i => $"m{i}").ToArray();
+        var resolver = new FakeResolver(ids.ToDictionary(id => id, _ => (IReadOnlyList<ModDependency>)[]));
+
+        await NewService(repo, resolver).IngestAsync(
+            version.Id, [.. ids.Select(Item)], CancellationToken.None);
+
+        // Gravar só no fim mostrava "0 mods" durante a importação inteira e
+        // perdia tudo se o processo caísse no meio.
+        Assert.Equal([25, 25, 10], repo.Lotes);
+    }
+
+    [Fact]
+    public async Task Estado_final_e_gravado_antes_de_anunciar_a_conclusao()
+    {
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+        var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>> { ["A"] = [] });
+
+        var progress = new FakeJobProgress();
+        var salvos = 0;
+        ModpackVersionState? estadoNoAviso = null;
+
+        // O aviso de conclusão faz a tela recarregar do banco. Se ele sair antes
+        // do save, ela lê "Resolvendo" e fica presa numa barra parada — o job já
+        // saiu do registro, então nem progresso chega mais. Só um F5 destrava.
+        progress.OnComplete = () =>
+        {
+            salvos = repo.SaveCount;
+            estadoNoAviso = version.State;
+        };
+
+        await NewService(repo, resolver, progress).IngestAsync(
+            version.Id, [Item("A")], CancellationToken.None);
+
+        Assert.Equal(ModpackVersionState.Draft, estadoNoAviso);
+        Assert.Equal(repo.SaveCount, salvos);
+    }
+
+    [Fact]
     public async Task Lado_declarado_pela_origem_ganha_do_lado_pedido()
     {
         var version = NewDraftVersion();
@@ -202,9 +247,31 @@ public sealed class ModpackIngestionServiceTests
     {
         public ModpackVersion? Version { get; init; }
 
+        /// <summary>Quantas vezes a versão foi gravada — usado para travar a ordem save→aviso.</summary>
+        public int SaveCount { get; private set; }
+
         public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
 
-        public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) => Task.CompletedTask;
+        public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
+        {
+            SaveCount++;
+            return Task.CompletedTask;
+        }
+
+        public override Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct)
+        {
+            SaveCount++;
+            return Task.CompletedTask;
+        }
+
+        /// <summary>Lotes descarregados pela ingestão, na ordem.</summary>
+        public List<int> Lotes { get; } = [];
+
+        public override Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)
+        {
+            Lotes.Add(files.Count);
+            return Task.CompletedTask;
+        }
 
         public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct) => Task.CompletedTask;
 

@@ -282,6 +282,22 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
             await LoadAsync();
     }
 
+    private async Task OpenUpstreamUpdate()
+    {
+        var p = new DialogParameters
+        {
+            ["VersionId"] = _selectedVersion!.Id,
+            ["CurrentLabel"] = _selectedVersion.UpstreamVersionLabel ?? "",
+            ["CurrentVersion"] = _selectedVersion.Version
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<UpstreamUpdateDialog>("Atualizar", p, options);
+
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
+    }
+
     private async Task OpenEditVersion()
     {
         var p = new DialogParameters

@@ -1,0 +1,121 @@
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.SystemUpdateAlt" Text="Atualizar a partir da origem"/>
+    </TitleContent>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudText Typo="Typo.body2" Class="mb-2">Comparando com a origem…</MudText>
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+        }
+        else if (_error is { Length: > 0 })
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">@_error</MudAlert>
+        }
+        else if (_plan is { } plan)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                <b>@CurrentLabel</b> → <b>@_latestLabel</b>. Isto cria uma <b>versão nova em rascunho</b>;
+                a atual não é tocada. O que você mudou por conta própria é preservado.
+            </MudText>
+
+            <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Add">@plan.Add.Count novos</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Upgrade">@plan.Update.Count atualizados</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Remove">@plan.Remove.Count removidos</MudChip>
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
+                         Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos</MudChip>
+            </MudStack>
+
+            @if (plan.Conflicts.Count > 0)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                    <b>@plan.Conflicts.Count conflito(s).</b> Você e o autor mexeram nos mesmos mods.
+                    Nestes casos <b>a sua versão fica</b> — ajuste manualmente depois se quiser a dele.
+                </MudAlert>
+            }
+
+            <MudExpansionPanels Elevation="0" Dense="true" MultiExpansion="true">
+                @if (plan.Conflicts.Count > 0)
+                {
+                    <MudExpansionPanel Text="@($"Conflitos ({plan.Conflicts.Count})")" Expanded="true">
+                        <MudList T="string" Dense="true">
+                            @foreach (var c in plan.Conflicts)
+                            {
+                                <MudListItem T="string" @key="c.ProjectId"
+                                             Icon="@Icons.Material.Filled.CallSplit">
+                                    <MudText Typo="Typo.body2">@c.Name</MudText>
+                                    <MudText Typo="Typo.caption" Style="opacity:.8;">@Explain(c)</MudText>
+                                </MudListItem>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                }
+
+                @if (plan.Update.Count > 0)
+                {
+                    <MudExpansionPanel Text="@($"Atualizados ({plan.Update.Count})")">
+                        <MudList T="string" Dense="true">
+                            @foreach (var c in plan.Update)
+                            {
+                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
+                                             Icon="@Icons.Material.Filled.Upgrade"/>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                }
+
+                @if (plan.Add.Count > 0)
+                {
+                    <MudExpansionPanel Text="@($"Novos ({plan.Add.Count})")">
+                        <MudList T="string" Dense="true">
+                            @foreach (var c in plan.Add)
+                            {
+                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
+                                             Icon="@Icons.Material.Filled.Add"/>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                }
+
+                @if (plan.Remove.Count > 0)
+                {
+                    <MudExpansionPanel Text="@($"Removidos ({plan.Remove.Count})")">
+                        <MudList T="string" Dense="true">
+                            @foreach (var c in plan.Remove)
+                            {
+                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
+                                             Icon="@Icons.Material.Filled.Remove"/>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                }
+            </MudExpansionPanels>
+
+            <MudTextField @bind-Value="_newVersion" Label="Número da nova versão"
+                          HelperText="A nossa numeração, independente da do autor."
+                          Class="mt-4" Disabled="IsBusy"/>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
+        @if (_plan is { IsEmpty: false })
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
+                       OnClick="Apply"
+                       Disabled="IsBusy || string.IsNullOrWhiteSpace(_newVersion)">
+                Criar rascunho
+            </MudButton>
+        }
+        @if (IsBusy)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+        }
+    </DialogActions>
+</MudDialog>

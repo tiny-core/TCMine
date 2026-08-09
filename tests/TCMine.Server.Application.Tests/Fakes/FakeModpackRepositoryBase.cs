@@ -58,6 +58,12 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public virtual Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct) =>
         throw new NotImplementedException();
 

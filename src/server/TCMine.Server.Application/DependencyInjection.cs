@@ -62,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<RetryModResolution>();
         services.AddScoped<CheckUpstreamUpdate>();
+        services.AddScoped<UpdateFromUpstream>();
         services.AddScoped<RequestPasswordReset>();
         services.AddScoped<ResetPassword>();
 

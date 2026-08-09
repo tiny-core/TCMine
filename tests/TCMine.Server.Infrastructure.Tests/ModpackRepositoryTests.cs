@@ -34,6 +34,49 @@ public sealed class ModpackRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task AddFilesAsync_insere_o_lote_sem_reanexar_o_grafo()
+    {
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        await repo.AddFilesAsync(version.Id,
+            [Arquivo(version.Id, "mods/a.jar", "a"), Arquivo(version.Id, "mods/b.jar", "b")],
+            CancellationToken.None);
+
+        var reloaded = await repo.GetVersionAsync(version.Id, CancellationToken.None);
+        Assert.Equal(2, reloaded!.Files.Count);
+    }
+
+    [Fact]
+    public async Task SaveVersionStateAsync_grava_o_estado_sem_duplicar_arquivos_ja_inseridos()
+    {
+        // Regressão do caminho da ingestão: os arquivos entram por AddFilesAsync
+        // enquanto baixa e, no fecho, a versão é gravada com o grafo em memória
+        // ainda contendo esses arquivos. Se eles não forem marcados Unchanged, o
+        // EF tenta inseri-los de novo e a gravação explode (ou duplica).
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        var file = Arquivo(version.Id, "mods/a.jar", "a");
+        version.UpsertFile(file);
+        await repo.AddFilesAsync(version.Id, [file], CancellationToken.None);
+
+        version.MarkResolving();
+        version.ReturnToDraft();
+        await repo.SaveVersionStateAsync(version, CancellationToken.None);
+
+        var reloaded = await repo.GetVersionAsync(version.Id, CancellationToken.None);
+        Assert.Single(reloaded!.Files);
+        Assert.Equal(ModpackVersionState.Draft, reloaded.State);
+    }
+
+    [Fact]
     public async Task UpdateVersionAsync_insere_arquivo_novo_adicionado_a_versao()
     {
         // Caminho "Added": um arquivo com Id que o EF ainda não conhece tem de

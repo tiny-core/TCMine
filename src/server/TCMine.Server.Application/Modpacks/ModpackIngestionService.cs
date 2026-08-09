@@ -19,6 +19,15 @@ public sealed partial class ModpackIngestionService(
     IJobProgressReporter progress,
     ILogger<ModpackIngestionService> logger)
 {
+    /// <summary>
+    ///     De quantos em quantos arquivos a ingestão descarrega no banco.
+    ///     Existe porque gravar só no fim tinha dois defeitos: o painel mostrava
+    ///     "0 mods" durante os vinte minutos de um pack grande, e uma queda no
+    ///     meio perdia TODAS as linhas (os bytes sobreviviam no blob store, mas a
+    ///     versão voltava vazia). Com o lote, perde-se no máximo o último punhado.
+    /// </summary>
+    private const int FlushEvery = 25;
+
     private readonly ILogger<ModpackIngestionService> _logger = logger;
 
     public async Task IngestAsync(
@@ -61,6 +70,9 @@ public sealed partial class ModpackIngestionService(
             .Where(f => f.ProjectSlug is not null)
             .Select(f => f.ProjectSlug!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Arquivos ainda não descarregados no banco.
+        var unsaved = new List<ModpackFile>();
 
         var work = new Queue<(ModIngestionItem Item, bool IsDependency)>();
         foreach (var it in items)
@@ -111,7 +123,14 @@ public sealed partial class ModpackIngestionService(
             // mod (o UpsertFile troca o .jar). Só o feedback muda.
             Report(existing.Contains(item.ProjectId) ? $"Verificando {label}" : $"Baixando {label}");
 
-            var outcome = await ResolveAndDownloadAsync(version, item, modpack.MinecraftVersion, modpack.Loader, ct);
+            var outcome = await ResolveAndDownloadAsync(
+                version, item, modpack.MinecraftVersion, modpack.Loader, unsaved, ct);
+
+            if (unsaved.Count >= FlushEvery)
+            {
+                await repository.AddFilesAsync(version.Id, unsaved, ct);
+                unsaved.Clear();
+            }
 
             if (isDependency)
                 deps++;
@@ -149,23 +168,32 @@ public sealed partial class ModpackIngestionService(
         // processar cada um.
         Report("Finalizando");
 
-        // Grava o estado final com os arquivos adicionados.
         if (failures.Count > 0)
-        {
             // Sobrou falha de verdade (conflito de caminho, origem sem API key):
             // aí a versão não tem como seguir e o admin precisa intervir.
             version.MarkFailed($"Não foi possível resolver: {string.Join("; ", failures)}");
-            progress.Complete(versionId, version.FailureReason);
-        }
         else
-        {
             // Resolveu o que dava — mods sem redistribuição viraram pendência, não
             // reprovação. Quem publica é o admin, após revisar as pendências.
             version.ReturnToDraft();
-            progress.Complete(versionId);
+
+        // Sobra do último lote.
+        if (unsaved.Count > 0)
+        {
+            await repository.AddFilesAsync(version.Id, unsaved, ct);
+            unsaved.Clear();
         }
 
-        await repository.UpdateVersionAsync(version, ct);
+        // GRAVA ANTES DE ANUNCIAR. O aviso de conclusão faz a tela recarregar do
+        // banco; anunciando primeiro, ela lia o estado velho (ainda Resolving) e
+        // ficava presa numa barra parada até um F5 — o job já tinha sumido do
+        // registro, então nem progresso chegava mais.
+        // Só o estado e as pendências: os arquivos já foram gravados em lotes, e
+        // reescrever milhares de linhas idênticas aqui seria o custo que os
+        // lotes existem para evitar.
+        await repository.SaveVersionStateAsync(version, ct);
+
+        progress.Complete(versionId, failures.Count > 0 ? version.FailureReason : null);
     }
 
     /// <summary>Retorna null em sucesso…</summary>
@@ -174,6 +202,7 @@ public sealed partial class ModpackIngestionService(
         ModIngestionItem item,
         string minecraftVersion,
         ModLoader loader,
+        List<ModpackFile> unsaved,
         CancellationToken ct)
     {
         // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido, mas
@@ -201,7 +230,7 @@ public sealed partial class ModpackIngestionService(
         {
             case ModResolution.Resolved resolved:
             {
-                var error = await DownloadAndAttachAsync(version, item, resolved, ct);
+                var error = await DownloadAndAttachAsync(version, item, resolved, unsaved, ct);
                 if (error is not null)
                     return ResolveOutcome.Fail(error);
 
@@ -253,6 +282,7 @@ public sealed partial class ModpackIngestionService(
         ModpackVersion version,
         ModIngestionItem item,
         ModResolution.Resolved resolved,
+        List<ModpackFile> unsaved,
         CancellationToken ct)
     {
         try
@@ -309,6 +339,7 @@ public sealed partial class ModpackIngestionService(
             if (replacedId is { } oldId)
                 await repository.RemoveFileAsync(version.Id, oldId, ct);
 
+            unsaved.Add(file);
             return null;
         }
         catch (HttpRequestException ex)

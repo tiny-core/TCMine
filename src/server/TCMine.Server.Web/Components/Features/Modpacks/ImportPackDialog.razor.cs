@@ -15,8 +15,13 @@ public partial class ImportPackDialog
     private bool _searched;
     private UpstreamPackSummary? _selected;
 
-    /// <summary>Nulo enquanto a origem não estiver configurada (sem API key).</summary>
+    /// <summary>Origens prontas para uso — o Modrinth sempre está, o CurseForge só com chave.</summary>
+    private List<IUpstreamPackSource> _available = [];
+
+    /// <summary>Nulo enquanto nenhuma origem estiver disponível.</summary>
     private IUpstreamPackSource? _source;
+
+    private ModFileOrigin _originValue;
 
     [Inject] private IEnumerable<IUpstreamPackSource> Sources { get; set; } = default!;
     [Inject] private IImportQueue ImportQueue { get; set; } = default!;
@@ -26,12 +31,27 @@ public partial class ImportPackDialog
     {
         foreach (var candidate in Sources)
         {
-            if (!await candidate.IsAvailableAsync(CancellationToken.None))
-                continue;
-
-            _source = candidate;
-            break;
+            if (await candidate.IsAvailableAsync(CancellationToken.None))
+                _available.Add(candidate);
         }
+
+        // Modrinth primeiro por padrão: não precisa de chave, e lá nenhum autor
+        // pode negar redistribuição — a importação sai inteira.
+        _available = [.. _available.OrderBy(s => s.Origin is ModFileOrigin.Modrinth ? 0 : 1)];
+
+        _source = _available.FirstOrDefault();
+        _originValue = _source?.Origin ?? ModFileOrigin.Modrinth;
+    }
+
+    private void OnOriginChanged(ModFileOrigin origin)
+    {
+        _originValue = origin;
+        _source = _available.FirstOrDefault(s => s.Origin == origin);
+
+        // Resultado de uma origem não vale para a outra.
+        _results = [];
+        _searched = false;
+        _selected = null;
     }
 
     private async Task OnKeyUp(KeyboardEventArgs e)
