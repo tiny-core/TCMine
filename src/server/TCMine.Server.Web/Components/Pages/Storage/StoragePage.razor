@@ -1,0 +1,204 @@
+@page "/storage"
+@using TCMine.Server.Application.Storage
+
+<PageTitle>Armazenamento — TCMine</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Armazenamento</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            O que ocupa disco e o que dá para recuperar.
+        </MudText>
+    </div>
+    <MudSpacer/>
+    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Search"
+               OnClick="ScanAsync" Disabled="_isScanning">
+        @(_report is null ? "Varrer" : "Varrer de novo")
+    </MudButton>
+</MudStack>
+
+@if (_isScanning)
+{
+    @* Contador ao vivo em vez de uma barra muda: numa varredura de dezenas de
+       milhares de arquivos, saber que passou de 12.000 é a diferença entre
+       "está andando" e "travou". *@
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+        @(Progress?.Step is { Length: > 0 } passo ? $"Percorrendo o content store — {passo}" : "Percorrendo o content store…")
+    </MudText>
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_report is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Storage"
+                Title="Nada varrido ainda."
+                Description="A varredura percorre o content store inteiro e compara com o que o banco referencia. Em stores grandes leva alguns segundos.">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Search" OnClick="ScanAsync">
+            Varrer agora
+        </MudButton>
+    </EmptyState>
+}
+else
+{
+    var report = _report;
+
+    @* Uma barra vale mais que quatro números soltos: mostra a proporção entre
+       o que está em uso e o que é lixo, que é a pergunta real. *@
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap" Spacing="4">
+            <div>
+                <MudText Typo="Typo.h5">@HumanSize.Bytes(report.TotalBytes)</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @report.TotalCount arquivos no content store
+                </MudText>
+            </div>
+            <MudSpacer/>
+            <div style="text-align:right;">
+                <MudText Typo="Typo.h6" Color="Color.Warning">
+                    @HumanSize.Bytes(report.ReclaimableBytes)
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">recuperáveis</MudText>
+            </div>
+        </MudStack>
+
+        <div class="tc-storage-bar">
+            <div class="tc-storage-used" style="@($"width:{UsedPercent:0.##}%")"></div>
+            <div class="tc-storage-orphan" style="@($"width:{OrphanPercent:0.##}%")"></div>
+        </div>
+
+        <MudStack Row="true" Spacing="4" Class="mt-2" Wrap="Wrap.Wrap">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <span class="tc-legend tc-storage-used"></span>
+                <MudText Typo="Typo.caption">
+                    Em uso — @HumanSize.Bytes(report.ReferencedBytes)
+                </MudText>
+            </MudStack>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                <span class="tc-legend tc-storage-orphan"></span>
+                <MudText Typo="Typo.caption">
+                    Sem dono — @HumanSize.Bytes(report.OrphanBytes) em @report.Orphans.Count arquivos
+                </MudText>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+        <b>Sem dono</b> aqui significa: existe no disco e <b>nenhuma versão de nenhum modpack</b> aponta
+        para ele — nem versões arquivadas, que continuam instaladas na máquina de quem já baixou.
+        É diferente do "órfão" da tela de Mods, que é um mod ainda registrado, só que sem uso ativo.
+    </MudAlert>
+
+    @if (report.TooRecentCount > 0)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+            @report.TooRecentCount arquivo(s) sem dono são recentes demais (menos de 24 h) e ficam de fora.
+            A ingestão grava os arquivos no banco em lotes: um blob pode estar no disco enquanto a linha
+            que o referencia ainda não foi gravada. Apagar agora quebraria a importação em curso.
+        </MudAlert>
+    }
+
+    @if (_hasActiveJobs)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mb-4">
+            Há trabalho em background rodando. A limpeza fica bloqueada até terminar.
+        </MudAlert>
+    }
+
+    @if (report.Orphans.Count == 0)
+    {
+        <EmptyState Icon="@Icons.Material.Filled.CleaningServices"
+                    Title="Nada a limpar."
+                    Description="Todo byte no content store está referenciado por alguma versão."/>
+    }
+    else
+    {
+        <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap" Spacing="2">
+                <MudText Typo="Typo.subtitle2">Arquivos sem dono</MudText>
+                <MudSpacer/>
+                @if (_selected.Count > 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @_selected.Count selecionado(s)
+                    </MudText>
+                }
+                <MudButton Variant="Variant.Filled" Color="Color.Error" Size="Size.Small"
+                           StartIcon="@Icons.Material.Filled.DeleteSweep"
+                           OnClick="DeleteSelectedAsync"
+                           Disabled="_isDeleting || _hasActiveJobs || _selected.Count == 0">
+                    Apagar selecionados
+                </MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small"
+                           OnClick="SelectAllSafe"
+                           Disabled="_isDeleting || report.ReclaimableCount == 0">
+                    Selecionar os @report.ReclaimableCount recuperáveis
+                </MudButton>
+            </MudStack>
+
+            @if (_isDeleting)
+            {
+                <div class="mb-3">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-1">
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Error"/>
+                        <MudText Typo="Typo.body2">
+                            @(Progress is { IsDeterminate: true } p
+                                ? $"Apagando {p.Done} de {p.Total}…"
+                                : "Reconferindo referências antes de apagar…")
+                        </MudText>
+                    </MudStack>
+
+                    @if (Progress is { IsDeterminate: true } barra)
+                    {
+                        <MudProgressLinear Color="Color.Error" Value="@barra.Percent"/>
+                    }
+                    else
+                    {
+                        <MudProgressLinear Color="Color.Error" Indeterminate="true"/>
+                    }
+                </div>
+            }
+
+            <MudTable Items="report.Orphans" Dense="true" Hover="true" RowsPerPage="25">
+                <HeaderContent>
+                    <MudTh Style="width:52px;"></MudTh>
+                    <MudTh>Hash</MudTh>
+                    <MudTh>Criado</MudTh>
+                    <MudTh Style="text-align:right;">Tamanho</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudCheckBox T="bool" Value="@_selected.Contains(context.Sha256)"
+                                     ValueChanged="@(v => Toggle(context.Sha256, v))"
+                                     Disabled="@(!context.Safe || _isDeleting)"
+                                     Dense="true"/>
+                    </MudTd>
+                    <MudTd DataLabel="Hash">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText Typo="Typo.caption" Style="font-family:monospace;">
+                                @context.Sha256[..16]…
+                            </MudText>
+                            @if (!context.Safe)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Warning"
+                                         Variant="Variant.Outlined">
+                                    recente
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Criado">
+                        <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Tamanho" Style="text-align:right;">
+                        @HumanSize.Bytes(context.SizeBytes)
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager RowsPerPageString="Por página:"
+                                   InfoFormat="{first_item}–{last_item} de {all_items}"
+                                   PageSizeOptions="@(new[] { 25, 50, 100 })"/>
+                </PagerContent>
+            </MudTable>
+        </MudPaper>
+    }
+}

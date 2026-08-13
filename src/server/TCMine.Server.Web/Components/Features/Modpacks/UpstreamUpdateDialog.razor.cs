@@ -1,11 +1,16 @@
 using Microsoft.AspNetCore.Components;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Web.Background;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class UpstreamUpdateDialog : DialogComponentBase
+public partial class UpstreamUpdateDialog : DialogComponentBase, IDisposable
 {
     private string? _error;
+
+    /// <summary>Acompanhamento do trabalho desta janela.</summary>
+    private Guid _jobId;
     private string _latestLabel = "";
     private bool _loading = true;
     private string _newVersion = "";
@@ -20,15 +25,28 @@ public partial class UpstreamUpdateDialog : DialogComponentBase
     [Parameter] public string CurrentVersion { get; set; } = "";
 
     [Inject] private UpdateFromUpstream UpdateUseCase { get; set; } = default!;
+    [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
+
+    private JobProgress? Progress => _jobId == Guid.Empty ? null : Jobs.Get(_jobId);
+
+    public void Dispose()
+    {
+        Jobs.Changed -= OnJobChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnJobChanged() => _ = InvokeAsync(StateHasChanged);
 
     protected override async Task OnInitializedAsync()
     {
         _newVersion = NextVersion(CurrentVersion);
+        Jobs.Changed += OnJobChanged;
+        _jobId = Guid.CreateVersion7();
 
         // dryRun: calcula e mostra o plano sem gravar nada. O admin precisa ver
         // o que vai acontecer antes de aceitar — atualizar às cegas um pack com
         // configs customizados é como aplicar patch sem ler o diff.
-        var result = await UpdateUseCase.HandleAsync(VersionId, "", CancellationToken.None, true);
+        var result = await UpdateUseCase.HandleAsync(VersionId, "", CancellationToken.None, true, _jobId);
 
         if (result.Succeeded)
         {
@@ -42,17 +60,27 @@ public partial class UpstreamUpdateDialog : DialogComponentBase
             _error = result.Error;
 
         _loading = false;
+        _jobId = Guid.Empty;
     }
 
-    private Task Apply() => SubmitAsync(
-        async () =>
-        {
-            var result = await UpdateUseCase.HandleAsync(VersionId, _newVersion, CancellationToken.None);
-            return result.Succeeded
-                ? TCMine.Server.Application.Common.Result.Success()
-                : TCMine.Server.Application.Common.Result.Fail(result.Error!);
-        },
-        "Rascunho criado. Os mods novos estão sendo baixados em segundo plano.");
+    private Task Apply()
+    {
+        // Baixar o pack e gravar milhares de configs leva minutos: a janela fica
+        // aberta mostrando o passo, em vez de fechar e deixar o admin no escuro.
+        _jobId = Guid.CreateVersion7();
+
+        return SubmitAsync(
+            async () =>
+            {
+                var result = await UpdateUseCase.HandleAsync(
+                    VersionId, _newVersion, CancellationToken.None, false, _jobId);
+
+                return result.Succeeded
+                    ? TCMine.Server.Application.Common.Result.Success()
+                    : TCMine.Server.Application.Common.Result.Fail(result.Error!);
+            },
+            "Rascunho criado. Os mods novos estão sendo baixados em segundo plano.");
+    }
 
     /// <summary>
     ///     Sugere o próximo minor ("1.0.0" → "1.1.0"). É palpite: o admin edita.

@@ -110,6 +110,8 @@ public static class DependencyInjection
         services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();
 
         services.AddScoped<IServerOrchestrator, DockerServerOrchestrator>();
+        services.AddScoped<IContainerStats, DockerContainerStats>();
+        services.AddScoped<IBlobJanitor, FileSystemBlobJanitor>();
 
         services.AddMemoryCache();
 

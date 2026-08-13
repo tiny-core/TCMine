@@ -1,44 +1,46 @@
-﻿using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 
 namespace TCMine.Server.Application.Servers;
 
 public sealed class StopGameServer(
     IServerOrchestrator orchestrator,
-    IServerRepository servers)
+    IServerRepository servers,
+    IJobProgressReporter progress)
 {
     // Timeout generoso: o stop-server.sh do itzg salva o mundo antes de sair.
     // Matar antes disso corrompe chunks — por isso 60s, não 10.
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(60);
 
-    public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct)
+    public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
 
+        void Report(string step)
+        {
+            if (jobId != default)
+                progress.Report(jobId, new JobProgress($"Parando {server.Name}", step));
+        }
+
         try
         {
-            // EnsureCreated (dentro do Start) materializa a pasta, cria o
-            // container e persiste o ContainerId. É idempotente.
-            await orchestrator.StartAsync(serverId, ct);
+            // Pode levar até um minuto: o servidor salva o mundo antes de sair, e
+            // é justamente esse tempo que não se pode cortar.
+            Report("Salvando o mundo e desligando…");
+            await orchestrator.StopAsync(serverId, StopTimeout, ct);
 
-            // Recarrega: o StartAsync gravou o ContainerId numa instância própria.
-            // A nossa cópia 'server' está velha (ContainerId ainda null) — gravar
-            // por cima dela apagaria o Id recém-persistido, porque Update marca
-            // todas as colunas.
-            var fresh = await servers.GetByIdAsync(serverId, ct);
-            if (fresh is null)
-                return Result.Fail("Servidor não encontrado após iniciar.");
+            server.Status = await orchestrator.GetStatusAsync(serverId, ct);
+            server.UpdatedAt = DateTimeOffset.UtcNow;
+            await servers.UpdateAsync(server, ct);
 
-            fresh.Status = await orchestrator.GetStatusAsync(serverId, ct);
-            fresh.UpdatedAt = DateTimeOffset.UtcNow;
-            await servers.UpdateAsync(fresh, ct);
-
+            progress.Complete(jobId);
             return Result.Success();
         }
         catch (Exception ex)
         {
+            progress.Complete(jobId, ex.Message);
             return Result.Fail($"Falha ao parar: {ex.Message}");
         }
     }

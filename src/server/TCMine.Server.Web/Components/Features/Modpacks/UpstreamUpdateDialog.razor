@@ -7,7 +7,9 @@
     <DialogContent>
         @if (_loading)
         {
-            <MudText Typo="Typo.body2" Class="mb-2">Comparando com a origem…</MudText>
+            <MudText Typo="Typo.body2" Class="mb-2">
+                @(Progress?.Step is { Length: > 0 } passo ? passo : "Comparando com a origem…")
+            </MudText>
             <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
         }
         else if (_error is { Length: > 0 })
@@ -115,7 +117,14 @@
         }
         @if (IsBusy)
         {
-            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="flex:1; min-width:0;">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                <MudText Typo="Typo.caption" Class="text-truncate">
+                    @(Progress is { IsDeterminate: true } p
+                        ? $"{p.Step} — {p.Done} de {p.Total}"
+                        : Progress?.Step ?? "Trabalhando…")
+                </MudText>
+            </MudStack>
         }
     </DialogActions>
 </MudDialog>

@@ -134,6 +134,11 @@ builder.Services.AddSingleton<ImportQueue>();
 builder.Services.AddSingleton<IImportQueue>(sp => sp.GetRequiredService<ImportQueue>());
 builder.Services.AddHostedService<ImportWorker>();
 
+// Coleta de métricas: singleton para a série sobreviver à navegação e ser a
+// mesma para todos os admins abertos no painel.
+builder.Services.AddSingleton<MetricsHistory>();
+builder.Services.AddHostedService<MetricsCollector>();
+
 // Reconciliação no arranque: as filas vivem em memória, então um processo que
 // cai deixa versões presas em Resolving para sempre.
 builder.Services.AddHostedService<StuckVersionReconciler>();

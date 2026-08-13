@@ -39,11 +39,17 @@ public sealed class ServerActions(
         }
     }
 
+    /// <summary>
+    ///     Ligar e parar não são instantâneos — o primeiro start materializa a
+    ///     instância e pode puxar imagem, e o stop espera o mundo salvar (até um
+    ///     minuto). Ambos reportam ao acompanhamento global, que a barra do topo
+    ///     mostra em qualquer página.
+    /// </summary>
     public Task<bool> StartAsync(Guid serverId, CancellationToken ct) =>
-        RunAsync(() => startUseCase.HandleAsync(serverId, ct));
+        RunAsync(() => startUseCase.HandleAsync(serverId, ct, Guid.CreateVersion7()));
 
     public Task<bool> StopAsync(Guid serverId, CancellationToken ct) =>
-        RunAsync(() => stopUseCase.HandleAsync(serverId, ct));
+        RunAsync(() => stopUseCase.HandleAsync(serverId, ct, Guid.CreateVersion7()));
 
     public Task<bool> DeleteAsync(Guid serverId, CancellationToken ct) =>
         RunAsync(() => deleteUseCase.HandleAsync(serverId, ct), "Servidor removido.");

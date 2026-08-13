@@ -18,7 +18,8 @@ public sealed class UpdateFromUpstream(
     IEnumerable<IUpstreamPackSource> sources,
     IModpackRepository repository,
     IBlobStore blobStore,
-    IIngestionQueue ingestionQueue)
+    IIngestionQueue ingestionQueue,
+    IJobProgressReporter progress)
 {
     /// <summary>
     ///     <paramref name="dryRun" /> calcula e devolve o plano sem gravar nada —
@@ -26,8 +27,15 @@ public sealed class UpdateFromUpstream(
     ///     confirmar.
     /// </summary>
     public async Task<Result<UpstreamUpdateResult>> HandleAsync(
-        Guid versionId, string newVersionNumber, CancellationToken ct, bool dryRun = false)
+        Guid versionId, string newVersionNumber, CancellationToken ct, bool dryRun = false,
+        Guid jobId = default)
     {
+        void Report(string step, int done = 0, int total = 0)
+        {
+            if (jobId != default)
+                progress.Report(jobId, new JobProgress("Atualizando a partir da origem", step, done, total));
+        }
+
         var current = await repository.GetVersionAsync(versionId, ct);
         if (current is null)
             return Result<UpstreamUpdateResult>.Fail("Versão não encontrada.");
@@ -57,15 +65,26 @@ public sealed class UpdateFromUpstream(
         if (source is null)
             return Result<UpstreamUpdateResult>.Fail($"A origem {origin} não está configurada.");
 
+        // Baixar e ler o pack é o passo longo — um zip de centenas de MB.
+        Report("Baixando o pack da origem…");
+
         var pack = await source.FetchAsync(projectId, null, ct);
         if (pack is null)
+        {
+            progress.Complete(jobId, "Não foi possível ler o pack na origem.");
             return Result<UpstreamUpdateResult>.Fail("Não foi possível ler o pack na origem.");
+        }
+
+        Report("Comparando com o que você tem…");
 
         var theirMods = pack.Mods.ToDictionary(m => m.ProjectId, m => m.FileId);
         var plan = UpstreamMerge.Plan(baseSnapshot, theirMods, current.Files);
 
         if (dryRun)
+        {
+            progress.Complete(jobId);
             return Result<UpstreamUpdateResult>.Success(new UpstreamUpdateResult(plan, pack.VersionLabel, null));
+        }
 
         if (plan.IsEmpty)
             return Result<UpstreamUpdateResult>.Fail("Nada mudou em relação à origem.");
@@ -73,7 +92,7 @@ public sealed class UpdateFromUpstream(
         if (string.IsNullOrWhiteSpace(newVersionNumber))
             return Result<UpstreamUpdateResult>.Fail("Informe o número da nova versão.");
 
-        var draft = await BuildDraftAsync(current, pack, plan, newVersionNumber.Trim(), baseSnapshot, ct);
+        var draft = await BuildDraftAsync(current, pack, plan, newVersionNumber.Trim(), baseSnapshot, Report, ct);
 
         // Só os mods que mudam vão para a fila: os demais já estão no rascunho
         // apontando para o mesmo blob, e rebaixá-los seria desperdício.
@@ -84,13 +103,16 @@ public sealed class UpdateFromUpstream(
         if (toIngest.Count > 0)
             await ingestionQueue.EnqueueAsync(draft.Id, toIngest, ct);
 
+        // Daqui em diante quem reporta é a ingestão, pela versão nova.
+        progress.Complete(jobId);
+
         return Result<UpstreamUpdateResult>.Success(
             new UpstreamUpdateResult(plan, pack.VersionLabel, draft.Id));
     }
 
     private async Task<ModpackVersion> BuildDraftAsync(
         ModpackVersion current, UpstreamPack pack, UpstreamMergePlan plan, string newVersion,
-        UpstreamSnapshot baseSnapshot, CancellationToken ct)
+        UpstreamSnapshot baseSnapshot, Action<string, int, int> report, CancellationToken ct)
     {
         var draft = new ModpackVersion
         {
@@ -130,7 +152,7 @@ public sealed class UpdateFromUpstream(
         }
 
         // Overrides seguem a mesma regra de três vias dos mods.
-        var overrideHashes = await ApplyOverridesAsync(draft, pack, baseSnapshot, ct);
+        var overrideHashes = await ApplyOverridesAsync(draft, pack, baseSnapshot, report, ct);
 
         draft.UpstreamSnapshotJson = new UpstreamSnapshot
         {
@@ -146,12 +168,16 @@ public sealed class UpdateFromUpstream(
     }
 
     private async Task<Dictionary<string, string>> ApplyOverridesAsync(
-        ModpackVersion draft, UpstreamPack pack, UpstreamSnapshot baseSnapshot, CancellationToken ct)
+        ModpackVersion draft, UpstreamPack pack, UpstreamSnapshot baseSnapshot,
+        Action<string, int, int> report, CancellationToken ct)
     {
         var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var done = 0;
 
         foreach (var item in pack.Overrides)
         {
+            // Milhares de configs: sem contador, minutos de silêncio.
+            report("Aplicando configs e scripts", done++, pack.Overrides.Count);
             using var content = new MemoryStream(item.Content);
             var sha = await blobStore.PutAsync(content, null, "application/octet-stream", ct);
             hashes[item.Path] = sha;

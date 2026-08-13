@@ -15,6 +15,15 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
   </ItemGroup>
 
+  <!--
+      O hash do token de recuperação é internal de propósito: ninguém fora daqui
+      deve produzi-lo. O teste precisa dele para montar um cenário de token
+      expirado sem esperar uma hora, e é o único de fora que enxerga.
+  -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="TCMine.Server.Application.Tests"/>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\server\TCMine.Server.Domain\TCMine.Server.Domain.csproj"/>
     <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>

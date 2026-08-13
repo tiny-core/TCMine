@@ -12,9 +12,11 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class CheckModpackVersionUpdates(
     IModpackRepository repository,
-    IEnumerable<IModResolver> resolvers)
+    IEnumerable<IModResolver> resolvers,
+    IJobProgressReporter progress)
 {
-    public async Task<Result<IReadOnlyList<ModUpdateInfo>>> HandleAsync(Guid versionId, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<ModUpdateInfo>>> HandleAsync(
+        Guid versionId, CancellationToken ct, Guid jobId = default)
     {
         var version = await repository.GetVersionAsync(versionId, ct);
         if (version is null)
@@ -26,6 +28,15 @@ public sealed class CheckModpackVersionUpdates(
             return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Modpack não encontrado.");
 
         var updates = new List<ModUpdateInfo>();
+
+        // Uma consulta de metadados POR MOD: num pack importado são centenas de
+        // idas à API, e a barra muda de antes fazia parecer que a janela tinha
+        // morrido. Só contam os que de fato têm origem a consultar.
+        var checkable = version.Files.Count(f =>
+            f.Origin is ModFileOrigin.Modrinth or ModFileOrigin.CurseForge
+            && f.ProjectSlug is not null);
+
+        var done = 0;
 
         foreach (var file in version.Files)
         {
@@ -51,6 +62,16 @@ public sealed class CheckModpackVersionUpdates(
                 continue;
 
             var request = new ModRequest(file.ProjectSlug, null, modpack.MinecraftVersion, modpack.Loader);
+            if (jobId != default)
+            {
+                progress.Report(jobId, new JobProgress(
+                    $"Verificando atualizações de {modpack.Name}",
+                    file.ProjectSlug ?? file.Path,
+                    done, checkable));
+            }
+
+            done++;
+
             var resolution = await resolver.ResolveAsync(request, ct);
 
             // Só a versão mais recente compatível é diferente do que está fixado?
@@ -71,6 +92,8 @@ public sealed class CheckModpackVersionUpdates(
                     file.Origin));
             }
         }
+
+        progress.Complete(jobId);
 
         return Result<IReadOnlyList<ModUpdateInfo>>.Success(updates);
     }

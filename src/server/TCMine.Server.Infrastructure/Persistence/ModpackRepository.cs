@@ -301,6 +301,26 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return slash < 0 ? path : path[(slash + 1)..];
     }
 
+    public async Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        var fileHashes = await db.ModpackFiles
+            .AsNoTracking()
+            .Select(f => f.Sha256)
+            .Distinct()
+            .ToListAsync(ct);
+
+        var iconHashes = await db.Modpacks
+            .AsNoTracking()
+            .Where(m => m.IconBlobSha256 != null)
+            .Select(m => m.IconBlobSha256!)
+            .Distinct()
+            .ToListAsync(ct);
+
+        return fileHashes.Concat(iconHashes).ToHashSet(StringComparer.OrdinalIgnoreCase);
+    }
+
     public async Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)
     {
         if (files.Count is 0)

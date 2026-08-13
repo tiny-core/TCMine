@@ -25,7 +25,7 @@ public sealed class CheckModpackVersionUpdatesTests
             ["jei"] = "jei-v2", ["sodium"] = "sodium-v1"
         });
 
-        var useCase = new CheckModpackVersionUpdates(repo, [resolver]);
+        var useCase = new CheckModpackVersionUpdates(repo, [resolver], new FakeJobProgress());
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -55,7 +55,7 @@ public sealed class CheckModpackVersionUpdatesTests
         repo.Seed(version);
         var resolver = new FakeResolver(new Dictionary<string, string> { ["algum-cf-mod"] = "novo" });
 
-        var useCase = new CheckModpackVersionUpdates(repo, [resolver]);
+        var useCase = new CheckModpackVersionUpdates(repo, [resolver], new FakeJobProgress());
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -66,7 +66,8 @@ public sealed class CheckModpackVersionUpdatesTests
     public async Task Falha_quando_a_versao_nao_existe()
     {
         var repo = new FakeModpackRepository(); // nada semeado
-        var useCase = new CheckModpackVersionUpdates(repo, [new FakeResolver(new Dictionary<string, string>())]);
+        var useCase = new CheckModpackVersionUpdates(
+            repo, [new FakeResolver(new Dictionary<string, string>())], new FakeJobProgress());
 
         var result = await useCase.HandleAsync(Guid.CreateVersion7(), CancellationToken.None);
 

@@ -1,0 +1,27 @@
+/* Barra de ocupação do content store: uma faixa só, dividida entre o que está
+   em uso e o que é lixo. Quatro números soltos não respondem "quanto disso é
+   desperdício?"; a proporção responde de relance. */
+.tc-storage-bar {
+    display: flex;
+    width: 100%;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: var(--mud-palette-lines-default);
+}
+
+.tc-storage-used {
+    background-color: var(--mud-palette-primary);
+}
+
+.tc-storage-orphan {
+    background-color: var(--mud-palette-warning);
+}
+
+/* Quadradinho da legenda, reusando as mesmas cores das faixas. */
+.tc-legend {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}

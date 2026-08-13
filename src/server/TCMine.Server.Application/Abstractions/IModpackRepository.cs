@@ -108,6 +108,15 @@ public interface IModpackRepository
     /// </summary>
     Task<PagedResult<ModpackFile>> ListVersionModsAsync(
         Guid versionId, string? search, PageRequest page, CancellationToken ct);
+
+    /// <summary>
+    ///     Todo hash referenciado por alguma coisa: arquivo de versão (inclusive
+    ///     de versões arquivadas) ou capa de modpack.
+    ///     É a lista de "não pode apagar". Deliberadamente NÃO filtra por estado:
+    ///     uma versão arquivada continua instalada na máquina de quem já a
+    ///     baixou, e apagar os bytes dela quebraria essas instalações.
+    /// </summary>
+    Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct);
 }
 
 /// <summary>Filtros do inventário. Todos opcionais; combinam em AND.</summary>

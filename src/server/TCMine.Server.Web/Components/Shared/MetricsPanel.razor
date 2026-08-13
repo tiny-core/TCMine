@@ -1,0 +1,109 @@
+@* Consumo do sistema e das instâncias, com histórico curto.
+
+   A série vive num singleton alimentado por um coletor em background, então o
+   gráfico já vem cheio quando a página abre e continua andando por empurrão,
+   sem a tela sondar nada. *@
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Memory" Color="Color.Primary"/>
+                <MudText Typo="Typo.subtitle2">TCMine</MudText>
+                <MudSpacer/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">@LastHostLabel</MudText>
+            </MudStack>
+
+            @if (_host.Count < 2)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Coletando… o primeiro ponto sai em alguns segundos.
+                </MudText>
+            }
+            else
+            {
+                <MudChart T="double" ChartType="ChartType.Line"
+                          ChartSeries="_hostSeries"
+                          ChartLabels="_hostLabels"
+                          Height="180px"/>
+
+                <MudStack Row="true" Spacing="4" Class="mt-2" Wrap="Wrap.Wrap">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">CPU do processo</MudText>
+                        <MudText Typo="Typo.body2">@_host[^1].ProcessCpuPercent.ToString("0.0")%</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
+                        <MudText Typo="Typo.body2">@HumanSize.Bytes(_host[^1].ProcessMemoryBytes)</MudText>
+                    </div>
+                    @if (_host[^1].DiskTotalBytes > 0)
+                    {
+                        <div style="flex:1; min-width:160px;">
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                Disco — @HumanSize.Bytes(_host[^1].DiskFreeBytes) livres
+                            </MudText>
+                            <MudProgressLinear Color="@DiskColor" Value="@DiskUsedPercent" Class="mt-1"/>
+                        </div>
+                    }
+                </MudStack>
+            }
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="6">
+        <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
+                <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Info"/>
+                <MudText Typo="Typo.subtitle2">Instâncias</MudText>
+                <MudSpacer/>
+                @if (_servers.Count > 1)
+                {
+                    <MudSelect T="Guid" Value="_selectedServerId" ValueChanged="OnServerChanged"
+                               Dense="true" Margin="Margin.Dense" Style="max-width:200px;">
+                        @foreach (var server in _servers)
+                        {
+                            <MudSelectItem T="Guid" Value="@server.Id">@server.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </MudStack>
+
+            @if (_servers.Count == 0)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Nenhum servidor criado ainda.
+                </MudText>
+            }
+            else if (_serverPoints.Count < 2)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Coletando… instâncias paradas aparecem como zero.
+                </MudText>
+            }
+            else
+            {
+                <MudChart T="double" ChartType="ChartType.Line"
+                          ChartSeries="_serverSeries"
+                          ChartLabels="_serverLabels"
+                          Height="180px"/>
+
+                <MudStack Row="true" Spacing="4" Class="mt-2" Wrap="Wrap.Wrap">
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">CPU</MudText>
+                        <MudText Typo="Typo.body2">@_serverPoints[^1].CpuPercent.ToString("0.0")%</MudText>
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
+                        <MudText Typo="Typo.body2">
+                            @HumanSize.Bytes(_serverPoints[^1].MemoryUsedBytes)
+                            @if (_serverPoints[^1].MemoryLimitBytes > 0)
+                            {
+                                <text>de @HumanSize.Bytes(_serverPoints[^1].MemoryLimitBytes)</text>
+                            }
+                        </MudText>
+                    </div>
+                </MudStack>
+            }
+        </MudPaper>
+    </MudItem>
+</MudGrid>

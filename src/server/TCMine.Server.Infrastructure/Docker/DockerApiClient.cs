@@ -44,6 +44,19 @@ public sealed class DockerApiClient
         return result ?? [];
     }
 
+    /// <summary>
+    ///     Retrato único de consumo (stream=false). Devolve null quando o
+    ///     container não existe ou está parado.
+    /// </summary>
+    internal async Task<DockerStatsResponse?> GetStatsAsync(string nameOrId, CancellationToken ct)
+    {
+        using var response = await _http.GetAsync($"{_prefix}/containers/{nameOrId}/stats?stream=false", ct);
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<DockerStatsResponse>(ct);
+    }
+
     /// <summary>Cria um container a partir de uma spec. Devolve o ID.</summary>
     public async Task<string> CreateContainerAsync(string name, CreateContainerRequest spec, CancellationToken ct)
     {

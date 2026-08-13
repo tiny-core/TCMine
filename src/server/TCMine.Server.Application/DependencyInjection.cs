@@ -2,6 +2,7 @@
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Application.Storage;
 using TCMine.Server.Application.Settings;
 
 namespace TCMine.Server.Application;
@@ -63,6 +64,9 @@ public static class DependencyInjection
         services.AddScoped<RetryModResolution>();
         services.AddScoped<CheckUpstreamUpdate>();
         services.AddScoped<UpdateFromUpstream>();
+
+        services.AddScoped<ScanStorage>();
+        services.AddScoped<DeleteOrphanBlobs>();
         services.AddScoped<RequestPasswordReset>();
         services.AddScoped<ResetPassword>();
 

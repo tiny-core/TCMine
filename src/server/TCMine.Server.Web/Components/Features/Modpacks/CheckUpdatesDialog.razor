@@ -7,7 +7,19 @@
     <DialogContent>
         @if (_isChecking)
         {
-            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
+            @* Consulta uma origem por mod: num pack importado são centenas.
+               O contador diz que está andando; a barra sozinha, não. *@
+            @if (Progress is { IsDeterminate: true } p)
+            {
+                <MudProgressLinear Color="Color.Primary" Value="@p.Percent" Class="mt-3 mb-1"/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @p.Done de @p.Total mods verificados
+                </MudText>
+            }
+            else
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
+            }
             <MudText Typo="Typo.body2" Color="Color.Secondary">Comparando cada mod com a origem…</MudText>
         }
         else if (_updates.Count == 0)

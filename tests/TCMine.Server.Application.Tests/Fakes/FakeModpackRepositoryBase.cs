@@ -76,4 +76,7 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<PagedResult<ModpackFile>> ListVersionModsAsync(
         Guid versionId, string? search, PageRequest page, CancellationToken ct) =>
         throw new NotImplementedException();
+
+    public virtual Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct) =>
+        throw new NotImplementedException();
 }

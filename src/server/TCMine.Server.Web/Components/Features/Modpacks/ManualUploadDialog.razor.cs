@@ -7,7 +7,13 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class ManualUploadDialog
 {
+    /// <summary>Bytes já enviados e total, para a barra do upload.</summary>
+    private long _sent;
+
     private FileSide _side = FileSide.Both;
+    private long _total;
+
+    private double SentPercent => _total > 0 ? Math.Clamp(_sent * 100d / _total, 0, 100) : 0;
     private string _targetFolder = "mods";
 
     protected override void OnInitialized()
@@ -39,7 +45,19 @@ public partial class ManualUploadDialog
         return SubmitAsync(
             async () =>
             {
-                await using var stream = file.OpenReadStream(200 * 1024 * 1024);
+                _sent = 0;
+                _total = file.Size;
+
+                // Envolve o stream do navegador para contar o que passa: um .jar
+                // de 200 MB leva minutos, e sem isto a janela fica muda.
+                await using var browserStream = file.OpenReadStream(200 * 1024 * 1024);
+                await using var stream = new ProgressStream(browserStream, file.Size, (sent, total) =>
+                {
+                    _sent = sent;
+                    _total = total;
+                    _ = InvokeAsync(StateHasChanged);
+                });
+
                 var command = new AddManualFileCommand(
                     VersionId, path, stream, file.ContentType, _side, false, ProjectSlug);
                 return await AddManualFileUseCase.HandleAsync(command, CancellationToken.None);

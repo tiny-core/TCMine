@@ -5,16 +5,27 @@ namespace TCMine.Server.Application.Servers;
 
 public sealed class StartGameServer(
     IServerOrchestrator orchestrator,
-    IServerRepository servers)
+    IServerRepository servers,
+    IJobProgressReporter progress)
 {
-    public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct)
+    public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
 
+        void Report(string step)
+        {
+            if (jobId != default)
+                progress.Report(jobId, new JobProgress($"Iniciando {server.Name}", step));
+        }
+
         try
         {
+            // O primeiro start de um modpack grande é longo: materializa a pasta
+            // (hardlink de centenas de jars) e pode ter de puxar a imagem do
+            // itzg. Sem dizer isso, parece que o botão não funcionou.
+            Report("Preparando a instância e o container…");
             // EnsureCreated (dentro do Start) materializa a pasta, cria o
             // container e persiste o ContainerId. É idempotente.
             await orchestrator.StartAsync(serverId, ct);
@@ -27,16 +38,19 @@ public sealed class StartGameServer(
             if (fresh is null)
                 return Result.Fail("Servidor não encontrado após iniciar.");
 
+            Report("Conferindo o estado do container…");
             fresh.Status = await orchestrator.GetStatusAsync(serverId, ct);
             fresh.UpdatedAt = DateTimeOffset.UtcNow;
             await servers.UpdateAsync(fresh, ct);
 
+            progress.Complete(jobId);
             return Result.Success();
         }
         catch (Exception ex)
         {
             // Docker fora do ar, imagem a puxar, porta ocupada… o admin precisa
             // de ver a causa, não um erro genérico.
+            progress.Complete(jobId, ex.Message);
             return Result.Fail($"Falha ao iniciar: {ex.Message}");
         }
     }

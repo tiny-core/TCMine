@@ -2,14 +2,18 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Web.Background;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
 
-public partial class CheckUpdatesDialog
+public partial class CheckUpdatesDialog : IDisposable
 {
     private readonly HashSet<string> _selected = [];
 
     private bool _isChecking = true;
+
+    /// <summary>Acompanhamento desta verificação — uma consulta por mod.</summary>
+    private Guid _jobId;
     private string _newVersion = "";
     private List<ModUpdateInfo> _updates = [];
 
@@ -19,10 +23,24 @@ public partial class CheckUpdatesDialog
     [Inject] private CheckModpackVersionUpdates CheckUseCase { get; set; } = default!;
     [Inject] private CloneVersion CloneUseCase { get; set; } = default!;
     [Inject] private IIngestionQueue IngestionQueue { get; set; } = default!;
+    [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
+
+    private JobProgress? Progress => _jobId == Guid.Empty ? null : Jobs.Get(_jobId);
+
+    public void Dispose()
+    {
+        Jobs.Changed -= OnJobChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnJobChanged() => _ = InvokeAsync(StateHasChanged);
 
     protected override async Task OnInitializedAsync()
     {
-        var result = await CheckUseCase.HandleAsync(SourceVersionId, CancellationToken.None);
+        Jobs.Changed += OnJobChanged;
+        _jobId = Guid.CreateVersion7();
+
+        var result = await CheckUseCase.HandleAsync(SourceVersionId, CancellationToken.None, _jobId);
 
         if (result.Succeeded)
         {
@@ -35,6 +53,7 @@ public partial class CheckUpdatesDialog
             Snackbar.Add(result.Error!, Severity.Error);
 
         _isChecking = false;
+        _jobId = Guid.Empty;
     }
 
     private void Toggle(string slug, bool selected)
