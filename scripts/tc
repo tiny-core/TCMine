@@ -12,6 +12,7 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB="$ROOT/src/server/TCMine.Server.Web/data/tcmine.db"
+BASE="${TCMINE_BASE_URL:-http://localhost:5144}"
 
 die() { echo "erro: $*" >&2; exit 1; }
 
@@ -23,18 +24,18 @@ kill_app() {
 
 cmd_build() {
   kill_app
-  local out
+  local out code
   out="$(cd "$ROOT" && dotnet build -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
-  local code=$?
+  code=$?
   echo "$out" | grep -E ": (error|warning) " | sed 's/ \[[^]]*\.csproj\]$//' | sort -u | head -25
   if [ $code -eq 0 ]; then echo "BUILD OK"; else echo "BUILD FALHOU"; fi
   return $code
 }
 
 cmd_test() {
-  local out
+  local out code
   out="$(cd "$ROOT" && dotnet test --nologo -clp:NoSummary -v q "$@" 2>&1)"
-  local code=$?
+  code=$?
   # Só as falhas, com a mensagem — e o placar por suíte.
   echo "$out" | grep -E "^\s+(Com falha|Falha)" | head -20
   echo "$out" | grep -E "Mensagem de erro|Assert\." | head -10
@@ -43,7 +44,7 @@ cmd_test() {
   return $code
 }
 
-# Verificação completa numa tacada: é isto que um agente de verificação roda.
+# Verificação completa numa tacada: é isto que o subagente de verificação roda.
 cmd_check() {
   cmd_build || return 1
   cmd_test || return 1
@@ -71,25 +72,60 @@ for row in cur.fetchall()[:40]:
 PY
 }
 
+# Extrai o texto visível de um HTML vindo do stdin.
+strip_html() {
+  python3 -c "
+import sys, re, html
+t = sys.stdin.read()
+t = re.sub(r'(?s)<(script|style|svg).*?</\1>', ' ', t)
+t = re.sub(r'<[^>]+>', ' ', t)
+print(re.sub(r'\s+', ' ', html.unescape(t)).strip()[:1200])
+"
+}
+
 # Fumaça sem browser: o Blazor Server pré-renderiza no SSR, então o HTML da
 # resposta já prova que a página montou e traz o texto renderizado. Cobre a
 # maioria das verificações sem abrir aba nem gastar ida-e-volta de JS.
+#
+# O painel inteiro exige sessão, então uma rota protegida volta 302 para /login.
+# Com TCMINE_SMOKE_USER/PASS o script autentica (respeitando o antiforgery) e
+# reusa o cookie — sem isso, toda página do painel daria um "302" que não prova
+# nada. Foi assim que um erro de parâmetro de componente passou batido: build e
+# testes verdes não veem a página renderizar.
 cmd_smoke() {
   local path="${1:-/}"
-  local url="http://localhost:5144${path}"
-  local body code
-  body="$(curl -s -m 20 -w '\n%{http_code}' "$url")" || die "servidor fora do ar em 5144"
-  code="$(echo "$body" | tail -1)"
-  echo "HTTP $code  $path"
-  # Texto visível, sem tags, comprimido — o suficiente para afirmar o que a
-  # página diz sem despejar HTML.
-  echo "$body" | head -n -1 \
-    | python3 -c "import sys,re,html; t=sys.stdin.read(); t=re.sub(r'(?s)<(script|style|svg).*?</\1>',' ',t); t=re.sub(r'<[^>]+>',' ',t); t=html.unescape(t); print(re.sub(r'\s+',' ',t).strip()[:1200])"
-}
+  local jar body code
+  jar="$(mktemp)"
 
-cmd_logs() {
-  cd "$ROOT" && dotnet build -v q >/dev/null 2>&1
-  echo "use: scripts/tc smoke <rota> — para logs do servidor use preview_logs"
+  curl -s -o /dev/null -m 5 "$BASE/health" || die "servidor fora do ar em $BASE"
+
+  if [ -n "${TCMINE_SMOKE_USER:-}" ] && [ -n "${TCMINE_SMOKE_PASS:-}" ]; then
+    local token
+    token="$(curl -s -c "$jar" "$BASE/login" \
+      | grep -o 'name="__RequestVerificationToken"[^>]*value="[^"]*"' \
+      | sed 's/.*value="//; s/"$//' \
+      | head -1)"
+
+    curl -s -o /dev/null -b "$jar" -c "$jar" -X POST "$BASE/login" \
+      --data-urlencode "email=$TCMINE_SMOKE_USER" \
+      --data-urlencode "password=$TCMINE_SMOKE_PASS" \
+      --data-urlencode "__RequestVerificationToken=$token" \
+      --data-urlencode "returnUrl=/"
+  fi
+
+  body="$(curl -s -b "$jar" -m 30 -w $'\n%{http_code}' "$BASE$path")"
+  code="$(echo "$body" | tail -1)"
+  rm -f "$jar"
+
+  echo "HTTP $code  $path"
+
+  if [ "$code" = "302" ]; then
+    echo "(redirecionado, provavelmente para /login — defina TCMINE_SMOKE_USER e TCMINE_SMOKE_PASS)"
+    return 1
+  fi
+
+  echo "$body" | head -n -1 | strip_html
+  [ "$code" = "200" ]
 }
 
 case "${1:-}" in
@@ -102,9 +138,10 @@ case "${1:-}" in
   *) cat <<'USAGE'
 tc build            build com -warnaserror, só erros/avisos
 tc test [proj]      testes, só falhas + placar
-tc check            build + test (usado pelo agente de verificação)
+tc check            build + test (usado pelo subagente verify)
 tc db [sql|state]   consulta a base de dev (state = versões/pendências)
 tc smoke <rota>     GET na app e devolve o texto renderizado (sem browser)
+                    exige TCMINE_SMOKE_USER/PASS para páginas do painel
 tc kill             mata o TCMine.Server.Web.exe que trava o build
 USAGE
     ;;

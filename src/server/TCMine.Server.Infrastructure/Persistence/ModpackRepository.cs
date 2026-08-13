@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Persistence;
@@ -188,6 +189,116 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             .ThenInclude(v => v.PendingMods)
             .AsSplitQuery()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
+    }
+
+    public async Task<PagedResult<ModInventoryEntry>> ListModInventoryAsync(
+        ModInventoryQuery query, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        var files = db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => f.Origin != ModFileOrigin.Override && f.ProjectSlug != null);
+
+        if (query.Origin is { } origin)
+            files = files.Where(f => f.Origin == origin);
+
+        if (query.Search is { Length: > 0 } search)
+            files = files.Where(f => f.Path.Contains(search) || f.ProjectSlug!.Contains(search));
+
+        // Agrupa por mod. O HAVING do filtro de órfão fica AQUI, no banco: só
+        // depois de agrupar dá para saber se sobrou alguma referência ativa.
+        var grouped = files
+            .Join(db.ModpackVersions, f => f.ModpackVersionId, v => v.Id, (f, v) => new { File = f, Version = v })
+            .GroupBy(x => new { Slug = x.File.ProjectSlug!, x.File.Origin });
+
+        if (query.OnlyOrphans)
+            grouped = grouped.Where(g => g.Count(x => x.Version.State != ModpackVersionState.Archived) == 0);
+
+        var projected = grouped.Select(g => new
+        {
+            g.Key.Slug,
+            g.Key.Origin,
+
+            // Max: o mesmo mod tem nomes de arquivo diferentes entre versões
+            // (jei-1.2.jar, jei-1.5.jar). Qualquer um serve para exibir.
+            Name = g.Max(x => x.File.Path),
+            IconUrl = g.Max(x => x.File.IconUrl),
+            SizeBytes = g.Max(x => x.File.SizeBytes),
+            TotalReferences = g.Count(),
+            ActiveReferences = g.Count(x => x.Version.State != ModpackVersionState.Archived)
+        });
+
+        var total = await projected.CountAsync(ct);
+
+        var rows = await projected
+            .OrderBy(r => r.Name)
+            .ThenBy(r => r.Slug) // desempate estável: sem isto a paginação repete linhas
+            .Skip(query.Page.Skip)
+            .Take(query.Page.PageSize)
+            .ToListAsync(ct);
+
+        // Os donos só da página corrente. Buscar de todos os mods do catálogo
+        // para exibir 25 seria o mesmo desperdício que a paginação evita.
+        var slugs = rows.Select(r => r.Slug).ToList();
+
+        var owners = await db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => f.ProjectSlug != null && slugs.Contains(f.ProjectSlug))
+            .Join(db.ModpackVersions, f => f.ModpackVersionId, v => v.Id, (f, v) => new { f.ProjectSlug, v.ModpackId })
+            .Join(db.Modpacks, x => x.ModpackId, m => m.Id, (x, m) => new { Slug = x.ProjectSlug!, m.Name })
+            .Distinct()
+            .ToListAsync(ct);
+
+        var byslug = owners
+            .GroupBy(o => o.Slug, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)[.. g.Select(o => o.Name).Order()],
+                StringComparer.OrdinalIgnoreCase);
+
+        var items = rows
+            .Select(r => new ModInventoryEntry(
+                r.Slug,
+                FileNameOf(r.Name ?? r.Slug),
+                r.Origin,
+                r.IconUrl,
+                r.SizeBytes,
+                byslug.GetValueOrDefault(r.Slug, []),
+                r.ActiveReferences,
+                r.TotalReferences))
+            .ToList();
+
+        return new PagedResult<ModInventoryEntry>(items, total);
+    }
+
+    public async Task<PagedResult<ModpackFile>> ListVersionModsAsync(
+        Guid versionId, string? search, PageRequest page, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        var q = db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => f.ModpackVersionId == versionId && f.Origin != ModFileOrigin.Override);
+
+        if (search is { Length: > 0 })
+            q = q.Where(f => f.Path.Contains(search));
+
+        var total = await q.CountAsync(ct);
+
+        var items = await q
+            .OrderBy(f => f.Path)
+            .Skip(page.Skip)
+            .Take(page.PageSize)
+            .ToListAsync(ct);
+
+        return new PagedResult<ModpackFile>(items, total);
+    }
+
+    // "mods/jei-1.5.jar" → "jei-1.5.jar". O caminho completo não acrescenta nada
+    // numa tabela onde tudo mora em mods/.
+    private static string FileNameOf(string path)
+    {
+        var slash = path.LastIndexOf('/');
+        return slash < 0 ? path : path[(slash + 1)..];
     }
 
     public async Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)

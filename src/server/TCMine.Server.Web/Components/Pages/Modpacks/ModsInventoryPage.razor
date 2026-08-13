@@ -1,0 +1,120 @@
+@page "/mods"
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Domain.Modpacks
+
+<PageTitle>Mods — TCMine</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Mods</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Todo mod do catálogo, com os modpacks a que pertence.
+        </MudText>
+    </div>
+    <MudSpacer/>
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Extension">
+        @_total mods
+    </MudChip>
+    <MudTooltip Text="Recarregar">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="OnFilterChanged"/>
+    </MudTooltip>
+</MudStack>
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+        <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged"
+                      Placeholder="Buscar mod…" DebounceInterval="400"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Style="max-width:320px;"/>
+
+        <MudSelect T="ModFileOrigin?" Value="_origin" ValueChanged="OnOriginChanged"
+                   Label="Origem" Dense="true" Clearable="true" Style="max-width:180px;">
+            <MudSelectItem T="ModFileOrigin?" Value="@(ModFileOrigin.Modrinth)">Modrinth</MudSelectItem>
+            <MudSelectItem T="ModFileOrigin?" Value="@(ModFileOrigin.CurseForge)">CurseForge</MudSelectItem>
+            <MudSelectItem T="ModFileOrigin?" Value="@(ModFileOrigin.ManualUpload)">Envio manual</MudSelectItem>
+        </MudSelect>
+
+        <MudSwitch T="bool" Value="_onlyOrphans" ValueChanged="OnOrphanToggled"
+                   Color="Color.Warning" Label="Só órfãos"/>
+    </MudStack>
+
+    @if (_onlyOrphans)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+            Órfão é o mod que só existe em versões <b>arquivadas</b> — ninguém novo vai instalá-lo.
+            Isto olha os registros do banco, não o disco: blob sem dono é outra coisa.
+        </MudAlert>
+    }
+
+    @* ServerData: a tabela pede uma página por vez, e busca/filtros vão em SQL. *@
+    <MudTable @ref="_table" T="ModInventoryEntry" ServerData="LoadAsync"
+              Dense="true" Hover="true" RowsPerPage="25">
+        <HeaderContent>
+            <MudTh Style="width:52px;"></MudTh>
+            <MudTh>Mod</MudTh>
+            <MudTh>Origem</MudTh>
+            <MudTh>Modpacks</MudTh>
+            <MudTh Style="text-align:right;">Tamanho</MudTh>
+            <MudTh Style="text-align:right;">Versões</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>
+                @if (context.IconUrl is { Length: > 0 } icon)
+                {
+                    <MudAvatar Size="Size.Small" Square="true">
+                        <MudImage Src="@icon" Width="28" Height="28" ObjectFit="ObjectFit.Contain"/>
+                    </MudAvatar>
+                }
+                else
+                {
+                    <MudIcon Icon="@Icons.Material.Filled.Extension" Color="Color.Secondary"/>
+                }
+            </MudTd>
+            <MudTd DataLabel="Mod">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                    @if (context.IsOrphan)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">
+                            órfão
+                        </MudChip>
+                    }
+                </MudStack>
+            </MudTd>
+            <MudTd DataLabel="Origem">
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@OriginColor(context.Origin)">
+                    @context.Origin
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Modpacks">
+                @if (context.Modpacks.Count == 0)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">@string.Join(", ", context.Modpacks)</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Tamanho" Style="text-align:right;">@HumanSize.Bytes(context.SizeBytes)</MudTd>
+            <MudTd DataLabel="Versões" Style="text-align:right;">
+                <MudTooltip Text="@($"{context.ActiveReferences} em versões ativas de {context.TotalReferences} no total")">
+                    <MudText Typo="Typo.caption">@context.ActiveReferences / @context.TotalReferences</MudText>
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                Nenhum mod com esses filtros.
+            </MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">Carregando…</MudText>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager RowsPerPageString="Por página:"
+                           InfoFormat="{first_item}–{last_item} de {all_items}"
+                           PageSizeOptions="@(new[] { 25, 50, 100 })"/>
+        </PagerContent>
+    </MudTable>
+</MudPaper>

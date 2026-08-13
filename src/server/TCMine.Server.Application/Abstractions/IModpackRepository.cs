@@ -1,4 +1,5 @@
-﻿using TCMine.Server.Domain.Modpacks;
+﻿using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Abstractions;
 
@@ -90,6 +91,50 @@ public interface IModpackRepository
     Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct);
 
     Task UpdateAsync(Modpack modpack, CancellationToken ct);
+
+    /// <summary>
+    ///     Inventário de mods do sistema inteiro, agregado e paginado no banco.
+    ///     Uma linha por mod (não por arquivo): o mesmo mod aparece em várias
+    ///     versões de vários modpacks, e listar arquivo a arquivo daria dezenas de
+    ///     milhares de linhas dizendo a mesma coisa. Filtro e ordenação vão em SQL
+    ///     junto com o recorte — filtrar depois de trazer tudo derrotaria o
+    ///     propósito da página.
+    /// </summary>
+    Task<PagedResult<ModInventoryEntry>> ListModInventoryAsync(ModInventoryQuery query, CancellationToken ct);
+
+    /// <summary>
+    ///     Mods de UMA versão, paginados. Overrides ficam de fora — têm aba
+    ///     própria, e num pack importado são milhares.
+    /// </summary>
+    Task<PagedResult<ModpackFile>> ListVersionModsAsync(
+        Guid versionId, string? search, PageRequest page, CancellationToken ct);
+}
+
+/// <summary>Filtros do inventário. Todos opcionais; combinam em AND.</summary>
+public sealed record ModInventoryQuery(
+    PageRequest Page,
+    string? Search = null,
+    ModFileOrigin? Origin = null,
+    bool OnlyOrphans = false);
+
+/// <summary>
+///     Um mod visto de cima: onde está e se ainda importa.
+///     <see cref="IsOrphan" /> é a pergunta prática — "posso parar de me
+///     preocupar com este mod?". Sim quando ele só sobrevive em versões
+///     arquivadas: ninguém novo vai instalá-lo, e os blobs dele são candidatos a
+///     coleta de lixo.
+/// </summary>
+public sealed record ModInventoryEntry(
+    string ProjectSlug,
+    string DisplayName,
+    ModFileOrigin Origin,
+    string? IconUrl,
+    long SizeBytes,
+    IReadOnlyList<string> Modpacks,
+    int ActiveReferences,
+    int TotalReferences)
+{
+    public bool IsOrphan => ActiveReferences is 0;
 }
 
 /// <summary>Contagens de uma versão, sem carregar os arquivos.</summary>

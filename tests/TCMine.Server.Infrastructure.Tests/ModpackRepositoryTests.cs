@@ -1,4 +1,6 @@
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Infrastructure.Persistence;
 
@@ -179,6 +181,74 @@ public sealed class ModpackRepositoryTests : IDisposable
     }
 
     // ---------- Helpers ----------
+
+    [Fact]
+    public async Task ListModInventoryAsync_marca_orfao_o_mod_que_so_vive_em_versao_arquivada()
+    {
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        // Uma versão publicada e depois arquivada, e outra ativa.
+        var arquivada = NovaVersao(modpack.Id, "1.0");
+        arquivada.UpsertFile(Arquivo(arquivada.Id, "mods/velho.jar", "velho"));
+        arquivada.UpsertFile(Arquivo(arquivada.Id, "mods/jei.jar", "jei"));
+        arquivada.MarkResolving();
+        arquivada.MarkReady();
+        arquivada.Archive();
+        await repo.AddVersionAsync(arquivada, CancellationToken.None);
+
+        var ativa = NovaVersao(modpack.Id, "2.0");
+        ativa.UpsertFile(Arquivo(ativa.Id, "mods/jei.jar", "jei"));
+        ativa.UpsertFile(
+            Arquivo(ativa.Id, "config/x.toml", "override:config/x.toml", ModFileOrigin.Override));
+        await repo.AddVersionAsync(ativa, CancellationToken.None);
+
+        var inventario = await repo.ListModInventoryAsync(
+            new ModInventoryQuery(new PageRequest(0, 25)), CancellationToken.None);
+
+        // Override não é mod: contá-lo encheria a tela de milhares de linhas.
+        Assert.Equal(2, inventario.TotalCount);
+
+        var velho = inventario.Items.Single(e => e.ProjectSlug == "velho");
+        Assert.True(velho.IsOrphan);
+        Assert.Equal(["Teste"], velho.Modpacks);
+
+        // O jei segue vivo na 2.0: duas referências, uma ativa.
+        var jei = inventario.Items.Single(e => e.ProjectSlug == "jei");
+        Assert.False(jei.IsOrphan);
+        Assert.Equal(1, jei.ActiveReferences);
+        Assert.Equal(2, jei.TotalReferences);
+    }
+
+    [Fact]
+    public async Task Consultas_paginadas_recortam_no_banco_e_devolvem_o_total()
+    {
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        for (var i = 0; i < 30; i++)
+            version.UpsertFile(Arquivo(version.Id, $"mods/mod{i:D2}.jar", $"mod{i:D2}"));
+
+        // Override não conta como mod nem no total nem na página.
+        version.UpsertFile(
+            Arquivo(version.Id, "config/x.toml", "override:config/x.toml", ModFileOrigin.Override));
+
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        var pagina = await repo.ListVersionModsAsync(
+            version.Id, null, new PageRequest(1, 25), CancellationToken.None);
+
+        // Segunda página de 30: sobram 5. O total continua sendo o de todos.
+        Assert.Equal(30, pagina.TotalCount);
+        Assert.Equal(5, pagina.Items.Count);
+
+        var busca = await repo.ListVersionModsAsync(
+            version.Id, "mod1", new PageRequest(0, 25), CancellationToken.None);
+
+        // mod10..mod19: a busca vai em SQL, não sobre a página já trazida.
+        Assert.Equal(10, busca.TotalCount);
+    }
 
     private static async Task<Modpack> SeedModpackAsync(ModpackRepository repo)
     {

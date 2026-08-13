@@ -54,23 +54,26 @@ else
 
             <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
                 <MudSpacer/>
-                <MudTextField @bind-Value="_searchString"
+                <MudTextField T="string" Value="_searchString" ValueChanged="OnSearchChanged"
+                              DebounceInterval="400"
                               Placeholder="Filtrar mods..."
                               Adornment="Adornment.Start"
                               AdornmentIcon="@Icons.Material.Filled.Search"
                               IconSize="Size.Small"
-                              Immediate="true"
                               Margin="Margin.Dense"
                               Variant="Variant.Outlined"
                               Style="max-width: 280px;"/>
             </MudStack>
 
-            <MudDataGrid T="ModpackFile"
-                         Items="FilteredFiles"
+            @* ServerData: a grade pede uma página por vez. Uma versão importada
+               tem centenas de mods, e materializá-los todos no circuito era o que
+               fazia a aba demorar a abrir. *@
+            <MudDataGrid @ref="_grid" T="ModpackFile"
+                         ServerData="LoadPageAsync"
                          Dense="true"
                          Hover="true"
                          Filterable="false"
-                         SortMode="SortMode.Single"
+                         SortMode="SortMode.None"
                          RowsPerPage="25"
                          Elevation="1">
                 <Columns>

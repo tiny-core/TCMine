@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Components.Features.Modpacks;
 
@@ -8,6 +9,7 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackModsPage : ComponentBase, IDisposable
 {
+    private MudDataGrid<ModpackFile> _grid = default!;
     private bool _isIngesting;
     private bool _isLoading = true;
     private Modpack? _modpack;
@@ -18,18 +20,27 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public Guid VersionId { get; set; }
 
-    // Filtro em memória: a lista de mods de uma versão cabe tranquilamente,
-    // então não vale ida ao banco a cada tecla.
-    private IEnumerable<ModpackFile> FilteredFiles
+    /// <summary>
+    ///     Carrega só a página pedida, com a busca aplicada em SQL.
+    ///     Overrides ficam de fora — têm aba própria, e num pack importado são
+    ///     milhares.
+    /// </summary>
+    private async Task<GridData<ModpackFile>> LoadPageAsync(
+        GridState<ModpackFile> state, CancellationToken ct)
     {
-        get
-        {
-            // Overrides (config/extras) têm a sua própria aba; fora daqui.
-            var files = (_version?.Files ?? []).Where(f => f.Origin != ModFileOrigin.Override);
-            return string.IsNullOrWhiteSpace(_searchString)
-                ? files
-                : files.Where(f => f.Path.Contains(_searchString, StringComparison.OrdinalIgnoreCase));
-        }
+        var result = await Repository.ListVersionModsAsync(
+            VersionId,
+            string.IsNullOrWhiteSpace(_searchString) ? null : _searchString.Trim(),
+            new PageRequest(state.Page, state.PageSize),
+            ct);
+
+        return new GridData<ModpackFile> { Items = result.Items, TotalItems = result.TotalCount };
+    }
+
+    private Task OnSearchChanged(string value)
+    {
+        _searchString = value;
+        return _grid.ReloadServerData();
     }
 
     public void Dispose()
@@ -51,6 +62,11 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
         _isLoading = false;
         StartPollingIfResolving();
+
+        // A grade tem os próprios dados; depois de uma recarga (ingestão que
+        // terminou, mod removido) ela precisa reler a página corrente.
+        if (_grid is not null)
+            await _grid.ReloadServerData();
     }
 
     private void OnVersionChanged(Guid versionId)
