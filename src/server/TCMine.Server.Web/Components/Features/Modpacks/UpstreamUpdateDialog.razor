@@ -34,6 +34,32 @@
                          Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos</MudChip>
             </MudStack>
 
+            @if (plan.OverridesAdded + plan.OverridesUpdated + plan.OverridesKept > 0)
+            {
+                @* Configs mudam com muito mais frequência que mods num pack
+                   grande; sem esta linha o admin publicava sem saber que os
+                   scripts tinham mudado. *@
+                <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.NoteAdd">
+                        @plan.OverridesAdded configs novos
+                    </MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.EditNote">
+                        @plan.OverridesUpdated configs atualizados
+                    </MudChip>
+                    @if (plan.OverridesKept > 0)
+                    {
+                        <MudTooltip Text="O autor mudou estes configs, mas você já os tinha editado — os seus ficam">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.Lock">
+                                @plan.OverridesKept configs seus, preservados
+                            </MudChip>
+                        </MudTooltip>
+                    }
+                </MudStack>
+            }
+
             @if (plan.Conflicts.Count > 0)
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">

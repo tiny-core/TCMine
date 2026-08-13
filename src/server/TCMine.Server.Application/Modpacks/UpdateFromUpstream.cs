@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
@@ -78,7 +79,16 @@ public sealed class UpdateFromUpstream(
         Report("Comparando com o que você tem…");
 
         var theirMods = pack.Mods.ToDictionary(m => m.ProjectId, m => m.FileId);
-        var plan = UpstreamMerge.Plan(baseSnapshot, theirMods, current.Files);
+
+        // Hash local dos overrides que vieram, para o plano enxergar mudanças de
+        // config sem gravar nada (o dry run não pode escrever no blob store).
+        // Mesmo algoritmo do store — é o que faz os hashes casarem.
+        var theirOverrides = pack.Overrides.ToDictionary(
+            o => o.Path,
+            o => Convert.ToHexStringLower(SHA256.HashData(o.Content)),
+            StringComparer.OrdinalIgnoreCase);
+
+        var plan = UpstreamMerge.Plan(baseSnapshot, theirMods, current.Files, theirOverrides);
 
         if (dryRun)
         {
@@ -87,7 +97,14 @@ public sealed class UpdateFromUpstream(
         }
 
         if (plan.IsEmpty)
-            return Result<UpstreamUpdateResult>.Fail("Nada mudou em relação à origem.");
+        {
+            // Distinguir os dois casos importa: "nada mudou" e "mudou, mas você
+            // já tinha personalizado tudo o que mudou" levam o admin a ações
+            // diferentes.
+            return Result<UpstreamUpdateResult>.Fail(plan.OverridesKept > 0
+                ? "Não há nada a aplicar: o que o autor mudou, você já tinha personalizado."
+                : "Nada mudou em relação à origem.");
+        }
 
         if (string.IsNullOrWhiteSpace(newVersionNumber))
             return Result<UpstreamUpdateResult>.Fail("Informe o número da nova versão.");

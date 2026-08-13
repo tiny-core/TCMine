@@ -137,7 +137,7 @@ public sealed class ServerRulesTests
 
     // ---- Fixtures ----
 
-    private CreateGameServer NewCreate(ModpackVersion version, FakeServers? servers = null) =>
+    private static CreateGameServer NewCreate(ModpackVersion version, FakeServers? servers = null) =>
         new(servers ?? new FakeServers(), new FakeModpacks(version), new FakeScope());
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)

@@ -48,6 +48,11 @@ public sealed class CheckModpackVersionUpdates(
                 || file.OriginReference is null)
                 continue;
 
+            // Locais: o estado de nulidade de uma PROPRIEDADE é descartado pelo
+            // compilador a cada await, e há dois no meio deste laço.
+            var slug = file.ProjectSlug;
+            var fixado = file.OriginReference;
+
             IModResolver? resolver = null;
             foreach (var candidate in resolvers.Where(r => r.Origin == file.Origin))
             {
@@ -61,13 +66,12 @@ public sealed class CheckModpackVersionUpdates(
             if (resolver is null)
                 continue;
 
-            var request = new ModRequest(file.ProjectSlug, null, modpack.MinecraftVersion, modpack.Loader);
+            var request = new ModRequest(slug, null, modpack.MinecraftVersion, modpack.Loader);
+
             if (jobId != default)
             {
                 progress.Report(jobId, new JobProgress(
-                    $"Verificando atualizações de {modpack.Name}",
-                    file.ProjectSlug ?? file.Path,
-                    done, checkable));
+                    $"Verificando atualizações de {modpack.Name}", slug, done, checkable));
             }
 
             done++;
@@ -79,13 +83,13 @@ public sealed class CheckModpackVersionUpdates(
             // (protege contra OriginReference velho/estranho — nunca mostra
             // "mesmo.jar → mesmo.jar").
             if (resolution is ModResolution.Resolved resolved
-                && !string.Equals(resolved.VersionId, file.OriginReference, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(resolved.VersionId, fixado, StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(resolved.FileName, Path.GetFileName(file.Path), StringComparison.OrdinalIgnoreCase))
             {
                 updates.Add(new ModUpdateInfo(
-                    file.ProjectSlug,
+                    slug,
                     Path.GetFileName(file.Path),
-                    file.OriginReference,
+                    fixado,
                     resolved.VersionId,
                     resolved.FileName,
                     file.Side,

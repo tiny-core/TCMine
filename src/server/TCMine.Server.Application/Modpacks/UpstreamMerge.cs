@@ -15,10 +15,17 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public static class UpstreamMerge
 {
+    /// <summary>
+    ///     <paramref name="theirOverrides" /> é caminho → SHA-256 do conteúdo que
+    ///     veio agora. Opcional só para não quebrar quem só quer o diff de mods;
+    ///     sem ele, uma atualização que mexe apenas em configs pareceria "nada
+    ///     mudou" — e pack grande publica atualização só de config o tempo todo.
+    /// </summary>
     public static UpstreamMergePlan Plan(
         UpstreamSnapshot baseSnapshot,
         IReadOnlyDictionary<string, string> theirMods,
-        IReadOnlyList<ModpackFile> ourFiles)
+        IReadOnlyList<ModpackFile> ourFiles,
+        IReadOnlyDictionary<string, string>? theirOverrides = null)
     {
         var ourMods = ourFiles
             .Where(f => f.Origin is not ModFileOrigin.Override && f.ProjectSlug is not null)
@@ -95,7 +102,59 @@ public static class UpstreamMerge
         kept.AddRange(ourMods.Keys.Where(slug =>
             !baseSnapshot.Mods.ContainsKey(slug) && !theirMods.ContainsKey(slug)));
 
-        return new UpstreamMergePlan(add, update, remove, conflicts, kept);
+        var (overridesAdded, overridesUpdated, overridesKept) =
+            PlanOverrides(baseSnapshot, theirOverrides, ourFiles);
+
+        return new UpstreamMergePlan(add, update, remove, conflicts, kept)
+        {
+            OverridesAdded = overridesAdded,
+            OverridesUpdated = overridesUpdated,
+            OverridesKept = overridesKept
+        };
+    }
+
+    /// <summary>
+    ///     Mesma lógica de três vias dos mods, por hash de conteúdo. Só conta —
+    ///     quem aplica é o caso de uso, que tem os bytes em mãos.
+    /// </summary>
+    private static (int Added, int Updated, int Kept) PlanOverrides(
+        UpstreamSnapshot baseSnapshot,
+        IReadOnlyDictionary<string, string>? theirOverrides,
+        IReadOnlyList<ModpackFile> ourFiles)
+    {
+        if (theirOverrides is null)
+            return (0, 0, 0);
+
+        var ours = ourFiles
+            .Where(f => f.Origin is ModFileOrigin.Override)
+            .ToDictionary(f => f.Path, f => f.Sha256, StringComparer.OrdinalIgnoreCase);
+
+        var added = 0;
+        var updated = 0;
+        var kept = 0;
+
+        foreach (var (path, theirSha) in theirOverrides)
+        {
+            if (!ours.TryGetValue(path, out var ourSha))
+            {
+                added++;
+                continue;
+            }
+
+            if (ourSha == theirSha)
+                continue; // idêntico: nada a fazer
+
+            var baseSha = baseSnapshot.Overrides.GetValueOrDefault(path);
+
+            // Intocado desde a importação: pode receber a versão do autor.
+            // Diferente da base: o admin editou, e o dele fica.
+            if (baseSha is not null && ourSha == baseSha)
+                updated++;
+            else
+                kept++;
+        }
+
+        return (added, updated, kept);
     }
 
     private static string NameOf(UpstreamSnapshot snapshot, string projectId) =>
@@ -113,7 +172,17 @@ public sealed record UpstreamMergePlan(
     IReadOnlyList<UpstreamModConflict> Conflicts,
     IReadOnlyList<string> Kept)
 {
-    public int TotalChanges => Add.Count + Update.Count + Remove.Count;
+    /// <summary>Configs e scripts que o autor acrescentou.</summary>
+    public int OverridesAdded { get; init; }
+
+    /// <summary>Configs que o autor mudou e o admin não tinha tocado.</summary>
+    public int OverridesUpdated { get; init; }
+
+    /// <summary>Configs que o autor mudou mas o admin editou — os do admin ficam.</summary>
+    public int OverridesKept { get; init; }
+
+    public int TotalChanges =>
+        Add.Count + Update.Count + Remove.Count + OverridesAdded + OverridesUpdated;
 
     public bool IsEmpty => TotalChanges is 0 && Conflicts.Count is 0;
 }
