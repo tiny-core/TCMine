@@ -11,6 +11,7 @@ using TCMine.Server.Infrastructure;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components;
+using TCMine.Server.Web.Components.Features.Servers;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Endpoints;
 using TCMine.Server.Web.Extensions;
@@ -116,6 +117,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<ICurrentUserScope, HttpContextUserScope>();
+builder.Services.AddScoped<ServerActions>();
 
 builder.Services.AddTcMineApplication();
 

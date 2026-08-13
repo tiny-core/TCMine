@@ -1,0 +1,116 @@
+@page "/servers"
+@using TCMine.Contracts.Servers
+@using TCMine.Server.Domain.Servers
+
+<PageTitle>Servidores — TCMine</PageTitle>
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+    <div>
+        <MudText Typo="Typo.h5">Servidores</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            Todas as instâncias, de todos os modpacks.
+        </MudText>
+    </div>
+    <MudSpacer/>
+    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+             Color="Color.Success" Icon="@Icons.Material.Filled.PlayCircle">
+        @_running rodando
+    </MudChip>
+    <MudTooltip Text="Recarregar e sincronizar com o Docker">
+        <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync" Disabled="_isLoading"/>
+    </MudTooltip>
+</MudStack>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+}
+else if (_rows.Count == 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Dns"
+                Title="Nenhum servidor ainda."
+                Description="Servidores são criados a partir de uma versão publicada, na aba Servidores do modpack."/>
+}
+else
+{
+    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+        <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
+            <MudTextField @bind-Value="_search" Placeholder="Buscar servidor ou modpack…" Immediate="true"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                          Style="max-width:320px;"/>
+
+            <MudSwitch @bind-Value="_onlyRunning" Color="Color.Success" Label="Só os que estão rodando"/>
+        </MudStack>
+
+        <MudTable Items="Filtered" Dense="true" Hover="true" RowsPerPage="25">
+            <HeaderContent>
+                <MudTh>Servidor</MudTh>
+                <MudTh>Modpack</MudTh>
+                <MudTh>Versão</MudTh>
+                <MudTh>Endereço</MudTh>
+                <MudTh Style="text-align:right;">RAM</MudTh>
+                <MudTh Style="text-align:right;">Jogadores</MudTh>
+                <MudTh Style="text-align:right;">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Servidor">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <ServerStatusChip Status="context.Server.Status"/>
+                        <MudText Typo="Typo.body2">@context.Server.Name</MudText>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Modpack">
+                    <MudLink Href="@($"/modpacks/{context.Server.ModpackId}/servers")" Typo="Typo.caption">
+                        @context.ModpackName
+                    </MudLink>
+                </MudTd>
+                <MudTd DataLabel="Versão">
+                    <MudText Typo="Typo.caption">@context.VersionLabel</MudText>
+                </MudTd>
+                <MudTd DataLabel="Endereço">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudText Typo="Typo.caption">@context.Server.ConnectAddress</MudText>
+                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                       OnClick="@(() => CopyAddress(context.Server.ConnectAddress))"/>
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="RAM" Style="text-align:right;">
+                    <MudText Typo="Typo.caption">@context.Server.MemoryMb MB</MudText>
+                </MudTd>
+                <MudTd DataLabel="Jogadores" Style="text-align:right;">
+                    <MudText Typo="Typo.caption">@context.Server.MaxPlayers</MudText>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    @if (_busy.Contains(context.Server.Id))
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                    }
+                    else if (context.Server.Status is GameServerStatus.Running)
+                    {
+                        <MudTooltip Text="Parar">
+                            <MudIconButton Icon="@Icons.Material.Filled.Stop" Color="Color.Warning"
+                                           Size="Size.Small" OnClick="@(() => Stop(context.Server))"/>
+                        </MudTooltip>
+                    }
+                    else
+                    {
+                        <MudTooltip Text="Iniciar">
+                            <MudIconButton Icon="@Icons.Material.Filled.PlayArrow" Color="Color.Success"
+                                           Size="Size.Small" OnClick="@(() => Start(context.Server))"/>
+                        </MudTooltip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+                    Nenhum servidor com esses filtros.
+                </MudText>
+            </NoRecordsContent>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="Por página:"
+                               InfoFormat="{first_item}–{last_item} de {all_items}"
+                               PageSizeOptions="@(new[] { 25, 50, 100 })"/>
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
+}
