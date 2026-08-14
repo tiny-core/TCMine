@@ -34,7 +34,7 @@
                          Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos</MudChip>
             </MudStack>
 
-            @if (plan.OverridesAdded + plan.OverridesUpdated + plan.OverridesKept > 0)
+            @if (plan.Overrides.TotalChanges + plan.Overrides.Kept.Count > 0)
             {
                 @* Configs mudam com muito mais frequência que mods num pack
                    grande; sem esta linha o admin publicava sem saber que os
@@ -42,30 +42,31 @@
                 <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.NoteAdd">
-                        @plan.OverridesAdded configs novos
+                        @plan.Overrides.Added.Count configs novos
                     </MudChip>
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.EditNote">
-                        @plan.OverridesUpdated configs atualizados
+                        @plan.Overrides.Updated.Count configs atualizados
                     </MudChip>
-                    @if (plan.OverridesKept > 0)
+                    @if (plan.Overrides.Removed.Count > 0)
                     {
-                        <MudTooltip Text="O autor mudou estes configs, mas você já os tinha editado — os seus ficam">
+                        <MudTooltip Text="O autor tirou estes do pack e você não os tinha editado — saem do rascunho">
+                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
+                                     Icon="@Icons.Material.Filled.DeleteOutline">
+                                @plan.Overrides.Removed.Count configs removidos
+                            </MudChip>
+                        </MudTooltip>
+                    }
+                    @if (plan.Overrides.Kept.Count > 0)
+                    {
+                        <MudTooltip Text="O autor mudou ou removeu estes configs, mas você já os tinha editado — os seus ficam">
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
                                      Icon="@Icons.Material.Filled.Lock">
-                                @plan.OverridesKept configs seus, preservados
+                                @plan.Overrides.Kept.Count configs seus, preservados
                             </MudChip>
                         </MudTooltip>
                     }
                 </MudStack>
-            }
-
-            @if (plan.Conflicts.Count > 0)
-            {
-                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
-                    <b>@plan.Conflicts.Count conflito(s).</b> Você e o autor mexeram nos mesmos mods.
-                    Nestes casos <b>a sua versão fica</b> — ajuste manualmente depois se quiser a dele.
-                </MudAlert>
             }
 
             <MudExpansionPanels Elevation="0" Dense="true" MultiExpansion="true">
@@ -111,9 +112,22 @@
                     </MudExpansionPanel>
                 }
 
+                @if (plan.Overrides.Removed.Count > 0)
+                {
+                    <MudExpansionPanel Text="@($"Configs removidos ({plan.Overrides.Removed.Count})")">
+                        <MudList T="string" Dense="true">
+                            @foreach (var caminho in plan.Overrides.Removed)
+                            {
+                                <MudListItem T="string" @key="caminho" Text="@caminho"
+                                             Icon="@Icons.Material.Filled.DeleteOutline"/>
+                            }
+                        </MudList>
+                    </MudExpansionPanel>
+                }
+
                 @if (plan.Remove.Count > 0)
                 {
-                    <MudExpansionPanel Text="@($"Removidos ({plan.Remove.Count})")">
+                    <MudExpansionPanel Text="@($"Mods removidos ({plan.Remove.Count})")">
                         <MudList T="string" Dense="true">
                             @foreach (var c in plan.Remove)
                             {

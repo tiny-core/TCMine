@@ -102,42 +102,39 @@ public static class UpstreamMerge
         kept.AddRange(ourMods.Keys.Where(slug =>
             !baseSnapshot.Mods.ContainsKey(slug) && !theirMods.ContainsKey(slug)));
 
-        var (overridesAdded, overridesUpdated, overridesKept) =
-            PlanOverrides(baseSnapshot, theirOverrides, ourFiles);
-
         return new UpstreamMergePlan(add, update, remove, conflicts, kept)
         {
-            OverridesAdded = overridesAdded,
-            OverridesUpdated = overridesUpdated,
-            OverridesKept = overridesKept
+            Overrides = PlanOverrides(baseSnapshot, theirOverrides, ourFiles)
         };
     }
 
     /// <summary>
-    ///     Mesma lógica de três vias dos mods, por hash de conteúdo. Só conta —
-    ///     quem aplica é o caso de uso, que tem os bytes em mãos.
+    ///     Mesma lógica de três vias dos mods, agora por hash de conteúdo.
+    ///     Devolve caminhos, não contagens: o caso de uso precisa saber QUAIS
+    ///     configs sair do rascunho, não quantos.
     /// </summary>
-    private static (int Added, int Updated, int Kept) PlanOverrides(
+    private static UpstreamOverridePlan PlanOverrides(
         UpstreamSnapshot baseSnapshot,
         IReadOnlyDictionary<string, string>? theirOverrides,
         IReadOnlyList<ModpackFile> ourFiles)
     {
         if (theirOverrides is null)
-            return (0, 0, 0);
+            return UpstreamOverridePlan.Empty;
 
         var ours = ourFiles
             .Where(f => f.Origin is ModFileOrigin.Override)
             .ToDictionary(f => f.Path, f => f.Sha256, StringComparer.OrdinalIgnoreCase);
 
-        var added = 0;
-        var updated = 0;
-        var kept = 0;
+        var added = new List<string>();
+        var updated = new List<string>();
+        var removed = new List<string>();
+        var kept = new List<string>();
 
         foreach (var (path, theirSha) in theirOverrides)
         {
             if (!ours.TryGetValue(path, out var ourSha))
             {
-                added++;
+                added.Add(path);
                 continue;
             }
 
@@ -149,12 +146,26 @@ public static class UpstreamMerge
             // Intocado desde a importação: pode receber a versão do autor.
             // Diferente da base: o admin editou, e o dele fica.
             if (baseSha is not null && ourSha == baseSha)
-                updated++;
+                updated.Add(path);
             else
-                kept++;
+                kept.Add(path);
         }
 
-        return (added, updated, kept);
+        // O autor tirou o config do pack. Mesma regra dos mods: se o admin não
+        // tinha mexido, acompanha a remoção; se tinha, o dele fica — remover a
+        // customização dele seria a única coisa pior que ignorá-la.
+        foreach (var (path, baseSha) in baseSnapshot.Overrides)
+        {
+            if (theirOverrides.ContainsKey(path) || !ours.TryGetValue(path, out var ourSha))
+                continue;
+
+            if (ourSha == baseSha)
+                removed.Add(path);
+            else
+                kept.Add(path);
+        }
+
+        return new UpstreamOverridePlan(added, updated, removed, kept);
     }
 
     private static string NameOf(UpstreamSnapshot snapshot, string projectId) =>
@@ -172,19 +183,29 @@ public sealed record UpstreamMergePlan(
     IReadOnlyList<UpstreamModConflict> Conflicts,
     IReadOnlyList<string> Kept)
 {
-    /// <summary>Configs e scripts que o autor acrescentou.</summary>
-    public int OverridesAdded { get; init; }
-
-    /// <summary>Configs que o autor mudou e o admin não tinha tocado.</summary>
-    public int OverridesUpdated { get; init; }
-
-    /// <summary>Configs que o autor mudou mas o admin editou — os do admin ficam.</summary>
-    public int OverridesKept { get; init; }
+    /// <summary>O que muda em configs e scripts.</summary>
+    public UpstreamOverridePlan Overrides { get; init; } = UpstreamOverridePlan.Empty;
 
     public int TotalChanges =>
-        Add.Count + Update.Count + Remove.Count + OverridesAdded + OverridesUpdated;
+        Add.Count + Update.Count + Remove.Count
+        + Overrides.Added.Count + Overrides.Updated.Count + Overrides.Removed.Count;
 
     public bool IsEmpty => TotalChanges is 0 && Conflicts.Count is 0;
+}
+
+/// <summary>
+///     Configs e scripts: o que entra, o que muda, o que sai e o que fica porque
+///     o admin personalizou.
+/// </summary>
+public sealed record UpstreamOverridePlan(
+    IReadOnlyList<string> Added,
+    IReadOnlyList<string> Updated,
+    IReadOnlyList<string> Removed,
+    IReadOnlyList<string> Kept)
+{
+    public static UpstreamOverridePlan Empty { get; } = new([], [], [], []);
+
+    public int TotalChanges => Added.Count + Updated.Count + Removed.Count;
 }
 
 public sealed record UpstreamModChange(string ProjectId, string Name, string? FromFileId, string? ToFileId);

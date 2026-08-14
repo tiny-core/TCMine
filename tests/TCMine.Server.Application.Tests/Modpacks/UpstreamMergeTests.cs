@@ -133,12 +133,56 @@ public sealed class UpstreamMergeTests
         Assert.Empty(plano.Kept);
     }
 
+    [Fact]
+    public void Config_removido_pelo_autor_sai_quando_o_admin_nao_tinha_mexido()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base(mods: [], overrides: [("config/a.toml", "sha-original")]),
+            Deles(),
+            [Override("config/a.toml", "sha-original")],
+            theirOverrides: new Dictionary<string, string>());
+
+        Assert.Equal(["config/a.toml"], plano.Overrides.Removed);
+        Assert.Empty(plano.Overrides.Kept);
+    }
+
+    [Fact]
+    public void Config_removido_pelo_autor_fica_quando_o_admin_editou()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base(mods: [], overrides: [("config/a.toml", "sha-original")]),
+            Deles(),
+            [Override("config/a.toml", "sha-editado")],
+            theirOverrides: new Dictionary<string, string>());
+
+        Assert.Empty(plano.Overrides.Removed);
+        Assert.Equal(["config/a.toml"], plano.Overrides.Kept);
+    }
+
     // ---- Fixtures ----
 
     private static UpstreamSnapshot Base(params (string Project, string File)[] mods) => new()
     {
         Mods = mods.ToDictionary(m => m.Project, m => m.File),
         Overrides = new Dictionary<string, string>()
+    };
+
+    private static UpstreamSnapshot Base(
+        (string Project, string File)[] mods, (string Path, string Sha)[] overrides) => new()
+    {
+        Mods = mods.ToDictionary(m => m.Project, m => m.File),
+        Overrides = overrides.ToDictionary(o => o.Path, o => o.Sha)
+    };
+
+    private static ModpackFile Override(string path, string sha) => new()
+    {
+        ModpackVersionId = Guid.Empty,
+        ProjectSlug = $"override:{path}",
+        Path = path,
+        Sha256 = sha,
+        SizeBytes = 1,
+        Side = FileSide.Both,
+        Origin = ModFileOrigin.Override
     };
 
     private static Dictionary<string, string> Deles(params (string Project, string File)[] mods) =>

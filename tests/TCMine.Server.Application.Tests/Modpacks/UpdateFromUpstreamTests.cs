@@ -161,7 +161,67 @@ public sealed class UpdateFromUpstreamTests
             cenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(1, result.Value!.Plan.OverridesUpdated);
+        Assert.Single(result.Value!.Plan.Overrides.Updated);
+    }
+
+    [Fact]
+    public async Task Config_removido_pelo_autor_sai_do_rascunho()
+    {
+        // Sem isto, um pack que reorganiza a pasta config/ acumula lixo a cada
+        // atualização — e o launcher instala esse lixo na máquina do jogador.
+        var cenario = Cenario(
+            baseMods: [],
+            nossosMods: [],
+            delesMods: [],
+            baseOverrides: [("config/velho.toml", "original"), ("config/fica.toml", "x")],
+            nossosOverrides: [("config/velho.toml", "original"), ("config/fica.toml", "x")],
+            delesOverrides: [("config/fica.toml", "x")]);
+
+        var result = await cenario.UseCase.HandleAsync(
+            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Single(result.Value!.Plan.Overrides.Removed);
+
+        var rascunho = cenario.Repo.Adicionada!;
+        Assert.DoesNotContain(rascunho.Files, f => f.Path == "config/velho.toml");
+        Assert.Contains(rascunho.Files, f => f.Path == "config/fica.toml");
+    }
+
+    [Fact]
+    public async Task Config_removido_pelo_autor_mas_editado_pelo_admin_permanece()
+    {
+        // Remover a customização do admin seria a única coisa pior que ignorá-la.
+        var cenario = Cenario(
+            baseMods: [("jei", "v1")],
+            nossosMods: [("jei", "v1")],
+            delesMods: [("jei", "v2")],
+            baseOverrides: [("config/meu.toml", "original")],
+            nossosOverrides: [("config/meu.toml", "editado por mim")],
+            delesOverrides: []);
+
+        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+
+        var rascunho = cenario.Repo.Adicionada!;
+        var config = Assert.Single(rascunho.Files, f => f.Path == "config/meu.toml");
+        Assert.Equal(Sha("editado por mim"), config.Sha256);
+    }
+
+    [Fact]
+    public async Task Remocao_so_de_config_conta_como_mudanca()
+    {
+        var cenario = Cenario(
+            baseMods: [("jei", "v1")],
+            nossosMods: [("jei", "v1")],
+            delesMods: [("jei", "v1")],
+            baseOverrides: [("config/velho.toml", "original")],
+            nossosOverrides: [("config/velho.toml", "original")],
+            delesOverrides: []);
+
+        var result = await cenario.UseCase.HandleAsync(
+            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

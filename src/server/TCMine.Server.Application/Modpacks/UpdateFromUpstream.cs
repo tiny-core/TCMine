@@ -101,7 +101,7 @@ public sealed class UpdateFromUpstream(
             // Distinguir os dois casos importa: "nada mudou" e "mudou, mas você
             // já tinha personalizado tudo o que mudou" levam o admin a ações
             // diferentes.
-            return Result<UpstreamUpdateResult>.Fail(plan.OverridesKept > 0
+            return Result<UpstreamUpdateResult>.Fail(plan.Overrides.Kept.Count > 0
                 ? "Não há nada a aplicar: o que o autor mudou, você já tinha personalizado."
                 : "Nada mudou em relação à origem.");
         }
@@ -144,6 +144,11 @@ public sealed class UpdateFromUpstream(
         // Removidos pelo autor sem o admin ter mexido: não copiam.
         var dropped = plan.Remove.Select(r => r.ProjectId).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
+        // Mesma coisa para configs: o autor tirou do pack e o admin não tinha
+        // editado. Sem isto, um pack que reorganiza a pasta config/ acumula
+        // lixo a cada atualização — e o launcher instala esse lixo.
+        var droppedPaths = plan.Overrides.Removed.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         // Atualizados também não copiam o arquivo velho — a ingestão traz o novo.
         foreach (var updated in plan.Update)
             dropped.Add(updated.ProjectId);
@@ -151,6 +156,9 @@ public sealed class UpdateFromUpstream(
         foreach (var file in current.Files)
         {
             if (file.ProjectSlug is { } slug && dropped.Contains(slug))
+                continue;
+
+            if (file.Origin is ModFileOrigin.Override && droppedPaths.Contains(file.Path))
                 continue;
 
             draft.UpsertFile(new ModpackFile
