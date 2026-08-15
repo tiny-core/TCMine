@@ -64,6 +64,12 @@ builder.Services
 
 builder.Services.AddTcMineRateLimiting();
 
+// HSTS é grudento: o navegador guarda a promessa e recusa http naquele domínio
+// até o prazo vencer. 30 dias (o padrão) é proteção real e ainda permite
+// corrigir um erro de configuração dentro de um mês. Sem Preload de propósito —
+// entrar na lista dos navegadores é praticamente irreversível.
+builder.Services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(30));
+
 // ---------- Blazor ----------
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -113,8 +119,16 @@ builder.Services
         options.Cookie.Name = "tcmine.auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+        options.Cookie.SecurePolicy = CookiePolicyFor(builder.Environment);
     });
+
+// O cookie de antiforgery não segue a política do cookie de sessão: o padrão do
+// ASP.NET é SecurePolicy.None, e ele sai sem a marca Secure mesmo sobre https.
+// Não é credencial de sessão, mas trafegar em claro num downgrade enfraquece
+// justamente a proteção de CSRF que ele existe para dar.
+builder.Services.AddAntiforgery(options =>
+    options.Cookie.SecurePolicy = CookiePolicyFor(builder.Environment));
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
@@ -161,6 +175,17 @@ if (app.Environment.IsDevelopment())
 
 // ---------- Pipeline ----------
 app.UseForwardedHeaders();
+
+// Depois do UseForwardedHeaders: o HstsMiddleware só emite o cabeçalho quando a
+// requisição é https, e é o forwarded header que conta a verdade atrás do proxy.
+// Não há UseHttpsRedirection de propósito — quem termina TLS é o proxy reverso,
+// e redirecionar de dentro do container quebraria as sondas internas (health
+// check do Docker bate em http no localhost) sem proteger ninguém a mais.
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
+
+app.UseTcMineSecurityHeaders();
+
 app.UseSerilogRequestLogging();
 
 // Depois do UseForwardedHeaders, e não antes: é ele que troca o IP do proxy pelo
@@ -211,3 +236,12 @@ app.MapRazorComponents<App>()
 app.MapHub<MainHub>(HubRoutes.Main).RequireAuthorization();
 
 app.Run();
+
+// Regra única para todo cookie que a aplicação emite — sessão e antiforgery.
+// Em produção o cookie NUNCA pode viajar em claro; SameAsRequest significa
+// exatamente que viaja, se alguém chegar por http. Em desenvolvimento a app roda
+// em http puro, e exigir Secure deixaria o login impossível de testar localmente.
+static CookieSecurePolicy CookiePolicyFor(IHostEnvironment environment) =>
+    environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
