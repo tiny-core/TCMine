@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TCMine.Server.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TCMine.Server.Infrastructure.Persistence;
 namespace TCMine.Server.Infrastructure.Postgres.Migrations
 {
     [DbContext(typeof(TcMineDbContext))]
-    partial class TcMineDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815232110_AddImportRequests")]
+    partial class AddImportRequests
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

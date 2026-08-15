@@ -19,7 +19,7 @@ public sealed class UpdateFromUpstream(
     IEnumerable<IUpstreamPackSource> sources,
     IModpackRepository repository,
     IBlobStore blobStore,
-    IIngestionQueue ingestionQueue,
+    IngestionScheduler scheduler,
     IJobProgressReporter progress)
 {
     /// <summary>
@@ -118,7 +118,7 @@ public sealed class UpdateFromUpstream(
             .ToList();
 
         if (toIngest.Count > 0)
-            await ingestionQueue.EnqueueAsync(draft.Id, toIngest, ct);
+            await scheduler.ScheduleAsync(draft, toIngest, ct);
 
         // Daqui em diante quem reporta é a ingestão, pela versão nova.
         progress.Complete(jobId);

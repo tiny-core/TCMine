@@ -12,7 +12,7 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class QueueIngestion(
     IModpackRepository repository,
-    IIngestionQueue queue)
+    IngestionScheduler scheduler)
 {
     public async Task<Result> HandleAsync(QueueIngestionCommand command, CancellationToken ct)
     {
@@ -27,7 +27,7 @@ public sealed class QueueIngestion(
         if (command.Items.Count is 0)
             return Result.Fail("Informe ao menos um mod.");
 
-        await queue.EnqueueAsync(version.Id, command.Items, ct);
+        await scheduler.ScheduleAsync(version, command.Items, ct);
 
         return Result.Success();
     }

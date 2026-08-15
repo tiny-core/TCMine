@@ -18,6 +18,7 @@ public static class BlobEndpoints
         app.MapGet("/api/v1/blobs/{sha256}", async (
                 string sha256,
                 IBlobStore store,
+                HttpContext http,
                 CancellationToken ct) =>
             {
                 // O hash vem da URL, então é entrada de cliente: formato inválido
@@ -36,17 +37,26 @@ public static class BlobEndpoints
                 // redireciona e os bytes nem passam por este processo.
                 var direct = await store.TryGetDirectUrlAsync(sha256, TimeSpan.FromMinutes(15), ct);
                 if (direct is not null)
+                {
+                    // Este 302 NÃO pode ser guardado: a assinatura do destino
+                    // expira em minutos, e um cache que o reaproveitasse depois
+                    // mandaria o launcher a uma URL morta. Sem o cabeçalho, um
+                    // cache intermediário ainda poderia guardá-lo por heurística.
+                    http.Response.Headers.CacheControl = "no-store";
                     return Results.Redirect(direct.ToString());
+                }
 
                 var stream = await store.OpenAsync(sha256, ct);
 
+                // Content-addressed: a URL contém o hash do conteúdo, então o
+                // corpo desta resposta não pode mudar — a imutabilidade não é uma
+                // promessa, é a definição. 'immutable' diz ao cliente e à CDN que
+                // nem vale revalidar; sem ele, o ETag garante a corretude mas
+                // cada download ainda paga uma ida ao origin para ouvir 304.
+                http.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+
                 // enableRangeProcessing viabiliza o resume: o launcher retoma um
                 // download interrompido em vez de recomeçar 400 MB.
-                //
-                // O ETag é o próprio hash, e a imutabilidade é real — o conteúdo
-                // de um blob nunca muda, por definição. Isso deixa a CDN
-                // (Cloudflare, por exemplo) servir tudo a partir do edge depois
-                // do primeiro download.
                 return Results.File(
                     stream,
                     "application/octet-stream",

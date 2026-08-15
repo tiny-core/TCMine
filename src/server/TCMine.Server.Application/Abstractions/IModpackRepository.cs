@@ -84,11 +84,15 @@ public interface IModpackRepository
     Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct);
 
     /// <summary>
-    ///     Versões presas em Resolving — o processo caiu no meio da ingestão.
-    ///     A fila vive em memória, então o job morreu junto: sem isto a versão
-    ///     ficaria "resolvendo" para sempre e a tela mentiria ao admin.
+    ///     Ingestões que ficaram pela metade quando o processo caiu.
+    ///     São duas situações, e as duas contam: a versão presa em Resolving (o
+    ///     worker morreu no meio) e o rascunho com mods ainda marcados como
+    ///     Queued (caiu antes de o worker sequer pegar o job). Sem a segunda, um
+    ///     pedido feito segundos antes de um deploy sumiria sem deixar vestígio.
+    ///     Devolve só os ids: quem recupera precisa do grafo completo (arquivos e
+    ///     pendências) e o carrega pelo GetVersionAsync, que já sabe montá-lo.
     /// </summary>
-    Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct);
+    Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct);
 
     Task UpdateAsync(Modpack modpack, CancellationToken ct);
 

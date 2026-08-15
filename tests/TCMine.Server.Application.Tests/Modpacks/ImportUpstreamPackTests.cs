@@ -118,7 +118,7 @@ public sealed class ImportUpstreamPackTests
         var repo = new FakeRepo();
         var source = new FakeSource(PackComDoisModsEUmOverride()) { Disponivel = false };
         var useCase = new ImportUpstreamPack(
-            [source], repo, new FakeBlobStore(), new FakeQueue(), new FakeJobProgress(),
+            [source], repo, new FakeBlobStore(), new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
             new FakeDownloader(), new FakeScope());
 
         var result = await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
@@ -130,7 +130,8 @@ public sealed class ImportUpstreamPackTests
     // ---- Fixtures ----
 
     private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeQueue? queue = null) =>
-        new([new FakeSource(pack)], repo, new FakeBlobStore(), queue ?? new FakeQueue(),
+        new([new FakeSource(pack)], repo, new FakeBlobStore(),
+            new IngestionScheduler(repo, queue ?? new FakeQueue()),
             new FakeJobProgress(), new FakeDownloader(), new FakeScope());
 
     private static UpstreamPack PackComDoisModsEUmOverride() => new()

@@ -401,7 +401,7 @@ public sealed class UpdateFromUpstreamTests
         var queue = new FakeQueue();
 
         var useCase = new UpdateFromUpstream(
-            [new FakeSource(pack)], repo, new FakeBlobStore(), queue, new FakeJobProgress());
+            [new FakeSource(pack)], repo, new FakeBlobStore(), new IngestionScheduler(repo, queue), new FakeJobProgress());
 
         return new Contexto(useCase, repo, queue, atual);
     }

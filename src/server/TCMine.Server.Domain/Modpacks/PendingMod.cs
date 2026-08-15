@@ -47,5 +47,16 @@ public enum PendingModReason
     NoCompatibleFile,
 
     /// <summary>Falhou o download ou a origem estava fora do ar — vale tentar de novo.</summary>
-    Transient
+    Transient,
+
+    /// <summary>
+    ///     Pedido pelo admin, ainda não tentado.
+    ///     Gravado no momento de enfileirar, e não depois de falhar como as
+    ///     demais razões: a fila vive em memória, então sem esta linha um mod
+    ///     escolhido a mão desaparecia sem rastro se o processo caísse antes de
+    ///     o worker chegar nele — nem o reparo sabia que ele tinha sido pedido.
+    ///     Some sozinha quando o mod resolve (ResolvePending) ou vira outra razão
+    ///     quando falha (UpsertPending troca por slug).
+    /// </summary>
+    Queued
 }

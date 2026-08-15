@@ -16,7 +16,7 @@ public sealed class RetryModResolutionTests
         // conferido por hash e continua válido — rebaixar tudo seria desperdício.
         var (repo, queue, version) = Cenario(baixados: ["1", "2"]);
 
-        var result = await new RetryModResolution(repo, queue).HandleAsync(version.Id, CancellationToken.None);
+        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Value);
@@ -30,7 +30,7 @@ public sealed class RetryModResolutionTests
     {
         var (repo, queue, version) = Cenario(baixados: ["1", "2", "3", "4"]);
 
-        var result = await new RetryModResolution(repo, queue).HandleAsync(version.Id, CancellationToken.None);
+        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(0, result.Value);
@@ -44,7 +44,7 @@ public sealed class RetryModResolutionTests
         version.MarkResolving();
         version.MarkReady();
 
-        var result = await new RetryModResolution(repo, queue).HandleAsync(version.Id, CancellationToken.None);
+        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Empty(queue.Enfileirados);
@@ -73,7 +73,7 @@ public sealed class RetryModResolutionTests
             Reason = PendingModReason.DistributionDenied
         });
 
-        var result = await new RetryModResolution(repo, queue).HandleAsync(version.Id, CancellationToken.None);
+        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
 

@@ -17,7 +17,7 @@ public sealed partial class ImportUpstreamPack(
     IEnumerable<IUpstreamPackSource> sources,
     IModpackRepository repository,
     IBlobStore blobStore,
-    IIngestionQueue ingestionQueue,
+    IngestionScheduler scheduler,
     IJobProgressReporter progress,
     IModDownloader downloader,
     ICurrentUserScope scope)
@@ -129,7 +129,7 @@ public sealed partial class ImportUpstreamPack(
             .ToList();
 
         if (items.Count > 0)
-            await ingestionQueue.EnqueueAsync(version.Id, items, ct);
+            await scheduler.ScheduleAsync(version, items, ct);
 
         // O acompanhamento passa daqui para a ingestão, que reporta pela versão.
         progress.Complete(jobId);

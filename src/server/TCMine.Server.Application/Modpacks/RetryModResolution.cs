@@ -16,7 +16,7 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class RetryModResolution(
     IModpackRepository repository,
-    IIngestionQueue ingestionQueue)
+    IngestionScheduler scheduler)
 {
     public async Task<Result<int>> HandleAsync(Guid versionId, CancellationToken ct)
     {
@@ -38,47 +38,14 @@ public sealed class RetryModResolution(
                 $"Só é possível tentar de novo numa versão em rascunho ou que falhou. Estado atual: {version.State}.");
         }
 
-        var items = ToRetry(version, modpack);
+        var items = IngestionWorkPlanner.PlanRetry(version, modpack);
 
         await repository.UpdateVersionAsync(version, ct);
 
-        if (items.Count > 0)
-            await ingestionQueue.EnqueueAsync(version.Id, items, ct);
+        // Passa pelo agendador para o pedido ficar gravado antes de entrar na
+        // fila — vale para o reparo tanto quanto para a ingestão original.
+        await scheduler.ScheduleAsync(version, items, ct);
 
         return Result<int>.Success(items.Count);
-    }
-
-    private static List<ModIngestionItem> ToRetry(ModpackVersion version, Modpack modpack)
-    {
-        var present = version.Files
-            .Where(f => f.ProjectSlug is not null)
-            .Select(f => f.ProjectSlug!)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var items = new Dictionary<string, ModIngestionItem>(StringComparer.OrdinalIgnoreCase);
-
-        // Pendências que ainda podem resolver.
-        foreach (var pending in version.PendingMods
-                     .Where(p => p.Reason is not PendingModReason.DistributionDenied))
-        {
-            items[pending.ProjectSlug] = new ModIngestionItem(
-                pending.Origin, pending.ProjectSlug, pending.FileId, pending.Side);
-        }
-
-        // Numa versão importada, o snapshot diz o que "deveria existir": pega o
-        // que sumiu sem nem ter virado pendência (ingestão interrompida no meio).
-        var snapshot = UpstreamSnapshot.FromJson(version.UpstreamSnapshotJson);
-        if (snapshot is not null && modpack.UpstreamProvider is { } origin)
-        {
-            foreach (var (projectId, fileId) in snapshot.Mods)
-            {
-                if (present.Contains(projectId) || items.ContainsKey(projectId))
-                    continue;
-
-                items[projectId] = new ModIngestionItem(origin, projectId, fileId, FileSide.Both);
-            }
-        }
-
-        return [.. items.Values];
     }
 }

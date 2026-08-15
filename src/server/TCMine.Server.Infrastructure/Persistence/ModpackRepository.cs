@@ -373,12 +373,17 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             .ExecuteDeleteAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.ModpackVersions
             .AsNoTracking()
-            .Where(v => v.State == ModpackVersionState.Resolving)
+            .Where(v => v.State == ModpackVersionState.Resolving
+                        || (v.State == ModpackVersionState.Draft
+                            && v.PendingMods.Any(p => p.Reason == PendingModReason.Queued)))
+            // Guid v7 e cronologico: recupera na ordem em que foi pedido.
+            .OrderBy(v => v.Id)
+            .Select(v => v.Id)
             .ToListAsync(ct);
     }
 

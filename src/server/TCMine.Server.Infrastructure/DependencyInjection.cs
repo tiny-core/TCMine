@@ -36,6 +36,7 @@ public static class DependencyInjection
         services.AddSingleton<IBlobStore, FileSystemBlobStore>();
 
         services.AddScoped<IModpackRepository, ModpackRepository>();
+        services.AddScoped<IImportRequestRepository, ImportRequestRepository>();
 
         // O Modrinth pede um User-Agent identificável — a API rejeita
         // requisições sem ele. A convenção deles é "nome/versão (contato)".

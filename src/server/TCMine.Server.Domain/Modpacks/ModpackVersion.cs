@@ -70,6 +70,41 @@ public sealed class ModpackVersion : Entity
     public bool HasPendingMods => PendingMods.Count > 0;
 
     /// <summary>
+    ///     Quantas vezes o arranque já reenfileirou esta ingestão sozinho.
+    ///     Existe para a recuperação automática não virar laço: se o que derruba
+    ///     o processo é justamente este job, reenfileirar a cada arranque faz o
+    ///     servidor cair em ciclo e nunca subir. Depois de
+    ///     <see cref="MaxRecoveryAttempts" /> tentativas a versão para de ser
+    ///     recuperada e o admin decide.
+    /// </summary>
+    public int RecoveryAttempts { get; set; }
+
+    /// <summary>
+    ///     Três é o suficiente para cobrir uma queda por causa externa (deploy no
+    ///     meio, rede caindo) sem insistir num job que é ele próprio o problema.
+    /// </summary>
+    public const int MaxRecoveryAttempts = 3;
+
+    /// <summary>Pendências que ainda esperam a fila, e não uma decisão do admin.</summary>
+    public bool HasQueuedMods =>
+        PendingMods.Any(p => p.Reason is PendingModReason.Queued);
+
+    /// <summary>
+    ///     Registra que o arranque assumiu esta ingestão de novo.
+    ///     Devolve false quando o limite estourou — aí quem chama marca a falha
+    ///     em vez de reenfileirar.
+    /// </summary>
+    public bool TryRegisterRecovery()
+    {
+        if (RecoveryAttempts >= MaxRecoveryAttempts)
+            return false;
+
+        RecoveryAttempts++;
+        Touch();
+        return true;
+    }
+
+    /// <summary>
     ///     Início da ingestão. Só faz sentido a partir de Draft ou de uma
     ///     tentativa que falhou.
     /// </summary>
@@ -103,6 +138,11 @@ public sealed class ModpackVersion : Entity
 
         State = ModpackVersionState.Ready;
         PublishedAt = DateTimeOffset.UtcNow;
+
+        // A ingestão chegou ao fim: o histórico de recuperações não vale mais
+        // nada, e mantê-lo faria a próxima interrupção começar com a cota gasta.
+        RecoveryAttempts = 0;
+
         Touch();
     }
 
@@ -133,6 +173,12 @@ public sealed class ModpackVersion : Entity
 
         State = ModpackVersionState.Draft;
         FailureReason = null;
+
+        // Reparo pedido por gente é recomeço: a cota de recuperação automática
+        // volta ao zero, senão uma versão que já esgotou o limite nunca mais
+        // seria recuperada sozinha depois de consertada.
+        RecoveryAttempts = 0;
+
         Touch();
     }
 

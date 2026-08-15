@@ -24,7 +24,7 @@ public partial class ImportPackDialog
     private ModFileOrigin _originValue;
 
     [Inject] private IEnumerable<IUpstreamPackSource> Sources { get; set; } = default!;
-    [Inject] private IImportQueue ImportQueue { get; set; } = default!;
+    [Inject] private ImportScheduler Scheduler { get; set; } = default!;
     [Inject] private IModpackRepository Repository { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
@@ -101,7 +101,13 @@ public partial class ImportPackDialog
             }
 
             // fileId null = release mais recente do pack.
-            await ImportQueue.EnqueueAsync(origin, projectId, null, name, CancellationToken.None);
+            var result = await Scheduler.ScheduleAsync(origin, projectId, null, name, CancellationToken.None);
+
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Warning);
+                return;
+            }
 
             Snackbar.Add(
                 $"Importando '{name}'. Acompanhe o progresso na barra do topo.",

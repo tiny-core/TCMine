@@ -22,6 +22,12 @@ public static class DependencyInjection
         services.AddScoped<ModpackIngestionService>();
         services.AddScoped<QueueIngestion>();
 
+        // Ponto unico de entrada da fila: grava o pedido antes de enfileirar.
+        services.AddScoped<IngestionScheduler>();
+        services.AddScoped<RecoverInterruptedIngestions>();
+        services.AddScoped<ImportScheduler>();
+        services.AddScoped<RecoverInterruptedImports>();
+
         services.AddScoped<RemoveModpackFile>();
 
         services.AddScoped<PublishModpackVersion>();

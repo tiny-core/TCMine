@@ -47,8 +47,16 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task RemoveVersionAsync(Guid versionId, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    /// <summary>
+    ///     No-op em vez de lançar, ao contrário do resto da base.
+    ///     Desde que o enfileiramento passa pelo IngestionScheduler, salvar a
+    ///     versão virou passo incidental de quase todo caso de uso — e os fakes
+    ///     devolvem sempre a mesma instância, então o estado já fica visível ao
+    ///     teste sem gravar nada. Obrigar cada fake a sobrescrever isto seria
+    ///     ruído puro; quem precisa observar a chamada continua sobrescrevendo.
+    /// </summary>
     public virtual Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) =>
-        throw new NotImplementedException();
+        Task.CompletedTask;
 
     public virtual Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
@@ -65,7 +73,7 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public virtual Task<IReadOnlyList<ModpackVersion>> ListStuckResolvingAsync(CancellationToken ct) =>
+    public virtual Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct) =>
         throw new NotImplementedException();
 
     public virtual Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();

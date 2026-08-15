@@ -148,6 +148,48 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.ImportRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProjectId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RecoveryAttempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Origin", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("import_requests", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Modpacks.Modpack", b =>
                 {
                     b.Property<Guid>("Id")
@@ -300,6 +342,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int?>("RecommendedMemoryMb")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("RecoveryAttempts")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("State")

@@ -50,7 +50,7 @@ public sealed class DeleteAndQueueTests
 
         var queue = new FakeQueue();
 
-        var result = await new QueueIngestion(new FakeModpacks(version), queue).HandleAsync(
+        var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, [Item("jei")]), CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -63,7 +63,7 @@ public sealed class DeleteAndQueueTests
         var version = Rascunho();
         var queue = new FakeQueue();
 
-        var result = await new QueueIngestion(new FakeModpacks(version), queue).HandleAsync(
+        var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, []), CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -78,7 +78,7 @@ public sealed class DeleteAndQueueTests
         var version = Rascunho();
         var queue = new FakeQueue();
 
-        var result = await new QueueIngestion(new FakeModpacks(version), queue).HandleAsync(
+        var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, [Item("jei"), Item("create")]), CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -143,6 +143,13 @@ public sealed class DeleteAndQueueTests
             Removido = true;
             return Task.CompletedTask;
         }
+    }
+
+    /// <summary>O agendador entra no meio: e ele que grava o pedido antes de enfileirar.</summary>
+    private static QueueIngestion CriarQueueIngestion(ModpackVersion version, FakeQueue queue)
+    {
+        var repo = new FakeModpacks(version);
+        return new QueueIngestion(repo, new IngestionScheduler(repo, queue));
     }
 
     private sealed class FakeQueue : IIngestionQueue
