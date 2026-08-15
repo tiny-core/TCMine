@@ -60,6 +60,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 builder.Services.AddHealthChecks();
 
+builder.Services.AddTcMineRateLimiting();
+
 // ---------- Blazor ----------
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -158,6 +160,10 @@ if (app.Environment.IsDevelopment())
 // ---------- Pipeline ----------
 app.UseForwardedHeaders();
 app.UseSerilogRequestLogging();
+
+// Depois do UseForwardedHeaders, e não antes: é ele que troca o IP do proxy pelo
+// IP real do cliente. Invertida, a ordem faria todo mundo cair no mesmo balde.
+app.UseRateLimiter();
 
 app.MapHandshake();
 app.MapBlobs();

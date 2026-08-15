@@ -2,9 +2,11 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
+using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Endpoints;
 
@@ -18,7 +20,16 @@ public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapAuth(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/auth/login", async (
+        // Grupo em vez de repetir os dois modificadores em cada rota: aqui o
+        // esquecimento seria caro nas duas pontas — uma rota sem AllowAnonymous
+        // exigiria sessão para poder entrar, e uma sem limite de taxa seria a
+        // porta de força bruta que as outras três fecharam.
+        var anonimas = app
+            .MapGroup("/auth")
+            .AllowAnonymous()
+            .RequireRateLimiting(RateLimitPolicies.AuthPolicy);
+
+        anonimas.MapPost("/login", async (
             [FromForm] string email,
             [FromForm] string password,
             [FromForm] string? returnUrl,
@@ -38,9 +49,9 @@ public static class AuthEndpoints
             // Só aceita destino local: um returnUrl absoluto viraria open
             // redirect (phishing com domínio legítimo no link).
             return Results.LocalRedirect(SafeReturnUrl(returnUrl));
-        }).AllowAnonymous();
+        });
 
-        app.MapPost("/auth/setup", async (
+        anonimas.MapPost("/setup", async (
             [FromForm] string email,
             [FromForm] string displayName,
             [FromForm] string password,
@@ -59,9 +70,9 @@ public static class AuthEndpoints
                 await SignInAsync(http, created);
 
             return Results.LocalRedirect("/");
-        }).AllowAnonymous();
+        });
 
-        app.MapPost("/auth/forgot-password", async (
+        anonimas.MapPost("/forgot-password", async (
             [FromForm] string email,
             RequestPasswordReset useCase,
             HttpContext http,
@@ -74,9 +85,9 @@ public static class AuthEndpoints
 
             // Resposta idêntica exista ou não a conta — ver o caso de uso.
             return Results.LocalRedirect("/forgot-password?sent=true");
-        }).AllowAnonymous();
+        });
 
-        app.MapPost("/auth/reset-password", async (
+        anonimas.MapPost("/reset-password", async (
             [FromForm] string email,
             [FromForm] string token,
             [FromForm] string password,
@@ -94,8 +105,10 @@ public static class AuthEndpoints
             // Não entra logado de propósito: quem redefiniu prova a posse da
             // senha nova entrando com ela.
             return Results.LocalRedirect("/login");
-        }).AllowAnonymous();
+        });
 
+        // Fora do grupo: sair exige sessão, e limitar quem já está autenticado
+        // só atrapalharia.
         app.MapPost("/auth/logout", async (HttpContext http) =>
         {
             await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

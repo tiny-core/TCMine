@@ -1,5 +1,7 @@
-﻿using Microsoft.Net.Http.Headers;
+﻿using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Net.Http.Headers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Endpoints;
 
@@ -52,7 +54,10 @@ public static class BlobEndpoints
                     entityTag: new EntityTagHeaderValue($"\"{sha256}\""));
             })
             .WithName("DownloadBlob")
-            .AllowAnonymous();
+            .AllowAnonymous()
+            // Anônimo por design, então o teto de transferências simultâneas é a
+            // única coisa entre o content store e quem quiser saturar o disco.
+            .RequireRateLimiting(RateLimitPolicies.BlobPolicy);
 
         return app;
     }
