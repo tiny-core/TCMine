@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
@@ -13,6 +14,7 @@ using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components;
 using TCMine.Server.Web.Components.Features.Servers;
 using TCMine.Server.Web.Configuration;
+using TCMine.Server.Web.Diagnostics;
 using TCMine.Server.Web.Endpoints;
 using TCMine.Server.Web.Extensions;
 using TCMine.Server.Web.Hubs;
@@ -29,14 +31,9 @@ builder.Host.UseSerilog((context, config) => config
     .WriteTo.Console());
 
 // ---------- Configuração ----------
-builder.Services
-    .AddOptions<ServerOptions>()
-    .Bind(builder.Configuration.GetSection(ServerOptions.SectionName))
-    .ValidateOnStart();
+builder.Services.AddTcMineServerOptions(builder.Configuration, builder.Environment);
 
-var databaseOptions = builder.Configuration
-    .GetSection(DatabaseOptions.SectionName)
-    .Get<DatabaseOptions>() ?? new DatabaseOptions();
+var databaseOptions = builder.Configuration.ReadValidatedDatabaseOptions();
 
 // ---------- Serviços ----------
 builder.Services.AddTcMineDatabase(databaseOptions);
@@ -58,7 +55,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-builder.Services.AddHealthChecks();
+// O check do banco entra com a tag "ready": /health/live continua respondendo
+// mesmo com o banco fora (o processo está vivo, não adianta o orquestrador
+// reiniciá-lo), enquanto /health e /health/ready dizem a verdade.
+builder.Services
+    .AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>(DatabaseHealthCheck.Name, tags: [DatabaseHealthCheck.ReadyTag]);
 
 builder.Services.AddTcMineRateLimiting();
 
@@ -168,7 +170,22 @@ app.UseRateLimiter();
 app.MapHandshake();
 app.MapBlobs();
 
+// /health responde o conjunto completo de propósito: quem aponta o orquestrador
+// para a URL óbvia tem de receber a resposta honesta, não a otimista. Antes daqui
+// não havia check nenhum registrado, e /health devolvia 200 com o banco fora — um
+// painel que não abre uma única página era reportado como saudável.
 app.MapHealthChecks("/health");
+
+// Liveness: só prova que o processo responde. Sem dependências de propósito —
+// reiniciar o container não conserta um Postgres fora do ar, só derruba o painel
+// junto e apaga o que estava em memória (as filas de ingestão e importação).
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+
+// Readiness: pronto para receber tráfego.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains(DatabaseHealthCheck.ReadyTag)
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
