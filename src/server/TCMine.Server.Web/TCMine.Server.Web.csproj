@@ -19,6 +19,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!--
+        Os handlers de endpoint são internal: expô-los publicamente só para
+        testar seria pior. O teste da autorização de backup depende disto.
+    -->
+    <InternalsVisibleTo Include="TCMine.Server.Web.Tests"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore"/>
     <PackageReference Include="MudBlazor"/>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>

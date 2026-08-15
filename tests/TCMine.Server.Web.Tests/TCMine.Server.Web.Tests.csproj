@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\server\TCMine.Server.Web\TCMine.Server.Web.csproj"/>
+
+    <!--
+        Referencia o projeto de testes da Application só pelos fakes base
+        (Fake*Base.cs). Duplicar aqui um IServerRepository inteiro significaria
+        dois lugares para atualizar a cada membro novo na porta — exatamente o
+        que as bases existem para evitar.
+    -->
+    <ProjectReference Include="..\TCMine.Server.Application.Tests\TCMine.Server.Application.Tests.csproj"/>
+  </ItemGroup>
+
+  <!-- Nomes de método de teste em PT-BR com underscore; ver Application.Tests. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>
