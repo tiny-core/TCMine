@@ -51,6 +51,47 @@ public sealed class ModpackIngestionServiceTests
     }
 
     [Fact]
+    public async Task Mod_que_exige_loader_mais_novo_vira_pendencia_em_vez_de_instalar()
+    {
+        // Este mod baixa sem erro e instala sem reclamar — e derruba o servidor
+        // no arranque, com uma exceção do loader que não aponta para o TCMine.
+        var version = NewDraftVersion(); // LoaderVersion = 21.1.234
+        var repo = new FakeModpackRepository { Version = version };
+        var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>> { ["A"] = [] });
+
+        var service = new ModpackIngestionService(
+            repo, new FakeBlobStore(), [resolver], new FakeDownloader(),
+            new FakeJarInspector("[21.2.0,)"), new FakeJobProgress(),
+            NullLogger<ModpackIngestionService>.Instance);
+
+        await service.IngestAsync(version.Id, [Item("A")], CancellationToken.None);
+
+        Assert.Empty(version.Files);
+
+        var pendente = Assert.Single(version.PendingMods);
+        Assert.Contains("21.2.0", pendente.Detail);
+        Assert.Contains("21.1.234", pendente.Detail);
+    }
+
+    [Fact]
+    public async Task Mod_com_exigencia_satisfeita_instala_normalmente()
+    {
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+        var resolver = new FakeResolver(new Dictionary<string, IReadOnlyList<ModDependency>> { ["A"] = [] });
+
+        var service = new ModpackIngestionService(
+            repo, new FakeBlobStore(), [resolver], new FakeDownloader(),
+            new FakeJarInspector("[21.1.0,)"), new FakeJobProgress(),
+            NullLogger<ModpackIngestionService>.Instance);
+
+        await service.IngestAsync(version.Id, [Item("A")], CancellationToken.None);
+
+        Assert.Single(version.Files);
+        Assert.Empty(version.PendingMods);
+    }
+
+    [Fact]
     public async Task Mod_sem_arquivo_compativel_vira_pendencia_sem_reprovar_a_versao()
     {
         var version = NewDraftVersion();
@@ -81,7 +122,7 @@ public sealed class ModpackIngestionServiceTests
         FakeModpackRepository repo, FakeResolver resolver, FakeJobProgress? progress = null)
     {
         return new ModpackIngestionService(repo, new FakeBlobStore(), [resolver], new FakeDownloader(),
-            progress ?? new FakeJobProgress(), NullLogger<ModpackIngestionService>.Instance);
+            new FakeJarInspector(), progress ?? new FakeJobProgress(), NullLogger<ModpackIngestionService>.Instance);
     }
 
     [Fact]
@@ -153,6 +194,28 @@ public sealed class ModpackIngestionServiceTests
     }
 
     [Fact]
+    public async Task Erro_inesperado_encerra_o_acompanhamento_e_marca_a_versao()
+    {
+        // Regressão dupla: antes, uma exceção no meio do laço deixava a versão
+        // presa em "Resolvendo" para sempre E a barra de progresso girando —
+        // além de nunca chegar às dependências ainda não descobertas.
+        var version = NewDraftVersion();
+        var repo = new FakeModpackRepository { Version = version };
+        var progress = new FakeJobProgress();
+
+        var service = new ModpackIngestionService(
+            repo, new FakeBlobStore(), [new ExplodeResolver()], new FakeDownloader(),
+            new FakeJarInspector(), progress, NullLogger<ModpackIngestionService>.Instance);
+
+        await service.IngestAsync(version.Id, [Item("A")], CancellationToken.None);
+
+        Assert.Equal(ModpackVersionState.Failed, version.State);
+
+        var (_, erro) = Assert.Single(progress.Completed);
+        Assert.NotNull(erro);
+    }
+
+    [Fact]
     public async Task Total_do_progresso_nao_sobe_com_dependencias_transitivas()
     {
         var version = NewDraftVersion();
@@ -217,6 +280,16 @@ public sealed class ModpackIngestionServiceTests
 
             return Task.FromResult<ModResolution>(resolved);
         }
+    }
+
+    /// <summary>Estoura de um jeito que ninguém previu — o caso que travava tudo.</summary>
+    private sealed class ExplodeResolver : IModResolver
+    {
+        public ModFileOrigin Origin => ModFileOrigin.Modrinth;
+        public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
+
+        public Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct) =>
+            throw new InvalidOperationException("a API devolveu algo inesperado");
     }
 
     private sealed class FakeDownloader : IModDownloader

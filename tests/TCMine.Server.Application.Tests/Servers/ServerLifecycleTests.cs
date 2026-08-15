@@ -103,26 +103,18 @@ public sealed class ServerLifecycleTests
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) => throw new NotImplementedException();
     }
 
-    private sealed class FakeServerRepo(GameServer server) : IServerRepository
+    private sealed class FakeServerRepo(GameServer server) : FakeServerRepositoryBase
     {
         public GameServer? Saved { get; private set; }
 
-        public Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<GameServer?>(server);
 
-        public Task UpdateAsync(GameServer s, CancellationToken ct)
+        public override Task UpdateAsync(GameServer s, CancellationToken ct)
         {
             Saved = s;
             return Task.CompletedTask;
         }
 
-        public Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task AddAsync(GameServer s, CancellationToken ct) => throw new NotImplementedException();
-        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
 }

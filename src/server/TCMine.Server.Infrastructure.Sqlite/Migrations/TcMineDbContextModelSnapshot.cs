@@ -495,6 +495,55 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("game_servers", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.WorldBackup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("GameServerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ModpackVersionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ModpackVersionLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(256)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("TakenHot")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameServerId");
+
+                    b.ToTable("world_backups", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Settings.InstallationSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -545,6 +594,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("WorldBackupKeepCount")
+                        .HasColumnType("INTEGER");
+
                     b.HasKey("Id");
 
                     b.ToTable("installation_settings", (string)null);
@@ -573,6 +625,15 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)
                         .WithMany("PendingMods")
                         .HasForeignKey("ModpackVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.WorldBackup", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("GameServerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -48,4 +48,36 @@ public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.GameServers.Where(s => s.Id == id).ExecuteDeleteAsync(ct);
     }
+
+    public async Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Ordena por Id: GUID v7 é cronológico, e o SQLite rejeita
+        // DateTimeOffset em ORDER BY.
+        return await db.WorldBackups
+            .AsNoTracking()
+            .Where(b => b.GameServerId == gameServerId)
+            .OrderByDescending(b => b.Id)
+            .ToListAsync(ct);
+    }
+
+    public async Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.WorldBackups.AsNoTracking().FirstOrDefaultAsync(b => b.Id == backupId, ct);
+    }
+
+    public async Task AddBackupAsync(WorldBackup backup, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        db.WorldBackups.Add(backup);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task RemoveBackupAsync(Guid backupId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.WorldBackups.Where(b => b.Id == backupId).ExecuteDeleteAsync(ct);
+    }
 }

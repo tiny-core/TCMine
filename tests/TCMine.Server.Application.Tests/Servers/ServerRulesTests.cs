@@ -60,49 +60,6 @@ public sealed class ServerRulesTests
     }
 
     [Fact]
-    public async Task Nao_troca_a_versao_de_servidor_que_ja_tem_mundo()
-    {
-        // Trocar mods de um mundo gerado corrompe o save (registry faltando,
-        // formato de dados incompatível). Fica barrado até haver backup.
-        var server = Servidor();
-        server.WorldInitializedAt = DateTimeOffset.UtcNow.AddDays(-1);
-
-        var destino = Versao("2.0.0", ModpackVersionState.Ready);
-
-        var result = await new ChangeServerVersion(new FakeServers(server), new FakeModpacks(destino))
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-        Assert.NotEqual(destino.Id, server.ModpackVersionId);
-    }
-
-    [Fact]
-    public async Task Nao_troca_para_versao_de_outro_modpack()
-    {
-        var server = Servidor();
-        var deOutroPack = Versao("2.0.0", ModpackVersionState.Ready);
-        deOutroPack.ModpackId = Guid.CreateVersion7();
-
-        var result = await new ChangeServerVersion(new FakeServers(server), new FakeModpacks(deOutroPack))
-            .HandleAsync(server.Id, deOutroPack.Id, CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task Troca_a_versao_de_servidor_sem_mundo()
-    {
-        var server = Servidor();
-        var destino = Versao("2.0.0", ModpackVersionState.Ready);
-
-        var result = await new ChangeServerVersion(new FakeServers(server), new FakeModpacks(destino))
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
-
-        Assert.True(result.Succeeded);
-        Assert.Equal(destino.Id, server.ModpackVersionId);
-    }
-
-    [Fact]
     public async Task Apagar_servidor_remove_container_e_pasta_antes_do_registro()
     {
         var server = Servidor();
@@ -110,7 +67,7 @@ public sealed class ServerRulesTests
         var orchestrator = new FakeOrchestrator();
         var materializer = new FakeMaterializer();
 
-        var result = await new DeleteGameServer(servers, orchestrator, materializer)
+        var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -128,7 +85,7 @@ public sealed class ServerRulesTests
         var servers = new FakeServers(server);
         var orchestrator = new FakeOrchestrator { Explode = true };
 
-        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer())
+        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -187,35 +144,30 @@ public sealed class ServerRulesTests
             Task.FromResult<ModpackVersion?>(version.Id == versionId ? version : null);
     }
 
-    private sealed class FakeServers(params GameServer[] seed) : IServerRepository
+    private sealed class FakeServers(params GameServer[] seed) : FakeServerRepositoryBase
     {
         private readonly List<GameServer> _servers = [.. seed];
 
         public GameServer? Adicionado { get; private set; }
         public bool Removido { get; private set; }
 
-        public Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(_servers.FirstOrDefault(s => s.Id == id));
 
-        public Task AddAsync(GameServer server, CancellationToken ct)
+        public override Task AddAsync(GameServer server, CancellationToken ct)
         {
             Adicionado = server;
             return Task.CompletedTask;
         }
 
-        public Task UpdateAsync(GameServer server, CancellationToken ct) => Task.CompletedTask;
+        public override Task UpdateAsync(GameServer server, CancellationToken ct) => Task.CompletedTask;
 
-        public Task RemoveAsync(Guid id, CancellationToken ct)
+        public override Task RemoveAsync(Guid id, CancellationToken ct)
         {
             Removido = true;
             return Task.CompletedTask;
         }
 
-        public Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>
-            throw new NotImplementedException();
     }
 
     private sealed class FakeOrchestrator : IServerOrchestrator

@@ -121,6 +121,27 @@ else
                                         </MudMenuItem>
                                     </MudMenu>
                                 </MudStack>
+
+                                @* Backups logo abaixo do servidor: é o contexto
+                                   onde a troca de versão acontece, e é ali que o
+                                   admin precisa saber que existe rede de segurança. *@
+                                <MudExpansionPanels Elevation="0" Dense="true" Class="mt-3">
+                                    @* Console primeiro e já aberto quando o servidor
+                                       está no ar: é o que o admin quer ver ao abrir a
+                                       tela de um servidor rodando. *@
+                                    @if (server.Status is GameServerStatus.Running)
+                                    {
+                                        <MudExpansionPanel Text="Console" Expanded="true"
+                                                           Icon="@Icons.Material.Filled.Terminal">
+                                            <ServerConsole Server="server"/>
+                                        </MudExpansionPanel>
+                                    }
+
+                                    <MudExpansionPanel Text="Backups do mundo"
+                                                       Icon="@Icons.Material.Filled.Backup">
+                                        <WorldBackupsPanel Server="server" OnChanged="LoadAsync"/>
+                                    </MudExpansionPanel>
+                                </MudExpansionPanels>
                             </MudCardContent>
                         </MudCard>
                     }

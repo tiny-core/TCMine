@@ -22,6 +22,18 @@ public partial class ModSearchDialog
     private IReadOnlyList<ModSearchResult> _results = [];
     private bool _searched;
 
+    /// <summary>
+    ///     Esconder os incompatíveis fica LIGADO por padrão: a lista útil é a de
+    ///     mods que dá para instalar. Mas o contador ao lado mostra que os outros
+    ///     existem — é isso que responde "por que não acho o Mekanism".
+    /// </summary>
+    private bool _hideIncompatible = true;
+
+    private int _incompatibleCount;
+
+    private IReadOnlyList<ModSearchResult> Visiveis =>
+        _hideIncompatible ? [.. _results.Where(r => r.Compatible)] : _results;
+
     [Parameter] public Guid VersionId { get; set; }
     [Parameter] public string MinecraftVersion { get; set; } = "";
     [Parameter] public ModLoader Loader { get; set; }
@@ -55,6 +67,36 @@ public partial class ModSearchDialog
             await DoSearch();
     }
 
+    private async Task OnQueryChanged(string value)
+    {
+        _query = value;
+
+        // Menos de três letras devolve ruído e gasta cota da API à toa.
+        if (string.IsNullOrWhiteSpace(_query) || _query.Trim().Length < 3)
+        {
+            _results = [];
+            _searched = false;
+            return;
+        }
+
+        await DoSearch();
+    }
+
+    private void OnHideChanged(bool value) => _hideIncompatible = value;
+
+    /// <summary>1.234.567 → "1,2 mi". Número cheio de download não diz nada de relance.</summary>
+    private static string Downloads(int total) => total switch
+    {
+        >= 1_000_000 => $"{total / 1_000_000d:0.#} mi",
+        >= 1_000 => $"{total / 1_000d:0.#} mil",
+        _ => total.ToString()
+    };
+
+    private string IncompatibleHint(ModSearchResult r) =>
+        r.LatestVersions is { Length: > 0 } versoes
+            ? $"Este mod tem versões para {versoes} — nenhuma para {MinecraftVersion} com {Loader}."
+            : $"Sem release para Minecraft {MinecraftVersion} com {Loader}.";
+
     private async Task OnKeyUp(KeyboardEventArgs e)
     {
         if (e.Key is "Enter")
@@ -75,6 +117,7 @@ public partial class ModSearchDialog
         {
             var q = new ModSearchQuery(_query.Trim(), MinecraftVersion, Loader);
             _results = await search.SearchAsync(q, CancellationToken.None);
+            _incompatibleCount = _results.Count(r => !r.Compatible);
             _searched = true;
         }
         finally
@@ -85,6 +128,12 @@ public partial class ModSearchDialog
 
     private void Toggle(string projectId, bool selected)
     {
+        // O card inteiro é clicável, então a guarda precisa estar aqui e não só
+        // no checkbox desabilitado: marcar um incompatível só adiaria a recusa
+        // para a ingestão, com o admin achando que deu certo.
+        if (selected && _results.Any(r => r.ProjectId == projectId && !r.Compatible))
+            return;
+
         if (selected)
             _selected.Add(projectId);
         else

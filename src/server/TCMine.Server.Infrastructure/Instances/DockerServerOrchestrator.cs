@@ -156,9 +156,9 @@ public sealed class DockerServerOrchestrator(
 
     public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct)
     {
-        // Streaming do console fica para o sub-passo 4 (protocolo de log do Docker
-        // é multiplexado; merece o seu próprio passo).
-        throw new NotImplementedException("StreamLogs chega no sub-passo 4.");
+        // 200 linhas de histórico: o bastante para ver por que o servidor caiu
+        // sem despejar o log inteiro de uma sessão de horas no circuito.
+        return docker.StreamLogsAsync($"tcmine-{gameServerId}", 200, ct);
     }
 
     private static string ExtractPort(string connectAddress)

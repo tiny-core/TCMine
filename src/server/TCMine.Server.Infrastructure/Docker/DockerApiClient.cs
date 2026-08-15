@@ -1,5 +1,8 @@
-﻿using System.Net;
+﻿using System.Buffers.Binary;
+using System.Net;
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
@@ -55,6 +58,107 @@ public sealed class DockerApiClient
             return null;
 
         return await response.Content.ReadFromJsonAsync<DockerStatsResponse>(ct);
+    }
+
+    /// <summary>
+    ///     Segue o console do container, linha a linha.
+    ///     O stream do Docker é MULTIPLEXADO quando o container não tem TTY (o
+    ///     nosso não tem): cada quadro traz 8 bytes de cabeçalho — 1 byte de
+    ///     canal (1=stdout, 2=stderr), 3 de padding e 4 com o tamanho do corpo em
+    ///     big-endian. Ler o corpo como texto direto entregaria lixo binário no
+    ///     meio das linhas.
+    /// </summary>
+    internal async IAsyncEnumerable<string> StreamLogsAsync(
+        string nameOrId, int tail, [EnumeratorCancellation] CancellationToken ct)
+    {
+        var url = $"{_prefix}/containers/{nameOrId}/logs?follow=1&stdout=1&stderr=1&tail={tail}";
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+
+        if (!response.IsSuccessStatusCode)
+            yield break;
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+
+        var header = new byte[8];
+        var pendente = new StringBuilder();
+
+        while (!ct.IsCancellationRequested)
+        {
+            if (!await FillAsync(stream, header, ct))
+                break;
+
+            var tamanho = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(4));
+            if (tamanho <= 0)
+                continue;
+
+            var corpo = new byte[tamanho];
+            if (!await FillAsync(stream, corpo, ct))
+                break;
+
+            // Um quadro pode trazer meia linha ou três; o buffer junta os
+            // pedaços e só entrega o que já terminou em quebra de linha.
+            pendente.Append(Encoding.UTF8.GetString(corpo));
+
+            while (true)
+            {
+                var texto = pendente.ToString();
+                var quebra = texto.IndexOf('\n', StringComparison.Ordinal);
+                if (quebra < 0)
+                    break;
+
+                yield return texto[..quebra].TrimEnd('\r');
+                pendente.Remove(0, quebra + 1);
+            }
+        }
+    }
+
+    /// <summary>Lê exatamente o tamanho do buffer. False quando o stream acabou.</summary>
+    private static async Task<bool> FillAsync(Stream stream, byte[] buffer, CancellationToken ct)
+    {
+        var lidos = 0;
+        while (lidos < buffer.Length)
+        {
+            var n = await stream.ReadAsync(buffer.AsMemory(lidos), ct);
+            if (n is 0)
+                return false;
+
+            lidos += n;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    ///     Roda um comando DENTRO do container e devolve a saída.
+    ///     Preferido a abrir a porta do RCON no host: o segredo nunca sai do
+    ///     container, nada fica escutando na rede, e não é preciso recriar
+    ///     containers já existentes para ganhar a funcionalidade.
+    ///     Tty=true para a saída vir crua — sem ele o Docker multiplexa stdout e
+    ///     stderr com um cabeçalho de 8 bytes por quadro, que teríamos de
+    ///     desembrulhar à mão.
+    /// </summary>
+    internal async Task<string> ExecAsync(string nameOrId, IReadOnlyList<string> command, CancellationToken ct)
+    {
+        var create = await _http.PostAsJsonAsync(
+            $"{_prefix}/containers/{nameOrId}/exec",
+            new ExecCreateRequest { Cmd = command },
+            ct);
+
+        create.EnsureSuccessStatusCode();
+
+        var created = await create.Content.ReadFromJsonAsync<CreateContainerResponse>(ct);
+        if (created?.Id is not { Length: > 0 } execId)
+            return "";
+
+        using var start = await _http.PostAsJsonAsync(
+            $"{_prefix}/exec/{execId}/start",
+            new ExecStartRequest(),
+            ct);
+
+        start.EnsureSuccessStatusCode();
+        return await start.Content.ReadAsStringAsync(ct);
     }
 
     /// <summary>Cria um container a partir de uma spec. Devolve o ID.</summary>
@@ -139,6 +243,20 @@ public sealed class DockerApiClient
             // Poderíamos parsear o progresso para a UI; por ora só drenamos.
         }
     }
+}
+
+internal sealed record ExecCreateRequest
+{
+    [JsonPropertyName("AttachStdout")] public bool AttachStdout { get; init; } = true;
+    [JsonPropertyName("AttachStderr")] public bool AttachStderr { get; init; } = true;
+    [JsonPropertyName("Tty")] public bool Tty { get; init; } = true;
+    [JsonPropertyName("Cmd")] public required IReadOnlyList<string> Cmd { get; init; }
+}
+
+internal sealed record ExecStartRequest
+{
+    [JsonPropertyName("Detach")] public bool Detach { get; init; }
+    [JsonPropertyName("Tty")] public bool Tty { get; init; } = true;
 }
 
 public sealed record DockerContainer

@@ -26,16 +26,17 @@ public sealed partial class ModrinthModSearch(
 
     public async Task<IReadOnlyList<ModSearchResult>> SearchAsync(ModSearchQuery query, CancellationToken ct)
     {
-        // Facetas do Modrinth: array de arrays, cada sub-array é um OR e o
-        // conjunto é um AND. Aqui: só mods E compatível com a versão do MC E
-        // com o loader do pack.
-        var facets = JsonSerializer.Serialize(new[]
-        {
-            FacetsValue, [$"versions:{query.MinecraftVersion}"], [$"categories:{ToModrinthLoader(query.Loader)}"]
-        });
+        // Só a faceta de tipo. Filtrar a BUSCA por versão e loader devolvia
+        // lista vazia para mods que existem e ainda não saíram para a versão do
+        // pack — e "nenhum mod encontrado" faz o admin achar que digitou errado.
+        // A compatibilidade vira marcação no resultado, não filtro.
+        var facets = JsonSerializer.Serialize(new[] { FacetsValue });
+
+        var loader = ToModrinthLoader(query.Loader);
 
         var url = $"/v2/search?query={Uri.EscapeDataString(query.Text)}"
                   + $"&facets={Uri.EscapeDataString(facets)}"
+                  + "&index=relevance"
                   + $"&limit={query.Limit}";
 
         try
@@ -48,11 +49,13 @@ public sealed partial class ModrinthModSearch(
             [
                 .. response.Hits
                     .Select(h => new ModSearchResult(
-                        h.ProjectId,
+                        h.Slug ?? h.ProjectId,
                         h.Title,
                         h.Description,
                         h.IconUrl,
-                        h.Downloads))
+                        h.Downloads,
+                        Serve(h, query.MinecraftVersion, loader),
+                        VersoesRecentes(h)))
             ];
         }
         catch (HttpRequestException ex)
@@ -82,6 +85,29 @@ public sealed partial class ModrinthModSearch(
     private sealed record SearchResponse(
         [property: JsonPropertyName("hits")] IReadOnlyList<Hit> Hits);
 
+    /// <summary>Tem release para a versão e o loader do pack?</summary>
+    private static bool Serve(Hit hit, string minecraftVersion, string loader)
+    {
+        // Sem informação não se acusa incompatibilidade.
+        if (hit.Versions.Count is 0)
+            return true;
+
+        var versaoServe = hit.Versions.Contains(minecraftVersion, StringComparer.OrdinalIgnoreCase);
+
+        // O loader vem nas categorias, junto com temas ("technology", "magic").
+        var loaderServe = hit.Categories.Count is 0
+                          || hit.Categories.Contains(loader, StringComparer.OrdinalIgnoreCase);
+
+        return versaoServe && loaderServe;
+    }
+
+    private static string? VersoesRecentes(Hit hit)
+    {
+        // As últimas da lista são as mais novas na resposta do Modrinth.
+        var versoes = hit.Versions.TakeLast(4).Reverse().ToList();
+        return versoes.Count is 0 ? null : string.Join(", ", versoes);
+    }
+
     private sealed record Hit(
         [property: JsonPropertyName("project_id")]
         string ProjectId,
@@ -92,5 +118,9 @@ public sealed partial class ModrinthModSearch(
         [property: JsonPropertyName("icon_url")]
         string? IconUrl,
         [property: JsonPropertyName("downloads")]
-        int Downloads);
+        int Downloads,
+        [property: JsonPropertyName("versions")]
+        IReadOnlyList<string> Versions,
+        [property: JsonPropertyName("categories")]
+        IReadOnlyList<string> Categories);
 }

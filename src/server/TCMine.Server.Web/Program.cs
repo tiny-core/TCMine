@@ -176,6 +176,7 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 
 app.MapAuth();
+app.MapWorldBackups();
 
 // RequireAuthorization no painel inteiro: o padrão passa a ser "precisa de
 // sessão", e as exceções (login, setup) se marcam com [AllowAnonymous]. O

@@ -156,17 +156,10 @@ public sealed class DeleteAndQueueTests
         }
     }
 
-    private sealed class FakeServers(params GameServer[] seed) : IServerRepository
+    private sealed class FakeServers(params GameServer[] seed) : FakeServerRepositoryBase
     {
-        public Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>
+        public override Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<GameServer>>([.. seed]);
 
-        public Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-        public Task AddAsync(GameServer server, CancellationToken ct) => throw new NotImplementedException();
-        public Task UpdateAsync(GameServer server, CancellationToken ct) => throw new NotImplementedException();
-        public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
 }

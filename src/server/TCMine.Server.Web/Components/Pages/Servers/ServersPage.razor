@@ -81,6 +81,13 @@ else
                     <MudText Typo="Typo.caption">@context.Server.MaxPlayers</MudText>
                 </MudTd>
                 <MudTd Style="text-align:right;">
+                    @if (context.Server.Status is GameServerStatus.Running)
+                    {
+                        <MudTooltip Text="Ver o console">
+                            <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"
+                                           Href="@($"/modpacks/{context.Server.ModpackId}/servers")"/>
+                        </MudTooltip>
+                    }
                     @if (_busy.Contains(context.Server.Id))
                     {
                         <MudProgressCircular Size="Size.Small" Indeterminate="true"/>

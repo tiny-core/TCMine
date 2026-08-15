@@ -214,8 +214,19 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
       reescritos em runtime; hardlink corromperia o blob compartilhado).
     - **Preserva `world/` e dados do jogador.** Usa manifesto local (`.tcmine-manifest.json`) para saber o que
       gerenciou; só remove o que ele mesmo escreveu. **Trocar versão reescreve mods sem apagar o mundo.**
-- **Backup de mundo (fatia 3.5, pendente)**: trocar a versão de um servidor **com mundo** exige snapshot antes (mods
-  removidos/rebaixados corrompem o save). Hoje a troca com mundo está **bloqueada** por design até isso existir.
+- **Backup de mundo**: trocar a versão de um servidor **com mundo** tira um snapshot automático antes de
+  re-apontar (`WorldBackupReason.BeforeVersionChange`). Se o backup falhar, a troca é cancelada — é isso que a
+  torna reversível. Backup e restauração **exigem servidor parado**: copiar o mundo com o jogo escrevendo produz
+  um .zip íntegro que não abre. Snapshot é um `.zip` por vez em `{root}/backups/{serverId}`, fora da pasta da
+  instância (que o materializador reescreve).
+- **Backup a quente**: com o servidor NO AR, o backup faz `save-off` → `save-all flush` → copia → `save-on`,
+  este último em `finally` **sempre**. Deixar o autosave desligado é pior que não ter backup: o servidor roda
+  sem persistir e a próxima queda leva tudo. Se o `save-on` falhar, a exceção sobe — é a única falha do módulo
+  que exige ação imediata. **Restaurar continua exigindo servidor parado** (os arquivos são substituídos, e
+  nenhum comando impede o jogo de reabri-los).
+- **RCON via `docker exec rcon-cli`**, não pela porta 25575. Abrir a porta exporia um canal de controle total na
+  rede do host e exigiria recriar containers; por dentro, o `rcon-cli` da imagem itzg já lê a senha do ambiente —
+  o segredo nunca sai do container.
 
 ---
 

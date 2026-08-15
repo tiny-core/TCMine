@@ -10,6 +10,7 @@ namespace TCMine.Server.Web.Background;
 /// </summary>
 public sealed partial class IngestionWorker(
     IngestionQueue queue,
+    JobProgressRegistry progress,
     IServiceScopeFactory scopeFactory,
     ILogger<IngestionWorker> logger) : BackgroundService
 {
@@ -38,6 +39,11 @@ public sealed partial class IngestionWorker(
                 // Um job com erro não pode derrubar o worker inteiro, senão a
                 // fila trava para todos os próximos.
                 LogJobFailed(ex, job.VersionId);
+
+                // Rede de segurança: se o serviço não encerrou o acompanhamento
+                // (porque estourou antes), a barra de progresso ficaria girando
+                // para sempre e a versão presa em "Resolvendo".
+                progress.Complete(job.VersionId, ex.Message);
             }
         }
     }

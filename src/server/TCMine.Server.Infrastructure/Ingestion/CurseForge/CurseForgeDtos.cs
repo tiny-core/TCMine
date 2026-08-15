@@ -23,6 +23,23 @@ internal sealed record CurseForgeMod
     /// </summary>
     [JsonPropertyName("allowModDistribution")]
     public bool? AllowModDistribution { get; init; }
+
+    /// <summary>
+    ///     Resumo das últimas releases por versão/loader. Vem de graça na busca —
+    ///     é o que permite dizer se um mod serve ao pack sem uma chamada por
+    ///     resultado.
+    /// </summary>
+    [JsonPropertyName("latestFilesIndexes")]
+    public IReadOnlyList<CurseForgeFileIndex> LatestFilesIndexes { get; init; } = [];
+}
+
+internal sealed record CurseForgeFileIndex
+{
+    [JsonPropertyName("gameVersion")] public string? GameVersion { get; init; }
+
+    /// <summary>Mesmos números do filtro: 1=Forge, 4=Fabric, 5=Quilt, 6=NeoForge.</summary>
+    [JsonPropertyName("modLoader")]
+    public int? ModLoader { get; init; }
 }
 
 internal sealed record CurseForgeLogo

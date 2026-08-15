@@ -51,3 +51,11 @@ public interface IRconClient
 {
     Task<string> ExecuteAsync(Guid gameServerId, string rawCommand, CancellationToken ct);
 }
+
+/// <summary>
+///     O servidor não respondeu ao comando. Existe como exceção própria para o
+///     backup a quente distinguir "o jogo recusou" de "não deu para falar com
+///     ele" — no segundo caso, copiar o mundo seria copiar às cegas.
+/// </summary>
+public sealed class RconUnavailableException(string message, Exception? inner = null)
+    : Exception(message, inner);

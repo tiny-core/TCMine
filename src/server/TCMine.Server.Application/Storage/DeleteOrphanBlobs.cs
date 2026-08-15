@@ -44,7 +44,7 @@ public sealed class DeleteOrphanBlobs(
         var cutoff = DateTimeOffset.UtcNow - ScanStorage.MinimumAge;
 
         var stillOnDisk = new Dictionary<string, StoredBlob>(StringComparer.OrdinalIgnoreCase);
-        await foreach (var blob in janitor.EnumerateAsync(ct))
+        await foreach (var blob in janitor.EnumerateAsync(ct).ConfigureAwait(false))
         {
             if (hashes.Contains(blob.Sha256))
                 stillOnDisk[blob.Sha256] = blob;

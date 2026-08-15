@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components.Features.Modpacks;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
@@ -10,15 +12,15 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 public partial class ModpackModsPage : ComponentBase, IDisposable
 {
     private MudDataGrid<ModpackFile> _grid = default!;
-    private bool _isIngesting;
     private bool _isLoading = true;
     private Modpack? _modpack;
-    private Timer? _pollTimer;
     private string _searchString = "";
     private ModpackVersion? _version;
 
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public Guid VersionId { get; set; }
+
+    [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
 
     /// <summary>
     ///     Carrega só a página pedida, com a busca aplicada em SQL.
@@ -43,13 +45,42 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         return _grid.ReloadServerData();
     }
 
+    /// <summary>
+    ///     Ingestão em curso para ESTA versão, vinda do registro de progresso.
+    ///     Antes isto era uma sondagem que só parava depois de ver o estado
+    ///     "Resolvendo" — e com poucos mods a ingestão terminava antes do
+    ///     primeiro tique, então a barra girava os três minutos inteiros com o
+    ///     trabalho já feito.
+    /// </summary>
+    private JobProgress? Progress => Jobs.Get(VersionId);
+
+    private bool IsIngesting => Progress is not null;
+
     public void Dispose()
     {
-        _pollTimer?.Dispose();
+        Jobs.Changed -= OnJobChanged;
         GC.SuppressFinalize(this);
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        Jobs.Changed += OnJobChanged;
+        await LoadAsync();
+    }
+
+    private void OnJobChanged() => _ = InvokeAsync(async () =>
+    {
+        // Terminou: os arquivos novos já estão no banco, então vale reler.
+        if (Jobs.TryConsumeCompletion(VersionId, out var erro))
+        {
+            await LoadAsync();
+
+            if (erro is { Length: > 0 })
+                Snackbar.Add(erro, Severity.Error);
+        }
+
+        StateHasChanged();
+    });
 
     private async Task LoadAsync()
     {
@@ -61,7 +92,6 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         _version = _modpack?.Versions.FirstOrDefault(v => v.Id == VersionId);
 
         _isLoading = false;
-        StartPollingIfResolving();
 
         // A grade tem os próprios dados; depois de uma recarga (ingestão que
         // terminou, mod removido) ela precisa reler a página corrente.
@@ -77,26 +107,6 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
     // Enquanto a ingestão roda, a versão fica em Resolving. Recarrega até sair
     // desse estado, para os mods aparecerem sem o admin atualizar a página.
-    private void StartPollingIfResolving()
-    {
-        if (_version?.State is not ModpackVersionState.Resolving)
-            return;
-
-        _pollTimer ??= new Timer(async _ =>
-        {
-            await LoadAsync();
-            await InvokeAsync(() =>
-            {
-                StateHasChanged();
-                if (_version?.State is not ModpackVersionState.Resolving)
-                {
-                    _pollTimer?.Dispose();
-                    _pollTimer = null;
-                }
-            });
-        }, null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
-    }
-
     private async Task OpenIngest()
     {
         var parameters = new DialogParameters
@@ -110,40 +120,9 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         var dialog = await DialogService.ShowAsync<ModSearchDialog>(
             "Buscar mods", parameters, options);
 
+        // Nada de esperar aqui: o registro empurra o progresso e o fim.
         if (await dialog.Result is { Canceled: false })
-            await WatchIngestionAsync();
-    }
-
-    // Acompanha a versão após enfileirar a ingestão. Cobre a corrida
-    // Draft → Resolving → Draft: recarrega a grade a cada tick e para quando a
-    // versão assenta (voltou a Draft, entrou em Failed, ou estourou o tempo).
-    private async Task WatchIngestionAsync()
-    {
-        _isIngesting = true;
-        StateHasChanged();
-
-        var deadline = DateTime.UtcNow.AddMinutes(3);
-        var sawResolving = false;
-
-        while (DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(1500);
             await LoadAsync();
-
-            if (_version?.State is ModpackVersionState.Resolving)
-                sawResolving = true;
-
-            var settled = _version?.State is ModpackVersionState.Failed
-                          || (sawResolving && _version?.State is not ModpackVersionState.Resolving);
-
-            StateHasChanged();
-
-            if (settled)
-                break;
-        }
-
-        _isIngesting = false;
-        StateHasChanged();
     }
 
     private async Task OpenManualUpload()

@@ -21,6 +21,6 @@ public sealed partial class LoggingEmailSender(ILogger<LoggingEmailSender> logge
 
     [LoggerMessage(
         Level = LogLevel.Warning,
-        Message = "SMTP não configurado — e-mail não enviado. Para: {To} | Assunto: {Subject}\n{Body}")]
-    private partial void LogEmail(string to, string subject, string body);
+        Message = "SMTP não configurado — e-mail não enviado. Para: {Recipient} | Assunto: {Subject}\n{Body}")]
+    private partial void LogEmail(string recipient, string subject, string body);
 }

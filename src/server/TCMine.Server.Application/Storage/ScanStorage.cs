@@ -47,7 +47,7 @@ public sealed class ScanStorage(
         var totalCount = 0;
         var orphans = new List<OrphanBlob>();
 
-        await foreach (var blob in janitor.EnumerateAsync(ct))
+        await foreach (var blob in janitor.EnumerateAsync(ct).ConfigureAwait(false))
         {
             totalCount++;
             totalBytes += blob.SizeBytes;

@@ -26,9 +26,20 @@ public sealed record ModSearchQuery(
     ModLoader Loader,
     int Limit = 20);
 
+/// <summary>
+///     Um resultado de busca. <paramref name="Compatible" /> diz se o mod tem
+///     arquivo para a versão do Minecraft e o loader do modpack.
+///     Existe porque filtrar a BUSCA por compatibilidade era pior que inútil: ao
+///     procurar "Mekanism" numa versão recém-lançada do Minecraft o admin recebia
+///     "nenhum mod encontrado", o que sugere que o mod não existe — quando na
+///     verdade ele existe e só ainda não saiu para aquela versão. Mostrar e
+///     marcar responde a pergunta; esconder inventa outra.
+/// </summary>
 public sealed record ModSearchResult(
     string ProjectId, // usamos o slug como identidade estável (vira ProjectSlug)
     string Title,
     string Description,
     string? IconUrl,
-    int Downloads);
+    int Downloads,
+    bool Compatible = true,
+    string? LatestVersions = null);

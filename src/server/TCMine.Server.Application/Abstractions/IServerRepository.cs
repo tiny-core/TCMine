@@ -12,4 +12,13 @@ public interface IServerRepository
     Task AddAsync(GameServer server, CancellationToken ct);
     Task UpdateAsync(GameServer server, CancellationToken ct);
     Task RemoveAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Snapshots de um servidor, do mais novo para o mais antigo.</summary>
+    Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct);
+
+    Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct);
+
+    Task AddBackupAsync(WorldBackup backup, CancellationToken ct);
+
+    Task RemoveBackupAsync(Guid backupId, CancellationToken ct);
 }

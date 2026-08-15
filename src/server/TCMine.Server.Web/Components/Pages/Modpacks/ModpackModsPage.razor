@@ -46,10 +46,16 @@ else
             }
         </HeaderActions>
         <ChildContent>
-            @if (_isIngesting)
+            @if (IsIngesting)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">Importando mods do Modrinth…</MudText>
+                @* Mostra o passo real em vez de um texto fixo: com centenas de
+                   mods, saber em qual está é o que diz que não travou. *@
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @(Progress is { IsDeterminate: true } p
+                        ? $"{p.Step} — {p.Done} de {p.Total}"
+                        : Progress?.Step ?? "Processando mods…")
+                </MudText>
             }
 
             <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
@@ -127,7 +133,7 @@ else
                                     <MudIconButton Icon="@Icons.Material.Filled.Delete"
                                                    Color="Color.Error"
                                                    Size="Size.Small"
-                                                   Disabled="_isIngesting"
+                                                   Disabled="IsIngesting"
                                                    OnClick="@(() => RemoveFile(context.Item))"/>
                                 </MudTooltip>
                             </CellTemplate>

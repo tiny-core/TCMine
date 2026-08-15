@@ -50,6 +50,12 @@ else
                     <MudNumericField @bind-Value="_defaultMemoryMb" Label="RAM padrão (MB)"
                                      Variant="Variant.Outlined" Min="512" Step="512"/>
                 </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_worldBackupKeepCount"
+                                     Label="Backups automáticos a manter"
+                                     HelperText="Por servidor. Zero = ilimitado. Backups manuais nunca expiram."
+                                     Variant="Variant.Outlined" Min="0" Max="50"/>
+                </MudItem>
             </MudGrid>
         </MudTabPanel>
 

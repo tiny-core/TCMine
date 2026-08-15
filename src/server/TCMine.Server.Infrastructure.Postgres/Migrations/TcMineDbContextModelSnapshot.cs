@@ -500,6 +500,55 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("game_servers", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.WorldBackup", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("GameServerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ModpackVersionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ModpackVersionLabel")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("TakenHot")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameServerId");
+
+                    b.ToTable("world_backups", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Settings.InstallationSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -550,6 +599,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("WorldBackupKeepCount")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.ToTable("installation_settings", (string)null);
@@ -578,6 +630,15 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)
                         .WithMany("PendingMods")
                         .HasForeignKey("ModpackVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.WorldBackup", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("GameServerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -22,6 +22,15 @@ public sealed class InstallationSettings : Entity
     /// <summary>RAM sugerida (MB) para novas versões.</summary>
     public int DefaultMemoryMb { get; set; } = 4096;
 
+    /// <summary>
+    ///     Quantos backups AUTOMÁTICOS manter por servidor. Zero = ilimitado.
+    ///     Só os automáticos expiram: um snapshot manual foi um ato deliberado do
+    ///     admin — apagá-lo por política seria o painel decidindo que o trabalho
+    ///     dele valia menos que espaço em disco. Cinco cobre alguns rollbacks
+    ///     seguidos sem deixar dezenas de GB para trás.
+    /// </summary>
+    public int WorldBackupKeepCount { get; set; } = 5;
+
     // ---------- Integrações ----------
 
     /// <summary>

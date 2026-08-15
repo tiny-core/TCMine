@@ -43,6 +43,10 @@ public static class DependencyInjection
 
         services.AddScoped<ChangeServerVersion>();
 
+        services.AddScoped<CreateWorldBackup>();
+        services.AddScoped<RestoreWorldBackup>();
+        services.AddScoped<DeleteWorldBackup>();
+
         services.AddScoped<StartGameServer>();
         services.AddScoped<StopGameServer>();
         services.AddScoped<UpdateModpack>();

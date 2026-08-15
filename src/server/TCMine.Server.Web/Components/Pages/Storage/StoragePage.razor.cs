@@ -20,7 +20,13 @@ public partial class StoragePage : ComponentBase, IDisposable
 
     private StorageReport? _report;
 
+    /// <summary>Espaço ocupado por snapshots de mundo, somado do banco.</summary>
+    private long _backupBytes;
+
+    private int _backupCount;
+
     [Inject] private ScanStorage ScanUseCase { get; set; } = default!;
+    [Inject] private IServerRepository Servers { get; set; } = default!;
     [Inject] private DeleteOrphanBlobs DeleteUseCase { get; set; } = default!;
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
@@ -65,6 +71,11 @@ public partial class StoragePage : ComponentBase, IDisposable
             else
                 Snackbar.Add(result.Error!, Severity.Error);
 
+            // Backups não estão no content store — ficam num diretório próprio e
+            // a varredura não os vê. Sem somá-los aqui, o painel diria que o
+            // disco está tranquilo enquanto gigabytes de .zip se acumulam.
+            await LoadBackupUsageAsync();
+
             // A limpeza fica bloqueada com trabalho em curso: uma ingestão pode
             // estar gravando blobs neste exato momento. O trabalho desta página
             // já terminou aqui, então não conta contra ela mesma.
@@ -74,6 +85,21 @@ public partial class StoragePage : ComponentBase, IDisposable
         {
             _isScanning = false;
             _jobId = Guid.Empty;
+        }
+    }
+
+    private async Task LoadBackupUsageAsync()
+    {
+        var servers = await Servers.ListAllAsync(CancellationToken.None);
+
+        _backupBytes = 0;
+        _backupCount = 0;
+
+        foreach (var server in servers)
+        {
+            var backups = await Servers.ListBackupsAsync(server.Id, CancellationToken.None);
+            _backupCount += backups.Count;
+            _backupBytes += backups.Sum(b => b.SizeBytes);
         }
     }
 

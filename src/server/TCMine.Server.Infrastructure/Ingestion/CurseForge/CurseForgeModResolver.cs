@@ -44,6 +44,18 @@ public sealed partial class CurseForgeModResolver(
                 ? files.FirstOrDefault(f => f.Id == wantedId) ?? files[0]
                 : files[0];
 
+            // Confere o arquivo escolhido em vez de confiar no filtro da query.
+            // O gameVersions do CurseForge mistura versão do MC com loader e
+            // com as tags de ambiente, então basta procurar a versão pedida ali.
+            // Um mod da versão errada não falha aqui: instala e derruba o
+            // servidor no arranque, com um erro que não aponta para cá.
+            if (!file.GameVersions.Contains(request.MinecraftVersion, StringComparer.OrdinalIgnoreCase))
+            {
+                return new ModResolution.NotFound(
+                    $"O arquivo escolhido do projeto {modId} declara "
+                    + $"[{string.Join(", ", file.GameVersions)}], e não Minecraft {request.MinecraftVersion}.");
+            }
+
             // Uma consulta só ao projeto: serve tanto para o nome (na recusa de
             // redistribuição) quanto para o ícone (no caminho feliz).
             var mod = await GetModAsync(modId, ct);

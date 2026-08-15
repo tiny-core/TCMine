@@ -54,6 +54,23 @@ public sealed partial class ModrinthModResolver(
                 ? versions.FirstOrDefault(v => v.Id == request.FileId) ?? versions[0]
                 : versions[0];
 
+            // Confere o que foi escolhido em vez de confiar no filtro da query.
+            // Um mod para a versão errada não dá erro: instala e derruba o
+            // servidor no arranque, com uma exceção que não aponta para cá.
+            if (!version.GameVersions.Contains(request.MinecraftVersion, StringComparer.OrdinalIgnoreCase))
+            {
+                return new ModResolution.NotFound(
+                    $"A versão escolhida de '{request.ProjectId}' declara "
+                    + $"[{string.Join(", ", version.GameVersions)}], e não Minecraft {request.MinecraftVersion}.");
+            }
+
+            if (!version.Loaders.Contains(loader, StringComparer.OrdinalIgnoreCase))
+            {
+                return new ModResolution.NotFound(
+                    $"A versão escolhida de '{request.ProjectId}' é para "
+                    + $"[{string.Join(", ", version.Loaders)}], e não {loader}.");
+            }
+
             // Uma versão pode ter vários arquivos (o jar e um sources, por
             // exemplo). O "primary" é o que interessa; se nenhum for marcado,
             // o primeiro serve.

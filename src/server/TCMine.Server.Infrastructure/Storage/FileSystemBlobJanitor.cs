@@ -16,6 +16,13 @@ public sealed partial class FileSystemBlobJanitor(
     ILogger<FileSystemBlobJanitor> logger) : IBlobJanitor
 {
     private readonly ILogger<FileSystemBlobJanitor> _logger = logger;
+    /// <summary>
+    ///     Quantos arquivos por ida à thread do pool. Grande o bastante para o
+    ///     custo do salto se diluir, pequeno o bastante para a interface
+    ///     respirar entre os lotes.
+    /// </summary>
+    private const int BatchSize = 500;
+
     private readonly BlobStorageOptions _options = options.Value;
 
     public async IAsyncEnumerable<StoredBlob> EnumerateAsync(
@@ -26,10 +33,34 @@ public sealed partial class FileSystemBlobJanitor(
 
         // EnumerateFiles em vez de GetFiles: devolve conforme encontra, sem
         // montar um array com dezenas de milhares de caminhos antes de começar.
-        foreach (var path in Directory.EnumerateFiles(_options.RootPath, "*", SearchOption.AllDirectories))
-        {
-            ct.ThrowIfCancellationRequested();
+        using var caminhos = Directory
+            .EnumerateFiles(_options.RootPath, "*", SearchOption.AllDirectories)
+            .GetEnumerator();
 
+        while (true)
+        {
+            // Cada lote é lido numa thread do pool. Isto NÃO é otimização: sem
+            // sair da thread chamadora, a varredura roda no dispatcher do
+            // circuito Blazor — a mesma que desenha a tela e trata os cliques —
+            // e a aba do admin congela até o fim. O await entre lotes é o que
+            // devolve o controle à interface.
+            var lote = await Task.Run(() => NextBatch(caminhos, BatchSize), ct).ConfigureAwait(false);
+            if (lote.Count is 0)
+                yield break;
+
+            foreach (var blob in lote)
+                yield return blob;
+        }
+    }
+
+    /// <summary>Lê até <paramref name="tamanho" /> arquivos, pulando o que não é blob.</summary>
+    private static List<StoredBlob> NextBatch(IEnumerator<string> caminhos, int tamanho)
+    {
+        var lote = new List<StoredBlob>(tamanho);
+
+        while (lote.Count < tamanho && caminhos.MoveNext())
+        {
+            var path = caminhos.Current;
             var name = Path.GetFileName(path);
 
             // Ignora o que não parece blob: a pasta .tmp guarda escritas em
@@ -37,50 +68,49 @@ public sealed partial class FileSystemBlobJanitor(
             if (!IsHash(name))
                 continue;
 
-            FileInfo info;
             try
             {
-                info = new FileInfo(path);
+                var info = new FileInfo(path);
+                lote.Add(new StoredBlob(name, info.Length, info.CreationTimeUtc));
             }
             catch (IOException)
             {
-                continue;
+                // Arquivo sumiu entre listar e medir: some da conta, sem drama.
             }
-
-            yield return new StoredBlob(name, info.Length, info.CreationTimeUtc);
-            await Task.Yield();
         }
+
+        return lote;
     }
 
-    public Task<bool> DeleteAsync(string sha256, CancellationToken ct)
+    public async Task<bool> DeleteAsync(string sha256, CancellationToken ct)
     {
         if (!IsHash(sha256))
-            return Task.FromResult(false);
+            return false;
 
         var normalized = sha256.ToLowerInvariant();
         var path = Path.Combine(_options.RootPath, normalized[..2], normalized[2..4], normalized);
 
-        try
+        // Fora da thread chamadora pelo mesmo motivo da varredura: apagar
+        // centenas de arquivos no dispatcher do circuito congela a aba.
+        return await Task.Run(() =>
         {
-            if (!File.Exists(path))
-                return Task.FromResult(false);
+            try
+            {
+                if (!File.Exists(path))
+                    return false;
 
-            File.Delete(path);
-            LogDeleted(normalized);
-            return Task.FromResult(true);
-        }
-        catch (IOException ex)
-        {
-            // Arquivo em uso (hardlink de instância rodando, por exemplo):
-            // preferimos não apagar a arriscar o servidor de jogo.
-            LogDeleteFailed(ex, normalized);
-            return Task.FromResult(false);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            LogDeleteFailed(ex, normalized);
-            return Task.FromResult(false);
-        }
+                File.Delete(path);
+                LogDeleted(normalized);
+                return true;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Arquivo em uso (hardlink de instância rodando, por exemplo):
+                // preferimos não apagar a arriscar o servidor de jogo.
+                LogDeleteFailed(ex, normalized);
+                return false;
+            }
+        }, ct).ConfigureAwait(false);
     }
 
     private static bool IsHash(string value) => value.Length is 64 && value.All(char.IsAsciiHexDigit);

@@ -16,6 +16,7 @@ public partial class SettingsPage : ComponentBase
     private ModLoader _defaultLoader = ModLoader.NeoForge;
     private string _defaultMcVersion = "";
     private int _defaultMemoryMb = 4096;
+    private int _worldBackupKeepCount = 5;
 
     /// <summary>Só sabemos se existe — o valor nunca volta para a tela.</summary>
     private bool _hasCurseForgeKey;
@@ -45,6 +46,7 @@ public partial class SettingsPage : ComponentBase
         _defaultMcVersion = settings.DefaultMinecraftVersion ?? "";
         _defaultLoader = settings.DefaultLoader;
         _defaultMemoryMb = settings.DefaultMemoryMb;
+        _worldBackupKeepCount = settings.WorldBackupKeepCount;
 
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);
@@ -74,6 +76,7 @@ public partial class SettingsPage : ComponentBase
                 DefaultMinecraftVersion = _defaultMcVersion,
                 DefaultLoader = _defaultLoader,
                 DefaultMemoryMb = _defaultMemoryMb,
+                WorldBackupKeepCount = _worldBackupKeepCount,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey,
                 SmtpHost = _smtpHost,

@@ -17,6 +17,9 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         if (command.DefaultMemoryMb is < 512)
             return Result.Fail("A RAM padrão precisa ser de pelo menos 512 MB.");
 
+        if (command.WorldBackupKeepCount is < 0)
+            return Result.Fail("A retenção de backups não pode ser negativa.");
+
         if (command.SmtpPort is < 1 or > 65535)
             return Result.Fail("Porta de SMTP inválida.");
 
@@ -27,6 +30,7 @@ public sealed class UpdateSettings(ISettingsRepository repository)
             : command.DefaultMinecraftVersion.Trim();
         settings.DefaultLoader = command.DefaultLoader;
         settings.DefaultMemoryMb = command.DefaultMemoryMb;
+        settings.WorldBackupKeepCount = command.WorldBackupKeepCount;
 
         settings.SmtpHost = Trimmed(command.SmtpHost);
         settings.SmtpPort = command.SmtpPort;
@@ -58,6 +62,9 @@ public sealed record UpdateSettingsCommand
     public string? DefaultMinecraftVersion { get; init; }
     public ModLoader DefaultLoader { get; init; } = ModLoader.NeoForge;
     public int DefaultMemoryMb { get; init; } = 4096;
+
+    /// <summary>Backups automáticos a manter por servidor. Zero = ilimitado.</summary>
+    public int WorldBackupKeepCount { get; init; } = 5;
 
     /// <summary>Nova chave. Vazio = manter a atual.</summary>
     public string? CurseForgeApiKey { get; init; }

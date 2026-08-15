@@ -112,6 +112,9 @@ public static class DependencyInjection
         services.AddScoped<IServerOrchestrator, DockerServerOrchestrator>();
         services.AddScoped<IContainerStats, DockerContainerStats>();
         services.AddScoped<IBlobJanitor, FileSystemBlobJanitor>();
+        services.AddScoped<IWorldBackupStore, FileSystemWorldBackupStore>();
+        services.AddScoped<IRconClient, DockerRconClient>();
+        services.AddSingleton<IModJarInspector, ZipModJarInspector>();
 
         services.AddMemoryCache();
 

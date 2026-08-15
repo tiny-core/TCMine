@@ -51,8 +51,12 @@ public sealed class ServerActions(
     public Task<bool> StopAsync(Guid serverId, CancellationToken ct) =>
         RunAsync(() => stopUseCase.HandleAsync(serverId, ct, Guid.CreateVersion7()));
 
+    /// <summary>
+    ///     Parar o container espera o mundo salvar e apagar a instância varre
+    ///     milhares de arquivos — leva o tempo que leva, e por isso reporta.
+    /// </summary>
     public Task<bool> DeleteAsync(Guid serverId, CancellationToken ct) =>
-        RunAsync(() => deleteUseCase.HandleAsync(serverId, ct), "Servidor removido.");
+        RunAsync(() => deleteUseCase.HandleAsync(serverId, ct, Guid.CreateVersion7()), "Servidor removido.");
 
     private async Task<bool> RunAsync(
         Func<Task<TCMine.Server.Application.Common.Result>> action, string? successMessage = null)

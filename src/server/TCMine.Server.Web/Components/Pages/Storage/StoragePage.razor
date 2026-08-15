@@ -82,6 +82,31 @@ else
         </MudStack>
     </MudPaper>
 
+    @if (_backupCount > 0)
+    {
+        @* Backups vivem fora do content store e a varredura não os enxerga.
+           Mostrá-los aqui evita o painel dizer que está tudo tranquilo
+           enquanto gigabytes de .zip se acumulam. *@
+        <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                <MudIcon Icon="@Icons.Material.Filled.Backup" Color="Color.Info"/>
+                <div style="flex:1; min-width:200px;">
+                    <MudText Typo="Typo.body2" Style="font-weight:600;">
+                        Backups de mundo — @HumanSize.Bytes(_backupBytes)
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @_backupCount arquivo(s), fora do content store. A retenção dos automáticos
+                        se ajusta em Configurações; os manuais nunca expiram.
+                    </MudText>
+                </div>
+                <MudButton Size="Size.Small" Variant="Variant.Text" Href="/servers"
+                           StartIcon="@Icons.Material.Filled.Dns">
+                    Ver servidores
+                </MudButton>
+            </MudStack>
+        </MudPaper>
+    }
+
     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
         <b>Sem dono</b> aqui significa: existe no disco e <b>nenhuma versão de nenhum modpack</b> aponta
         para ele — nem versões arquivadas, que continuam instaladas na máquina de quem já baixou.

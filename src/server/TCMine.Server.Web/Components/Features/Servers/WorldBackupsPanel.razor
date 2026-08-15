@@ -1,0 +1,126 @@
+@using TCMine.Contracts.Servers
+@using TCMine.Server.Domain.Servers
+
+@* Snapshots do mundo de um servidor.
+
+   Fica visível mesmo sem backup nenhum: é aqui que o admin descobre que a troca
+   de versão exige um, em vez de descobrir no erro. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Backup" Color="Color.Primary"/>
+        <MudText Typo="Typo.subtitle2">Backups do mundo</MudText>
+        <MudSpacer/>
+
+        @if (_isBusy)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                <MudText Typo="Typo.caption">
+                    @(Progress is { IsDeterminate: true } p
+                        ? $"{p.Step} — {p.Done} de {p.Total} arquivos"
+                        : Progress?.Step ?? "Trabalhando…")
+                </MudText>
+            </MudStack>
+        }
+
+        <MudTooltip Text="@BackupHint">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                       StartIcon="@Icons.Material.Filled.Save"
+                       OnClick="CreateAsync" Disabled="_isBusy || !CanBackup">
+                Fazer backup
+            </MudButton>
+        </MudTooltip>
+    </MudStack>
+
+    @if (!Server.HasWorld)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+            Este servidor ainda não gerou mundo. Backup passa a fazer sentido depois do primeiro start.
+        </MudAlert>
+    }
+    else if (Server.Status is GameServerStatus.Running)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+            Servidor no ar: o backup pausa o autosave, força o mundo para o disco, copia e religa —
+            ninguém é desconectado. Restaurar, esse sim, exige parar.
+        </MudAlert>
+    }
+    else if (!CanBackup)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+            O servidor está @Server.Status. Espere ele assentar antes de salvar o mundo.
+        </MudAlert>
+    }
+
+    @if (_backups.Count == 0 && Server.HasWorld)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-2">
+            Nenhum backup ainda. Um é criado automaticamente antes de cada troca de versão.
+        </MudText>
+    }
+    else if (_backups.Count > 0)
+    {
+        <MudTable Items="_backups" Dense="true" Hover="true" RowsPerPage="10">
+            <HeaderContent>
+                <MudTh>Quando</MudTh>
+                <MudTh>Versão</MudTh>
+                <MudTh>Motivo</MudTh>
+                <MudTh Style="text-align:right;">Tamanho</MudTh>
+                <MudTh Style="text-align:right;">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Quando">
+                    <MudText Typo="Typo.caption">
+                        @context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </MudText>
+                    @if (context.Note is { Length: > 0 } nota)
+                    {
+                        <MudText Typo="Typo.caption" Style="opacity:.7;">@nota</MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Versão">
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@(context.ModpackVersionId == Server.ModpackVersionId ? Color.Success : Color.Warning)">
+                        @(context.ModpackVersionLabel ?? "—")
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Motivo">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                        <MudText Typo="Typo.caption">
+                            @(context.Reason is WorldBackupReason.BeforeVersionChange ? "Troca de versão" : "Manual")
+                        </MudText>
+                        @if (context.TakenHot)
+                        {
+                            <MudTooltip Text="Tirado com o servidor no ar, com o autosave pausado">
+                                <MudIcon Icon="@Icons.Material.Filled.LocalFireDepartment"
+                                         Size="Size.Small" Color="Color.Warning"/>
+                            </MudTooltip>
+                        }
+                    </MudStack>
+                </MudTd>
+                <MudTd DataLabel="Tamanho" Style="text-align:right;">
+                    @HumanSize.Bytes(context.SizeBytes)
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <MudTooltip Text="Restaurar este mundo">
+                        <MudIconButton Icon="@Icons.Material.Filled.Restore" Size="Size.Small"
+                                       Color="Color.Warning"
+                                       OnClick="@(() => RestoreAsync(context))"
+                                       Disabled="_isBusy || !CanRestore"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Baixar">
+                        <MudIconButton Icon="@Icons.Material.Filled.Download" Size="Size.Small"
+                                       Href="@($"/api/v1/servers/{Server.Id}/backups/{context.Id}")"
+                                       Target="_blank" Disabled="_isBusy"/>
+                    </MudTooltip>
+                    <MudTooltip Text="Apagar">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small"
+                                       Color="Color.Error"
+                                       OnClick="@(() => DeleteAsync(context))" Disabled="_isBusy"/>
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>

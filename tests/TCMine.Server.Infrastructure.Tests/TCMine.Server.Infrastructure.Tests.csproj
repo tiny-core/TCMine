@@ -12,4 +12,15 @@
     <ProjectReference Include="..\..\src\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
   </ItemGroup>
 
+
+  <!--
+      Nomes de método de teste em PT-BR com underscore são idiomáticos aqui (o
+      CLAUDE.md permite explicitamente). Fica no csproj e não no .editorconfig
+      porque a resolução do glob "tests/**" se mostrou instável entre builds —
+      a regra reaparecia em arquivos diferentes a cada compilação.
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
 </Project>

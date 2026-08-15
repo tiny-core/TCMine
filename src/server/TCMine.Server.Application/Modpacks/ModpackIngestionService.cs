@@ -16,6 +16,7 @@ public sealed partial class ModpackIngestionService(
     IBlobStore blobStore,
     IEnumerable<IModResolver> resolvers,
     IModDownloader downloader,
+    IModJarInspector jarInspector,
     IJobProgressReporter progress,
     ILogger<ModpackIngestionService> logger)
 {
@@ -89,13 +90,69 @@ public sealed partial class ModpackIngestionService(
         // contadas à parte, senão o denominador cresceria enquanto baixa e a
         // barra andaria para trás.
         var total = work.Count;
-        var done = 0;
-        var deps = 0;
+
+        // Contadores num objeto: o laço vive noutro método (para o tratamento de
+        // erro ficar legível) e precisa mexer nos mesmos números que o Report lê.
+        var contagem = new Counters();
         var title = $"Resolvendo {modpack.Name} {version.Version}";
 
         void Report(string step) =>
-            progress.Report(versionId, new JobProgress(title, step, done, total) { Dependencies = deps });
+            progress.Report(versionId, new JobProgress(title, step, contagem.Done, total)
+                { Dependencies = contagem.Deps });
 
+        try
+        {
+            await ProcessAsync(
+                version, modpack, work, processed, existing, unsaved, failures, contagem, names, Report, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            // Desligamento: a reconciliação do arranque devolve a versão ao
+            // estado honesto. Aqui só não se pode fingir que terminou.
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // Qualquer erro inesperado no meio do laço deixava a versão presa em
+            // "Resolvendo" e o acompanhamento girando para sempre — e as
+            // dependências que ainda não tinham sido descobertas nunca chegavam.
+            LogUnexpected(ex, versionId);
+            failures.Add($"erro inesperado: {ex.Message}");
+        }
+
+        // Sobra do último lote.
+        if (unsaved.Count > 0)
+        {
+            await repository.AddFilesAsync(version.Id, unsaved, ct);
+            unsaved.Clear();
+        }
+
+        Report("Finalizando");
+
+        if (failures.Count > 0)
+            version.MarkFailed($"Não foi possível resolver: {string.Join("; ", failures)}");
+        else
+            version.ReturnToDraft();
+
+        await repository.SaveVersionStateAsync(version, ct);
+
+        progress.Complete(versionId, failures.Count > 0 ? version.FailureReason : null);
+    }
+
+    /// <summary>O laço em si, separado para o tratamento de erro ficar legível.</summary>
+    private async Task ProcessAsync(
+        ModpackVersion version,
+        Modpack modpack,
+        Queue<(ModIngestionItem Item, bool IsDependency)> work,
+        HashSet<string> processed,
+        HashSet<string> existing,
+        List<ModpackFile> unsaved,
+        List<string> failures,
+        Counters contagem,
+        IReadOnlyDictionary<string, string> names,
+        Action<string> report,
+        CancellationToken ct)
+    {
         while (work.Count > 0)
         {
             ct.ThrowIfCancellationRequested();
@@ -111,8 +168,8 @@ public sealed partial class ModpackIngestionService(
                 // Já satisfeita: avança o contador mesmo assim. Sem isto, uma
                 // reingestão passava por centenas de itens sem a barra mexer e
                 // parecia travada até tudo aparecer de uma vez no fim.
-                deps++;
-                Report($"{label} — já presente");
+                contagem.Deps++;
+                report($"{label} — já presente");
                 continue;
             }
 
@@ -121,10 +178,10 @@ public sealed partial class ModpackIngestionService(
 
             // Item explícito já presente NÃO é pulado: é assim que se atualiza um
             // mod (o UpsertFile troca o .jar). Só o feedback muda.
-            Report(existing.Contains(item.ProjectId) ? $"Verificando {label}" : $"Baixando {label}");
+            report(existing.Contains(item.ProjectId) ? $"Verificando {label}" : $"Baixando {label}");
 
             var outcome = await ResolveAndDownloadAsync(
-                version, item, modpack.MinecraftVersion, modpack.Loader, unsaved, ct);
+                version, item, modpack, unsaved, ct);
 
             if (unsaved.Count >= FlushEvery)
             {
@@ -133,9 +190,9 @@ public sealed partial class ModpackIngestionService(
             }
 
             if (isDependency)
-                deps++;
+                contagem.Deps++;
             else
-                done++;
+                contagem.Done++;
 
             if (outcome.Pending is { } pending)
             {
@@ -166,45 +223,19 @@ public sealed partial class ModpackIngestionService(
         // Um último retrato com os contadores fechados: sem ele o acompanhamento
         // congelava no penúltimo item, porque o Report acontece ANTES de
         // processar cada um.
-        Report("Finalizando");
-
-        if (failures.Count > 0)
-            // Sobrou falha de verdade (conflito de caminho, origem sem API key):
-            // aí a versão não tem como seguir e o admin precisa intervir.
-            version.MarkFailed($"Não foi possível resolver: {string.Join("; ", failures)}");
-        else
-            // Resolveu o que dava — mods sem redistribuição viraram pendência, não
-            // reprovação. Quem publica é o admin, após revisar as pendências.
-            version.ReturnToDraft();
-
-        // Sobra do último lote.
-        if (unsaved.Count > 0)
-        {
-            await repository.AddFilesAsync(version.Id, unsaved, ct);
-            unsaved.Clear();
-        }
-
-        // GRAVA ANTES DE ANUNCIAR. O aviso de conclusão faz a tela recarregar do
-        // banco; anunciando primeiro, ela lia o estado velho (ainda Resolving) e
-        // ficava presa numa barra parada até um F5 — o job já tinha sumido do
-        // registro, então nem progresso chegava mais.
-        // Só o estado e as pendências: os arquivos já foram gravados em lotes, e
-        // reescrever milhares de linhas idênticas aqui seria o custo que os
-        // lotes existem para evitar.
-        await repository.SaveVersionStateAsync(version, ct);
-
-        progress.Complete(versionId, failures.Count > 0 ? version.FailureReason : null);
     }
 
     /// <summary>Retorna null em sucesso…</summary>
     private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
         ModIngestionItem item,
-        string minecraftVersion,
-        ModLoader loader,
+        Modpack modpack,
         List<ModpackFile> unsaved,
         CancellationToken ct)
     {
+        var minecraftVersion = modpack.MinecraftVersion;
+        var loader = modpack.Loader;
+
         // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido, mas
         // está sem API key, ele se declara indisponível e caímos no erro.
         IModResolver? resolver = null;
@@ -230,9 +261,9 @@ public sealed partial class ModpackIngestionService(
         {
             case ModResolution.Resolved resolved:
             {
-                var error = await DownloadAndAttachAsync(version, item, resolved, unsaved, ct);
-                if (error is not null)
-                    return ResolveOutcome.Fail(error);
+                var outcome = await DownloadAndAttachAsync(version, item, resolved, unsaved, ct);
+                if (outcome is not null)
+                    return outcome;
 
                 // Só as REQUERIDAS entram na fila. Embedded já vem dentro do jar;
                 // optional é escolha do usuário; incompatible nunca se puxa.
@@ -278,7 +309,11 @@ public sealed partial class ModpackIngestionService(
         }
     }
 
-    private async Task<string?> DownloadAndAttachAsync(
+    /// <summary>
+    ///     Baixa, confere e anexa. Devolve null em sucesso, ou o desfecho que
+    ///     interrompeu (falha ou pendência).
+    /// </summary>
+    private async Task<ResolveOutcome?> DownloadAndAttachAsync(
         ModpackVersion version,
         ModIngestionItem item,
         ModResolution.Resolved resolved,
@@ -298,6 +333,14 @@ public sealed partial class ModpackIngestionService(
 
             await using var stored = await blobStore.OpenAsync(sha256, ct);
 
+            // A exigência de loader do mod não está em API nenhuma — só dentro
+            // do jar. Como ele já passou por aqui, conferir sai de graça, e é a
+            // diferença entre um aviso no painel e um crash no arranque.
+            if (await IncompatibleLoaderAsync(item, resolved, stored, version.LoaderVersion, ct) is { } incompativel)
+                return incompativel;
+
+            stored.Position = 0;
+
             var path = $"mods/{resolved.FileName}";
 
             // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
@@ -312,7 +355,7 @@ public sealed partial class ModpackIngestionService(
             if (version.Files.Any(f =>
                     f.Path.Equals(path, StringComparison.OrdinalIgnoreCase)
                     && !string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)))
-                return $"{resolved.FileName} (conflito de caminho com outro mod)";
+                return ResolveOutcome.Fail($"{resolved.FileName} (conflito de caminho com outro mod)");
 
             var file = new ModpackFile
             {
@@ -345,8 +388,43 @@ public sealed partial class ModpackIngestionService(
         catch (HttpRequestException ex)
         {
             LogDownloadError(ex, resolved.DownloadUrl.ToString());
-            return $"{resolved.FileName} (falha no download)";
+            return ResolveOutcome.Fail($"{resolved.FileName} (falha no download)");
         }
+    }
+
+    /// <summary>
+    ///     Confere a versão do loader exigida pelo jar contra a fixada na versão.
+    ///     Devolve a pendência quando é incompatível, ou null quando pode passar
+    ///     — inclusive quando não deu para ler nada, porque uma recusa errada
+    ///     bloqueia um mod que funcionaria.
+    /// </summary>
+    private async Task<ResolveOutcome?> IncompatibleLoaderAsync(
+        ModIngestionItem item,
+        ModResolution.Resolved resolved,
+        Stream jar,
+        string loaderVersion,
+        CancellationToken ct)
+    {
+        var info = await jarInspector.InspectAsync(jar, ct);
+        if (info?.RequiredLoaderRange is not { Length: > 0 } exigido)
+            return null;
+
+        if (LoaderVersionRange.IsSatisfied(exigido, loaderVersion))
+            return null;
+
+        LogLoaderMismatch(resolved.FileName, exigido, loaderVersion);
+
+        return ResolveOutcome.Postpone(new PendingMod
+        {
+            ModpackVersionId = Guid.Empty, // preenchido pelo UpsertPending
+            ProjectSlug = item.ProjectId,
+            DisplayName = resolved.FileName,
+            Origin = item.Origin,
+            FileId = item.FileId,
+            Side = item.Side,
+            Reason = PendingModReason.NoCompatibleFile,
+            Detail = $"Exige loader {exigido}; esta versão usa {loaderVersion}."
+        });
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Versão {VersionId} não encontrada para ingestão.")]
@@ -355,8 +433,22 @@ public sealed partial class ModpackIngestionService(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Transição inválida na versão {VersionId}: {Reason}")]
     private partial void LogInvalidTransition(Guid versionId, string reason);
 
+    [LoggerMessage(Level = LogLevel.Error, Message = "Erro inesperado na ingestão da versão {VersionId}.")]
+    private partial void LogUnexpected(Exception ex, Guid versionId);
+
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao baixar {Url}.")]
     private partial void LogDownloadError(Exception ex, string url);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "{FileName} exige loader {Required}, mas a versão usa {Actual}.")]
+    private partial void LogLoaderMismatch(string fileName, string required, string actual);
+
+    /// <summary>Contadores do progresso, mutáveis entre o laço e o relatório.</summary>
+    private sealed class Counters
+    {
+        public int Deps;
+        public int Done;
+    }
 
     // Resultado de resolver+baixar um item: erro (se houve) e as dependências
     // requeridas a puxar em seguida.

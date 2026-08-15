@@ -1,0 +1,56 @@
+@using TCMine.Contracts.Servers
+
+@* Console do container ao vivo.
+
+   Só existe enquanto o servidor está no ar: seguir o log de um container parado
+   devolveria o histórico e ficaria pendurado sem nunca receber nada. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Terminal" Color="Color.Primary"/>
+        <MudText Typo="Typo.subtitle2">Console</MudText>
+
+        @if (_streaming)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">ao vivo</MudChip>
+        }
+
+        <MudSpacer/>
+
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@_lines.Count linhas</MudText>
+
+        <MudTooltip Text="Rolar sozinho quando chegam linhas novas">
+            <MudSwitch T="bool" @bind-Value="_autoScroll" Color="Color.Primary" Size="Size.Small"
+                       Label="Seguir"/>
+        </MudTooltip>
+
+        <MudTooltip Text="Limpar a tela (não apaga nada no servidor)">
+            <MudIconButton Icon="@Icons.Material.Filled.ClearAll" Size="Size.Small" OnClick="Clear"/>
+        </MudTooltip>
+    </MudStack>
+
+    @if (Server.Status is not GameServerStatus.Running)
+    {
+        <MudText Typo="Typo.body2" Color="Color.Secondary">
+            O console aparece quando o servidor está no ar.
+        </MudText>
+    }
+    else if (_error is { Length: > 0 } erro)
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">@erro</MudAlert>
+    }
+    else
+    {
+        <div class="tc-console" id="@_consoleId">
+            @foreach (var line in _lines)
+            {
+                <div class="tc-console-line">@line</div>
+            }
+
+            @if (_lines.Count == 0)
+            {
+                <div class="tc-console-line" style="opacity:.6;">Aguardando saída do servidor…</div>
+            }
+        </div>
+    }
+</MudPaper>
