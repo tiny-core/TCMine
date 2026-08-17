@@ -20,4 +20,11 @@ public interface IServerHubNotifier
     ///     streams abertos — não de entrega de mensagem.
     /// </summary>
     Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct);
+
+    /// <summary>
+    ///     A contagem de jogadores mudou. Só é chamado na mudança, não a cada
+    ///     amostragem: repetir o mesmo número para todo launcher conectado a
+    ///     cada quinze segundos é tráfego que não informa nada.
+    /// </summary>
+    Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct);
 }

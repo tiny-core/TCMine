@@ -166,6 +166,11 @@ builder.Services.AddHostedService<ImportWorker>();
 // Coleta de métricas: singleton para a série sobreviver à navegação e ser a
 // mesma para todos os admins abertos no painel.
 builder.Services.AddSingleton<MetricsHistory>();
+
+// Singleton e lido pela porta: a contagem de jogadores vale por uma coleta e se
+// reconstitui sozinha, então não merece ida ao banco nem coluna no domínio.
+builder.Services.AddSingleton<PlayerCountCache>();
+builder.Services.AddSingleton<IPlayerCountSource>(sp => sp.GetRequiredService<PlayerCountCache>());
 builder.Services.AddHostedService<MetricsCollector>();
 
 // Recuperação no arranque: as filas vivem em memória, então um processo que cai

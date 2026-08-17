@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Background;
 
@@ -13,6 +15,7 @@ namespace TCMine.Server.Web.Background;
 /// </summary>
 public sealed partial class MetricsCollector(
     MetricsHistory history,
+    PlayerCountCache players,
     IServiceScopeFactory scopeFactory,
     ILogger<MetricsCollector> logger) : BackgroundService
 {
@@ -66,6 +69,8 @@ public sealed partial class MetricsCollector(
             .ListAllAsync(ct);
 
         var stats = scope.ServiceProvider.GetRequiredService<IContainerStats>();
+        var rcon = scope.ServiceProvider.GetRequiredService<IRconClient>();
+        var notifier = scope.ServiceProvider.GetRequiredService<IServerHubNotifier>();
 
         foreach (var server in servers)
         {
@@ -74,6 +79,10 @@ public sealed partial class MetricsCollector(
             if (server.Status is not GameServerStatus.Running)
             {
                 history.AddServer(server.Id, new MetricPoint(DateTimeOffset.UtcNow, 0, 0, 0));
+
+                // Esquece a contagem: manter a última exibiria "5 jogadores"
+                // num servidor desligado.
+                players.Forget(server.Id);
                 continue;
             }
 
@@ -83,6 +92,45 @@ public sealed partial class MetricsCollector(
                 sample?.CpuPercent ?? 0,
                 sample?.MemoryUsedBytes ?? 0,
                 sample?.MemoryLimitBytes ?? 0));
+
+            await CollectPlayersAsync(server, rcon, notifier, ct);
+        }
+    }
+
+    /// <summary>
+    ///     Pergunta ao jogo quantos estão online.
+    ///     Um <c>docker exec</c> a cada coleta por servidor no ar. Cabe aqui, e
+    ///     não num laço próprio, porque este já roda no intervalo certo e já tem
+    ///     escopo aberto — um segundo coletor dobraria o custo para amostrar o
+    ///     mesmo conjunto de containers.
+    /// </summary>
+    private async Task CollectPlayersAsync(
+        GameServer server,
+        IRconClient rcon,
+        IServerHubNotifier notifier,
+        CancellationToken ct)
+    {
+        try
+        {
+            var contagem = PlayerListParser.Parse(await rcon.ExecuteAsync(server.Id, "list", ct));
+
+            if (contagem is not { } online)
+            {
+                players.Forget(server.Id);
+                return;
+            }
+
+            // Só empurra quando muda: repetir o mesmo número a cada quinze
+            // segundos para todo launcher conectado é tráfego que não informa.
+            if (players.Set(server.Id, online))
+                await notifier.NotifyPlayerCountChangedAsync(server.Id, online, server.MaxPlayers, ct);
+        }
+        catch (RconUnavailableException)
+        {
+            // O servidor pode estar subindo e ainda não responder ao RCON. É
+            // esperado e passageiro: some com a contagem e tenta de novo daqui a
+            // pouco, sem poluir o log a cada quinze segundos.
+            players.Forget(server.Id);
         }
     }
 

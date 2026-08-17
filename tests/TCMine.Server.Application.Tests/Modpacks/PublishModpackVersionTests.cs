@@ -113,6 +113,9 @@ public sealed class PublishModpackVersionTests
         public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
             Task.CompletedTask;
 
+        public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
+            Task.CompletedTask;
+
         public int Calls { get; private set; }
 
         public Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct)

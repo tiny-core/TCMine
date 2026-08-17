@@ -1,12 +1,13 @@
 using Microsoft.Extensions.DependencyInjection;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Web.Tests.Infrastructure;
 
 namespace TCMine.Server.Web.Tests.Endpoints;
 
 /// <summary>
-///     Tudo o que componentes Blazor e o MainHub injetam precisa estar
-///     registrado.
+///     Tudo o que componentes Blazor, o MainHub e os serviços de background
+///     injetam precisa estar registrado.
 ///     Existe porque a injeção é resolvida na hora em que o componente renderiza
 ///     ou o hub é invocado, não no arranque: um caso de uso esquecido no
 ///     <c>AddTCMineApplication</c> passa por build, testes e health check, e só
@@ -25,6 +26,14 @@ public sealed class ComponentDependencyTests
         typeof(ListServerAccess),
         typeof(ListAccessibleServers),
         typeof(SendServerCommand),
+
+        // Não são casos de uso: são as portas que o MetricsCollector resolve
+        // dentro do próprio escopo, a cada coleta. Um registro faltando ali não
+        // impede a app de subir — só faz a coleta falhar em silêncio de quinze
+        // em quinze segundos.
+        typeof(IPlayerCountSource),
+        typeof(IRconClient),
+        typeof(IServerHubNotifier),
         typeof(CreateGameServer),
         typeof(StartGameServer),
         typeof(StopGameServer),

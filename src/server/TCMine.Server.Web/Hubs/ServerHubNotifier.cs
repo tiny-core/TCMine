@@ -11,4 +11,7 @@ public sealed class ServerHubNotifier(LauncherNotifier notifier) : IServerHubNot
 
     public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
         notifier.ConsoleLineAsync(serverId, line);
+
+    public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
+        notifier.PlayerCountChangedAsync(serverId, online, max);
 }

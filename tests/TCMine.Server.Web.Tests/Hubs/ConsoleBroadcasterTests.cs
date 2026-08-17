@@ -114,6 +114,9 @@ public sealed class ConsoleBroadcasterTests
 
         public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
             Task.CompletedTask;
+
+        public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
+            Task.CompletedTask;
     }
 
     private sealed class FakeOrchestrator : IServerOrchestrator

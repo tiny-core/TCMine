@@ -13,7 +13,7 @@ namespace TCMine.Server.Web.Mapping;
 /// </summary>
 public static class ServerMappings
 {
-    public static GameServerDto ToDto(this AccessibleServer accessible)
+    public static GameServerDto ToDto(this AccessibleServer accessible, IPlayerCountSource players)
     {
         var server = accessible.Server;
 
@@ -26,13 +26,12 @@ public static class ServerMappings
             ConnectAddress = server.ConnectAddress,
             Status = server.Status,
 
-            // Ainda não há contador de jogadores: nada no servidor pergunta ao
-            // jogo quantos estão online, e o caminho previsto para isso é o push
-            // ServerPlayerCountChanged, que também não tem quem o dispare. Zero
-            // é a verdade com o servidor parado e um valor defasado com ele no
-            // ar — a alternativa seria um docker exec por servidor a cada
-            // listagem, que custa mais do que o dado vale aqui.
-            OnlinePlayers = 0,
+            // Última contagem amostrada. Zero quando ainda não se sabe — o
+            // campo é int no contrato, então não há como dizer "não sei", e
+            // zero é o que menos engana num servidor recém-ligado. A partir daí
+            // o push ServerPlayerCountChanged mantém o número vivo sem o
+            // launcher precisar perguntar.
+            OnlinePlayers = players.TryGet(server.Id) ?? 0,
             MaxPlayers = server.MaxPlayers,
             Role = accessible.Role
         };

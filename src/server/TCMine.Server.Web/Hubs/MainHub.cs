@@ -29,7 +29,8 @@ public sealed class MainHub(
     IModpackRepository modpacks,
     ListAccessibleServers accessibleServers,
     SendServerCommand sendCommand,
-    ConsoleBroadcaster broadcaster) : Hub<ILauncherClient>, IServerHub
+    ConsoleBroadcaster broadcaster,
+    IPlayerCountSource players) : Hub<ILauncherClient>, IServerHub
 {
     public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
@@ -52,7 +53,7 @@ public sealed class MainHub(
         // olhasse a mensagem do hub.
         var servidores = await accessibleServers.HandleAsync(Context.ConnectionAborted);
 
-        return [.. servidores.Select(s => s.ToDto())];
+        return [.. servidores.Select(s => s.ToDto(players))];
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

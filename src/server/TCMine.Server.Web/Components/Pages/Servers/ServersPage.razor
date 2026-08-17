@@ -78,7 +78,13 @@ else
                     <MudText Typo="Typo.caption">@context.Server.MemoryMb MB</MudText>
                 </MudTd>
                 <MudTd DataLabel="Jogadores" Style="text-align:right;">
-                    <MudText Typo="Typo.caption">@context.Server.MaxPlayers</MudText>
+                    @* Traço, e não zero, quando não se sabe: servidor parado ou
+                       ainda não amostrado não está vazio — é desconhecido. *@
+                    <MudText Typo="Typo.caption">
+                        @(Players.TryGet(context.Server.Id) is { } online
+                            ? $"{online} / {context.Server.MaxPlayers}"
+                            : $"— / {context.Server.MaxPlayers}")
+                    </MudText>
                 </MudTd>
                 <MudTd Style="text-align:right;">
                     @if (context.Server.Status is GameServerStatus.Running)

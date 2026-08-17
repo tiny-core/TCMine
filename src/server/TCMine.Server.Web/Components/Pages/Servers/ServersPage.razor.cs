@@ -20,6 +20,7 @@ public partial class ServersPage : ComponentBase
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private ServerActions Actions { get; set; } = default!;
+    [Inject] private IPlayerCountSource Players { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
 
