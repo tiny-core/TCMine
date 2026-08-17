@@ -56,6 +56,10 @@ internal sealed class FakeMemberships(params Membership[] seed) : IMembershipRep
         Task.FromResult<IReadOnlyList<Membership>>(
             [.. _memberships.Where(m => m.GameServerId == gameServerId)]);
 
+    public Task<IReadOnlyList<Membership>> ListByUserAsync(Guid userId, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Membership>>(
+            [.. _memberships.Where(m => m.UserId == userId)]);
+
     public Task<IReadOnlyList<ServerMemberView>> ListWithUsersAsync(
         Guid gameServerId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<ServerMemberView>>(

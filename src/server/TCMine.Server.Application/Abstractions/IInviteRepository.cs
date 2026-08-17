@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Domain.Identity;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
 
@@ -22,6 +23,14 @@ public sealed record ServerMemberView(
 ///     o papel do usuário — e um record de leitura não consulta nada. Deixá-lo
 ///     lá obrigaria a afrouxar a regra que protege os casos de uso de verdade.
 /// </summary>
+/// <summary>
+///     Um servidor que o usuário atual enxerga, com o papel dele ali.
+///     O papel viaja junto porque a pergunta "quais servidores eu vejo" e "o que
+///     posso fazer em cada um" têm a mesma resposta: sem ele, a interface teria
+///     de perguntar de novo, um por um.
+/// </summary>
+public sealed record AccessibleServer(GameServer Server, ServerRoleDto Role);
+
 public sealed record ServerAccessView(
     IReadOnlyList<ServerMemberView> Members,
     IReadOnlyList<Invite> PendingInvites);
@@ -52,6 +61,13 @@ public interface IMembershipRepository
     Task<Membership?> GetAsync(Guid userId, Guid gameServerId, CancellationToken ct);
 
     Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct);
+
+    /// <summary>
+    ///     Vínculos de um usuário, em todos os servidores. É o que responde "o
+    ///     que este jogador enxerga" numa consulta só, em vez de perguntar o
+    ///     papel servidor a servidor.
+    /// </summary>
+    Task<IReadOnlyList<Membership>> ListByUserAsync(Guid userId, CancellationToken ct);
 
     /// <summary>
     ///     Membros com o nome de quem são, para a tela.

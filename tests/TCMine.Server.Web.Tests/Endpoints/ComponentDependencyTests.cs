@@ -5,9 +5,10 @@ using TCMine.Server.Web.Tests.Infrastructure;
 namespace TCMine.Server.Web.Tests.Endpoints;
 
 /// <summary>
-///     Tudo o que os componentes Blazor injetam precisa estar registrado.
-///     Existe porque o <c>[Inject]</c> é resolvido na hora em que o componente
-///     renderiza, não no arranque: um caso de uso esquecido no
+///     Tudo o que componentes Blazor e o MainHub injetam precisa estar
+///     registrado.
+///     Existe porque a injeção é resolvida na hora em que o componente renderiza
+///     ou o hub é invocado, não no arranque: um caso de uso esquecido no
 ///     <c>AddTCMineApplication</c> passa por build, testes e health check, e só
 ///     aparece quando alguém abre a tela — como uma exceção no circuito, que
 ///     derruba a página inteira em vez de mostrar um erro.
@@ -22,6 +23,7 @@ public sealed class ComponentDependencyTests
         typeof(RemoveMember),
         typeof(ChangeMemberRole),
         typeof(ListServerAccess),
+        typeof(ListAccessibleServers),
         typeof(CreateGameServer),
         typeof(StartGameServer),
         typeof(StopGameServer),

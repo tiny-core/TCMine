@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Web.Mapping;
 
 namespace TCMine.Server.Web.Hubs;
@@ -20,7 +21,8 @@ namespace TCMine.Server.Web.Hubs;
 /// </summary>
 public sealed class MainHub(
     ICurrentUserScope scope,
-    IModpackRepository modpacks) : Hub<ILauncherClient>, IServerHub
+    IModpackRepository modpacks,
+    ListAccessibleServers accessibleServers) : Hub<ILauncherClient>, IServerHub
 {
     public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
@@ -35,7 +37,16 @@ public sealed class MainHub(
         return version is null ? throw new HubException("Versão não encontrada.") : version.ToDto();
     }
 
-    public Task<IReadOnlyList<GameServerDto>> GetServersAsync() => Task.FromResult<IReadOnlyList<GameServerDto>>([]);
+    public async Task<IReadOnlyList<GameServerDto>> GetServersAsync()
+    {
+        // Filtrar aqui e não no cliente: a lista vazia é a resposta correta para
+        // quem não foi convidado, e devolver tudo para a interface esconder
+        // entregaria nome e endereço de servidores alheios a qualquer um que
+        // olhasse a mensagem do hub.
+        var servidores = await accessibleServers.HandleAsync(Context.ConnectionAborted);
+
+        return [.. servidores.Select(s => s.ToDto())];
+    }
 
     public async Task SubscribeServerAsync(Guid serverId)
     {

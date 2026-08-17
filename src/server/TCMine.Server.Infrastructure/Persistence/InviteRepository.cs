@@ -73,6 +73,15 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Membership>> ListByUserAsync(Guid userId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.Memberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<ServerMemberView>> ListWithUsersAsync(
         Guid gameServerId, CancellationToken ct)
     {

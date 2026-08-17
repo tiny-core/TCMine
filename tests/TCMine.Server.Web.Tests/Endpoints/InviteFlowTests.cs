@@ -8,7 +8,9 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Identity;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Domain.Identity;
+using TCMine.Server.Domain.Servers;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Tests.Infrastructure;
 
@@ -79,6 +81,63 @@ public sealed class InviteFlowTests
     }
 
     [Fact]
+    public async Task Launcher_so_lista_servidor_depois_do_convite_e_sem_o_segredo_rcon()
+    {
+        await using var factory = new TcMineAppFactory
+        {
+            Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
+                new FakeProfiles(new MinecraftProfile("abc123", "ana")))
+        };
+
+        var client = factory.CreateClient();
+        var servidorId = await SemearServidorAsync(factory);
+
+        var login = await client.PostAsJsonAsync(
+            "/api/v1/auth/minecraft",
+            new MinecraftLoginRequest { AccessToken = "token-bom" },
+            TestContext.Current.CancellationToken);
+
+        var cookie = login.Headers.GetValues("Set-Cookie")
+            .First(c => c.StartsWith("tcmine.auth=", StringComparison.Ordinal))
+            .Split(';')[0];
+
+        await using (var antes = Conectar(factory, cookie))
+        {
+            await antes.StartAsync(TestContext.Current.CancellationToken);
+
+            var vazia = await antes.InvokeAsync<IReadOnlyList<GameServerDto>>(
+                nameof(IServerHub.GetServersAsync), TestContext.Current.CancellationToken);
+
+            // Nome e endereço de conexão são exatamente o que alguém precisaria
+            // para tentar entrar onde não foi chamado.
+            vazia.ShouldBeEmpty();
+        }
+
+        var codigo = await SemearConviteAsync(factory, servidorId);
+
+        await client.PostAsJsonAsync(
+            "/api/v1/invites/redeem",
+            new RedeemInviteRequest { Code = codigo },
+            TestContext.Current.CancellationToken);
+
+        await using var depois = Conectar(factory, cookie);
+        await depois.StartAsync(TestContext.Current.CancellationToken);
+
+        var lista = await depois.InvokeAsync<IReadOnlyList<GameServerDto>>(
+            nameof(IServerHub.GetServersAsync), TestContext.Current.CancellationToken);
+
+        var servidor = lista.ShouldHaveSingleItem();
+        servidor.Id.ShouldBe(servidorId);
+        servidor.Role.ShouldBe(ServerRoleDto.Moderator);
+
+        // O DTO não tem onde carregar o segredo, e é essa a garantia: quem tem a
+        // senha do RCON controla a máquina do jogo. Se um dia alguém acrescentar
+        // o campo ao contrato, este teste deixa de compilar — que é o momento
+        // certo de alguém pensar duas vezes.
+        typeof(GameServerDto).GetProperty("RconSecret").ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Resgate_sem_sessao_e_recusado()
     {
         await using var factory = new TcMineAppFactory();
@@ -121,6 +180,33 @@ public sealed class InviteFlowTests
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
         return codigo;
+    }
+
+    /// <summary>
+    ///     Grava um servidor direto na base, pelo mesmo motivo do convite:
+    ///     criá-lo pelo caso de uso exigiria modpack, versão publicada e um
+    ///     admin — nada disso é o que este teste verifica.
+    /// </summary>
+    private static async Task<Guid> SemearServidorAsync(TcMineAppFactory factory)
+    {
+        using var escopo = factory.Services.CreateScope();
+        var db = await escopo.ServiceProvider
+            .GetRequiredService<IDbContextFactory<TcMineDbContext>>()
+            .CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var servidor = new GameServer
+        {
+            Name = "Survival",
+            ModpackId = Guid.CreateVersion7(),
+            ModpackVersionId = Guid.CreateVersion7(),
+            ConnectAddress = "jogo:25565",
+            RconSecret = "segredo-que-nao-pode-vazar"
+        };
+
+        db.GameServers.Add(servidor);
+        await db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        return servidor.Id;
     }
 
     private static HubConnection Conectar(TcMineAppFactory factory, string cookie) =>
