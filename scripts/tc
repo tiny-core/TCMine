@@ -32,16 +32,36 @@ cmd_build() {
   return $code
 }
 
+# Roda cada suíte pelo executável dela, e não por `dotnet test`: o SDK do .NET
+# 10 removeu o caminho VSTest, e o `dotnet test` recusa a solução inteira antes
+# de executar um único teste. O runner do xUnit v3 (Microsoft.Testing.Platform)
+# é o próprio .exe do projeto, então `dotnet run` fala com ele direto.
+#
+# Aceita um filtro opcional de classe: `tc test '*MainHub*'`.
 cmd_test() {
-  local out code
-  out="$(cd "$ROOT" && dotnet test --nologo -clp:NoSummary -v q "$@" 2>&1)"
-  code=$?
-  # Só as falhas, com a mensagem — e o placar por suíte.
-  echo "$out" | grep -E "^\s+(Com falha|Falha)" | head -20
-  echo "$out" | grep -E "Mensagem de erro|Assert\." | head -10
-  echo "$out" | grep -oE "(Aprovado!|Com falha!) [^-]*" | sed 's/  */ /g' | head -6
-  if [ $code -ne 0 ]; then echo "TESTES FALHARAM"; fi
-  return $code
+  local filtro="${1:-}" falhou=0 out code
+  for projeto in "$ROOT"/tests/*/; do
+    [ -f "$projeto"/*.csproj ] 2>/dev/null || continue
+    local nome
+    nome="$(basename "$projeto")"
+
+    if [ -n "$filtro" ]; then
+      out="$(cd "$ROOT" && dotnet run --project "$projeto" -- -class "$filtro" 2>&1)"
+    else
+      out="$(cd "$ROOT" && dotnet run --project "$projeto" 2>&1)"
+    fi
+    code=$?
+
+    # Só as falhas, com a mensagem — e o placar por suíte.
+    echo "$out" | grep -E "\[FAIL\]" | sed 's/^ *//' | head -10
+    echo "$out" | grep -E "^\s+(Shouldly|System\.|Microsoft\.)[A-Za-z.]*(Exception|AssertException)" | head -10
+    echo "$out" | grep -oE "Total: [0-9]+, Errors: [0-9]+, Failed: [0-9]+" | sed "s/^/$nome: /" | head -1
+
+    [ $code -ne 0 ] && falhou=1
+  done
+
+  if [ $falhou -ne 0 ]; then echo "TESTES FALHARAM"; return 1; fi
+  echo "TESTES OK"
 }
 
 # Verificação completa numa tacada: é isto que o subagente de verificação roda.
@@ -137,7 +157,7 @@ case "${1:-}" in
   kill)  kill_app; echo "ok" ;;
   *) cat <<'USAGE'
 tc build            build com -warnaserror, só erros/avisos
-tc test [proj]      testes, só falhas + placar
+tc test ['*Classe*'] testes, só falhas + placar (filtro opcional de classe)
 tc check            build + test (usado pelo subagente verify)
 tc db [sql|state]   consulta a base de dev (state = versões/pendências)
 tc smoke <rota>     GET na app e devolve o texto renderizado (sem browser)

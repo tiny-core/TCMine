@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using MudBlazor.Services;
 using Serilog;
@@ -83,6 +84,11 @@ builder.Services
         // Erro detalhado só em desenvolvimento: em produção a mensagem de
         // exceção pode revelar estrutura interna a quem está sondando.
         options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+
+        // Sem este filtro a identidade da conexão não chega ao ICurrentUserScope
+        // e toda checagem de papel falha — em long polling sempre, em WebSocket
+        // não. Ver UserPrincipalHolder.
+        options.AddFilter(new HubIdentityFilter());
     })
     // MessagePack é binário: mensagens menores e serialização mais rápida
     // que JSON. Vale principalmente no stream de console, que é constante.
@@ -134,6 +140,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddScoped<UserPrincipalHolder>();
 builder.Services.AddScoped<ICurrentUserScope, HttpContextUserScope>();
 builder.Services.AddScoped<ServerActions>();
 

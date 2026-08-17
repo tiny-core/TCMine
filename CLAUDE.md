@@ -263,6 +263,14 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `MudTreeView`) → `BodyContent` (no `MudTreeViewItem`); o `Context` do
   `ItemTemplate` é `ITreeItemData<T>` (interface). O `MudTreeView` não reconstrói ao reatribuir `Items` — force com
   `@key` que muda a cada rebuild.
+- **Identidade dentro de um Hub vem de `Context.User`, nunca de `IHttpContextAccessor`.** O accessor responde
+  conforme o transporte: no WebSocket a requisição de upgrade continua viva e o contexto aparece; em long polling
+  ela já terminou e o `HttpContext` foi reciclado, então o usuário some e toda checagem de papel vira "servidor não
+  encontrado". Como o SignalR cai para long polling sozinho atrás de proxy, o bug atingiria só *alguns* jogadores.
+  O principal é depositado no `UserPrincipalHolder` pelo `HubIdentityFilter`; `MainHubIdentidadeTests` trava os
+  dois transportes.
+- **`dotnet test` não roda esta solução no SDK do .NET 10** (o caminho VSTest foi removido e o xUnit v3 usa o
+  Microsoft.Testing.Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
 - **`[LibraryImport]`** exige `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` no csproj (o marshalling gerado usa
   `unsafe`). Fica contido na Infrastructure.
 
