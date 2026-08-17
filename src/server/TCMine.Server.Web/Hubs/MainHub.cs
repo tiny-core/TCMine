@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
@@ -15,14 +15,20 @@ namespace TCMine.Server.Web.Hubs;
 ///     Clients.All.SendAsync("ServerStatusChanged", ...) com string mágica,
 ///     escrevemos Clients.Group(...).ServerStatusChanged(...) e o compilador
 ///     avisa quando a assinatura muda de um lado só.
-///     Regra que atravessa a classe: toda autorização acontece aqui. A UI
-///     esconder um botão é conveniência, não proteção — quem tem a URL do hub
-///     chama o método diretamente.
+///     Regra que atravessa a classe: a autorização mora no CASO DE USO, não
+///     aqui. A borda é plural — hub, endpoint HTTP, componente Blazor — e cada
+///     borda nova esquece de novo; foi assim que o download de backup passou a
+///     existir sem checar papel. O que sobra neste arquivo é a checagem de
+///     assinatura de grupo, que não tem caso de uso porque não age sobre nada
+///     além da própria conexão.
+///     Em nenhuma hipótese a UI esconder um botão conta como proteção: quem tem
+///     a URL do hub chama o método diretamente.
 /// </summary>
 public sealed class MainHub(
     ICurrentUserScope scope,
     IModpackRepository modpacks,
-    ListAccessibleServers accessibleServers) : Hub<ILauncherClient>, IServerHub
+    ListAccessibleServers accessibleServers,
+    SendServerCommand sendCommand) : Hub<ILauncherClient>, IServerHub
 {
     public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
@@ -69,21 +75,18 @@ public sealed class MainHub(
         string command,
         IReadOnlyList<string> args)
     {
-        var role = await RequireRoleAsync(serverId);
+        // Sem checagem de papel aqui: ela mora no caso de uso, junto da
+        // allowlist e da validação do comando. Repeti-la nesta borda criaria uma
+        // segunda regra livre para divergir da primeira — e a borda é plural
+        // (hub, endpoint, componente), então cada nova esqueceria de novo.
+        var result = await sendCommand.HandleAsync(
+            serverId, command, args, Context.ConnectionAborted);
 
-        if (!ConsoleCommandPolicy.IsAllowed(role, command))
-            // Não vaza qual seria o papel necessário: informação de
-            // autorização é pista para quem está sondando o sistema.
-        {
-            return new CommandResultDto(
-                false,
-                null,
-                "Comando não permitido para o seu nível de acesso.");
-        }
-
-        // TODO: traduzir para RCON via IRconClient. A senha do RCON nunca
-        // sai do servidor — é aqui que a tradução acontece.
-        return new CommandResultDto(false, null, "Ainda não implementado.");
+        // Recusa vira resposta, não exceção: um comando negado não deve derrubar
+        // a conexão do launcher.
+        return result.Succeeded
+            ? new CommandResultDto(true, result.Value, null)
+            : new CommandResultDto(false, null, result.Error);
     }
 
     /// <summary>

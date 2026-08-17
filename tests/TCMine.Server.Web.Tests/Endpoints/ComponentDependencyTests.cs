@@ -24,6 +24,7 @@ public sealed class ComponentDependencyTests
         typeof(ChangeMemberRole),
         typeof(ListServerAccess),
         typeof(ListAccessibleServers),
+        typeof(SendServerCommand),
         typeof(CreateGameServer),
         typeof(StartGameServer),
         typeof(StopGameServer),
