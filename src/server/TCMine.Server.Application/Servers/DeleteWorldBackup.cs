@@ -1,5 +1,6 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Servers;
 
@@ -8,12 +9,22 @@ namespace TCMine.Server.Application.Servers;
 ///     Nessa ordem porque o inverso deixaria um .zip sem dono ocupando disco e
 ///     invisível ao painel — lixo que ninguém encontra.
 /// </summary>
-public sealed class DeleteWorldBackup(IServerRepository servers, IWorldBackupStore store)
+public sealed class DeleteWorldBackup(
+    IServerRepository servers,
+    IWorldBackupStore store,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid backupId, CancellationToken ct)
     {
+        // Aqui a ordem se inverte: o id é do snapshot, e só ele diz a que
+        // servidor pertence. Carregar o registro antes de autorizar não vaza
+        // nada — o que não pode é agir sobre ele.
         var backup = await servers.GetBackupAsync(backupId, ct);
         if (backup is null)
+            return Result.Fail("Backup não encontrado.");
+
+        var auth = await scope.RequireAsync(backup.GameServerId, ServerAccessPolicy.CanAccessBackups, ct);
+        if (!auth.Succeeded)
             return Result.Fail("Backup não encontrado.");
 
         // Sumir do disco por fora não impede limpar o registro: o objetivo é

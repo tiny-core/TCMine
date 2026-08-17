@@ -303,7 +303,7 @@ public sealed class WorldBackupTests
         var repo = new FakeServers(server, backup);
         var store = new FakeStore();
 
-        var result = await new DeleteWorldBackup(repo, store).HandleAsync(backup.Id, CancellationToken.None);
+        var result = await new DeleteWorldBackup(repo, store, new FakeUserScope()).HandleAsync(backup.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.True(store.Apagou);
@@ -332,6 +332,38 @@ public sealed class WorldBackupTests
         Reason = WorldBackupReason.BeforeVersionChange,
         ModpackVersionId = server.ModpackVersionId
     };
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(ServerRoleDto.Member)]
+    [InlineData(ServerRoleDto.Moderator)]
+    public async Task Abaixo_de_Admin_ninguem_cria_apaga_nem_restaura_snapshot(ServerRoleDto? papel)
+    {
+        // O .zip carrega os dados dos jogadores: coordenadas de base, inventário,
+        // o conteúdo de cada baú. Moderar a partida não dá direito ao save.
+        var server = Servidor();
+        var backup = Snapshot(server, server.ModpackVersionId);
+        var store = new FakeStore();
+
+        var criar = await NewBackup(server, store, GameServerStatus.Stopped, papel: papel)
+            .HandleAsync(server.Id, null, CancellationToken.None);
+
+        var apagar = await new DeleteWorldBackup(
+                new FakeServers(server, backup), store, new FakeUserScope(papel))
+            .HandleAsync(backup.Id, CancellationToken.None);
+
+        var restaurar = await NewRestore(server, backup, store, GameServerStatus.Stopped, papel)
+            .HandleAsync(backup.Id, CancellationToken.None);
+
+        Assert.False(criar.Succeeded);
+        Assert.False(apagar.Succeeded);
+        Assert.False(restaurar.Succeeded);
+
+        // Nada tocou o disco: uma recusa que já apagou o arquivo não é recusa.
+        Assert.False(store.Criou);
+        Assert.False(store.Apagou);
+        Assert.False(store.Restaurou);
+    }
 
     private static WorldBackup Snapshot(GameServer server, Guid versionId) => new()
     {
@@ -368,10 +400,11 @@ public sealed class WorldBackupTests
 
     private static CreateWorldBackup NewBackup(
         GameServer server, FakeStore store, GameServerStatus status,
-        FakeServers? repo = null, int manter = 0, FakeRcon? rcon = null) =>
+        FakeServers? repo = null, int manter = 0, FakeRcon? rcon = null,
+        ServerRoleDto? papel = ServerRoleDto.Owner) =>
         new(repo ?? new FakeServers(server), new FakeOrchestrator(status), rcon ?? new FakeRcon(), store,
             new FakeModpacks(VersaoComNumero("1.0.0", VersaoAtualId)),
-            new FakeSettings(manter), new FakeJobProgress());
+            new FakeSettings(manter), new FakeJobProgress(), new FakeUserScope(papel));
 
     private static ChangeServerVersion NewChange(
         FakeServers repo, FakeStore store, ModpackVersion destino, GameServerStatus status)
@@ -381,13 +414,15 @@ public sealed class WorldBackupTests
 
         var backup = new CreateWorldBackup(
             repo, orchestrator, new FakeRcon(), store, modpacks,
-            new FakeSettings(), new FakeJobProgress());
-        return new ChangeServerVersion(repo, modpacks, orchestrator, backup);
+            new FakeSettings(), new FakeJobProgress(), new FakeUserScope());
+        return new ChangeServerVersion(repo, modpacks, orchestrator, backup, new FakeUserScope());
     }
 
     private static RestoreWorldBackup NewRestore(
-        GameServer server, WorldBackup backup, FakeStore store, GameServerStatus status) =>
-        new(new FakeServers(server, backup), new FakeOrchestrator(status), store, new FakeJobProgress());
+        GameServer server, WorldBackup backup, FakeStore store, GameServerStatus status,
+        ServerRoleDto? papel = ServerRoleDto.Owner) =>
+        new(new FakeServers(server, backup), new FakeOrchestrator(status), store, new FakeJobProgress(),
+            new FakeUserScope(papel));
 
     private static ModpackVersion VersaoComNumero(string numero, Guid id)
     {

@@ -1,6 +1,7 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;
@@ -23,12 +24,17 @@ public sealed class CreateWorldBackup(
     IWorldBackupStore store,
     IModpackRepository modpacks,
     ISettingsRepository settings,
-    IJobProgressReporter progress)
+    IJobProgressReporter progress,
+    ICurrentUserScope scope)
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid serverId, string? note, CancellationToken ct,
         WorldBackupReason reason = WorldBackupReason.Manual, Guid jobId = default)
     {
+        var auth = await scope.RequireAsync(serverId, ServerAccessPolicy.CanAccessBackups, ct);
+        if (!auth.Succeeded)
+            return Result<Guid>.Fail(auth.Error!);
+
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result<Guid>.Fail("Servidor não encontrado.");

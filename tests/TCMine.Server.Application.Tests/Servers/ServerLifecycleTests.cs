@@ -17,7 +17,7 @@ public sealed class ServerLifecycleTests
         var server = NovoServidor();
         var orchestrator = new FakeOrchestrator();
 
-        var result = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress())
+        var result = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -32,7 +32,7 @@ public sealed class ServerLifecycleTests
         var server = NovoServidor();
         var orchestrator = new FakeOrchestrator();
 
-        await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress())
+        await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(orchestrator.StopTimeout >= TimeSpan.FromSeconds(30));
@@ -45,7 +45,7 @@ public sealed class ServerLifecycleTests
         var repo = new FakeServerRepo(server);
         var orchestrator = new FakeOrchestrator { Status = GameServerStatus.Running };
 
-        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress())
+        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress(), new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -101,6 +101,47 @@ public sealed class ServerLifecycleTests
             throw new NotImplementedException();
 
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) => throw new NotImplementedException();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(ServerRoleDto.Member)]
+    [InlineData(ServerRoleDto.Moderator)]
+    public async Task Sem_papel_de_admin_ninguem_liga_nem_desliga(ServerRoleDto? papel)
+    {
+        // Derrubar a partida atinge todo mundo que está jogando. Um moderador
+        // modera o chat; isso não lhe dá a chave da máquina.
+        var server = NovoServidor();
+        var orchestrator = new FakeOrchestrator();
+        var scope = new FakeUserScope(papel);
+
+        var parar = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope)
+            .HandleAsync(server.Id, CancellationToken.None);
+
+        var iniciar = await new StartGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope)
+            .HandleAsync(server.Id, CancellationToken.None);
+
+        Assert.False(parar.Succeeded);
+        Assert.False(iniciar.Succeeded);
+
+        // O orquestrador nem foi consultado: recusar depois de agir não seria
+        // recusa nenhuma.
+        Assert.Empty(orchestrator.Chamadas);
+    }
+
+    [Fact]
+    public async Task Recusa_de_acesso_nao_revela_que_o_servidor_existe()
+    {
+        // Mesma mensagem de "não existe": diferenciar as duas permitiria mapear
+        // quais servidores há na instalação só variando o id.
+        var server = NovoServidor();
+
+        var semAcesso = await new StartGameServer(
+                new FakeOrchestrator(), new FakeServerRepo(server), new FakeJobProgress(),
+                new FakeUserScope(ServerRoleDto.Member))
+            .HandleAsync(server.Id, CancellationToken.None);
+
+        Assert.Equal("Servidor não encontrado.", semAcesso.Error);
     }
 
     private sealed class FakeServerRepo(GameServer server) : FakeServerRepositoryBase

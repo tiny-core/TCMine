@@ -1,12 +1,14 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Servers;
 
 public sealed class StopGameServer(
     IServerOrchestrator orchestrator,
     IServerRepository servers,
-    IJobProgressReporter progress)
+    IJobProgressReporter progress,
+    ICurrentUserScope scope)
 {
     // Timeout generoso: o stop-server.sh do itzg salva o mundo antes de sair.
     // Matar antes disso corrompe chunks — por isso 60s, não 10.
@@ -14,6 +16,10 @@ public sealed class StopGameServer(
 
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
+        var auth = await scope.RequireAsync(serverId, ServerAccessPolicy.CanControlPower, ct);
+        if (!auth.Succeeded)
+            return auth;
+
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");

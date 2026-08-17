@@ -1,6 +1,7 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Servers;
 
@@ -17,13 +18,20 @@ public sealed class RestoreWorldBackup(
     IServerRepository servers,
     IServerOrchestrator orchestrator,
     IWorldBackupStore store,
-    IJobProgressReporter progress)
+    IJobProgressReporter progress,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(
         Guid backupId, CancellationToken ct, bool acceptVersionMismatch = false, Guid jobId = default)
     {
+        // Como no DeleteWorldBackup: o snapshot é quem diz o servidor, então a
+        // autorização vem logo depois de encontrá-lo.
         var backup = await servers.GetBackupAsync(backupId, ct);
         if (backup is null)
+            return Result.Fail("Backup não encontrado.");
+
+        var auth = await scope.RequireAsync(backup.GameServerId, ServerAccessPolicy.CanAccessBackups, ct);
+        if (!auth.Succeeded)
             return Result.Fail("Backup não encontrado.");
 
         var server = await servers.GetByIdAsync(backup.GameServerId, ct);

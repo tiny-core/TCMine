@@ -34,17 +34,7 @@ public class AuthorizationRules
     ///     poderia parar servidores, apagar backups e restaurar mundo por cima.
     ///     Esvaziar esta lista faz parte de entregar aquele fluxo, não depois.
     /// </summary>
-    private static readonly string[] PendentesDeAutorizacao =
-    [
-        "ChangeServerVersion",
-        "CreateWorldBackup",
-        "DeleteGameServer",
-        "DeleteWorldBackup",
-        "RestoreWorldBackup",
-        "StartGameServer",
-        "StopGameServer",
-        "UpdateGameServer"
-    ];
+    private static readonly string[] PendentesDeAutorizacao = [];
 
     [Fact]
     public void Caso_de_uso_de_servidor_novo_nasce_autorizando()

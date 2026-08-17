@@ -1,5 +1,6 @@
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Servers;
 
@@ -7,10 +8,15 @@ public sealed class DeleteGameServer(
     IServerRepository servers,
     IServerOrchestrator orchestrator,
     IInstanceMaterializer materializer,
-    IJobProgressReporter progress)
+    IJobProgressReporter progress,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid id, CancellationToken ct, Guid jobId = default)
     {
+        var auth = await scope.RequireAsync(id, ServerAccessPolicy.CanDelete, ct);
+        if (!auth.Succeeded)
+            return auth;
+
         var server = await servers.GetByIdAsync(id, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");

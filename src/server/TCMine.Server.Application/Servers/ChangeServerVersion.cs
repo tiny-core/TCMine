@@ -2,6 +2,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;
@@ -21,11 +22,16 @@ public sealed class ChangeServerVersion(
     IServerRepository servers,
     IModpackRepository modpacks,
     IServerOrchestrator orchestrator,
-    CreateWorldBackup backup)
+    CreateWorldBackup backup,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(
         Guid serverId, Guid targetVersionId, CancellationToken ct, Guid jobId = default)
     {
+        var auth = await scope.RequireAsync(serverId, ServerAccessPolicy.CanConfigure, ct);
+        if (!auth.Succeeded)
+            return auth;
+
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");

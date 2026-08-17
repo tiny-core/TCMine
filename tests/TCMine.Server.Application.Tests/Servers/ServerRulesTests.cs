@@ -60,6 +60,43 @@ public sealed class ServerRulesTests
     }
 
     [Fact]
+    public async Task Moderador_nao_muda_a_configuracao_do_servidor()
+    {
+        // Nome, endereço, RAM e limite de jogadores. Não é destrutivo, mas
+        // trocar o ConnectAddress redireciona todo mundo para outra máquina.
+        var server = Servidor();
+        var servers = new FakeServers(server);
+
+        var result = await new UpdateGameServer(servers, new FakeUserScope(ServerRoleDto.Moderator))
+            .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Servidor não encontrado.", result.Error);
+    }
+
+    [Fact]
+    public async Task Apagar_servidor_exige_Owner_e_Admin_nao_basta()
+    {
+        // A única ação da lista sem volta: leva o mundo junto e nenhum backup
+        // automático a precede. Admin cuida da operação do dia a dia; encerrar
+        // o servidor é decisão de dono.
+        var server = Servidor();
+        var servers = new FakeServers(server);
+        var orchestrator = new FakeOrchestrator();
+        var materializer = new FakeMaterializer();
+
+        var result = await new DeleteGameServer(
+                servers, orchestrator, materializer, new FakeJobProgress(),
+                new FakeUserScope(ServerRoleDto.Admin))
+            .HandleAsync(server.Id, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.False(servers.Removido);
+        Assert.False(orchestrator.Removido);
+        Assert.False(materializer.Apagado);
+    }
+
+    [Fact]
     public async Task Apagar_servidor_remove_container_e_pasta_antes_do_registro()
     {
         var server = Servidor();
@@ -67,7 +104,7 @@ public sealed class ServerRulesTests
         var orchestrator = new FakeOrchestrator();
         var materializer = new FakeMaterializer();
 
-        var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress())
+        var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress(), new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -85,7 +122,7 @@ public sealed class ServerRulesTests
         var servers = new FakeServers(server);
         var orchestrator = new FakeOrchestrator { Explode = true };
 
-        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress())
+        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress(), new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
