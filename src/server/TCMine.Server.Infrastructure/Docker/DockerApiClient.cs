@@ -1,4 +1,4 @@
-﻿using System.Buffers.Binary;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
+using TCMine.Server.Application.Abstractions;
 
 namespace TCMine.Server.Infrastructure.Docker;
 
@@ -68,7 +69,7 @@ public sealed class DockerApiClient
     ///     big-endian. Ler o corpo como texto direto entregaria lixo binário no
     ///     meio das linhas.
     /// </summary>
-    internal async IAsyncEnumerable<string> StreamLogsAsync(
+    internal async IAsyncEnumerable<ConsoleLine> StreamLogsAsync(
         string nameOrId, int tail, [EnumeratorCancellation] CancellationToken ct)
     {
         var url = $"{_prefix}/containers/{nameOrId}/logs?follow=1&stdout=1&stderr=1&tail={tail}";
@@ -89,6 +90,10 @@ public sealed class DockerApiClient
             if (!await FillAsync(stream, header, ct))
                 break;
 
+            // Byte 0 do cabeçalho é o canal: 1=stdout, 2=stderr. Era lido e
+            // descartado; é o que distingue o log da partida do estouro da JVM.
+            var erro = header[0] is 2;
+
             var tamanho = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(4));
             if (tamanho <= 0)
                 continue;
@@ -108,7 +113,7 @@ public sealed class DockerApiClient
                 if (quebra < 0)
                     break;
 
-                yield return texto[..quebra].TrimEnd('\r');
+                yield return new ConsoleLine(texto[..quebra].TrimEnd('\r'), erro);
                 pendente.Remove(0, quebra + 1);
             }
         }

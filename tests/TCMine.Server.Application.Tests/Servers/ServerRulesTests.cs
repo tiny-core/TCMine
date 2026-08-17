@@ -254,7 +254,7 @@ public sealed class ServerRulesTests
         public Task<GameServerStatus> GetStatusAsync(Guid gameServerId, CancellationToken ct) =>
             throw new NotImplementedException();
 
-        public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
+        public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
             throw new NotImplementedException();
     }
 

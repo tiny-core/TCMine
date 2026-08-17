@@ -95,6 +95,10 @@ builder.Services
     .AddMessagePackProtocol();
 
 builder.Services.AddScoped<LauncherNotifier>();
+
+// Singleton: um stream de console por servidor, compartilhado por todos os
+// launchers que o acompanham. Scoped daria um bombeamento por invocação de hub.
+builder.Services.AddSingleton<ConsoleBroadcaster>();
 builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 
 // ---------- Proteção de dados ----------

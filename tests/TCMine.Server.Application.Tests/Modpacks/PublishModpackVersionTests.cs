@@ -1,4 +1,5 @@
-﻿using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
@@ -109,6 +110,9 @@ public sealed class PublishModpackVersionTests
 
     private sealed class FakeHubNotifier : IServerHubNotifier
     {
+        public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
+            Task.CompletedTask;
+
         public int Calls { get; private set; }
 
         public Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct)

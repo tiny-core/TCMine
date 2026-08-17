@@ -97,7 +97,7 @@ public sealed class ServerLifecycleTests
             return Task.FromResult(Status);
         }
 
-        public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
+        public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
             throw new NotImplementedException();
 
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) => throw new NotImplementedException();

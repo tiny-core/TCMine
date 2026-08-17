@@ -109,7 +109,10 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
             {
                 lock (_gate)
                 {
-                    _lines.Enqueue(line);
+                    // O painel exibe só o texto; o canal é usado pelo
+                    // bombeamento para o launcher, que precisa distinguir o log
+                    // da partida do estouro da JVM.
+                    _lines.Enqueue(line.Text);
                     while (_lines.Count > MaxLines)
                         _lines.Dequeue();
 

@@ -1,4 +1,6 @@
-﻿namespace TCMine.Server.Application.Abstractions;
+using TCMine.Contracts.Hubs;
+
+namespace TCMine.Server.Application.Abstractions;
 
 /// <summary>
 ///     Envia eventos aos launchers a partir da camada de aplicação.
@@ -9,4 +11,13 @@
 public interface IServerHubNotifier
 {
     Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct);
+
+    /// <summary>
+    ///     Uma linha do console para quem acompanha o servidor.
+    ///     Passa por esta porta, e não pelo LauncherNotifier direto, pelo motivo
+    ///     que a interface inteira existe: quem bombeia o console precisa ser
+    ///     testável sem subir um hub, e o teste que importa ali é de contagem de
+    ///     streams abertos — não de entrega de mensagem.
+    /// </summary>
+    Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct);
 }

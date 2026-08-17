@@ -162,7 +162,7 @@ public sealed class SendServerCommandTests
         public Task<GameServerStatus> GetStatusAsync(Guid gameServerId, CancellationToken ct) =>
             Task.FromResult(status);
 
-        public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
+        public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
             throw new NotImplementedException();
 
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) =>

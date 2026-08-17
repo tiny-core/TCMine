@@ -154,7 +154,7 @@ public sealed class DockerServerOrchestrator(
         };
     }
 
-    public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct)
+    public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct)
     {
         // 200 linhas de histórico: o bastante para ver por que o servidor caiu
         // sem despejar o log inteiro de uma sessão de horas no circuito.

@@ -31,7 +31,7 @@ public interface IServerOrchestrator
     ///     ao longo do tempo e não faz sentido acumular tudo em memória antes de
     ///     repassar ao Hub.
     /// </summary>
-    IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct);
+    IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct);
 
     /// <summary>
     ///     Para (se preciso) e remove o container da instância. Idempotente:
@@ -40,6 +40,15 @@ public interface IServerOrchestrator
     /// </summary>
     Task RemoveAsync(Guid gameServerId, CancellationToken ct);
 }
+
+/// <summary>
+///     Uma linha do console, com o canal de onde veio.
+///     O canal viaja junto porque é justamente no crash que ele importa: o
+///     servidor de jogo escreve a partida inteira em stdout, e o que aparece em
+///     stderr é a JVM morrendo. Descartá-lo obrigaria a interface a adivinhar o
+///     que destacar exatamente no momento em que alguém está procurando o erro.
+/// </summary>
+public sealed record ConsoleLine(string Text, bool IsError);
 
 /// <summary>
 ///     Envio de comandos ao servidor de jogo.

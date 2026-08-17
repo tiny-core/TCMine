@@ -23,12 +23,14 @@ public static class HandshakeEndpoints
     /// </summary>
     private static readonly string[] CurrentCapabilities =
     [
-        // Comandos de console traduzidos para RCON pelo servidor. Anunciado
-        // porque o caminho está inteiro: papel, allowlist e execução.
-        // ConsoleStream ainda NÃO entra: o LauncherNotifier sabe empurrar as
-        // linhas, mas nada as bombeia para o grupo do hub — anunciá-la faria o
-        // launcher exibir um console que nunca recebe nada.
-        Capabilities.ConsoleCommands
+        // Comandos de console traduzidos para RCON pelo servidor: papel,
+        // allowlist e execução.
+        Capabilities.ConsoleCommands,
+
+        // Linhas do console empurradas para quem assina o servidor. Só entrou
+        // depois de existir quem as bombeasse — anunciar antes faria o launcher
+        // exibir um console que nunca recebe nada.
+        Capabilities.ConsoleStream
     ];
 
     public static IEndpointRouteBuilder MapHandshake(this IEndpointRouteBuilder app)

@@ -28,7 +28,8 @@ public sealed class MainHub(
     ICurrentUserScope scope,
     IModpackRepository modpacks,
     ListAccessibleServers accessibleServers,
-    SendServerCommand sendCommand) : Hub<ILauncherClient>, IServerHub
+    SendServerCommand sendCommand,
+    ConsoleBroadcaster broadcaster) : Hub<ILauncherClient>, IServerHub
 {
     public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
@@ -65,10 +66,30 @@ public sealed class MainHub(
             throw new HubException("Sem permissão para acompanhar este servidor.");
 
         await Groups.AddToGroupAsync(Context.ConnectionId, GroupFor(serverId));
+
+        // Só depois de entrar no grupo: começar a bombear antes abriria uma
+        // janela em que as linhas saem para um grupo do qual esta conexão ainda
+        // não faz parte — o primeiro pedaço do console se perderia.
+        broadcaster.Subscribe(Context.ConnectionId, serverId);
     }
 
-    public Task UnsubscribeServerAsync(Guid serverId) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupFor(serverId));
+    public async Task UnsubscribeServerAsync(Guid serverId)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, GroupFor(serverId));
+        broadcaster.Unsubscribe(Context.ConnectionId, serverId);
+    }
+
+    /// <summary>
+    ///     Queda de conexão é o caso comum, não a exceção — o jogador fecha o
+    ///     launcher, o wi-fi cai, a máquina hiberna. Sem soltar aqui, o contador
+    ///     de ouvintes nunca voltaria a zero e o console seguiria sendo lido do
+    ///     Docker para ninguém, até o processo reiniciar.
+    /// </summary>
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        broadcaster.Disconnect(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
+    }
 
     public async Task<CommandResultDto> SendCommandAsync(
         Guid serverId,

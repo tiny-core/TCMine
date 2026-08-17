@@ -1,4 +1,5 @@
-﻿using TCMine.Server.Application.Abstractions;
+using TCMine.Contracts.Hubs;
+using TCMine.Server.Application.Abstractions;
 
 namespace TCMine.Server.Web.Hubs;
 
@@ -7,4 +8,7 @@ public sealed class ServerHubNotifier(LauncherNotifier notifier) : IServerHubNot
 {
     public Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct) =>
         notifier.ModpackVersionPublishedAsync(modpackId, versionId);
+
+    public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
+        notifier.ConsoleLineAsync(serverId, line);
 }

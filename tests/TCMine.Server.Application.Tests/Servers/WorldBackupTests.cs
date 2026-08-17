@@ -520,7 +520,7 @@ public sealed class WorldBackupTests
         public Task StopAsync(Guid gameServerId, TimeSpan timeout, CancellationToken ct) =>
             throw new NotImplementedException();
 
-        public IAsyncEnumerable<string> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
+        public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct) =>
             throw new NotImplementedException();
 
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) => throw new NotImplementedException();
