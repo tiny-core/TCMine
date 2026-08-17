@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Endpoints;
@@ -51,15 +52,9 @@ public sealed class HttpContextUserScope(
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.UserId == userId && m.GameServerId == gameServerId, ct);
 
-        // Mapeamento explícito: os dois enums têm os mesmos valores hoje, mas um
-        // cast silencioso viraria bug no dia em que um deles ganhasse um papel.
-        return membership?.Role switch
-        {
-            ServerRole.Member => ServerRoleDto.Member,
-            ServerRole.Moderator => ServerRoleDto.Moderator,
-            ServerRole.Admin => ServerRoleDto.Admin,
-            ServerRole.Owner => ServerRoleDto.Owner,
-            _ => null
-        };
+        // Mapeamento explícito (ver ServerRoleMap): os dois enums têm os mesmos
+        // valores hoje, mas um cast silencioso viraria bug no dia em que um
+        // deles ganhasse um papel.
+        return membership?.Role.ToDto();
     }
 }

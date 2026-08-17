@@ -1,7 +1,8 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;
@@ -9,6 +10,7 @@ namespace TCMine.Server.Application.Servers;
 public sealed class CreateGameServer(
     IServerRepository servers,
     IModpackRepository modpacks,
+    IMembershipRepository memberships,
     ICurrentUserScope userScope)
 {
     public async Task<Result<Guid>> HandleAsync(
@@ -51,6 +53,23 @@ public sealed class CreateGameServer(
         };
 
         await servers.AddAsync(server, ct);
+
+        // Quem cria vira Owner do servidor. Sem este vínculo o servidor nasceria
+        // sem ninguém que possa convidar ou apagá-lo: o OwnerId sozinho é
+        // costura de multi-tenant, não papel — quem decide permissão é o
+        // Membership, e ele precisa existir desde o primeiro instante.
+        if (userScope.UserId is { } criador)
+        {
+            await memberships.AddAsync(
+                new Membership
+                {
+                    UserId = criador,
+                    GameServerId = server.Id,
+                    Role = ServerRole.Owner
+                },
+                ct);
+        }
+
         return Result<Guid>.Success(server.Id);
     }
 }

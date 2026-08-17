@@ -3,6 +3,7 @@ using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 
@@ -57,6 +58,25 @@ public sealed class ServerRulesTests
         // Quem tem a senha RCON manda na máquina do jogo: ela nasce aqui, forte
         // e diferente a cada servidor — nunca vem do formulário.
         Assert.True(servers.Adicionado.RconSecret.Length >= 32);
+    }
+
+    [Fact]
+    public async Task Quem_cria_o_servidor_vira_Owner_dele()
+    {
+        // Sem este vínculo o servidor nasceria sem ninguém que pudesse convidar
+        // ou apagá-lo: o OwnerId é costura de multi-tenant, quem decide
+        // permissão é o Membership.
+        var memberships = new FakeMemberships();
+        var version = Versao("1.0.0", ModpackVersionState.Ready);
+
+        var result = await NewCreate(version, memberships: memberships)
+            .HandleAsync(version.ModpackId, "Survival", "jogo:25565", 4096, 20, version.Id,
+                CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(memberships.Adicionado);
+        Assert.Equal(ServerRole.Owner, memberships.Adicionado!.Role);
+        Assert.Equal(result.Value, memberships.Adicionado.GameServerId);
     }
 
     [Fact]
@@ -131,8 +151,10 @@ public sealed class ServerRulesTests
 
     // ---- Fixtures ----
 
-    private static CreateGameServer NewCreate(ModpackVersion version, FakeServers? servers = null) =>
-        new(servers ?? new FakeServers(), new FakeModpacks(version), new FakeScope());
+    private static CreateGameServer NewCreate(
+        ModpackVersion version, FakeServers? servers = null, FakeMemberships? memberships = null) =>
+        new(servers ?? new FakeServers(), new FakeModpacks(version),
+            memberships ?? new FakeMemberships(), new FakeScope());
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)
     {

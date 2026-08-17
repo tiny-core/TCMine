@@ -96,6 +96,8 @@ public static class DependencyInjection
         services.AddScoped<IServerRepository, ServerRepository>();
 
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IInviteRepository, InviteRepository>();
+        services.AddScoped<IMembershipRepository, MembershipRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
 

@@ -191,7 +191,7 @@ public sealed class AuthenticationTests
     public async Task Reset_recusa_token_expirado()
     {
         var user = Usuario("ana@teste.com", "antiga");
-        user.PasswordResetTokenHash = RequestPasswordReset.HashToken("token-valido");
+        user.PasswordResetTokenHash = SecureToken.Hash("token-valido");
         user.PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.AddMinutes(-1);
 
         var result = await new ResetPassword(new FakeUsers(user), new FakeHasher())
@@ -205,7 +205,7 @@ public sealed class AuthenticationTests
     public async Task Reset_recusa_token_errado()
     {
         var user = Usuario("ana@teste.com", "antiga");
-        user.PasswordResetTokenHash = RequestPasswordReset.HashToken("token-certo");
+        user.PasswordResetTokenHash = SecureToken.Hash("token-certo");
         user.PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.AddHours(1);
 
         var result = await new ResetPassword(new FakeUsers(user), new FakeHasher())

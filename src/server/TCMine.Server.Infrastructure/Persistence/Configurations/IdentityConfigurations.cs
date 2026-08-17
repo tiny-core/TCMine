@@ -63,3 +63,31 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         builder.HasIndex(m => m.GameServerId);
     }
 }
+
+public sealed class InviteConfiguration : IEntityTypeConfiguration<Invite>
+{
+    public void Configure(EntityTypeBuilder<Invite> builder)
+    {
+        builder.ToTable("invites");
+
+        builder.HasKey(i => i.Id);
+
+        builder.Property(i => i.CodeHash).HasMaxLength(64).IsFixedLength().IsRequired();
+
+        builder.Property(i => i.Role)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        // Único: dois convites com o mesmo hash tornariam o resgate ambíguo, e
+        // a colisão real seria sinal de gerador quebrado — melhor estourar na
+        // escrita do que escolher um dos dois em silêncio.
+        builder.HasIndex(i => i.CodeHash).IsUnique();
+
+        // O caminho do resgate: hash → convite. É a consulta que roda com o
+        // usuário esperando na tela.
+        // Estar usável é derivado das três datas (ver Invite.IsUsable) e não
+        // vira coluna: é método, então o EF não tenta mapeá-lo.
+        builder.HasIndex(i => i.GameServerId);
+    }
+}

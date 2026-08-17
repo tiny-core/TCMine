@@ -26,7 +26,7 @@ public sealed class ResetPassword(IUserRepository users, IPasswordHasher hasher)
 
         // Comparação em tempo constante: comparar strings com == vaza, pelo tempo
         // de resposta, quantos caracteres iniciais o palpite acertou.
-        var presented = RequestPasswordReset.HashToken(token);
+        var presented = SecureToken.Hash(token);
         if (!CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(presented),
                 Encoding.UTF8.GetBytes(user.PasswordResetTokenHash)))

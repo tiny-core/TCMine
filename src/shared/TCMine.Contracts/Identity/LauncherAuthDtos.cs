@@ -12,6 +12,16 @@ public sealed record MinecraftLoginRequest
 }
 
 /// <summary>
+///     Resgate de convite. O código é o que o jogador recebeu de quem o
+///     convidou, no formato XXXX-XXXX-XXXX-XXXX — hífens e caixa são cosméticos
+///     e o servidor normaliza antes de comparar.
+/// </summary>
+public sealed record RedeemInviteRequest
+{
+    public required string Code { get; init; }
+}
+
+/// <summary>
 ///     Quem o servidor reconheceu. O launcher usa isto para exibir o jogador na
 ///     interface sem refazer a cadeia de autenticação a cada abertura.
 /// </summary>

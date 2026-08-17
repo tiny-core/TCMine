@@ -1,5 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 
@@ -25,8 +23,8 @@ public sealed class RequestPasswordReset(IUserRepository users, IEmailSender ema
         if (user?.Email is null)
             return Result.Success();
 
-        var token = GenerateToken();
-        user.PasswordResetTokenHash = HashToken(token);
+        var token = SecureToken.Generate();
+        user.PasswordResetTokenHash = SecureToken.Hash(token);
         user.PasswordResetTokenExpiresAt = DateTimeOffset.UtcNow.Add(Lifetime);
         await users.UpdateAsync(user, ct);
 
@@ -51,24 +49,4 @@ public sealed class RequestPasswordReset(IUserRepository users, IEmailSender ema
         return Result.Success();
     }
 
-    /// <summary>256 bits de aleatoriedade criptográfica, em base64 seguro para URL.</summary>
-    private static string GenerateToken()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
-    }
-
-    /// <summary>
-    ///     SHA-256 direto (sem salt, sem custo alto de propósito): o token já é
-    ///     aleatório de 256 bits, então não há dicionário a resistir — só
-    ///     precisamos que o valor guardado não sirva como link.
-    /// </summary>
-    internal static string HashToken(string token)
-    {
-        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(token));
-        return Convert.ToHexStringLower(hash);
-    }
 }

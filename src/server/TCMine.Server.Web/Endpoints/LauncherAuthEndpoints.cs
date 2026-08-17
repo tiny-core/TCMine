@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using TCMine.Contracts.Identity;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Endpoints;
@@ -51,6 +52,24 @@ public static class LauncherAuthEndpoints
             .AllowAnonymous()
             // Mesmo teto do login local: é uma porta de autenticação, e a única
             // diferença é quem valida a credencial do outro lado.
+            .RequireRateLimiting(RateLimitPolicies.AuthPolicy);
+
+        app.MapPost("/api/v1/invites/redeem", async (
+                [FromBody] RedeemInviteRequest request,
+                RedeemInvite useCase,
+                CancellationToken ct) =>
+            {
+                var result = await useCase.HandleAsync(request.Code, ct);
+
+                return result.Succeeded
+                    ? Results.NoContent()
+                    : Results.Problem(result.Error, statusCode: StatusCodes.Status400BadRequest);
+            })
+            .WithName("RedeemInvite")
+            .RequireAuthorization()
+            // Adivinhar código é força bruta como qualquer outra: 78 bits são
+            // muitos, mas sem teto de tentativas o cálculo passa a ser sobre
+            // quantos convites existem, não sobre o tamanho do espaço.
             .RequireRateLimiting(RateLimitPolicies.AuthPolicy);
 
         // Contraparte do /auth/logout do painel, em JSON: o launcher precisa

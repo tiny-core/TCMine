@@ -68,6 +68,11 @@ public static class DependencyInjection
 
         services.AddScoped<AuthenticateUser>();
         services.AddScoped<AuthenticateMinecraftUser>();
+        services.AddScoped<CreateInvite>();
+        services.AddScoped<RedeemInvite>();
+        services.AddScoped<RevokeInvite>();
+        services.AddScoped<RemoveMember>();
+        services.AddScoped<ChangeMemberRole>();
         services.AddScoped<CreateFirstAdmin>();
         services.AddScoped<ChangePassword>();
         services.AddScoped<UpdateSettings>();
