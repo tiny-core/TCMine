@@ -1,0 +1,92 @@
+@using TCMine.Contracts.Servers
+@using TCMine.Server.Web.Components.Features.Modpacks
+@using TCMine.Server.Web.Components.Shared
+@inherits DialogComponentBase
+
+@* Convite para um servidor.
+
+   O diálogo tem dois momentos: escolher o papel e, depois de criado, exibir o
+   código. O segundo existe porque o código não pode ser recuperado — o banco
+   guarda só o hash. Fechar sem copiar significa gerar outro. *@
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.PersonAdd" Text="Convidar para o servidor"/>
+    </TitleContent>
+
+    <DialogContent>
+        @if (_code is null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2">
+                    O convite vale para <b>@ServerName</b>, serve uma única vez e expira em
+                    @Dias dias.
+                </MudText>
+
+                <MudSelect T="ServerRoleDto" @bind-Value="_role" Label="Papel"
+                           Variant="Variant.Outlined" Dense="true">
+                    <MudSelectItem Value="ServerRoleDto.Member">
+                        Membro — vê o servidor e entra para jogar
+                    </MudSelectItem>
+                    <MudSelectItem Value="ServerRoleDto.Moderator">
+                        Moderador — lê o console e usa comandos da allowlist
+                    </MudSelectItem>
+                    <MudSelectItem Value="ServerRoleDto.Admin">
+                        Admin — liga, desliga, configura e cuida dos backups
+                    </MudSelectItem>
+                </MudSelect>
+
+                @* Dono não está na lista: o convite não concede esse papel, e
+                   oferecê-lo para depois recusar seria pegadinha. *@
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    O código aparece uma única vez, agora. Não é possível vê-lo depois —
+                    se perder, gere outro.
+                </MudAlert>
+
+                @if (IsBusy)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2">
+                    Convite de <b>@Rotulo(_createdRole)</b> criado. Mande este código para a pessoa:
+                </MudText>
+
+                <MudPaper Class="pa-4 d-flex align-center justify-center" Outlined="true">
+                    <MudText Typo="Typo.h5" Style="letter-spacing:.15em; font-family:monospace;">
+                        @_code
+                    </MudText>
+                </MudPaper>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.ContentCopy"
+                           OnClick="CopyAsync">
+                    Copiar código
+                </MudButton>
+
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    Ao fechar, o código deixa de estar disponível.
+                </MudAlert>
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        @if (_code is null)
+        {
+            <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                       OnClick="CreateAsync" Disabled="IsBusy">
+                Gerar convite
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" OnClick="Close">Fechar</MudButton>
+        }
+    </DialogActions>
+</MudDialog>

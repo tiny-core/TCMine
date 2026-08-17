@@ -1,4 +1,5 @@
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
 
 namespace TCMine.Server.Application.Tests.Fakes;
@@ -54,6 +55,16 @@ internal sealed class FakeMemberships(params Membership[] seed) : IMembershipRep
     public Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<Membership>>(
             [.. _memberships.Where(m => m.GameServerId == gameServerId)]);
+
+    public Task<IReadOnlyList<ServerMemberView>> ListWithUsersAsync(
+        Guid gameServerId, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<ServerMemberView>>(
+        [
+            .. _memberships
+                .Where(m => m.GameServerId == gameServerId)
+                .Select(m => new ServerMemberView(
+                    m.Id, m.UserId, $"usuario-{m.UserId:N}"[..16], null, m.Role.ToDto(), null))
+        ]);
 
     public Task UpdateAsync(Membership membership, CancellationToken ct) => Task.CompletedTask;
 

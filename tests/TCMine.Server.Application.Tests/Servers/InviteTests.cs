@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Domain.Identity;
@@ -237,6 +238,42 @@ public sealed class InviteTests
 
         result.Succeeded.ShouldBeFalse();
         result.Error!.ShouldContain("Remova o membro");
+    }
+
+    [Fact]
+    public async Task Lista_de_acesso_esconde_convites_que_nao_servem_mais()
+    {
+        // Convite usado ou vencido não tem ação possível: listá-lo encheria a
+        // tela de linhas sobre as quais não há o que fazer, e sugeriria acesso
+        // pendente onde não há.
+        var (_, pendente) = NovoConvite(ServerRole.Member);
+        var (_, usado) = NovoConvite(ServerRole.Admin);
+        usado.Redeem(Guid.CreateVersion7(), DateTimeOffset.UtcNow);
+
+        var vencido = Convite(SecureToken.GenerateCode(), ServerRole.Member,
+            DateTimeOffset.UtcNow.AddMinutes(-1));
+
+        var result = await new ListServerAccess(
+                new FakeMemberships(), new FakeInvites(pendente, usado, vencido), new FakeUserScope())
+            .HandleAsync(ServidorId, TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeTrue();
+        result.Value!.PendingInvites.Select(i => i.Id).ShouldBe([pendente.Id]);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(ServerRoleDto.Moderator)]
+    [InlineData(ServerRoleDto.Admin)]
+    public async Task Abaixo_de_Owner_ninguem_ve_a_lista_de_membros(ServerRoleDto? papel)
+    {
+        // Leitura, mas não pública: a lista diz quem joga aqui, e os convites
+        // pendentes revelam quem foi chamado e com que papel.
+        var result = await new ListServerAccess(
+                new FakeMemberships(), new FakeInvites(), new FakeUserScope(papel))
+            .HandleAsync(ServidorId, TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeFalse();
     }
 
     private static FakeUserScope Jogador() =>

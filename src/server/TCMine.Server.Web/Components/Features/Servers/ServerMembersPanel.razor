@@ -1,0 +1,136 @@
+@using TCMine.Contracts.Servers
+@using TCMine.Server.Application.Security
+
+@* Quem tem acesso a este servidor, e quem foi chamado e ainda não entrou.
+
+   Só aparece para quem pode gerenciar membros: para os demais o caso de uso
+   recusa, e mostrar a aba vazia sugeriria que não há ninguém. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Primary"/>
+        <MudText Typo="Typo.subtitle2">Membros</MudText>
+        <MudSpacer/>
+
+        @if (_isBusy)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.PersonAdd"
+                   OnClick="InviteAsync" Disabled="_isBusy || !_canManage">
+            Convidar
+        </MudButton>
+    </MudStack>
+
+    @if (_loaded && !_canManage)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+            Só o dono do servidor gerencia membros e convites.
+        </MudAlert>
+    }
+    else if (!_loaded)
+    {
+        <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px"/>
+    }
+    else
+    {
+        <MudTable Items="_members" Dense="true" Hover="true" RowsPerPage="10">
+            <HeaderContent>
+                <MudTh>Jogador</MudTh>
+                <MudTh>Papel</MudTh>
+                <MudTh>Visto por último</MudTh>
+                <MudTh Style="text-align:right;">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Jogador">
+                    <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                    @if (context.MinecraftUuid is null)
+                    {
+                        <MudText Typo="Typo.caption" Style="opacity:.7;">
+                            conta do painel
+                        </MudText>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Papel">
+                    @if (context.Role is ServerRoleDto.Owner)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                            Dono
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudSelect T="ServerRoleDto" Value="context.Role" Dense="true" Margin="Margin.Dense"
+                                   Variant="Variant.Text" Disabled="_isBusy"
+                                   ValueChanged="@(papel => ChangeRoleAsync(context, papel))">
+                            <MudSelectItem Value="ServerRoleDto.Member">Membro</MudSelectItem>
+                            <MudSelectItem Value="ServerRoleDto.Moderator">Moderador</MudSelectItem>
+                            <MudSelectItem Value="ServerRoleDto.Admin">Admin</MudSelectItem>
+                        </MudSelect>
+                    }
+                </MudTd>
+                <MudTd DataLabel="Visto por último">
+                    <MudText Typo="Typo.caption">
+                        @(context.LastSeenAt is { } visto
+                            ? visto.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            : "nunca entrou")
+                    </MudText>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    @if (context.Role is not ServerRoleDto.Owner)
+                    {
+                        <MudTooltip Text="Tirar o acesso">
+                            <MudIconButton Icon="@Icons.Material.Filled.PersonRemove" Size="Size.Small"
+                                           Color="Color.Error"
+                                           OnClick="@(() => RemoveAsync(context))" Disabled="_isBusy"/>
+                        </MudTooltip>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+
+        @if (_invites.Count > 0)
+        {
+            <MudText Typo="Typo.subtitle2" Class="mt-5 mb-2">Convites em aberto</MudText>
+
+            <MudTable Items="_invites" Dense="true" Hover="true" RowsPerPage="5">
+                <HeaderContent>
+                    <MudTh>Papel</MudTh>
+                    <MudTh>Criado</MudTh>
+                    <MudTh>Expira</MudTh>
+                    <MudTh Style="text-align:right;">Ações</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Papel">@Rotulo(context.Role.ToDto())</MudTd>
+                    <MudTd DataLabel="Criado">
+                        <MudText Typo="Typo.caption">
+                            @context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Expira">
+                        <MudText Typo="Typo.caption">
+                            @context.ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:right;">
+                        <MudTooltip Text="Revogar">
+                            <MudIconButton Icon="@Icons.Material.Filled.Block" Size="Size.Small"
+                                           Color="Color.Warning"
+                                           OnClick="@(() => RevokeAsync(context))" Disabled="_isBusy"/>
+                        </MudTooltip>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        else
+        {
+            @* O código não é recuperável, então não há lista de "convites já
+               criados" para consultar — só os que ainda podem ser usados. *@
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mt-4">
+                Nenhum convite em aberto.
+            </MudText>
+        }
+    }
+</MudPaper>

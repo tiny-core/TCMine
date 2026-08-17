@@ -141,6 +141,11 @@ else
                                                        Icon="@Icons.Material.Filled.Backup">
                                         <WorldBackupsPanel Server="server" OnChanged="LoadAsync"/>
                                     </MudExpansionPanel>
+
+                                    <MudExpansionPanel Text="Membros e convites"
+                                                       Icon="@Icons.Material.Filled.Group">
+                                        <ServerMembersPanel Server="server"/>
+                                    </MudExpansionPanel>
                                 </MudExpansionPanels>
                             </MudCardContent>
                         </MudCard>

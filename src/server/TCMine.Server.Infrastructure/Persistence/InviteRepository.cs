@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
 
 namespace TCMine.Server.Infrastructure.Persistence;
@@ -70,6 +71,42 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
             .Where(m => m.GameServerId == gameServerId)
             .OrderBy(m => m.Id)
             .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<ServerMemberView>> ListWithUsersAsync(
+        Guid gameServerId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Join explícito: não há navegação entre Membership e User no modelo, e
+        // criá-la só para esta tela arrastaria carregamento implícito para todas
+        // as checagens de permissão, que não querem o usuário inteiro.
+        var linhas = await (
+            from m in db.Memberships.AsNoTracking()
+            join u in db.Users.AsNoTracking() on m.UserId equals u.Id
+            where m.GameServerId == gameServerId
+            select new
+            {
+                MembershipId = m.Id,
+                m.Role,
+                m.UserId,
+                u.DisplayName,
+                u.MinecraftUuid,
+                u.LastSeenAt
+            }).ToListAsync(ct);
+
+        // Tradução e ordenação fora do banco de propósito: ToDto é um switch que
+        // não vira SQL, e o papel está gravado como STRING — ordenar por ele no
+        // banco daria ordem alfabética (Admin, Member, Moderator), não hierarquia.
+        return
+        [
+            .. linhas
+                .Select(l => new ServerMemberView(
+                    l.MembershipId, l.UserId, l.DisplayName, l.MinecraftUuid,
+                    l.Role.ToDto(), l.LastSeenAt))
+                .OrderByDescending(v => v.Role)
+                .ThenBy(v => v.DisplayName, StringComparer.OrdinalIgnoreCase)
+        ];
     }
 
     public async Task UpdateAsync(Membership membership, CancellationToken ct)
