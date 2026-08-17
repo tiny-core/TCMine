@@ -99,6 +99,16 @@ public static class DependencyInjection
         services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
 
+        // Verificação do login vindo do launcher. Resiliência padrão porque uma
+        // instabilidade momentânea da Mojang não deve virar "não consigo entrar":
+        // o handler tenta de novo antes de a exceção chegar ao jogador.
+        services.AddHttpClient<IMinecraftProfileSource, MinecraftServicesProfileSource>(client =>
+            {
+                client.BaseAddress = new Uri("https://api.minecraftservices.com");
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .AddStandardResilienceHandler();
+
         // Sem SMTP ainda: o link de recuperação vai para o log. Trocar por um
         // SmtpEmailSender quando a tela de Configurações existir.
         services.AddSingleton<IEmailSender, LoggingEmailSender>();

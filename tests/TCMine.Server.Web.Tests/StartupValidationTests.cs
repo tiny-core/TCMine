@@ -27,6 +27,21 @@ public class StartupValidationTests
     }
 
     [Fact]
+    public void Producao_sem_AzureClientId_recusa_subir()
+    {
+        // Sem o client id, o launcher não tem contra o que autenticar: o
+        // servidor sobe saudável e o jogador é quem descobre, na máquina dele.
+        using var factory = new TcMineAppFactory(
+            "Production",
+            ("Server:PublicUrl", "https://exemplo.com/"),
+            ("Server:AzureClientId", ""));
+
+        var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+
+        erro.Message.ShouldContain("Server:AzureClientId");
+    }
+
+    [Fact]
     public void PublicUrl_com_esquema_invalido_recusa_subir()
     {
         using var factory = new TcMineAppFactory(settings: ("Server:PublicUrl", "ftp://exemplo.com/"));

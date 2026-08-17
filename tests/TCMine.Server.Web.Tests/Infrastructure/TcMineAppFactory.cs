@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TCMine.Server.Web.Tests.Infrastructure;
 
@@ -30,9 +32,24 @@ internal sealed class TcMineAppFactory : WebApplicationFactory<Program>
         _settings = settings;
     }
 
+    /// <summary>
+    ///     Troca de serviços para o teste. Existe para substituir portas que
+    ///     saem para fora — a verificação do perfil na Mojang, por exemplo:
+    ///     depender dela de verdade tornaria a suíte refém de uma API externa.
+    /// </summary>
+    public Action<IServiceCollection>? Servicos { get; init; }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
+
+        if (Servicos is not null)
+            builder.ConfigureTestServices(Servicos);
+
+        // Obrigatório fora de Development, e nada aqui testa o login do
+        // launcher: sem um padrão, toda suíte que sobe em Production teria de
+        // saber desta chave.
+        builder.UseSetting("Server:AzureClientId", "client-id-de-teste");
 
         builder.UseSetting("Database:Provider", "Sqlite");
         builder.UseSetting("Database:ConnectionString", $"Data Source={_databasePath}");

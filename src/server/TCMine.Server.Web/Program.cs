@@ -231,6 +231,7 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 
 app.MapAuth();
+app.MapLauncherAuth();
 app.MapWorldBackups();
 
 // RequireAuthorization no painel inteiro: o padrão passa a ser "precisa de

@@ -118,7 +118,14 @@ public static class AuthEndpoints
         return app;
     }
 
-    private static async Task SignInAsync(HttpContext http, User user)
+    /// <summary>
+    ///     Grava o cookie de sessão. Interno porque o login do launcher
+    ///     (<see cref="LauncherAuthEndpoints" />) emite exatamente a mesma sessão:
+    ///     duas montagens de claims divergiriam, e a que esquecesse
+    ///     <c>IsInstanceAdmin</c> criaria um caminho de login que silenciosamente
+    ///     rebaixa quem entra por ele.
+    /// </summary>
+    internal static async Task SignInAsync(HttpContext http, User user)
     {
         // As claims são a fonte de verdade da sessão. IsInstanceAdmin entra como
         // claim para o middleware autorizar sem ir ao banco a cada requisição;
@@ -126,9 +133,13 @@ public static class AuthEndpoints
         List<Claim> claims =
         [
             new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.DisplayName),
-            new(ClaimTypes.Email, user.Email)
+            new(ClaimTypes.Name, user.DisplayName)
         ];
+
+        // Conta que entrou pelo launcher não tem e-mail; uma Claim com valor
+        // nulo lança na construção, então a ausência é omissão, não string vazia.
+        if (!string.IsNullOrEmpty(user.Email))
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
 
         if (user.IsInstanceAdmin)
             claims.Add(new Claim(TcMineClaims.InstanceAdmin, "true"));

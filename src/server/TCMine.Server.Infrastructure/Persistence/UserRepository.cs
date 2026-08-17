@@ -34,6 +34,16 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
         return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.MicrosoftObjectId == objectId, ct);
     }
 
+    public async Task<User?> GetByMinecraftUuidAsync(string uuid, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // A Mojang devolve o UUID em minúsculas e sem hífens; normalizar aqui
+        // evita depender de o chamador ter feito isso.
+        var normalized = uuid.Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+        return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.MinecraftUuid == normalized, ct);
+    }
+
     public async Task AddAsync(User user, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

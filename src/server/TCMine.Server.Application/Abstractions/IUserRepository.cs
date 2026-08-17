@@ -15,6 +15,12 @@ public interface IUserRepository
     /// <summary>Busca pelo Object ID da Microsoft (login federado).</summary>
     Task<User?> GetByMicrosoftObjectIdAsync(string objectId, CancellationToken ct);
 
+    /// <summary>
+    ///     Busca pelo UUID da conta Minecraft (login do launcher). É por ele, e
+    ///     não pelo nome de jogador, que reconhecemos quem voltou: o nome muda.
+    /// </summary>
+    Task<User?> GetByMinecraftUuidAsync(string uuid, CancellationToken ct);
+
     Task AddAsync(User user, CancellationToken ct);
 
     Task UpdateAsync(User user, CancellationToken ct);

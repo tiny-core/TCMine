@@ -38,6 +38,15 @@ public static class OptionsValidation
                 "Server:PublicUrl precisa ser uma URL absoluta http/https — o jogador alcança "
                 + "este endereço de fora, não é o IP interno do container.")
             .Validate(
+                // Mesma lógica do PublicUrl: em Development ninguém entra pelo
+                // launcher, mas em produção este campo vazio significa que o
+                // jogador abre o launcher e não tem contra o que autenticar. O
+                // servidor sobe saudável e o sintoma aparece só na máquina dele.
+                o => environment.IsDevelopment() || !string.IsNullOrWhiteSpace(o.AzureClientId),
+                "Server:AzureClientId é obrigatório fora de Development: é o client id da app "
+                + "Azure que o launcher usa para o login com a Microsoft. Sem ele nenhum "
+                + "jogador consegue entrar.")
+            .Validate(
                 // String vazia não é o mesmo que ausente: vazia o launcher recebe
                 // e tenta comparar; ausente ele entende como "sem mínimo".
                 o => o.MinLauncherVersion is null || !string.IsNullOrWhiteSpace(o.MinLauncherVersion),

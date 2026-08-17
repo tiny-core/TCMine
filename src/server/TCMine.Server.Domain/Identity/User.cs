@@ -7,8 +7,12 @@ public sealed class User : Entity
     /// <summary>
     ///     E-mail: é por ele que se faz login com conta local, e é o que liga uma
     ///     conta local à conta Microsoft quando a mesma pessoa usa as duas.
+    ///     Nulo para quem entrou pelo launcher: o perfil do Minecraft devolve
+    ///     UUID e nome de jogador, nunca e-mail. Sintetizar um endereço falso só
+    ///     para preencher a coluna criaria uma conta que aparenta ter login
+    ///     local e caminho de recuperação de senha — nenhum dos dois existe.
     /// </summary>
-    public required string Email { get; set; }
+    public string? Email { get; set; }
 
     /// <summary>
     ///     Hash da senha da conta local. Nulo quando o usuário só entra pela

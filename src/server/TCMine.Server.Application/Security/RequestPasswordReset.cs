@@ -19,8 +19,10 @@ public sealed class RequestPasswordReset(IUserRepository users, IEmailSender ema
         var user = await users.GetByEmailAsync(emailAddress.Trim(), ct);
 
         // Sucesso mesmo quando o e-mail não existe: responder "não encontrado"
-        // transformaria esta tela num verificador de quem tem conta aqui.
-        if (user is null)
+        // transformaria esta tela num verificador de quem tem conta aqui. Conta
+        // sem e-mail (a que entra pelo launcher) cai no mesmo silêncio — ela não
+        // tem senha para recuperar, e a busca acima nem a encontraria.
+        if (user?.Email is null)
             return Result.Success();
 
         var token = GenerateToken();

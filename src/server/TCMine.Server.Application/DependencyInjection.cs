@@ -67,6 +67,7 @@ public static class DependencyInjection
         services.AddScoped<RestoreModpackVersion>();
 
         services.AddScoped<AuthenticateUser>();
+        services.AddScoped<AuthenticateMinecraftUser>();
         services.AddScoped<CreateFirstAdmin>();
         services.AddScoped<ChangePassword>();
         services.AddScoped<UpdateSettings>();
