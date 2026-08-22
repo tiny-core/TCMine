@@ -1,8 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <PackageReference Include="NSubstitute"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+        O provider de Postgres entra aqui porque há testes que rodam contra um
+        banco de verdade: o SQLite aceita qualquer texto num varchar(n) e por
+        isso nunca exerce os limites de coluna. Sem TCMINE_TEST_POSTGRES esses
+        testes são pulados.
+    -->
+    <ProjectReference Include="..\..\src\server\TCMine.Server.Infrastructure.Postgres\TCMine.Server.Infrastructure.Postgres.csproj"/>
   </ItemGroup>
 
   <ItemGroup>

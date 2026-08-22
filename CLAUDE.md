@@ -284,6 +284,20 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Integração com EF** → `Infrastructure.Tests` com **SQLite in-memory**
   (`SqliteTestFactory`: uma conexão viva + `EnsureCreated`, factory servindo contextos sobre ela).
 - **Regras de camada** → `Architecture.Tests` (NetArchTest). Não quebre a direção das dependências.
+- **Limites de coluna** → `PostgresColumnLimitsTests`, contra um PostgreSQL de
+  verdade. O SQLite **não aplica** `varchar(n)`: aceita qualquer texto e ignora o
+  limite declarado. Foi assim que uma coluna curta demais passou pela suíte
+  inteira e só apareceu ao importar um pack real em produção. Sem a variável
+  `TCMINE_TEST_POSTGRES` esses testes **se pulam**, então rodar a suíte na sua
+  máquina continua não exigindo banco. Para exercê-los de verdade:
+
+  ```bash
+  docker run -d --name pgtest -e POSTGRES_USER=tcmine -e POSTGRES_PASSWORD=teste     -p 15432:5432 postgres:17-alpine
+  export TCMINE_TEST_POSTGRES="Host=localhost;Port=15432;Username=tcmine;Password=teste;Database=postgres"
+  ./scripts/tc test '*PostgresColumnLimits*'
+  ```
+
+  No CI a variável está definida e eles rodam sempre.
 - **Ao corrigir um bug, escreva o teste de regressão** que o trava. Foi assim que blindamos o `UpdateVersionAsync`.
 
 ---

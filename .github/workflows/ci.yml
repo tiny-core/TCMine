@@ -18,10 +18,40 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# Cada passo de dotnet gasta segundos com telemetria, banner e o "primeiro uso".
+# Multiplicado por restore, build e cinco execuções de teste, vira minuto.
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
 jobs:
   testes:
     name: Build e testes
     runs-on: ubuntu-latest
+
+    # PostgreSQL de verdade para os testes que o SQLite não consegue exercer: ele
+    # aceita qualquer texto num varchar(n) e ignora o limite declarado, então uma
+    # coluna curta demais passava pela suíte inteira e só aparecia ao importar um
+    # pack real, em produção. Sem TCMINE_TEST_POSTGRES esses testes se pulam
+    # sozinhos, e é por isso que rodar a suíte na própria máquina continua não
+    # exigindo banco nenhum.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: tcmine
+          POSTGRES_PASSWORD: tcmine
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # Sem o healthcheck o job começa antes de o banco aceitar conexão, e a
+        # falha aparece como erro de teste em vez de erro de infraestrutura.
+        options: >-
+          --health-cmd "pg_isready -U tcmine"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
 
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +82,8 @@ jobs:
       # runner do xUnit v3 é o próprio .exe do projeto. Mesma coisa que o
       # scripts/tc test faz.
       - name: Testes
+        env:
+          TCMINE_TEST_POSTGRES: "Host=localhost;Port=5432;Username=tcmine;Password=tcmine;Database=postgres"
         run: |
           set -euo pipefail
 
@@ -81,5 +113,8 @@ jobs:
           push: false
           build-args: |
             VERSION=0.0.0-ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Escopo nomeado: sem ele, cada workflow que constrói imagem disputa a
+          # mesma entrada de cache e um invalida o outro. Um PR lê o cache da
+          # master e só reconstrói as camadas que mudaram de fato.
+          cache-from: type=gha,scope=imagem-servidor
+          cache-to: type=gha,mode=max,scope=imagem-servidor
