@@ -7,6 +7,41 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.1.5] — 2026-08-22
+
+### Adicionado
+
+- **A versão do loader agora pode ser editada enquanto a versão é rascunho.**
+  Ela pertence à versão, e não ao modpack, justamente porque sobe entre versões
+  — mas só podia ser definida na criação. Errar o número significava apagar o
+  rascunho e recomeçar, com os mods e overrides já dentro dele. Numa versão
+  publicada continua imutável: ela faz parte do que foi prometido, e mudá-la
+  deixaria quem já instalou rodando contra outro loader.
+
+### Corrigido
+
+- **Um arquivo órfão que não podia ser selecionado não dizia por quê.** Arquivos
+  gravados nas últimas 24 h ficam de fora de propósito — a ingestão grava os
+  blobs e as linhas que os referenciam em lotes separados, então apagar um blob
+  recente quebraria uma importação em curso. A regra estava no aviso acima da
+  tabela, mas não no controle que ela desabilita, e um checkbox que não marca
+  parece defeito.
+
+### Documentação
+
+- **Instalações atrás do Cloudflare**: o Bot Fight Mode injeta um script inline
+  em toda página, a CSP do painel o bloqueia, e o console mostra um erro que
+  parece da aplicação. Não é, e o painel não é afetado. O `docs/DEPLOY.md`
+  explica como reconhecer (o hash sugerido muda a cada carregamento, porque o
+  script carrega o `CF-RAY` da resposta), como confirmar por linha de comando, e
+  por que a saída é desligar a opção no Cloudflare em vez de afrouxar a CSP.
+
+### Interno
+
+- Um teste passa a buscar cada página do painel e reprovar se alguma servir
+  JavaScript inline. A CSP `script-src 'self'` depende disso, e até agora a
+  garantia era um comentário no código.
+
 ## [0.1.4] — 2026-08-22
 
 ### Corrigido
@@ -150,6 +185,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.5]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.5
 [0.1.4]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.4
 [0.1.3]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.3
 [0.1.2]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.2
