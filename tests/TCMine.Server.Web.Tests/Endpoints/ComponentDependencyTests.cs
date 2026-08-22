@@ -28,6 +28,9 @@ public sealed class ComponentDependencyTests
         typeof(ListAccessibleServers),
         typeof(SendServerCommand),
         typeof(SendTestEmail),
+        typeof(StartMailServer),
+        typeof(StopMailServer),
+        typeof(GetMailServerView),
 
         // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
         // Configurações e as três seguintes pelo MetricsCollector, dentro do
@@ -35,6 +38,7 @@ public sealed class ComponentDependencyTests
         // app de subir — só faz a coleta falhar em silêncio de quinze em quinze
         // segundos.
         typeof(IEmailSender),
+        typeof(IMailServerOrchestrator),
         typeof(IPlayerCountSource),
         typeof(IRconClient),
         typeof(IServerHubNotifier),

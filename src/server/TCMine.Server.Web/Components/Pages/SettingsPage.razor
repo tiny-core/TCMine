@@ -1,3 +1,4 @@
+@using TCMine.Server.Application.Abstractions
 @page "/settings"
 @using TCMine.Contracts.Modpacks
 
@@ -105,6 +106,85 @@ else
                 Usado na recuperação de senha. Enquanto não houver servidor configurado,
                 as mensagens vão para o log do servidor em vez de serem enviadas.
             </MudText>
+
+            @* Servidor próprio antes dos campos: quem for usá-lo não precisa
+               preencher nada abaixo — subir já deixa tudo apontado. *@
+            <MudPaper Class="pa-4 mb-5" Outlined="true" Elevation="0">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
+                    <MudIcon Icon="@Icons.Material.Filled.Dns" Color="Color.Primary"/>
+                    <MudText Typo="Typo.subtitle2">Servidor de e-mail próprio</MudText>
+
+                    <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                             Color="@EstadoCor">@EstadoTexto</MudChip>
+
+                    <MudSpacer/>
+
+                    @if (_mailBusy)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                    }
+
+                    @if (_mail?.State is MailServerState.Running)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Stop"
+                                   OnClick="PararServidorAsync" Disabled="_mailBusy">
+                            Parar
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   OnClick="SubirServidorAsync" Disabled="_mailBusy">
+                            Subir servidor
+                        </MudButton>
+                    }
+                </MudStack>
+
+                <MudTextField @bind-Value="_mailDomain" Label="Domínio" Variant="Variant.Outlined"
+                              Margin="Margin.Dense" Placeholder="exemplo.com" Disabled="_mailBusy"
+                              HelperText="O domínio de onde as mensagens vão sair. Você precisa controlar o DNS dele."/>
+
+                @if (_mail?.DnsRecords.Count > 0)
+                {
+                    <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Publique estes registros no DNS</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        Sem eles a mensagem sai daqui e é classificada como spam do outro lado.
+                        O DKIM só aparece depois do primeiro arranque, quando a chave é gerada.
+                    </MudText>
+
+                    <div style="overflow-x:auto;">
+                        <MudTable Items="_mail.DnsRecords" Dense="true" Hover="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Tipo</MudTh>
+                                <MudTh>Nome</MudTh>
+                                <MudTh>Valor</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Tipo">@context.Type</MudTd>
+                                <MudTd DataLabel="Nome">
+                                    <MudText Typo="Typo.caption" Style="font-family:monospace;">
+                                        @context.Name
+                                    </MudText>
+                                </MudTd>
+                                <MudTd DataLabel="Valor">
+                                    <MudText Typo="Typo.caption" Style="font-family:monospace; word-break:break-all;">
+                                        @context.Value
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Style="opacity:.7;">@context.Why</MudText>
+                                </MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </div>
+
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-3">
+                        Falta uma coisa que não dá para fazer daqui: o DNS reverso (PTR) do IP
+                        desta máquina precisa apontar para mail.@_mailDomain, e isso se configura
+                        com quem fornece o IP. Sem ele, boa parte dos destinatários recusa.
+                    </MudAlert>
+                }
+            </MudPaper>
 
             <MudGrid>
                 <MudItem xs="12" md="8">

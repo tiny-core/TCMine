@@ -33,12 +33,23 @@ public partial class SettingsPage : ComponentBase
     private string _testEmailTo = "";
     private bool _testing;
 
+    private MailServerView? _mail;
+    private string _mailDomain = "";
+    private bool _mailBusy;
+
     [Inject] private ISettingsRepository Repository { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
     [Inject] private SendTestEmail TestEmailUseCase { get; set; } = default!;
+    [Inject] private StartMailServer StartMailUseCase { get; set; } = default!;
+    [Inject] private StopMailServer StopMailUseCase { get; set; } = default!;
+    [Inject] private GetMailServerView MailViewUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        await CarregarMailAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -133,6 +144,78 @@ public partial class SettingsPage : ComponentBase
         finally
         {
             _testing = false;
+        }
+    }
+
+    private Color EstadoCor => _mail?.State switch
+    {
+        MailServerState.Running => Color.Success,
+        MailServerState.Starting => Color.Info,
+        MailServerState.Crashed => Color.Error,
+        MailServerState.Stopped => Color.Warning,
+        _ => Color.Default
+    };
+
+    private string EstadoTexto => _mail?.State switch
+    {
+        MailServerState.Running => "no ar",
+        MailServerState.Starting => "subindo",
+        MailServerState.Crashed => "caiu",
+        MailServerState.Stopped => "parado",
+        _ => "não criado"
+    };
+
+    private async Task CarregarMailAsync()
+    {
+        _mail = await MailViewUseCase.HandleAsync(CancellationToken.None);
+
+        // Só preenche o campo quando ele está vazio: sobrescrever o que o admin
+        // acabou de digitar seria perder o trabalho dele a cada recarga.
+        if (_mailDomain.Length is 0 && _mail.Domain is { } dominio)
+            _mailDomain = dominio;
+    }
+
+    private Task SubirServidorAsync() => ComMailOcupado(async () =>
+    {
+        var result = await StartMailUseCase.HandleAsync(_mailDomain, CancellationToken.None);
+
+        if (result.Succeeded)
+        {
+            Snackbar.Add(
+                "Servidor no ar e SMTP apontado para ele. Publique os registros de DNS abaixo.",
+                Severity.Success);
+
+            // Recarrega a configuração: o caso de uso reescreveu host, porta,
+            // usuário e remetente, e a tela ainda mostra o que havia antes.
+            await LoadAsync();
+        }
+        else
+            Snackbar.Add(result.Error!, Severity.Error);
+    });
+
+    private Task PararServidorAsync() => ComMailOcupado(async () =>
+    {
+        var result = await StopMailUseCase.HandleAsync(CancellationToken.None);
+
+        if (!result.Succeeded)
+            Snackbar.Add(result.Error!, Severity.Error);
+    });
+
+    private async Task ComMailOcupado(Func<Task> acao)
+    {
+        if (_mailBusy)
+            return;
+
+        _mailBusy = true;
+
+        try
+        {
+            await acao();
+            await CarregarMailAsync();
+        }
+        finally
+        {
+            _mailBusy = false;
         }
     }
 }

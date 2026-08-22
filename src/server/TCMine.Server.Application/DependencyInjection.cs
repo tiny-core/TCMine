@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
@@ -80,6 +80,9 @@ public static class DependencyInjection
         services.AddScoped<ChangePassword>();
         services.AddScoped<UpdateSettings>();
         services.AddScoped<SendTestEmail>();
+        services.AddScoped<StartMailServer>();
+        services.AddScoped<StopMailServer>();
+        services.AddScoped<GetMailServerView>();
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<RetryModResolution>();
         services.AddScoped<CheckUpstreamUpdate>();

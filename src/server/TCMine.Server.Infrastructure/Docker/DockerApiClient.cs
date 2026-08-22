@@ -280,6 +280,13 @@ public sealed record CreateContainerRequest
     [JsonPropertyName("HostConfig")] public required HostConfig HostConfig { get; init; }
     [JsonPropertyName("ExposedPorts")] public Dictionary<string, object>? ExposedPorts { get; init; }
     [JsonPropertyName("Labels")] public Dictionary<string, string>? Labels { get; init; }
+
+    /// <summary>
+    ///     Nome que o container apresenta de si. Irrelevante para o servidor de
+    ///     jogo e decisivo para o de e-mail: é o que vai no HELO, e um HELO que
+    ///     não bate com o DNS reverso é motivo de recusa do outro lado.
+    /// </summary>
+    [JsonPropertyName("Hostname")] public string? Hostname { get; init; }
 }
 
 public sealed record HostConfig
@@ -293,6 +300,13 @@ public sealed record HostConfig
 public sealed record PortBinding
 {
     [JsonPropertyName("HostPort")] public required string HostPort { get; init; }
+
+    /// <summary>
+    ///     Em qual endereço do host publicar. Omitido, o Docker publica em
+    ///     0.0.0.0 — ou seja, na internet, se a máquina estiver exposta. Para um
+    ///     serviço que só o próprio TCMine consome, isto precisa ser 127.0.0.1.
+    /// </summary>
+    [JsonPropertyName("HostIp")] public string? HostIp { get; init; }
 }
 
 public sealed record RestartPolicy

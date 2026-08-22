@@ -57,6 +57,7 @@ public sealed class SettingsRepository : ISettingsRepository
         }
 
         stored.DefaultMinecraftVersion = settings.DefaultMinecraftVersion;
+        stored.MailServerDomain = settings.MailServerDomain;
         stored.DefaultLoader = settings.DefaultLoader;
         stored.DefaultMemoryMb = settings.DefaultMemoryMb;
 

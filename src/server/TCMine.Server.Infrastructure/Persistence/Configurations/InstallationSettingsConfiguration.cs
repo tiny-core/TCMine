@@ -13,6 +13,7 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.HasKey(s => s.Id);
 
         builder.Property(s => s.DefaultMinecraftVersion).HasMaxLength(32);
+        builder.Property(s => s.MailServerDomain).HasMaxLength(253);
         builder.Property(s => s.DefaultLoader).HasConversion<string>().HasMaxLength(32).IsRequired();
 
         // Textos cifrados: o tamanho cresce com o algoritmo, então folga.

@@ -54,6 +54,13 @@ public sealed class InstallationSettings : Entity
 
     public bool SmtpUseTls { get; set; } = true;
 
+    /// <summary>
+    ///     Domínio do servidor de e-mail gerenciado pelo painel. Nulo quando a
+    ///     instalação usa SMTP de terceiro — que é o caminho normal, e não uma
+    ///     configuração incompleta.
+    /// </summary>
+    public string? MailServerDomain { get; set; }
+
     /// <summary>Há SMTP suficiente para tentar enviar?</summary>
     public bool HasSmtp => !string.IsNullOrWhiteSpace(SmtpHost) && !string.IsNullOrWhiteSpace(SmtpFrom);
 }

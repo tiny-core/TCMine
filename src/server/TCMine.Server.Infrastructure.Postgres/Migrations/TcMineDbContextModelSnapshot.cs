@@ -669,6 +669,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("MailServerDomain")
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
                     b.Property<string>("SmtpFrom")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
