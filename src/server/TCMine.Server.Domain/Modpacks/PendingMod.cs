@@ -36,6 +36,22 @@ public sealed class PendingMod : Entity
     public string? PageUrl { get; set; }
 
     public FileSide Side { get; set; } = FileSide.Both;
+
+    /// <summary>
+    ///     Assume a identidade da pendência que esta substitui.
+    ///     Sem isto, trocar a razão de uma pendência (de Queued para
+    ///     DistributionDenied, por exemplo) criava uma entidade com Id novo. O
+    ///     repositório decide entre INSERT e UPDATE pelo Id, então o Id
+    ///     desconhecido virava INSERT — e batia no índice único
+    ///     (ModpackVersionId, ProjectSlug) contra a linha antiga, que continua no
+    ///     banco porque grafo destacado não cascateia remoção de coleção.
+    ///     CreatedAt vem junto: a pendência é a mesma, só mudou o motivo.
+    /// </summary>
+    internal void TakeOverFrom(PendingMod anterior)
+    {
+        Id = anterior.Id;
+        CreatedAt = anterior.CreatedAt;
+    }
 }
 
 public enum PendingModReason

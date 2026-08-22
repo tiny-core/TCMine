@@ -7,6 +7,31 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.1.3] — 2026-08-22
+
+### Corrigido
+
+- **A resolução de um pack importado travava no fim**, com o modpack parado em
+  "Resolvendo" depois de já ter baixado quase todos os mods. Ao enfileirar, o
+  servidor registra uma pendência para cada mod do pack; ao terminar, troca a
+  razão das que não deram certo (autor não permite redistribuir, sem arquivo
+  compatível). Essa troca criava um registro novo em vez de atualizar o
+  existente, e o banco recusava a duplicata — derrubando a gravação final e
+  levando junto o resultado de toda a ingestão.
+
+  No All the Mods 10 isso significava baixar 473 mods e perder o trabalho por
+  causa dos 8 restantes.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
+Uma versão que ficou presa em "Resolvendo" é retomada sozinha no arranque (até
+três tentativas). Se a sua já esgotou as tentativas, ela aparece como falha —
+devolva ao rascunho e mande resolver de novo.
+
 ## [0.1.2] — 2026-08-22
 
 ### Corrigido
@@ -96,6 +121,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.3]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.3
 [0.1.2]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.2
 [0.1.1]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.1
 [0.1.0]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.0

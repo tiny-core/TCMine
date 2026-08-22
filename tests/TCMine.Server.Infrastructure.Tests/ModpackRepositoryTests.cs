@@ -260,6 +260,47 @@ public sealed class ModpackRepositoryTests : IDisposable
         return modpack;
     }
 
+    [Fact]
+    public async Task SaveVersionStateAsync_troca_a_razao_de_uma_pendencia_sem_duplicar_a_linha()
+    {
+        // Regressão do fluxo real de importação: o agendador grava uma pendência
+        // Queued para CADA mod do pack, e a ingestão troca a razão dos que
+        // falham (DistributionDenied, NoCompatibleFile). A troca criava uma
+        // entidade com Id novo, o repositório a via como INSERT, e a linha
+        // Queued que continuava no banco fazia o índice único
+        // (ModpackVersionId, ProjectSlug) estourar com 23505 — derrubando a
+        // ingestão inteira no fim, depois de baixar centenas de mods.
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        var agendada = await repo.GetVersionAsync(version.Id, CancellationToken.None);
+        agendada!.UpsertPending(Pendencia(agendada.Id, "jei", PendingModReason.Queued));
+        await repo.SaveVersionStateAsync(agendada, CancellationToken.None);
+
+        // A ingestão recarrega e descobre que o autor não permite redistribuir.
+        var ingerida = await repo.GetVersionAsync(version.Id, CancellationToken.None);
+        ingerida!.UpsertPending(Pendencia(ingerida.Id, "jei", PendingModReason.DistributionDenied));
+
+        await Should.NotThrowAsync(() => repo.SaveVersionStateAsync(ingerida, CancellationToken.None));
+
+        var relida = await repo.GetVersionAsync(version.Id, CancellationToken.None);
+        relida!.PendingMods.Count.ShouldBe(1);
+        relida.PendingMods.Single().Reason.ShouldBe(PendingModReason.DistributionDenied);
+    }
+
+    private static PendingMod Pendencia(Guid versionId, string slug, PendingModReason reason) =>
+        new()
+        {
+            ModpackVersionId = versionId,
+            ProjectSlug = slug,
+            DisplayName = slug,
+            Origin = ModFileOrigin.CurseForge,
+            Reason = reason
+        };
+
     private static ModpackVersion NovaVersao(Guid modpackId, string version = "1.0") =>
         new() { ModpackId = modpackId, Version = version, LoaderVersion = "21.1.234" };
 

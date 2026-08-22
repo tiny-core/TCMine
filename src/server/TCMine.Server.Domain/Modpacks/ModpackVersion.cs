@@ -247,7 +247,14 @@ public sealed class ModpackVersion : Entity
 
         var existing = FindPending(pending.ProjectSlug);
         if (existing is not null)
+        {
+            // A pendência nova HERDA o Id da que substitui: para o banco é a
+            // mesma linha mudando de motivo, não uma linha nova. Ver o porquê
+            // em PendingMod.TakeOverFrom — é o que impede o INSERT duplicado
+            // no índice único (ModpackVersionId, ProjectSlug).
+            pending.TakeOverFrom(existing);
             PendingMods.Remove(existing);
+        }
 
         PendingMods.Add(pending);
         Touch();

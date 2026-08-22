@@ -50,6 +50,7 @@
     <File Path="global.json" />
   </Folder>
   <Folder Name="/_scripts/">
+    <File Path="scripts/smoke-image.sh" />
     <File Path="scripts/tc" />
   </Folder>
 </Solution>
