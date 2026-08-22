@@ -291,6 +291,35 @@ public sealed class ModpackRepositoryTests : IDisposable
         relida.PendingMods.Single().Reason.ShouldBe(PendingModReason.DistributionDenied);
     }
 
+    [Fact]
+    public async Task GetByIdAsync_traz_as_pendencias_mas_nao_os_arquivos()
+    {
+        // As duas metades importam, e por motivos opostos.
+        //
+        // Pendências: a tela de detalhe decide mostrar o painel que as explica
+        // por HasPendingMods. Sem o Include ele era sempre falso, o painel nunca
+        // renderizava, e o admin via "13 mod(s) pendentes" ao publicar sem
+        // nenhuma forma de saber quais eram nem por quê.
+        //
+        // Arquivos: continuam de fora de propósito. Num pack importado são
+        // milhares de linhas que a tela não usa — ela mostra contagens agregadas
+        // — e trazê-las fazia a página levar dezenas de segundos.
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        version.UpsertFile(Arquivo(version.Id, "mods/a.jar", "a"));
+        version.UpsertPending(Pendencia(version.Id, "b", PendingModReason.DistributionDenied));
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        var lido = await repo.GetByIdAsync(modpack.Id, CancellationToken.None);
+        var lidaVersao = lido!.Versions.Single();
+
+        lidaVersao.PendingMods.Count.ShouldBe(1);
+        lidaVersao.HasPendingMods.ShouldBeTrue();
+        lidaVersao.Files.ShouldBeEmpty("arquivos ficam de fora por performance; a tela usa contagens");
+    }
+
     private static PendingMod Pendencia(Guid versionId, string slug, PendingModReason reason) =>
         new()
         {

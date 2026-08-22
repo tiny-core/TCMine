@@ -60,6 +60,18 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return await db.Modpacks
             .AsNoTracking()
             .Include(m => m.Versions)
+
+            // Pendências entram; arquivos NÃO. A tela de detalhe usa as duas
+            // coisas de formas opostas: dos arquivos ela só quer as contagens
+            // (num pack importado são milhares de linhas, e trazê-las fazia a
+            // página levar dezenas de segundos), das pendências ela precisa da
+            // lista inteira para explicar cada uma. Sem este Include o painel
+            // que explica os mods pendentes nunca renderizava, porque
+            // HasPendingMods era sempre falso — e o admin via só o aviso de que
+            // existiam, sem quais nem por quê. São poucas por natureza: uma
+            // pendência é um mod que não veio.
+            .ThenInclude(v => v.PendingMods)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
     }
 
