@@ -10,7 +10,7 @@ using TCMine.Server.Web.Components.Features.Modpacks;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
-public partial class ModpackOverridesPage
+public partial class ModpackOverridesPage : IAsyncDisposable
 {
     private bool? _appliedDarkMode;
     private bool _dirty;
@@ -20,6 +20,28 @@ public partial class ModpackOverridesPage
     private StandaloneCodeEditor _editor = default!;
 
     private bool _editorReady;
+
+    /// <summary>
+    ///     Os scripts do Monaco já desceram. Enquanto for falso o editor NÃO
+    ///     pode ser renderizado: o BlazorMonaco monta no primeiro render e
+    ///     chamaria um JS que ainda não existe.
+    /// </summary>
+    private bool _monacoLoaded;
+
+    /// <summary>Preenchido quando o editor não pôde ser carregado.</summary>
+    private string? _monacoError;
+
+    private IJSObjectReference? _monacoModule;
+
+    /// <summary>
+    ///     Completa quando o editor terminou de montar — ou quando desistimos
+    ///     dele. Com o Monaco global, o <c>_editor</c> existia desde o primeiro
+    ///     render e ninguém precisava esperar; sob demanda existe a janela em
+    ///     que o admin clica num arquivo antes de o editor chegar. Sem isto,
+    ///     esse clique dava NullReference.
+    /// </summary>
+    private readonly TaskCompletionSource _editorMounted =
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool _isLoading = true;
     private bool _isSaving;
 
@@ -148,6 +170,56 @@ public partial class ModpackOverridesPage
         return Task.FromResult(children);
     }
 
+    /// <summary>
+    ///     Traz os scripts do Monaco só aqui, e não no App.razor.
+    ///     Declará-los global fazia TODA página do painel baixar o editor
+    ///     inteiro — treze arquivos numa página que não tem editor nenhum.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _monacoLoaded)
+            return;
+
+        try
+        {
+            _monacoModule = await JsRuntime.InvokeAsync<IJSObjectReference>(
+                "import", "./monaco.js");
+
+            // As URLs saem do Assets porque os estáticos são servidos com hash
+            // no nome: escrever o caminho cru no JS pegaria uma versão em cache
+            // depois de qualquer atualização.
+            await _monacoModule.InvokeVoidAsync("ensure", new[]
+            {
+                Assets["_content/BlazorMonaco/jsInterop.js"],
+                Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"],
+                Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"]
+            });
+
+            _monacoLoaded = true;
+        }
+        catch (Exception ex)
+        {
+            // Sem editor a página ainda serve: a árvore, o mover e o apagar
+            // continuam funcionando. Falhar em silêncio é que não pode.
+            _monacoError = ex.Message;
+
+            // Libera quem estiver esperando o editor: sem isto um clique feito
+            // durante o carregamento ficaria pendurado para sempre.
+            _editorMounted.TrySetResult();
+        }
+
+        StateHasChanged();
+    }
+
+    /// <summary>
+    ///     Espera o editor existir. Devolve falso quando ele não vai existir.
+    /// </summary>
+    private async Task<bool> EditorAvailableAsync()
+    {
+        await _editorMounted.Task;
+        return _monacoError is null;
+    }
+
     private async Task OnEditorInit()
     {
         // O Monaco mede o container ao montar. No primeiro render o host ainda
@@ -158,6 +230,7 @@ public partial class ModpackOverridesPage
 
         _editorReady = true;
         _appliedDarkMode = IsDarkMode;
+        _editorMounted.TrySetResult();
     }
 
     // O tema do Monaco é global no JS; quando o admin alterna claro/escuro no
@@ -219,6 +292,12 @@ public partial class ModpackOverridesPage
                 return;
             }
 
+            // Clicar num arquivo enquanto o editor ainda desce é normal na
+            // primeira visita à aba; aqui a abertura simplesmente espera, com o
+            // _isOpening já mostrando o progresso.
+            if (!await EditorAvailableAsync())
+                return;
+
             var model = await _editor.GetModel();
             await Global.SetModelLanguage(JsRuntime, model, LanguageFor(path));
             await _editor.SetValue(result.Value.Text);
@@ -239,6 +318,12 @@ public partial class ModpackOverridesPage
         _isSaving = true;
         try
         {
+            if (!await EditorAvailableAsync())
+            {
+                Snackbar.Add("O editor não está disponível — recarregue a página.", Severity.Warning);
+                return;
+            }
+
             var content = await _editor.GetValue();
             var result = await SaveUseCase.HandleAsync(VersionId, _selectedPath, content, CancellationToken.None);
 
@@ -272,7 +357,10 @@ public partial class ModpackOverridesPage
         {
             Snackbar.Add("Arquivo apagado.", Severity.Success);
             _selectedPath = null;
-            await _editor.SetValue("");
+
+            // Apagar não depende do editor; só a limpeza da tela depende.
+            if (await EditorAvailableAsync())
+                await _editor.SetValue("");
             await LoadAsync();
         }
         else
@@ -422,5 +510,28 @@ public partial class ModpackOverridesPage
         public string FullPath = "";
         public bool IsFile;
         public string Name = "";
+    }
+
+    /// <summary>
+    ///     Solta o módulo JS ao sair da página. O circuito do Blazor Server é
+    ///     longo: sem isto, cada visita à aba deixaria uma referência viva.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        // A página não tem finalizador; o SuppressFinalize é só o que a CA1816
+        // exige de quem implementa o padrão.
+        GC.SuppressFinalize(this);
+
+        if (_monacoModule is null)
+            return;
+
+        try
+        {
+            await _monacoModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuito já caiu (o admin fechou a aba): não há o que soltar.
+        }
     }
 }

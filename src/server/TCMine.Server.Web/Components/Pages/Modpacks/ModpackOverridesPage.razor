@@ -124,13 +124,36 @@ else
                         </MudAlert>
                     }
 
-                    <div class="tc-editor-host" style="@(_notEditable is null ? "" : "display:none;")">
-                        <StandaloneCodeEditor @ref="_editor"
-                                              CssClass="tc-monaco"
-                                              ConstructionOptions="EditorOptions"
-                                              OnDidInit="OnEditorInit"
-                                              OnDidChangeModelContent="@(() => _dirty = true)"/>
-                    </div>
+                    @* O editor só entra na árvore depois que os scripts do Monaco
+                       desceram: o BlazorMonaco monta no primeiro render e chamaria
+                       um JS que ainda não existe. *@
+                    @if (_monacoError is { } erro)
+                    {
+                        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-2">
+                            <MudText Typo="Typo.body2">Não foi possível carregar o editor: @erro</MudText>
+                            <MudText Typo="Typo.caption">
+                                A árvore continua utilizável — mover, renomear e apagar não dependem dele.
+                            </MudText>
+                        </MudAlert>
+                    }
+                    else if (!_monacoLoaded)
+                    {
+                        <MudStack AlignItems="AlignItems.Center" Justify="Justify.Center"
+                                  Class="tc-editor-host" Spacing="2">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true"/>
+                            <MudText Typo="Typo.caption">Carregando o editor…</MudText>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <div class="tc-editor-host" style="@(_notEditable is null ? "" : "display:none;")">
+                            <StandaloneCodeEditor @ref="_editor"
+                                                  CssClass="tc-monaco"
+                                                  ConstructionOptions="EditorOptions"
+                                                  OnDidInit="OnEditorInit"
+                                                  OnDidChangeModelContent="@(() => _dirty = true)"/>
+                        </div>
+                    }
                 </MudItem>
             </MudGrid>
 

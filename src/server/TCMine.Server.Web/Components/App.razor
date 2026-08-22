@@ -29,8 +29,10 @@
 
 <script src="@Assets["_framework/blazor.web.js"]"></script>
 <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>
-<script src="@Assets["_content/BlazorMonaco/jsInterop.js"]"></script>
-<script src="@Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"]"></script>
-<script src="@Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"]"></script>
+
+@* Os scripts do Monaco NÃO entram aqui. O editor só existe na página de
+   overrides, e declará-lo global fazia toda página do painel baixar treze
+   arquivos dele — inclusive as que não têm editor. A página de overrides os
+   carrega sob demanda por wwwroot/monaco.js. *@
 </body>
 </html>
