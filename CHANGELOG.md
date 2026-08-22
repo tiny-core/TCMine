@@ -7,6 +7,35 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.1.4] — 2026-08-22
+
+### Corrigido
+
+- **O painel que explica os mods pendentes nunca aparecia.** Ao publicar um pack
+  recém-importado, o servidor avisava que N mods estavam pendentes de upload
+  manual — e a página não mostrava mais nada: nem quais, nem por quê, nem o que
+  fazer. O painel que responde às três perguntas já existia e simplesmente não
+  era renderizado.
+
+  Vale explicar o aviso, que não é defeito: no CurseForge o autor pode proibir
+  que terceiros baixem o arquivo do mod. Não há saída técnica legítima — os
+  launchers oficiais fazem o mesmo, abrem a página do mod para o jogador baixar.
+  Por isso a pendência é registrada em vez de reprovar a versão: um pack grande
+  ficaria impublicável para sempre por causa de meia dúzia deles.
+
+### Melhorado
+
+- **O editor de código não é mais baixado em toda página.** Ele estava
+  declarado globalmente, então uma página vazia puxava treze arquivos dele sem
+  ter editor nenhum. Agora desce só na aba de Overrides, que é a única que o
+  usa.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
 ## [0.1.3] — 2026-08-22
 
 ### Corrigido
@@ -121,6 +150,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.4]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.4
 [0.1.3]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.3
 [0.1.2]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.2
 [0.1.1]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.1
