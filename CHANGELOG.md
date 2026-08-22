@@ -7,7 +7,7 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
-## Não lançado
+## [0.1.2] — 2026-08-22
 
 ### Corrigido
 
@@ -20,6 +20,27 @@ O texto completo de cada lançamento está na
 - As colunas que guardam **por que** um mod ficou pendente foram alargadas: uma
   mensagem de erro longa derrubava a ingestão justamente ao registrar a falha
   que deveria explicar.
+
+### Interno
+
+- A imagem agora **sobe** antes de ser publicada, contra um PostgreSQL de
+  verdade: as migrations têm de aplicar, a página tem de servir o runtime do
+  Blazor e as colunas têm de ter a largura declarada. Se qualquer uma falhar,
+  nada vai para o Docker Hub. Os três últimos bugs passaram no build e nos
+  testes e só apareceram depois do deploy.
+- A suíte passou a exercer os limites de coluna num PostgreSQL de verdade. O
+  SQLite aceita qualquer texto num `varchar(n)` e ignora o limite declarado — é
+  por isso que essas falhas chegavam intactas em produção.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
+O `--force-recreate` não é enfeite: sem ele o `pull` baixa a imagem nova e o
+container **continua rodando a antiga**, o que faz o problema parecer não
+corrigido. A migração das colunas roda sozinha no arranque e não perde dados.
 
 ## [0.1.1] — 2026-08-22
 
@@ -75,5 +96,6 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.2]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.2
 [0.1.1]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.1
 [0.1.0]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.0
