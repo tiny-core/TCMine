@@ -1,3 +1,7 @@
+@using Microsoft.Extensions.Options
+@using TCMine.Server.Web.Configuration
+@inject IOptions<DevMailOptions> DevMail
+
 @* Menu de navegação lateral. Extraído do MainLayout para isolar a estrutura de
    navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
    destaca o item ativo pela rota. *@
@@ -34,4 +38,14 @@
     <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
         Configurações
     </MudNavLink>
+
+    @* Só aparece com a caixa de teste ligada: um link para uma tela que explica
+       como ligar o que não está ligado é ruído no menu de quem usa em produção. *@
+    @if (DevMail.Value.Enabled)
+    {
+        <MudNavLink Href="/caixa-de-teste" Match="NavLinkMatch.Prefix"
+                    Icon="@Icons.Material.Filled.MarkEmailUnread">
+            Caixa de teste
+        </MudNavLink>
+    }
 </MudNavMenu>

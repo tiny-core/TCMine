@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using MudBlazor.Services;
 using Serilog;
 using TCMine.Contracts.Hubs;
@@ -172,6 +173,15 @@ builder.Services.AddSingleton<MetricsHistory>();
 builder.Services.AddSingleton<PlayerCountCache>();
 builder.Services.AddSingleton<IPlayerCountSource>(sp => sp.GetRequiredService<PlayerCountCache>());
 builder.Services.AddHostedService<MetricsCollector>();
+
+// Caixa de e-mail de teste. Desligada por padrão e presa ao loopback quando
+// ligada — ver DevMailServer.
+builder.Services.Configure<DevMailOptions>(builder.Configuration.GetSection(DevMailOptions.SectionName));
+builder.Services.AddSingleton(sp => new DevMailbox
+{
+    Capacity = sp.GetRequiredService<IOptions<DevMailOptions>>().Value.Capacity
+});
+builder.Services.AddHostedService<DevMailServer>();
 
 // Recuperação no arranque: as filas vivem em memória, então um processo que cai
 // mata o job — mas o pedido ficou gravado, e daqui ele volta para a fila.
