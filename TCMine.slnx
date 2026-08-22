@@ -29,6 +29,7 @@
   </Folder>
   <Folder Name="/_docs/">
     <File Path="docs/DEPLOY.md" />
+    <File Path="docs/RELEASE.md" />
   </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />
