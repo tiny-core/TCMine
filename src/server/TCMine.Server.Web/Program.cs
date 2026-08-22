@@ -34,10 +34,18 @@ builder.Host.UseSerilog((context, config) => config
 // ---------- Configuração ----------
 builder.Services.AddTcMineServerOptions(builder.Configuration, builder.Environment);
 
-// Antes de qualquer serviço: o SQLite abre o arquivo mas não cria a pasta, e
-// uma instalação nova (ou um data/ apagado) morreria aqui com uma mensagem que
-// não menciona pasta nenhuma.
+// Uma raiz só (Storage:RootPath) preenche os caminhos que ninguém declarou.
+// Antes de tudo o mais porque as options de blob e de instância são ligadas à
+// configuração logo abaixo.
+StorageLayout.Apply(builder.Configuration, builder.Configuration);
+
+// O SQLite abre o arquivo mas não cria a pasta: uma instalação nova (ou um
+// data/ apagado) morreria aqui com uma mensagem que não menciona pasta nenhuma.
 StoragePaths.EnsureCreated(builder.Configuration, builder.Environment);
+
+// Em container, a pasta de instâncias precisa ser o mesmo caminho dentro e
+// fora. Ver MountCoherence — o erro que isto pega não tem sintoma.
+MountCoherence.Verify(builder.Configuration);
 
 var databaseOptions = builder.Configuration.ReadValidatedDatabaseOptions();
 

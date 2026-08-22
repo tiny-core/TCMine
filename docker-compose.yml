@@ -55,16 +55,13 @@ services:
       Server__Name: ${TCMINE_NAME:-TCMine Server}
       Server__AzureClientId: ${TCMINE_AZURE_CLIENT_ID}
 
+      # Uma raiz só: banco, blobs, instâncias e chaves saem daqui. Para separar
+      # algum deles (blobs num disco maior, por exemplo), declare a chave
+      # específica — ela ganha desta derivação.
+      Storage__RootPath: ${TCMINE_ROOT}
+
       Database__Provider: ${TCMINE_DB_PROVIDER:-Sqlite}
-      Database__ConnectionString: ${TCMINE_DB_CONNECTION:-Data Source=${TCMINE_ROOT}/data/tcmine.db}
-
-      BlobStorage__RootPath: ${TCMINE_ROOT}/data/blobs
-      Instances__RootPath: ${TCMINE_ROOT}/instances
-
-      # Fora da camada da imagem de propósito: recriar o container apagaria as
-      # chaves, derrubando toda sessão e tornando ilegível o que foi cifrado com
-      # elas (chave do CurseForge, senha do SMTP).
-      DataProtection__KeysPath: ${TCMINE_ROOT}/data/keys
+      Database__ConnectionString: ${TCMINE_DB_CONNECTION:-}
 
     healthcheck:
       # /health/live não toca o banco: responde enquanto o processo estiver de

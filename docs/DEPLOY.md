@@ -30,17 +30,39 @@ Ajuste no `.env`:
 
 | Variável | O que é |
 |---|---|
-| `TCMINE_ROOT` | Pasta do passo 1. Montada no **mesmo caminho** dentro do container — ver a nota abaixo. |
+| `TCMINE_ROOT` | Pasta do passo 1. Montada no **mesmo caminho** dentro do container — ver a nota abaixo. Vira `Storage__RootPath`, de onde saem banco, blobs, instâncias e chaves. |
 | `DOCKER_GID` | GID do grupo dono do socket: `getent group docker \| cut -d: -f3` |
 | `TCMINE_PUBLIC_URL` | Endereço público, com https. Vai no `tcmine.json` e no feed do launcher. |
 | `TCMINE_AZURE_CLIENT_ID` | Client ID da app Azure do login com a Microsoft. |
+
+### Uma raiz, quatro caminhos
+
+`Storage__RootPath` preenche sozinho o que não for declarado:
+
+| Derivado | Caminho |
+|---|---|
+| Banco (SQLite) | `{raiz}/data/tcmine.db` |
+| Blobs | `{raiz}/data/blobs` |
+| Instâncias | `{raiz}/instances` |
+| Chaves | `{raiz}/data/keys` |
+
+Para separar um deles — blobs num disco maior, por exemplo — declare a chave
+específica (`BlobStorage__RootPath`) e ela ganha da derivação.
 
 **Por que o mesmo caminho dos dois lados:** o painel manda o daemon montar
 `{TCMINE_ROOT}/instances/{id}` no container do jogo. O daemon resolve esse
 caminho **no host**. Se dentro do container a raiz fosse `/app/data` e no host
 `/opt/tcmine`, o Docker criaria `/app/data/...` vazio no host e o montaria: o
-servidor subiria sem mods e sem mundo, silenciosamente. O arranque recusa subir
-com caminho relativo justamente por isso.
+servidor subiria sem mods e sem mundo, silenciosamente. O arranque recusa subir com caminho relativo, e
+também quando detecta que o bind mount trocou o nome da pasta no caminho — que é
+o que interfaces de NAS costumam fazer sozinhas.
+
+> **Painéis de NAS reescrevem volumes.** O ZimaOS, por exemplo, transforma
+> `/media/ZimaOS-HD/AppData/tcmine:/media/ZimaOS-HD/AppData/tcmine` em
+> `/media/ZimaOS-HD/AppData/tcmine:/DATA/AppData/tcmine` — com o painel
+> funcionando e todo servidor de jogo subindo vazio. Use o caminho real do disco
+> nos dois lados e confira o YAML depois de salvar. Se a checagem de arranque
+> errar no seu arranjo, desligue com `Storage__SkipMountCheck=true`.
 
 ## 3. Subir
 
