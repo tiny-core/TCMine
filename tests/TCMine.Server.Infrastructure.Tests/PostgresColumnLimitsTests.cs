@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Tests;
 
@@ -69,6 +70,56 @@ public sealed class PostgresColumnLimitsTests
             Origin = ModFileOrigin.CurseForge,
             ProjectSlug = "exemplo",
             IconUrl = "https://cdn.exemplo.com/" + new string('u', 900)
+        });
+
+        await Should.NotThrowAsync(() => db.SaveChangesAsync(Ct));
+    }
+
+    [Fact]
+    public async Task Snapshot_de_pack_grande_cabe_no_banco()
+    {
+        // A reprodução do bug relatado: importar um pack do CurseForge morria
+        // com "value too long for type character varying(512)" mesmo depois de
+        // alargar as colunas do arquivo. Faltava esta: o snapshot da origem
+        // guarda um par projeto/arquivo e o nome de CADA mod, então um pack de
+        // trezentos mods gera dezenas de KB numa coluna que a configuração
+        // dizia não ter limite — e tinha.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
+
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
+        await using var db = postgres.CreateContext();
+
+        var mods = Enumerable.Range(0, 300).ToDictionary(
+            i => $"projeto-{i:D6}",
+            i => $"arquivo-{i:D8}");
+
+        var snapshot = new UpstreamSnapshot
+        {
+            Mods = mods,
+            Names = mods.ToDictionary(m => m.Key, m => $"Mod de Exemplo com Nome Longo {m.Key}"),
+            Overrides = Enumerable.Range(0, 200).ToDictionary(
+                i => $"config/exemplo/arquivo-{i:D4}.json",
+                _ => new string('c', 64))
+        }.ToJson();
+
+        // Se isto couber em 512 o teste não está exercendo nada.
+        snapshot.Length.ShouldBeGreaterThan(20_000);
+
+        var modpack = new Modpack
+        {
+            Slug = $"grande-{Guid.CreateVersion7():N}"[..20],
+            Name = "Pack grande",
+            MinecraftVersion = "1.21.1",
+            Loader = ModLoader.NeoForge
+        };
+
+        db.Modpacks.Add(modpack);
+        db.ModpackVersions.Add(new ModpackVersion
+        {
+            ModpackId = modpack.Id,
+            Version = "1.0.0",
+            LoaderVersion = "21.1.100",
+            UpstreamSnapshotJson = snapshot
         });
 
         await Should.NotThrowAsync(() => db.SaveChangesAsync(Ct));

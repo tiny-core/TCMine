@@ -415,8 +415,7 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasColumnType("character varying(64)");
 
                     b.Property<string>("UpstreamSnapshotJson")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<string>("UpstreamVersionLabel")
                         .HasMaxLength(128)
@@ -480,8 +479,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Detail")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
@@ -501,8 +500,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasColumnType("character varying(32)");
 
                     b.Property<string>("PageUrl")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
 
                     b.Property<string>("ProjectSlug")
                         .IsRequired()

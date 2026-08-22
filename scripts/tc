@@ -39,14 +39,24 @@ cmd_build() {
 #
 # Aceita um filtro opcional de classe: `tc test '*MainHub*'`.
 cmd_test() {
-  local filtro="${1:-}" falhou=0 out code
+  local filtro="${1:-}" falhou=0 out code rodados=0 placar
+
+  # -class casa nome de CLASSE; -method casa nome de MÉTODO. Um filtro de método
+  # passado como -class não casa nada, e o runner sai com 0 — o que fazia o tc
+  # anunciar TESTES OK sem ter rodado teste nenhum. Verde vazio é pior que
+  # vermelho: ele responde "está tudo certo" a uma pergunta que não foi feita.
+  local seletor=-class
+  case "$filtro" in
+    *[a-z]_[a-z]*) seletor=-method ;;   # nomes de teste são em português, com _
+  esac
+
   for projeto in "$ROOT"/tests/*/; do
     [ -f "$projeto"/*.csproj ] 2>/dev/null || continue
     local nome
     nome="$(basename "$projeto")"
 
     if [ -n "$filtro" ]; then
-      out="$(cd "$ROOT" && dotnet run --project "$projeto" -- -class "$filtro" 2>&1)"
+      out="$(cd "$ROOT" && dotnet run --project "$projeto" -- "$seletor" "$filtro" 2>&1)"
     else
       out="$(cd "$ROOT" && dotnet run --project "$projeto" 2>&1)"
     fi
@@ -55,14 +65,34 @@ cmd_test() {
     # Só as falhas, com a mensagem — e o placar por suíte.
     echo "$out" | grep -E "\[FAIL\]" | sed 's/^ *//' | head -10
     echo "$out" | grep -E "^\s+(Shouldly|System\.|Microsoft\.)[A-Za-z.]*(Exception|AssertException)" | head -10
-    echo "$out" | grep -oE "Total: [0-9]+, Errors: [0-9]+, Failed: [0-9]+" | sed "s/^/$nome: /" | head -1
+
+    placar="$(echo "$out" | grep -oE "Total: [0-9]+, Errors: [0-9]+, Failed: [0-9]+" | head -1)"
+    [ -n "$placar" ] && echo "$nome: $placar"
+
+    # Quantos testes de fato rodaram, somando as suítes.
+    if [ -n "$placar" ]; then
+      rodados=$((rodados + $(echo "$placar" | grep -oE "[0-9]+" | head -1)))
+    fi
+
+    # Sem placar e com código de erro, a suíte nem chegou a rodar — quase sempre
+    # erro de compilação. Sem isto o tc dizia "TESTES FALHARAM" e escondia por quê.
+    if [ $code -ne 0 ] && [ -z "$placar" ]; then
+      echo "--- $nome não executou:"
+      echo "$out" | grep -E "error |Unhandled|Erro" | head -5
+    fi
 
     [ $code -ne 0 ] && falhou=1
   done
 
+  if [ -n "$filtro" ] && [ "$rodados" -eq 0 ]; then
+    echo "NENHUM TESTE CASOU com '$filtro' (tentado como $seletor)"
+    return 1
+  fi
+
   if [ $falhou -ne 0 ]; then echo "TESTES FALHARAM"; return 1; fi
   echo "TESTES OK"
 }
+
 
 # Verificação completa numa tacada: é isto que o subagente de verificação roda.
 cmd_check() {

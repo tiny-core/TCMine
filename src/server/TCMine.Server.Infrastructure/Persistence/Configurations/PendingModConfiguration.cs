@@ -15,8 +15,15 @@ public sealed class PendingModConfiguration : IEntityTypeConfiguration<PendingMo
         builder.Property(p => p.ProjectSlug).HasMaxLength(128).IsRequired();
         builder.Property(p => p.DisplayName).HasMaxLength(256).IsRequired();
         builder.Property(p => p.FileId).HasMaxLength(64);
-        builder.Property(p => p.Detail).HasMaxLength(512);
-        builder.Property(p => p.PageUrl).HasMaxLength(512);
+        // Detail carrega a mensagem de erro da origem, que não temos como
+        // limitar: 2048 é o mesmo teto do FailureReason da versão. Uma coluna
+        // curta aqui derruba a ingestão na hora de registrar POR QUE um mod
+        // falhou — o diagnóstico quebrando a operação que ele deveria explicar.
+        builder.Property(p => p.Detail).HasMaxLength(2048);
+
+        // URL de CDN com assinatura passa de 512 com facilidade; mesmo teto do
+        // IconUrl, pelo mesmo motivo.
+        builder.Property(p => p.PageUrl).HasMaxLength(1024);
 
         // Enums como string: mesmo motivo do resto do modelo — inserir um valor
         // no meio do enum não pode reescrever o significado das linhas gravadas.

@@ -7,6 +7,20 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## Não lançado
+
+### Corrigido
+
+- **Importar packs grandes do CurseForge ainda falhava**, com o mesmo
+  `value too long for type character varying(512)` da 0.1.1 — em outra coluna. O
+  registro do que veio da origem guarda um par projeto/arquivo e o nome de
+  **cada** mod do pack, então um pack de trezentos mods gera dezenas de KB. A
+  configuração dizia que essa coluna não tinha limite; não tinha efeito, e ela
+  saía com os 512 do padrão. Agora é `text`, sem limite de verdade.
+- As colunas que guardam **por que** um mod ficou pendente foram alargadas: uma
+  mensagem de erro longa derrubava a ingestão justamente ao registrar a falha
+  que deveria explicar.
+
 ## [0.1.1] — 2026-08-22
 
 ### Corrigido

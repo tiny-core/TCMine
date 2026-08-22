@@ -145,19 +145,28 @@ fi
 # convenção do projeto só chegou até as tabelas. Consultado como está no banco,
 # não como deveria estar.
 largura() {
-  docker exec "$PG" psql -U tcmine -d tcmine -tAc \
-    "select character_maximum_length from information_schema.columns
-     where table_name = 'modpack_files' and column_name = '$1'" 2>/dev/null | tr -d '[:space:]'
+  docker exec "$PG" psql -U tcmine -d tcmine -tAc     "select coalesce(character_maximum_length::text, 'ilimitado')
+     from information_schema.columns
+     where table_name = '$1' and column_name = '$2'" 2>/dev/null | tr -d '[:space:]'
 }
 
-largura_slug="$(largura ProjectSlug)"
-largura_path="$(largura Path)"
+largura_slug="$(largura modpack_files ProjectSlug)"
+largura_path="$(largura modpack_files Path)"
 
 # O slug de um override é o caminho MAIS um prefixo, então tem de ser maior. Os
 # dois tinham o mesmo limite, e um caminho no tamanho máximo gerava um slug que
 # não cabia — por aritmética, não por azar. Aqui isso é verificado no banco que
 # a imagem migrou.
 afirmar "ProjectSlug (${largura_slug:-?}) cabe um Path (${largura_path:-?}) inteiro"   bash -c '[ -n "$1" ] && [ -n "$2" ] && [ "$1" -gt "$2" ]' _ "$largura_slug" "$largura_path"
+
+# O snapshot da origem guarda um par projeto/arquivo e o nome de cada mod, então
+# cresce com o pack: qualquer número aqui é o número errado. A configuração
+# dizia "sem limite" e a coluna saía varchar(512) assim mesmo — um Property()
+# sem nada configurado não desfaz a convenção global. Um pack de trezentos mods
+# batia nisso e a importação morria.
+snapshot_col="$(largura modpack_versions UpstreamSnapshotJson)"
+
+afirmar "UpstreamSnapshotJson é ilimitado (${snapshot_col:-?})"   bash -c '[ "$1" = "ilimitado" ]' _ "$snapshot_col"
 
 echo
 if [ "$falhas" -eq 0 ]; then

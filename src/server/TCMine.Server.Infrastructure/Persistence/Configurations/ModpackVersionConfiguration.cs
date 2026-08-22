@@ -19,8 +19,17 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
         builder.Property(v => v.UpstreamFileId).HasMaxLength(64);
         builder.Property(v => v.UpstreamVersionLabel).HasMaxLength(128);
 
-        // Sem limite: o snapshot cresce com o tamanho do pack (centenas de mods).
-        builder.Property(v => v.UpstreamSnapshotJson);
+        // Sem limite: o snapshot guarda um par projeto/arquivo e o nome de CADA
+        // mod do pack, então cresce com o tamanho dele — centenas de mods viram
+        // dezenas de KB.
+        //
+        // SetMaxLength(null) e não um Property() pelado: chamar Property() sem
+        // configurar nada NÃO desfaz a convenção global de 512 caracteres. Era
+        // exatamente isso que estava aqui, com este mesmo comentário ao lado, e
+        // por isso importar um pack grande morria com "value too long for type
+        // character varying(512)" — uma coluna que a configuração dizia não ter
+        // limite. Sem limite, o Npgsql emite "text" e o SQLite "TEXT".
+        builder.Property(v => v.UpstreamSnapshotJson).Metadata.SetMaxLength(null);
 
         builder.Ignore(v => v.IsPreRelease);
         builder.Ignore(v => v.HasPendingMods);
