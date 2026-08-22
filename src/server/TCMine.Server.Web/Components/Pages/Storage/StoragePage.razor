@@ -192,10 +192,18 @@ else
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd>
-                        <MudCheckBox T="bool" Value="@_selected.Contains(context.Sha256)"
-                                     ValueChanged="@(v => Toggle(context.Sha256, v))"
-                                     Disabled="@(!context.Safe || _isDeleting)"
-                                     Dense="true"/>
+                        @* Desabilitado tem de DIZER por quê. Um checkbox que
+                           não marca e não explica parece defeito — e foi
+                           relatado como tal. *@
+                        <MudTooltip Text="@(context.Safe
+                                              ? null
+                                              : "Gravado há menos de 24 h. Pode ser um blob cuja linha ainda não foi escrita: apagá-lo agora quebraria uma importação em curso.")"
+                                    Disabled="@context.Safe">
+                            <MudCheckBox T="bool" Value="@_selected.Contains(context.Sha256)"
+                                         ValueChanged="@(v => Toggle(context.Sha256, v))"
+                                         Disabled="@(!context.Safe || _isDeleting)"
+                                         Dense="true"/>
+                        </MudTooltip>
                     </MudTd>
                     <MudTd DataLabel="Hash">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">

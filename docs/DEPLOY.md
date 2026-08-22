@@ -130,6 +130,43 @@ Para conferir sem proxy, simule o cabeçalho:
 curl -H 'X-Forwarded-Proto: https' -o /dev/null -w '%{http_code}\n' http://localhost:8080/setup
 ```
 
+### Atrás do Cloudflare
+
+Funciona, com um aviso: o **Bot Fight Mode** injeta um script inline em cada
+página HTML (`window.__CF$cv$params={r:'<cf-ray>'…}`), e a CSP do painel é
+`script-src 'self'` — sem `unsafe-inline`, sem nonce. O navegador bloqueia esse
+script e registra no console:
+
+```
+Executing inline script violates the following Content Security Policy directive 'script-src self'
+```
+
+**O painel não é afetado** — o que foi bloqueado é a detecção de bot do
+Cloudflare, não código do TCMine. Mas o erro fica no console e confunde na hora
+de diagnosticar outra coisa.
+
+Como reconhecer que é isso, e não um problema seu: o hash sugerido pelo
+navegador **muda a cada carregamento**. O script carrega o `CF-RAY` da resposta,
+que é diferente em toda requisição — por isso não adianta liberar o hash, e é
+também a assinatura do sintoma. Para confirmar:
+
+```bash
+curl -s https://seu-dominio/login | grep -o "__CF\$cv\$params[^,]*"
+```
+
+Saída não vazia = é o Cloudflare. Nenhuma página do TCMine serve script inline
+(há teste que garante isso).
+
+Para tirar o erro do console, desligue **Security → Bots → Bot Fight Mode** no
+painel do Cloudflare. Não mexa na CSP para acomodá-lo: liberar `unsafe-inline`
+abriria a porta de XSS que a política existe para fechar, por causa de um script
+que nem é da aplicação.
+
+O Cloudflare também acrescenta um segundo cabeçalho
+`content-security-policy: frame-ancestors 'self'`. Cabeçalhos de CSP se somam
+pela interseção, então isso só torna a política mais restrita — sem efeito
+prático aqui, já que a nossa usa `frame-ancestors 'none'`.
+
 ## 5. Primeiro acesso
 
 Abra `https://seu-dominio/setup` e crie a conta de administrador. A tela só
