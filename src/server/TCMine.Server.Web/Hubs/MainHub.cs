@@ -71,7 +71,10 @@ public sealed class MainHub(
         // Só depois de entrar no grupo: começar a bombear antes abriria uma
         // janela em que as linhas saem para um grupo do qual esta conexão ainda
         // não faz parte — o primeiro pedaço do console se perderia.
-        broadcaster.Subscribe(Context.ConnectionId, serverId);
+        // O dono da conexão vai junto: é por ele que uma queda de papel
+        // consegue expulsar esta conexão do console mais tarde.
+        if (scope.UserId is { } userId)
+            broadcaster.Subscribe(Context.ConnectionId, userId, serverId);
     }
 
     public async Task UnsubscribeServerAsync(Guid serverId)

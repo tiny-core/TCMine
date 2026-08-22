@@ -1,4 +1,5 @@
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Servers;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
@@ -114,6 +115,10 @@ public sealed class PublishModpackVersionTests
             Task.CompletedTask;
 
         public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
+            Task.CompletedTask;
+
+        public Task NotifyRoleChangedAsync(
+            Guid serverId, Guid userId, ServerRoleDto? role, CancellationToken ct) =>
             Task.CompletedTask;
 
         public int Calls { get; private set; }

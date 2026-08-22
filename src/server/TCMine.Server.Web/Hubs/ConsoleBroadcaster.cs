@@ -36,6 +36,16 @@ public sealed partial class ConsoleBroadcaster(
     /// </summary>
     private readonly ConcurrentDictionary<string, HashSet<Guid>> _porConexao = new();
 
+    /// <summary>
+    ///     De quem é cada conexão.
+    ///     Mora aqui, e não numa classe à parte, porque este já é o único lugar
+    ///     que sabe quem está assinado em quê — e é essa a pergunta que precisa
+    ///     ser respondida para EXPULSAR alguém do console quando o papel dele
+    ///     cai. Sem isso, o rebaixamento só valeria na próxima reconexão do
+    ///     jogador, que é quando ele quiser.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, Guid> _donoDaConexao = new();
+
     public async ValueTask DisposeAsync()
     {
         foreach (var bombeamento in _porServidor.Values)
@@ -43,10 +53,13 @@ public sealed partial class ConsoleBroadcaster(
 
         _porServidor.Clear();
         _porConexao.Clear();
+        _donoDaConexao.Clear();
     }
 
-    public void Subscribe(string connectionId, Guid serverId)
+    public void Subscribe(string connectionId, Guid userId, Guid serverId)
     {
+        _donoDaConexao[connectionId] = userId;
+
         var assinaturas = _porConexao.GetOrAdd(connectionId, _ => []);
 
         lock (assinaturas)
@@ -81,9 +94,34 @@ public sealed partial class ConsoleBroadcaster(
         Soltar(serverId);
     }
 
+    /// <summary>
+    ///     Conexões de um usuário que acompanham um servidor.
+    ///     É a lista que precisa sair do grupo quando o acesso dele muda.
+    /// </summary>
+    public IReadOnlyList<string> ConnectionsOf(Guid userId, Guid serverId)
+    {
+        List<string> encontradas = [];
+
+        foreach (var (connectionId, dono) in _donoDaConexao)
+        {
+            if (dono != userId || !_porConexao.TryGetValue(connectionId, out var assinaturas))
+                continue;
+
+            lock (assinaturas)
+            {
+                if (assinaturas.Contains(serverId))
+                    encontradas.Add(connectionId);
+            }
+        }
+
+        return encontradas;
+    }
+
     /// <summary>Conexão caiu: solta tudo o que ela segurava.</summary>
     public void Disconnect(string connectionId)
     {
+        _donoDaConexao.TryRemove(connectionId, out _);
+
         if (!_porConexao.TryRemove(connectionId, out var assinaturas))
             return;
 

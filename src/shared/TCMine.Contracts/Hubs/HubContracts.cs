@@ -1,4 +1,4 @@
-﻿using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
 namespace TCMine.Contracts.Hubs;
@@ -51,10 +51,13 @@ public interface ILauncherClient
     Task ConsoleLine(Guid serverId, ConsoleLineDto line);
 
     /// <summary>
-    ///     O papel do usuário mudou. Sem isto, quem foi rebaixado continua
-    ///     recebendo o stream do console até reconectar.
+    ///     O papel do usuário mudou. NULO significa que ele perdeu o acesso —
+    ///     um enum sem esse estado obrigaria a inventar um papel para dizer
+    ///     "nenhum", e o cliente trataria remoção como rebaixamento.
+    ///     Sem este evento, quem foi rebaixado continua recebendo o stream do
+    ///     console até reconectar por conta própria.
     /// </summary>
-    Task RoleChanged(Guid serverId, ServerRoleDto role);
+    Task RoleChanged(Guid serverId, ServerRoleDto? role);
 }
 
 public sealed record ConsoleLineDto(DateTimeOffset Timestamp, string Text, ConsoleStream Stream);

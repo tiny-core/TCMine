@@ -1,4 +1,5 @@
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
 
@@ -27,4 +28,11 @@ public interface IServerHubNotifier
     ///     cada quinze segundos é tráfego que não informa nada.
     /// </summary>
     Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct);
+
+    /// <summary>
+    ///     O papel de um usuário num servidor mudou; nulo significa que ele
+    ///     perdeu o acesso. A implementação também desliga o que o papel antigo
+    ///     permitia — não é só um aviso.
+    /// </summary>
+    Task NotifyRoleChangedAsync(Guid serverId, Guid userId, ServerRoleDto? role, CancellationToken ct);
 }

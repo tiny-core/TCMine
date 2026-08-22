@@ -17,6 +17,7 @@ namespace TCMine.Server.Web.Tests.Hubs;
 public sealed class ConsoleBroadcasterTests
 {
     private static readonly Guid ServidorId = Guid.CreateVersion7();
+    private static readonly Guid Usuario = Guid.CreateVersion7();
 
     [Fact]
     public async Task Dez_ouvintes_do_mesmo_servidor_abrem_um_stream_so()
@@ -27,7 +28,7 @@ public sealed class ConsoleBroadcasterTests
         await using var broadcaster = Novo(orchestrator);
 
         for (var i = 0; i < 10; i++)
-            broadcaster.Subscribe($"conexao-{i}", ServidorId);
+            broadcaster.Subscribe($"conexao-{i}", Usuario, ServidorId);
 
         await orchestrator.AguardarAberturasAsync(1);
 
@@ -40,8 +41,8 @@ public sealed class ConsoleBroadcasterTests
         var orchestrator = new FakeOrchestrator();
         await using var broadcaster = Novo(orchestrator);
 
-        broadcaster.Subscribe("a", ServidorId);
-        broadcaster.Subscribe("b", ServidorId);
+        broadcaster.Subscribe("a", Usuario, ServidorId);
+        broadcaster.Subscribe("b", Usuario, ServidorId);
         await orchestrator.AguardarAberturasAsync(1);
 
         broadcaster.Unsubscribe("a", ServidorId);
@@ -62,8 +63,8 @@ public sealed class ConsoleBroadcasterTests
         var orchestrator = new FakeOrchestrator();
         await using var broadcaster = Novo(orchestrator);
 
-        broadcaster.Subscribe("a", ServidorId);
-        broadcaster.Subscribe("a", outro);
+        broadcaster.Subscribe("a", Usuario, ServidorId);
+        broadcaster.Subscribe("a", Usuario, outro);
         await orchestrator.AguardarAberturasAsync(2);
 
         broadcaster.Disconnect("a");
@@ -80,8 +81,8 @@ public sealed class ConsoleBroadcasterTests
         var orchestrator = new FakeOrchestrator();
         await using var broadcaster = Novo(orchestrator);
 
-        broadcaster.Subscribe("a", ServidorId);
-        broadcaster.Subscribe("a", ServidorId);
+        broadcaster.Subscribe("a", Usuario, ServidorId);
+        broadcaster.Subscribe("a", Usuario, ServidorId);
         await orchestrator.AguardarAberturasAsync(1);
 
         broadcaster.Unsubscribe("a", ServidorId);
@@ -116,6 +117,10 @@ public sealed class ConsoleBroadcasterTests
             Task.CompletedTask;
 
         public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
+            Task.CompletedTask;
+
+        public Task NotifyRoleChangedAsync(
+            Guid serverId, Guid userId, ServerRoleDto? role, CancellationToken ct) =>
             Task.CompletedTask;
     }
 

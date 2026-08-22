@@ -45,6 +45,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     /// </summary>
     private int? _expectedModCount;
 
+    [Inject] private ISettingsRepository Settings { get; set; } = default!;
     [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
@@ -187,6 +188,12 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     {
         var latest = _modpack?.Versions.OrderByDescending(v => v.Id).FirstOrDefault();
 
+        // A versão anterior manda mais que o padrão da instalação: se este pack
+        // já rodou com 8 GB, repetir 4 GB do padrão seria um passo atrás. O
+        // padrão só entra quando não há de quem herdar.
+        var settings = await Settings.GetAsync(CancellationToken.None);
+        var memoriaPadrao = latest?.RecommendedMemoryMb ?? settings.DefaultMemoryMb;
+
         var parameters = new DialogParameters
         {
             ["ModpackId"] = ModpackId,
@@ -194,7 +201,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
             ["MinecraftVersion"] = _modpack?.MinecraftVersion,
             ["Loader"] = _modpack?.Loader,
             ["DefaultLoaderVersion"] = latest?.LoaderVersion,
-            ["DefaultMemoryMb"] = latest?.RecommendedMemoryMb
+            ["DefaultMemoryMb"] = memoriaPadrao
         };
 
         var dialog = await DialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);

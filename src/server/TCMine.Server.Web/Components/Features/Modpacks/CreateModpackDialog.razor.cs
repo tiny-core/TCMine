@@ -29,8 +29,32 @@ public partial class CreateModpackDialog
     [Inject] private IVersionCatalog Catalog { get; set; } = default!;
     [Inject] private CreateModpack CreateModpackUseCase { get; set; } = default!;
     [Inject] private SetModpackIcon IconUseCase { get; set; } = default!;
+    [Inject] private ISettingsRepository Settings { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync() => await ReloadMc();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadMc();
+        await AplicarPadroesAsync();
+    }
+
+    /// <summary>
+    ///     Pré-preenche com o que a instalação definiu como padrão.
+    ///     Sugestão, não imposição: os campos seguem editáveis. Sem isto a tela
+    ///     de Configurações prometia um padrão que nada aplicava — pior que não
+    ///     ter a opção, porque o admin só descobria conferindo.
+    /// </summary>
+    private async Task AplicarPadroesAsync()
+    {
+        var settings = await Settings.GetAsync(CancellationToken.None);
+
+        _loader = settings.DefaultLoader;
+
+        // Só entra se a versão padrão ainda existir no catálogo: uma versão que
+        // saiu de circulação preencheria o campo com algo que o autocompletar
+        // não encontra, e o admin não saberia de onde veio.
+        if (settings.DefaultMinecraftVersion is { } padrao && _mcVersions.Contains(padrao))
+            _minecraftVersion = padrao;
+    }
 
     private async Task ReloadMc() =>
         _mcVersions = await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None);

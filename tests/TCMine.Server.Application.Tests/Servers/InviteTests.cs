@@ -195,7 +195,7 @@ public sealed class InviteTests
             Role = ServerRole.Owner
         });
 
-        var result = await new RemoveMember(memberships, new FakeUserScope { UserId = eu })
+        var result = await new RemoveMember(memberships, new FakeNotifier(), new FakeUserScope { UserId = eu })
             .HandleAsync(ServidorId, eu, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
@@ -213,10 +213,10 @@ public sealed class InviteTests
             Role = ServerRole.Owner
         };
 
-        var remover = await new RemoveMember(new FakeMemberships(membership), new FakeUserScope())
+        var remover = await new RemoveMember(new FakeMemberships(membership), new FakeNotifier(), new FakeUserScope())
             .HandleAsync(ServidorId, dono, TestContext.Current.CancellationToken);
 
-        var rebaixar = await new ChangeMemberRole(new FakeMemberships(membership), new FakeUserScope())
+        var rebaixar = await new ChangeMemberRole(new FakeMemberships(membership), new FakeNotifier(), new FakeUserScope())
             .HandleAsync(ServidorId, dono, ServerRoleDto.Member, TestContext.Current.CancellationToken);
 
         remover.Succeeded.ShouldBeFalse();
@@ -274,6 +274,66 @@ public sealed class InviteTests
             .HandleAsync(ServidorId, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Remover_membro_avisa_que_ele_perdeu_o_acesso()
+    {
+        // O aviso é o que tira as conexões dele do console AGORA. Sem ele, o
+        // rebaixamento só valeria quando o jogador resolvesse reconectar — ou
+        // seja, nunca, enquanto estivesse lendo o que não deveria.
+        var alvo = Guid.CreateVersion7();
+        var notifier = new FakeNotifier();
+        var memberships = new FakeMemberships(new Membership
+        {
+            UserId = alvo,
+            GameServerId = ServidorId,
+            Role = ServerRole.Moderator
+        });
+
+        var result = await new RemoveMember(memberships, notifier, new FakeUserScope())
+            .HandleAsync(ServidorId, alvo, TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeTrue();
+
+        var aviso = notifier.PapeisAvisados.ShouldHaveSingleItem();
+        aviso.UserId.ShouldBe(alvo);
+        aviso.ServerId.ShouldBe(ServidorId);
+
+        // Nulo, e não Member: ele não virou membro comum, ficou sem acesso.
+        aviso.Role.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Rebaixar_membro_avisa_com_o_papel_novo()
+    {
+        var alvo = Guid.CreateVersion7();
+        var notifier = new FakeNotifier();
+        var memberships = new FakeMemberships(new Membership
+        {
+            UserId = alvo,
+            GameServerId = ServidorId,
+            Role = ServerRole.Admin
+        });
+
+        var result = await new ChangeMemberRole(memberships, notifier, new FakeUserScope())
+            .HandleAsync(ServidorId, alvo, ServerRoleDto.Member, TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeTrue();
+        notifier.PapeisAvisados.ShouldHaveSingleItem().Role.ShouldBe(ServerRoleDto.Member);
+    }
+
+    [Fact]
+    public async Task Recusa_de_gerenciamento_nao_avisa_ninguem()
+    {
+        // Um aviso disparado numa operação recusada expulsaria do console
+        // alguém cujo papel não mudou.
+        var notifier = new FakeNotifier();
+
+        await new RemoveMember(new FakeMemberships(), notifier, new FakeUserScope(ServerRoleDto.Admin))
+            .HandleAsync(ServidorId, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
+
+        notifier.PapeisAvisados.ShouldBeEmpty();
     }
 
     private static FakeUserScope Jogador() =>

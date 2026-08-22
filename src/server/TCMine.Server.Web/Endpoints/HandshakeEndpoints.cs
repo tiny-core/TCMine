@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using TCMine.Contracts;
 using TCMine.Contracts.Handshake;
 using TCMine.Server.Web.Configuration;
@@ -30,7 +30,11 @@ public static class HandshakeEndpoints
         // Linhas do console empurradas para quem assina o servidor. Só entrou
         // depois de existir quem as bombeasse — anunciar antes faria o launcher
         // exibir um console que nunca recebe nada.
-        Capabilities.ConsoleStream
+        Capabilities.ConsoleStream,
+
+        // Upload manual de mod: o AddManualFile e o diálogo existem desde
+        // antes, e a capability só nunca tinha sido declarada.
+        Capabilities.ManualModUpload
     ];
 
     public static IEndpointRouteBuilder MapHandshake(this IEndpointRouteBuilder app)

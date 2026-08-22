@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Servers;
 
@@ -11,7 +11,9 @@ namespace TCMine.Server.Web.Hubs;
 ///     O IHubContext é o caminho oficial, e encapsulá-lo aqui evita espalhar
 ///     nomes de grupo pelo código.
 /// </summary>
-public sealed class LauncherNotifier(IHubContext<MainHub, ILauncherClient> hub)
+public sealed class LauncherNotifier(
+    IHubContext<MainHub, ILauncherClient> hub,
+    ConsoleBroadcaster broadcaster)
 {
     public Task ModpackVersionPublishedAsync(Guid modpackId, Guid versionId) =>
         hub.Clients.All.ModpackVersionPublished(modpackId, versionId);
@@ -26,10 +28,28 @@ public sealed class LauncherNotifier(IHubContext<MainHub, ILauncherClient> hub)
         hub.Clients.Group(MainHub.GroupFor(serverId)).ConsoleLine(serverId, line);
 
     /// <summary>
-    ///     Avisa que o papel mudou.
-    ///     Sem isto, quem foi rebaixado continua no grupo e recebendo o console
-    ///     até reconectar. Quem chama deve também remover a conexão do grupo.
+    ///     Avisa UM usuário que o papel dele neste servidor mudou, e tira as
+    ///     conexões dele do grupo.
+    ///     As duas coisas juntas de propósito: avisar sem expulsar deixaria o
+    ///     console correndo para quem acabou de perder o direito de lê-lo, e
+    ///     confiar no launcher para se desinscrever seria confiar no cliente
+    ///     para aplicar a própria punição.
+    ///     Vai para Clients.User e não para o grupo — o grupo é todo mundo que
+    ///     acompanha o servidor, e o papel dos outros não mudou.
     /// </summary>
-    public Task RoleChangedAsync(Guid serverId, ServerRoleDto role) =>
-        hub.Clients.Group(MainHub.GroupFor(serverId)).RoleChanged(serverId, role);
+    public async Task RoleChangedAsync(Guid serverId, Guid userId, ServerRoleDto? role)
+    {
+        await hub.Clients.User(userId.ToString()).RoleChanged(serverId, role);
+
+        // Moderator é o piso para ler console (ConsoleCommandPolicy). Quem
+        // continua acima dele segue acompanhando; quem caiu, sai.
+        if (role is >= ServerRoleDto.Moderator)
+            return;
+
+        foreach (var connectionId in broadcaster.ConnectionsOf(userId, serverId))
+        {
+            await hub.Groups.RemoveFromGroupAsync(connectionId, MainHub.GroupFor(serverId));
+            broadcaster.Unsubscribe(connectionId, serverId);
+        }
+    }
 }

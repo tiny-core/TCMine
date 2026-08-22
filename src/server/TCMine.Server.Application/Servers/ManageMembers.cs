@@ -34,7 +34,10 @@ public sealed class RevokeInvite(IInviteRepository invites, ICurrentUserScope sc
 /// <summary>
 ///     Tira o acesso de alguém a um servidor.
 /// </summary>
-public sealed class RemoveMember(IMembershipRepository memberships, ICurrentUserScope scope)
+public sealed class RemoveMember(
+    IMembershipRepository memberships,
+    IServerHubNotifier notifier,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid gameServerId, Guid userId, CancellationToken ct)
     {
@@ -55,6 +58,12 @@ public sealed class RemoveMember(IMembershipRepository memberships, ICurrentUser
             return Result.Fail("O dono do servidor não pode ser removido.");
 
         await memberships.RemoveAsync(membership.Id, ct);
+
+        // Papel nulo = perdeu o acesso. Avisar não é cortesia: é o que tira as
+        // conexões dele do console agora, em vez de na próxima reconexão — que
+        // seria quando o jogador quisesse.
+        await notifier.NotifyRoleChangedAsync(gameServerId, userId, null, ct);
+
         return Result.Success();
     }
 }
@@ -62,7 +71,10 @@ public sealed class RemoveMember(IMembershipRepository memberships, ICurrentUser
 /// <summary>
 ///     Muda o papel de um membro.
 /// </summary>
-public sealed class ChangeMemberRole(IMembershipRepository memberships, ICurrentUserScope scope)
+public sealed class ChangeMemberRole(
+    IMembershipRepository memberships,
+    IServerHubNotifier notifier,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(
         Guid gameServerId, Guid userId, ServerRoleDto role, CancellationToken ct)
@@ -88,6 +100,8 @@ public sealed class ChangeMemberRole(IMembershipRepository memberships, ICurrent
 
         membership.Role = role.ToDomain();
         await memberships.UpdateAsync(membership, ct);
+
+        await notifier.NotifyRoleChangedAsync(gameServerId, userId, role, ct);
 
         return Result.Success();
     }

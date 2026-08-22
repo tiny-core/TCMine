@@ -1,4 +1,5 @@
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 
 namespace TCMine.Server.Web.Hubs;
@@ -14,4 +15,7 @@ public sealed class ServerHubNotifier(LauncherNotifier notifier) : IServerHubNot
 
     public Task NotifyPlayerCountChangedAsync(Guid serverId, int online, int max, CancellationToken ct) =>
         notifier.PlayerCountChangedAsync(serverId, online, max);
+
+    public Task NotifyRoleChangedAsync(Guid serverId, Guid userId, ServerRoleDto? role, CancellationToken ct) =>
+        notifier.RoleChangedAsync(serverId, userId, role);
 }
