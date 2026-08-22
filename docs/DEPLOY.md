@@ -135,6 +135,121 @@ curl -H 'X-Forwarded-Proto: https' -o /dev/null -w '%{http_code}\n' http://local
 Abra `https://seu-dominio/setup` e crie a conta de administrador. A tela só
 existe enquanto não houver nenhum usuário.
 
+## ZimaOS e outros NAS
+
+O painel do ZimaOS instala apps por formulário ou por YAML. **Use o YAML**: o
+formulário não expressa `group_add` (a permissão para falar com o Docker) nem
+bind mount com caminho idêntico, que são justamente as duas coisas que não podem
+faltar.
+
+### O caminho real, não o /DATA
+
+O ZimaOS apresenta `/DATA` na interface, mas o caminho real no disco é
+`/media/ZimaOS-HD/...`. Ao salvar, ele **reescreve** o volume: um
+`origem:origem` vira `origem:/DATA/AppData/...`.
+
+Com isso o painel funciona e **todo servidor de jogo sobe vazio** — o daemon
+procura o caminho do container no host, não acha, cria uma pasta vazia e a
+monta. Desde a 1.0.1 o arranque detecta e recusa, mas o conserto é o mesmo: usar
+o caminho real dos dois lados, e **conferir o YAML depois de salvar**.
+
+### Preparar por SSH
+
+```bash
+sudo mkdir -p /media/ZimaOS-HD/AppData/tcmine-server/{data,instances,postgres}
+sudo chown -R 1654:1654 /media/ZimaOS-HD/AppData/tcmine-server/data \
+                        /media/ZimaOS-HD/AppData/tcmine-server/instances
+getent group docker | cut -d: -f3    # anote para o group_add
+```
+
+A pasta do Postgres fica **fora** do `chown`: a imagem dele ajusta o próprio
+dono, e forçar 1654 ali a faz reclamar.
+
+### YAML
+
+```yaml
+services:
+  tcmine:
+    image: SEU_USUARIO/tcmine-server:latest
+    container_name: tcmine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8099:8080"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      - type: bind
+        source: /media/ZimaOS-HD/AppData/tcmine-server
+        target: /media/ZimaOS-HD/AppData/tcmine-server
+    group_add:
+      - "1000"
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Server__PublicUrl: https://tcmine.seudominio.com
+      Server__Name: TCMine
+      Server__AzureClientId: ""
+      Storage__RootPath: /media/ZimaOS-HD/AppData/tcmine-server
+      Database__Provider: Postgres
+      Database__Host: postgres
+      Database__Password: TROQUE
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: tcmine-postgres
+    restart: unless-stopped
+    volumes:
+      - /media/ZimaOS-HD/AppData/tcmine-server/postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: tcmine
+      POSTGRES_USER: tcmine
+      POSTGRES_PASSWORD: TROQUE
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tcmine"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+```
+
+A porta `8099` evita 80 e 443, que o próprio ZimaOS usa. Confira com
+`ss -tlnp | grep 8099`.
+
+O Postgres não publica porta: quem fala com ele é só o TCMine, pela rede interna
+do compose.
+
+### Portas — são duas coisas diferentes
+
+**Servidores de jogo:** encaminhe **TCP** no roteador para o IP do ZimaOS. A
+porta de cada servidor vem do `ConnectAddress` que você digita ao criá-lo:
+`mc.exemplo.com:25566` publica na 25566; sem porta, cai na 25565. **Cada
+servidor precisa de uma porta diferente** — dois com a mesma fazem o segundo
+falhar ao subir.
+
+**Painel:** não encaminhe. Ele tem o socket do Docker, ou seja, controle total do
+NAS.
+
+### TLS pelo Cloudflare Tunnel
+
+Se você já usa Cloudflare, é o caminho mais limpo: não abre porta no roteador,
+resolve o certificado e **envia `X-Forwarded-Proto`**, sem o qual o painel
+responde 500 em tudo. Aponte o tunnel para `http://IP_DO_ZIMAOS:8099`.
+
+O tunnel serve para o painel, **não para o Minecraft**: o jogo é TCP puro, e o
+plano gratuito não faz proxy disso. A porta do jogo precisa de encaminhamento
+direto no roteador.
+
+### Duas limitações de rede doméstica
+
+- **A porta 25 de saída** é bloqueada por praticamente todo provedor
+  residencial, então o servidor de e-mail próprio **não vai entregar nada** a
+  partir de casa. Para recuperação de senha funcionar, configure um SMTP externo
+  na aba E-mail.
+- **IP residencial muda.** Configure DDNS, ou os jogadores perdem o servidor na
+  próxima renovação. O tunnel resolve isso só para o painel.
+
 ## O que o compose concede ao painel
 
 O container recebe `/var/run/docker.sock`. Isso lhe dá o poder de criar
