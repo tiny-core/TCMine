@@ -4,8 +4,8 @@ O repositório abriga dois produtos, então a tag diz de qual se trata:
 
 | Tag | O que dispara |
 |---|---|
-| `server-v1.2.3` | Constrói a imagem e publica no Docker Hub |
-| `launcher-v1.2.3` | Reservado para o launcher — ainda sem workflow |
+| `server-v0.2.0` | Constrói a imagem e publica no Docker Hub |
+| `launcher-v0.1.0` | Reservado para o launcher — ainda sem workflow |
 
 O prefixo não é cosmético: sem ele, publicar o launcher reconstruiria o servidor
 e vice-versa.
@@ -27,21 +27,21 @@ entender o que foi publicado.
 ## Lançar o servidor
 
 ```bash
-git tag server-v1.0.0
-git push origin server-v1.0.0
+git tag server-v0.1.0
+git push origin server-v0.1.0
 ```
 
 O workflow roda as suítes de teste **antes** de publicar. Uma imagem publicada é
 imutável na prática — alguém pode tê-la baixado no minuto seguinte —, então não
 vale confiar num CI que passou numa versão anterior do código.
 
-Tags geradas para `server-v1.0.0`:
+Tags geradas para `server-v0.1.0`:
 
-- `1.0.0` — a versão exata
-- `1.0` — acompanha os patches dessa linha
+- `0.1.0` — a versão exata
+- `0.1` — acompanha os patches dessa linha
 - `latest`
 
-Um pré-lançamento (`server-v1.1.0-beta.1`) recebe **só** a versão exata. Nem
+Um pré-lançamento (`server-v0.2.0-beta.1`) recebe **só** a versão exata. Nem
 `latest` nem a tag curta: quem pede "a versão atual" não está pedindo um beta.
 
 ## A versão dentro da imagem

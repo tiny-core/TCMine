@@ -5,7 +5,9 @@ repositório.
 
 **TCMine Server** — painel web que cria e publica modpacks, ingere mods do
 Modrinth e do CurseForge, e orquestra os servidores de jogo como containers
-Docker. É o que está pronto e publicado.
+Docker. Funcional e publicado como imagem, ainda em `0.x`: o conjunto de
+funcionalidades está inteiro, mas a instalação em cenários variados continua
+revelando arestas. O `1.0.0` fica reservado para quando isso parar de acontecer.
 
 **TCMine Launcher** — cliente desktop que instala e atualiza as instâncias do
 jogador. Em construção; o lado do servidor que ele consome já existe.
@@ -98,7 +100,7 @@ Detalhes de arquitetura e as decisões já tomadas estão em
 Tags com prefixo separam os dois produtos:
 
 ```bash
-git tag server-v1.0.3 && git push origin server-v1.0.3
+git tag server-v0.2.0 && git push origin server-v0.2.0
 ```
 
 Isso roda os testes, publica a imagem no Docker Hub e cria a release. Ver
