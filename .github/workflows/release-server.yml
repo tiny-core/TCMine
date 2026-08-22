@@ -1,0 +1,116 @@
+# Publica a imagem do TCMine Server no Docker Hub a partir de uma tag do git.
+#
+# Dispara em tags "server-v*" — o prefixo separa os dois produtos do repositório,
+# para que uma release do launcher não construa o servidor e vice-versa.
+#
+# Antes do primeiro uso, defina em Settings > Secrets and variables > Actions:
+#   DOCKERHUB_USERNAME  seu usuário do Docker Hub
+#   DOCKERHUB_TOKEN     um access token (Docker Hub > Account Settings > Security)
+#                       com permissão de escrita — não a senha da conta
+#   DOCKERHUB_IMAGE     (variável, não segredo) nome do repositório da imagem,
+#                       ex.: jocian/tcmine-server
+
+name: Publicar imagem do servidor
+
+on:
+  push:
+    tags:
+      - "server-v*"
+
+  # Permite disparar à mão para testar o workflow sem criar tag. Nesse caso a
+  # imagem sai marcada como 0.0.0-manual e NÃO recebe a tag "latest".
+  workflow_dispatch:
+
+# Só uma publicação por vez: duas tags empurradas juntas competiriam pela tag
+# "latest" e a última a terminar venceria, que não é necessariamente a maior.
+concurrency:
+  group: release-server
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Descobrir a versão e as tags da imagem
+        id: versao
+        env:
+          IMAGEM: ${{ vars.DOCKERHUB_IMAGE }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${IMAGEM}" ]; then
+            echo "Defina a variável DOCKERHUB_IMAGE (ex.: jocian/tcmine-server)." >&2
+            exit 1
+          fi
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            versao="${GITHUB_REF_NAME#server-v}"   # server-v1.2.3 -> 1.2.3
+          else
+            versao="0.0.0-manual"
+          fi
+
+          tags="${IMAGEM}:${versao}"
+
+          # "latest" e a tag curta de minor só para release estável. Um
+          # pré-lançamento (1.2.3-beta.1) virando latest entregaria beta a quem
+          # só pediu "a versão atual".
+          case "${versao}" in
+            *-*|0.0.0-manual)
+              echo "Pré-lançamento ou execução manual: sem latest." ;;
+            *)
+              minor="${versao%.*}"
+              tags="${tags},${IMAGEM}:${minor},${IMAGEM}:latest" ;;
+          esac
+
+          {
+            echo "versao=${versao}"
+            echo "tags=${tags}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Versão ${versao}"
+          echo "Tags: ${tags}"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # Os testes rodam ANTES de publicar, e não num workflow à parte que talvez
+      # tenha passado numa versão anterior do código: uma imagem publicada é
+      # imutável na prática, porque alguém já pode tê-la baixado.
+      - name: Testes
+        run: |
+          set -euo pipefail
+
+          # Um executável por suíte: o SDK do .NET 10 removeu o caminho VSTest e
+          # o runner do xUnit v3 é o próprio .exe do projeto. É o mesmo que o
+          # scripts/tc test faz.
+          for projeto in tests/*/; do
+            [ -f "${projeto}"*.csproj ] || continue
+            dotnet run --project "$projeto" -c Release
+          done
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Construir e publicar
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          build-args: |
+            VERSION=${{ steps.versao.outputs.versao }}
+          tags: ${{ steps.versao.outputs.tags }}
+          # Cache entre execuções: sem ele cada release refaz o restore inteiro,
+          # e o restore é a parte cara desta build.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
