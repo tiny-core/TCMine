@@ -26,9 +26,22 @@
                 Entrar
             </MudButton>
 
-            <MudLink Href="/forgot-password" Typo="Typo.body2" Class="d-block text-center">
-                Esqueci minha senha
-            </MudLink>
+            @if (PodeRecuperar)
+            {
+                <MudLink Href="/forgot-password" Typo="Typo.body2" Class="d-block text-center">
+                    Esqueci minha senha
+                </MudLink>
+            }
+            else
+            {
+                @* Sem SMTP não há como entregar o link. Dizer isso é melhor que
+                   esconder sem explicação: quem esqueceu a senha precisa saber
+                   que o caminho é falar com quem hospeda, não insistir na tela. *@
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Align="Align.Center">
+                    Esqueceu a senha? Este servidor não tem envio de e-mail configurado —
+                    peça a redefinição a quem administra a instalação.
+                </MudText>
+            }
         </MudStack>
     </form>
 </AuthShell>
