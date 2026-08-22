@@ -27,12 +27,17 @@
     <File Path="build/add-migration.ps1" />
     <File Path="build/add-migration.sh" />
   </Folder>
+  <Folder Name="/_docs/">
+    <File Path="docs/DEPLOY.md" />
+  </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
     <File Path="CLAUDE.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
     <File Path="global.json" />
   </Folder>
   <Folder Name="/_scripts/">
