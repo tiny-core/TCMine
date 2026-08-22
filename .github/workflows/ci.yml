@@ -124,4 +124,8 @@ jobs:
           cache-to: type=gha,mode=max,scope=imagem-servidor
 
       - name: Fumaça da imagem
-        run: ./scripts/smoke-image.sh tcmine-server:ci
+        # Chamado por "bash" e não por ./: o bit de execução é atributo de
+        # filesystem e nem todo checkout o preserva — foi assim que uma release
+        # morreu com "Permission denied". O bit está no índice do git também;
+        # isto apenas deixa de depender dele.
+        run: bash ./scripts/smoke-image.sh tcmine-server:ci
