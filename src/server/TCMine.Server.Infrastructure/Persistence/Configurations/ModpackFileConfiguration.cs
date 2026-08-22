@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TCMine.Server.Domain.Modpacks;
 
@@ -12,7 +12,12 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
 
         builder.HasKey(f => f.Id);
 
-        builder.Property(f => f.Path).HasMaxLength(512).IsRequired();
+        builder.Property(f => f.Path).HasMaxLength(ModpackFile.MaxPathLength).IsRequired();
+
+        // Sem esta linha, o ProjectSlug herdava os 512 da convenção global do
+        // contexto — e o slug de um override é o caminho MAIS um prefixo, então
+        // era matematicamente impossível caber um caminho no limite máximo.
+        builder.Property(f => f.ProjectSlug).HasMaxLength(ModpackFile.MaxProjectSlugLength);
 
         // SHA-256 em hex tem exatamente 64 caracteres. Coluna de tamanho
         // fixo deixa o banco otimizar melhor.
@@ -21,7 +26,8 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
         builder.Property(f => f.Side).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(f => f.Origin).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(f => f.OriginReference).HasMaxLength(256);
-        builder.Property(f => f.IconUrl).HasMaxLength(512);
+                // URL de CDN com assinatura passa de 512 com facilidade.
+        builder.Property(f => f.IconUrl).HasMaxLength(1024);
 
         // Mesmo caminho duas vezes na mesma versão seria ambíguo na hora de
         // materializar a instância.

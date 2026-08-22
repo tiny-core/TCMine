@@ -184,6 +184,7 @@ public sealed partial class ImportUpstreamPack(
         CancellationToken ct)
     {
         var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var ignorados = new List<string>();
         var done = 0;
 
         foreach (var item in overrides)
@@ -191,6 +192,18 @@ public sealed partial class ImportUpstreamPack(
             // Milhares de arquivos: sem contador o admin fica minutos sem saber
             // se está andando.
             step("Gravando configs e scripts", done++, overrides.Count);
+
+            // Um caminho maior que a coluna derrubaria o pack INTEIRO na
+            // gravação, com um erro de banco que não diz qual arquivo causou.
+            // Pular um arquivo e seguir com os outros mil é melhor que perder a
+            // importação por causa dele — e o caminho vai para o log, para o
+            // admin decidir o que fazer.
+            if (item.Path.Length > ModpackFile.MaxPathLength)
+            {
+                ignorados.Add(item.Path);
+                continue;
+            }
+
             using var content = new MemoryStream(item.Content);
             var sha = await blobStore.PutAsync(content, null, "application/octet-stream", ct);
 
@@ -202,11 +215,17 @@ public sealed partial class ImportUpstreamPack(
                 SizeBytes = item.Content.Length,
                 Side = FileSide.Both,
                 Origin = ModFileOrigin.Override,
-                ProjectSlug = $"override:{item.Path}"
+                ProjectSlug = ModpackFile.OverrideSlug(item.Path)
             });
 
             hashes[item.Path] = sha;
         }
+
+        // Pelo acompanhamento e não pelo log: o admin está olhando a tela da
+        // importação agora, e é ali que ele decide se o que ficou de fora
+        // importa.
+        if (ignorados.Count > 0)
+            step($"{ignorados.Count} arquivo(s) ignorado(s): caminho longo demais", done, overrides.Count);
 
         return hashes;
     }

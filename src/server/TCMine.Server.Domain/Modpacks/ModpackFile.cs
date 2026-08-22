@@ -1,10 +1,37 @@
-﻿using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Domain.Modpacks;
 
 public sealed class ModpackFile : Entity
 {
+    /// <summary>
+    ///     Caminho relativo à raiz da instância. Mil e vinte e quatro cobre
+    ///     folgadamente os caminhos profundos que packs grandes trazem em
+    ///     config/ e kubejs/ — o limite anterior, de 512, era atingido por packs
+    ///     reais do CurseForge.
+    /// </summary>
+    public const int MaxPathLength = 1024;
+
+    /// <summary>
+    ///     Prefixo do slug sintético de um override.
+    ///     O slug de override é este prefixo mais o caminho, o que o torna,
+    ///     POR DEFINIÇÃO, maior que o caminho. Quando os dois campos tinham o
+    ///     mesmo limite, um caminho que cabia gerava um slug que não cabia — e
+    ///     o erro chegava do banco, sobre uma coluna que ninguém tinha
+    ///     configurado à mão.
+    /// </summary>
+    public const string OverrideSlugPrefix = "override:";
+
+    /// <summary>
+    ///     Derivado, e não um número solto: é o que impede os dois limites de
+    ///     divergirem de novo se um deles mudar.
+    /// </summary>
+    public const int MaxProjectSlugLength = MaxPathLength + 32;
+
+    /// <summary>Slug sintético de um override, a partir do caminho.</summary>
+    public static string OverrideSlug(string path) => OverrideSlugPrefix + path;
+
     public required Guid ModpackVersionId { get; set; }
 
     /// <summary>

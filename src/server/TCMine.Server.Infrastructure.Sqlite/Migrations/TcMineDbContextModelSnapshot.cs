@@ -313,7 +313,7 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("IconUrl")
-                        .HasMaxLength(512)
+                        .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("ModpackVersionId")
@@ -333,11 +333,11 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<string>("Path")
                         .IsRequired()
-                        .HasMaxLength(512)
+                        .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ProjectSlug")
-                        .HasMaxLength(512)
+                        .HasMaxLength(1056)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Sha256")
