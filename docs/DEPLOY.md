@@ -80,8 +80,26 @@ e no `.env`:
 
 ```
 TCMINE_DB_PROVIDER=Postgres
-TCMINE_DB_CONNECTION=Host=postgres;Database=tcmine;Username=tcmine;Password=...
 ```
+
+O banco aceita campos separados, que é o que se recomenda:
+
+| Variável | Padrão |
+|---|---|
+| `Database__Host` | — (obrigatório para Postgres) |
+| `Database__Port` | `5432` |
+| `Database__Name` | `tcmine` |
+| `Database__Username` | `tcmine` |
+| `Database__Password` | — |
+
+Prefira os campos à connection string inteira: a senha é escapada pelo driver,
+e uma senha com `;` ou `=` quebra uma string montada à mão — com o erro
+chegando como "autenticação falhou", que manda conferir uma senha que está
+certa.
+
+Ainda assim, `Database__ConnectionString` continua valendo e **ganha dos
+campos**, para quem precisa de parâmetros que eles não cobrem (SSL, timeout,
+pool).
 
 ## 4. Proxy reverso — obrigatório
 

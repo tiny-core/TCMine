@@ -39,6 +39,16 @@ builder.Services.AddTcMineServerOptions(builder.Configuration, builder.Environme
 // configuração logo abaixo.
 StorageLayout.Apply(builder.Configuration, builder.Configuration);
 
+// A connection string sai dos campos separados (Host, Port, Name, Username,
+// Password) quando não vem pronta — ou do caminho da raiz, no caso do SQLite.
+// Depois do StorageLayout porque o SQLite depende da raiz já resolvida.
+if (DatabaseConnection.Build(builder.Configuration, builder.Configuration[StorageLayout.RootKey])
+    is { } connectionString)
+{
+    builder.Configuration.AddInMemoryCollection(
+        new Dictionary<string, string?> { ["Database:ConnectionString"] = connectionString });
+}
+
 // O SQLite abre o arquivo mas não cria a pasta: uma instalação nova (ou um
 // data/ apagado) morreria aqui com uma mensagem que não menciona pasta nenhuma.
 StoragePaths.EnsureCreated(builder.Configuration, builder.Environment);

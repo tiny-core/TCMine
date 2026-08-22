@@ -13,14 +13,18 @@ namespace TCMine.Server.Web.Tests;
 public sealed class StorageLayoutTests
 {
     [Fact]
-    public void Raiz_preenche_os_quatro_caminhos()
+    public void Raiz_preenche_os_caminhos_de_arquivo()
     {
         var config = Configurar(new() { ["Storage:RootPath"] = "/dados/tcmine" });
 
-        config["Database:ConnectionString"].ShouldBe("Data Source=/dados/tcmine/data/tcmine.db");
         config["BlobStorage:RootPath"].ShouldBe("/dados/tcmine/data/blobs");
         config["Instances:RootPath"].ShouldBe("/dados/tcmine/instances");
         config["DataProtection:KeysPath"].ShouldBe("/dados/tcmine/data/keys");
+
+        // O banco NÃO sai daqui: ele depende do provider, e derivar um caminho
+        // de SQLite para uma instalação Postgres entregaria ao driver uma
+        // connection string que ele recusa. Ver DatabaseConnection.
+        config["Database:ConnectionString"].ShouldBeNull();
     }
 
     [Fact]

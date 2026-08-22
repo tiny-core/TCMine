@@ -28,9 +28,6 @@ public static class StorageLayout
 
         Dictionary<string, string?> derivados = [];
 
-        Derivar(derivados, configuration, "Database:ConnectionString",
-            $"Data Source={raiz}/data/tcmine.db");
-
         Derivar(derivados, configuration, "BlobStorage:RootPath", $"{raiz}/data/blobs");
         Derivar(derivados, configuration, "Instances:RootPath", $"{raiz}/instances");
         Derivar(derivados, configuration, "DataProtection:KeysPath", $"{raiz}/data/keys");
