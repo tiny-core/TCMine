@@ -44,10 +44,68 @@ public static class StoragePaths
         // Chaves de proteção de dados. Sem elas persistidas, toda sessão cai a
         // cada arranque e o que foi cifrado antes (chave do CurseForge, senha de
         // SMTP) deixa de ser legível.
-        pastas.Add(Path.Combine(environment.ContentRootPath, "data", "keys"));
+        pastas.Add(KeysPath(configuration, environment));
 
         foreach (var pasta in pastas)
             Criar(pasta, environment.ContentRootPath);
+
+        ValidarCaminhoDeInstancias(configuration);
+    }
+
+    /// <summary>
+    ///     Em container, a raiz das instâncias precisa ser um caminho ABSOLUTO e
+    ///     idêntico no host.
+    ///     A razão não é estilo: o TCMine pede ao daemon do Docker que monte
+    ///     <c>{raiz}/{id}</c> dentro do container do jogo, e quem interpreta
+    ///     esse caminho é o DAEMON — ou seja, o host. Um caminho que só existe
+    ///     dentro deste container faz o Docker criar uma pasta vazia no host e
+    ///     montá-la: o servidor sobe sem mods e sem mundo, sem erro nenhum.
+    ///     Falhar aqui é a diferença entre uma mensagem no arranque e um
+    ///     servidor que parece funcionar até alguém entrar nele.
+    /// </summary>
+    private static void ValidarCaminhoDeInstancias(IConfiguration configuration)
+    {
+        if (!EmContainer())
+            return;
+
+        var raiz = configuration["Instances:RootPath"];
+
+        if (string.IsNullOrWhiteSpace(raiz) || Path.IsPathRooted(raiz))
+            return;
+
+        throw new InvalidOperationException(
+            $"Instances:RootPath ('{raiz}') precisa ser um caminho absoluto quando o TCMine roda "
+            + "em container, e o mesmo caminho precisa estar montado do host no container. "
+            + "Quem monta a pasta da instância é o daemon do Docker, que enxerga o host: um "
+            + "caminho relativo (ou que só existe aqui dentro) faz o servidor de jogo subir com "
+            + "uma pasta vazia, sem mods e sem mundo. Ver docker-compose.yml.");
+    }
+
+    /// <summary>
+    ///     O runtime do .NET marca isto nas imagens oficiais; o arquivo é o
+    ///     sinal clássico e cobre imagem construída de outro jeito.
+    /// </summary>
+    private static bool EmContainer() =>
+        Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") is "true" or "1"
+        || File.Exists("/.dockerenv");
+
+    /// <summary>
+    ///     Onde ficam as chaves de proteção de dados.
+    ///     Configurável por <c>DataProtection:KeysPath</c> porque o padrão vive
+    ///     sob a raiz do conteúdo — que dentro de um container é a camada
+    ///     efêmera da imagem. Deixar ali significaria perder as chaves a cada
+    ///     recriação, e com elas as sessões e todo segredo já cifrado.
+    /// </summary>
+    public static string KeysPath(IConfiguration configuration, IHostEnvironment environment)
+    {
+        var configurado = configuration["DataProtection:KeysPath"];
+
+        if (string.IsNullOrWhiteSpace(configurado))
+            return Path.Combine(environment.ContentRootPath, "data", "keys");
+
+        return Path.IsPathRooted(configurado)
+            ? configurado
+            : Path.GetFullPath(Path.Combine(environment.ContentRootPath, configurado));
     }
 
     /// <summary>

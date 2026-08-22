@@ -1,0 +1,31 @@
+# O que NÃO entra no contexto de build.
+#
+# Vale mais do que parece: sem isto, o `data/` de desenvolvimento (com o banco,
+# os blobs e as instâncias inteiras) é enviado ao daemon a cada build, e as
+# pastas bin/obj locais entram por cima das compiladas dentro da imagem.
+
+**/bin/
+**/obj/
+**/data/
+**/node_modules/
+
+.git/
+.idea/
+.vs/
+.vscode/
+.claude/
+.junie/
+
+tests/
+build/
+scripts/
+
+**/*.user
+**/*.suo
+**/TestResults/
+
+# O compose e a própria imagem não são insumo da build.
+Dockerfile
+.dockerignore
+docker-compose*.yml
+.env

@@ -110,10 +110,13 @@ builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 // Chaves persistidas em disco: sem isto elas são regeradas a cada arranque, o
 // que derrubaria toda sessão e tornaria ilegível o que foi cifrado antes (a
 // chave da API do CurseForge, a senha de SMTP).
+// O caminho é configurável porque em container /app é efêmero: recriar o
+// container apagaria as chaves, derrubando toda sessão e tornando ilegível o
+// que foi cifrado com elas — a chave do CurseForge e a senha do SMTP.
 builder.Services
     .AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(
-        Path.Combine(builder.Environment.ContentRootPath, "data", "keys")))
+    .PersistKeysToFileSystem(new DirectoryInfo(StoragePaths.KeysPath(
+        builder.Configuration, builder.Environment)))
     .SetApplicationName("TCMine");
 
 // ---------- Identidade ----------
@@ -190,14 +193,38 @@ builder.Services.AddHostedService<InterruptedWorkRecovery>();
 
 var app = builder.Build();
 
-// Só em Development: aplica migrations pendentes usando a connection string
-// real da App. Em produção NUNCA migramos no arranque — lá é bundle no deploy.
-if (app.Environment.IsDevelopment())
+// Aplica migrations pendentes no arranque.
+//
+// Isto valia só para Development, sob a regra de que produção migraria por
+// bundle no deploy. A regra pressupõe um pipeline de deploy, e o TCMine não tem
+// um: ele é entregue como imagem para alguém subir com `docker compose up` na
+// própria máquina. Sem migrar aqui, o container sobe, responde ao health check
+// (que não toca o banco) e devolve 500 em toda página — que é exatamente o que
+// aconteceu ao testar a imagem pela primeira vez.
+//
+// Migrar no arranque é seguro AQUI porque a instalação é de instância única por
+// natureza: o TCMine orquestra containers no Docker local, então não há réplicas
+// concorrendo pela mesma migration. Quem tiver um pipeline e preferir controlar
+// o momento desliga com Database:AutoMigrate=false.
+if (builder.Configuration.GetValue("Database:AutoMigrate", true))
 {
-    using var scope = app.Services.CreateScope();
-    var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TcMineDbContext>>();
-    await using var db = await factory.CreateDbContextAsync();
-    await db.Database.MigrateAsync();
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var factory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<TcMineDbContext>>();
+        await using var db = await factory.CreateDbContextAsync();
+        await db.Database.MigrateAsync();
+    }
+    catch (Exception ex)
+    {
+        // Banco fora do ar no arranque não pode derrubar o processo: é
+        // exatamente o caso que /health/live existe para distinguir — o
+        // processo está vivo, o banco não está, e reiniciar a aplicação não
+        // conserta banco. Quem sobe junto com o Postgres no mesmo compose passa
+        // por aqui em todo boot, enquanto o banco ainda aceita conexões.
+        // O /health e o /health/ready seguem reprovando até o banco responder.
+        Log.Error(ex, "Não foi possível aplicar as migrations no arranque.");
+    }
 }
 
 // ---------- Pipeline ----------

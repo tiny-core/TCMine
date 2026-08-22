@@ -1,0 +1,99 @@
+# TCMine Server.
+#
+# A configuração que exige atenção está em TCMINE_ROOT: ele é montado no MESMO
+# caminho dentro do container. Não é excesso de zelo — o TCMine pede ao daemon
+# do Docker que monte a pasta da instância no container do jogo, e quem
+# interpreta esse caminho é o daemon, que enxerga o host. Se os dois lados
+# discordarem, o Docker cria uma pasta vazia e a monta: o servidor sobe sem mods
+# e sem mundo, sem erro nenhum. Por isso o mesmo caminho dos dois lados.
+#
+# Duas coisas mais, ambas verificadas subindo esta imagem de verdade:
+#
+#   1. A pasta em TCMINE_ROOT precisa pertencer ao usuário da imagem (uid 1654),
+#      porque o container não roda como root:
+#        sudo mkdir -p /opt/tcmine && sudo chown -R 1654:1654 /opt/tcmine
+#
+#   2. Um proxy reverso terminando TLS é OBRIGATÓRIO, e ele precisa enviar
+#      X-Forwarded-Proto. Sem esse cabeçalho o cookie de sessão (marcado Secure
+#      fora de Development) não pode ser emitido e TODA página responde 500 —
+#      com uma mensagem que não menciona proxy nenhum.
+#
+# Ver docs/DEPLOY.md. Antes de subir, copie .env.example para .env e ajuste.
+
+services:
+  tcmine:
+    build: .
+    image: tcmine-server:latest
+    restart: unless-stopped
+
+    ports:
+      - "${TCMINE_PORT:-8080}:8080"
+
+    volumes:
+      # Orquestração dos servidores de jogo e do servidor de e-mail. É o que dá
+      # ao TCMine o poder de criar containers — e, por consequência, poder total
+      # sobre esta máquina. Não exponha este painel sem autenticação.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      # Mesmo caminho dos dois lados. Ver o comentário no topo.
+      - ${TCMINE_ROOT}:${TCMINE_ROOT}
+
+    # O socket do Docker pertence ao grupo "docker" no host. O container roda
+    # como usuário não-root, então precisa entrar nesse grupo pelo GID numérico
+    # — o nome não existe dentro da imagem.
+    #   No host: getent group docker | cut -d: -f3
+    group_add:
+      - "${DOCKER_GID}"
+
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+
+      # Endereço por onde o jogador alcança este servidor. Vai no tcmine.json e
+      # no feed de atualização do launcher — errar aqui manda todo cliente para
+      # o lugar errado, e por isso o arranque recusa subir sem ele.
+      Server__PublicUrl: ${TCMINE_PUBLIC_URL}
+      Server__Name: ${TCMINE_NAME:-TCMine Server}
+      Server__AzureClientId: ${TCMINE_AZURE_CLIENT_ID}
+
+      Database__Provider: ${TCMINE_DB_PROVIDER:-Sqlite}
+      Database__ConnectionString: ${TCMINE_DB_CONNECTION:-Data Source=${TCMINE_ROOT}/data/tcmine.db}
+
+      BlobStorage__RootPath: ${TCMINE_ROOT}/data/blobs
+      Instances__RootPath: ${TCMINE_ROOT}/instances
+
+      # Fora da camada da imagem de propósito: recriar o container apagaria as
+      # chaves, derrubando toda sessão e tornando ilegível o que foi cifrado com
+      # elas (chave do CurseForge, senha do SMTP).
+      DataProtection__KeysPath: ${TCMINE_ROOT}/data/keys
+
+    healthcheck:
+      # /health/live não toca o banco: responde enquanto o processo estiver de
+      # pé. É o certo para reinício automático — banco fora do ar não se
+      # conserta reiniciando a aplicação.
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/live"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  # PostgreSQL para instalações maiores. Suba com:
+  #   docker compose --profile postgres up -d
+  # e aponte TCMINE_DB_PROVIDER=Postgres com a connection string abaixo.
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:17-alpine
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-tcmine}
+      POSTGRES_USER: ${POSTGRES_USER:-tcmine}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+
+    volumes:
+      - ${TCMINE_ROOT}/postgres:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tcmine}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
