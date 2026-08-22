@@ -176,6 +176,12 @@ builder.Services.AddSingleton<MetricsHistory>();
 // reconstitui sozinha, então não merece ida ao banco nem coluna no domínio.
 builder.Services.AddSingleton<PlayerCountCache>();
 builder.Services.AddSingleton<IPlayerCountSource>(sp => sp.GetRequiredService<PlayerCountCache>());
+// Acerta a coluna Status com os containers que sobreviveram ao reinício.
+// Registrado antes do coletor, mas sem garantia de terminar primeiro: serviços
+// de background rodam concorrentes, então a primeira coleta ainda pode pular um
+// servidor que só será reconhecido na seguinte, quinze segundos depois.
+builder.Services.AddHostedService<ServerStatusReconciler>();
+
 builder.Services.AddHostedService<MetricsCollector>();
 
 // Recuperação no arranque: as filas vivem em memória, então um processo que cai
