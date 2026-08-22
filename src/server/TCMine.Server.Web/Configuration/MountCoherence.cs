@@ -25,12 +25,27 @@ public static class MountCoherence
     /// <summary>Escape para o caso de a heurística errar num arranjo exótico.</summary>
     public const string SkipKey = "Storage:SkipMountCheck";
 
-    public static void Verify(IConfiguration configuration)
+    public static void Verify(IConfiguration configuration) =>
+        Verify(configuration, ContainerRuntime.IsContainer);
+
+    /// <summary>
+    ///     A sobrecarga recebe "estamos em container" em vez de descobrir
+    ///     sozinha para poder ser testada em qualquer sistema. A primeira versão
+    ///     disto deduzia o ambiente pela existência de /proc/self/mountinfo, que
+    ///     existe em todo Linux — e derrubou a aplicação no CI, que é Linux e
+    ///     não é container. O teste que trava isso não teria sido possível sem
+    ///     o parâmetro.
+    /// </summary>
+    public static void Verify(IConfiguration configuration, bool emContainer)
     {
         if (configuration.GetValue(SkipKey, false))
             return;
 
-        // Fora de container não há dois lados para divergir.
+        // Fora de container não há dois lados para divergir: o caminho que a
+        // aplicação enxerga é o mesmo que o daemon enxerga.
+        if (!emContainer)
+            return;
+
         if (!File.Exists("/proc/self/mountinfo"))
             return;
 

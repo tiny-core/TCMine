@@ -65,7 +65,7 @@ public static class StoragePaths
     /// </summary>
     private static void ValidarCaminhoDeInstancias(IConfiguration configuration)
     {
-        if (!EmContainer())
+        if (!ContainerRuntime.IsContainer)
             return;
 
         var raiz = configuration["Instances:RootPath"];
@@ -80,14 +80,6 @@ public static class StoragePaths
             + "caminho relativo (ou que só existe aqui dentro) faz o servidor de jogo subir com "
             + "uma pasta vazia, sem mods e sem mundo. Ver docker-compose.yml.");
     }
-
-    /// <summary>
-    ///     O runtime do .NET marca isto nas imagens oficiais; o arquivo é o
-    ///     sinal clássico e cobre imagem construída de outro jeito.
-    /// </summary>
-    private static bool EmContainer() =>
-        Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") is "true" or "1"
-        || File.Exists("/.dockerenv");
 
     /// <summary>
     ///     Onde ficam as chaves de proteção de dados.

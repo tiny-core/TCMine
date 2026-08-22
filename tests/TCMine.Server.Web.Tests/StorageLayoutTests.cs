@@ -150,6 +150,39 @@ public sealed class StorageLayoutTests
         MountCoherence.Analisar(mountinfo, "/DATA/AppData/tcmine/instances").ShouldBeNull();
     }
 
+    [Fact]
+    public void Fora_de_container_a_coerencia_nao_e_verificada()
+    {
+        // Regressão: a primeira versão deduzia "estamos em container" pela
+        // existência de /proc/self/mountinfo, que existe em TODO Linux. O
+        // resultado foi a aplicação recusando subir no runner do CI — Linux,
+        // sem container, com a pasta de desenvolvimento em data/instances.
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Instances:RootPath"] = "data/instances"
+            })
+            .Build();
+
+        Should.NotThrow(() => MountCoherence.Verify(config, emContainer: false));
+    }
+
+    [Fact]
+    public void O_escape_desliga_a_verificacao_mesmo_em_container()
+    {
+        // Saída para o arranjo em que a heurística erra: sem ela, um falso
+        // positivo deixaria a instalação sem como subir.
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Instances:RootPath"] = "/qualquer/coisa",
+                [MountCoherence.SkipKey] = "true"
+            })
+            .Build();
+
+        Should.NotThrow(() => MountCoherence.Verify(config, emContainer: true));
+    }
+
     private static IConfigurationRoot Configurar(Dictionary<string, string?> valores)
     {
         var builder = new ConfigurationBuilder();
