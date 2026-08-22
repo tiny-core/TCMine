@@ -35,6 +35,7 @@
   <Folder Name="/_docs/">
     <File Path="docs/DEPLOY.md" />
     <File Path="docs/RELEASE.md" />
+    <File Path="README.md" />
   </Folder>
   <Folder Name="/_githubActions/">
     <File Path=".github/workflows/ci.yml" />

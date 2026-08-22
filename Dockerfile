@@ -34,8 +34,20 @@ RUN dotnet restore src/server/TCMine.Server.Web/TCMine.Server.Web.csproj
 
 COPY src/ src/
 
+# Sem --no-restore de propósito, embora o restore já tenha rodado acima.
+#
+# Restaurar apenas com os .csproj presentes e publicar com --no-restore
+# produz um manifesto de static web assets INCOMPLETO: falta a entrada de
+# _framework/blazor.web.js. O App.razor a resolve por @Assets[...], que
+# devolve o caminho literal quando a entrada não existe — e aí o navegador
+# leva 404, o Blazor interativo nunca inicia, e nenhum diálogo do painel
+# abre. A página renderiza mesmo assim, porque é SSR, então tudo parece bem.
+#
+# O restore desta linha é barato: os pacotes já estão no cache do NuGet da
+# camada acima. O que ele refaz é a resolução COM o código presente, que é
+# justamente o que faltava.
 RUN dotnet publish src/server/TCMine.Server.Web/TCMine.Server.Web.csproj \
-    -c Release -o /app --no-restore \
+    -c Release -o /app \
     -p:Version=${VERSION} \
     -p:InformationalVersion=${VERSION}
 
