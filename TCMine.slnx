@@ -31,6 +31,9 @@
     <File Path="docs/DEPLOY.md" />
     <File Path="docs/RELEASE.md" />
   </Folder>
+  <Folder Name="/_githubActions/">
+    <File Path=".github/workflows/release-server.yml" />
+  </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
