@@ -311,7 +311,13 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         {
             ["VersionId"] = _selectedVersion!.Id,
             ["Version"] = _selectedVersion.Version,
-            ["MemoryMb"] = _selectedVersion.RecommendedMemoryMb
+            ["LoaderVersion"] = _selectedVersion.LoaderVersion,
+            ["MemoryMb"] = _selectedVersion.RecommendedMemoryMb,
+
+            // O picker monta a lista a partir do par loader + versão do
+            // Minecraft, que são do MODPACK: a versão não os carrega.
+            ["Loader"] = _modpack!.Loader,
+            ["MinecraftVersion"] = _modpack.MinecraftVersion
         };
         var dialog = await DialogService.ShowAsync<EditVersionDialog>("Editar versão", p);
         if (await dialog.Result is { Canceled: false })

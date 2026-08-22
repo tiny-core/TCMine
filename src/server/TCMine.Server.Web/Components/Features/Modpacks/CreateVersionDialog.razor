@@ -9,12 +9,9 @@
             <MudText Typo="Typo.subtitle2" Class="mb-1">Versão do modpack</MudText>
             <VersionEditor @bind-Value="_version"/>
 
-            <MudAutocomplete T="string" @bind-Value="_loaderVersion"
-                             Label="Versão do loader" SearchFunc="SearchLoader"
-                             CoerceValue="true" MaxItems="50" Required="true"
-                             RequiredError="Informe a versão do loader." Class="mt-3"/>
-            <MudSwitch T="bool" @bind-Value="_loaderReleasesOnly" @bind-Value:after="ReloadLoaderVersions"
-                       Color="Color.Primary" Label="Só releases" Class="mt-1"/>
+            <LoaderVersionPicker @bind-Value="_loaderVersion"
+                                 Loader="Loader" MinecraftVersion="MinecraftVersion"
+                                 Class="mt-3"/>
 
             <MudNumericField @bind-Value="_memoryMb"
                              Label="RAM recomendada (MB)"

@@ -21,7 +21,7 @@ public sealed class DraftOnlyGuardTests
         var version = Publicada();
 
         var result = await new UpdateModpackVersion(new FakeRepo(version))
-            .HandleAsync(version.Id, "9.9.9", 8192, CancellationToken.None);
+            .HandleAsync(version.Id, "9.9.9", "21.1.999", 8192, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("1.0.0", version.Version);
@@ -33,11 +33,42 @@ public sealed class DraftOnlyGuardTests
         var version = Rascunho();
 
         var result = await new UpdateModpackVersion(new FakeRepo(version))
-            .HandleAsync(version.Id, "  1.2.0  ", 8192, CancellationToken.None);
+            .HandleAsync(version.Id, "  1.2.0  ", "  21.1.247  ", 8192, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal("1.2.0", version.Version);
+        Assert.Equal("21.1.247", version.LoaderVersion);
         Assert.Equal(8192, version.RecommendedMemoryMb);
+    }
+
+    [Fact]
+    public async Task Nao_edita_versao_do_loader_de_versao_publicada()
+    {
+        // A versão do loader sobe entre versões, mas dentro de UMA versão ela é
+        // parte do que foi publicado: mudá-la depois faria quem já instalou
+        // rodar contra um loader diferente do que o manifesto prometeu.
+        var version = Publicada();
+
+        var result = await new UpdateModpackVersion(new FakeRepo(version))
+            .HandleAsync(version.Id, "1.0.0", "21.1.999", null, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("21.1.100", version.LoaderVersion);
+    }
+
+    [Fact]
+    public async Task Nao_aceita_versao_do_loader_em_branco()
+    {
+        // É ela que instala o loader no cliente e no container do servidor. Em
+        // branco, a instância não sobe — e o erro apareceria só na hora de jogar.
+        var version = Rascunho();
+
+        var result = await new UpdateModpackVersion(new FakeRepo(version))
+            .HandleAsync(version.Id, "1.2.0", "   ", null, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("21.1.100", version.LoaderVersion);
+        Assert.Equal("1.0.0", version.Version);
     }
 
     [Fact]

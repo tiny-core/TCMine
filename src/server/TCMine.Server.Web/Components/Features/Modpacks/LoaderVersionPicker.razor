@@ -1,0 +1,13 @@
+@* Escolha da versão do loader.
+   Extraído porque criar e editar uma versão pedem exatamente a mesma coisa:
+   a lista vem do catálogo, filtra por texto e alterna entre "só releases" e
+   tudo. Duplicar isto nos dois diálogos deixaria os dois livres para divergir
+   — e o de editar herdaria só metade do comportamento. *@
+
+<MudAutocomplete T="string" Value="Value" ValueChanged="OnChanged"
+                 Label="@Label" SearchFunc="Search"
+                 CoerceValue="true" MaxItems="50" Required="@Required"
+                 RequiredError="Informe a versão do loader." Class="@Class"/>
+
+<MudSwitch T="bool" @bind-Value="_releasesOnly" @bind-Value:after="ReloadAsync"
+           Color="Color.Primary" Label="Só releases" Class="mt-1"/>
