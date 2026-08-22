@@ -9,21 +9,22 @@
       manter migrations de dois providers no mesmo assembly.
     -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational"/>
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Http"/>
-    <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+    <PackageReference Include="MailKit" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <!-- Só o PasswordHasher (PBKDF2). Não puxa o stack de UI do Identity. -->
-    <PackageReference Include="Microsoft.Extensions.Identity.Core"/>
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
     <!-- Cifra os segredos da configuração (chave do CurseForge, senha do SMTP). -->
-    <PackageReference Include="Microsoft.AspNetCore.DataProtection"/>
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
+    <ProjectReference Include="..\TCMine.Server.Application\TCMine.Server.Application.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

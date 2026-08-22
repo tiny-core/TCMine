@@ -30,9 +30,12 @@ public partial class SettingsPage : ComponentBase
     private int _smtpPort = 587;
     private bool _smtpUseTls = true;
     private string _smtpUser = "";
+    private string _testEmailTo = "";
+    private bool _testing;
 
     [Inject] private ISettingsRepository Repository { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
+    [Inject] private SendTestEmail TestEmailUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
@@ -100,6 +103,36 @@ public partial class SettingsPage : ComponentBase
         finally
         {
             _isSaving = false;
+        }
+    }
+
+    private async Task SendTestAsync()
+    {
+        if (_testing)
+            return;
+
+        _testing = true;
+
+        try
+        {
+            var result = await TestEmailUseCase.HandleAsync(_testEmailTo, CancellationToken.None);
+
+            if (result.Succeeded)
+            {
+                Snackbar.Add(
+                    $"Mensagem enviada para {_testEmailTo}. Confira a caixa de entrada e o spam.",
+                    Severity.Success);
+            }
+            else
+            {
+                // Erro do SMTP é a informação útil do teste, então vai inteiro
+                // para a tela em vez de virar "falhou".
+                Snackbar.Add(result.Error!, Severity.Error);
+            }
+        }
+        finally
+        {
+            _testing = false;
         }
     }
 }

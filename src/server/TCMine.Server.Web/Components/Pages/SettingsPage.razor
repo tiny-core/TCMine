@@ -140,6 +140,34 @@ else
                                      Label="Remover a senha salva"/>
                     </MudItem>
                 }
+
+                @* Teste depois de salvar, e não em vez de salvar: o envio usa a
+                   configuração GRAVADA, então testar um formulário ainda não
+                   salvo mediria a configuração antiga e enganaria. *@
+                <MudItem xs="12">
+                    <MudDivider Class="my-3"/>
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Testar o envio</MudText>
+                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                        Salve as alterações antes de testar — o teste usa a configuração já gravada.
+                    </MudText>
+
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Wrap="Wrap.Wrap">
+                        <MudTextField @bind-Value="_testEmailTo" Label="Enviar para"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Style="max-width:360px;" Disabled="_testing"/>
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Send"
+                                   OnClick="SendTestAsync" Disabled="_testing">
+                            Enviar teste
+                        </MudButton>
+
+                        @if (_testing)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                        }
+                    </MudStack>
+                </MudItem>
             </MudGrid>
         </MudTabPanel>
 

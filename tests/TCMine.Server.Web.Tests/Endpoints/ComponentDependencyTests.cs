@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Web.Tests.Infrastructure;
 
 namespace TCMine.Server.Web.Tests.Endpoints;
@@ -26,11 +27,14 @@ public sealed class ComponentDependencyTests
         typeof(ListServerAccess),
         typeof(ListAccessibleServers),
         typeof(SendServerCommand),
+        typeof(SendTestEmail),
 
-        // Não são casos de uso: são as portas que o MetricsCollector resolve
-        // dentro do próprio escopo, a cada coleta. Um registro faltando ali não
-        // impede a app de subir — só faz a coleta falhar em silêncio de quinze
-        // em quinze segundos.
+        // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
+        // Configurações e as três seguintes pelo MetricsCollector, dentro do
+        // próprio escopo a cada coleta. Um registro faltando ali não impede a
+        // app de subir — só faz a coleta falhar em silêncio de quinze em quinze
+        // segundos.
+        typeof(IEmailSender),
         typeof(IPlayerCountSource),
         typeof(IRconClient),
         typeof(IServerHubNotifier),

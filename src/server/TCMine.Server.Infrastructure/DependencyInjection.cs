@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
@@ -111,9 +111,11 @@ public static class DependencyInjection
             })
             .AddStandardResilienceHandler();
 
-        // Sem SMTP ainda: o link de recuperação vai para o log. Trocar por um
-        // SmtpEmailSender quando a tela de Configurações existir.
-        services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        // O SmtpEmailSender consulta a configuração a cada envio e cai no
+        // LoggingEmailSender quando não há SMTP — por isso o de log continua
+        // registrado como classe concreta, e não como a porta.
+        services.AddSingleton<LoggingEmailSender>();
+        services.AddScoped<IEmailSender, SmtpEmailSender>();
 
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();
