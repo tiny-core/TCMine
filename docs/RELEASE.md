@@ -26,6 +26,12 @@ entender o que foi publicado.
 
 ## Lançar o servidor
 
+Antes da tag, escreva a entrada no [CHANGELOG.md](../CHANGELOG.md) e comite. A
+release do GitHub é gerada a partir dos commits, que descrevem *o que mudou no
+código*; o changelog descreve *o que mudou para quem usa* — são textos
+diferentes, e o segundo não se escreve sozinho. Depois da tag ele fica
+desalinhado do que foi publicado.
+
 ```bash
 git tag server-v0.1.0
 git push origin server-v0.1.0

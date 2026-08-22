@@ -106,6 +106,8 @@ git tag server-v0.2.0 && git push origin server-v0.2.0
 Isso roda os testes, publica a imagem no Docker Hub e cria a release. Ver
 [docs/RELEASE.md](docs/RELEASE.md).
 
+O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
+
 ## Licença
 
 GPL-3.0.
