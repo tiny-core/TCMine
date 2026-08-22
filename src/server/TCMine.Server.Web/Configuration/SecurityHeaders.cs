@@ -18,8 +18,14 @@ public static class SecurityHeaders
         // Tudo o que não estiver explicitado abaixo só pode vir da própria origem.
         "default-src 'self'",
 
-        // Todo script do painel é arquivo servido por nós — não há <script> inline
-        // em nenhum .razor, o que permite manter 'self' puro, sem nonce nem hash.
+        // Todo script do painel é arquivo servido por nós, o que permite manter
+        // 'self' puro — sem nonce, sem hash, sem 'unsafe-inline'.
+        //
+        // Isso não é mais uma afirmação de boa fé: InlineScriptTests busca cada
+        // página e reprova se alguma servir <script> embutido. Antes era só um
+        // comentário, e um inline que aparecesse aqui passaria despercebido —
+        // a página renderiza, só o trecho bloqueado não roda, e o erro só surge
+        // no console de quem usa.
         "script-src 'self'",
 
         // 'unsafe-inline' aqui não é descuido: o MudBlazor posiciona popovers e
