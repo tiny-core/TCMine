@@ -95,13 +95,14 @@ jobs:
           done
 
   imagem:
-    name: Imagem constrói
+    name: Imagem constrói e sobe
     runs-on: ubuntu-latest
 
-    # Não publica nada: só garante que o Dockerfile ainda produz uma imagem. Sem
-    # isto, uma quebra ali só apareceria ao lançar uma versão — e já aconteceu
-    # de a build morrer por causa do global.json, que passa despercebido porque
-    # nada no loop local constrói a imagem.
+    # Não publica nada: constrói o Dockerfile e SOBE o container resultante. Só
+    # construir não bastava — a imagem já subiu com o runtime do Blazor
+    # respondendo 404, e a página continuava parecendo saudável porque ela
+    # pré-renderiza no servidor mesmo com o script quebrado. Tudo que quebrou em
+    # produção até aqui passava no build e no `dotnet run`.
     steps:
       - uses: actions/checkout@v4
 
@@ -110,7 +111,10 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
-          push: false
+          # load, e não push: a imagem fica no daemon local para o passo
+          # seguinte subir de verdade.
+          load: true
+          tags: tcmine-server:ci
           build-args: |
             VERSION=0.0.0-ci
           # Escopo nomeado: sem ele, cada workflow que constrói imagem disputa a
@@ -118,3 +122,6 @@ jobs:
           # master e só reconstrói as camadas que mudaram de fato.
           cache-from: type=gha,scope=imagem-servidor
           cache-to: type=gha,mode=max,scope=imagem-servidor
+
+      - name: Fumaça da imagem
+        run: ./scripts/smoke-image.sh tcmine-server:ci

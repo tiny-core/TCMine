@@ -37,9 +37,22 @@ git tag server-v0.1.0
 git push origin server-v0.1.0
 ```
 
-O workflow roda as suítes de teste **antes** de publicar. Uma imagem publicada é
+O workflow roda as suítes de teste **e sobe a imagem** antes de publicar. Uma imagem publicada é
 imutável na prática — alguém pode tê-la baixado no minuto seguinte —, então não
 vale confiar num CI que passou numa versão anterior do código.
+
+A fumaça (`scripts/smoke-image.sh`) sobe o container contra um PostgreSQL de
+verdade e confere o que só quebra ali: as migrations aplicam, a página serve o
+runtime do Blazor, e as colunas têm a largura que o domínio declara. Se ela
+falhar, nada é publicado. Ela existe porque uma release já saiu com o
+`blazor.web.js` respondendo 404 — a página pré-renderiza no servidor, então
+continuava parecendo saudável, e só um diálogo que não abria denunciava.
+
+Para rodar a mesma coisa na sua máquina:
+
+```bash
+./scripts/tc smoke-image
+```
 
 Tags geradas para `server-v0.1.0`:
 

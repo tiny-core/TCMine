@@ -154,6 +154,7 @@ case "${1:-}" in
   check) shift; cmd_check "$@" ;;
   db)    shift; cmd_db "$@" ;;
   smoke) shift; cmd_smoke "$@" ;;
+  smoke-image) shift; exec "$(dirname "$0")/smoke-image.sh" "$@" ;;
   kill)  kill_app; echo "ok" ;;
   *) cat <<'USAGE'
 tc build            build com -warnaserror, só erros/avisos
@@ -161,6 +162,8 @@ tc test ['*Classe*'] testes, só falhas + placar (filtro opcional de classe)
 tc check            build + test (usado pelo subagente verify)
 tc db [sql|state]   consulta a base de dev (state = versões/pendências)
 tc smoke <rota>     GET na app e devolve o texto renderizado (sem browser)
+tc smoke-image      constrói a imagem, sobe o container e verifica o que só
+                    quebra ali (runtime do Blazor, migrations, limites reais)
                     exige TCMINE_SMOKE_USER/PASS para páginas do painel
 tc kill             mata o TCMine.Server.Web.exe que trava o build
 USAGE

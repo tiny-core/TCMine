@@ -103,7 +103,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Construir e publicar
+      # Constrói para o daemon local ANTES de publicar. Uma imagem publicada é
+      # imutável na prática — alguém pode tê-la baixado no minuto seguinte —, e
+      # os testes não cobrem o que só quebra na imagem: já saiu release com o
+      # runtime do Blazor respondendo 404, sem nada ficar vermelho.
+      - name: Construir
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: tcmine-server:candidata
+          build-args: |
+            VERSION=${{ steps.versao.outputs.versao }}
+          cache-from: type=gha,scope=imagem-servidor
+          cache-to: type=gha,mode=max,scope=imagem-servidor
+
+      - name: Fumaça da imagem
+        run: ./scripts/smoke-image.sh tcmine-server:candidata
+
+      # Reaproveita as camadas do passo anterior: publica exatamente o que
+      # acabou de passar na fumaça, sem reconstruir.
+      - name: Publicar
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -111,10 +131,7 @@ jobs:
           build-args: |
             VERSION=${{ steps.versao.outputs.versao }}
           tags: ${{ steps.versao.outputs.tags }}
-          # Cache entre execuções: sem ele cada release refaz o restore inteiro,
-          # e o restore é a parte cara desta build.
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=imagem-servidor
 
       # Depois de publicar, e não antes: uma release anunciando uma imagem que
       # a build não chegou a produzir manda todo mundo a um `docker pull` que
