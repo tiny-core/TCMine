@@ -34,6 +34,11 @@ builder.Host.UseSerilog((context, config) => config
 // ---------- Configuração ----------
 builder.Services.AddTcMineServerOptions(builder.Configuration, builder.Environment);
 
+// Antes de qualquer serviço: o SQLite abre o arquivo mas não cria a pasta, e
+// uma instalação nova (ou um data/ apagado) morreria aqui com uma mensagem que
+// não menciona pasta nenhuma.
+StoragePaths.EnsureCreated(builder.Configuration, builder.Environment);
+
 var databaseOptions = builder.Configuration.ReadValidatedDatabaseOptions();
 
 // ---------- Serviços ----------
