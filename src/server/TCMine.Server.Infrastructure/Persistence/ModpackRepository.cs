@@ -282,14 +282,23 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return new PagedResult<ModInventoryEntry>(items, total);
     }
 
-    public async Task<PagedResult<ModpackFile>> ListVersionModsAsync(
-        Guid versionId, string? search, PageRequest page, CancellationToken ct)
+    public async Task<PagedResult<ModpackFile>> ListVersionFilesAsync(
+        Guid versionId, VersionFileScope scope, string? search, PageRequest page, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
 
         var q = db.ModpackFiles
             .AsNoTracking()
             .Where(f => f.ModpackVersionId == versionId && f.Origin != ModFileOrigin.Override);
+
+        // Recursos e mods são complementares: o que não está numa aba está na
+        // outra, sem sobra nem repetição. Comparar por prefixo de caminho é o
+        // que o banco traduz — a pasta não é coluna.
+        var prefixos = InstanceFolders.Assets.Select(InstanceFolders.Prefix).ToArray();
+
+        q = scope is VersionFileScope.Assets
+            ? q.Where(f => prefixos.Any(p => f.Path.StartsWith(p)))
+            : q.Where(f => !prefixos.Any(p => f.Path.StartsWith(p)));
 
         if (search is { Length: > 0 })
             q = q.Where(f => f.Path.Contains(search));

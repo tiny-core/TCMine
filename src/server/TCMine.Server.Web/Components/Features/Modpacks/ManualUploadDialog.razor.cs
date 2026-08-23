@@ -1,3 +1,4 @@
+using TCMine.Server.Domain.Modpacks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Forms;
 using TCMine.Contracts.Modpacks;
@@ -20,7 +21,13 @@ public partial class ManualUploadDialog
     {
         // Resolver pendência é sempre um .jar: já abre na pasta certa.
         if (ProjectSlug is { Length: > 0 })
-            _targetFolder = "mods";
+            _targetFolder = InstanceFolders.Mods;
+
+        if (DefaultFolder is { Length: > 0 } pasta)
+            _targetFolder = pasta;
+
+        if (DefaultSide is { } lado)
+            _side = lado;
     }
 
     [Parameter] public Guid VersionId { get; set; }
@@ -33,6 +40,16 @@ public partial class ManualUploadDialog
 
     /// <summary>Nome do mod pendente, só para o texto do diálogo.</summary>
     [Parameter] public string? PendingName { get; set; }
+
+    /// <summary>
+    ///     Pasta e lado sugeridos por quem abriu. A aba de recursos já sabe que
+    ///     um shaderpack vai para shaderpacks/ e é de cliente; obrigar o admin a
+    ///     repetir isso a cada envio seria pedir que ele acerte de cabeça o que
+    ///     a tela já sabe.
+    /// </summary>
+    [Parameter] public string? DefaultFolder { get; set; }
+
+    [Parameter] public FileSide? DefaultSide { get; set; }
 
     [Inject] private AddManualFile AddManualFileUseCase { get; set; } = default!;
 

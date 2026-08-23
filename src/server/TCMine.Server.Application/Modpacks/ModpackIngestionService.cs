@@ -225,19 +225,6 @@ public sealed partial class ModpackIngestionService(
         // processar cada um.
     }
 
-    /// <summary>
-    ///     Página do projeto na origem, montada a partir do id.
-    ///     O CurseForge redireciona /projects/{id} para a página do mod, e no
-    ///     Modrinth o próprio id já é o caminho — então nenhuma das duas exige
-    ///     consulta. É o link que o admin usa para baixar o .jar à mão.
-    /// </summary>
-    private static string? PaginaDaOrigem(ModFileOrigin origin, string projectId) => origin switch
-    {
-        ModFileOrigin.CurseForge => $"https://www.curseforge.com/projects/{projectId}",
-        ModFileOrigin.Modrinth => $"https://modrinth.com/mod/{projectId}",
-        _ => null
-    };
-
     /// <summary>Retorna null em sucesso…</summary>
     private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
@@ -325,7 +312,7 @@ public sealed partial class ModpackIngestionService(
                     Side = item.Side,
                     Reason = PendingModReason.NoCompatibleFile,
                     Detail = notFound.Reason,
-                    PageUrl = PaginaDaOrigem(item.Origin, item.ProjectId),
+                    PageUrl = UpstreamLinks.ProjectPage(item.Origin, item.ProjectId),
                     Folder = notFound.Folder
                 });
 

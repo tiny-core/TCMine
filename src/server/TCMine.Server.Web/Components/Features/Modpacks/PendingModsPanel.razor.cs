@@ -46,13 +46,7 @@ public partial class PendingModsPanel : ComponentBase
     ///     diferentes de quem lê: um shaderpack faltando é cosmético, um mod
     ///     faltando pode impedir o jogador de entrar.
     /// </summary>
-    private static string TipoFor(string folder) => folder switch
-    {
-        "shaderpacks" => "shaderpack",
-        "resourcepacks" => "resource pack",
-        "datapacks" => "data pack",
-        _ => "mod"
-    };
+    private static string TipoFor(string folder) => InstanceFolders.Label(folder);
 
     /// <summary>
     ///     Onde o arquivo faz falta. É o que diz se a ausência afeta o servidor,

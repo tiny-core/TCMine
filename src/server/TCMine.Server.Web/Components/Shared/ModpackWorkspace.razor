@@ -1,6 +1,6 @@
 @* Shell compartilhado do workspace de um modpack: identidade (nome, MC/loader),
    seletor de versão, stepper do ciclo de vida e a barra de abas com rota. Cada
-   página (Visão geral, Mods, Overrides, Servidores, Novidades) envolve o próprio
+   página (Visão geral, Mods, Recursos, Overrides, Servidores, Novidades) envolve o próprio
    conteúdo neste componente, passando a aba ativa. Assim o cabeçalho é idêntico
    em todas e a navegação entre abas mantém URL própria (deep-link + Monaco com
    forceLoad na aba de overrides). *@
@@ -72,6 +72,14 @@
                href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/mods")">
                 Mods
             </a>
+            @* Recursos: shaderpacks e resource packs. Aba própria porque não se
+               gerenciam como mod, e na grade de mods sumiam no meio de centenas
+               de linhas. *@
+            <a class="tc-tab @Cls(ModpackTab.Assets)"
+               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/recursos")">
+                Recursos
+            </a>
+
             @* forceLoad (data-enhance-nav=false): a enhanced navigation desfaz o
                DOM que o Monaco monta e quebra o editor de overrides. *@
             <a class="tc-tab @Cls(ModpackTab.Overrides)" data-enhance-nav="false"

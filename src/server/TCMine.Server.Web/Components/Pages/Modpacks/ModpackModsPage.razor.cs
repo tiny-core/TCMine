@@ -35,8 +35,9 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     private async Task<GridData<ModpackFile>> LoadPageAsync(
         GridState<ModpackFile> state, CancellationToken ct)
     {
-        var result = await Repository.ListVersionModsAsync(
+        var result = await Repository.ListVersionFilesAsync(
             VersionId,
+            VersionFileScope.Mods,
             string.IsNullOrWhiteSpace(_searchString) ? null : _searchString.Trim(),
             new PageRequest(state.Page, state.PageSize),
             ct);

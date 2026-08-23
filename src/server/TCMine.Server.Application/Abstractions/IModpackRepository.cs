@@ -124,11 +124,12 @@ public interface IModpackRepository
     Task<PagedResult<ModInventoryEntry>> ListModInventoryAsync(ModInventoryQuery query, CancellationToken ct);
 
     /// <summary>
-    ///     Mods de UMA versão, paginados. Overrides ficam de fora — têm aba
-    ///     própria, e num pack importado são milhares.
+    ///     Arquivos de UMA versão, paginados, na metade pedida pelo escopo.
+    ///     Overrides ficam de fora — têm aba própria, e num pack importado são
+    ///     milhares.
     /// </summary>
-    Task<PagedResult<ModpackFile>> ListVersionModsAsync(
-        Guid versionId, string? search, PageRequest page, CancellationToken ct);
+    Task<PagedResult<ModpackFile>> ListVersionFilesAsync(
+        Guid versionId, VersionFileScope scope, string? search, PageRequest page, CancellationToken ct);
 
     /// <summary>
     ///     Todo hash referenciado por alguma coisa: arquivo de versão (inclusive
@@ -173,4 +174,16 @@ public sealed record ModpackVersionStats(int ModCount, int OverrideCount, long T
     public int TotalCount => ModCount + OverrideCount;
 
     public static ModpackVersionStats Empty { get; } = new(0, 0, 0);
+}
+
+/// <summary>
+///     Qual metade dos arquivos de uma versão listar.
+///     São complementares: o que não é recurso é mod. A separação existe porque
+///     as duas coisas se gerenciam de formas diferentes — mod tem lado, origem e
+///     atualização; shaderpack e resource pack são arquivos que o admin sobe.
+/// </summary>
+public enum VersionFileScope
+{
+    Mods,
+    Assets
 }

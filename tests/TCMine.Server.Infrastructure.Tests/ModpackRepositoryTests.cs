@@ -236,15 +236,15 @@ public sealed class ModpackRepositoryTests : IDisposable
 
         await repo.AddVersionAsync(version, CancellationToken.None);
 
-        var pagina = await repo.ListVersionModsAsync(
-            version.Id, null, new PageRequest(1, 25), CancellationToken.None);
+        var pagina = await repo.ListVersionFilesAsync(
+            version.Id, VersionFileScope.Mods, null, new PageRequest(1, 25), CancellationToken.None);
 
         // Segunda página de 30: sobram 5. O total continua sendo o de todos.
         Assert.Equal(30, pagina.TotalCount);
         Assert.Equal(5, pagina.Items.Count);
 
-        var busca = await repo.ListVersionModsAsync(
-            version.Id, "mod1", new PageRequest(0, 25), CancellationToken.None);
+        var busca = await repo.ListVersionFilesAsync(
+            version.Id, VersionFileScope.Mods, "mod1", new PageRequest(0, 25), CancellationToken.None);
 
         // mod10..mod19: a busca vai em SQL, não sobre a página já trazida.
         Assert.Equal(10, busca.TotalCount);
@@ -318,6 +318,34 @@ public sealed class ModpackRepositoryTests : IDisposable
         lidaVersao.PendingMods.Count.ShouldBe(1);
         lidaVersao.HasPendingMods.ShouldBeTrue();
         lidaVersao.Files.ShouldBeEmpty("arquivos ficam de fora por performance; a tela usa contagens");
+    }
+
+    [Fact]
+    public async Task Mods_e_recursos_sao_listas_complementares()
+    {
+        // As duas abas dividem o mesmo conjunto: o que não é recurso é mod, sem
+        // sobra nem repetição. Um shaderpack aparecendo entre os mods some no
+        // meio de centenas de linhas; um mod aparecendo em recursos sugere que
+        // ele é enviável à mão, e não é.
+        var repo = new ModpackRepository(_factory);
+        var modpack = await SeedModpackAsync(repo);
+
+        var version = NovaVersao(modpack.Id);
+        version.UpsertFile(Arquivo(version.Id, "mods/jei.jar", "jei"));
+        version.UpsertFile(Arquivo(version.Id, "shaderpacks/complementary.zip", "shader"));
+        version.UpsertFile(Arquivo(version.Id, "resourcepacks/faithful.zip", "faithful"));
+        await repo.AddVersionAsync(version, CancellationToken.None);
+
+        var mods = await repo.ListVersionFilesAsync(
+            version.Id, VersionFileScope.Mods, null, new PageRequest(0, 25), CancellationToken.None);
+
+        var recursos = await repo.ListVersionFilesAsync(
+            version.Id, VersionFileScope.Assets, null, new PageRequest(0, 25), CancellationToken.None);
+
+        mods.Items.Select(f => f.Path).ShouldBe(["mods/jei.jar"]);
+
+        recursos.Items.Select(f => f.Path)
+            .ShouldBe(["resourcepacks/faithful.zip", "shaderpacks/complementary.zip"], ignoreOrder: true);
     }
 
     private static PendingMod Pendencia(Guid versionId, string slug, PendingModReason reason) =>

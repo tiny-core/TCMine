@@ -126,14 +126,14 @@ public sealed partial class CurseForgeModResolver(
     /// </summary>
     private static (bool EhMod, string Pasta, FileSide? Lado) ConteudoDe(int? classId) => classId switch
     {
-        6552 => (false, "shaderpacks", FileSide.ClientOnly),
-        12 => (false, "resourcepacks", FileSide.ClientOnly),
-        6945 => (false, "datapacks", null),
+        6552 => (false, InstanceFolders.Shaderpacks, FileSide.ClientOnly),
+        12 => (false, InstanceFolders.Resourcepacks, FileSide.ClientOnly),
+        6945 => (false, InstanceFolders.Datapacks, null),
 
         // 6 é mod; nulo ou desconhecido também cai aqui, que é o comportamento
         // de sempre — a esmagadora maioria do que um pack lista é mod, e chutar
         // outra pasta para uma categoria nova seria pior que manter mods/.
-        _ => (true, "mods", null)
+        _ => (true, InstanceFolders.Mods, null)
     };
 
     private async Task<IReadOnlyList<CurseForgeFile>?> FindFilesAsync(

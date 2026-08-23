@@ -5,6 +5,7 @@ public enum ModpackTab
 {
     Overview,
     Mods,
+    Assets,
     Overrides,
     Servers,
     News

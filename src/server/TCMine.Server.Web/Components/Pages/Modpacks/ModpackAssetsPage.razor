@@ -1,0 +1,115 @@
+@page "/modpacks/{ModpackId:guid}/versions/{VersionId:guid}/recursos"
+@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Abstractions
+@using TCMine.Server.Application.Modpacks
+@using TCMine.Server.Domain.Modpacks
+@using TCMine.UI.Shared.Formatting
+@inject IModpackRepository Repository
+@inject RemoveModpackFile RemoveFileUseCase
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Recursos — TCMine</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+}
+else if (_modpack is null || _version is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.SearchOff" Title="Versão não encontrada."/>
+}
+else
+{
+    <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Assets"
+                      SelectedVersionId="VersionId" SelectedVersion="_version"
+                      SelectedVersionIdChanged="OnVersionChanged">
+        <HeaderActions>
+            @if (_version.State is ModpackVersionState.Draft)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Upload"
+                           OnClick="OpenUpload">
+                    Enviar arquivo
+                </MudButton>
+            }
+        </HeaderActions>
+        <ChildContent>
+            @* Shaderpacks e resource packs não se gerenciam como mod: não têm
+               atualização a verificar nem dependência a resolver. O que se faz
+               com eles é enviar e apagar — por isso a aba, em vez de misturá-los
+               na grade de mods, onde some no meio de centenas de linhas. *@
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+                <MudText Typo="Typo.body2">
+                    Shaderpacks e resource packs vão para o jogador, não para o servidor.
+                    Um pack importado já traz os que o autor incluiu; aqui você acrescenta os seus.
+                </MudText>
+            </MudAlert>
+
+            <MudDataGrid @ref="_grid" T="ModpackFile"
+                         ServerData="LoadPageAsync"
+                         Dense="true"
+                         Hover="true"
+                         Filterable="false"
+                         SortMode="SortMode.None"
+                         RowsPerPage="25">
+                <NoRecordsContent>
+                    <EmptyState Icon="@Icons.Material.Filled.Palette"
+                                Title="Nenhum shaderpack ou resource pack nesta versão."
+                                Subtitle="Envie um arquivo para começar."/>
+                </NoRecordsContent>
+                <Columns>
+                    <TemplateColumn Title="Tipo">
+                        <CellTemplate>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                @InstanceFolders.Label(InstanceFolders.Of(context.Item.Path))
+                            </MudChip>
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <PropertyColumn Property="f => f.Path" Title="Caminho"/>
+
+                    <TemplateColumn Title="Tamanho">
+                        <CellTemplate>
+                            @HumanSize.Bytes(context.Item.SizeBytes)
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Origem">
+                        <CellTemplate>
+                            @if (UpstreamLinks.ProjectPage(context.Item.Origin, context.Item.ProjectSlug)
+                                 is { } pagina)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                         Href="@pagina" Target="_blank">
+                                    @context.Item.Origin
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                    @context.Item.Origin
+                                </MudChip>
+                            }
+                        </CellTemplate>
+                    </TemplateColumn>
+
+                    @if (_version.State is ModpackVersionState.Draft)
+                    {
+                        <TemplateColumn Title="" Sortable="false">
+                            <CellTemplate>
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                               Size="Size.Small" Color="Color.Error"
+                                               OnClick="@(() => Remove(context.Item))"/>
+                            </CellTemplate>
+                        </TemplateColumn>
+                    }
+                </Columns>
+                <PagerContent>
+                    <MudDataGridPager T="ModpackFile"/>
+                </PagerContent>
+            </MudDataGrid>
+        </ChildContent>
+    </ModpackWorkspace>
+}
