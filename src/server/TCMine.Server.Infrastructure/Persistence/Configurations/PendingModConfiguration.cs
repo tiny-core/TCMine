@@ -15,6 +15,7 @@ public sealed class PendingModConfiguration : IEntityTypeConfiguration<PendingMo
         builder.Property(p => p.ProjectSlug).HasMaxLength(128).IsRequired();
         builder.Property(p => p.DisplayName).HasMaxLength(256).IsRequired();
         builder.Property(p => p.FileId).HasMaxLength(64);
+        builder.Property(p => p.Folder).HasMaxLength(64).IsRequired();
         // Detail carrega a mensagem de erro da origem, que não temos como
         // limitar: 2048 é o mesmo teto do FailureReason da versão. Uma coluna
         // curta aqui derruba a ingestão na hora de registrar POR QUE um mod

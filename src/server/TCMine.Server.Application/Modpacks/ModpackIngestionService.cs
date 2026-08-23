@@ -302,7 +302,8 @@ public sealed partial class ModpackIngestionService(
                     Side = item.Side,
                     Reason = PendingModReason.DistributionDenied,
                     Detail = "O autor não permite redistribuição automática.",
-                    PageUrl = denied.ProjectPage.ToString()
+                    PageUrl = denied.ProjectPage.ToString(),
+                    Folder = denied.Folder
                 });
 
             case ModResolution.NotFound notFound:
@@ -324,7 +325,8 @@ public sealed partial class ModpackIngestionService(
                     Side = item.Side,
                     Reason = PendingModReason.NoCompatibleFile,
                     Detail = notFound.Reason,
-                    PageUrl = PaginaDaOrigem(item.Origin, item.ProjectId)
+                    PageUrl = PaginaDaOrigem(item.Origin, item.ProjectId),
+                    Folder = notFound.Folder
                 });
 
             default:
@@ -343,6 +345,22 @@ public sealed partial class ModpackIngestionService(
         List<ModpackFile> unsaved,
         CancellationToken ct)
     {
+        // Já temos exatamente ESTE arquivo? Então não há o que baixar.
+        //
+        // O OriginReference guarda o id da release fixada na origem, que é a
+        // identidade do arquivo lá — se ele bate, os bytes são os mesmos e
+        // buscá-los serviria só para descartá-los depois de hashear. A checagem
+        // por SHA-256 mais abaixo continua valendo (ela pega o caso de um id
+        // diferente com conteúdo igual), mas só depois do download; esta corta
+        // antes. Numa reimportação de um pack grande é a diferença entre baixar
+        // um gigabyte e meio e não baixar nada.
+        if (version.Files.Any(f =>
+                string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
+                && f.OriginReference == resolved.VersionId))
+        {
+            return null;
+        }
+
         try
         {
             await using var stream = await downloader.OpenAsync(resolved.DownloadUrl, ct);

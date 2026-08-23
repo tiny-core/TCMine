@@ -74,7 +74,14 @@ public sealed class DockerServerOrchestrator(
                 "ENABLE_RCON=TRUE",
                 $"RCON_PASSWORD={server.RconSecret}",
                 // itzg não deve gerir mods — nós já materializamos a pasta.
-                "REMOVE_OLD_MODS=FALSE"
+                "REMOVE_OLD_MODS=FALSE",
+
+                // O mesmo usuário dos dois lados. A pasta da instância é escrita
+                // pelo usuário deste container; a imagem itzg roda como 1000 e,
+                // sem ser root, não consegue corrigir o dono. Sem isto o
+                // servidor de jogo morre com "permission denied" no próprio
+                // /data — um diretório que existe e cujo dono parece certo.
+                .. UsuarioDoProcesso()
             ],
             ExposedPorts = new Dictionary<string, object> { ["25565/tcp"] = new() },
             Labels = new Dictionary<string, string> { ["tcmine.server"] = gameServerId.ToString() },
@@ -97,6 +104,14 @@ public sealed class DockerServerOrchestrator(
 
         return containerId;
     }
+
+    /// <summary>
+    ///     UID/GID para a imagem itzg, quando dá para saber.
+    ///     Fora do Linux não se aplica: no Docker Desktop o bind mount não
+    ///     carrega dono de Unix, e mandar números aí só confundiria.
+    /// </summary>
+    private static string[] UsuarioDoProcesso() =>
+        ProcessUser.Current is { } user ? [$"UID={user.Uid}", $"GID={user.Gid}"] : [];
 
     public async Task RemoveAsync(Guid gameServerId, CancellationToken ct)
     {

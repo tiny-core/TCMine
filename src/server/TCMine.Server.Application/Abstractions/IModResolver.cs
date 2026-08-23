@@ -71,9 +71,10 @@ public abstract record ModResolution
     ///     não existe contorno legítimo. A publicação deve falhar listando os
     ///     mods afetados para o admin decidir o que fazer.
     /// </summary>
-    public sealed record DistributionDenied(string ProjectName, Uri ProjectPage) : ModResolution;
+    public sealed record DistributionDenied(
+        string ProjectName, Uri ProjectPage, string Folder = "mods") : ModResolution;
 
-    public sealed record NotFound(string Reason) : ModResolution;
+    public sealed record NotFound(string Reason, string Folder = "mods") : ModResolution;
 }
 
 /// <summary>Dependência declarada por uma versão de projeto na origem.</summary>

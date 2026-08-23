@@ -38,6 +38,15 @@ public sealed class PendingMod : Entity
     public FileSide Side { get; set; } = FileSide.Both;
 
     /// <summary>
+    ///     Pasta da instância a que este arquivo pertence — a mesma que o
+    ///     arquivo teria se tivesse resolvido.
+    ///     Vale ser mostrada: "sem versão compatível" para um shaderpack e para
+    ///     um mod pedem ações diferentes de quem lê, e sem o tipo o admin não
+    ///     tem como distinguir os dois.
+    /// </summary>
+    public string Folder { get; set; } = "mods";
+
+    /// <summary>
     ///     Assume a identidade da pendência que esta substitui.
     ///     Sem isto, trocar a razão de uma pendência (de Queued para
     ///     DistributionDenied, por exemplo) criava uma entidade com Id novo. O

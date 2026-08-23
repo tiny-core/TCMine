@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Web.Components.Features.Modpacks;
@@ -37,6 +38,31 @@ public partial class PendingModsPanel : ComponentBase
         PendingModReason.DistributionDenied => Color.Warning,
         PendingModReason.NoCompatibleFile => Color.Error,
         _ => Color.Info
+    };
+
+    /// <summary>
+    ///     O que é o arquivo, a partir da pasta a que ele pertence.
+    ///     "Sem versão compatível" para um shaderpack e para um mod pedem coisas
+    ///     diferentes de quem lê: um shaderpack faltando é cosmético, um mod
+    ///     faltando pode impedir o jogador de entrar.
+    /// </summary>
+    private static string TipoFor(string folder) => folder switch
+    {
+        "shaderpacks" => "shaderpack",
+        "resourcepacks" => "resource pack",
+        "datapacks" => "data pack",
+        _ => "mod"
+    };
+
+    /// <summary>
+    ///     Onde o arquivo faz falta. É o que diz se a ausência afeta o servidor,
+    ///     o jogador, ou os dois.
+    /// </summary>
+    private static string LadoFor(FileSide side) => side switch
+    {
+        FileSide.ClientOnly => "só cliente",
+        FileSide.ServerOnly => "só servidor",
+        _ => "cliente e servidor"
     };
 
     private static string LabelFor(PendingModReason reason) => reason switch

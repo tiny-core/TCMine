@@ -52,17 +52,28 @@
 
             <MudTable Items="Pending" Dense="true" Hover="true" Elevation="0" Breakpoint="Breakpoint.Sm">
                 <HeaderContent>
-                    <MudTh>Mod</MudTh>
+                    <MudTh>Arquivo</MudTh>
+                    <MudTh>Tipo</MudTh>
                     <MudTh>Motivo</MudTh>
                     <MudTh Style="text-align:right;">Ações</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd DataLabel="Mod">
+                    <MudTd DataLabel="Arquivo">
                         <MudText Typo="Typo.body2" Style="font-weight:600;">@context.DisplayName</MudText>
                         @if (context.Detail is { Length: > 0 })
                         {
                             <MudText Typo="Typo.caption" Style="opacity:.8;">@context.Detail</MudText>
                         }
+                    </MudTd>
+                    <MudTd DataLabel="Tipo">
+                        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                @TipoFor(context.Folder)
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="Color.Default">
+                                @LadoFor(context.Side)
+                            </MudChip>
+                        </MudStack>
                     </MudTd>
                     <MudTd DataLabel="Motivo">
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"

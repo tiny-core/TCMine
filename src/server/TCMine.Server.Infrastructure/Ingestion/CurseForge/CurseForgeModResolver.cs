@@ -43,9 +43,11 @@ public sealed partial class CurseForgeModResolver(
             var files = await FindFilesAsync(modId, request, conteudo, ct);
             if (files is null || files.Count is 0)
             {
-                return new ModResolution.NotFound(conteudo.EhMod
-                    ? $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion} com {request.Loader}."
-                    : $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion}.");
+                return new ModResolution.NotFound(
+                    conteudo.EhMod
+                        ? $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion} com {request.Loader}."
+                        : $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion}.",
+                    conteudo.Pasta);
             }
 
             // FileId específico quando pedido; senão o mais recente compatível.
@@ -67,7 +69,8 @@ public sealed partial class CurseForgeModResolver(
             {
                 return new ModResolution.NotFound(
                     $"O arquivo escolhido do projeto {modId} declara "
-                    + $"[{string.Join(", ", file.GameVersions)}], e não Minecraft {request.MinecraftVersion}.");
+                    + $"[{string.Join(", ", file.GameVersions)}], e não Minecraft {request.MinecraftVersion}.",
+                    conteudo.Pasta);
             }
 
             // Sem downloadUrl = autor negou redistribuição por terceiros. Levamos
@@ -78,7 +81,7 @@ public sealed partial class CurseForgeModResolver(
                     ? new Uri($"https://www.curseforge.com/minecraft/mc-mods/{slug}")
                     : new Uri($"https://www.curseforge.com/projects/{modId.ToString(CultureInfo.InvariantCulture)}");
 
-                return new ModResolution.DistributionDenied(mod?.Name ?? $"Projeto {modId}", page);
+                return new ModResolution.DistributionDenied(mod?.Name ?? $"Projeto {modId}", page, conteudo.Pasta);
             }
 
             var dependencies = file.Dependencies
