@@ -437,13 +437,19 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
                 return;
             }
 
-            var (preenchidos, restantes) = (result.Value!.Filled, result.Value.Remaining);
+            var (preenchidos, restantes, soCliente) =
+                (result.Value!.Filled, result.Value.Remaining, result.Value.MarkedClientOnly);
 
-            Snackbar.Add(
-                restantes is 0
-                    ? $"{preenchidos} mod(s) vieram do server pack. Não ficou nenhuma pendência."
-                    : $"{preenchidos} mod(s) vieram do server pack; {restantes} não estão nele.",
-                restantes is 0 ? Severity.Success : Severity.Info);
+            var texto = restantes is 0
+                ? $"{preenchidos} mod(s) vieram do server pack."
+                : $"{preenchidos} mod(s) vieram do server pack; {restantes} não estão nele.";
+
+            // Vale dizer: é o número que explica por que o servidor deixa de
+            // receber mods que ele nunca deveria ter recebido.
+            if (soCliente > 0)
+                texto += $" {soCliente} mod(s) passaram a ser só de cliente.";
+
+            Snackbar.Add(texto, restantes is 0 ? Severity.Success : Severity.Info);
 
             await LoadAsync();
         }

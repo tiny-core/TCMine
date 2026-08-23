@@ -112,6 +112,73 @@ public sealed class CompleteFromServerPackTests
         result.Error!.ShouldContain("bloqueou");
     }
 
+    [Fact]
+    public async Task Mod_que_nao_esta_no_server_pack_vira_so_de_cliente()
+    {
+        // O caso que derrubava o servidor. O manifest do pack de cliente não
+        // declara lado e as tags do CurseForge faltam, então tudo entra como
+        // "os dois" — inclusive mods que só existem no cliente. O servidor
+        // subia com colorwheel e morria pedindo iris, que é de cliente e ficou
+        // (corretamente) de fora.
+        var version = Rascunho();
+        version.UpsertFile(Arquivo(version.Id, "mods/colorwheel.jar", "colorwheel"));
+        version.UpsertFile(Arquivo(version.Id, "mods/jei.jar", "jei"));
+
+        var (caso, _) = Montar(version, new FakePack(("jei.jar", "x")), []);
+
+        var result = await caso.HandleAsync(version.Id, Ct);
+
+        result.Value!.MarkedClientOnly.ShouldBe(1);
+
+        version.Files.Single(f => f.ProjectSlug is "colorwheel").Side.ShouldBe(FileSide.ClientOnly);
+        version.Files.Single(f => f.ProjectSlug is "jei").Side.ShouldBe(FileSide.Both, "está no server pack");
+    }
+
+    [Fact]
+    public async Task Nao_reescreve_um_lado_ja_decidido()
+    {
+        // ServerOnly saiu de uma decisão — do admin ou da origem. Não é chute
+        // nosso para sobrescrever com uma inferência.
+        var version = Rascunho();
+        var arquivo = Arquivo(version.Id, "mods/so-servidor.jar", "so-servidor");
+        arquivo.Side = FileSide.ServerOnly;
+        version.UpsertFile(arquivo);
+
+        var (caso, _) = Montar(version, new FakePack(("outro.jar", "x")), []);
+
+        var result = await caso.HandleAsync(version.Id, Ct);
+
+        result.Value!.MarkedClientOnly.ShouldBe(0);
+        version.Files.Single().Side.ShouldBe(FileSide.ServerOnly);
+    }
+
+    [Fact]
+    public async Task Concilia_os_lados_mesmo_sem_pendencia_nenhuma()
+    {
+        // Sem esta garantia, um pack sem pendências nunca teria os lados
+        // corrigidos — e é justamente o caso de quem já resolveu tudo à mão.
+        var version = Rascunho();
+        version.UpsertFile(Arquivo(version.Id, "mods/colorwheel.jar", "colorwheel"));
+
+        var (caso, _) = Montar(version, new FakePack(("outro.jar", "x")), []);
+
+        var result = await caso.HandleAsync(version.Id, Ct);
+
+        result.Succeeded.ShouldBeTrue(result.Error);
+        result.Value!.MarkedClientOnly.ShouldBe(1);
+    }
+
+    private static ModpackFile Arquivo(Guid versionId, string path, string slug) => new()
+    {
+        ModpackVersionId = versionId,
+        Path = path,
+        Sha256 = new string('a', 64),
+        SizeBytes = 10,
+        Side = FileSide.Both,
+        Origin = ModFileOrigin.CurseForge,
+        ProjectSlug = slug
+    };
+
     private static (CompleteFromServerPack Caso, FakeRepo Repo) Montar(
         ModpackVersion version, FakePack? pack, Dictionary<string, string> fileNames)
     {

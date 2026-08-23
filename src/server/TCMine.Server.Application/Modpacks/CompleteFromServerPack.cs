@@ -49,8 +49,6 @@ public sealed partial class CompleteFromServerPack(
             return Result<ServerPackFillResult>.Fail("O modpack não guarda a origem de onde foi importado.");
 
         var pendencias = version.ManualUploads;
-        if (pendencias.Count is 0)
-            return Result<ServerPackFillResult>.Success(new ServerPackFillResult(0, 0));
 
         var source = await OrigemAsync(modpack.UpstreamProvider, ct);
         if (source is null)
@@ -124,11 +122,23 @@ public sealed partial class CompleteFromServerPack(
                 preenchidos++;
             }
 
+            // Segunda metade, e a que faz o servidor subir: o server pack é a
+            // lista curada pelo autor do que um SERVIDOR precisa. Um mod que
+            // está na versão e não está nele é de cliente.
+            //
+            // Isto não é preciosismo. O manifest do pack de cliente não declara
+            // lado nenhum, e as tags Client/Server do CurseForge faltam na
+            // maioria dos arquivos — então tudo entra como "os dois" e mods de
+            // cliente vão parar no container. O servidor morre no arranque
+            // reclamando de uma dependência que também é de cliente e que, essa
+            // sim, ficou de fora: "colorwheel requires iris".
+            var marcados = MarcarSoCliente(version, pack);
+
             await repository.UpdateVersionAsync(version, ct);
             progress.Complete(versionId);
 
             return Result<ServerPackFillResult>.Success(
-                new ServerPackFillResult(preenchidos, pendencias.Count - preenchidos));
+                new ServerPackFillResult(preenchidos, pendencias.Count - preenchidos, marcados));
         }
         catch (OperationCanceledException)
         {
@@ -142,6 +152,35 @@ public sealed partial class CompleteFromServerPack(
             progress.Complete(versionId, ex.Message);
             return Result<ServerPackFillResult>.Fail($"Falha ao ler o server pack: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    ///     Marca como de cliente o que o server pack não traz. Devolve quantos.
+    ///     Só mexe no que está como "os dois": um lado escolhido à mão pelo
+    ///     admin, ou declarado pela origem, não é chute nosso para reescrever.
+    /// </summary>
+    private static int MarcarSoCliente(ModpackVersion version, IServerPackReader pack)
+    {
+        var doServidor = new HashSet<string>(pack.ModFileNames, StringComparer.OrdinalIgnoreCase);
+        var marcados = 0;
+
+        foreach (var arquivo in version.Files)
+        {
+            if (arquivo.Side is not FileSide.Both
+                || !arquivo.Path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var nome = arquivo.Path[("mods/".Length)..];
+            if (doServidor.Contains(nome))
+                continue;
+
+            arquivo.Side = FileSide.ClientOnly;
+            marcados++;
+        }
+
+        return marcados;
     }
 
     private async Task<IUpstreamPackSource?> OrigemAsync(ModFileOrigin? provider, CancellationToken ct)
@@ -162,5 +201,8 @@ public sealed partial class CompleteFromServerPack(
     }
 }
 
-/// <summary>Quantas pendências o server pack resolveu, e quantas sobraram.</summary>
-public sealed record ServerPackFillResult(int Filled, int Remaining);
+/// <summary>
+///     O que a conciliação com o server pack produziu: pendências resolvidas,
+///     pendências que ele não cobria, e mods que passaram a ser só de cliente.
+/// </summary>
+public sealed record ServerPackFillResult(int Filled, int Remaining, int MarkedClientOnly);
