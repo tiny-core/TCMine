@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
@@ -14,13 +15,19 @@ namespace TCMine.Server.Application.Servers;
 ///     contrário. Aqui não bloqueamos, mas o caso de uso devolve o aviso para a
 ///     tela poder exigir confirmação explícita.
 /// </summary>
-public sealed class RestoreWorldBackup(
+public sealed partial class RestoreWorldBackup(
     IServerRepository servers,
     IServerOrchestrator orchestrator,
     IWorldBackupStore store,
     IJobProgressReporter progress,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    ILogger<RestoreWorldBackup> logger)
 {
+    private readonly ILogger<RestoreWorldBackup> _logger = logger;
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao restaurar o mundo do servidor {ServerId}.")]
+    private partial void LogFalha(Exception ex, Guid serverId);
+
     public async Task<Result> HandleAsync(
         Guid backupId, CancellationToken ct, bool acceptVersionMismatch = false, Guid jobId = default)
     {
@@ -74,6 +81,11 @@ public sealed class RestoreWorldBackup(
         catch (Exception ex) when (ex is IOException or InvalidDataException)
         {
             progress.Complete(jobId, ex.Message);
+            // Registrado além de devolvido: o Result vira um snackbar e
+            // some com a página. Uma falha de infraestrutura — socket do
+            // Docker sem permissão, imagem que não baixa — precisa deixar
+            // rastro em algum lugar que sobreviva ao clique.
+            LogFalha(ex, backup.GameServerId);
             return Result.Fail($"Falha ao restaurar: {ex.Message}");
         }
     }

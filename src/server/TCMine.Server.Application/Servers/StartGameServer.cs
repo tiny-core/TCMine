@@ -1,15 +1,22 @@
+using Microsoft.Extensions.Logging;
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Servers;
 
-public sealed class StartGameServer(
+public sealed partial class StartGameServer(
     IServerOrchestrator orchestrator,
     IServerRepository servers,
     IJobProgressReporter progress,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    ILogger<StartGameServer> logger)
 {
+    private readonly ILogger<StartGameServer> _logger = logger;
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao iniciar o servidor {ServerId}.")]
+    private partial void LogFalha(Exception ex, Guid serverId);
+
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
         var auth = await scope.RequireAsync(serverId, ServerAccessPolicy.CanControlPower, ct);
@@ -57,6 +64,11 @@ public sealed class StartGameServer(
             // Docker fora do ar, imagem a puxar, porta ocupada… o admin precisa
             // de ver a causa, não um erro genérico.
             progress.Complete(jobId, ex.Message);
+            // Registrado além de devolvido: o Result vira um snackbar e
+            // some com a página. Uma falha de infraestrutura — socket do
+            // Docker sem permissão, imagem que não baixa — precisa deixar
+            // rastro em algum lugar que sobreviva ao clique.
+            LogFalha(ex, serverId);
             return Result.Fail($"Falha ao iniciar: {ex.Message}");
         }
     }

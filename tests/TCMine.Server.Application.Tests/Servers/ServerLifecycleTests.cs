@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
@@ -17,8 +18,9 @@ public sealed class ServerLifecycleTests
         var server = NovoServidor();
         var orchestrator = new FakeOrchestrator();
 
-        var result = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope())
-            .HandleAsync(server.Id, CancellationToken.None);
+        var result = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope(), NullLogger<StopGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(["Stop", "GetStatus"], orchestrator.Chamadas);
@@ -32,8 +34,9 @@ public sealed class ServerLifecycleTests
         var server = NovoServidor();
         var orchestrator = new FakeOrchestrator();
 
-        await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope())
-            .HandleAsync(server.Id, CancellationToken.None);
+        await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), new FakeUserScope(), NullLogger<StopGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(orchestrator.StopTimeout >= TimeSpan.FromSeconds(30));
     }
@@ -45,8 +48,9 @@ public sealed class ServerLifecycleTests
         var repo = new FakeServerRepo(server);
         var orchestrator = new FakeOrchestrator { Status = GameServerStatus.Running };
 
-        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress(), new FakeUserScope())
-            .HandleAsync(server.Id, CancellationToken.None);
+        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress(), new FakeUserScope(), NullLogger<StartGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Contains("Start", orchestrator.Chamadas);
@@ -115,11 +119,13 @@ public sealed class ServerLifecycleTests
         var orchestrator = new FakeOrchestrator();
         var scope = new FakeUserScope(papel);
 
-        var parar = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope)
-            .HandleAsync(server.Id, CancellationToken.None);
+        var parar = await new StopGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope, NullLogger<StopGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
-        var iniciar = await new StartGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope)
-            .HandleAsync(server.Id, CancellationToken.None);
+        var iniciar = await new StartGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope, NullLogger<StartGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(parar.Succeeded);
         Assert.False(iniciar.Succeeded);
@@ -138,8 +144,9 @@ public sealed class ServerLifecycleTests
 
         var semAcesso = await new StartGameServer(
                 new FakeOrchestrator(), new FakeServerRepo(server), new FakeJobProgress(),
-                new FakeUserScope(ServerRoleDto.Member))
-            .HandleAsync(server.Id, CancellationToken.None);
+                new FakeUserScope(ServerRoleDto.Member), NullLogger<StartGameServer>.Instance)
+            
+.HandleAsync(server.Id, CancellationToken.None);
 
         Assert.Equal("Servidor não encontrado.", semAcesso.Error);
     }

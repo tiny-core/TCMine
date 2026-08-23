@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
@@ -422,7 +423,7 @@ public sealed class WorldBackupTests
         GameServer server, WorldBackup backup, FakeStore store, GameServerStatus status,
         ServerRoleDto? papel = ServerRoleDto.Owner) =>
         new(new FakeServers(server, backup), new FakeOrchestrator(status), store, new FakeJobProgress(),
-            new FakeUserScope(papel));
+            new FakeUserScope(papel), NullLogger<RestoreWorldBackup>.Instance);
 
     private static ModpackVersion VersaoComNumero(string numero, Guid id)
     {
