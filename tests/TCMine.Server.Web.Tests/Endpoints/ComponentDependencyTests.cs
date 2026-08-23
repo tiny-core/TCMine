@@ -16,7 +16,7 @@ namespace TCMine.Server.Web.Tests.Endpoints;
 ///     aparece quando alguém abre a tela — como uma exceção no circuito, que
 ///     derruba a página inteira em vez de mostrar um erro.
 /// </summary>
-public sealed class ComponentDependencyTests
+public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixture<AplicacaoDeTeste>
 {
     public static TheoryData<Type> CasosDeUso =>
     [
@@ -65,8 +65,7 @@ public sealed class ComponentDependencyTests
     [MemberData(nameof(CasosDeUso))]
     public void Caso_de_uso_injetado_por_componente_resolve(Type tipo)
     {
-        using var factory = new TcMineAppFactory();
-        using var escopo = factory.Services.CreateScope();
+        using var escopo = app.Services.CreateScope();
 
         // Resolver de verdade, e não só consultar o registro: a falha comum não
         // é o tipo faltar, é uma DEPENDÊNCIA dele faltar — e isso só aparece ao
@@ -77,4 +76,24 @@ public sealed class ComponentDependencyTests
             $"{tipo.Name} é injetado por um componente mas não resolve. "
             + "Registre-o (ou à dependência que falta) em AddTCMineApplication.");
     }
+}
+
+/// <summary>
+///     Uma aplicação de pé, compartilhada por todos os casos.
+///     Subir uma por caso custava vinte e sete arranques com migrations para
+///     responder vinte e sete vezes a mesma pergunta — "isto resolve?" —, e a
+///     contenção que isso criava fazia OUTROS testes falharem por tempo
+///     esgotado, com erros que não tinham nada a ver com eles.
+///     A fábrica só é lida aqui, nunca modificada, então compartilhá-la não
+///     acopla um caso ao outro.
+/// </summary>
+public sealed class AplicacaoDeTeste : IDisposable
+{
+    // A fábrica é interna e não pode vazar por uma classe pública; o que os
+    // casos precisam é do provedor, não dela.
+    private readonly TcMineAppFactory _factory = new();
+
+    public IServiceProvider Services => _factory.Services;
+
+    public void Dispose() => _factory.Dispose();
 }
