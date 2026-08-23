@@ -57,7 +57,13 @@ public abstract record ModResolution
         Uri DownloadUrl,
         IReadOnlyList<ModDependency> Dependencies,
         string? IconUrl = null,
-        FileSide? Side = null) : ModResolution;
+        FileSide? Side = null,
+
+        /// <summary>
+        ///     Pasta da instância onde este arquivo vive. Nem tudo o que vem num
+        ///     modpack é mod: um shaderpack em mods/ derruba o jogo no arranque.
+        /// </summary>
+        string Folder = "mods") : ModResolution;
 
     /// <summary>
     ///     O autor marcou allowModDistribution = false.

@@ -18,6 +18,15 @@ internal sealed record CurseForgeMod
     [JsonPropertyName("logo")] public CurseForgeLogo? Logo { get; init; }
 
     /// <summary>
+    ///     Categoria do projeto no CurseForge: 6 = mod, 12 = resource pack,
+    ///     6552 = shader, 6945 = data pack.
+    ///     Importa porque só mod tem loader: um shaderpack é lido pelo Iris, não
+    ///     pelo NeoForge, e filtrar a busca dele por loader não devolve nada.
+    /// </summary>
+    [JsonPropertyName("classId")]
+    public int? ClassId { get; init; }
+
+    /// <summary>
     ///     Falso quando o autor proibiu redistribuição por terceiros. Nesse caso
     ///     a API devolve downloadUrl nulo e o pack precisa do arquivo enviado à mão.
     /// </summary>

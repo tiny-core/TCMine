@@ -364,7 +364,10 @@ public sealed partial class ModpackIngestionService(
 
             stored.Position = 0;
 
-            var path = $"mods/{resolved.FileName}";
+            // A pasta vem da resolução, não fixa: um pack traz shaderpacks e
+            // resource packs junto com os mods, e um .zip de shader dentro de
+            // mods/ derruba o jogo no arranque.
+            var path = $"{resolved.Folder}/{resolved.FileName}";
 
             // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
             // remover e re-adicionar a mesma linha numa re-ingestão.
