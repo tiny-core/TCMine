@@ -296,9 +296,15 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         // que o banco traduz — a pasta não é coluna.
         var prefixos = InstanceFolders.Assets.Select(InstanceFolders.Prefix).ToArray();
 
+        // CA1310 pede StringComparison, mas isto é árvore de expressão: o
+        // StartsWith não roda em .NET, vira um LIKE no SQL. Quem compara é o
+        // banco, com a collation dele, e passar um StringComparison aqui só
+        // acrescentaria uma cláusula que o provider teria de traduzir de volta.
+#pragma warning disable CA1310
         q = scope is VersionFileScope.Assets
             ? q.Where(f => prefixos.Any(p => f.Path.StartsWith(p)))
             : q.Where(f => !prefixos.Any(p => f.Path.StartsWith(p)));
+#pragma warning restore CA1310
 
         if (search is { Length: > 0 })
             q = q.Where(f => f.Path.Contains(search));

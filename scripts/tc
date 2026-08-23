@@ -20,12 +20,29 @@ die() { echo "erro: $*" >&2; exit 1; }
 # antes, o build falha com MSB3026 num muro de texto.
 kill_app() {
   taskkill //F //IM TCMine.Server.Web.exe >/dev/null 2>&1 || true
+
+  # taskkill volta assim que PEDE a morte, não quando o processo sai. Compilar
+  # em cima de um .exe que ainda segura os próprios handles dá MSB3026/MSB3027 —
+  # um erro que não tem nada a ver com o código e manda procurar no lugar errado.
+  for _ in 1 2 3 4 5 6 7 8 9 10; do
+    tasklist //FI "IMAGENAME eq TCMine.Server.Web.exe" 2>/dev/null | grep -q "TCMine.Server.Web.exe" || break
+    sleep 0.3
+  done
 }
 
 cmd_build() {
   kill_app
   local out code
-  out="$(cd "$ROOT" && dotnet build -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
+  # --no-incremental não é preciosismo: sem ele este comando MENTE.
+  #
+  # Quando os projetos estão atualizados o compilador nem roda, e nenhum
+  # diagnóstico é reemitido — um erro de analisador aparecia UMA vez e depois era
+  # perdoado para sempre, com o tc respondendo BUILD OK sobre código que o CI
+  # (checkout limpo, sempre compila) reprovaria. Foi assim que três erros CA
+  # foram commitados com a suíte verde.
+  #
+  # Custa cinco segundos. É o preço de a verificação valer alguma coisa.
+  out="$(cd "$ROOT" && dotnet build --no-incremental -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
   code=$?
   echo "$out" | grep -E ": (error|warning) " | sed 's/ \[[^]]*\.csproj\]$//' | sort -u | head -25
   if [ $code -eq 0 ]; then echo "BUILD OK"; else echo "BUILD FALHOU"; fi

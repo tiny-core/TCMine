@@ -353,7 +353,14 @@ para cortar isso.
 | abrir o browser | `./scripts/tc smoke /rota` | o Blazor pré-renderiza no SSR: o texto da página vem no GET |
 
 `tc build` mata o `TCMine.Server.Web.exe` antes — era ele que fazia o build
-falhar com um muro de MSB3026.
+falhar com um muro de MSB3026 — e **espera** o processo sair, porque `taskkill`
+volta assim que pede a morte, não quando os handles são liberados.
+
+Ele também compila com `--no-incremental`, e isso não é preciosismo: com os
+projetos atualizados o compilador nem roda, e **nenhum diagnóstico é reemitido**.
+Um erro de analisador aparecia uma vez e depois era perdoado para sempre, com o
+`tc` respondendo `BUILD OK` sobre código que o CI (checkout limpo) reprovaria.
+Custa cinco segundos.
 
 ### 12.2 Delegue a verificação ao subagente `verify`
 
