@@ -216,6 +216,26 @@ public sealed partial class CurseForgePackSource(
         return nomes;
     }
 
+    public async Task<UpstreamServerPack?> GetServerPackAsync(
+        string projectId, string fileId, CancellationToken ct)
+    {
+        if (!int.TryParse(projectId, out var modId) || !int.TryParse(fileId, out var packFileId))
+            return null;
+
+        var response = await api.GetAsync(
+            $"/v1/mods/{modId}/files/{packFileId.ToString(CultureInfo.InvariantCulture)}",
+            CurseForgeJsonContext.Default.CurseForgeResponseCurseForgeFile, ct);
+
+        if (response?.Data?.ServerPackFileId is not { } serverPackFileId)
+            return null;
+
+        var mod = await GetModAsync(modId, ct);
+
+        return new UpstreamServerPack(
+            serverPackFileId.ToString(CultureInfo.InvariantCulture),
+            ServerPackUrlDe(mod?.Slug, serverPackFileId));
+    }
+
     public async Task<IServerPackReader?> OpenServerPackAsync(
         string projectId, string serverPackFileId, CancellationToken ct)
     {

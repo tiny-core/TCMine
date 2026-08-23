@@ -36,6 +36,14 @@ public interface IUpstreamPackSource
         IReadOnlyList<string> fileIds, CancellationToken ct);
 
     /// <summary>
+    ///     Descobre se uma release do pack tem server pack, sem baixar nada.
+    ///     Separado do <see cref="FetchAsync" /> porque este baixa o zip inteiro:
+    ///     para descobrir um id, seria centenas de megabytes por versão.
+    /// </summary>
+    Task<UpstreamServerPack?> GetServerPackAsync(
+        string projectId, string fileId, CancellationToken ct);
+
+    /// <summary>
     ///     Abre o server pack do autor para leitura. Devolve null quando não há
     ///     server pack ou quando a origem não permite baixá-lo.
     ///     Devolve um leitor, e não bytes: o server pack de um pack grande passa
@@ -44,6 +52,12 @@ public interface IUpstreamPackSource
     Task<IServerPackReader?> OpenServerPackAsync(
         string projectId, string serverPackFileId, CancellationToken ct);
 }
+
+/// <summary>
+///     Onde encontrar o server pack de uma release: o id para baixá-lo e a
+///     página para o admin abrir. A página pode faltar sem o id faltar.
+/// </summary>
+public sealed record UpstreamServerPack(string FileId, string? PageUrl);
 
 /// <summary>
 ///     Server pack aberto para leitura.

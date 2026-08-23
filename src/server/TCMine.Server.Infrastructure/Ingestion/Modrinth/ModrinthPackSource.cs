@@ -318,6 +318,10 @@ public sealed partial class ModrinthPackSource(
         Task.FromResult<IReadOnlyDictionary<string, string>>(
             new Dictionary<string, string>(StringComparer.Ordinal));
 
+    public Task<UpstreamServerPack?> GetServerPackAsync(
+        string projectId, string fileId, CancellationToken ct) =>
+        Task.FromResult<UpstreamServerPack?>(null);
+
     public Task<IServerPackReader?> OpenServerPackAsync(
         string projectId, string serverPackFileId, CancellationToken ct) =>
         Task.FromResult<IServerPackReader?>(null);

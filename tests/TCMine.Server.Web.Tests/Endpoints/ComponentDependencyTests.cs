@@ -34,6 +34,11 @@ public sealed class ComponentDependencyTests
         typeof(GetMailServerView),
         typeof(CompleteFromServerPack),
 
+        // Resolvido pelo InterruptedWorkRecovery no arranque, dentro do próprio
+        // escopo: um registro faltando ali não impede a app de subir, só faz o
+        // preenchimento falhar em silêncio.
+        typeof(BackfillServerPacks),
+
         // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
         // Configurações e as três seguintes pelo MetricsCollector, dentro do
         // próprio escopo a cada coleta. Um registro faltando ali não impede a

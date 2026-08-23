@@ -84,6 +84,15 @@ public interface IModpackRepository
     Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct);
 
     /// <summary>
+    ///     Grava só os dois campos do server pack.
+    ///     Método estreito de propósito: o preenchimento retroativo roda sobre
+    ///     versões já publicadas, e passar por UpdateVersionAsync reanexaria o
+    ///     grafo inteiro — milhares de arquivos remarcados para escrever dois
+    ///     campos, numa versão que é imutável em todo o resto.
+    /// </summary>
+    Task SetServerPackAsync(Guid versionId, string fileId, string? pageUrl, CancellationToken ct);
+
+    /// <summary>
     ///     Ingestões que ficaram pela metade quando o processo caiu.
     ///     São duas situações, e as duas contam: a versão presa em Resolving (o
     ///     worker morreu no meio) e o rascunho com mods ainda marcados como

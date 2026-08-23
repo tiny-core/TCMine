@@ -85,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<GetMailServerView>();
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<CompleteFromServerPack>();
+        services.AddScoped<BackfillServerPacks>();
         services.AddScoped<RetryModResolution>();
         services.AddScoped<CheckUpstreamUpdate>();
         services.AddScoped<UpdateFromUpstream>();

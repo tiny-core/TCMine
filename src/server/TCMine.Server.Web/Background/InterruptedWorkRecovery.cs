@@ -30,6 +30,14 @@ public sealed partial class InterruptedWorkRecovery(
         await RunAsync(
             () => scope.ServiceProvider.GetRequiredService<RecoverInterruptedImports>().HandleAsync(stoppingToken),
             LogImportsRecovered, LogImportsFailed);
+
+        // Por último, e de propósito: descobrir o server pack de packs já
+        // importados é conveniência pura, faz chamadas à origem e não tem pressa
+        // nenhuma. O que ficar para trás (origem fora do ar, sem chave de API)
+        // é tentado no próximo arranque, porque a condição se mantém.
+        await RunAsync(
+            () => scope.ServiceProvider.GetRequiredService<BackfillServerPacks>().HandleAsync(stoppingToken),
+            LogServerPacksBackfilled, LogServerPacksFailed);
     }
 
     /// <summary>
@@ -62,4 +70,12 @@ public sealed partial class InterruptedWorkRecovery(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao retomar as importações interrompidas.")]
     private partial void LogImportsFailed(Exception ex);
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "{Count} versão(ões) já importada(s) passaram a conhecer o server pack do autor.")]
+    private partial void LogServerPacksBackfilled(int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao descobrir os server packs das versões já importadas.")]
+    private partial void LogServerPacksFailed(Exception ex);
 }

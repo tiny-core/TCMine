@@ -377,6 +377,22 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task SetServerPackAsync(
+        Guid versionId, string fileId, string? pageUrl, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // ExecuteUpdate: uma UPDATE de duas colunas, sem materializar a versão
+        // nem tocar nos arquivos dela.
+        await db.ModpackVersions
+            .Where(v => v.Id == versionId)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(v => v.UpstreamServerPackFileId, fileId)
+                    .SetProperty(v => v.UpstreamServerPackUrl, pageUrl),
+                ct);
+    }
+
     public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

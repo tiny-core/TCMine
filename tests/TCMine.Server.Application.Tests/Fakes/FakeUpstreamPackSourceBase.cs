@@ -31,6 +31,13 @@ public abstract class FakeUpstreamPackSourceBase : IUpstreamPackSource
         Task.FromResult<IReadOnlyDictionary<string, string>>(
             fileIds.Where(FileNames.ContainsKey).ToDictionary(id => id, id => FileNames[id], StringComparer.Ordinal));
 
+    /// <summary>Server pack que o teste quer anunciar. Nulo = a release não tem.</summary>
+    public UpstreamServerPack? ServerPackInfo { get; set; }
+
+    public virtual Task<UpstreamServerPack?> GetServerPackAsync(
+        string projectId, string fileId, CancellationToken ct) =>
+        Task.FromResult(ServerPackInfo);
+
     public virtual Task<IServerPackReader?> OpenServerPackAsync(
         string projectId, string serverPackFileId, CancellationToken ct) =>
         Task.FromResult(ServerPack);

@@ -87,4 +87,14 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
 
     public virtual Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct) =>
         throw new NotImplementedException();
+
+    /// <summary>Server packs gravados pelo preenchimento retroativo.</summary>
+    public Dictionary<Guid, (string FileId, string? PageUrl)> ServerPacksGravados { get; } = [];
+
+    public virtual Task SetServerPackAsync(
+        Guid versionId, string fileId, string? pageUrl, CancellationToken ct)
+    {
+        ServerPacksGravados[versionId] = (fileId, pageUrl);
+        return Task.CompletedTask;
+    }
 }
