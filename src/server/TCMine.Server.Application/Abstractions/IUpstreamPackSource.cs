@@ -65,6 +65,15 @@ public sealed record UpstreamPack
 
     /// <summary>Arquivos da pasta overrides (configs, scripts), já em memória.</summary>
     public required IReadOnlyList<UpstreamPackOverride> Overrides { get; init; }
+
+    /// <summary>
+    ///     Página do "server pack" que o autor publicou junto, quando existe.
+    ///     Guardamos o link e não o conteúdo: o TCMine monta a instância do
+    ///     servidor a partir da versão importada, então o zip do autor não entra
+    ///     no fluxo — ele serve de referência para quem quer comparar configs ou
+    ///     rodar o servidor oficial ao lado.
+    /// </summary>
+    public string? ServerPackUrl { get; init; }
 }
 
 /// <summary>

@@ -65,7 +65,21 @@ else
                     </MudLink>
                 </MudTd>
                 <MudTd DataLabel="Versão">
-                    <MudText Typo="Typo.caption">@context.VersionLabel</MudText>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Wrap="Wrap.Wrap">
+                        <MudText Typo="Typo.caption">@context.VersionLabel</MudText>
+
+                        @* Ficar para trás é escolha — o servidor fixa a versão
+                           de propósito. O que faltava era saber que ficou. *@
+                        @if (context.NewerVersion is { } nova)
+                        {
+                            <MudTooltip Text="@($"A versão {nova} já está publicada. Trocar a versão do servidor tira um backup do mundo antes.")">
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                         Color="Color.Info" Icon="@Icons.Material.Filled.Upgrade">
+                                    @nova disponível
+                                </MudChip>
+                            </MudTooltip>
+                        }
+                    </MudStack>
                 </MudTd>
                 <MudTd DataLabel="Endereço">
                     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">

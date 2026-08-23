@@ -173,6 +173,32 @@ else
                     </MudStack>
                 </MudAlert>
 
+                @* O autor publicou um server pack. Não substitui o que o TCMine
+                   monta — a instância sai desta versão —, mas é a referência de
+                   quais mods ele considera de servidor, e quem vai criar um
+                   servidor merece saber que existe. *@
+                @if (_selectedVersion.UpstreamServerPackUrl is { Length: > 0 } serverPack)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-4">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
+                            <div style="flex:1; min-width:240px;">
+                                <MudText Typo="Typo.body2">
+                                    O autor publica um <b>server pack</b> para esta versão.
+                                </MudText>
+                                <MudText Typo="Typo.caption">
+                                    O servidor criado aqui é montado a partir desta versão e não precisa
+                                    dele. Vale para comparar configs ou rodar o servidor oficial ao lado.
+                                </MudText>
+                            </div>
+                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                       StartIcon="@Icons.Material.Filled.OpenInNew"
+                                       Href="@serverPack" Target="_blank">
+                                Ver na origem
+                            </MudButton>
+                        </MudStack>
+                    </MudAlert>
+                }
+
                 @* Só depois de resolver. Durante a ingestão cada mod do pack
                    tem uma pendência Queued, e o painel listaria o pack inteiro
                    como "aguardando upload manual" — o oposto do que ele quer

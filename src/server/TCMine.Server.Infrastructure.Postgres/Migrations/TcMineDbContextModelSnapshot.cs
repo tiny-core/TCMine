@@ -414,6 +414,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("UpstreamServerPackUrl")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
                     b.Property<string>("UpstreamSnapshotJson")
                         .HasColumnType("text");
 

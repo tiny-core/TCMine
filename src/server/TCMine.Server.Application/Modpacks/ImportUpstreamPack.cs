@@ -99,7 +99,8 @@ public sealed partial class ImportUpstreamPack(
             Version = "1.0.0",
             LoaderVersion = pack.LoaderVersion ?? "",
             UpstreamFileId = pack.FileId,
-            UpstreamVersionLabel = pack.VersionLabel
+            UpstreamVersionLabel = pack.VersionLabel,
+            UpstreamServerPackUrl = pack.ServerPackUrl
         };
 
         // Overrides entram já resolvidos (o conteúdo veio no zip); os mods vão

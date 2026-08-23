@@ -127,9 +127,21 @@ public sealed partial class CurseForgePackSource(
             Loader = loader,
             LoaderVersion = loaderVersion,
             Mods = await WithNamesAsync(manifest.Files, ct),
-            Overrides = overrides
+            Overrides = overrides,
+            ServerPackUrl = ServerPackUrlDe(mod?.Slug, file.ServerPackFileId)
         };
     }
+
+    /// <summary>
+    ///     Link para o server pack na página do autor.
+    ///     Sem o slug não dá para montar a URL amigável, e a de /projects não
+    ///     aceita o caminho de arquivo — nesse caso é melhor não oferecer link
+    ///     nenhum do que oferecer um que dá 404.
+    /// </summary>
+    private static string? ServerPackUrlDe(string? slug, int? serverPackFileId) =>
+        slug is { Length: > 0 } && serverPackFileId is { } id
+            ? $"https://www.curseforge.com/minecraft/modpacks/{slug}/files/{id.ToString(CultureInfo.InvariantCulture)}"
+            : null;
 
     /// <summary>
     ///     Traduz os arquivos do manifest e enriquece com o nome de cada mod.

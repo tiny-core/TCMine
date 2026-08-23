@@ -1,3 +1,4 @@
+using TCMine.Contracts.Modpacks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
@@ -55,13 +56,31 @@ public partial class ServersPage : ComponentBase
         var rows = new List<ServerRow>();
         foreach (var group in servers.GroupBy(s => s.ModpackId))
         {
-            var versions = (await ModpackRepository.ListVersionsAsync(group.Key, CancellationToken.None))
-                .ToDictionary(v => v.Id, v => v.Version);
+            var todas = await ModpackRepository.ListVersionsAsync(group.Key, CancellationToken.None);
+            var versions = todas.ToDictionary(v => v.Id, v => v.Version);
+
+            // A mais recente que um servidor PODE receber: publicada e de canal
+            // release. Alpha fica de fora — é a mesma regra que vale ao criar o
+            // servidor, e sugerir uma pré-lançamento seria oferecer o que o
+            // sistema recusaria depois.
+            var maisRecente = todas
+                .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
+                .OrderByDescending(v => v.Id) // GUID v7: mais recente primeiro
+                .FirstOrDefault();
 
             rows.AddRange(group.Select(s => new ServerRow(
                 s,
                 namesById.GetValueOrDefault(s.ModpackId, "—"),
-                versions.GetValueOrDefault(s.ModpackVersionId, "—"))));
+                versions.GetValueOrDefault(s.ModpackVersionId, "—"),
+
+                // Comparar identidade, e não ordenar dois GUIDs: se a mais
+                // recente não é a fixada, há para onde ir. O servidor fixa a
+                // versão de propósito (é o que permite atualizar um de cada vez
+                // e voltar atrás), então ficar para trás é escolha — mas nada
+                // dizia que havia ficado.
+                maisRecente is not null && maisRecente.Id != s.ModpackVersionId
+                    ? maisRecente.Version
+                    : null)));
         }
 
         _rows = [.. rows.OrderBy(r => r.ModpackName).ThenBy(r => r.Server.Name)];
@@ -99,5 +118,9 @@ public partial class ServersPage : ComponentBase
     }
 
     /// <summary>Servidor mais o que a tabela precisa mostrar ao lado dele.</summary>
-    private sealed record ServerRow(GameServer Server, string ModpackName, string VersionLabel);
+    private sealed record ServerRow(
+        GameServer Server,
+        string ModpackName,
+        string VersionLabel,
+        string? NewerVersion);
 }

@@ -1,3 +1,4 @@
+@using TCMine.Server.Web.Configuration
 @* Menu de navegação lateral. Extraído do MainLayout para isolar a estrutura de
    navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
    destaca o item ativo pela rota. *@
@@ -34,4 +35,12 @@
     <MudNavLink Href="/settings" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Settings">
         Configurações
     </MudNavLink>
+
+    @* A versão em que esta instalação está rodando. Fica no menu, e não numa
+       tela de "sobre", porque a pergunta aparece quando algo está errado — e aí
+       ninguém quer procurar. Já houve uma imagem publicada com o container
+       ainda na versão anterior, sem nada no painel que denunciasse. *@
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="px-4 pt-4 pb-2 d-block">
+        TCMine Server @BuildInfo.Version
+    </MudText>
 </MudNavMenu>

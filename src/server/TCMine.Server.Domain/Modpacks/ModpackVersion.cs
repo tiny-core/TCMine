@@ -59,6 +59,14 @@ public sealed class ModpackVersion : Entity
     /// </summary>
     public string? UpstreamSnapshotJson { get; set; }
 
+    /// <summary>
+    ///     Página do server pack publicado pelo autor na origem, quando existe.
+    ///     O TCMine monta a instância a partir desta versão, então o zip do autor
+    ///     não entra no fluxo — mas ele é a referência de quais mods o autor
+    ///     considera de servidor, e vale ser dito a quem vai criar um.
+    /// </summary>
+    public string? UpstreamServerPackUrl { get; set; }
+
     public List<ModpackFile> Files { get; } = [];
 
     /// <summary>

@@ -67,6 +67,14 @@ internal sealed record CurseForgeFile
     public int ReleaseType { get; init; }
 
     [JsonPropertyName("fileDate")] public DateTimeOffset FileDate { get; init; }
+
+    /// <summary>
+    ///     Arquivo do "server pack" que o autor publicou junto, quando existe.
+    ///     É um zip separado, já sem os mods que só valem no cliente e com os
+    ///     scripts de start. Nulo na maioria dos mods; comum em packs grandes.
+    /// </summary>
+    [JsonPropertyName("serverPackFileId")]
+    public int? ServerPackFileId { get; init; }
 }
 
 internal sealed record CurseForgeHash
