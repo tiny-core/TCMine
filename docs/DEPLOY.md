@@ -287,6 +287,27 @@ direto no roteador.
 - **IP residencial muda.** Configure DDNS, ou os jogadores perdem o servidor na
   próxima renovação. O tunnel resolve isso só para o painel.
 
+## Nenhum servidor de jogo inicia
+
+Quase sempre é o socket do Docker. O painel roda como um usuário sem privilégio
+(`1654`), e o socket pertence ao grupo `docker` com modo `660` — quem não está
+nesse grupo não o abre, e toda operação de container falha com *permission
+denied*.
+
+Confira o GID do socket no host e os grupos do container:
+
+```bash
+stat -c 'gid=%g grupo=%G modo=%a' /var/run/docker.sock
+docker exec <container-do-tcmine> id
+```
+
+Se o GID do socket não aparecer nos grupos, acrescente-o ao `group_add` do
+container e recrie-o. O número varia por distribuição: 999 em muitas, 104 no
+ZimaOS, 998 noutras. Não chute — leia o `stat`.
+
+A partir da 0.1.8 o próprio arranque avisa: procure no log a linha
+`Sem acesso ao Docker`.
+
 ## O que o compose concede ao painel
 
 O container recebe `/var/run/docker.sock`. Isso lhe dá o poder de criar

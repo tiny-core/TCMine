@@ -209,6 +209,10 @@ builder.Services.AddHostedService<MetricsCollector>();
 // mata o job — mas o pedido ficou gravado, e daqui ele volta para a fila.
 builder.Services.AddHostedService<InterruptedWorkRecovery>();
 
+// Antes de tudo o mais: sem Docker nenhum servidor de jogo sobe, e é melhor
+// dizê-lo no arranque do que deixar o admin descobrir no primeiro clique.
+builder.Services.AddHostedService<DockerReachability>();
+
 var app = builder.Build();
 
 // Aplica migrations pendentes no arranque.
