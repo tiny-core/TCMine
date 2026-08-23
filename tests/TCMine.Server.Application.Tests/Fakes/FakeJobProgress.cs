@@ -25,4 +25,9 @@ public sealed class FakeJobProgress : IJobProgressReporter
         Completed.Add((scopeId, error));
         OnComplete?.Invoke();
     }
+
+    /// <summary>Escopos que o teste quer fingir em curso.</summary>
+    public HashSet<Guid> EmCurso { get; } = [];
+
+    public bool IsRunning(Guid scopeId) => EmCurso.Contains(scopeId);
 }

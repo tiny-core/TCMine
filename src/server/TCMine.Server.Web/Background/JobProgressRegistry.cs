@@ -27,6 +27,8 @@ public sealed class JobProgressRegistry : IJobProgressReporter
     /// <summary>Disparado a cada mudança. Assinantes devem re-renderizar via InvokeAsync.</summary>
     public event Action? Changed;
 
+    public bool IsRunning(Guid scopeId) => _active.ContainsKey(scopeId);
+
     public void Report(Guid scopeId, JobProgress progress)
     {
         _active[scopeId] = progress;

@@ -20,6 +20,15 @@ public interface IJobProgressReporter
 
     /// <summary>Encerra o acompanhamento — o trabalho terminou (bem ou mal).</summary>
     void Complete(Guid scopeId, string? error = null);
+
+    /// <summary>
+    ///     Já há trabalho em curso neste escopo?
+    ///     Existe para o caso de uso poder RECUSAR o segundo pedido. Desabilitar
+    ///     o botão na tela não basta: o admin fecha o diálogo, o trabalho segue
+    ///     em background, e o próximo clique dispara outro — dois jobs iguais
+    ///     consumindo a mesma cota de API, o que já aconteceu.
+    /// </summary>
+    bool IsRunning(Guid scopeId);
 }
 
 /// <summary>

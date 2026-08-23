@@ -18,6 +18,22 @@ public sealed class CheckModpackVersionUpdates(
     public async Task<Result<IReadOnlyList<ModUpdateInfo>>> HandleAsync(
         Guid versionId, CancellationToken ct, Guid jobId = default)
     {
+        // O escopo é a VERSÃO, não um id novo a cada clique: assim duas
+        // verificações da mesma versão são a mesma linha de progresso, e não
+        // duas barras idênticas empilhadas.
+        if (jobId == default)
+            jobId = versionId;
+
+        // E aqui a segunda é recusada. Desabilitar o botão não bastava: o admin
+        // fecha o diálogo, a verificação segue em background, e o clique
+        // seguinte disparava outra — as duas varrendo os mesmos 483 mods contra
+        // a mesma cota de API.
+        if (progress.IsRunning(jobId))
+        {
+            return Result<IReadOnlyList<ModUpdateInfo>>.Fail(
+                "Já há uma verificação em curso para esta versão. Espere terminar.");
+        }
+
         var version = await repository.GetVersionAsync(versionId, ct);
         if (version is null)
             return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Versão não encontrada.");
