@@ -7,6 +7,33 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.1.7] — 2026-08-23
+
+### Corrigido
+
+- **Shaderpacks de um modpack apareciam como "sem versão compatível".** Nem tudo
+  o que um pack lista é mod: o All the Mods 10 traz 481 mods e 4 shaderpacks no
+  mesmo manifesto. A busca filtrava todo projeto por loader, e shaderpack não tem
+  loader — é lido pelo Iris, não pelo NeoForge —, então a consulta voltava vazia
+  para arquivos que estavam lá o tempo todo.
+
+  Atrás dessa falha havia outra pior: todo arquivo resolvido era gravado em
+  `mods/`, e um `.zip` de shader ali derruba o jogo no arranque. Agora cada
+  arquivo vai para a pasta da sua categoria — `shaderpacks/`, `resourcepacks/`,
+  `datapacks/`.
+
+  Shaderpacks e resource packs também passam a ser marcados como de cliente, o
+  que os mantém fora do container do servidor.
+
+  Num pack já importado essas pendências não somem sozinhas: use "Tentar de
+  novo" no painel de pendências.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
 ## [0.1.6] — 2026-08-23
 
 ### Adicionado
@@ -229,6 +256,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.7]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.7
 [0.1.6]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.6
 [0.1.5]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.5
 [0.1.4]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.4
