@@ -7,6 +7,50 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.1.6] — 2026-08-23
+
+### Adicionado
+
+- **Mods pendentes agora saem do server pack do autor.** Um rascunho com
+  pendências oferece "Puxar do server pack": o TCMine baixa o zip que o autor
+  publica e tira dele os `.jar` que faltam. É a saída para a pendência mais
+  comum — o autor proíbe que terceiros baixem o arquivo avulso, mas publica um
+  server pack com ele dentro. Um mod que não esteja no zip continua pendente, e
+  o resultado diz quantos sobraram.
+
+  Só em rascunho. Acrescentar arquivos a uma versão publicada mudaria o que já
+  foi prometido a quem instalou.
+
+  Versões importadas antes desta atualização descobrem o server pack sozinhas no
+  primeiro arranque — não é preciso reimportar nada.
+- **A versão do TCMine Server aparece no rodapé do menu.** É a pergunta que
+  surge quando algo está errado, e ela não devia estar escondida atrás de uma
+  tela de "sobre".
+- **Servidor com versão defasada é marcado na lista**, com a versão publicada
+  mais recente ao lado. Fixar a versão no servidor é de propósito — é o que
+  permite atualizar um de cada vez e voltar atrás —, mas nada dizia que havia
+  ficado para trás.
+- **A versão do loader pode ser editada enquanto a versão é rascunho.**
+
+### Corrigido
+
+- **O editor de código voltou a carregar.** Ele quebrou na 0.1.4: a lista de
+  scripts chegava ao navegador como argumentos soltos, e o carregador pedia ao
+  servidor um arquivo chamado `_`.
+- **O painel de mods pendentes não aparece mais durante a resolução.** Enquanto
+  a ingestão corre, todos os mods do pack estão na fila — e o painel anunciava o
+  pack inteiro como "aguardando upload manual".
+- **Mods sem versão compatível mostravam o código do projeto**, sem nome nem
+  link. Agora trazem os dois.
+- O painel de pendências virou um bloco recolhível com tabela: uma dúzia de
+  linhas abertas empurrava as estatísticas da versão para fora da tela.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
 ## [0.1.5] — 2026-08-22
 
 ### Adicionado
@@ -185,6 +229,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.1.6]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.6
 [0.1.5]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.5
 [0.1.4]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.4
 [0.1.3]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.3
