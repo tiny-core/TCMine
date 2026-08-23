@@ -25,6 +25,25 @@
                                 @job.Done / @job.Total@(job.Dependencies > 0 ? $" +{job.Dependencies} dep." : "")
                             </MudText>
                         }
+
+                        @* Nem todo trabalho aceita ser cancelado — só os que
+                           rodam num worker com token próprio. Mostrar o botão
+                           nos outros seria oferecer o que não acontece. *@
+                        @if (Registry.IsCancellable(id))
+                        {
+                            @if (_cancelling.Contains(id))
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Warning">cancelando…</MudText>
+                            }
+                            else
+                            {
+                                <MudTooltip Text="Parar este trabalho. O que já foi baixado é mantido.">
+                                    <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                                   Size="Size.Small" Color="Color.Default"
+                                                   OnClick="@(() => Cancel(id))"/>
+                                </MudTooltip>
+                            }
+                        }
                     </MudStack>
 
                     @if (job.IsDeterminate)

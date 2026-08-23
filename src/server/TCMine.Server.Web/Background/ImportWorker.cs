@@ -25,13 +25,17 @@ public sealed partial class ImportWorker(
             // próximo arranque descobre que havia trabalho em curso.
             var concluido = false;
 
+            // Token do JOB: cancelar uma importação não pode derrubar o worker
+            // nem as outras da fila.
+            var jobToken = progress.BeginCancellable(job.Id, stoppingToken);
+
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var useCase = scope.ServiceProvider.GetRequiredService<ImportUpstreamPack>();
 
                 var result = await useCase.HandleAsync(
-                    job.Origin, job.ProjectId, job.FileId, stoppingToken, job.Id, job.DisplayName);
+                    job.Origin, job.ProjectId, job.FileId, jobToken, job.Id, job.DisplayName);
 
                 concluido = true;
 
@@ -46,6 +50,14 @@ public sealed partial class ImportWorker(
                 // Desligamento no meio: deixa o rastro para o arranque retomar.
                 break;
             }
+            catch (OperationCanceledException)
+            {
+                // Cancelada pelo admin. O rastro sai — não é trabalho
+                // interrompido a retomar, é trabalho que ele desistiu de fazer.
+                concluido = true;
+                progress.Complete(job.Id, "Cancelado.");
+                LogImportCancelled(job.ProjectId);
+            }
             catch (Exception ex)
             {
                 // Uma importação com erro não pode derrubar o worker: a fila
@@ -57,6 +69,8 @@ public sealed partial class ImportWorker(
             }
             finally
             {
+                progress.EndCancellable(job.Id);
+
                 if (concluido)
                     await RemoveRequestAsync(job.Id);
             }
@@ -90,6 +104,9 @@ public sealed partial class ImportWorker(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao importar o pack '{ProjectId}'.")]
     private partial void LogImportFailed(Exception ex, string projectId);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Importação do pack '{ProjectId}' cancelada pelo admin.")]
+    private partial void LogImportCancelled(string projectId);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao apagar o rastro da importação {RequestId}.")]
     private partial void LogCleanupFailed(Exception ex, Guid requestId);

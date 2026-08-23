@@ -364,7 +364,10 @@ public sealed partial class ModpackIngestionService(
             // A exigência de loader do mod não está em API nenhuma — só dentro
             // do jar. Como ele já passou por aqui, conferir sai de graça, e é a
             // diferença entre um aviso no painel e um crash no arranque.
-            if (await IncompatibleLoaderAsync(item, resolved, stored, version.LoaderVersion, ct) is { } incompativel)
+            var (incompativel, jarInfo) =
+                await InspectJarAsync(item, resolved, stored, version.LoaderVersion, ct);
+
+            if (incompativel is not null)
                 return incompativel;
 
             stored.Position = 0;
@@ -395,9 +398,13 @@ public sealed partial class ModpackIngestionService(
                 Path = path,
                 Sha256 = sha256,
                 SizeBytes = stored.Length,
-                // O lado declarado pela origem ganha do pedido: o Modrinth sabe
-                // se o mod roda no cliente ou no servidor, nós só supomos.
-                Side = resolved.Side ?? item.Side,
+                // Ordem de confiança do lado: a origem primeiro (o Modrinth
+                // declara), depois o próprio JAR (o Fabric padroniza
+                // "environment"), e só então o que a ingestão pediu — que para
+                // um pack CurseForge é sempre "os dois", porque o manifest não
+                // diz nada. O NeoForge não declara lado em lugar nenhum, e aí
+                // sobra o server pack do autor ou o admin.
+                Side = resolved.Side ?? jarInfo?.DeclaredSide ?? item.Side,
                 Optional = item.Optional,
                 Origin = item.Origin,
                 OriginReference = resolved.VersionId, // id da versão fixada (base do check de updates)
@@ -429,7 +436,13 @@ public sealed partial class ModpackIngestionService(
     ///     — inclusive quando não deu para ler nada, porque uma recusa errada
     ///     bloqueia um mod que funcionaria.
     /// </summary>
-    private async Task<ResolveOutcome?> IncompatibleLoaderAsync(
+    /// <summary>
+    ///     Abre o jar uma vez e devolve as duas coisas que ele sabe: se a
+    ///     exigência de loader bate, e que lado ele declara.
+    ///     Uma leitura só — o arquivo já está aberto, e abrir de novo para o
+    ///     lado custaria o dobro em centenas de mods.
+    /// </summary>
+    private async Task<(ResolveOutcome? Incompativel, ModJarInfo? Info)> InspectJarAsync(
         ModIngestionItem item,
         ModResolution.Resolved resolved,
         Stream jar,
@@ -438,14 +451,14 @@ public sealed partial class ModpackIngestionService(
     {
         var info = await jarInspector.InspectAsync(jar, ct);
         if (info?.RequiredLoaderRange is not { Length: > 0 } exigido)
-            return null;
+            return (null, info);
 
         if (LoaderVersionRange.IsSatisfied(exigido, loaderVersion))
-            return null;
+            return (null, info);
 
         LogLoaderMismatch(resolved.FileName, exigido, loaderVersion);
 
-        return ResolveOutcome.Postpone(new PendingMod
+        return (ResolveOutcome.Postpone(new PendingMod
         {
             ModpackVersionId = Guid.Empty, // preenchido pelo UpsertPending
             ProjectSlug = item.ProjectId,
@@ -454,8 +467,9 @@ public sealed partial class ModpackIngestionService(
             FileId = item.FileId,
             Side = item.Side,
             Reason = PendingModReason.NoCompatibleFile,
-            Detail = $"Exige loader {exigido}; esta versão usa {loaderVersion}."
-        });
+            Detail = $"Exige loader {exigido}; esta versão usa {loaderVersion}.",
+            Folder = resolved.Folder
+        }), info);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Versão {VersionId} não encontrada para ingestão.")]

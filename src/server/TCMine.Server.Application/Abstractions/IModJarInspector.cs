@@ -1,3 +1,4 @@
+using TCMine.Contracts.Modpacks;
 namespace TCMine.Server.Application.Abstractions;
 
 /// <summary>
@@ -22,4 +23,13 @@ public interface IModJarInspector
 ///     intervalo Maven no Forge/NeoForge (<c>[21.1.80,)</c>) ou predicado do
 ///     Fabric (<c>&gt;=0.15.0</c>). Null quando o mod não declara exigência.
 /// </summary>
-public sealed record ModJarInfo(string? ModId, string? RequiredLoaderRange);
+/// <summary>
+///     <paramref name="DeclaredSide" /> só vem preenchido quando o JAR o declara,
+///     o que hoje significa Fabric: o <c>fabric.mod.json</c> tem um campo
+///     <c>environment</c> padronizado. O <c>neoforge.mods.toml</c> não tem campo
+///     de lado por mod — o Colorwheel, que existe só para usar shaders no
+///     cliente, declara todas as dependências como BOTH. Nulo é "o jar não diz",
+///     e aí o lado continua sendo do server pack ou do admin.
+/// </summary>
+public sealed record ModJarInfo(
+    string? ModId, string? RequiredLoaderRange, FileSide? DeclaredSide = null);

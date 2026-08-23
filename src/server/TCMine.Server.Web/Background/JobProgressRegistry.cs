@@ -27,7 +27,53 @@ public sealed class JobProgressRegistry : IJobProgressReporter
     /// <summary>Disparado a cada mudança. Assinantes devem re-renderizar via InvokeAsync.</summary>
     public event Action? Changed;
 
+    /// <summary>
+    ///     Um cancelamento por trabalho, ligado ao desligamento da aplicação.
+    ///     Vive aqui pelo mesmo motivo do progresso: o admin que mandou parar
+    ///     pode ter saído da página, e o botão de cancelar precisa funcionar de
+    ///     qualquer tela.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellations = new();
+
     public bool IsRunning(Guid scopeId) => _active.ContainsKey(scopeId);
+
+    /// <summary>Este trabalho aceita ser cancelado?</summary>
+    public bool IsCancellable(Guid scopeId) => _cancellations.ContainsKey(scopeId);
+
+    /// <summary>
+    ///     Abre o cancelamento de um trabalho e devolve o token que ele deve
+    ///     respeitar. Ligado ao <paramref name="applicationStopping" /> para que
+    ///     um deploy no meio do trabalho não fique esperando por ele.
+    /// </summary>
+    public CancellationToken BeginCancellable(Guid scopeId, CancellationToken applicationStopping)
+    {
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(applicationStopping);
+
+        // Se sobrou um do trabalho anterior no mesmo escopo, ele não serve mais.
+        if (_cancellations.TryRemove(scopeId, out var anterior))
+            anterior.Dispose();
+
+        _cancellations[scopeId] = cts;
+        Changed?.Invoke();
+
+        return cts.Token;
+    }
+
+    /// <summary>Pede o cancelamento. Quem executa é que decide como parar.</summary>
+    public void Cancel(Guid scopeId)
+    {
+        if (_cancellations.TryGetValue(scopeId, out var cts))
+            cts.Cancel();
+    }
+
+    /// <summary>Fecha o cancelamento — o trabalho acabou, cancelado ou não.</summary>
+    public void EndCancellable(Guid scopeId)
+    {
+        if (_cancellations.TryRemove(scopeId, out var cts))
+            cts.Dispose();
+
+        Changed?.Invoke();
+    }
 
     public void Report(Guid scopeId, JobProgress progress)
     {

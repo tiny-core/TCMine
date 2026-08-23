@@ -1,3 +1,4 @@
+using TCMine.Contracts.Modpacks;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -59,15 +60,27 @@ public sealed partial class ZipModJarInspector : IModJarInspector
         var raiz = doc.RootElement;
         var modId = raiz.TryGetProperty("id", out var id) ? id.GetString() : null;
 
+        // O único lado declarado de forma confiável em todo o ecossistema. O
+        // Fabric padronizou "environment"; o NeoForge não tem equivalente.
+        var lado = raiz.TryGetProperty("environment", out var env) && env.ValueKind is JsonValueKind.String
+            ? env.GetString() switch
+            {
+                "client" => FileSide.ClientOnly,
+                "server" => FileSide.ServerOnly,
+                _ => (FileSide?)FileSide.Both // "*" — os dois lados, explicitamente
+            }
+            : null;
+
         if (!raiz.TryGetProperty("depends", out var depends)
             || depends.ValueKind is not JsonValueKind.Object
             || !depends.TryGetProperty("fabricloader", out var loader))
-            return new ModJarInfo(modId, null);
+            return new ModJarInfo(modId, null, lado);
 
         // Pode ser string ("&gt;=0.15.0") ou array de alternativas; com array,
         // qualquer uma serve, e verificar "alguma passa" daria falso negativo —
         // então não checamos.
-        return new ModJarInfo(modId, loader.ValueKind is JsonValueKind.String ? loader.GetString() : null);
+        return new ModJarInfo(
+            modId, loader.ValueKind is JsonValueKind.String ? loader.GetString() : null, lado);
     }
 
     private static async Task<ModJarInfo?> ReadTomlAsync(ZipArchiveEntry entry, CancellationToken ct)

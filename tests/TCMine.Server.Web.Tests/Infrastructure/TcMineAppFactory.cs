@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +43,14 @@ internal sealed class TcMineAppFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
+
+        // Erros detalhados no hub. Sem isto, uma exceção qualquer dentro de um
+        // método do hub chega ao cliente como um HubException genérico e SEM
+        // mensagem — foi exatamente assim que uma falha intermitente do
+        // InviteFlow apareceu no CI, sem dizer nada sobre a causa. Vale só em
+        // teste: em produção a mensagem interna não deve sair para o cliente.
+        builder.ConfigureTestServices(services =>
+            services.Configure<HubOptions>(o => o.EnableDetailedErrors = true));
 
         if (Servicos is not null)
             builder.ConfigureTestServices(Servicos);

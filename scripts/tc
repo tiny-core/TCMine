@@ -64,7 +64,10 @@ cmd_test() {
 
     # Só as falhas, com a mensagem — e o placar por suíte.
     echo "$out" | grep -E "\[FAIL\]" | sed 's/^ *//' | head -10
-    echo "$out" | grep -E "^\s+(Shouldly|System\.|Microsoft\.)[A-Za-z.]*(Exception|AssertException)" | head -10
+    # -A1: a linha seguinte costuma trazer o "should be / but was", que é onde
+    # está a informação. Sem ela, um HubException aparecia sozinho e não dizia
+    # nada sobre a causa.
+    echo "$out" | grep -E -A1 "^\s+(Shouldly|System\.|Microsoft\.)[A-Za-z.]*(Exception|AssertException)" | head -16
 
     placar="$(echo "$out" | grep -oE "Total: [0-9]+, Errors: [0-9]+, Failed: [0-9]+" | head -1)"
     [ -n "$placar" ] && echo "$nome: $placar"
