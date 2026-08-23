@@ -97,4 +97,14 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
         ServerPacksGravados[versionId] = (fileId, pageUrl);
         return Task.CompletedTask;
     }
+
+    /// <summary>Lados gravados, para o teste conferir sem banco.</summary>
+    public Dictionary<Guid, FileSide> LadosGravados { get; } = [];
+
+    public virtual Task SetFileSideAsync(
+        Guid versionId, Guid fileId, FileSide side, CancellationToken ct)
+    {
+        LadosGravados[fileId] = side;
+        return Task.CompletedTask;
+    }
 }

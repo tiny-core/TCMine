@@ -3,6 +3,7 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components.Features.Modpacks;
@@ -13,6 +14,9 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 {
     private MudDataGrid<ModpackFile> _grid = default!;
     private bool _isLoading = true;
+
+    /// <summary>Arquivo cujo lado está a ser gravado — trava só a linha dele.</summary>
+    private Guid _savingSide;
     private Modpack? _modpack;
     private string _searchString = "";
     private ModpackVersion? _version;
@@ -21,6 +25,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     [Parameter] public Guid VersionId { get; set; }
 
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
+    [Inject] private ChangeFileSide ChangeSideUseCase { get; set; } = default!;
 
     /// <summary>
     ///     Carrega só a página pedida, com a busca aplicada em SQL.
@@ -81,6 +86,32 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
         StateHasChanged();
     });
+
+    /// <summary>
+    ///     Troca o lado de um arquivo. Sem recarregar a grade inteira: são
+    ///     milhares de linhas num pack importado, e o que mudou foi uma célula.
+    /// </summary>
+    private async Task ChangeSide(ModpackFile file, FileSide side)
+    {
+        if (_savingSide != Guid.Empty || file.Side == side)
+            return;
+
+        _savingSide = file.Id;
+        try
+        {
+            var result = await ChangeSideUseCase.HandleAsync(
+                VersionId, file.Id, side, CancellationToken.None);
+
+            if (result.Succeeded)
+                file.Side = side;
+            else
+                Snackbar.Add(result.Error!, Severity.Error);
+        }
+        finally
+        {
+            _savingSide = Guid.Empty;
+        }
+    }
 
     private async Task LoadAsync()
     {

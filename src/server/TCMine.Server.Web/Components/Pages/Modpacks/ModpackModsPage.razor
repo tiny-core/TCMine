@@ -106,11 +106,30 @@ else
                         </CellTemplate>
                     </TemplateColumn>
 
+                    @* Editável no rascunho. Nenhuma origem responde isto de
+                       forma confiável — o manifest do CurseForge não declara
+                       lado e o neoforge.mods.toml não tem campo de lado por mod
+                       —, então quem sabe é o admin. Errar aqui manda mod de
+                       cliente para o container e o servidor não sobe. *@
                     <TemplateColumn Title="Lado">
                         <CellTemplate>
-                            <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                @context.Item.Side
-                            </MudChip>
+                            @if (_version.State is ModpackVersionState.Draft)
+                            {
+                                <MudSelect T="FileSide" Value="context.Item.Side" Dense="true"
+                                           Margin="Margin.Dense" Variant="Variant.Text"
+                                           Disabled="@(_savingSide == context.Item.Id)"
+                                           ValueChanged="@(s => ChangeSide(context.Item, s))">
+                                    <MudSelectItem Value="FileSide.Both">cliente e servidor</MudSelectItem>
+                                    <MudSelectItem Value="FileSide.ClientOnly">só cliente</MudSelectItem>
+                                    <MudSelectItem Value="FileSide.ServerOnly">só servidor</MudSelectItem>
+                                </MudSelect>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
+                                    @context.Item.Side
+                                </MudChip>
+                            }
                         </CellTemplate>
                     </TemplateColumn>
 

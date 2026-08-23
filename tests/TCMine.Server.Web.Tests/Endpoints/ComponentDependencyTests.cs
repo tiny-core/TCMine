@@ -38,6 +38,7 @@ public sealed class ComponentDependencyTests
         // escopo: um registro faltando ali não impede a app de subir, só faz o
         // preenchimento falhar em silêncio.
         typeof(BackfillServerPacks),
+        typeof(ChangeFileSide),
 
         // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
         // Configurações e as três seguintes pelo MetricsCollector, dentro do

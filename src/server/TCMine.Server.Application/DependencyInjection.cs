@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<CompleteFromServerPack>();
         services.AddScoped<BackfillServerPacks>();
+        services.AddScoped<ChangeFileSide>();
         services.AddScoped<RetryModResolution>();
         services.AddScoped<CheckUpstreamUpdate>();
         services.AddScoped<UpdateFromUpstream>();

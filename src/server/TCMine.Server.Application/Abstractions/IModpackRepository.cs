@@ -1,3 +1,4 @@
+using TCMine.Contracts.Modpacks;
 ﻿using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
 
@@ -91,6 +92,13 @@ public interface IModpackRepository
     ///     campos, numa versão que é imutável em todo o resto.
     /// </summary>
     Task SetServerPackAsync(Guid versionId, string fileId, string? pageUrl, CancellationToken ct);
+
+    /// <summary>
+    ///     Grava só o lado de um arquivo. Estreito pelo mesmo motivo do
+    ///     <see cref="SetServerPackAsync" />: um enum de uma linha não justifica
+    ///     reanexar milhares de arquivos.
+    /// </summary>
+    Task SetFileSideAsync(Guid versionId, Guid fileId, FileSide side, CancellationToken ct);
 
     /// <summary>
     ///     Ingestões que ficaram pela metade quando o processo caiu.

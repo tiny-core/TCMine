@@ -393,6 +393,16 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
                 ct);
     }
 
+    public async Task SetFileSideAsync(
+        Guid versionId, Guid fileId, FileSide side, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        await db.ModpackFiles
+            .Where(f => f.Id == fileId && f.ModpackVersionId == versionId)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.Side, side), ct);
+    }
+
     public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
