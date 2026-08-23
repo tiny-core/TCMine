@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Web.Tests.Infrastructure;
@@ -31,6 +32,7 @@ public sealed class ComponentDependencyTests
         typeof(StartMailServer),
         typeof(StopMailServer),
         typeof(GetMailServerView),
+        typeof(CompleteFromServerPack),
 
         // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
         // Configurações e as três seguintes pelo MetricsCollector, dentro do

@@ -10,7 +10,7 @@
 # vazio. Nada no loop local exercia esse caminho.
 #
 #   ./scripts/smoke-image.sh                  constrói a imagem e testa
-#   ./scripts/smoke-image.sh usuario/img:tag  testa uma imagem já existente
+#   ./scripts/smoke-image.sh usuário/img:tag  testa uma imagem já existente
 #
 set -euo pipefail
 

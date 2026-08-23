@@ -67,6 +67,14 @@ public sealed class ModpackVersion : Entity
     /// </summary>
     public string? UpstreamServerPackUrl { get; set; }
 
+    /// <summary>
+    ///     Id do arquivo do server pack na origem.
+    ///     Guardado separado do link porque tem outra função: o link é para o
+    ///     admin clicar, este é o que baixa o zip para completar as pendências.
+    ///     Id em vez de URL de download: a URL do CDN não é estável, o id é.
+    /// </summary>
+    public string? UpstreamServerPackFileId { get; set; }
+
     public List<ModpackFile> Files { get; } = [];
 
     /// <summary>

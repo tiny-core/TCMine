@@ -23,6 +23,23 @@
                     arquivo na página do mod e envie aqui; a pendência some sozinha quando o
                     arquivo entrar.
                 </MudText>
+                @* O caminho mais curto para zerar esta lista: o autor bloqueia o
+                   download avulso do .jar, mas publica um server pack com ele
+                   dentro. Vem antes do "tentar de novo" porque resolve o caso
+                   comum, e o "tentar de novo" só ajuda em falha temporária. *@
+                @if (CanUseServerPack)
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Inventory"
+                               OnClick="OnCompleteFromServerPack" Disabled="IsCompleting || IsBusy">
+                        @if (IsCompleting)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Puxar do server pack
+                    </MudButton>
+                }
+
                 @if (CanRetry)
                 {
                     <MudButton Size="Size.Small" Variant="Variant.Text"

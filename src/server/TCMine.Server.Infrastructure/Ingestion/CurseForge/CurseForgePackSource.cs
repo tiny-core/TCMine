@@ -128,7 +128,8 @@ public sealed partial class CurseForgePackSource(
             LoaderVersion = loaderVersion,
             Mods = await WithNamesAsync(manifest.Files, ct),
             Overrides = overrides,
-            ServerPackUrl = ServerPackUrlDe(mod?.Slug, file.ServerPackFileId)
+            ServerPackUrl = ServerPackUrlDe(mod?.Slug, file.ServerPackFileId),
+            ServerPackFileId = file.ServerPackFileId?.ToString(CultureInfo.InvariantCulture)
         };
     }
 
@@ -178,6 +179,87 @@ public sealed partial class CurseForgePackSource(
                 f.Required,
                 names.GetValueOrDefault(f.ProjectId)))
         ];
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
+        IReadOnlyList<string> fileIds, CancellationToken ct)
+    {
+        var nomes = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var ids = fileIds
+            .Select(id => int.TryParse(id, out var n) ? n : (int?)null)
+            .OfType<int>()
+            .Distinct()
+            .ToList();
+
+        if (ids.Count is 0)
+            return nomes;
+
+        // O mesmo endpoint em lote que o WithNamesAsync usa para nomes de mod,
+        // só que de arquivos: uma chamada resolve a lista inteira de pendências.
+        foreach (var chunk in ids.Chunk(1000))
+        {
+            var response = await api.PostAsync(
+                "/v1/mods/files",
+                new CurseForgeFilesRequest { FileIds = chunk },
+                CurseForgeJsonContext.Default.CurseForgeFilesRequest,
+                CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeFile,
+                ct);
+
+            foreach (var file in response?.Data ?? [])
+            {
+                if (file.FileName is { Length: > 0 } nome)
+                    nomes[file.Id.ToString(CultureInfo.InvariantCulture)] = nome;
+            }
+        }
+
+        return nomes;
+    }
+
+    public async Task<IServerPackReader?> OpenServerPackAsync(
+        string projectId, string serverPackFileId, CancellationToken ct)
+    {
+        if (!int.TryParse(projectId, out var modId) || !int.TryParse(serverPackFileId, out var packFileId))
+            return null;
+
+        var response = await api.GetAsync(
+            $"/v1/mods/{modId}/files/{packFileId.ToString(CultureInfo.InvariantCulture)}",
+            CurseForgeJsonContext.Default.CurseForgeResponseCurseForgeFile, ct);
+
+        if (response?.Data?.DownloadUrl is not { Length: > 0 } url)
+        {
+            // Sem downloadUrl o autor também bloqueou o server pack. Acontece, e
+            // não é erro nosso — o admin ainda pode baixá-lo pelo navegador e
+            // enviar os .jar à mão.
+            LogNoServerPackDownload(projectId);
+            return null;
+        }
+
+        // Em disco, e não em memória: o server pack de um pack grande passa de
+        // um gigabyte, e o MemoryStream do pack de cliente já é o teto do que
+        // dá para segurar.
+        var caminho = Path.Combine(Path.GetTempPath(), $"tcmine-serverpack-{Guid.CreateVersion7():N}.zip");
+
+        try
+        {
+            using var download = await http.GetAsync(new Uri(url), HttpCompletionOption.ResponseHeadersRead, ct);
+            download.EnsureSuccessStatusCode();
+
+            await using (var destino = File.Create(caminho))
+            await using (var origem = await download.Content.ReadAsStreamAsync(ct))
+                await origem.CopyToAsync(destino, ct);
+
+            return new ZipServerPackReader(caminho);
+        }
+        catch
+        {
+            // O arquivo parcial não serve para nada e ocuparia o disco até o
+            // próximo boot da máquina.
+            if (File.Exists(caminho))
+                File.Delete(caminho);
+
+            throw;
+        }
     }
 
     private async Task<CurseForgeFile?> FindPackFileAsync(int modId, string? fileId, CancellationToken ct)
@@ -298,4 +380,58 @@ public sealed partial class CurseForgePackSource(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "manifest.json ausente ou inválido no pack '{ProjectId}'.")]
     private partial void LogInvalidManifest(string projectId);
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "O server pack do pack '{ProjectId}' não tem downloadUrl — o autor bloqueou também ele.")]
+    private partial void LogNoServerPackDownload(string projectId);
+}
+
+/// <summary>
+///     Lê a pasta mods/ de um server pack já baixado para disco.
+///     O zip fica aberto enquanto o leitor viver e some no Dispose: quem chama
+///     grava cada .jar no blob store por stream, sem nunca ter o pack inteiro em
+///     memória.
+/// </summary>
+internal sealed class ZipServerPackReader : IServerPackReader
+{
+    private readonly string _caminho;
+    private readonly ZipArchive _zip;
+    private readonly Dictionary<string, ZipArchiveEntry> _mods;
+
+    public ZipServerPackReader(string caminho)
+    {
+        _caminho = caminho;
+        _zip = ZipFile.OpenRead(caminho);
+
+        // O zip às vezes tem tudo sob uma pasta raiz, às vezes não. Casar pelo
+        // trecho "mods/" cobre os dois sem depender do formato do autor.
+        _mods = _zip.Entries
+            .Where(e => e.FullName.Contains("mods/", StringComparison.OrdinalIgnoreCase)
+                        && e.Name.EndsWith(".jar", StringComparison.OrdinalIgnoreCase))
+            .GroupBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+    }
+
+    public IReadOnlyCollection<string> ModFileNames => _mods.Keys;
+
+    public Stream OpenMod(string fileName) => _mods.TryGetValue(fileName, out var entry)
+        ? entry.Open()
+        : throw new FileNotFoundException($"'{fileName}' não está no server pack.");
+
+    public ValueTask DisposeAsync()
+    {
+        _zip.Dispose();
+
+        try
+        {
+            File.Delete(_caminho);
+        }
+        catch (IOException)
+        {
+            // Limpeza não é motivo para falhar a operação; o SO recolhe o temp.
+        }
+
+        return ValueTask.CompletedTask;
+    }
 }

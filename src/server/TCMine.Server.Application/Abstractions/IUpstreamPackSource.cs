@@ -25,6 +25,40 @@ public interface IUpstreamPackSource
 
     /// <summary>Id da release mais recente, para detectar atualização sem baixar o pack.</summary>
     Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct);
+
+    /// <summary>
+    ///     Nome do arquivo de cada release pedida (id do arquivo → nome).
+    ///     É o que liga uma pendência ao .jar dentro do server pack: o zip do
+    ///     autor traz nomes de arquivo, e a pendência guarda o id da release.
+    ///     Ids desconhecidos simplesmente não aparecem no resultado.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
+        IReadOnlyList<string> fileIds, CancellationToken ct);
+
+    /// <summary>
+    ///     Abre o server pack do autor para leitura. Devolve null quando não há
+    ///     server pack ou quando a origem não permite baixá-lo.
+    ///     Devolve um leitor, e não bytes: o server pack de um pack grande passa
+    ///     de um gigabyte, e carregá-lo em memória derrubaria o processo.
+    /// </summary>
+    Task<IServerPackReader?> OpenServerPackAsync(
+        string projectId, string serverPackFileId, CancellationToken ct);
+}
+
+/// <summary>
+///     Server pack aberto para leitura.
+///     Só expõe a pasta mods/: é o que interessa para completar as pendências.
+///     Os configs do server pack NÃO entram — os overrides do pack de cliente
+///     já vieram na importação, e sobrescrevê-los aqui apagaria em silêncio o
+///     que o admin tenha editado.
+/// </summary>
+public interface IServerPackReader : IAsyncDisposable
+{
+    /// <summary>Nome de cada .jar em mods/, sem o diretório.</summary>
+    IReadOnlyCollection<string> ModFileNames { get; }
+
+    /// <summary>Abre um dos .jar para leitura. Lança se o nome não existir.</summary>
+    Stream OpenMod(string fileName);
 }
 
 /// <summary>Resultado de busca de packs.</summary>
@@ -74,6 +108,9 @@ public sealed record UpstreamPack
     ///     rodar o servidor oficial ao lado.
     /// </summary>
     public string? ServerPackUrl { get; init; }
+
+    /// <summary>Id do arquivo do server pack, para baixá-lo depois.</summary>
+    public string? ServerPackFileId { get; init; }
 }
 
 /// <summary>

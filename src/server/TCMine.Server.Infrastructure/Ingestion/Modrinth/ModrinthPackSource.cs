@@ -307,4 +307,18 @@ public sealed partial class ModrinthPackSource(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Pack '{ProjectId}' sem modrinth.index.json utilizável.")]
     private partial void LogInvalidIndex(string projectId);
+
+    /// <summary>
+    ///     O Modrinth não tem server pack: o .mrpack já declara o lado de cada
+    ///     arquivo, então o pack importado dele nasce completo para os dois
+    ///     lados e não há nada a conciliar.
+    /// </summary>
+    public Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
+        IReadOnlyList<string> fileIds, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyDictionary<string, string>>(
+            new Dictionary<string, string>(StringComparer.Ordinal));
+
+    public Task<IServerPackReader?> OpenServerPackAsync(
+        string projectId, string serverPackFileId, CancellationToken ct) =>
+        Task.FromResult<IServerPackReader?>(null);
 }

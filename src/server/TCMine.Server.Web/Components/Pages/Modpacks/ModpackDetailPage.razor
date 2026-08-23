@@ -209,6 +209,10 @@ else
                     <PendingModsPanel Pending="_selectedVersion.ManualUploads"
                                       CanUpload="@(_selectedVersion.State is ModpackVersionState.Draft)"
                                       IsBusy="_isRetrying"
+                                      CanUseServerPack="@(_selectedVersion.State is ModpackVersionState.Draft
+                                                          && _selectedVersion.UpstreamServerPackFileId is { Length: > 0 })"
+                                      IsCompleting="_isCompleting"
+                                      OnCompleteFromServerPack="CompleteFromServerPack"
                                       OnUpload="UploadForPending"
                                       OnRetry="Retry"/>
                 }

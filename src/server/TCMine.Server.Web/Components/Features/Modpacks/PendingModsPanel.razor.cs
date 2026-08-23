@@ -17,6 +17,16 @@ public partial class PendingModsPanel : ComponentBase
     [Parameter] public EventCallback OnRetry { get; set; }
 
     /// <summary>
+    ///     Há server pack do autor para puxar os que faltam. Só em rascunho:
+    ///     acrescentar arquivo a uma versão publicada é o que a imutabilidade
+    ///     impede.
+    /// </summary>
+    [Parameter] public bool CanUseServerPack { get; set; }
+
+    [Parameter] public bool IsCompleting { get; set; }
+    [Parameter] public EventCallback OnCompleteFromServerPack { get; set; }
+
+    /// <summary>
     ///     Só oferece "tentar de novo" quando há pendência que pode mudar de
     ///     resultado. Redistribuição negada nunca muda — insistir só frustra.
     /// </summary>

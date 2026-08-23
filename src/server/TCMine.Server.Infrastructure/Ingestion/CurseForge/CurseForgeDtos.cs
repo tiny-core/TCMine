@@ -100,3 +100,9 @@ internal sealed record CurseForgeModsRequest
 {
     public required IReadOnlyList<int> ModIds { get; init; }
 }
+
+/// <summary>Corpo do POST /v1/mods/files — consulta em lote de arquivos.</summary>
+internal sealed record CurseForgeFilesRequest
+{
+    public required IReadOnlyList<int> FileIds { get; init; }
+}

@@ -14,6 +14,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     private bool _isLoading = true;
     private bool _isPublishing;
     private bool _isRetrying;
+    private bool _isCompleting;
     private Modpack? _modpack;
     private ModpackVersion? _selectedVersion;
     private Guid _selectedVersionId;
@@ -54,6 +55,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     [Inject] private DeleteModpack DeleteModpackUseCase { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
     [Inject] private RetryModResolution RetryUseCase { get; set; } = default!;
+    [Inject] private CompleteFromServerPack ServerPackUseCase { get; set; } = default!;
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
     [Inject] private CheckUpstreamUpdate UpstreamCheck { get; set; } = default!;
 
@@ -413,6 +415,42 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         }
         else
             Snackbar.Add(result.Error!, Severity.Error);
+    }
+
+    /// <summary>
+    ///     Puxa os .jar que faltam de dentro do server pack do autor.
+    ///     É a saída para a pendência mais comum: o autor proíbe o download do
+    ///     .jar por terceiros, mas publica um server pack com ele dentro.
+    /// </summary>
+    private async Task CompleteFromServerPack()
+    {
+        if (_selectedVersion is null || _isCompleting)
+            return;
+
+        _isCompleting = true;
+        try
+        {
+            var result = await ServerPackUseCase.HandleAsync(_selectedVersion.Id, CancellationToken.None);
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Error);
+                return;
+            }
+
+            var (preenchidos, restantes) = (result.Value!.Filled, result.Value.Remaining);
+
+            Snackbar.Add(
+                restantes is 0
+                    ? $"{preenchidos} mod(s) vieram do server pack. Não ficou nenhuma pendência."
+                    : $"{preenchidos} mod(s) vieram do server pack; {restantes} não estão nele.",
+                restantes is 0 ? Severity.Success : Severity.Info);
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _isCompleting = false;
+        }
     }
 
     private async Task Retry()

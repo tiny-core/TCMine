@@ -21,6 +21,7 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
 
         // Mesma largura das outras URLs: link de CDN com assinatura passa de 512.
         builder.Property(v => v.UpstreamServerPackUrl).HasMaxLength(1024);
+        builder.Property(v => v.UpstreamServerPackFileId).HasMaxLength(64);
 
         // Sem limite: o snapshot guarda um par projeto/arquivo e o nome de CADA
         // mod do pack, então cresce com o tamanho dele — centenas de mods viram

@@ -409,6 +409,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("UpstreamServerPackFileId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("UpstreamServerPackUrl")
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
