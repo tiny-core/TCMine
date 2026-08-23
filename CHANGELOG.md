@@ -7,6 +7,82 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.2.0] — 2026-08-23
+
+Esta versão nasceu de um servidor de jogo que não subia. Perseguir a causa
+revelou três problemas distintos, e consertá-los abriu espaço para o resto.
+
+### Corrigido
+
+- **Servidores de jogo não iniciavam, e a tela não dizia por quê.** Eram duas
+  coisas somadas. O painel roda como um usuário sem privilégio e precisa
+  pertencer ao grupo do socket do Docker; fora dele, toda operação de container
+  falha com *permission denied* — e o erro morria num aviso de tela que sumia
+  com a página, sem deixar nada no log. Agora o arranque avisa (`Sem acesso ao
+  Docker`) com o comando para descobrir o número certo, e as falhas de iniciar,
+  parar e restaurar mundo ficam registradas.
+
+  Ver a seção nova em [docs/DEPLOY.md](docs/DEPLOY.md).
+
+- **Apagar um servidor falhava com "acesso negado".** O container do jogo
+  assumia a posse da pasta da instância, e o painel deixava de conseguir
+  removê-la. Os dois passam a usar o mesmo usuário.
+
+- **Mods de cliente iam para o servidor.** Um pack CurseForge não declara em que
+  lado cada mod roda, e o `neoforge.mods.toml` também não — então tudo entrava
+  como "os dois", e o servidor morria no arranque pedindo uma dependência que é
+  de cliente. Três saídas, nessa ordem: o **server pack do autor** decide (é a
+  lista curada do que um servidor precisa), o **jar** decide quando declara
+  (Fabric), e o **admin** decide sempre, num seletor na grade de mods.
+
+- **Shaderpacks apareciam como "sem versão compatível".** A busca filtrava todo
+  projeto por loader, e shaderpack não tem loader. Cada arquivo vai agora para a
+  pasta da sua categoria em vez de todos para `mods/`, onde um `.zip` derrubaria
+  o jogo.
+
+- **Verificar atualizações podia ser disparado sem limite**, empilhando
+  varreduras iguais contra a mesma cota de API.
+
+- **O editor de código não carregava** (quebrou na 0.1.4).
+
+### Adicionado
+
+- **Puxar mods pendentes do server pack do autor.** No CurseForge o autor pode
+  proibir o download avulso do `.jar` — a causa da maioria das pendências — e ao
+  mesmo tempo publicar um server pack com esses arquivos dentro. Um rascunho com
+  pendências oferece o botão; ele preenche o que dá e conserta os lados na mesma
+  passada.
+- **Cancelar um trabalho em curso.** Importações e resoluções de vinte minutos
+  não tinham saída além de esperar ou reiniciar. O cancelamento devolve a versão
+  ao rascunho e mantém o que já foi baixado.
+- **Aba de Recursos** para shaderpacks e resource packs, com envio direto.
+- **A versão do TCMine Server no rodapé do menu.**
+- **Aviso de servidor com versão defasada**, com a versão publicada mais recente
+  ao lado.
+- **A versão do loader é editável** enquanto a versão é rascunho.
+- O selo de origem nas listas leva à página do projeto.
+
+### Melhorado
+
+- Reingerir um mod que não mudou não o baixa de novo. Numa reimportação de um
+  pack grande, é um gigabyte e meio a menos.
+- O painel de pendências mostra o tipo e o lado de cada arquivo, virou um bloco
+  recolhível, e não aparece mais durante a resolução — quando todos os mods do
+  pack estão, por definição, pendentes.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
+Se algum servidor de jogo já existia, a pasta dele ficou com o dono errado.
+Corrija uma vez, no host:
+
+```bash
+sudo chown -R 1654:1654 /caminho/do/tcmine/instances
+```
+
 ## [0.1.7] — 2026-08-23
 
 ### Corrigido
@@ -256,6 +332,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.2.0]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.2.0
 [0.1.7]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.7
 [0.1.6]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.6
 [0.1.5]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.5
