@@ -188,7 +188,13 @@ public partial class ModpackOverridesPage : IAsyncDisposable
             // As URLs saem do Assets porque os estáticos são servidos com hash
             // no nome: escrever o caminho cru no JS pegaria uma versão em cache
             // depois de qualquer atualização.
-            await _monacoModule.InvokeVoidAsync("ensure", new[]
+            // O cast para object é o que faz a lista chegar como UM argumento.
+            // InvokeVoidAsync recebe params object[]: sem ele, o array VIRA a
+            // lista de argumentos e o JS recebe três strings soltas, ficando com
+            // a primeira. Iterar uma string dá os caracteres dela — o editor
+            // tentava baixar um script chamado "_" e falhava com uma mensagem
+            // que não dizia nada.
+            await _monacoModule.InvokeVoidAsync("ensure", (object)new[]
             {
                 Assets["_content/BlazorMonaco/jsInterop.js"],
                 Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"],

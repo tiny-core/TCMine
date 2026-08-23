@@ -12,6 +12,12 @@
 let carregamento = null;
 
 export function ensure(urls) {
+    // Guarda contra o erro que já aconteceu: uma string no lugar da lista.
+    // Sem isto, o for..of itera os CARACTERES e o erro que aparece é um 404
+    // de um script de uma letra só — que não sugere nada a quem lê.
+    if (!Array.isArray(urls))
+        throw new Error('ensure() espera uma lista de URLs; recebeu ' + typeof urls);
+
     carregamento ??= carregar(urls);
     return carregamento;
 }

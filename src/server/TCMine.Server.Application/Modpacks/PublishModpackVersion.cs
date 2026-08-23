@@ -23,10 +23,12 @@ public sealed class PublishModpackVersion(
         if (version is null)
             return Result.Fail("Versão não encontrada.");
 
-        if (version.HasPendingMods && !acceptPending)
+        // ManualUploads, e não PendingMods: os enfileirados não pedem nada do
+        // admin e não podem entrar nesta contagem.
+        if (version.HasManualUploads && !acceptPending)
         {
             return Result.Fail(
-                $"{version.PendingMods.Count} mod(s) pendentes de upload manual. "
+                $"{version.ManualUploads.Count} mod(s) pendentes de upload manual. "
                 + "Envie os arquivos ou confirme a publicação sem eles.");
         }
 

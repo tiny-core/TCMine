@@ -70,6 +70,20 @@ public sealed class ModpackVersion : Entity
     public bool HasPendingMods => PendingMods.Count > 0;
 
     /// <summary>
+    ///     As pendências que de fato pedem ação do admin.
+    ///     Uma pendência <c>Queued</c> não pede nada: ela só registra que o mod
+    ///     foi enfileirado, para que um pedido não se perca se o processo cair
+    ///     antes do worker chegar nele. Enquanto a resolução corre, TODOS os
+    ///     mods do pack estão nesse estado — quatrocentos e oitenta, no caso de
+    ///     um pack grande —, e contá-los como "aguardando upload manual" é
+    ///     dizer ao admin que ele tem centenas de arquivos para subir à mão.
+    /// </summary>
+    public IReadOnlyList<PendingMod> ManualUploads =>
+        [.. PendingMods.Where(p => p.Reason is not PendingModReason.Queued)];
+
+    public bool HasManualUploads => ManualUploads.Count > 0;
+
+    /// <summary>
     ///     Quantas vezes o arranque já reenfileirou esta ingestão sozinho.
     ///     Existe para a recuperação automática não virar laço: se o que derruba
     ///     o processo é justamente este job, reenfileirar a cada arranque faz o

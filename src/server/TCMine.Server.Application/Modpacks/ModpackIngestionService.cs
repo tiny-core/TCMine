@@ -181,7 +181,7 @@ public sealed partial class ModpackIngestionService(
             report(existing.Contains(item.ProjectId) ? $"Verificando {label}" : $"Baixando {label}");
 
             var outcome = await ResolveAndDownloadAsync(
-                version, item, modpack, unsaved, ct);
+                version, item, modpack, unsaved, label, ct);
 
             if (unsaved.Count >= FlushEvery)
             {
@@ -225,12 +225,26 @@ public sealed partial class ModpackIngestionService(
         // processar cada um.
     }
 
+    /// <summary>
+    ///     Página do projeto na origem, montada a partir do id.
+    ///     O CurseForge redireciona /projects/{id} para a página do mod, e no
+    ///     Modrinth o próprio id já é o caminho — então nenhuma das duas exige
+    ///     consulta. É o link que o admin usa para baixar o .jar à mão.
+    /// </summary>
+    private static string? PaginaDaOrigem(ModFileOrigin origin, string projectId) => origin switch
+    {
+        ModFileOrigin.CurseForge => $"https://www.curseforge.com/projects/{projectId}",
+        ModFileOrigin.Modrinth => $"https://modrinth.com/mod/{projectId}",
+        _ => null
+    };
+
     /// <summary>Retorna null em sucesso…</summary>
     private async Task<ResolveOutcome> ResolveAndDownloadAsync(
         ModpackVersion version,
         ModIngestionItem item,
         Modpack modpack,
         List<ModpackFile> unsaved,
+        string label,
         CancellationToken ct)
     {
         var minecraftVersion = modpack.MinecraftVersion;
@@ -292,16 +306,25 @@ public sealed partial class ModpackIngestionService(
                 });
 
             case ModResolution.NotFound notFound:
+                // Nome e link, como na recusa de redistribuição. Antes esta
+                // pendência nascia com o ID cru do projeto e sem link — a tela
+                // listava "306612" e o admin não tinha como saber que mod era,
+                // nem para onde ir buscá-lo.
+                //
+                // O nome vem do snapshot da origem (o próprio pack traz o nome
+                // de cada mod), então não custa consulta nenhuma; o link se
+                // deriva da origem mais o id.
                 return ResolveOutcome.Postpone(new PendingMod
                 {
                     ModpackVersionId = version.Id,
                     ProjectSlug = item.ProjectId,
-                    DisplayName = item.ProjectId,
+                    DisplayName = label,
                     Origin = item.Origin,
                     FileId = item.FileId,
                     Side = item.Side,
                     Reason = PendingModReason.NoCompatibleFile,
-                    Detail = notFound.Reason
+                    Detail = notFound.Reason,
+                    PageUrl = PaginaDaOrigem(item.Origin, item.ProjectId)
                 });
 
             default:

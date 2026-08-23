@@ -33,6 +33,8 @@ public sealed class ModpackVersionConfiguration : IEntityTypeConfiguration<Modpa
 
         builder.Ignore(v => v.IsPreRelease);
         builder.Ignore(v => v.HasPendingMods);
+        builder.Ignore(v => v.ManualUploads);
+        builder.Ignore(v => v.HasManualUploads);
 
         // Enum como string na coluna.
         //

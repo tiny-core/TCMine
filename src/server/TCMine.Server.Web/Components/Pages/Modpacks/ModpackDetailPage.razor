@@ -173,9 +173,14 @@ else
                     </MudStack>
                 </MudAlert>
 
-                @if (_selectedVersion.HasPendingMods)
+                @* Só depois de resolver. Durante a ingestão cada mod do pack
+                   tem uma pendência Queued, e o painel listaria o pack inteiro
+                   como "aguardando upload manual" — o oposto do que ele quer
+                   dizer. *@
+                @if (_selectedVersion.State is not ModpackVersionState.Resolving
+                     && _selectedVersion.HasManualUploads)
                 {
-                    <PendingModsPanel Pending="_selectedVersion.PendingMods"
+                    <PendingModsPanel Pending="_selectedVersion.ManualUploads"
                                       CanUpload="@(_selectedVersion.State is ModpackVersionState.Draft)"
                                       IsBusy="_isRetrying"
                                       OnUpload="UploadForPending"
