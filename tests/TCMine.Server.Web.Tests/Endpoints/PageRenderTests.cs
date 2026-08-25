@@ -7,7 +7,7 @@ using TCMine.Server.Web.Tests.Infrastructure;
 namespace TCMine.Server.Web.Tests.Endpoints;
 
 /// <summary>
-///     As abas de uma versão renderizam.
+///     Toda página do painel renderiza.
 ///     Existe por um erro que build e testes não pegam: um parâmetro que o
 ///     componente não tem. O Razor aceita, o compilador aceita, e a página
 ///     estoura ao RENDERIZAR — com 500 no servidor e, dentro de um grid, um
@@ -16,12 +16,65 @@ namespace TCMine.Server.Web.Tests.Endpoints;
 ///     O caso da lista VAZIA importa tanto quanto o cheio: o
 ///     <c>NoRecordsContent</c> só é construído quando não há linhas, então um
 ///     erro ali fica invisível enquanto houver dados.
+///     Afirma que a página RESPONDE, e não como ela é: assim a rede continua
+///     valendo enquanto o layout muda. Um teste amarrado à marcação viraria
+///     peso na primeira remodelação da interface.
 /// </summary>
 public sealed class PageRenderTests
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     public static TheoryData<string> Abas => new() { "mods", "recursos", "overrides" };
+
+    /// <summary>
+    ///     Rotas que não dependem de um modpack. Vale a lista inteira: um erro
+    ///     de renderização não escolhe página, e o custo de cobrir todas é uma
+    ///     linha por rota.
+    /// </summary>
+    public static TheoryData<string> Rotas => new()
+    {
+        "/", "/modpacks", "/mods", "/servers", "/storage", "/settings",
+        "/login", "/forgot-password"
+    };
+
+    /// <summary>Abas do modpack que não são por versão.</summary>
+    public static TheoryData<string> AbasDoModpack => new() { "", "/news", "/servers" };
+
+    [Theory]
+    [MemberData(nameof(Rotas))]
+    public async Task Rota_renderiza(string rota)
+    {
+        await using var factory = new TcMineAppFactory();
+
+        var html = await BuscarAsync(factory, rota);
+
+        html.ShouldNotBeNull($"{rota} respondeu com erro");
+    }
+
+    [Theory]
+    [MemberData(nameof(AbasDoModpack))]
+    public async Task Aba_de_modpack_renderiza(string sufixo)
+    {
+        await using var factory = new TcMineAppFactory();
+        var (modpackId, _) = await SemearAsync(factory, comArquivos: true);
+
+        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}{sufixo}");
+
+        html.ShouldNotBeNull($"a aba /modpacks/id{sufixo} respondeu com erro");
+    }
+
+    [Fact]
+    public async Task Modpack_sem_versao_nenhuma_renderiza()
+    {
+        // Um modpack recém-criado não tem versão, e o seletor e as abas por
+        // versão precisam lidar com isso sem estourar.
+        await using var factory = new TcMineAppFactory();
+        var modpackId = await SemearModpackVazioAsync(factory);
+
+        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}");
+
+        html.ShouldNotBeNull("um modpack sem versões respondeu com erro");
+    }
 
     [Theory]
     [MemberData(nameof(Abas))]
@@ -61,6 +114,23 @@ public sealed class PageRenderTests
         return resposta.IsSuccessStatusCode
             ? await resposta.Content.ReadAsStringAsync(Ct)
             : null;
+    }
+
+    private static async Task<Guid> SemearModpackVazioAsync(TcMineAppFactory factory)
+    {
+        using var escopo = factory.Services.CreateScope();
+        var repo = escopo.ServiceProvider.GetRequiredService<IModpackRepository>();
+
+        var modpack = new Modpack
+        {
+            Slug = $"vazio-{Guid.CreateVersion7():N}"[..18],
+            Name = "Vazio",
+            MinecraftVersion = "1.21.1",
+            Loader = ModLoader.NeoForge
+        };
+
+        await repo.CreateAsync(modpack, Ct);
+        return modpack.Id;
     }
 
     private static async Task<(Guid ModpackId, Guid VersionId)> SemearAsync(
