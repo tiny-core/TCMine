@@ -75,7 +75,8 @@ public sealed class InviteTests
         var jogador = Guid.CreateVersion7();
 
         var result = await new RedeemInvite(
-                new FakeInvites(invite), memberships, new FakeUserScope(null) { UserId = jogador })
+                new FakeInvites(invite), memberships, new FakeWhitelistSync(),
+                new FakeUserScope(null) { UserId = jogador })
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
@@ -91,12 +92,12 @@ public sealed class InviteTests
         var (codigo, invite) = NovoConvite(ServerRole.Member);
         var invites = new FakeInvites(invite);
 
-        var primeira = await new RedeemInvite(invites, new FakeMemberships(), Jogador())
+        var primeira = await new RedeemInvite(invites, new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         // Outra pessoa, mesmo código: um convite que serve duas vezes deixaria
         // de haver como saber quem entrou por ele.
-        var segunda = await new RedeemInvite(invites, new FakeMemberships(), Jogador())
+        var segunda = await new RedeemInvite(invites, new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         primeira.Succeeded.ShouldBeTrue();
@@ -109,7 +110,7 @@ public sealed class InviteTests
         var codigo = SecureToken.GenerateCode();
         var invite = Convite(codigo, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
 
-        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), Jogador())
+        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
@@ -121,7 +122,7 @@ public sealed class InviteTests
         var (codigo, invite) = NovoConvite(ServerRole.Member);
         invite.Revoke(DateTimeOffset.UtcNow);
 
-        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), Jogador())
+        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
@@ -135,10 +136,10 @@ public sealed class InviteTests
         var codigo = SecureToken.GenerateCode();
         var expirado = Convite(codigo, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
 
-        var inexistente = await new RedeemInvite(new FakeInvites(), new FakeMemberships(), Jogador())
+        var inexistente = await new RedeemInvite(new FakeInvites(), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(SecureToken.GenerateCode(), TestContext.Current.CancellationToken);
 
-        var vencido = await new RedeemInvite(new FakeInvites(expirado), new FakeMemberships(), Jogador())
+        var vencido = await new RedeemInvite(new FakeInvites(expirado), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
         vencido.Error.ShouldBe(inexistente.Error);
@@ -152,7 +153,7 @@ public sealed class InviteTests
         var (codigo, invite) = NovoConvite(ServerRole.Member);
         var digitado = codigo.Replace("-", "").ToLowerInvariant();
 
-        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), Jogador())
+        var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(digitado, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
@@ -174,6 +175,7 @@ public sealed class InviteTests
         var result = await new RedeemInvite(
                 new FakeInvites(invite),
                 new FakeMemberships(existente),
+                new FakeWhitelistSync(),
                 new FakeUserScope(null) { UserId = jogador })
             .HandleAsync(codigo, TestContext.Current.CancellationToken);
 
@@ -195,7 +197,7 @@ public sealed class InviteTests
             Role = ServerRole.Owner
         });
 
-        var result = await new RemoveMember(memberships, new FakeNotifier(), new FakeUserScope { UserId = eu })
+        var result = await new RemoveMember(memberships, new FakeNotifier(), new FakeWhitelistSync(), new FakeUserScope { UserId = eu })
             .HandleAsync(ServidorId, eu, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
@@ -213,7 +215,7 @@ public sealed class InviteTests
             Role = ServerRole.Owner
         };
 
-        var remover = await new RemoveMember(new FakeMemberships(membership), new FakeNotifier(), new FakeUserScope())
+        var remover = await new RemoveMember(new FakeMemberships(membership), new FakeNotifier(), new FakeWhitelistSync(), new FakeUserScope())
             .HandleAsync(ServidorId, dono, TestContext.Current.CancellationToken);
 
         var rebaixar = await new ChangeMemberRole(new FakeMemberships(membership), new FakeNotifier(), new FakeUserScope())
@@ -291,7 +293,7 @@ public sealed class InviteTests
             Role = ServerRole.Moderator
         });
 
-        var result = await new RemoveMember(memberships, notifier, new FakeUserScope())
+        var result = await new RemoveMember(memberships, notifier, new FakeWhitelistSync(), new FakeUserScope())
             .HandleAsync(ServidorId, alvo, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
@@ -330,7 +332,8 @@ public sealed class InviteTests
         // alguém cujo papel não mudou.
         var notifier = new FakeNotifier();
 
-        await new RemoveMember(new FakeMemberships(), notifier, new FakeUserScope(ServerRoleDto.Admin))
+        await new RemoveMember(new FakeMemberships(), notifier, new FakeWhitelistSync(),
+                new FakeUserScope(ServerRoleDto.Admin))
             .HandleAsync(ServidorId, Guid.CreateVersion7(), TestContext.Current.CancellationToken);
 
         notifier.PapeisAvisados.ShouldBeEmpty();

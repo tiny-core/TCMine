@@ -15,6 +15,16 @@
             </MudItem>
             <MudItem xs="6">
                 <MudNumericField @bind-Value="_maxPlayers" Label="Máx. jogadores" Min="1"/>
+
+                @* O Minecraft não tem senha de entrada — a lista de servidores do
+                   cliente guarda endereço e nome, mais nada. A whitelist é o que o
+                   jogo oferece, e o TCMine a mantém a partir de quem tem convite. *@
+                <MudSwitch T="bool" @bind-Value="_whitelistEnabled" Color="Color.Primary"
+                           Label="Só quem tem convite entra"/>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Mantém a whitelist do servidor com os membros deste painel. Desligue para
+                    deixá-lo aberto a qualquer conta.
+                </MudText>
             </MudItem>
         </MudGrid>
     </DialogContent>

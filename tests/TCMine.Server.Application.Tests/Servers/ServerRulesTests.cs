@@ -87,8 +87,8 @@ public sealed class ServerRulesTests
         var server = Servidor();
         var servers = new FakeServers(server);
 
-        var result = await new UpdateGameServer(servers, new FakeUserScope(ServerRoleDto.Moderator))
-            .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, CancellationToken.None);
+        var result = await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator))
+            .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, true, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Servidor não encontrado.", result.Error);

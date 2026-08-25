@@ -10,6 +10,7 @@ public sealed partial class StartGameServer(
     IServerRepository servers,
     IJobProgressReporter progress,
     ICurrentUserScope scope,
+    IServerWhitelistSync whitelist,
     ILogger<StartGameServer> logger)
 {
     private readonly ILogger<StartGameServer> _logger = logger;
@@ -55,6 +56,12 @@ public sealed partial class StartGameServer(
             fresh.Status = await orchestrator.GetStatusAsync(serverId, ct);
             fresh.UpdatedAt = DateTimeOffset.UtcNow;
             await servers.UpdateAsync(fresh, ct);
+
+            // Depois de o servidor estar de pé: é quando o RCON responde. Um
+            // servidor recriado começa com a whitelist vazia, e sem isto os
+            // membros levariam "not white-listed" numa lista que o painel jura
+            // que eles integram.
+            await whitelist.HandleAsync(serverId, ct);
 
             progress.Complete(jobId);
             return Result.Success();

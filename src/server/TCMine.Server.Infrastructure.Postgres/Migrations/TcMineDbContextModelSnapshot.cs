@@ -593,6 +593,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("WhitelistEnabled")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset?>("WorldInitializedAt")
                         .HasColumnType("timestamp with time zone");
 

@@ -13,6 +13,9 @@ public partial class ServerFormDialog
     private string _connectAddress = "";
     private bool _isNew;
     private int _maxPlayers = 20;
+
+    /// <summary>Ligada por padrão: um servidor novo nasce fechado.</summary>
+    private bool _whitelistEnabled = true;
     private int _memoryMb = 4096;
     private string _name = "";
     private Guid _selectedVersionId;
@@ -38,6 +41,7 @@ public partial class ServerFormDialog
             _connectAddress = Existing.ConnectAddress;
             _memoryMb = Existing.MemoryMb;
             _maxPlayers = Existing.MaxPlayers;
+            _whitelistEnabled = Existing.WhitelistEnabled;
             return;
         }
 
@@ -59,7 +63,8 @@ public partial class ServerFormDialog
         if (!_isNew)
         {
             return await UpdateUseCase.HandleAsync(
-                Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, CancellationToken.None);
+                Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
+                CancellationToken.None);
         }
 
         var created = await CreateUseCase.HandleAsync(

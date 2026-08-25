@@ -12,6 +12,8 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
 
         builder.HasKey(s => s.Id);
 
+        builder.Property(s => s.WhitelistEnabled).IsRequired();
+
         // HasWorld é computado (deriva de WorldInitializedAt) — não é coluna.
         builder.Ignore(s => s.HasWorld);
 

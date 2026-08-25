@@ -37,6 +37,7 @@ public sealed class RevokeInvite(IInviteRepository invites, ICurrentUserScope sc
 public sealed class RemoveMember(
     IMembershipRepository memberships,
     IServerHubNotifier notifier,
+    IServerWhitelistSync whitelist,
     ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid gameServerId, Guid userId, CancellationToken ct)
@@ -63,6 +64,11 @@ public sealed class RemoveMember(
         // conexões dele do console agora, em vez de na próxima reconexão — que
         // seria quando o jogador quisesse.
         await notifier.NotifyRoleChangedAsync(gameServerId, userId, null, ct);
+
+        // Tirar do painel sem tirar do jogo deixaria a porta aberta para quem
+        // acabou de perder o acesso. A whitelist é reescrita a partir de quem
+        // sobrou, então quem saiu some dela.
+        await whitelist.HandleAsync(gameServerId, ct);
 
         return Result.Success();
     }

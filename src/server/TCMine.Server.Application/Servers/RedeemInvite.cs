@@ -14,6 +14,7 @@ namespace TCMine.Server.Application.Servers;
 public sealed class RedeemInvite(
     IInviteRepository invites,
     IMembershipRepository memberships,
+    IServerWhitelistSync whitelist,
     ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(string code, CancellationToken ct)
@@ -63,6 +64,12 @@ public sealed class RedeemInvite(
         // criação falhasse, o convite ficaria queimado sem ter concedido nada.
         invite.Redeem(userId, agora);
         await invites.UpdateAsync(invite, ct);
+
+        // Sem isto o convite dá acesso ao painel e não ao JOGO: o jogador entra,
+        // vê o servidor na lista, e leva "not white-listed" na conexão. A
+        // sincronização é silenciosa se o servidor estiver parado — a próxima
+        // subida a refaz.
+        await whitelist.HandleAsync(invite.GameServerId, ct);
 
         return Result.Success();
     }

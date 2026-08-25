@@ -36,12 +36,25 @@ public class AuthorizationRules
     /// </summary>
     private static readonly string[] PendentesDeAutorizacao = [];
 
+    /// <summary>
+    ///     Efeitos internos, e não pontos de entrada. Não é dívida: autorizar
+    ///     aqui seria ERRADO.
+    ///     O SyncServerWhitelist é acionado por casos de uso que já decidiram —
+    ///     resgatar convite, remover membro, subir o servidor —, e no primeiro
+    ///     deles o jogador ainda NÃO é membro do servidor. Exigir
+    ///     CanManageMembers faria o próprio resgate do convite falhar.
+    ///     A lista é curta de propósito. Se ela crescer, o cheiro é de que a
+    ///     fronteira entre "caso de uso" e "efeito" se perdeu, e alguém está
+    ///     usando-a para fugir da regra em vez de descrever o desenho.
+    /// </summary>
+    private static readonly string[] EfeitosInternos = ["SyncServerWhitelist"];
+
     [Fact]
     public void Caso_de_uso_de_servidor_novo_nasce_autorizando()
     {
         var semAutorizacao = CasosDeUsoSemAutorizacao();
 
-        var novos = semAutorizacao.Except(PendentesDeAutorizacao).ToArray();
+        var novos = semAutorizacao.Except(PendentesDeAutorizacao).Except(EfeitosInternos).ToArray();
 
         novos.ShouldBeEmpty(
             $"Estes casos de uso não consultam ICurrentUserScope: {string.Join(", ", novos)}. "
@@ -58,11 +71,14 @@ public class AuthorizationRules
         // resolve um caso de uso, esquece de tirá-lo daqui, e a próxima pessoa lê
         // uma dívida que já não existe — ou pior, confia na lista para saber o
         // que falta e deixa de fora o que sobrou.
-        var mortos = PendentesDeAutorizacao.Except(semAutorizacao).ToArray();
+        var mortos = PendentesDeAutorizacao
+            .Concat(EfeitosInternos)
+            .Except(semAutorizacao)
+            .ToArray();
 
         mortos.ShouldBeEmpty(
-            $"Estes nomes estão em PendentesDeAutorizacao mas já autorizam (ou não existem "
-            + $"mais): {string.Join(", ", mortos)}. Remova-os da lista.");
+            $"Estes nomes estão em PendentesDeAutorizacao ou EfeitosInternos mas já autorizam "
+            + $"(ou não existem mais): {string.Join(", ", mortos)}. Remova-os da lista.");
     }
 
     /// <summary>

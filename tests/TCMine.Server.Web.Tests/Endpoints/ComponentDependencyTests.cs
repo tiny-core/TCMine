@@ -39,6 +39,7 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         // preenchimento falhar em silêncio.
         typeof(BackfillServerPacks),
         typeof(ChangeFileSide),
+        typeof(IServerWhitelistSync),
 
         // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
         // Configurações e as três seguintes pelo MetricsCollector, dentro do

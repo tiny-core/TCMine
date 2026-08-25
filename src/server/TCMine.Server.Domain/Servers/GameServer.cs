@@ -27,6 +27,18 @@ public sealed class GameServer : Entity, IOwnedEntity
     public int MaxPlayers { get; set; } = 20;
 
     /// <summary>
+    ///     Só quem tem convite entra.
+    ///     Ligada por padrão porque é o comportamento que quase todo mundo quer
+    ///     de um servidor privado, e porque errar para o lado aberto é o erro
+    ///     caro: um servidor exposto na internet sem lista é achado por scanner
+    ///     em horas.
+    ///     O Minecraft não tem senha de entrada — a lista de servidores do
+    ///     cliente guarda endereço e nome, mais nada. A whitelist é o mecanismo
+    ///     que o jogo realmente oferece, e ela prende à CONTA, não ao launcher.
+    /// </summary>
+    public bool WhitelistEnabled { get; set; } = true;
+
+    /// <summary>
     ///     Senha do RCON. NUNCA sai do servidor: não vai em DTO, não vai em log,
     ///     não aparece na UI. O launcher pede um comando pelo Hub e o servidor é
     ///     quem traduz para RCON — quem tem a senha tem controle total da máquina
