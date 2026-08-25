@@ -43,14 +43,26 @@ public partial class ModpackAssetsPage
     private async Task<GridData<ModpackFile>> LoadPageAsync(
         GridState<ModpackFile> state, CancellationToken ct)
     {
-        var result = await Repository.ListVersionFilesAsync(
-            VersionId,
-            VersionFileScope.Assets,
-            null,
-            new PageRequest(state.Page, state.PageSize),
-            ct);
+        // O grid fica carregando PARA SEMPRE se isto estourar — não há estado de
+        // erro nele. Uma consulta que o provider não traduz vira um spinner
+        // eterno, sem uma linha na tela dizendo o que houve, e foi assim que a
+        // aba de recursos apareceu quebrada.
+        try
+        {
+            var result = await Repository.ListVersionFilesAsync(
+                VersionId,
+                VersionFileScope.Assets,
+                null,
+                new PageRequest(state.Page, state.PageSize),
+                ct);
 
-        return new GridData<ModpackFile> { Items = result.Items, TotalItems = result.TotalCount };
+            return new GridData<ModpackFile> { Items = result.Items, TotalItems = result.TotalCount };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Não foi possível listar os recursos: {ex.Message}", Severity.Error);
+            return new GridData<ModpackFile> { Items = [], TotalItems = 0 };
+        }
     }
 
     private void OnVersionChanged(Guid versionId) =>

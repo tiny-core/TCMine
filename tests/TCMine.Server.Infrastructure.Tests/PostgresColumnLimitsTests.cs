@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Tests;
@@ -123,6 +126,65 @@ public sealed class PostgresColumnLimitsTests
         });
 
         await Should.NotThrowAsync(() => db.SaveChangesAsync(Ct));
+    }
+
+    [Fact]
+    public async Task A_consulta_de_recursos_traduz_no_postgres()
+    {
+        // A aba Recursos ficava carregando para sempre: a consulta usava
+        // Any() sobre uma coleção local, que cada provider expande de um jeito.
+        // Passava no SQLite da suíte e falhava no PostgreSQL de produção — a
+        // mesma família de bug que o limite de coluna, e o motivo de estes
+        // testes existirem.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
+
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
+        var repo = new ModpackRepository(new FabricaFixa(postgres));
+
+        var modpack = new Modpack
+        {
+            Slug = $"pack-{Guid.CreateVersion7():N}"[..20],
+            Name = "Pack",
+            MinecraftVersion = "1.21.1",
+            Loader = ModLoader.NeoForge
+        };
+
+        var versao = new ModpackVersion
+        {
+            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
+        };
+
+        versao.UpsertFile(ArquivoEm(versao.Id, "mods/jei.jar", "jei"));
+        versao.UpsertFile(ArquivoEm(versao.Id, "shaderpacks/complementary.zip", "shader"));
+
+        await repo.CreateAsync(modpack, Ct);
+        await repo.AddVersionAsync(versao, Ct);
+
+        var recursos = await repo.ListVersionFilesAsync(
+            versao.Id, VersionFileScope.Assets, null, new PageRequest(0, 25), Ct);
+
+        var mods = await repo.ListVersionFilesAsync(
+            versao.Id, VersionFileScope.Mods, null, new PageRequest(0, 25), Ct);
+
+        recursos.Items.Select(f => f.Path).ShouldBe(["shaderpacks/complementary.zip"]);
+        mods.Items.Select(f => f.Path).ShouldBe(["mods/jei.jar"]);
+    }
+
+    private static ModpackFile ArquivoEm(Guid versionId, string path, string slug) => new()
+    {
+        ModpackVersionId = versionId,
+        Path = path,
+        Sha256 = new string('a', 64),
+        SizeBytes = 10,
+        Side = FileSide.Both,
+        Origin = ModFileOrigin.CurseForge,
+        ProjectSlug = slug
+    };
+
+    /// <summary>O repositório pede uma fábrica; aqui todas as chamadas vão ao mesmo banco.</summary>
+    private sealed class FabricaFixa(PostgresTestDatabase db) : IDbContextFactory<TcMineDbContext>
+    {
+        public TcMineDbContext CreateDbContext() => db.CreateContext();
     }
 
     [Fact]
