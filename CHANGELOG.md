@@ -7,6 +7,49 @@ o formato dos dados ainda podem mudar entre versões menores.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [0.3.0] — 2026-08-23
+
+### Adicionado
+
+- **"Só quem tem convite entra"**, um interruptor por servidor, ligado por
+  padrão. O TCMine passa a manter a whitelist do servidor de jogo com os membros
+  do painel: convite resgatado entra, membro removido sai, e a lista é reescrita
+  toda vez que o servidor sobe.
+
+  Vale explicar por que é whitelist e não senha: **o Minecraft não tem senha de
+  entrada**. A lista de servidores do cliente guarda endereço e nome, e o
+  protocolo não prevê credencial nenhuma. A whitelist é o mecanismo que o jogo
+  oferece — e o TCMine sabe quem convidar porque o jogador entra com perfil
+  Minecraft verificado.
+
+  Uma ressalva honesta: a whitelist prende à **conta**, não ao launcher. Um
+  convidado que já tenha os mods poderia entrar por fora. Com um pack de
+  centenas de mods isso é teórico, mas não é a mesma promessa.
+
+  Um membro que ainda não entrou no jogo não é adicionado — não há nome de
+  jogador para pôr na lista. Ele entra sozinho no primeiro login.
+
+### Corrigido
+
+- **A aba de Recursos ficava carregando para sempre.** A página passava um
+  parâmetro que o componente não tem; o Razor compila, e a página estoura ao
+  renderizar. Dentro de uma grade isso vira um spinner eterno, porque o
+  componente de grade não tem estado de erro.
+
+  O caso da lista vazia era o que escondia: aquele trecho só é construído quando
+  não há linhas. Agora um teste renderiza todas as abas de versão, cheias e
+  vazias, e reprova se alguma der erro.
+
+### Atualizar
+
+```bash
+docker compose pull && docker compose up -d --force-recreate
+```
+
+Servidores existentes nascem com a whitelist **ligada**. Suba cada um uma vez
+para que a lista seja escrita a partir dos membros — ou desligue o interruptor
+no servidor que você quiser deixar aberto.
+
 ## [0.2.0] — 2026-08-23
 
 Esta versão nasceu de um servidor de jogo que não subia. Perseguir a causa
@@ -332,6 +375,7 @@ Primeira versão publicada do TCMine Server.
 - **E-mail** — SMTP configurável pelo painel, com senha cifrada e botão de
   teste; alternativa com servidor de e-mail próprio como container.
 
+[0.3.0]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.3.0
 [0.2.0]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.2.0
 [0.1.7]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.7
 [0.1.6]: https://github.com/tiny-core/TCMine/releases/tag/server-v0.1.6
