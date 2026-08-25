@@ -1,4 +1,3 @@
-using System.Linq.Expressions;
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -295,15 +294,16 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         // Recursos e mods são complementares: o que não está numa aba está na
         // outra, sem sobra nem repetição. Comparar por prefixo de caminho é o
         // que o banco traduz — a pasta não é coluna.
-        //
-        // A condição é montada como uma cadeia de OR, e não como
-        // prefixos.Any(p => Path.StartsWith(p)): Any sobre coleção LOCAL dentro
-        // de um Where depende de o provider saber expandi-la, e cada um a
-        // expande de um jeito. Uma cadeia de OR com constantes é SQL que
-        // qualquer provider traduz igual — e este é exatamente o tipo de
-        // diferença que já passou no SQLite e quebrou em produção.
-        var filtro = FiltroDePastas(scope);
-        q = q.Where(filtro);
+        var prefixos = InstanceFolders.Assets.Select(InstanceFolders.Prefix).ToArray();
+
+        // CA1310 pede StringComparison, mas isto é árvore de expressão: o
+        // StartsWith não roda em .NET, vira um LIKE no SQL. Quem compara é o
+        // banco, com a collation dele.
+#pragma warning disable CA1310
+        q = scope is VersionFileScope.Assets
+            ? q.Where(f => prefixos.Any(p => f.Path.StartsWith(p)))
+            : q.Where(f => !prefixos.Any(p => f.Path.StartsWith(p)));
+#pragma warning restore CA1310
 
         if (search is { Length: > 0 })
             q = q.Where(f => f.Path.Contains(search));
@@ -389,38 +389,6 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         }
 
         await db.SaveChangesAsync(ct);
-    }
-
-    /// <summary>
-    ///     Predicado de pasta como cadeia de OR sobre as constantes conhecidas.
-    ///     Montado em árvore de expressão para continuar saindo de
-    ///     <see cref="InstanceFolders.Assets" /> — repetir os nomes aqui era
-    ///     convidar a que as duas listas divergissem.
-    /// </summary>
-    private static Expression<Func<ModpackFile, bool>> FiltroDePastas(VersionFileScope scope)
-    {
-        var arquivo = Expression.Parameter(typeof(ModpackFile), "f");
-        var caminho = Expression.Property(arquivo, nameof(ModpackFile.Path));
-        var startsWith = typeof(string).GetMethod(nameof(string.StartsWith), [typeof(string)])!;
-
-        Expression? condicao = null;
-
-        foreach (var pasta in InstanceFolders.Assets)
-        {
-            var prefixo = Expression.Constant(InstanceFolders.Prefix(pasta));
-            var comeca = Expression.Call(caminho, startsWith, prefixo);
-
-            condicao = condicao is null ? comeca : Expression.OrElse(condicao, comeca);
-        }
-
-        // Sem pastas de recurso declaradas, "é recurso" é falso e "é mod" é
-        // verdadeiro — sem isso a consulta ficaria sem cláusula nenhuma.
-        condicao ??= Expression.Constant(false);
-
-        if (scope is not VersionFileScope.Assets)
-            condicao = Expression.Not(condicao);
-
-        return Expression.Lambda<Func<ModpackFile, bool>>(condicao, arquivo);
     }
 
     public async Task SetServerPackAsync(
