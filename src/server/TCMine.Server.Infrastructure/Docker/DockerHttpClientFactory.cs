@@ -22,22 +22,46 @@ public sealed class DockerHttpClientFactory(IOptions<DockerOptions> options)
         {
             ConnectCallback = async (_, ct) =>
             {
-                if (scheme == "npipe")
-                {
-                    // Windows: named pipe. O path vem como "./pipe/docker_engine";
-                    // o NamedPipeClientStream quer só o nome do pipe.
-                    var pipeName = path.Replace("./pipe/", "").Replace("/", "\\");
-                    var pipe = new NamedPipeClientStream(
-                        ".", pipeName, PipeDirection.InOut,
-                        PipeOptions.Asynchronous);
-                    await pipe.ConnectAsync(ct);
-                    return pipe;
-                }
+                // Conectar tem prazo próprio, e ele existe por um comportamento
+                // específico do named pipe: NamedPipeClientStream.ConnectAsync(ct)
+                // espera INDEFINIDAMENTE o pipe aparecer. Com o Docker Desktop
+                // parado, a chamada só voltava quando o timeout padrão do
+                // HttpClient a matava — cem segundos depois. Foi assim que a
+                // página de Definições passou a levar 100s para carregar numa
+                // máquina sem Docker no ar, com o `catch` do caso de uso tratando
+                // a exceção certinho e ninguém percebendo a espera.
+                using var prazo = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                prazo.CancelAfter(_options.ConnectTimeout);
 
-                // Linux: Unix domain socket.
-                var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                await socket.ConnectAsync(new UnixDomainSocketEndPoint(path), ct);
-                return new NetworkStream(socket, true);
+                try
+                {
+                    if (scheme == "npipe")
+                    {
+                        // Windows: named pipe. O path vem como "./pipe/docker_engine";
+                        // o NamedPipeClientStream quer só o nome do pipe.
+                        var pipeName = path.Replace("./pipe/", "").Replace("/", "\\");
+                        var pipe = new NamedPipeClientStream(
+                            ".", pipeName, PipeDirection.InOut,
+                            PipeOptions.Asynchronous);
+                        await pipe.ConnectAsync(prazo.Token);
+                        return pipe;
+                    }
+
+                    // Linux: Unix domain socket.
+                    var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+                    await socket.ConnectAsync(new UnixDomainSocketEndPoint(path), prazo.Token);
+                    return new NetworkStream(socket, true);
+                }
+                catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                {
+                    // HttpRequestException, e não a de cancelamento: para quem
+                    // chama isto é o daemon inacessível, que é o que os casos de
+                    // uso já sabem tratar. Um TaskCanceledException aqui pareceria
+                    // o usuário ter desistido da operação.
+                    throw new HttpRequestException(
+                        $"O Docker não respondeu em {_options.ConnectTimeout.TotalSeconds:0.#}s " +
+                        $"no endpoint {_options.Endpoint}.");
+                }
             }
         };
 
