@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
 
-namespace TCMine.Server.Web.Components.Shared;
+namespace TCMine.UI.Shared.Components;
 
 public partial class PageHeader : ComponentBase
 {
