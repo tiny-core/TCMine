@@ -22,7 +22,7 @@ public static class TokenCssBuilder
     {
         var claro = ReadTokens(typeof(TcColors.Semantic.Light));
         var escuro = ReadTokens(typeof(TcColors.Semantic.Dark));
-        var marca = ReadTokens(typeof(TcColors.Semantic), false);
+        var marca = ReadTokens(typeof(TcColors.Semantic));
 
         var css = new StringBuilder();
 
@@ -51,7 +51,13 @@ public static class TokenCssBuilder
             css.Append("    ").Append(Prefix).Append('-').Append(nome).Append(": ").Append(valor).AppendLine(";");
     }
 
-    private static Dictionary<string, string> ReadTokens(Type tipo, bool incluirAninhadas = true)
+    /// <summary>
+    ///     Lê as constantes declaradas DIRETAMENTE no tipo, sem descer às classes
+    ///     aninhadas. É o que faz <c>typeof(TcColors.Semantic)</c> devolver só as
+    ///     cores de marca, sem arrastar Light e Dark junto — que aqui viriam com
+    ///     o mesmo nome de variável e um sobrescreveria o outro.
+    /// </summary>
+    private static Dictionary<string, string> ReadTokens(Type tipo)
     {
         var tokens = new Dictionary<string, string>(StringComparer.Ordinal);
 
