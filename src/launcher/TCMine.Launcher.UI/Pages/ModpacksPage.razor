@@ -81,9 +81,65 @@ else if (_catalog is not null)
                                 @entrada.Modpack.Summary
                             </MudText>
                         }
+
+                        @* O botão vira a barra: durante a instalação o jogador
+                           quer ver o andamento no lugar onde clicou, e não numa
+                           faixa em outro canto da tela. *@
+                        @if (_installing == entrada.Modpack.Id)
+                        {
+                            <MudProgressLinear Color="Color.Primary"
+                                               Class="mt-4"
+                                               Indeterminate="@(_progress?.Fraction is null)"
+                                               Value="@((_progress?.Fraction ?? 0) * 100)"/>
+
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                                @PhaseLabel(_progress)
+                            </MudText>
+                        }
+                        else if (_installed.Contains(entrada.Modpack.Id))
+                        {
+                            <MudButton Variant="Variant.Outlined"
+                                       Color="Color.Success"
+                                       StartIcon="@Icons.Material.Filled.CheckCircle"
+                                       FullWidth="true"
+                                       Class="mt-4"
+                                       Disabled="true">
+                                Instalado
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Primary"
+                                       StartIcon="@Icons.Material.Filled.Download"
+                                       FullWidth="true"
+                                       Class="mt-4"
+                                       Disabled="@(_installing is not null)"
+                                       OnClick="@(() => InstallAsync(entrada.Modpack))">
+                                Instalar
+                            </MudButton>
+                        }
                     </MudCardContent>
                 </MudCard>
             </MudItem>
         }
     </MudGrid>
+}
+
+@code
+{
+    /// <summary>
+    ///     O que está acontecendo agora, em palavras. Uma porcentagem sozinha não
+    ///     distingue "baixando 400 MB" de "ligando 300 arquivos", e as duas fases
+    ///     têm velocidades muito diferentes — sem o rótulo, a barra parece travar.
+    /// </summary>
+    private static string PhaseLabel(InstallProgress? progresso) => progresso?.Phase switch
+    {
+        InstallPhase.Planning => "A comparar com o que já está no disco…",
+        InstallPhase.Downloading => $"A baixar {HumanSize.Bytes(progresso.BytesDone)} de {HumanSize.Bytes(progresso.BytesTotal)}",
+        InstallPhase.Materializing => $"A instalar {progresso.FilesDone} de {progresso.FilesTotal} arquivos",
+        InstallPhase.Cleaning => "A remover o que sobrou da versão anterior…",
+        InstallPhase.Done => "Pronto.",
+        _ => "A preparar…"
+    };
 }

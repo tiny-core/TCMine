@@ -7,10 +7,11 @@ using Microsoft.Extensions.Logging;
 using TCMine.Launcher.App.Chrome;
 #if DEBUG
 using TCMine.Launcher.App.Dev;
-using TCMine.Launcher.Core.Abstractions;
 #endif
 using TCMine.Launcher.Core;
+using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Infrastructure;
+using TCMine.Launcher.Infrastructure.Windows;
 using TCMine.Launcher.UI;
 using TCMine.Launcher.UI.Abstractions;
 
@@ -55,6 +56,10 @@ public partial class App : Application
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TCMine");
 
         builder.Services.AddLauncherInfrastructure(raiz);
+
+        // Substitui o linker que não liga: aqui estamos no Windows, e é o
+        // hardlink que faz dez modpacks com o mesmo mod ocuparem um arquivo só.
+        builder.Services.AddSingleton<IFileLinker, WindowsFileLinker>();
 #if DEBUG
         // Substitui o autenticador pendente por um que aceita um token real vindo
         // do ambiente. Registrado DEPOIS da infraestrutura de propósito: o último
@@ -70,6 +75,8 @@ public partial class App : Application
         // A moldura precisa da janela, e a janela é resolvida pelo contêiner.
         // Não há ciclo: quem pede IWindowChrome é a barra de título, que só
         // renderiza depois de a janela existir.
+        builder.Services.AddSingleton<IDesktopShell, WpfDesktopShell>();
+
         builder.Services.AddSingleton<IWindowChrome>(sp =>
             new WpfWindowChrome(sp.GetRequiredService<MainWindow>()));
 

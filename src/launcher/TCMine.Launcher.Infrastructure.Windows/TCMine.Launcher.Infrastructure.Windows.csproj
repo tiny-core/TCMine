@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+      O que só existe no Windows.
+
+      Este projeto é a válvula de escape prometida pelos comentários do
+      Launcher.Core e do Launcher.Infrastructure: P/Invoke, DPAPI e, mais
+      adiante, o MSAL com broker vivem aqui e em nenhum outro lugar. É o que faz
+      um port para Linux ser um projeto novo do lado deste, em vez de uma
+      reescrita.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+
+    <!-- Permite compilar (não executar) no agente Linux do CI. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- [LibraryImport] gera marshalling unsafe. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+  </ItemGroup>
+
+</Project>

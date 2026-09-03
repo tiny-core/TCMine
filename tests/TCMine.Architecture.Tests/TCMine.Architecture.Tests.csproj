@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\server\TCMine.Server.Application\TCMine.Server.Application.csproj"/>
     <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
     <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.UI\TCMine.Launcher.UI.csproj"/>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
   </ItemGroup>
 
 

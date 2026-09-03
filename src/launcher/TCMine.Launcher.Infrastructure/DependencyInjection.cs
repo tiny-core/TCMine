@@ -5,7 +5,9 @@ using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Infrastructure.Configuration;
 using TCMine.Launcher.Infrastructure.Connectivity;
+using TCMine.Launcher.Infrastructure.Content;
 using TCMine.Launcher.Infrastructure.Hub;
+using TCMine.Launcher.Infrastructure.Instances;
 using TCMine.Launcher.Infrastructure.Identity;
 
 namespace TCMine.Launcher.Infrastructure;
@@ -50,6 +52,23 @@ public static class DependencyInjection
         // Substituído pela implementação real do MSAL na fatia da autenticação.
         // Registrado desde já para a tela de login existir sem quebrar o DI.
         services.AddSingleton<IMinecraftAuthenticator, PendingMinecraftAuthenticator>();
+
+        services.AddHttpClient<IBlobDownloader, HttpBlobDownloader>(client =>
+            {
+                // Sem timeout global: um mod de duzentos megabytes numa ligação
+                // ruim passa de qualquer prazo razoável, e o cancelamento correto
+                // é o do jogador, pelo CancellationToken.
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .ConfigurePrimaryHttpMessageHandler(sp => new HttpClientHandler
+            {
+                CookieContainer = sp.GetRequiredService<CookieContainer>(), UseCookies = true
+            });
+
+        // Sem hardlink por padrão: o host de Windows substitui. Ver NoFileLinker.
+        services.AddSingleton<IFileLinker, NoFileLinker>();
+        services.AddSingleton<IContentStore, FileSystemContentStore>();
+        services.AddSingleton<IInstanceStore, FileSystemInstanceStore>();
 
         services.AddSingleton<LauncherHubClientFactory>();
 

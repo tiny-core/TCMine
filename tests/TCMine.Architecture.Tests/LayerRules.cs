@@ -30,6 +30,9 @@ public class LayerRules
     private static readonly Assembly LauncherUi =
         typeof(Launcher.UI.AssemblyMarker).Assembly;
 
+    private static readonly Assembly LauncherInfrastructure =
+        typeof(Launcher.Infrastructure.LauncherPaths).Assembly;
+
     /// <summary>
     ///     Mensagem de falha com os tipos culpados. O padrão do NetArchTest só
     ///     diz que falhou, e aí você fica caçando qual classe foi.
@@ -164,6 +167,29 @@ public class LayerRules
         ShouldPass(Types.InAssembly(LauncherUi)
             .ShouldNot()
             .HaveDependencyOn("TCMine.Launcher.Infrastructure")
+            .GetResult());
+    }
+
+    [Fact]
+    public void Launcher_Infrastructure_e_portavel()
+    {
+        // A infraestrutura do launcher — HTTP, SignalR, content store, manifesto
+        // de instância — é lógica que roda igual em qualquer sistema. O que é do
+        // Windows vive em TCMine.Launcher.Infrastructure.Windows e entra por
+        // porta: hoje o hardlink, amanhã DPAPI e o MSAL com broker.
+        //
+        // Esta regra é o que impede o atalho: uma chamada de P/Invoke "só desta
+        // vez" aqui obrigaria a reescrever o projeto inteiro no dia do port, em
+        // vez de escrever um Infrastructure.Linux ao lado.
+        ShouldPass(Types.InAssembly(LauncherInfrastructure)
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "Microsoft.Win32",
+                "System.Windows",
+                "TCMine.Launcher.Infrastructure.Windows",
+                "Microsoft.Identity.Client",
+                "CmlLib",
+                "TCMine.Server")
             .GetResult());
     }
 }

@@ -2,9 +2,62 @@
 
 <PageTitle>Instâncias</PageTitle>
 
-<PageHeader Title="Instâncias"
-            Subtitle="As instalações que ocupam disco nesta máquina."/>
+<PageHeader Title="Instâncias" Subtitle="As instalações que ocupam disco nesta máquina.">
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               Disabled="_loading"
+               OnClick="LoadAsync">
+        Atualizar
+    </MudButton>
+</PageHeader>
 
-<EmptyState Icon="@Icons.Material.Filled.Layers"
-            Title="Nenhuma instância instalada"
-            Description="Cada versão de modpack instalada vira uma pasta própria, com os mods ligados ao content store compartilhado."/>
+@if (_loading)
+{
+    <LoadingCards Count="3"/>
+}
+else if (_instances.Count is 0)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Layers"
+                Title="Nenhuma instância instalada"
+                Description="Cada versão instalada vira uma pasta própria, com os mods ligados ao content store compartilhado — o mesmo mod em dois modpacks ocupa disco uma vez só.">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/modpacks">
+            Ver modpacks
+        </MudButton>
+    </EmptyState>
+}
+else
+{
+    <MudStack Spacing="3">
+        @foreach (var instancia in _instances)
+        {
+            <MudPaper Class="pa-4 tc-fade-in" Elevation="0" Outlined="true">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+                    <MudAvatar Color="Color.Primary" Rounded="true">
+                        @instancia.Manifest.ModpackName[..1].ToUpperInvariant()
+                    </MudAvatar>
+
+                    <MudStack Spacing="0" Style="min-width:0;flex:1;">
+                        <MudText Typo="Typo.subtitle1">@instancia.Manifest.ModpackName</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            v@(instancia.Manifest.Version)
+                            · @HumanSize.Bytes(instancia.SizeBytes)
+                            · @instancia.Manifest.ManagedFiles.Count arquivos
+                        </MudText>
+                    </MudStack>
+
+                    <MudTooltip Text="Abrir a pasta da instância">
+                        <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
+                                       OnClick="@(() => OpenFolder(instancia))"/>
+                    </MudTooltip>
+
+                    <MudTooltip Text="Remover a instância e o mundo dela">
+                        <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                       Color="Color.Error"
+                                       Disabled="_busy"
+                                       OnClick="@(() => RemoveAsync(instancia))"/>
+                    </MudTooltip>
+                </MudStack>
+            </MudPaper>
+        }
+    </MudStack>
+}

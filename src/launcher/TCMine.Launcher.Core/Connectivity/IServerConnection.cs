@@ -27,4 +27,13 @@ public interface IServerConnection : IAsyncDisposable
     Task<IReadOnlyList<ModpackDto>> GetModpacksAsync(CancellationToken ct);
 
     Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct);
+
+    /// <summary>
+    ///     A versão que se deve instalar hoje. Nulo quando o pack ainda não
+    ///     publicou nada — resposta legítima, não erro.
+    /// </summary>
+    Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct);
+
+    /// <summary>O manifesto completo de uma versão. É sobre ele que o diff roda.</summary>
+    Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct);
 }

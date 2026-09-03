@@ -54,6 +54,27 @@ public sealed class MainHub(
         return version is null ? throw new HubException("Versão não encontrada.") : version.ToDto();
     }
 
+    /// <summary>
+    ///     A versão que o jogador deve instalar: a mais nova pronta e de canal
+    ///     release.
+    ///     Pré-lançamentos ficam de fora porque são para teste do administrador,
+    ///     e arquivadas também — elas continuam servindo quem já as fixou, mas
+    ///     não são oferecidas a uma instalação nova.
+    ///     A ordem vem do Id, e não da data: são GUID v7, cronológicos, e o SQLite
+    ///     recusa DateTimeOffset em ORDER BY.
+    /// </summary>
+    public async Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId)
+    {
+        var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+
+        var ultima = versoes
+            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
+            .OrderByDescending(v => v.Id)
+            .FirstOrDefault();
+
+        return ultima?.ToDto();
+    }
+
     public async Task<IReadOnlyList<GameServerDto>> GetServersAsync()
     {
         // Filtrar aqui e não no cliente: a lista vazia é a resposta correta para

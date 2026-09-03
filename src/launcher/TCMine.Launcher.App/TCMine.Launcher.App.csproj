@@ -44,6 +44,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
+    <ProjectReference Include="..\TCMine.Launcher.Infrastructure.Windows\TCMine.Launcher.Infrastructure.Windows.csproj"/>
     <ProjectReference Include="..\TCMine.Launcher.UI\TCMine.Launcher.UI.csproj"/>
   </ItemGroup>
 

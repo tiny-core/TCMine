@@ -306,6 +306,26 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   launcher como ele é: ele monta o próprio `HttpClient` e o próprio
   `HubConnection`, e não há onde injetar o handler em memória sem furar o desenho
   para o teste ver. Foi esse teste que pegou o `[.. ]` no hub.
+- **Instalação**: `InstallModpackVersion` é instalar E atualizar — não existe
+  caminho separado para "primeira vez", porque um diff contra uma instância vazia
+  já É a instalação completa. O **guard crítico** vive nele: o `localFiles`
+  entregue ao `ManifestDiffer` vem do `InstanceManifest` que gravamos, **nunca**
+  de uma varredura da pasta. Uma varredura acharia `saves/`, `screenshots/` e
+  `options.txt`, que não estão no manifesto do pack e entrariam em `ToDelete` —
+  o primeiro update apagaria os mundos. Há teste de unidade e teste de contra em
+  `LauncherInstallContractTests` para isso.
+- **Manifesto local ilegível é tratado como AUSENTE.** A consequência é
+  deliberada: o diff vê uma instância vazia, baixa tudo de novo e não apaga nada,
+  porque sem conjunto gerenciado não há o que apagar. Perder disco é aceitável;
+  perder o mundo do jogador não.
+- **Hardlink só em `mods/`** (`InstanceLayout.CanHardLink`). Ligar um config
+  corromperia o blob COMPARTILHADO na primeira vez que o jogo o reescrevesse, e a
+  corrupção viajaria para toda instância que usasse o mesmo arquivo. O hardlink em
+  si é P/Invoke e vive em `TCMine.Launcher.Infrastructure.Windows`, atrás de
+  `IFileLinker`; sem ele o store copia, que é só mais disco.
+- **`TCMine.Launcher.Infrastructure.Windows`** é o único lugar de P/Invoke, DPAPI
+  e, mais adiante, MSAL com broker. `Launcher_Infrastructure_e_portavel` trava a
+  fronteira.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 

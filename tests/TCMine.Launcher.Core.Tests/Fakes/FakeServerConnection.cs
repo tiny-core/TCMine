@@ -48,6 +48,21 @@ public class FakeServerConnection : IServerConnection
     public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync(CancellationToken ct) =>
         Throws is null ? Task.FromResult(Modpacks) : Task.FromException<IReadOnlyList<ModpackDto>>(Throws);
 
+    /// <summary>Manifestos por id de versão, para o instalador.</summary>
+    public Dictionary<Guid, ModpackVersionDto> Versions { get; } = [];
+
+    /// <summary>Versão mais recente por modpack.</summary>
+    public Dictionary<Guid, ModpackVersionDto> Latest { get; } = [];
+
+    public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct) =>
+        Task.FromResult(Latest.GetValueOrDefault(modpackId));
+
+    public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct) =>
+        Throws is not null ? Task.FromException<ModpackVersionDto>(Throws)
+        : Versions.TryGetValue(versionId, out var v)
+            ? Task.FromResult(v)
+            : Task.FromException<ModpackVersionDto>(new InvalidOperationException("Versão não encontrada."));
+
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct) =>
         Throws is null ? Task.FromResult(Servers) : Task.FromException<IReadOnlyList<GameServerDto>>(Throws);
 

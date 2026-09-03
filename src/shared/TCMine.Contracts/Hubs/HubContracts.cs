@@ -20,6 +20,16 @@ public interface IServerHub
 
     Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId);
 
+    /// <summary>
+    ///     A versão que um jogador deve instalar hoje: a mais recente pronta e de
+    ///     canal release.
+    ///     Existe porque o catálogo entrega modpacks, e não versões. Sem isto, um
+    ///     pack sem servidor apontando para ele seria impossível de instalar — o
+    ///     launcher não teria de onde tirar um id de versão.
+    ///     Nulo é resposta legítima: um pack recém-criado ainda não publicou nada.
+    /// </summary>
+    Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId);
+
     Task<IReadOnlyList<GameServerDto>> GetServersAsync();
 
     /// <summary>Assina eventos de um servidor. Valida permissão no server.</summary>

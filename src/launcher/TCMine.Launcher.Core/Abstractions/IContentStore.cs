@@ -19,8 +19,22 @@ public interface IContentStore
     /// </summary>
     Task AddAsync(string sha256, Stream content, CancellationToken ct);
 
-    /// <summary>Coloca o arquivo na pasta da instância.</summary>
-    Task MaterializeAsync(string sha256, string destinationPath, CancellationToken ct);
+    /// <summary>
+    ///     Todos os hashes já presentes. É o que o diff usa para decidir o que
+    ///     precisa vir da rede: um mod compartilhado com outro pack instalado não
+    ///     é baixado de novo.
+    /// </summary>
+    Task<IReadOnlySet<string>> ListHashesAsync(CancellationToken ct);
+
+    /// <summary>
+    ///     Coloca o arquivo na pasta da instância.
+    ///     <paramref name="allowHardLink" /> decide entre ligar e copiar, e a
+    ///     decisão é de quem chama porque depende do CAMINHO, não do conteúdo:
+    ///     ver <see cref="Sync.InstanceLayout.CanHardLink" />. Ligar um arquivo
+    ///     que o jogo reescreve corromperia o blob compartilhado por todas as
+    ///     instâncias.
+    /// </summary>
+    Task MaterializeAsync(string sha256, string destinationPath, bool allowHardLink, CancellationToken ct);
 
     Task<long> GetSizeOnDiskAsync(CancellationToken ct);
 }
