@@ -1,8 +1,12 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using System.Net;
+using Microsoft.Extensions.DependencyInjection;
+using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Infrastructure.Configuration;
 using TCMine.Launcher.Infrastructure.Connectivity;
 using TCMine.Launcher.Infrastructure.Hub;
+using TCMine.Launcher.Infrastructure.Identity;
 
 namespace TCMine.Launcher.Infrastructure;
 
@@ -26,6 +30,26 @@ public static class DependencyInjection
             // servidor pode estar reiniciando após um update — vale
             // tentar de novo antes de dizer que está fora do ar.
             .AddStandardResilienceHandler();
+
+        // UM pote de cookies para toda a aplicação. É ele que carrega a sessão
+        // emitida no login para as chamadas seguintes — e, na próxima fatia,
+        // para o hub e para os downloads. Um container por HttpClient faria o
+        // jogador entrar e, no pedido seguinte, ser tratado como anônimo.
+        services.AddSingleton<CookieContainer>();
+
+        services.AddHttpClient<ILauncherSessionApi, LauncherSessionApi>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .ConfigurePrimaryHttpMessageHandler(sp => new HttpClientHandler
+            {
+                CookieContainer = sp.GetRequiredService<CookieContainer>(), UseCookies = true
+            })
+            .AddStandardResilienceHandler();
+
+        // Substituído pela implementação real do MSAL na fatia da autenticação.
+        // Registrado desde já para a tela de login existir sem quebrar o DI.
+        services.AddSingleton<IMinecraftAuthenticator, PendingMinecraftAuthenticator>();
 
         services.AddSingleton<LauncherHubClientFactory>();
 

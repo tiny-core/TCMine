@@ -1,0 +1,7 @@
+/* Mesmo centralizador da tela de pareamento: a altura disponível é a da área de
+   conteúdo da moldura, não a da janela. */
+.tc-login {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+}

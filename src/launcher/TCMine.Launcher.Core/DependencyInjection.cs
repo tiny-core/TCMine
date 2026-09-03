@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Identity;
 
 namespace TCMine.Launcher.Core;
 
@@ -14,6 +15,7 @@ public static class DependencyInjection
     public static IServiceCollection AddLauncherCore(this IServiceCollection services)
     {
         services.AddScoped<ServerPairing>();
+        services.AddScoped<SignIn>();
 
         return services;
     }

@@ -1,4 +1,6 @@
+using TCMine.Contracts.Identity;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Identity;
 
 namespace TCMine.Launcher.UI.State;
 
@@ -18,11 +20,17 @@ public sealed class LauncherShellState
 
     public PairingState? Pairing { get; private set; }
 
+    public SignInState? Account { get; private set; }
+
     /// <summary>
-    ///     Ainda não sabemos nada — nem se há pareamento. É diferente de "não
-    ///     pareado": a moldura espera aqui em vez de piscar a tela errada.
+    ///     Ainda não sabemos nada — nem se há pareamento, nem se há sessão. É
+    ///     diferente de "não pareado" e de "deslogado": a moldura espera aqui em
+    ///     vez de piscar a tela errada antes de redirecionar.
+    ///     Explícito, e não derivado de Pairing ser nulo, porque o arranque tem
+    ///     dois passos: assim que o primeiro resolve, o derivado diria que
+    ///     acabou.
     /// </summary>
-    public bool IsStartingUp => Pairing is null;
+    public bool IsStartingUp { get; private set; } = true;
 
     /// <summary>Existe servidor conhecido, mesmo que ele não esteja atendendo.</summary>
     public bool IsPaired => Pairing?.IsPaired is true;
@@ -31,6 +39,20 @@ public sealed class LauncherShellState
         _checking ? ConnectionState.Connecting
         : Pairing?.IsOnline is true ? ConnectionState.Connected
         : ConnectionState.Disconnected;
+
+    /// <summary>O servidor respondeu. Sem isto não há como emitir sessão.</summary>
+    public bool IsOnline => Pairing?.IsOnline is true;
+
+    public bool IsSignedIn => Account?.IsSignedIn is true;
+
+    public LauncherSessionDto? Player => Account?.Session;
+
+    /// <summary>
+    ///     Uma letra para o círculo do avatar, enquanto não buscamos a cabeça do
+    ///     jogador pelo UUID.
+    /// </summary>
+    public string AvatarInitial =>
+        Player?.DisplayName is { Length: > 0 } nome ? nome[..1].ToUpperInvariant() : "?";
 
     /// <summary>Nome do servidor, quando pareado. Vai na barra de título.</summary>
     public string? ServerName => Pairing?.Server?.ServerName ?? Pairing?.Config?.DisplayName;
@@ -60,6 +82,19 @@ public sealed class LauncherShellState
     {
         _checking = false;
         Pairing = state;
+        Changed?.Invoke();
+    }
+
+    public void Apply(SignInState state)
+    {
+        Account = state;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Chamado quando o arranque termina, com ou sem sucesso.</summary>
+    public void FinishStartup()
+    {
+        IsStartingUp = false;
         Changed?.Invoke();
     }
 }

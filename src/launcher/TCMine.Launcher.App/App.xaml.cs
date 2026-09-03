@@ -5,6 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TCMine.Launcher.App.Chrome;
+#if DEBUG
+using TCMine.Launcher.App.Dev;
+using TCMine.Launcher.Core.Abstractions;
+#endif
 using TCMine.Launcher.Core;
 using TCMine.Launcher.Infrastructure;
 using TCMine.Launcher.UI;
@@ -51,6 +55,12 @@ public partial class App : Application
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TCMine");
 
         builder.Services.AddLauncherInfrastructure(raiz);
+#if DEBUG
+        // Substitui o autenticador pendente por um que aceita um token real vindo
+        // do ambiente. Registrado DEPOIS da infraestrutura de propósito: o último
+        // registro vence. Em release este bloco não é compilado.
+        builder.Services.AddSingleton<IMinecraftAuthenticator, EnvironmentMinecraftAuthenticator>();
+#endif
         builder.Services.AddLauncherCore();
         builder.Services.AddLauncherUi();
         builder.Services.AddSingleton(BuildInfo());

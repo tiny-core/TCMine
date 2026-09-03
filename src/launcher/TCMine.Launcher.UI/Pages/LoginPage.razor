@@ -1,0 +1,57 @@
+@page "/login"
+
+<PageTitle>Entrar</PageTitle>
+
+@* O login abre no navegador do sistema, e não numa janela embutida: um WebView
+   pedindo senha da Microsoft é exatamente a forma de um phishing, e é por isso
+   que a própria Microsoft desencoraja o padrão. O navegador do jogador tem a
+   barra de endereço, os certificados e as senhas guardadas dele. *@
+
+<div class="tc-login">
+    <MudPaper Class="pa-8 tc-fade-in" Elevation="0" Outlined="true" Style="max-width:460px;width:100%;">
+        <MudStack Spacing="4" AlignItems="AlignItems.Stretch">
+            <MudStack AlignItems="AlignItems.Center" Spacing="1">
+                <MudIcon Icon="@Icons.Material.Filled.SportsEsports" Color="Color.Primary" Size="Size.Large"/>
+                <MudText Typo="Typo.h5">Entrar</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary" Align="Align.Center">
+                    @if (Shell.ServerName is { Length: > 0 } servidor)
+                    {
+                        @($"Use a sua conta Minecraft para entrar em {servidor}.")
+                    }
+                    else
+                    {
+                        @("Use a sua conta Minecraft para entrar.")
+                    }
+                </MudText>
+            </MudStack>
+
+            <MudDivider/>
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       FullWidth="true"
+                       StartIcon="@Icons.Custom.Brands.Microsoft"
+                       Disabled="_busy || !Shell.IsOnline"
+                       OnClick="SignInAsync">
+                @(_busy ? "A aguardar autorização…" : "Entrar com a Microsoft")
+            </MudButton>
+
+            @if (_busy)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
+            }
+
+            @if (Message is { } mensagem)
+            {
+                <MudAlert Severity="@Severity" Variant="Variant.Outlined" Dense="true">
+                    @mensagem
+                </MudAlert>
+            }
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary" Align="Align.Center">
+                O login abre no seu navegador. O TCMine nunca vê a sua senha.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</div>

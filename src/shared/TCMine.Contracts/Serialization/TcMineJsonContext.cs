@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using TCMine.Contracts.Handshake;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
@@ -18,6 +19,8 @@ namespace TCMine.Contracts.Serialization;
     UseStringEnumConverter = true)]
 [JsonSerializable(typeof(LauncherConfig))]
 [JsonSerializable(typeof(HandshakeResponse))]
+[JsonSerializable(typeof(MinecraftLoginRequest))]
+[JsonSerializable(typeof(LauncherSessionDto))]
 [JsonSerializable(typeof(ModpackDto))]
 [JsonSerializable(typeof(IReadOnlyList<ModpackDto>))]
 [JsonSerializable(typeof(ModpackVersionDto))]

@@ -7,32 +7,74 @@
 
 @* Só o que já é verdade nesta build. Uma tela de definições cheia de campos
    desligados ensina o jogador a desconfiar do que ela mostra. *@
-<MudPaper Class="pa-6" Elevation="0" Outlined="true" Style="max-width:560px;">
-    <MudText Typo="Typo.subtitle1" GutterBottom="true">Sobre</MudText>
+<MudStack Spacing="4" Style="max-width:560px;">
 
-    <MudSimpleTable Dense="true" Hover="false" Elevation="0" Bordered="false" Striped="false">
-        <tbody>
-        <tr>
-            <td>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">Aplicação</MudText>
-            </td>
-            <td>
-                <MudText Typo="Typo.body2">@AppInfo.Title</MudText>
-            </td>
-        </tr>
-        <tr>
-            <td>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">Versão</MudText>
-            </td>
-            <td>
-                <MudText Typo="Typo.body2">@AppInfo.Version</MudText>
-            </td>
-        </tr>
-        </tbody>
-    </MudSimpleTable>
-</MudPaper>
+    @if (Shell.Player is { } jogador)
+    {
+        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Conta</MudText>
 
-@code
-{
-    [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
-}
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+                <MudAvatar Color="Color.Primary" Size="Size.Large">@Shell.AvatarInitial</MudAvatar>
+
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.body1">@jogador.DisplayName</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Conta Minecraft · @Shell.ServerName
+                    </MudText>
+                </MudStack>
+
+                <MudSpacer/>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.Logout"
+                           Disabled="_signingOut"
+                           OnClick="SignOutAsync">
+                    Sair
+                </MudButton>
+            </MudStack>
+
+            @if (_signingOut)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-4"/>
+            }
+        </MudPaper>
+    }
+
+    <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Sobre</MudText>
+
+        <MudSimpleTable Dense="true" Hover="false" Elevation="0" Bordered="false" Striped="false">
+            <tbody>
+            <tr>
+                <td>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Aplicação</MudText>
+                </td>
+                <td>
+                    <MudText Typo="Typo.body2">@AppInfo.Title</MudText>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Versão</MudText>
+                </td>
+                <td>
+                    <MudText Typo="Typo.body2">@AppInfo.Version</MudText>
+                </td>
+            </tr>
+            @if (Shell.Pairing?.Config is { } config)
+            {
+                <tr>
+                    <td>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Servidor</MudText>
+                    </td>
+                    <td>
+                        <MudText Typo="Typo.body2">@config.ServerUrl</MudText>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+</MudStack>

@@ -277,6 +277,24 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   rede **não** desfaz o pareamento, senão o jogador redigita o endereço a cada
   oscilação de sinal. O `ShellLayout` faz o arranque uma vez por sessão e manda
   para `/pair` só quando não há configuração nenhuma.
+- **Login**: `SignIn` (no Core) junta dois passos que só valem juntos — provar a
+  conta à Microsoft (`IMinecraftAuthenticator`, atrás de porta porque o MSAL com
+  broker é Windows-only) e trocar essa prova por sessão no servidor
+  (`ILauncherSessionApi` → `POST /api/v1/auth/minecraft`). O token do Minecraft
+  **não** é guardado: vale uma vez, e o que vale daí em diante é o cookie que o
+  servidor devolve — o mesmo do painel. Esse cookie vive num `CookieContainer`
+  **singleton** partilhado pelos clientes HTTP; um pote por cliente faria o
+  jogador entrar e ser anônimo no pedido seguinte.
+- **O resultado do login mora no `LauncherShellState`, não na página.** A
+  tentativa que mais importa é a do arranque (credencial guardada), e ela
+  acontece no `ShellLayout`. Guardando o resultado num campo da tela de login,
+  uma sessão expirada levava a um login em branco: o jogador tinha de clicar para
+  descobrir o que já se sabia.
+- **Enquanto o MSAL não existe**, `PendingMinecraftAuthenticator` responde que
+  esta build não sabe entrar (não é bypass: não fabrica token nenhum). Em Debug,
+  `EnvironmentMinecraftAuthenticator` usa um token REAL de
+  `TCMINE_DEV_MINECRAFT_TOKEN` — o servidor continua verificando com a Mojang, e
+  o arquivo nem é compilado em release.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 

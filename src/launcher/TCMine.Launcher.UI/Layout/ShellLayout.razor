@@ -24,10 +24,10 @@
     <TitleBar/>
 
     <div class="tc-shell-body">
-        @* O trilho só aparece com servidor conhecido: sem pareamento não há
-           catálogo nem instâncias, e oferecer a navegação seria oferecer telas
-           que não têm o que mostrar. *@
-        @if (Shell.IsPaired)
+        @* O trilho só aparece com sessão: sem servidor não há catálogo, e sem
+           jogador não há instância nem convite. Oferecer a navegação antes seria
+           oferecer telas que não têm o que mostrar. *@
+        @if (Shell.IsSignedIn)
         {
             <NavRail/>
         }
