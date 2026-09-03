@@ -17,7 +17,7 @@
 
         <MudSpacer/>
 
-        <MudText Typo="Typo.caption" Color="Color.Secondary">@_lines.Count linhas</MudText>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@_lines.Count linhas</MudText>
 
         <MudTooltip Text="Rolar sozinho quando chegam linhas novas">
             <MudSwitch T="bool" @bind-Value="_autoScroll" Color="Color.Primary" Size="Size.Small"
@@ -31,7 +31,7 @@
 
     @if (Server.Status is not GameServerStatus.Running)
     {
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             O console aparece quando o servidor está no ar.
         </MudText>
     }

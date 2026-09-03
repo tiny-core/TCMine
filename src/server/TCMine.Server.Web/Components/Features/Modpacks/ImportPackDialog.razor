@@ -16,7 +16,7 @@
         }
         else
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                 O pack entra como um modpack novo aqui, com a primeira versão em rascunho:
                 mods, configs e scripts. A versão do @_source?.Origin fica registrada à parte,
                 para avisarmos quando o autor publicar uma atualização.
@@ -58,13 +58,13 @@
             <div style="max-height:45vh; overflow-y:auto;" class="mt-2">
                 @if (!_isSearching && _searched && _results.Count == 0)
                 {
-                    <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                    <MudText Align="Align.Center" Class="mud-text-secondary my-6">
                         Nenhum pack encontrado para "@_query".
                     </MudText>
                 }
                 else if (!_searched)
                 {
-                    <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                    <MudText Align="Align.Center" Class="mud-text-secondary my-6">
                         Busque um modpack pelo nome.
                     </MudText>
                 }
@@ -94,7 +94,7 @@
                             </MudAvatar>
                             <div>
                                 <MudText Typo="Typo.body1">@pack.Name</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Summary</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@pack.Summary</MudText>
                             </div>
                         </MudStack>
                     </MudPaper>

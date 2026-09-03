@@ -27,7 +27,7 @@ else
     <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
 
         <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 Valores já preenchidos ao criar um modpack ou uma versão. Nada aqui altera
                 o que já existe.
             </MudText>
@@ -62,7 +62,7 @@ else
 
         <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">
             <MudText Typo="Typo.subtitle1" Class="mb-1">CurseForge</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 Sem a chave da API, o TCMine funciona só com o Modrinth. A chave é
                 guardada cifrada e nunca é exibida de volta.
             </MudText>
@@ -102,7 +102,7 @@ else
         </MudTabPanel>
 
         <MudTabPanel Text="E-mail" Icon="@Icons.Material.Filled.Email" Class="pa-6">
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 Usado na recuperação de senha. Enquanto não houver servidor configurado,
                 as mensagens vão para o log do servidor em vez de serem enviadas.
             </MudText>
@@ -149,7 +149,7 @@ else
                 @if (_mail?.DnsRecords.Count > 0)
                 {
                     <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1">Publique estes registros no DNS</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                         Sem eles a mensagem sai daqui e é classificada como spam do outro lado.
                         O DKIM só aparece depois do primeiro arranque, quando a chave é gerada.
                     </MudText>
@@ -227,7 +227,7 @@ else
                 <MudItem xs="12">
                     <MudDivider Class="my-3"/>
                     <MudText Typo="Typo.subtitle2" Class="mb-2">Testar o envio</MudText>
-                    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
                         Salve as alterações antes de testar — o teste usa a configuração já gravada.
                     </MudText>
 

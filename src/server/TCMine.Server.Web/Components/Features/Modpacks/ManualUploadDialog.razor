@@ -49,7 +49,7 @@
                    esperar tranquilo e achar que travou. *@
                 <div>
                     <MudProgressLinear Color="Color.Primary" Value="@SentPercent" Class="mb-1"/>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @HumanSize.Bytes(_sent) de @HumanSize.Bytes(_total)
                         @(_sent >= _total ? " — gravando e verificando o hash…" : "")
                     </MudText>

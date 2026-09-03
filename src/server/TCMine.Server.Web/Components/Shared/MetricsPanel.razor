@@ -11,12 +11,12 @@
                 <MudIcon Icon="@Icons.Material.Filled.Memory" Color="Color.Primary"/>
                 <MudText Typo="Typo.subtitle2">TCMine</MudText>
                 <MudSpacer/>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">@LastHostLabel</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@LastHostLabel</MudText>
             </MudStack>
 
             @if (_host.Count < 2)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     Coletando… o primeiro ponto sai em alguns segundos.
                 </MudText>
             }
@@ -29,17 +29,17 @@
 
                 <MudStack Row="true" Spacing="4" Class="mt-2" Wrap="Wrap.Wrap">
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">CPU do processo</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">CPU do processo</MudText>
                         <MudText Typo="Typo.body2">@_host[^1].ProcessCpuPercent.ToString("0.0")%</MudText>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Memória</MudText>
                         <MudText Typo="Typo.body2">@HumanSize.Bytes(_host[^1].ProcessMemoryBytes)</MudText>
                     </div>
                     @if (_host[^1].DiskTotalBytes > 0)
                     {
                         <div style="flex:1; min-width:160px;">
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                 Disco — @HumanSize.Bytes(_host[^1].DiskFreeBytes) livres
                             </MudText>
                             <MudProgressLinear Color="@DiskColor" Value="@DiskUsedPercent" Class="mt-1"/>
@@ -70,13 +70,13 @@
 
             @if (_servers.Count == 0)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     Nenhum servidor criado ainda.
                 </MudText>
             }
             else if (_serverPoints.Count < 2)
             {
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     Coletando… instâncias paradas aparecem como zero.
                 </MudText>
             }
@@ -89,11 +89,11 @@
 
                 <MudStack Row="true" Spacing="4" Class="mt-2" Wrap="Wrap.Wrap">
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">CPU</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">CPU</MudText>
                         <MudText Typo="Typo.body2">@_serverPoints[^1].CpuPercent.ToString("0.0")%</MudText>
                     </div>
                     <div>
-                        <MudText Typo="Typo.caption" Color="Color.Secondary">Memória</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Memória</MudText>
                         <MudText Typo="Typo.body2">
                             @HumanSize.Bytes(_serverPoints[^1].MemoryUsedBytes)
                             @if (_serverPoints[^1].MemoryLimitBytes > 0)

@@ -27,7 +27,7 @@ else
                         <MudText Typo="Typo.subtitle1" Class="mb-3">Posts</MudText>
                         @if (_posts.Count == 0)
                         {
-                            <MudText Color="Color.Secondary" Typo="Typo.body2">Nenhuma novidade ainda.</MudText>
+                            <MudText Class="mud-text-secondary" Typo="Typo.body2">Nenhuma novidade ainda.</MudText>
                         }
                         else
                         {
@@ -61,7 +61,7 @@ else
                     <MudPaper Class="pa-4" Elevation="2">
                         @if (_editing is null)
                         {
-                            <MudText Color="Color.Secondary" Class="pa-4" Align="Align.Center">
+                            <MudText Class="mud-text-secondary pa-4" Align="Align.Center">
                                 Selecione um post ou crie um novo.
                             </MudText>
                         }

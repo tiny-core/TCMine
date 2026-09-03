@@ -12,7 +12,7 @@
             @if (Progress is { IsDeterminate: true } p)
             {
                 <MudProgressLinear Color="Color.Primary" Value="@p.Percent" Class="mt-3 mb-1"/>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @p.Done de @p.Total mods verificados
                 </MudText>
             }
@@ -20,7 +20,7 @@
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-3"/>
             }
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Comparando cada mod com a origem…</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Comparando cada mod com a origem…</MudText>
         }
         else if (_updates.Count == 0)
         {
@@ -30,7 +30,7 @@
         }
         else
         {
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
                 @_updates.Count mod(s) com atualização. Isto não altera a versão @SourceVersion —
                 cria uma versão nova em rascunho com as trocas selecionadas.
             </MudText>
@@ -45,7 +45,7 @@
                                          ValueChanged="@(v => Toggle(u.ProjectSlug, v))"/>
                             <div>
                                 <MudText Typo="Typo.body1">@u.ProjectSlug</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                     @u.CurrentFileName → @u.LatestFileName
                                 </MudText>
                             </div>
@@ -67,7 +67,7 @@
         }
         else if (_updates.Count > 0)
         {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary mr-auto ml-4">
                 @_selected.Count selecionado(s)
             </MudText>
             <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>

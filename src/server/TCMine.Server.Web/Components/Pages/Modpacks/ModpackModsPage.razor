@@ -51,7 +51,7 @@ else
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
                 @* Mostra o passo real em vez de um texto fixo: com centenas de
                    mods, saber em qual está é o que diz que não travou. *@
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @(Progress is { IsDeterminate: true } p
                         ? $"{p.Step} — {p.Done} de {p.Total}"
                         : Progress?.Step ?? "Processando mods…")
@@ -185,7 +185,7 @@ else
                 </PagerContent>
 
                 <NoRecordsContent>
-                    <MudText Class="pa-4" Color="Color.Secondary">
+                    <MudText Class="mud-text-secondary pa-4" >
                         Nenhum mod nesta versão. Use "Buscar no Modrinth" para começar.
                     </MudText>
                 </NoRecordsContent>

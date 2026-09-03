@@ -17,7 +17,7 @@
             <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
                 <VersionStateChip State="_version.State"/>
                 <MudSpacer/>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     MC @_version.LoaderVersion
                 </MudText>
             </MudStack>
@@ -62,7 +62,7 @@
 
             @if (_version.Files.Count is 0)
             {
-                <MudText Typo="Typo.body2" Color="Color.Secondary">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
                     Nenhum arquivo nesta versão.
                 </MudText>
             }

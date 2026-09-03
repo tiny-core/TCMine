@@ -32,7 +32,7 @@
         </MudStack>
 
         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-1" Wrap="Wrap.Wrap">
-            <MudText Typo="Typo.caption" Color="Color.Secondary">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
                 @_origin · Minecraft @MinecraftVersion · @Loader
             </MudText>
             <MudSpacer/>
@@ -46,7 +46,7 @@
 
         @if (_available.Count == 1 && _origin is ModFileOrigin.Modrinth)
         {
-            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
                 Configure a chave da API em Configurações para buscar também no CurseForge.
             </MudText>
         }
@@ -59,7 +59,7 @@
         <div style="max-height:50vh; overflow-y:auto;" class="mt-2">
             @if (!_isSearching && _searched && _results.Count == 0)
             {
-                <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                <MudText Align="Align.Center" Class="mud-text-secondary my-6">
                     Nenhum mod encontrado para "@_query" no @_origin.
                     @if (_available.Count > 1)
                     {
@@ -71,14 +71,14 @@
             {
                 @* Achou, mas todos foram escondidos pelo filtro. Dizer isso é a
                    diferença entre "não existe" e "não saiu para a sua versão". *@
-                <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                <MudText Align="Align.Center" Class="mud-text-secondary my-6">
                     Os @_results.Count resultados não têm versão para Minecraft @MinecraftVersion
                     com @Loader. Desligue "ocultar incompatíveis" para vê-los.
                 </MudText>
             }
             else if (!_searched)
             {
-                <MudText Align="Align.Center" Color="Color.Secondary" Class="my-6">
+                <MudText Align="Align.Center" Class="mud-text-secondary my-6">
                     Busque um mod pelo nome.
                 </MudText>
             }
@@ -109,7 +109,7 @@
 
                                 @if (r.Downloads > 0)
                                 {
-                                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
                                         @Downloads(r.Downloads) downloads
                                     </MudText>
                                 }
@@ -124,7 +124,7 @@
                                     </MudTooltip>
                                 }
                             </MudStack>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary">@r.Description</MudText>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">@r.Description</MudText>
                         </div>
                     </MudStack>
                 </MudPaper>
@@ -132,7 +132,7 @@
         </div>
     </DialogContent>
     <DialogActions>
-        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-auto ml-4">
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mr-auto ml-4">
             @_selected.Count selecionado(s)
         </MudText>
         <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>

@@ -6,7 +6,7 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
     <div>
         <MudText Typo="Typo.h5">Armazenamento</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             O que ocupa disco e o que dá para recuperar.
         </MudText>
     </div>
@@ -22,7 +22,7 @@
     @* Contador ao vivo em vez de uma barra muda: numa varredura de dezenas de
        milhares de arquivos, saber que passou de 12.000 é a diferença entre
        "está andando" e "travou". *@
-    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
         @(Progress?.Step is { Length: > 0 } passo ? $"Percorrendo o content store — {passo}" : "Percorrendo o content store…")
     </MudText>
     <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
@@ -48,7 +48,7 @@ else
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap" Spacing="4">
             <div>
                 <MudText Typo="Typo.h5">@HumanSize.Bytes(report.TotalBytes)</MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">
                     @report.TotalCount arquivos no content store
                 </MudText>
             </div>
@@ -57,7 +57,7 @@ else
                 <MudText Typo="Typo.h6" Color="Color.Warning">
                     @HumanSize.Bytes(report.ReclaimableBytes)
                 </MudText>
-                <MudText Typo="Typo.caption" Color="Color.Secondary">recuperáveis</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">recuperáveis</MudText>
             </div>
         </MudStack>
 
@@ -94,7 +94,7 @@ else
                     <MudText Typo="Typo.body2" Style="font-weight:600;">
                         Backups de mundo — @HumanSize.Bytes(_backupBytes)
                     </MudText>
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @_backupCount arquivo(s), fora do content store. A retenção dos automáticos
                         se ajusta em Configurações; os manuais nunca expiram.
                     </MudText>
@@ -143,7 +143,7 @@ else
                 <MudSpacer/>
                 @if (_selected.Count > 0)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
                         @_selected.Count selecionado(s)
                     </MudText>
                 }

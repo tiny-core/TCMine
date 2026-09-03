@@ -7,7 +7,7 @@
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
     <div>
         <MudText Typo="Typo.h5">Mods</MudText>
-        <MudText Typo="Typo.body2" Color="Color.Secondary">
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
             Todo mod do catálogo, com os modpacks a que pertence.
         </MudText>
     </div>
@@ -89,7 +89,7 @@
             <MudTd DataLabel="Modpacks">
                 @if (context.Modpacks.Count == 0)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">—</MudText>
                 }
                 else
                 {
@@ -104,12 +104,12 @@
             </MudTd>
         </RowTemplate>
         <NoRecordsContent>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">
                 Nenhum mod com esses filtros.
             </MudText>
         </NoRecordsContent>
         <LoadingContent>
-            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">Carregando…</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary pa-4">Carregando…</MudText>
         </LoadingContent>
         <PagerContent>
             <MudTablePager RowsPerPageString="Por página:"

@@ -62,7 +62,7 @@ else
                             </MudAvatar>
                             <div>
                                 <MudText Typo="Typo.h6">@pack.Name</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">@pack.Slug</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">@pack.Slug</MudText>
                             </div>
                         </MudStack>
 
@@ -78,7 +78,7 @@ else
 
                         @if (!string.IsNullOrWhiteSpace(pack.Summary))
                         {
-                            <MudText Typo="Typo.body2" Color="Color.Secondary">@pack.Summary</MudText>
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">@pack.Summary</MudText>
                         }
                     </MudCardContent>
 
