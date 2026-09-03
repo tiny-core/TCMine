@@ -300,6 +300,19 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   dois transportes.
 - **`dotnet test` não roda esta solução no SDK do .NET 10** (o caminho VSTest foi removido e o xUnit v3 usa o
   Microsoft.Testing.Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
+- **Nada de inicializador estático que leia `Default` num `JsonSerializerContext`.**
+  O `TcMineJsonContext` declarava `public static new readonly JsonSerializerOptions
+  Options = new(...) { TypeInfoResolver = Default }`. Esse inicializador roda durante
+  a construção da classe e força a criação do `Default` ANTES de o gerador ter
+  inicializado o campo de options dele — o contexto padrão nasce sem
+  `TypeInfoResolver` e fica assim em cache. Resultado: **qualquer**
+  `TcMineJsonContext.Default.X` estoura com *"metadata … was not provided by
+  TypeInfoResolver of type '<null>'"*, o que quebrava o handshake e a gravação do
+  `tcmine.json` — o caminho inteiro do launcher. Compilava, e nenhum teste via,
+  porque os dois lados usam o mesmo tipo. A correção é adiar (`Lazy<T>`).
+  `HandshakeWireFormatTests` trava isso com uma resposta LITERAL do servidor:
+  serializar e desserializar com o mesmo contexto passa mesmo quando o formato do
+  outro lado é outro.
 - **Janela sem moldura: NUNCA `WindowStyle="None"` junto de `WindowChrome`.** É a
   receita pré-`WindowChrome` e ela quebra o maximizar — a janela cresce ~8px para
   cada lado além do monitor e a barra de estado desaparece atrás da barra de

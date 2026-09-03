@@ -25,13 +25,21 @@ namespace TCMine.Contracts.Serialization;
 [JsonSerializable(typeof(IReadOnlyList<GameServerDto>))]
 public sealed partial class TcMineJsonContext : JsonSerializerContext
 {
+    private static readonly Lazy<JsonSerializerOptions> Lazy = new(() =>
+        new JsonSerializerOptions(JsonSerializerDefaults.Web) { TypeInfoResolver = Default });
+
     /// <summary>
     ///     Use estas options em qualquer lugar. Se server e launcher usarem
     ///     configurações diferentes, um escreve camelCase e o outro, espera
     ///     PascalCase — e o bug só aparece em produção.
+    ///     LAZY, e isto não é estilo. Como campo estático inicializado na
+    ///     declaração, o inicializador lia <c>Default</c> durante a construção da
+    ///     própria classe, ANTES de o gerador ter inicializado o campo de options
+    ///     dele. O contexto padrão nascia sem TypeInfoResolver e ficava em cache
+    ///     assim para sempre — e aí QUALQUER
+    ///     <c>TcMineJsonContext.Default.QualquerCoisa</c> estourava com
+    ///     "metadata ... was not provided by TypeInfoResolver of type
+    ///     '&lt;null&gt;'". Adiar a construção para o primeiro uso quebra o ciclo.
     /// </summary>
-    public static new readonly JsonSerializerOptions Options = new(JsonSerializerDefaults.Web)
-    {
-        TypeInfoResolver = Default
-    };
+    public static new JsonSerializerOptions Options => Lazy.Value;
 }
