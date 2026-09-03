@@ -16,16 +16,27 @@ BASE="${TCMINE_BASE_URL:-http://localhost:5144}"
 
 die() { echo "erro: $*" >&2; exit 1; }
 
-# O `dotnet run` deixa o TCMine.Server.Web.exe segurando as DLLs; sem matar
-# antes, o build falha com MSB3026 num muro de texto.
+# Executáveis que o `dotnet run` deixa segurando as DLLs da pasta bin. São dois
+# desde que o launcher existe: sem matar antes, o build falha com MSB3026/MSB3061
+# num muro de texto que não tem nada a ver com o código.
+APPS="TCMine.Server.Web.exe TCMine.Launcher.App.exe"
+
 kill_app() {
-  taskkill //F //IM TCMine.Server.Web.exe >/dev/null 2>&1 || true
+  # Via cmd.exe porque a forma de escapar `/F` muda entre Git Bash (que mangleia
+  # argumentos começados por barra e exige `//F`) e WSL (que não mangleia e
+  # rejeita `//F`). Passando a linha inteira ao cmd, funciona nos dois — e o
+  # taskkill falhando calado era pior: o build quebrava sem dizer por quê.
+  for app in $APPS; do
+    cmd.exe /c "taskkill /F /IM $app" >/dev/null 2>&1 || true
+  done
 
   # taskkill volta assim que PEDE a morte, não quando o processo sai. Compilar
-  # em cima de um .exe que ainda segura os próprios handles dá MSB3026/MSB3027 —
-  # um erro que não tem nada a ver com o código e manda procurar no lugar errado.
-  for _ in 1 2 3 4 5 6 7 8 9 10; do
-    tasklist //FI "IMAGENAME eq TCMine.Server.Web.exe" 2>/dev/null | grep -q "TCMine.Server.Web.exe" || break
+  # em cima de um .exe que ainda segura os próprios handles dá MSB3026/MSB3061 —
+  # um erro que manda procurar no lugar errado.
+  for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    local vivos
+    vivos="$(tasklist.exe 2>/dev/null | grep -c -E "$(echo "$APPS" | tr ' ' '|')")"
+    [ "${vivos:-0}" -eq 0 ] && break
     sleep 0.3
   done
 }
@@ -42,7 +53,12 @@ cmd_build() {
   # foram commitados com a suíte verde.
   #
   # Custa cinco segundos. É o preço de a verificação valer alguma coisa.
-  out="$(cd "$ROOT" && dotnet build --no-incremental -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
+  # A solução vai nomeada (relativa, já que o cd aconteceu): a descoberta
+  # automática do .slnx depende do diretório atual, e sob WSL o dotnet.exe
+  # recebe um cwd traduzido em que ela não acha nada — o comando morria com
+  # MSB1003 sem compilar linha nenhuma. Caminho ABSOLUTO não serve: o dotnet.exe
+  # lê "/mnt/..." como opção e responde MSB1001.
+  out="$(cd "$ROOT" && dotnet build TCMine.slnx --no-incremental -warnaserror -clp:NoSummary -v q "$@" 2>&1)"
   code=$?
   echo "$out" | grep -E ": (error|warning) " | sed 's/ \[[^]]*\.csproj\]$//' | sort -u | head -25
   if [ $code -eq 0 ]; then echo "BUILD OK"; else echo "BUILD FALHOU"; fi
@@ -72,10 +88,13 @@ cmd_test() {
     local nome
     nome="$(basename "$projeto")"
 
+    # Caminho RELATIVO à raiz, e não "$projeto" absoluto: sob WSL o dotnet.exe
+    # recebe "/mnt/..." e o lê como opção (MSB1001), então nenhuma suíte
+    # chegava a rodar — e o placar vazio virava "TESTES OK".
     if [ -n "$filtro" ]; then
-      out="$(cd "$ROOT" && dotnet run --project "$projeto" -- "$seletor" "$filtro" 2>&1)"
+      out="$(cd "$ROOT" && dotnet run --project "tests/$nome" -- "$seletor" "$filtro" 2>&1)"
     else
-      out="$(cd "$ROOT" && dotnet run --project "$projeto" 2>&1)"
+      out="$(cd "$ROOT" && dotnet run --project "tests/$nome" 2>&1)"
     fi
     code=$?
 
