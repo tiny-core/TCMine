@@ -10,6 +10,11 @@
      mais adiante, que garante isso automaticamente.
    -->
   <ItemGroup>
+    <!-- Só as abstrações do contêiner, para o AddLauncherCore. Portável. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\shared\TCMine.Contracts\TCMine.Contracts.csproj"/>
   </ItemGroup>
 

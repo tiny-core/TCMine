@@ -12,9 +12,13 @@ public partial class StatusBar : ComponentBase, IDisposable
 
     private string ConnectionLabel => Shell.Connection switch
     {
-        ConnectionState.Connected => "Ligado ao servidor",
-        ConnectionState.Connecting => "A ligar…",
-        _ => "Sem ligação"
+        ConnectionState.Connected => $"Ligado a {Shell.ServerName ?? "servidor"}",
+        ConnectionState.Connecting => "A verificar ligação…",
+
+        // "Sem servidor" e "sem ligação" pedem ações diferentes: uma é parear,
+        // a outra é esperar. Um rótulo só para os dois casos mandaria o jogador
+        // redigitar um endereço que está correto.
+        _ => Shell.IsPaired ? "Sem ligação" : "Sem servidor"
     };
 
     private string DotClass => Shell.Connection switch

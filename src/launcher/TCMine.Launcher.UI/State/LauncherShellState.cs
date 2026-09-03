@@ -1,18 +1,47 @@
+using TCMine.Launcher.Core.Connectivity;
+
 namespace TCMine.Launcher.UI.State;
 
 /// <summary>
 ///     Estado vivo do launcher, compartilhado por todas as telas.
 ///     Ocupa o lugar que num app WPF clássico seria o ViewModel da janela, com
 ///     uma diferença que importa: ele não é dono de nada. Reflete o que as
-///     portas do Core reportam — configuração, sessão, conexão do hub — e avisa
+///     portas do Core reportam — pareamento, sessão, conexão do hub — e avisa
 ///     quem estiver na tela. A lógica que merece teste continua em classes puras
-///     no Core, como o ManifestDiffer.
+///     no Core, como o ServerPairing e o ManifestDiffer.
 ///     Singleton de propósito: em Blazor Hybrid existe um circuito só, e o
 ///     estado precisa sobreviver à navegação entre páginas.
 /// </summary>
 public sealed class LauncherShellState
 {
-    public ConnectionState Connection { get; private set; } = ConnectionState.Disconnected;
+    private bool _checking;
+
+    public PairingState? Pairing { get; private set; }
+
+    /// <summary>
+    ///     Ainda não sabemos nada — nem se há pareamento. É diferente de "não
+    ///     pareado": a moldura espera aqui em vez de piscar a tela errada.
+    /// </summary>
+    public bool IsStartingUp => Pairing is null;
+
+    /// <summary>Existe servidor conhecido, mesmo que ele não esteja atendendo.</summary>
+    public bool IsPaired => Pairing?.IsPaired is true;
+
+    public ConnectionState Connection =>
+        _checking ? ConnectionState.Connecting
+        : Pairing?.IsOnline is true ? ConnectionState.Connected
+        : ConnectionState.Disconnected;
+
+    /// <summary>Nome do servidor, quando pareado. Vai na barra de título.</summary>
+    public string? ServerName => Pairing?.Server?.ServerName ?? Pairing?.Config?.DisplayName;
+
+    /// <summary>
+    ///     O que dizer quando há servidor mas a ligação falhou. Nulo quando não
+    ///     há nada a explicar — inclusive no caso de nem haver pareamento, que a
+    ///     tela de pareamento já cobre.
+    /// </summary>
+    public string? ConnectionNotice =>
+        IsPaired && Pairing?.IsOnline is false ? Pairing.Message : null;
 
     /// <summary>
     ///     Notifica as telas. Um evento só, sem granularidade por propriedade: o
@@ -21,17 +50,16 @@ public sealed class LauncherShellState
     /// </summary>
     public event Action? Changed;
 
-    /// <summary>
-    ///     Método em vez de setter público de propósito: mudar estado aqui
-    ///     dispara redesenho de tela, e uma atribuição solta esconderia esse
-    ///     efeito no meio de uma expressão.
-    /// </summary>
-    public void SetConnection(ConnectionState state)
+    public void BeginCheck()
     {
-        if (Connection == state)
-            return;
+        _checking = true;
+        Changed?.Invoke();
+    }
 
-        Connection = state;
+    public void Apply(PairingState state)
+    {
+        _checking = false;
+        Pairing = state;
         Changed?.Invoke();
     }
 }

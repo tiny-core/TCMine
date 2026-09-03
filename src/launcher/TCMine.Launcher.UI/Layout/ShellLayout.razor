@@ -24,9 +24,36 @@
     <TitleBar/>
 
     <div class="tc-shell-body">
-        <NavRail/>
+        @* O trilho só aparece com servidor conhecido: sem pareamento não há
+           catálogo nem instâncias, e oferecer a navegação seria oferecer telas
+           que não têm o que mostrar. *@
+        @if (Shell.IsPaired)
+        {
+            <NavRail/>
+        }
+
         <main class="tc-shell-content">
-            @Body
+            @if (Shell.IsStartingUp)
+            {
+                @* Espera o pareamento resolver antes de renderizar qualquer
+                   página. Sem isto a tela "Nada para jogar" pisca por um
+                   instante antes de o redirecionamento acontecer. *@
+                <div class="tc-shell-boot">
+                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large"/>
+                </div>
+            }
+            else
+            {
+                @if (Shell.ConnectionNotice is { } aviso)
+                {
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined"
+                              Dense="true" Class="mb-4">
+                        @aviso
+                    </MudAlert>
+                }
+
+                @Body
+            }
         </main>
     </div>
 

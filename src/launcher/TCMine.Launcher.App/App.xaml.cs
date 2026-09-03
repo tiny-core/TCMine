@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using TCMine.Launcher.App.Chrome;
+using TCMine.Launcher.Core;
+using TCMine.Launcher.Infrastructure;
 using TCMine.Launcher.UI;
 using TCMine.Launcher.UI.Abstractions;
 
@@ -42,6 +44,14 @@ public partial class App : Application
         builder.Services.AddBlazorWebViewDeveloperTools();
 #endif
 
+        // A raiz da instalação: o tcmine.json, o content store e as instâncias
+        // moram aqui, um nível acima da pasta que o autoupdate substitui.
+        // Qualificado: num projeto WPF, o Path implícito é o System.Windows.Shapes.
+        var raiz = System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TCMine");
+
+        builder.Services.AddLauncherInfrastructure(raiz);
+        builder.Services.AddLauncherCore();
         builder.Services.AddLauncherUi();
         builder.Services.AddSingleton(BuildInfo());
 

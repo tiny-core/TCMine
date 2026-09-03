@@ -1,0 +1,8 @@
+/* Centraliza o cartão na área de conteúdo. O mesmo papel do .tc-auth-page no
+   painel, mas aqui a altura disponível é a da moldura, não a da janela. */
+.tc-pair {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: 24px;
+}

@@ -20,3 +20,11 @@
   overflow-y: auto;
   padding: 24px 28px;
 }
+
+/* Espera do arranque: ocupa a área de conteúdo inteira para o giro ficar no
+   centro do que será a página, e não colado no topo. */
+.tc-shell-boot {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+}

@@ -269,6 +269,14 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `_content/TCMine.UI.Shared/tcmine.css`; o que é do casco, em
   `_content/TCMine.Launcher.UI/launcher.css`; o resto é `.razor.css` isolado.
   **Nada vem da rede** — o launcher tem de abrir sem internet.
+- **Pareamento**: `ServerPairing` (no Core) é o primeiro caso de uso a rodar.
+  `ResumeAsync` lê o `tcmine.json` e confirma o handshake; `PairAsync` valida o
+  endereço digitado, faz o handshake e só então grava. Duas regras não são
+  cosméticas: o endereço é recusado **antes** do handshake se não for HTTPS (ou
+  loopback), porque o id_token da Microsoft trafega nessa conexão; e uma falha de
+  rede **não** desfaz o pareamento, senão o jogador redigita o endereço a cada
+  oscilação de sinal. O `ShellLayout` faz o arranque uma vez por sessão e manda
+  para `/pair` só quando não há configuração nenhuma.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 

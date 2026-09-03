@@ -28,8 +28,16 @@ public sealed record LauncherConfig
     public Uri? BrandingIconUrl { get; init; }
 
     [JsonIgnore]
-    public bool IsTransportSecure =>
-        ServerUrl.Scheme == Uri.UriSchemeHttps || ServerUrl.IsLoopback;
+    public bool IsTransportSecure => IsSecureTransport(ServerUrl);
+
+    /// <summary>
+    ///     A mesma regra, aplicável antes de existir configuração.
+    ///     A tela de pareamento precisa dela para recusar um endereço ANTES de
+    ///     falar com ele: validar só na hora de gravar significaria ter mandado
+    ///     o handshake por HTTP puro primeiro.
+    /// </summary>
+    public static bool IsSecureTransport(Uri url) =>
+        url.Scheme == Uri.UriSchemeHttps || url.IsLoopback;
 
     /// <summary>
     ///     Retorna a lista de problemas. Vazia significa configuração válida.

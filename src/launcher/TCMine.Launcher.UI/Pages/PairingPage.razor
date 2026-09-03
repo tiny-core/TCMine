@@ -1,0 +1,58 @@
+@page "/pair"
+
+<PageTitle>Ligar a um servidor</PageTitle>
+
+@* Última linha de defesa do pareamento. As outras formas — tcmine.json vindo no
+   instalador, deep link — acontecem sem tela; esta existe porque quando elas
+   falham (antivírus em quarentena, arquivo corrompido) o launcher viraria um
+   tijolo sem ela. *@
+
+<div class="tc-pair">
+    <MudPaper Class="pa-8 tc-fade-in" Elevation="0" Outlined="true" Style="max-width:520px;width:100%;">
+        <MudStack Spacing="4">
+            <div>
+                <MudText Typo="Typo.h5">Ligar a um servidor</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Informe o endereço do TCMine Server que hospeda os seus modpacks.
+                </MudText>
+            </div>
+
+            <MudTextField @bind-Value="_address"
+                          Label="Endereço do servidor"
+                          Placeholder="modpacks.meuservidor.com"
+                          Variant="Variant.Outlined"
+                          Adornment="Adornment.Start"
+                          AdornmentIcon="@Icons.Material.Filled.Dns"
+                          Immediate="true"
+                          OnKeyDown="OnKeyDown"
+                          Disabled="_busy"/>
+
+            @if (_message is not null)
+            {
+                <MudAlert Severity="_severity" Variant="Variant.Outlined" Dense="true">
+                    @_message
+                </MudAlert>
+            }
+
+            @* Feedback de processo assíncrono, como manda a convenção: a barra
+               aparece enquanto o handshake corre e o botão fica desabilitado. *@
+            @if (_busy)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Size="Size.Large"
+                       FullWidth="true"
+                       Disabled="_busy || string.IsNullOrWhiteSpace(_address)"
+                       OnClick="PairAsync">
+                @(_busy ? "A verificar…" : "Ligar")
+            </MudButton>
+
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                A ligação usa HTTPS. O endereço fica gravado e não será pedido de novo.
+            </MudText>
+        </MudStack>
+    </MudPaper>
+</div>
