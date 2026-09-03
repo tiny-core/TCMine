@@ -27,6 +27,9 @@ public class LayerRules
     private static readonly Assembly LauncherCore =
         typeof(Launcher.Core.AssemblyMarker).Assembly;
 
+    private static readonly Assembly LauncherUi =
+        typeof(Launcher.UI.AssemblyMarker).Assembly;
+
     /// <summary>
     ///     Mensagem de falha com os tipos culpados. O padrão do NetArchTest só
     ///     diz que falhou, e aí você fica caçando qual classe foi.
@@ -128,6 +131,39 @@ public class LayerRules
                 "System.Windows",
                 "Microsoft.Identity.Client",
                 "CmlLib")
+            .GetResult());
+    }
+
+    [Fact]
+    public void Launcher_UI_e_portavel()
+    {
+        // As telas do launcher são uma RCL comum, e é essa a aposta: no dia de
+        // rodar em Linux, portar significa escrever um host novo — as páginas
+        // ficam intactas. Um único using de System.Windows aqui transformaria
+        // esse trabalho numa reescrita.
+        //
+        // O que a tela precisa do sistema operacional (arrastar a janela,
+        // minimizar) entra por IWindowChrome, implementada no host.
+        ShouldPass(Types.InAssembly(LauncherUi)
+            .ShouldNot()
+            .HaveDependencyOnAny(
+                "System.Windows",
+                "Microsoft.Win32",
+                "Microsoft.AspNetCore.Components.WebView",
+                "TCMine.Server")
+            .GetResult());
+    }
+
+    [Fact]
+    public void Launcher_UI_nao_conhece_a_infraestrutura()
+    {
+        // Mesma direção de dependência do painel: a tela fala com portas, e quem
+        // as implementa é montado pelo host. Sem isto, uma página passaria a
+        // chamar HttpClient direto e a lógica de sincronização vazaria para
+        // dentro de um componente Razor, onde nenhum teste alcança.
+        ShouldPass(Types.InAssembly(LauncherUi)
+            .ShouldNot()
+            .HaveDependencyOn("TCMine.Launcher.Infrastructure")
             .GetResult());
     }
 }

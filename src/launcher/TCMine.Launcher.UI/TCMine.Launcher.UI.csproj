@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+      Todas as telas do launcher: rotas, layout, páginas e componentes.
+
+      REGRA: nada de WPF, P/Invoke ou API específica de Windows aqui. A janela é
+      o único pedaço não portável do launcher e vive em TCMine.Launcher.App. O
+      que a tela precisa do sistema operacional (arrastar a janela, minimizar)
+      entra por uma porta em Abstractions/, exatamente como a Application faz
+      com a Infrastructure.
+
+      É a mesma aposta do TCMine.Launcher.Core: no dia de rodar em Linux, portar
+      significa escrever um host novo — as telas ficam intactas. O teste
+      Launcher_UI_e_portavel trava isso automaticamente.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web"/>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <PackageReference Include="MudBlazor"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\TCMine.UI.Shared\TCMine.UI.Shared.csproj"/>
+    <ProjectReference Include="..\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+@* Rodapé permanente: o jogador precisa saber a qualquer momento se está ligado
+   ao servidor e que versão do launcher tem — as duas primeiras perguntas de
+   qualquer suporte. *@
+
+<footer class="tc-statusbar">
+    <span class="tc-dot @DotClass" aria-hidden="true"></span>
+    <span class="tc-statusbar-label">@ConnectionLabel</span>
+
+    <span class="tc-statusbar-spacer"></span>
+
+    <MudTooltip Text="Versão instalada do launcher" Placement="Placement.Top">
+        <span class="tc-statusbar-version">@AppInfo.Version</span>
+    </MudTooltip>
+</footer>

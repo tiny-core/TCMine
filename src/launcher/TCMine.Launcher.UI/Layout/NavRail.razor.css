@@ -1,0 +1,29 @@
+.tc-rail {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 64px;
+  flex: 0 0 64px;
+  padding: 8px 0 12px;
+  background: var(--mud-palette-drawer-background);
+  border-right: 1px solid var(--mud-palette-lines-default);
+}
+
+.tc-rail-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Marca do item ativo: um traço na borda esquerda. Fundo cheio disputaria
+   atenção com o botão de jogar, que é o alvo real da tela. */
+.tc-rail ::deep .tc-rail-btn {
+  border-left: 2px solid transparent;
+  border-radius: 8px;
+}
+
+.tc-rail ::deep .tc-rail-btn-active {
+  border-left-color: var(--mud-palette-primary);
+  background: rgba(var(--mud-palette-primary-rgb), 0.12);
+}

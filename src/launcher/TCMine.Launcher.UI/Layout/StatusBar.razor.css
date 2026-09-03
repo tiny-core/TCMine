@@ -1,0 +1,41 @@
+.tc-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  flex: 0 0 auto;
+  padding: 0 16px;
+  background: var(--mud-palette-appbar-background);
+  border-top: 1px solid var(--mud-palette-lines-default);
+  font-size: 11px;
+  color: var(--mud-palette-text-secondary);
+  user-select: none;
+}
+
+.tc-statusbar-spacer {
+  flex: 1 1 auto;
+}
+
+.tc-statusbar-version {
+  font-family: "Cascadia Code", Consolas, monospace;
+  color: var(--mud-palette-text-disabled);
+}
+
+.tc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.tc-dot-online {
+  background: var(--tc-status-success);
+}
+
+.tc-dot-pending {
+  background: var(--tc-status-warning);
+}
+
+.tc-dot-offline {
+  background: var(--mud-palette-text-disabled);
+}

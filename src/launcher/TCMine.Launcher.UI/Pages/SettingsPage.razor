@@ -1,0 +1,38 @@
+@page "/settings"
+
+<PageTitle>Definições</PageTitle>
+
+<PageHeader Title="Definições"
+            Subtitle="Conta, servidor e memória das instâncias."/>
+
+@* Só o que já é verdade nesta build. Uma tela de definições cheia de campos
+   desligados ensina o jogador a desconfiar do que ela mostra. *@
+<MudPaper Class="pa-6" Elevation="0" Outlined="true" Style="max-width:560px;">
+    <MudText Typo="Typo.subtitle1" GutterBottom="true">Sobre</MudText>
+
+    <MudSimpleTable Dense="true" Hover="false" Elevation="0" Bordered="false" Striped="false">
+        <tbody>
+        <tr>
+            <td>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Aplicação</MudText>
+            </td>
+            <td>
+                <MudText Typo="Typo.body2">@AppInfo.Title</MudText>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Versão</MudText>
+            </td>
+            <td>
+                <MudText Typo="Typo.body2">@AppInfo.Version</MudText>
+            </td>
+        </tr>
+        </tbody>
+    </MudSimpleTable>
+</MudPaper>
+
+@code
+{
+    [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
+}

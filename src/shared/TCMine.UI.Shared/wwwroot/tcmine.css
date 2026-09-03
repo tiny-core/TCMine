@@ -1,0 +1,82 @@
+/* Estilos globais compartilhados entre o painel e o launcher.
+
+   Mora aqui — e não no wwwroot de cada host — o que é global POR NATUREZA e
+   igual dos dois lados:
+   - utilitárias usadas em várias telas (fade-in, hover de card);
+   - overrides do MudBlazor cujo DOM nasce fora da árvore do componente
+     (diálogos, via DialogProvider) e por isso escapa do CSS isolado.
+
+   Duplicar isto nos dois hosts significaria dois lugares divergindo no primeiro
+   ajuste. CSS específico de um componente continua no .razor.css dele; CSS
+   específico de um host continua no wwwroot dele. */
+
+html, body {
+  margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Utilitárias. Usam as CSS vars do MudBlazor para acompanhar o tema.
+   -------------------------------------------------------------------------- */
+
+/* Entrada suave de conteúdo (headers, grades, cards). */
+@keyframes tc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tc-fade-in {
+  animation: tc-fade-in 0.3s ease both;
+}
+
+/* Realce sutil de hover para cards clicáveis: apenas aprofunda a sombra, SEM
+   mover o card. height:100% mantém os cards de uma linha do MudGrid alinhados. */
+.tc-card {
+  height: 100%;
+  transition: box-shadow 0.2s ease;
+}
+
+.tc-card:hover {
+  box-shadow: var(--mud-elevation-6);
+}
+
+/* --------------------------------------------------------------------------
+   Diálogos (MudDialog): renderizados pelo DialogProvider, fora da árvore de
+   qualquer componente — precisam ficar globais. Estrutura + respiro.
+   -------------------------------------------------------------------------- */
+.mud-dialog .mud-dialog-title {
+  border-bottom: 1px solid var(--mud-palette-divider);
+  padding-bottom: 16px;
+}
+
+.mud-dialog .mud-dialog-actions {
+  border-top: 1px solid var(--mud-palette-divider);
+  padding: 12px 24px;
+  gap: 8px;
+}
+
+.mud-dialog .mud-dialog-content {
+  padding: 24px;
+}
+
+/* Espaço vertical entre campos consecutivos, para o formulário não amontoar. */
+.mud-dialog .mud-dialog-content .mud-input-control + .mud-input-control,
+.mud-dialog .mud-dialog-content .mud-input-control + .mud-form-control {
+  margin-top: 16px;
+}
+
+/* Acessibilidade: quem pede menos movimento não recebe as animações. */
+@media (prefers-reduced-motion: reduce) {
+  .tc-fade-in {
+    animation: none;
+  }
+
+  .tc-card {
+    transition: none;
+  }
+}

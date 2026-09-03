@@ -243,6 +243,35 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `ToDelete` — o applier do launcher jamais deve passar dados do jogador ao differ. O primeiro update apagaria os
   mundos.
 
+### 7.1 O casco do launcher (WPF hospedando Blazor)
+
+O launcher usa **as mesmas telas do painel**: Blazor + MudBlazor + `TCMine.UI.Shared`.
+Nada de Avalonia nem de XAML de tela — a janela é a única coisa em WPF.
+
+```
+TCMine.Launcher.UI    (RCL, net10.0)          ← TODAS as telas. Portável.
+TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/Invoke.
+```
+
+- **Por que a RCL separada**: no dia de rodar em Linux, portar é escrever um host
+  novo — as páginas ficam intactas. `Launcher_UI_e_portavel` e
+  `Launcher_UI_nao_conhece_a_infraestrutura` (NetArchTest) travam isso.
+- **O que a tela precisa do sistema entra por porta**: `IWindowChrome`
+  (arrastar/minimizar/maximizar/fechar) e `LauncherAppInfo` (título e versão)
+  vivem em `Launcher.UI/Abstractions` e são implementados/fornecidos pelo host.
+- **Estado**: `LauncherShellState`, singleton, no lugar do ViewModel da janela.
+  Em Blazor Hybrid há um circuito só, e o estado precisa sobreviver à navegação.
+  A lógica que merece teste continua em classes puras (ver `NavMatch`,
+  `ManifestDiffer`).
+- **Tema**: `TcMineTheme.Default` e `<TcMineTokens/>`, os mesmos do painel. O
+  launcher é sempre escuro (`data-theme="dark"` no `index.html`), sem alternador.
+- **CSS**: o que é global e vale para os dois produtos mora em
+  `_content/TCMine.UI.Shared/tcmine.css`; o que é do casco, em
+  `_content/TCMine.Launcher.UI/launcher.css`; o resto é `.razor.css` isolado.
+  **Nada vem da rede** — o launcher tem de abrir sem internet.
+- **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
+  runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
+
 ---
 
 ## 8. Aprendizados que custaram bugs (não repita)
@@ -271,8 +300,24 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   dois transportes.
 - **`dotnet test` não roda esta solução no SDK do .NET 10** (o caminho VSTest foi removido e o xUnit v3 usa o
   Microsoft.Testing.Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
+- **Janela sem moldura: NUNCA `WindowStyle="None"` junto de `WindowChrome`.** É a
+  receita pré-`WindowChrome` e ela quebra o maximizar — a janela cresce ~8px para
+  cada lado além do monitor e a barra de estado desaparece atrás da barra de
+  tarefas (medido: rect `-7,-7` com 3454x1454 num ecrã de 3440x1440). Com o
+  estilo padrão o Windows continua dono do enquadramento, e o `WindowChrome`
+  (`CaptionHeight=0`) só estende a área de cliente sobre a moldura.
+  `CaptionHeight` maior que zero também não serve: entregaria a faixa do topo ao
+  gestor de janelas e os botões desenhados em HTML ficariam mortos, porque
+  `IsHitTestVisibleInChrome` só vale para elementos WPF.
+- **O TFM do host precisa da versão do SDK do Windows** (`net10.0-windows10.0.19041.0`,
+  não `net10.0-windows`). O controle WPF do WebView2 renderiza por composição e
+  chama as projeções WinRT; com o TFM seco o build passa e a janela morre no
+  primeiro quadro com `FileNotFoundException: Microsoft.Windows.SDK.NET`.
+- **`EnableWindowsTargeting=true` no projeto WPF**: o CI roda em ubuntu e
+  constrói a solução inteira. Sem isso o build morre com NETSDK1100 e o launcher
+  deixaria de ser verificado a cada push.
 - **`[LibraryImport]`** exige `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` no csproj (o marshalling gerado usa
-  `unsafe`). Fica contido na Infrastructure.
+  `unsafe`). Fica contido na Infrastructure do servidor e no `Launcher.App`.
 
 ---
 

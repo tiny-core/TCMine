@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+      A janela. Este é o ÚNICO projeto do launcher que não é portável, e é de
+      propósito: tudo que fala com o Windows — WPF, WebView2, P/Invoke da moldura
+      — está contido aqui. As telas vivem em TCMine.Launcher.UI e não sabem que
+      existe uma janela.
+
+      SDK.Razor e não SDK puro: é o que traz os alvos de static web assets, sem
+      os quais o BlazorWebView não acha nem o CSS do MudBlazor nem os
+      _content/ das bibliotecas referenciadas.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!--
+        A versão do SDK do Windows no TFM não é decoração: o controle WPF do
+        WebView2 renderiza por composição e, para isso, chama as projeções WinRT
+        (Microsoft.Windows.SDK.NET). Com um "net10.0-windows" seco elas não são
+        referenciadas, o build passa e a janela morre no primeiro quadro com um
+        FileNotFoundException — que foi exatamente o que aconteceu aqui.
+    -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+
+    <!--
+        Permite compilar (não executar) num agente Linux. O CI roda em ubuntu e
+        constrói a solução inteira; sem isto o build morre com NETSDK1100 e o
+        launcher deixaria de ser verificado a cada push.
+    -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <!-- [LibraryImport] gera marshalling unsafe. Fica contido neste projeto. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf"/>
+    <PackageReference Include="Microsoft.Extensions.Hosting"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
+    <ProjectReference Include="..\TCMine.Launcher.UI\TCMine.Launcher.UI.csproj"/>
+  </ItemGroup>
+
+</Project>

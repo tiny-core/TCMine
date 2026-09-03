@@ -1,0 +1,33 @@
+@* Barra de título do launcher.
+
+   A moldura do Windows está desligada (WindowStyle=None no host), então esta
+   faixa é a janela: título à esquerda, comandos à direita. Arrastar e os botões
+   passam por IWindowChrome — ver a porta para o porquê. *@
+
+<header class="tc-titlebar" @onmousedown="OnPointerDown">
+    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Primary"/>
+    <span class="tc-titlebar-title">@AppInfo.Title</span>
+
+    @* stopPropagation para o clique num botão não virar arrasto da janela: o
+       mouse-down subiria até o header e o Windows tomaria conta do ponteiro
+       antes do clique completar. *@
+    <div class="tc-titlebar-actions" @onmousedown:stopPropagation="true">
+        <MudTooltip Text="Minimizar" Placement="Placement.Bottom">
+            <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small"
+                           Color="Color.Inherit" OnClick="Chrome.Minimize"
+                           aria-label="Minimizar"/>
+        </MudTooltip>
+        <MudTooltip Text="@(Chrome.IsMaximized ? "Restaurar" : "Maximizar")" Placement="Placement.Bottom">
+            <MudIconButton Icon="@(Chrome.IsMaximized
+                                     ? Icons.Material.Filled.FilterNone
+                                     : Icons.Material.Filled.CropSquare)"
+                           Size="Size.Small" Color="Color.Inherit" OnClick="Chrome.ToggleMaximize"
+                           aria-label="@(Chrome.IsMaximized ? "Restaurar" : "Maximizar")"/>
+        </MudTooltip>
+        <MudTooltip Text="Fechar" Placement="Placement.Bottom">
+            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                           Class="tc-titlebar-close" OnClick="Chrome.Close"
+                           aria-label="Fechar"/>
+        </MudTooltip>
+    </div>
+</header>

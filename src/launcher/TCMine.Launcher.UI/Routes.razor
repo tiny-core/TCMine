@@ -1,0 +1,25 @@
+@* Roteador do launcher.
+
+   AppAssembly aponta para ESTE assembly, não para o do host WPF: as páginas
+   moram todas aqui, e é isso que permite trocar a janela — ou o sistema
+   operacional — sem tocar em rota nenhuma. *@
+
+<Router AppAssembly="@typeof(AssemblyMarker).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(ShellLayout)"/>
+        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+    </Found>
+    @* Rota inexistente só acontece por engano nosso. Sem este bloco a janela
+       ficaria em branco, escondendo o erro em vez de mostrá-lo. *@
+    <NotFound>
+        <LayoutView Layout="@typeof(ShellLayout)">
+            <EmptyState Icon="@Icons.Material.Filled.WrongLocation"
+                        Title="Tela não encontrada"
+                        Description="O launcher tentou abrir uma tela que não existe nesta versão.">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/">
+                    Voltar ao início
+                </MudButton>
+            </EmptyState>
+        </LayoutView>
+    </NotFound>
+</Router>

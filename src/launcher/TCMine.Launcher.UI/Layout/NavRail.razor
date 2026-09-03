@@ -1,0 +1,33 @@
+@* Trilho de navegação: ícone só, 64px, como no desenho de referência.
+
+   Um NavLink de largura cheia não cabe aqui — a área útil é a tela do jogo, não
+   o menu. O rótulo aparece no tooltip, e o item ativo é marcado por uma barra
+   lateral em vez de fundo cheio, que competiria com o laranja da marca. *@
+
+<nav class="tc-rail" aria-label="Navegação principal">
+    <div class="tc-rail-group">
+        @foreach (var item in Primary)
+        {
+            @RenderItem(item)
+        }
+    </div>
+
+    <div class="tc-rail-group tc-rail-bottom">
+        @foreach (var item in Secondary)
+        {
+            @RenderItem(item)
+        }
+    </div>
+</nav>
+
+@code
+{
+    private RenderFragment RenderItem(NavItem item) =>
+        @<MudTooltip Text="@item.Label" Placement="Placement.Right">
+            <MudIconButton Icon="@item.Icon"
+                           Href="@item.Href"
+                           Color="@(IsActive(item) ? Color.Primary : Color.Default)"
+                           Class="@($"tc-rail-btn {(IsActive(item) ? "tc-rail-btn-active" : "")}")"
+                           aria-label="@item.Label"/>
+        </MudTooltip>;
+}

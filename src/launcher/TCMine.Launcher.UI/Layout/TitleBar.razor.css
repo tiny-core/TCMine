@@ -1,0 +1,35 @@
+.tc-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  flex: 0 0 auto;
+  padding-left: 12px;
+  background: var(--mud-palette-appbar-background);
+  border-bottom: 1px solid var(--mud-palette-lines-default);
+  /* A faixa inteira é área de arrasto: selecionar o título com o mouse seria um
+     acidente, nunca uma intenção. */
+  user-select: none;
+}
+
+.tc-titlebar-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--mud-palette-text-secondary);
+}
+
+.tc-titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-right: 6px;
+}
+
+/* Fechar em vermelho só no hover, como no resto do Windows: destacado sempre
+   viraria um alvo chamativo ao lado de um botão inofensivo. */
+.tc-titlebar-actions ::deep .tc-titlebar-close:hover {
+  background: var(--mud-palette-error);
+  color: var(--mud-palette-error-text);
+}

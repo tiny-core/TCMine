@@ -1,0 +1,34 @@
+@inherits LayoutComponentBase
+
+@* Moldura da aplicação: barra de título, trilho de navegação, conteúdo e barra
+   de estado. É o equivalente ao MainLayout do painel — mesmos provedores do
+   MudBlazor, mesmos defaults de diálogo — com a diferença de que aqui a janela
+   inteira é nossa, então o layout começa na barra de título e não no AppBar. *@
+
+<MudThemeProvider Theme="TcMineTheme.Default" IsDarkMode="true" ObserveSystemDarkModeChange="false"/>
+<MudPopoverProvider/>
+<MudDialogProvider CloseButton="true"
+                   CloseOnEscapeKey="true"
+                   BackdropClick="true"
+                   MaxWidth="MaxWidth.Small"
+                   FullWidth="true"
+                   Position="DialogPosition.Center"/>
+<MudSnackbarProvider/>
+
+@* Emite as variáveis --tc-* a partir de TcColors. No painel isto vai no <head>
+   do App.razor; aqui não existe App.razor, então entra no topo da árvore — um
+   <style> no corpo vale igual, e mantém o index.html sem lógica. *@
+<TcMineTokens/>
+
+<div class="tc-shell">
+    <TitleBar/>
+
+    <div class="tc-shell-body">
+        <NavRail/>
+        <main class="tc-shell-content">
+            @Body
+        </main>
+    </div>
+
+    <StatusBar/>
+</div>
