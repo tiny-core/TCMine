@@ -295,6 +295,17 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `EnvironmentMinecraftAuthenticator` usa um token REAL de
   `TCMINE_DEV_MINECRAFT_TOKEN` — o servidor continua verificando com a Mojang, e
   o arquivo nem é compilado em release.
+- **Catálogo**: `IServerConnection` (porta) esconde o SignalR de tudo acima dela,
+  e `SignalRServerConnection` guarda UMA conexão para a aplicação inteira — uma
+  por tela faria o servidor ver o mesmo jogador como vários. O canal é aberto
+  **sob demanda** pelo `LoadCatalog`, e não no login: ligar no login deixaria a
+  tela sem saída quando a conexão caísse depois, porque o botão de "tentar de
+  novo" não teria o que religar. Sair fecha o canal (ver `SignIn.SignOutAsync`).
+- **`LauncherCatalogContractTests` sobe a aplicação num socket REAL (Kestrel em
+  porta efêmera), e não no TestServer.** É o único jeito de exercer o cliente do
+  launcher como ele é: ele monta o próprio `HttpClient` e o próprio
+  `HubConnection`, e não há onde injetar o handler em memória sem furar o desenho
+  para o teste ver. Foi esse teste que pegou o `[.. ]` no hub.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 
@@ -326,6 +337,13 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   dois transportes.
 - **`dotnet test` não roda esta solução no SDK do .NET 10** (o caminho VSTest foi removido e o xUnit v3 usa o
   Microsoft.Testing.Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
+- **Método de Hub NUNCA devolve `[.. algo]` com alvo `IReadOnlyList<T>`.** A
+  expressão de coleção materializa o tipo interno sintetizado pelo compilador
+  (`<>z__ReadOnlyList`), e o MessagePack não o serializa: a chamada morre em
+  runtime **derrubando a conexão**, e o cliente recebe "Failed to serialize".
+  Compila, passa nos testes que falam JSON, e quebra só no launcher — que é o
+  único que usa MessagePack. `GetModpacksAsync` e `GetServersAsync` estavam
+  assim desde sempre. Devolva `ToArray()`.
 - **Nada de inicializador estático que leia `Default` num `JsonSerializerContext`.**
   O `TcMineJsonContext` declarava `public static new readonly JsonSerializerOptions
   Options = new(...) { TypeInfoResolver = Default }`. Esse inicializador roda durante

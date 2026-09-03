@@ -53,6 +53,10 @@ public static class DependencyInjection
 
         services.AddSingleton<LauncherHubClientFactory>();
 
+        // Singleton: uma conexão para a aplicação inteira. Ver
+        // SignalRServerConnection para o porquê de não haver uma por tela.
+        services.AddSingleton<IServerConnection, SignalRServerConnection>();
+
         return services;
     }
 }

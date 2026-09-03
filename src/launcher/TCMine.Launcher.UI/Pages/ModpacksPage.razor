@@ -2,9 +2,88 @@
 
 <PageTitle>Modpacks</PageTitle>
 
-<PageHeader Title="Modpacks"
-            Subtitle="O catálogo publicado pelo servidor."/>
+<PageHeader Title="Modpacks" Subtitle="O catálogo publicado pelo servidor.">
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               Disabled="_loading"
+               OnClick="LoadAsync">
+        Atualizar
+    </MudButton>
+</PageHeader>
 
-<EmptyState Icon="@Icons.Material.Filled.Widgets"
-            Title="Nenhum modpack disponível"
-            Description="O catálogo é publicado pelo servidor e aparece aqui assim que a sua conta tiver acesso."/>
+@if (_loading)
+{
+    <LoadingCards Count="6"/>
+}
+else if (_catalog?.Failed is true)
+{
+    @* Erro é diferente de vazio: um catálogo vazio é uma resposta, e uma falha
+       de canal pede uma nova tentativa. Um estado só para os dois faria o
+       jogador achar que o servidor não publicou nada. *@
+    <EmptyState Icon="@Icons.Material.Filled.CloudOff"
+                Title="Não foi possível carregar o catálogo"
+                Description="@_catalog.Error">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync">
+            Tentar de novo
+        </MudButton>
+    </EmptyState>
+}
+else if (_catalog?.IsEmpty is true)
+{
+    <EmptyState Icon="@Icons.Material.Filled.Widgets"
+                Title="Nenhum modpack disponível"
+                Description="O catálogo é publicado pelo servidor e aparece aqui assim que a sua conta tiver acesso."/>
+}
+else if (_catalog is not null)
+{
+    <MudGrid>
+        @foreach (var entrada in _catalog.Entries)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Class="tc-card tc-fade-in" Elevation="0" Outlined="true">
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                            <MudAvatar Color="Color.Primary" Rounded="true">
+                                @entrada.Modpack.Name[..1].ToUpperInvariant()
+                            </MudAvatar>
+                            <MudStack Spacing="0" Style="min-width:0;">
+                                <MudText Typo="Typo.subtitle1">@entrada.Modpack.Name</MudText>
+                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                    @entrada.Modpack.Slug
+                                </MudText>
+                            </MudStack>
+                        </MudStack>
+
+                        <MudStack Row="true" Spacing="2" Class="mt-3" Wrap="Wrap.Wrap">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                @entrada.Modpack.MinecraftVersion
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined">
+                                @entrada.Modpack.Loader
+                            </MudChip>
+
+                            @* Só aparece quando existe servidor: um chip
+                               "sem servidor" ocuparia espaço para dizer nada. *@
+                            @if (entrada.HasServer)
+                            {
+                                <MudChip T="string" Size="Size.Small"
+                                         Variant="Variant.Filled"
+                                         Color="@(entrada.IsAnyServerRunning ? Color.Success : Color.Default)"
+                                         Icon="@Icons.Material.Filled.Dns">
+                                    @ServerLabel(entrada)
+                                </MudChip>
+                            }
+                        </MudStack>
+
+                        @if (!string.IsNullOrWhiteSpace(entrada.Modpack.Summary))
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary mt-3">
+                                @entrada.Modpack.Summary
+                            </MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}

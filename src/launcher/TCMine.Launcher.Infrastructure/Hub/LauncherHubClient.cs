@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR.Client;
+﻿using System.Net;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Hubs;
@@ -23,7 +24,7 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
 
     public LauncherHubClient(
         Uri serverUrl,
-        Func<Task<string?>> accessTokenProvider,
+        CookieContainer cookies,
         ILogger<LauncherHubClient> logger)
     {
         _logger = logger;
@@ -31,10 +32,15 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
         _connection = new HubConnectionBuilder()
             .WithUrl(new Uri(serverUrl, HubRoutes.Main), options =>
             {
-                // O token é buscado a cada (re)conexão, não fixado uma vez.
-                // Assim, quando expira e é renovado, a reconexão pega o novo
-                // sem recriar o cliente.
-                options.AccessTokenProvider = accessTokenProvider;
+                // O MESMO pote de cookies dos pedidos HTTP, e não um token.
+                // A sessão emitida no login é um cookie — o mesmo do painel — e
+                // o hub a lê como qualquer requisição autenticada. Um segundo
+                // caminho de credencial aqui seria mais uma coisa para expirar
+                // sozinha e mais uma para manter em dia.
+                //
+                // O container é compartilhado por referência de propósito: quando
+                // o cookie é renovado, a reconexão pega o novo sem recriar nada.
+                options.Cookies = cookies;
             })
             .AddMessagePackProtocol()
             // Reconecta sozinho com backoff. Sem argumento, a política vai

@@ -2,6 +2,7 @@ using TCMine.Contracts;
 using TCMine.Contracts.Identity;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Identity;
+using TCMine.Launcher.Core.Tests.Fakes;
 
 namespace TCMine.Launcher.Core.Tests.Identity;
 
@@ -30,7 +31,7 @@ public class SignInTests
         var api = new ApiFalsa();
 
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.NoStoredCredentials()), api);
+            new AutenticadorFalso(MinecraftAuthResult.NoStoredCredentials()), api, new FakeServerConnection());
 
         var estado = await entrada.ResumeAsync(Config, Ct);
 
@@ -44,7 +45,8 @@ public class SignInTests
     {
         var api = new ApiFalsa(SessionResult.Success(Sessao()));
 
-        var entrada = new SignIn(new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")), api);
+        var entrada = new SignIn(
+            new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")), api, new FakeServerConnection());
 
         var estado = await entrada.ResumeAsync(Config, Ct);
 
@@ -58,7 +60,8 @@ public class SignInTests
     {
         // Cancelar é uma decisão. Avisar seria repetir ao jogador o que ele
         // acabou de fazer.
-        var entrada = new SignIn(new AutenticadorFalso(MinecraftAuthResult.Cancelled()), new ApiFalsa());
+        var entrada = new SignIn(
+            new AutenticadorFalso(MinecraftAuthResult.Cancelled()), new ApiFalsa(), new FakeServerConnection());
 
         var estado = await entrada.InteractiveAsync(Config, Ct);
 
@@ -71,7 +74,8 @@ public class SignInTests
     {
         var entrada = new SignIn(
             new AutenticadorFalso(MinecraftAuthResult.Unavailable("ainda não disponível")),
-            new ApiFalsa());
+            new ApiFalsa(),
+            new FakeServerConnection());
 
         var estado = await entrada.InteractiveAsync(Config, Ct);
 
@@ -86,7 +90,8 @@ public class SignInTests
         // trocar de conta, não para tentar de novo.
         var entrada = new SignIn(
             new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")),
-            new ApiFalsa(SessionResult.Rejected("conta não reconhecida")));
+            new ApiFalsa(SessionResult.Rejected("conta não reconhecida")),
+            new FakeServerConnection());
 
         var estado = await entrada.InteractiveAsync(Config, Ct);
 
@@ -99,7 +104,8 @@ public class SignInTests
     {
         var entrada = new SignIn(
             new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")),
-            new ApiFalsa(SessionResult.Failed("sem rede")));
+            new ApiFalsa(SessionResult.Failed("sem rede")),
+            new FakeServerConnection());
 
         var estado = await entrada.InteractiveAsync(Config, Ct);
 
@@ -107,20 +113,30 @@ public class SignInTests
     }
 
     [Fact]
-    public async Task Sair_encerra_a_sessao_no_servidor_antes_da_credencial_local()
+    public async Task Sair_encerra_o_servidor_depois_o_canal_e_por_fim_o_local()
     {
-        // A ordem é a garantia: na ordem inversa, uma queda de rede no meio
-        // deixaria a máquina sem credencial e a sessão viva do outro lado, sem
-        // como encerrá-la.
+        // A ordem é a garantia. Na inversa, uma queda de rede no meio deixaria a
+        // máquina sem credencial e a sessão viva do outro lado, sem como
+        // encerrá-la — e o canal continuaria aberto carregando um cookie morto.
         var ordem = new List<string>();
         var api = new ApiFalsa(registro: () => ordem.Add("servidor"));
+        var canal = new CanalQueRegistra(ordem);
         var autenticador = new AutenticadorFalso(
             MinecraftAuthResult.NoStoredCredentials(), registro: () => ordem.Add("local"));
 
-        var estado = await new SignIn(autenticador, api).SignOutAsync(Config, Ct);
+        var estado = await new SignIn(autenticador, api, canal).SignOutAsync(Config, Ct);
 
         estado.Status.ShouldBe(SignInStatus.SignedOut);
-        ordem.ShouldBe(["servidor", "local"]);
+        ordem.ShouldBe(["servidor", "canal", "local"]);
+    }
+
+    private sealed class CanalQueRegistra(List<string> ordem) : FakeServerConnection
+    {
+        public override Task DisconnectAsync()
+        {
+            ordem.Add("canal");
+            return base.DisconnectAsync();
+        }
     }
 
     // ---------- apoio ----------

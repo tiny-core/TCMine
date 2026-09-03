@@ -32,10 +32,19 @@ public sealed class MainHub(
     ConsoleBroadcaster broadcaster,
     IPlayerCountSource players) : Hub<ILauncherClient>, IServerHub
 {
+    /// <summary>
+    ///     ToArray(), e NÃO uma expressão de coleção.
+    ///     `[.. algo]` com alvo IReadOnlyList&lt;T&gt; materializa o tipo interno
+    ///     sintetizado pelo compilador (`&lt;&gt;z__ReadOnlyList`), e o MessagePack
+    ///     não consegue serializá-lo: a chamada morre em runtime derrubando a
+    ///     conexão, com o cliente recebendo "Failed to serialize". Compila, passa
+    ///     nos testes que falam JSON, e quebra só no launcher — que é quem usa
+    ///     MessagePack. Um array é serializável nativamente.
+    /// </summary>
     public async Task<IReadOnlyList<ModpackDto>> GetModpacksAsync()
     {
         var packs = await modpacks.ListAsync(Context.ConnectionAborted);
-        return [.. packs.Select(m => m.ToDto())];
+        return packs.Select(m => m.ToDto()).ToArray();
     }
 
     public async Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId)
@@ -53,7 +62,8 @@ public sealed class MainHub(
         // olhasse a mensagem do hub.
         var servidores = await accessibleServers.HandleAsync(Context.ConnectionAborted);
 
-        return [.. servidores.Select(s => s.ToDto(players))];
+        // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
+        return servidores.Select(s => s.ToDto(players)).ToArray();
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

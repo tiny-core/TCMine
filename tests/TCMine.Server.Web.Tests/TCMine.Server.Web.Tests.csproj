@@ -9,6 +9,15 @@
     <ProjectReference Include="..\..\src\server\TCMine.Server.Web\TCMine.Server.Web.csproj"/>
 
     <!--
+        O CLIENTE do launcher, para o teste de contrato poder exercer os dois
+        lados de verdade. A regra "servidor não referencia launcher" vale para
+        os assemblies de produção, e é ela que os testes de arquitetura
+        verificam; aqui a referência existe justamente para provar que as duas
+        metades encaixam.
+    -->
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
+
+    <!--
         Referencia o projeto de testes da Application só pelos fakes base
         (Fake*Base.cs). Duplicar aqui um IServerRepository inteiro significaria
         dois lugares para atualizar a cada membro novo na porta — exatamente o

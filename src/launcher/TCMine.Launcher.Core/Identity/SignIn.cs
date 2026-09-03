@@ -1,6 +1,7 @@
 using TCMine.Contracts;
 using TCMine.Contracts.Identity;
 using TCMine.Launcher.Core.Abstractions;
+using TCMine.Launcher.Core.Connectivity;
 
 namespace TCMine.Launcher.Core.Identity;
 
@@ -11,7 +12,10 @@ namespace TCMine.Launcher.Core.Identity;
 ///     Minecraft não sobrevive a este método — quem vale daqui em diante é o
 ///     cookie que o servidor devolveu.
 /// </summary>
-public sealed class SignIn(IMinecraftAuthenticator authenticator, ILauncherSessionApi api)
+public sealed class SignIn(
+    IMinecraftAuthenticator authenticator,
+    ILauncherSessionApi api,
+    IServerConnection connection)
 {
     /// <summary>
     ///     Tenta entrar sem incomodar o jogador, com o que já estiver guardado.
@@ -50,13 +54,17 @@ public sealed class SignIn(IMinecraftAuthenticator authenticator, ILauncherSessi
     }
 
     /// <summary>
-    ///     Sai dos dois lados. O servidor primeiro: se a ordem fosse a inversa e
-    ///     a rede caísse no meio, a máquina ficaria sem credencial local e com a
-    ///     sessão viva do outro lado — sem como encerrá-la.
+    ///     Sai dos três lados, nesta ordem. O servidor primeiro: se a ordem fosse
+    ///     a inversa e a rede caísse no meio, a máquina ficaria sem credencial
+    ///     local e com a sessão viva do outro lado — sem como encerrá-la. O canal
+    ///     em seguida, porque ele carrega a sessão que acabou de ser encerrada e
+    ///     continuaria aberto com uma credencial morta. A credencial local por
+    ///     último, que é a única parte que não depende de ninguém.
     /// </summary>
     public async Task<SignInState> SignOutAsync(LauncherConfig config, CancellationToken ct)
     {
         await api.SignOutAsync(config.ServerUrl, ct);
+        await connection.DisconnectAsync();
         await authenticator.SignOutAsync(ct);
 
         return SignInState.SignedOut();

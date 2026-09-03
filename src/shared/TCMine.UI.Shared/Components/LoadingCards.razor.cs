@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 
-namespace TCMine.Server.Web.Components.Shared;
+namespace TCMine.UI.Shared.Components;
 
 public partial class LoadingCards : ComponentBase
 {

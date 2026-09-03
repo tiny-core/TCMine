@@ -17,7 +17,7 @@ namespace TCMine.Server.Web.Tests.Infrastructure;
 ///     migrations rodam no arranque em Development, então o banco nasce pronto e
 ///     nenhum teste enxerga a base de desenvolvimento.
 /// </summary>
-internal sealed class TcMineAppFactory : WebApplicationFactory<Program>
+internal class TcMineAppFactory : WebApplicationFactory<Program>
 {
     private readonly string _databasePath = Path.Combine(
         Path.GetTempPath(), $"tcmine-teste-{Guid.CreateVersion7():N}.db");
