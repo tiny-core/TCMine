@@ -119,11 +119,11 @@ public sealed class LauncherCatalogContractTests
 
     private sealed class AutenticadorFixo : IMinecraftAuthenticator
     {
-        public Task<MinecraftAuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(MinecraftAuthResult.NoStoredCredentials());
+        public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
+            Task.FromResult(AuthResult.NoStoredCredentials());
 
-        public Task<MinecraftAuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(MinecraftAuthResult.Success("token-bom"));
+        public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
+            Task.FromResult(AuthResult.Success("token-bom"));
 
         public Task SignOutAsync(CancellationToken ct) => Task.CompletedTask;
     }

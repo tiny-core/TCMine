@@ -31,7 +31,7 @@ public class SignInTests
         var api = new ApiFalsa();
 
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.NoStoredCredentials()), api, new FakeServerConnection());
+            new AutenticadorFalso(AuthResult.NoStoredCredentials()), api, new FakeServerConnection());
 
         var estado = await entrada.ResumeAsync(Config, Ct);
 
@@ -46,7 +46,7 @@ public class SignInTests
         var api = new ApiFalsa(SessionResult.Success(Sessao()));
 
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")), api, new FakeServerConnection());
+            new AutenticadorFalso(AuthResult.Success("token-mc")), api, new FakeServerConnection());
 
         var estado = await entrada.ResumeAsync(Config, Ct);
 
@@ -61,7 +61,7 @@ public class SignInTests
         // Cancelar é uma decisão. Avisar seria repetir ao jogador o que ele
         // acabou de fazer.
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.Cancelled()), new ApiFalsa(), new FakeServerConnection());
+            new AutenticadorFalso(AuthResult.Cancelled()), new ApiFalsa(), new FakeServerConnection());
 
         var estado = await entrada.InteractiveAsync(Config, Ct);
 
@@ -73,7 +73,7 @@ public class SignInTests
     public async Task Falha_da_microsoft_no_clique_tem_o_que_dizer()
     {
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.Unavailable("ainda não disponível")),
+            new AutenticadorFalso(AuthResult.Unavailable("ainda não disponível")),
             new ApiFalsa(),
             new FakeServerConnection());
 
@@ -89,7 +89,7 @@ public class SignInTests
         // Repetir com a mesma conta dá no mesmo; a interface precisa dizer para
         // trocar de conta, não para tentar de novo.
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")),
+            new AutenticadorFalso(AuthResult.Success("token-mc")),
             new ApiFalsa(SessionResult.Rejected("conta não reconhecida")),
             new FakeServerConnection());
 
@@ -103,7 +103,7 @@ public class SignInTests
     public async Task Servidor_fora_do_ar_no_login_e_falha_e_nao_recusa()
     {
         var entrada = new SignIn(
-            new AutenticadorFalso(MinecraftAuthResult.Success("token-mc")),
+            new AutenticadorFalso(AuthResult.Success("token-mc")),
             new ApiFalsa(SessionResult.Failed("sem rede")),
             new FakeServerConnection());
 
@@ -122,7 +122,7 @@ public class SignInTests
         var api = new ApiFalsa(registro: () => ordem.Add("servidor"));
         var canal = new CanalQueRegistra(ordem);
         var autenticador = new AutenticadorFalso(
-            MinecraftAuthResult.NoStoredCredentials(), registro: () => ordem.Add("local"));
+            AuthResult.NoStoredCredentials(), registro: () => ordem.Add("local"));
 
         var estado = await new SignIn(autenticador, api, canal).SignOutAsync(Config, Ct);
 
@@ -146,13 +146,13 @@ public class SignInTests
         UserId = Guid.CreateVersion7(), DisplayName = "ana", MinecraftUuid = "abc123"
     };
 
-    private sealed class AutenticadorFalso(MinecraftAuthResult resultado, Action? registro = null)
+    private sealed class AutenticadorFalso(AuthResult resultado, Action? registro = null)
         : IMinecraftAuthenticator
     {
-        public Task<MinecraftAuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
+        public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
             Task.FromResult(resultado);
 
-        public Task<MinecraftAuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
+        public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
             Task.FromResult(resultado);
 
         public Task SignOutAsync(CancellationToken ct)

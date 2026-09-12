@@ -27,7 +27,7 @@ public sealed class SignIn(
     {
         var auth = await authenticator.TrySilentAsync(config.AzureClientId, ct);
 
-        if (auth.Outcome is not MinecraftAuthOutcome.Success)
+        if (auth.Outcome is not AuthOutcome.Success)
             return SignInState.SignedOut();
 
         return await TrocarPorSessaoAsync(config.ServerUrl, auth.AccessToken!, ct);
@@ -40,12 +40,12 @@ public sealed class SignIn(
 
         switch (auth.Outcome)
         {
-            case MinecraftAuthOutcome.Success:
+            case AuthOutcome.Success:
                 return await TrocarPorSessaoAsync(config.ServerUrl, auth.AccessToken!, ct);
 
             // Fechar a janela do navegador é uma decisão, não uma falha. Avisar
             // seria repetir ao jogador o que ele acabou de fazer.
-            case MinecraftAuthOutcome.Cancelled:
+            case AuthOutcome.Cancelled:
                 return SignInState.SignedOut();
 
             default:

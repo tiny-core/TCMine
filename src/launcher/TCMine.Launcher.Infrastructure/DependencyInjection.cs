@@ -49,9 +49,18 @@ public static class DependencyInjection
             })
             .AddStandardResilienceHandler();
 
-        // Substituído pela implementação real do MSAL na fatia da autenticação.
-        // Registrado desde já para a tela de login existir sem quebrar o DI.
-        services.AddSingleton<IMinecraftAuthenticator, PendingMinecraftAuthenticator>();
+        // Substituído pela implementação do MSAL na fatia seguinte. É o único
+        // degrau que falta: a cadeia depois dele já existe abaixo.
+        services.AddSingleton<IMicrosoftTokenProvider, PendingMicrosoftTokenProvider>();
+
+        // Cliente PRÓPRIO, sem o CookieContainer partilhado: estes três serviços
+        // são da Microsoft, e mandar para eles o cookie de sessão do TCMine seria
+        // entregar a sessão do jogador a quem não tem nada com ela.
+        services.AddHttpClient<IMinecraftAuthenticator, MinecraftAuthenticator>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .AddStandardResilienceHandler();
 
         services.AddHttpClient<IBlobDownloader, HttpBlobDownloader>(client =>
             {

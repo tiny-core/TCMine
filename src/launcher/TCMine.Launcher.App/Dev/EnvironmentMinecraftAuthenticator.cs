@@ -23,15 +23,15 @@ internal sealed class EnvironmentMinecraftAuthenticator : IMinecraftAuthenticato
     ///     Silencioso quando não há token: o arranque não deve reclamar de uma
     ///     variável que só o desenvolvedor conhece.
     /// </summary>
-    public Task<MinecraftAuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
+    public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
         Task.FromResult(Token is { Length: > 0 } token
-            ? MinecraftAuthResult.Success(token)
-            : MinecraftAuthResult.NoStoredCredentials());
+            ? AuthResult.Success(token)
+            : AuthResult.NoStoredCredentials());
 
-    public Task<MinecraftAuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
+    public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
         Task.FromResult(Token is { Length: > 0 } token
-            ? MinecraftAuthResult.Success(token)
-            : MinecraftAuthResult.Unavailable(
+            ? AuthResult.Success(token)
+            : AuthResult.Unavailable(
                 $"Build de desenvolvimento sem {Variavel}. Defina a variável com um token "
                 + "de acesso do Minecraft para entrar, ou aguarde a versão com login da Microsoft."));
 
