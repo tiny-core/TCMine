@@ -26,7 +26,48 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
         // Note que o config vai junto mesmo na falha: servidor fora do ar não
         // desfaz pareamento, e apagá-lo aqui mandaria o jogador redigitar o
         // endereço a cada oscilação de rede.
-        return PairingState.FromHandshake(resultado, salvo);
+        var atual = resultado.Outcome is HandshakeOutcome.Ok
+            ? await AtualizarAsync(salvo, resultado.Response!, ct)
+            : salvo;
+
+        return PairingState.FromHandshake(resultado, atual);
+    }
+
+    /// <summary>
+    ///     Adota o que o servidor acabou de dizer sobre si mesmo.
+    ///     Sem isto o pareamento congela no dia em que aconteceu: o client ID do
+    ///     Azure e o nome ficam gravados para sempre, e um administrador que
+    ///     corrija o registo no painel não alcança quem já pareou — o launcher
+    ///     continua a abrir o navegador com o id antigo, que é o sintoma que
+    ///     revelou isto.
+    ///     Só grava quando algo mudou de facto: escrever a cada arranque seria
+    ///     I/O inútil no caminho mais quente do launcher.
+    ///     Um valor em branco NÃO substitui o que está gravado. Servidor sem
+    ///     login configurado é estado transitório — apagar o id por causa dele
+    ///     trocaria "o administrador ainda não configurou" por um ficheiro que o
+    ///     próprio launcher recusa a carregar no arranque seguinte.
+    /// </summary>
+    private async Task<LauncherConfig> AtualizarAsync(
+        LauncherConfig salvo,
+        HandshakeResponse resposta,
+        CancellationToken ct)
+    {
+        var clientId = string.IsNullOrWhiteSpace(resposta.AzureClientId)
+            ? salvo.AzureClientId
+            : resposta.AzureClientId;
+
+        var nome = string.IsNullOrWhiteSpace(resposta.ServerName)
+            ? salvo.DisplayName
+            : resposta.ServerName;
+
+        if (clientId == salvo.AzureClientId && nome == salvo.DisplayName)
+            return salvo;
+
+        var novo = salvo with { AzureClientId = clientId, DisplayName = nome };
+
+        await config.SaveAsync(novo, ct);
+
+        return novo;
     }
 
     /// <summary>

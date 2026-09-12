@@ -136,7 +136,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 - **GUID v7** como chave primária (`Guid.CreateVersion7()`), sortável cronologicamente. **Ordene por `Id`, não por
   `DateTimeOffset`** — o SQLite rejeita `DateTimeOffset` em `ORDER BY`.
-- **Colunas em snake_case** (`modpack_versions`, `game_servers`, `project_slug`).
+- **Tabelas em snake_case** (`modpack_versions`, `game_servers`,
+  `installation_settings`). **Colunas continuam em PascalCase** — não há
+  `HasColumnName` em lugar nenhum e toda migration existente as gera assim. Este
+  documento dizia "colunas em snake_case" e estava errado; renomeá-las hoje seria
+  uma migration por tabela para ganhar nada. Siga o que o código faz.
 - **`IDbContextFactory<TcMineDbContext>`** com **um contexto curto por operação**
   no repositório (nunca um `DbContext` scoped compartilhado — no Blazor Server isso acumularia entidades e daria
   `DbUpdateConcurrencyException`).
@@ -277,9 +281,22 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   rede **não** desfaz o pareamento, senão o jogador redigita o endereço a cada
   oscilação de sinal. O `ShellLayout` faz o arranque uma vez por sessão e manda
   para `/pair` só quando não há configuração nenhuma.
+- **`ResumeAsync` adota o que o servidor responde AGORA** (client id do Azure e
+  nome), e grava só quando muda. Sem isso o pareamento congelava no dia em que
+  aconteceu: o admin corrigia o registo do Azure no painel e quem já tinha pareado
+  continuava a abrir o navegador com o id antigo — sintoma real, e sem nada na
+  tela que apontasse para o `tcmine.json`. Um valor **em branco não substitui** o
+  gravado: servidor sem login configurado é estado transitório, e adotá-lo daria
+  um ficheiro que o próprio launcher recusa a carregar depois.
+- **O client id do Azure vem do SERVIDOR, e mora na tela de configurações dele**
+  (`InstallationSettings.AzureClientId`), não em appsettings — registar a app no
+  Entra ID acontece depois do deploy. `Server:AzureClientId` sobrevive como
+  semente: o handshake usa o do banco e cai no do arquivo quando aquele está
+  vazio. Não é segredo (public client + PKCE), então não é cifrado e volta para a
+  tela preenchido.
 - **Login**: `SignIn` (no Core) junta dois passos que só valem juntos — provar a
-  conta à Microsoft (`IMinecraftAuthenticator`, atrás de porta porque o MSAL com
-  broker é Windows-only) e trocar essa prova por sessão no servidor
+  conta à Microsoft (`IMinecraftAuthenticator`) e trocar essa prova por sessão no
+  servidor
   (`ILauncherSessionApi` → `POST /api/v1/auth/minecraft`). O token do Minecraft
   **não** é guardado: vale uma vez, e o que vale daí em diante é o cookie que o
   servidor devolve — o mesmo do painel. Esse cookie vive num `CookieContainer`
@@ -290,11 +307,36 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   acontece no `ShellLayout`. Guardando o resultado num campo da tela de login,
   uma sessão expirada levava a um login em branco: o jogador tinha de clicar para
   descobrir o que já se sabia.
-- **Enquanto o MSAL não existe**, `PendingMinecraftAuthenticator` responde que
-  esta build não sabe entrar (não é bypass: não fabrica token nenhum). Em Debug,
-  `EnvironmentMinecraftAuthenticator` usa um token REAL de
-  `TCMINE_DEV_MINECRAFT_TOKEN` — o servidor continua verificando com a Mojang, e
-  o arquivo nem é compilado em release.
+- **A autenticação tem dois degraus, e a fronteira não é onde parece.** Só o
+  primeiro é do Windows: `IMicrosoftTokenProvider` (MSAL, em
+  `Infrastructure.Windows`). A cadeia seguinte — Xbox Live → XSTS → Minecraft
+  Services — é HTTPS comum, vive em `MinecraftAuthenticator` na infraestrutura
+  **portável**, e é testada inteira com um `FakeHttpHandler`, sem app do Azure.
+  Enfiar tudo no projeto do Windows compilaria e faria o port para Linux
+  reescrever o que não tem nada de Windows.
+- **O cache é do MSAL, e isso está decidido.** Guardar o refresh token à mão não
+  fecha: um public client **não tem API** para reinjetar um refresh token vindo
+  de fora, então o login silencioso passa obrigatoriamente pelo cache dele
+  (`Extensions.Msal`, DPAPI no Windows). Havia um `ICredentialStore` prometendo o
+  contrário; foi apagado. Um ficheiro de cache **por client id** — partilhá-lo
+  faria sair de um servidor encerrar a sessão no outro.
+- **Navegador do sistema, nunca WebView embutida** (`WithUseEmbeddedWebView(false)`).
+  É a diferença entre o jogador ver a barra de endereço da Microsoft e escrever a
+  palavra-passe numa janela que qualquer um podia ter desenhado — e é o que fixa
+  o redirect URI em `http://localhost`, o mesmo que a tela de configurações manda
+  registar.
+- **A tradução dos erros do MSAL mora no Core** (`MicrosoftSignInFailures`) e tem
+  teste, porque é decisão de produto e não detalhe da biblioteca: fechar o
+  navegador é `Cancelled` e a tela cala-se; credencial expirada vira
+  `NoStoredCredentials` no arranque; app mal registada nomeia o administrador,
+  senão o jogador tenta para sempre contra algo que nunca vai aceitar. O que
+  atravessa a fronteira é um código de erro, que é `string` — a regra proíbe
+  **depender** do pacote, não conhecer o vocabulário dele.
+- **Em Debug, `EnvironmentMinecraftAuthenticator` só assume o lugar quando
+  `TCMINE_DEV_MINECRAFT_TOKEN` existe.** Registá-lo incondicionalmente esconderia
+  o MSAL de quem o está a desenvolver — a build de Debug nunca abriria o
+  navegador. Não é bypass: o token é REAL e o servidor continua a verificá-lo com
+  a Mojang; o arquivo nem é compilado em release.
 - **Catálogo**: `IServerConnection` (porta) esconde o SignalR de tudo acima dela,
   e `SignalRServerConnection` guarda UMA conexão para a aplicação inteira — uma
   por tela faria o servidor ver o mesmo jogador como vários. O canal é aberto
@@ -323,9 +365,16 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   corrupção viajaria para toda instância que usasse o mesmo arquivo. O hardlink em
   si é P/Invoke e vive em `TCMine.Launcher.Infrastructure.Windows`, atrás de
   `IFileLinker`; sem ele o store copia, que é só mais disco.
-- **`TCMine.Launcher.Infrastructure.Windows`** é o único lugar de P/Invoke, DPAPI
-  e, mais adiante, MSAL com broker. `Launcher_Infrastructure_e_portavel` trava a
-  fronteira.
+- **`TCMine.Launcher.Infrastructure.Windows`** é o único lugar de P/Invoke e do
+  MSAL. `Launcher_Infrastructure_e_portavel` trava a fronteira, e ela não precisou
+  mudar para o MSAL entrar: a infraestrutura portável não fala com ele, fala com
+  a porta. Registe por `AddWindowsLauncherInfrastructure(raiz)`, **depois** de
+  `AddLauncherInfrastructure` — as duas portas têm implementação portável que
+  recusa, e aqui o último registo vence.
+- **O TFM ainda é `net10.0-windows` seco, então o NuGet resolve o asset `net8.0`
+  do MSAL.** Serve o navegador do sistema e **não serve o WAM**: o broker exige
+  `net10.0-windows10.0.19041.0`, a mesma forma que o host WPF já carrega. É a
+  primeira linha da fatia do broker, não uma surpresa para descobrir depois.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 
@@ -395,6 +444,20 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   deixaria de ser verificado a cada push.
 - **`[LibraryImport]`** exige `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` no csproj (o marshalling gerado usa
   `unsafe`). Fica contido na Infrastructure do servidor e no `Launcher.App`.
+- **O Xbox devolve `DisplayClaims.xui[].uhs` em minúsculas**, e são os dois
+  únicos campos assim numa resposta toda em PascalCase. O contexto source-gen
+  **não** é case-insensitive: sem `[JsonPropertyName]` neles, o user hash volta
+  nulo, o login morre no ÚLTIMO salto e o erro aponta para o Minecraft, que não
+  tem nada com isso. Quem pegou foi o teste da cadeia, no primeiro arranque dele.
+- **No `Infrastructure.Windows`, `LogLevel` é ambíguo.** O MSAL declara o dele, e
+  ele não é o do `Microsoft.Extensions.Logging` — sem
+  `using LogLevel = Microsoft.Extensions.Logging.LogLevel;` todo `[LoggerMessage]`
+  do projeto deixa de gerar método, com erro que fala de partial e não de
+  ambiguidade.
+- **Config gravada não se atualiza sozinha.** O `tcmine.json` congelava o client
+  id do Azure no dia do pareamento (ver §7.1). A regra geral: tudo o que o
+  servidor descreve sobre si mesmo tem de ser reabsorvido no handshake seguinte,
+  senão uma correção no painel nunca alcança quem já pareou.
 
 ---
 
@@ -425,6 +488,22 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 ---
 
 ## 10. Comandos úteis
+
+> **Sob WSL, o `dotnet` do PATH é o `dotnet.exe` do Windows.** Duas consequências
+> que custam tempo: caminhos absolutos de Linux não servem (use relativos à
+> raiz), e o `dotnet ef` falha com "A compatible .NET SDK was not found" porque o
+> msbuild filho resolve para o `C:\Program Files\dotnet`, que só tem o SDK 9. O
+> SDK 10 está na instalação do utilizador, então:
+>
+> ```bash
+> cmd.exe /c "set DOTNET_ROOT=C:\Users\<user>\.dotnet&& \
+>   set PATH=C:\Users\<user>\.dotnet;%PATH%&& dotnet ef migrations add <Nome> ..."
+> ```
+>
+> O `scripts/tc` também está com CRLF no disco e não executa direto sob WSL
+> (`env: 'bash\r'`). Contorno: `tr -d '\r' < scripts/tc > scripts/.tc-lf && bash
+> scripts/.tc-lf <cmd>` — a cópia tem de ficar em `scripts/`, porque o `ROOT` sai
+> do `BASH_SOURCE`.
 
 ```bash
 # Build / testes

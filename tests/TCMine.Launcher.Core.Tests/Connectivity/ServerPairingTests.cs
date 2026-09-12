@@ -161,6 +161,75 @@ public class ServerPairingTests
         config.Gravado.ShouldBeNull("configuração sem client id não serve para nada");
     }
 
+    [Fact]
+    public async Task Retomar_adota_o_client_id_que_o_servidor_responde_agora()
+    {
+        // O bug que este teste tranca: o pareamento congelava no dia em que
+        // aconteceu. O administrador corrigia o registo do Azure no painel, o
+        // servidor passava a responder o id certo, e quem já tinha pareado
+        // continuava a abrir o navegador com o id antigo — sem nada na tela que
+        // sugerisse onde estava o erro.
+        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
+        var config = new ConfigFalso(salvo);
+        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+
+        var estado = await pareamento.ResumeAsync(Ct);
+
+        estado.Config!.AzureClientId.ShouldBe("client-do-servidor");
+        config.Gravado!.AzureClientId.ShouldBe("client-do-servidor");
+    }
+
+    [Fact]
+    public async Task Retomar_sem_novidade_nao_escreve_no_disco()
+    {
+        // Caminho mais quente do launcher: acontece a cada arranque.
+        var salvo = Config("https://servidor.exemplo") with
+        {
+            AzureClientId = "client-do-servidor", DisplayName = "Servidor de Teste"
+        };
+
+        var config = new ConfigFalso(salvo);
+        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+
+        await pareamento.ResumeAsync(Ct);
+
+        config.Gravado.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Servidor_fora_do_ar_nao_mexe_no_que_esta_gravado()
+    {
+        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-que-funciona" };
+        var config = new ConfigFalso(salvo);
+
+        var pareamento = new ServerPairing(
+            new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Unreachable, null, "fora do ar")),
+            config);
+
+        var estado = await pareamento.ResumeAsync(Ct);
+
+        config.Gravado.ShouldBeNull();
+        estado.Config!.AzureClientId.ShouldBe("id-que-funciona");
+    }
+
+    [Fact]
+    public async Task Servidor_que_perdeu_o_client_id_nao_apaga_o_gravado()
+    {
+        // Um painel com o campo em branco é estado transitório. Adotá-lo daria um
+        // tcmine.json que o próprio launcher recusa a carregar no arranque
+        // seguinte — trocar "ainda não configurado" por "pareamento perdido".
+        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
+        var config = new ConfigFalso(salvo);
+
+        var pareamento = new ServerPairing(
+            new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Ok, Resposta(clientId: ""), null)),
+            config);
+
+        var estado = await pareamento.ResumeAsync(Ct);
+
+        estado.Config!.AzureClientId.ShouldBe("id-antigo");
+    }
+
     // ---------- apoio ----------
 
     private static LauncherConfig Config(string url) => new()
