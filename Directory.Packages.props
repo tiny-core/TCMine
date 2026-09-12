@@ -77,4 +77,21 @@
     <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.100" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
   </ItemGroup>
+  <!--
+    Login com a Microsoft, no launcher. Só o Infrastructure.Windows referencia
+    estes dois: é a fronteira que a regra de arquitetura protege, e a cadeia
+    Xbox/XSTS/Minecraft que vem depois deles não precisa de nenhum.
+
+    O Extensions.Msal é o que persiste o cache do MSAL — no Windows por DPAPI,
+    e com implementação própria para keyring e keychain no dia do port. Guardar
+    o refresh token à mão seria reescrever isso pior: um public client não tem
+    API para reinjetar um refresh token guardado por fora, então o cache dele é
+    o único caminho para o login silencioso.
+
+    As versões andam em lockstep com o MSAL; subir uma exige subir a outra.
+  -->
+  <ItemGroup Label="step_14">
+    <PackageVersion Include="Microsoft.Identity.Client" Version="4.89.0" />
+    <PackageVersion Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.89.0" />
+  </ItemGroup>
 </Project>

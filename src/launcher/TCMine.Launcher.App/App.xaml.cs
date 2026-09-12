@@ -57,14 +57,18 @@ public partial class App : Application
 
         builder.Services.AddLauncherInfrastructure(raiz);
 
-        // Substitui o linker que não liga: aqui estamos no Windows, e é o
-        // hardlink que faz dez modpacks com o mesmo mod ocuparem um arquivo só.
-        builder.Services.AddSingleton<IFileLinker, WindowsFileLinker>();
+        // Substitui as portas que a infraestrutura portável só sabe recusar:
+        // o linker que não liga, e o login que ainda não sabia entrar.
+        builder.Services.AddWindowsLauncherInfrastructure(raiz);
 #if DEBUG
-        // Substitui o autenticador pendente por um que aceita um token real vindo
-        // do ambiente. Registrado DEPOIS da infraestrutura de propósito: o último
-        // registro vence. Em release este bloco não é compilado.
-        builder.Services.AddSingleton<IMinecraftAuthenticator, EnvironmentMinecraftAuthenticator>();
+        // Atalho de desenvolvimento, e SÓ quando a variável existe. Registrar
+        // sempre passaria por cima do MSAL que acabou de entrar: quem estivesse
+        // a trabalhar no login nunca veria o navegador abrir, porque este
+        // autenticador responderia primeiro — e responderia "não sei entrar".
+        // Registrado DEPOIS da infraestrutura de propósito: o último vence.
+        // Em release o bloco inteiro não é compilado.
+        if (EnvironmentMinecraftAuthenticator.Disponivel)
+            builder.Services.AddSingleton<IMinecraftAuthenticator, EnvironmentMinecraftAuthenticator>();
 #endif
         builder.Services.AddLauncherCore();
         builder.Services.AddLauncherUi();

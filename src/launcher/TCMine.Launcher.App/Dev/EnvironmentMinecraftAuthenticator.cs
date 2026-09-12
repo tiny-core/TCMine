@@ -20,6 +20,15 @@ internal sealed class EnvironmentMinecraftAuthenticator : IMinecraftAuthenticato
     private static string? Token => Environment.GetEnvironmentVariable(Variavel);
 
     /// <summary>
+    ///     Há token no ambiente para este atalho assumir o lugar do MSAL.
+    ///     Consultado no registo, e não aqui dentro: desde que o MSAL existe,
+    ///     registar este autenticador incondicionalmente em Debug esconderia o
+    ///     fluxo real de quem o está a desenvolver — a build de Debug nunca
+    ///     chegaria a abrir o navegador.
+    /// </summary>
+    internal static bool Disponivel => Token is { Length: > 0 };
+
+    /// <summary>
     ///     Silencioso quando não há token: o arranque não deve reclamar de uma
     ///     variável que só o desenvolvedor conhece.
     /// </summary>
