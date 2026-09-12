@@ -40,6 +40,9 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
     /// </summary>
     public Action<IServiceCollection>? Servicos { get; init; }
 
+    /// <summary>O que o appsettings do teste oferece como semente do login.</summary>
+    public const string ClientIdDoArquivo = "11111111-1111-1111-1111-111111111111";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(_environment);
@@ -55,10 +58,11 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
         if (Servicos is not null)
             builder.ConfigureTestServices(Servicos);
 
-        // Obrigatório fora de Development, e nada aqui testa o login do
-        // launcher: sem um padrão, toda suíte que sobe em Production teria de
-        // saber desta chave.
-        builder.UseSetting("Server:AzureClientId", "client-id-de-teste");
+        // Já foi obrigatório fora de Development; hoje o valor mora na tela de
+        // configurações e esta chave é só a semente. Continua aqui porque o
+        // handshake tem de devolver algo plausível, e precisa ser um GUID: a
+        // validação de arranque recusa formato inválido mesmo em Development.
+        builder.UseSetting("Server:AzureClientId", ClientIdDoArquivo);
 
         builder.UseSetting("Database:Provider", "Sqlite");
         builder.UseSetting("Database:ConnectionString", $"Data Source={_databasePath}");

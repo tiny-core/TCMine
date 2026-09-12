@@ -38,14 +38,17 @@ public static class OptionsValidation
                 "Server:PublicUrl precisa ser uma URL absoluta http/https — o jogador alcança "
                 + "este endereço de fora, não é o IP interno do container.")
             .Validate(
-                // Mesma lógica do PublicUrl: em Development ninguém entra pelo
-                // launcher, mas em produção este campo vazio significa que o
-                // jogador abre o launcher e não tem contra o que autenticar. O
-                // servidor sobe saudável e o sintoma aparece só na máquina dele.
-                o => environment.IsDevelopment() || !string.IsNullOrWhiteSpace(o.AzureClientId),
-                "Server:AzureClientId é obrigatório fora de Development: é o client id da app "
-                + "Azure que o launcher usa para o login com a Microsoft. Sem ele nenhum "
-                + "jogador consegue entrar.")
+                // Já foi obrigatório aqui, e deixou de ser quando o valor passou a
+                // morar na tela de configurações: exigi-lo no arranque impediria
+                // o servidor de subir justamente para o admin poder configurá-lo.
+                // Não é regressão de segurança — vazio nos dois lados apenas faz
+                // o pareamento recusar, com a mensagem mandando avisar o
+                // administrador, que é quem tem como agir.
+                // O formato continua valendo: um id malformado no arquivo só se
+                // manifestaria como falha de login na máquina do jogador.
+                o => string.IsNullOrWhiteSpace(o.AzureClientId) || Guid.TryParse(o.AzureClientId, out _),
+                "Server:AzureClientId precisa ser um GUID — é o \"ID do aplicativo (cliente)\" do "
+                + "registro no Entra ID. Remova a chave para configurá-lo pelo painel.")
             .Validate(
                 // String vazia não é o mesmo que ausente: vazia o launcher recebe
                 // e tenta comparar; ausente ele entende como "sem mínimo".

@@ -27,14 +27,29 @@ public class StartupValidationTests
     }
 
     [Fact]
-    public void Producao_sem_AzureClientId_recusa_subir()
+    public void Producao_sem_AzureClientId_sobe_para_poder_ser_configurada()
     {
-        // Sem o client id, o launcher não tem contra o que autenticar: o
-        // servidor sobe saudável e o jogador é quem descobre, na máquina dele.
+        // Já foi o contrário, e estava errado: o client id passou a morar na tela
+        // de configurações, então exigi-lo no arranque impediria o servidor de
+        // subir justamente para o admin poder configurá-lo. Vazio nos dois lados
+        // apenas faz o pareamento recusar, com uma mensagem que diz a quem
+        // recorrer — e não há como o jogador entrar por acidente.
         using var factory = new TcMineAppFactory(
             "Production",
             ("Server:PublicUrl", "https://exemplo.com/"),
             ("Server:AzureClientId", ""));
+
+        Should.NotThrow(() => factory.CreateClient());
+    }
+
+    [Fact]
+    public void AzureClientId_malformado_recusa_subir()
+    {
+        // Deixar de ser obrigatório não é deixar de ser verificado. Um id que não
+        // é GUID atravessa o handshake inteiro e só falha no MSAL, na máquina do
+        // jogador — longe de quem consegue corrigir.
+        using var factory = new TcMineAppFactory(
+            settings: ("Server:AzureClientId", "nao-e-um-guid"));
 
         var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
 

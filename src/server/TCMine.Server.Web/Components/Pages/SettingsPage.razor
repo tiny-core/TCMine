@@ -101,6 +101,109 @@ else
             </MudGrid>
         </MudTabPanel>
 
+        <MudTabPanel Text="Login" Icon="@Icons.Material.Filled.Login" Class="pa-6">
+            <MudText Typo="Typo.subtitle1" Class="mb-1">Login com a Microsoft</MudText>
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                O launcher prova a conta do jogador contra uma app registrada no Entra ID
+                (Azure) e troca essa prova por uma sessão aqui. Sem o client ID, o launcher
+                recusa o pareamento pedindo para avisar o administrador — ninguém entra.
+            </MudText>
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                @if (!string.IsNullOrWhiteSpace(_azureClientId))
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.CheckCircle">
+                        Login configurado
+                    </MudChip>
+                }
+                else if (_hasAzureClientIdFromFile)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.Description">
+                        Configurado por arquivo
+                    </MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
+                             Icon="@Icons.Material.Filled.ErrorOutline">
+                        Jogadores não conseguem entrar
+                    </MudChip>
+                }
+            </MudStack>
+
+            @* Sem este aviso, quem configurou por appsettings abre esta tela, vê o
+               campo vazio e conclui que o login está quebrado — quando está de pé. *@
+            @if (_hasAzureClientIdFromFile)
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                    Há um client ID definido em <code>Server:AzureClientId</code> (appsettings ou
+                    variável de ambiente): <strong>@_azureClientIdFromFile</strong>. Ele vale
+                    enquanto o campo abaixo estiver vazio. Preencher aqui tem precedência e
+                    passa a valer no próximo handshake, sem reiniciar o servidor.
+                </MudAlert>
+            }
+
+            <MudGrid>
+                <MudItem xs="12" md="8">
+                    <MudTextField @bind-Value="_azureClientId" Label="ID do aplicativo (cliente)"
+                                  Variant="Variant.Outlined" Immediate="true"
+                                  Placeholder="00000000-0000-0000-0000-000000000000"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Custom.Brands.Microsoft"
+                                  HelperText="GUID do registro no Entra ID. Não é segredo: o launcher o recebe no handshake."/>
+                </MudItem>
+            </MudGrid>
+
+            <MudText Typo="Typo.subtitle2" Class="mt-8 mb-2">Como registrar a app no Azure</MudText>
+
+            <MudList T="string" Dense="true" Class="mb-4">
+                <MudListItem T="string" Icon="@Icons.Material.Filled.LooksOne">
+                    <MudText Typo="Typo.body2">
+                        No <strong>portal.azure.com</strong>, abra <em>Microsoft Entra ID → Registros
+                        de aplicativo → Novo registro</em>.
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.LooksTwo">
+                    <MudText Typo="Typo.body2">
+                        Em tipos de conta, escolha <strong>somente contas Microsoft pessoais</strong>.
+                        Conta de Minecraft é sempre conta pessoal; escolher o tipo organizacional faz
+                        todo login falhar, e o erro aparece só na máquina do jogador.
+                    </MudText>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks3">
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        Adicione a plataforma <strong>cliente público / nativo</strong> e registre os
+                        dois URIs de redirecionamento abaixo — um por caminho de login, e faltando o
+                        do broker o jogador precisa digitar a senha toda vez:
+                    </MudText>
+                    <MudPaper Outlined="true" Class="pa-3 mb-1">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Navegador do sistema</MudText>
+                        <MudText Typo="Typo.body2"><code>http://localhost</code></MudText>
+                    </MudPaper>
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Broker do Windows (WAM)</MudText>
+                        <MudText Typo="Typo.body2">
+                            <code>ms-appx-web://microsoft.aad.brokerplugin/@(_azureClientIdPreview)</code>
+                        </MudText>
+                    </MudPaper>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks4">
+                    <MudText Typo="Typo.body2">
+                        Habilite <strong>permitir fluxos de cliente público</strong> e copie o
+                        <em>ID do aplicativo (cliente)</em> para o campo acima. A app não precisa de
+                        segredo: o fluxo usa PKCE, e um segredo no launcher seria público de qualquer forma.
+                    </MudText>
+                </MudListItem>
+            </MudList>
+
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                A Mojang exige aprovação para apps de terceiros usarem a API de autenticação do
+                Minecraft. Enquanto ela não sai, o registro fica correto e o login ainda falha na
+                etapa do XSTS — não adianta procurar erro na configuração daqui.
+            </MudAlert>
+        </MudTabPanel>
+
         <MudTabPanel Text="E-mail" Icon="@Icons.Material.Filled.Email" Class="pa-6">
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                 Usado na recuperação de senha. Enquanto não houver servidor configurado,

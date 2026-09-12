@@ -23,6 +23,19 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         if (command.SmtpPort is < 1 or > 65535)
             return Result.Fail("Porta de SMTP inválida.");
 
+        // Um id malformado só se manifestaria na máquina do jogador, como uma
+        // falha de login sem explicação: o handshake entrega o lixo, o MSAL
+        // tenta montar a autoridade com ele e desiste. Recusar aqui move o erro
+        // para quem consegue corrigi-lo.
+        var azureClientId = Trimmed(command.AzureClientId);
+
+        if (azureClientId is not null && !Guid.TryParse(azureClientId, out _))
+        {
+            return Result.Fail(
+                "O client ID do Azure precisa ser um GUID — é o campo \"ID do aplicativo (cliente)\" "
+                + "do registro no Entra ID, não o nome da app nem o ID de objeto.");
+        }
+
         var settings = await repository.GetAsync(ct);
 
         settings.DefaultMinecraftVersion = string.IsNullOrWhiteSpace(command.DefaultMinecraftVersion)
@@ -37,6 +50,11 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         settings.SmtpUser = Trimmed(command.SmtpUser);
         settings.SmtpFrom = Trimmed(command.SmtpFrom);
         settings.SmtpUseTls = command.SmtpUseTls;
+
+        // Não segue a regra "vazio = manter" dos segredos abaixo: este valor é
+        // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
+        // deliberado do admin — não um campo que ele não teve como preencher.
+        settings.AzureClientId = azureClientId;
 
         // Os segredos vão em claro para o repositório, que cifra ao gravar.
         if (command.ClearCurseForgeApiKey)
@@ -65,6 +83,12 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Backups automáticos a manter por servidor. Zero = ilimitado.</summary>
     public int WorldBackupKeepCount { get; init; } = 5;
+
+    /// <summary>
+    ///     Client ID da app Azure do login com a Microsoft. Vazio = limpar
+    ///     (não é segredo, então a tela sempre devolve o valor atual).
+    /// </summary>
+    public string? AzureClientId { get; init; }
 
     /// <summary>Nova chave. Vazio = manter a atual.</summary>
     public string? CurseForgeApiKey { get; init; }

@@ -67,6 +67,14 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.SmtpFrom = settings.SmtpFrom;
         stored.SmtpUseTls = settings.SmtpUseTls;
 
+        stored.AzureClientId = settings.AzureClientId;
+
+        // Estava faltando: o caso de uso gravava o valor na entidade e este
+        // método o descartava, então a retenção de backups voltava a 5 a cada
+        // "Salvar". É a armadilha desta cópia campo a campo — acrescentar
+        // propriedade no domínio não quebra nada aqui, o valor só some.
+        stored.WorldBackupKeepCount = settings.WorldBackupKeepCount;
+
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);
         stored.SmtpPasswordEncrypted = Protect(settings.SmtpPasswordEncrypted);
 

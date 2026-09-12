@@ -20,6 +20,10 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.CurseForgeApiKeyEncrypted).HasMaxLength(1024);
         builder.Property(s => s.SmtpPasswordEncrypted).HasMaxLength(1024);
 
+        // GUID em texto tem 36 caracteres; a folga cobre um id entre chaves,
+        // que é como o portal do Azure às vezes o entrega ao copiar.
+        builder.Property(s => s.AzureClientId).HasMaxLength(64);
+
         builder.Property(s => s.SmtpHost).HasMaxLength(256);
         builder.Property(s => s.SmtpUser).HasMaxLength(256);
         builder.Property(s => s.SmtpFrom).HasMaxLength(256);

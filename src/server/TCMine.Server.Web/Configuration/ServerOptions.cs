@@ -22,6 +22,10 @@ public sealed class ServerOptions
     /// <summary>
     ///     Client ID da app Azure usada no login com a Microsoft. Público por
     ///     natureza — o fluxo do Minecraft usa public client com PKCE.
+    ///     SEMENTE, não fonte da verdade: quem manda é o valor gravado pela tela
+    ///     de configurações, e esta chave só é consultada enquanto lá estiver
+    ///     vazio. Existe para que instalação configurada por arquivo ou por
+    ///     variável de ambiente continue funcionando sem migração manual.
     /// </summary>
     public string AzureClientId { get; set; } = string.Empty;
 

@@ -40,6 +40,23 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public string? CurseForgeApiKeyEncrypted { get; set; }
 
+    // ---------- Login com a Microsoft (MSAL, no launcher) ----------
+
+    /// <summary>
+    ///     Client ID da app Azure contra a qual os jogadores autenticam.
+    ///     Vive aqui, e não em appsettings, porque registrar a app no Azure é
+    ///     uma etapa que acontece DEPOIS do deploy, feita pela mesma pessoa que
+    ///     cola a chave do CurseForge na mesma tela. Estando em arquivo, o
+    ///     sintoma era: o jogador pareia, ouve "avise o administrador", e o
+    ///     administrador precisa entrar no container, editar JSON e reiniciar.
+    ///     Ao contrário dos outros dois campos sensíveis desta classe, NÃO é
+    ///     segredo e não é cifrado: o fluxo do Minecraft usa public client com
+    ///     PKCE, o id viaja no handshake para qualquer launcher que pergunte, e
+    ///     por isso volta normalmente para a tela.
+    ///     Nulo enquanto ninguém configurou.
+    /// </summary>
+    public string? AzureClientId { get; set; }
+
     // ---------- E-mail (recuperação de senha, convites) ----------
 
     public string? SmtpHost { get; set; }

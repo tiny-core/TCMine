@@ -1,13 +1,37 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
+using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Components.Pages;
 
 public partial class SettingsPage : ComponentBase
 {
+    /// <summary>
+    ///     Client ID gravado no painel. Ao contrário dos segredos desta tela, ele
+    ///     volta preenchido: é público, o launcher o recebe de qualquer forma no
+    ///     handshake, e escondê-lo só impediria o admin de conferir o que está no ar.
+    /// </summary>
+    private string _azureClientId = "";
+
+    /// <summary>O que veio de appsettings, só para explicar de onde sai o valor em uso.</summary>
+    private string _azureClientIdFromFile = "";
+
+    private bool _hasAzureClientIdFromFile;
+
+    /// <summary>
+    ///     O que mostrar no URI do broker enquanto ninguém digitou nada. Um
+    ///     placeholder evita que o admin copie <c>.../brokerplugin/</c> truncado
+    ///     para o Azure e passe a caçar um erro de login que nasceu aqui.
+    /// </summary>
+    private string _azureClientIdPreview =>
+        string.IsNullOrWhiteSpace(_azureClientId)
+            ? "{client-id}"
+            : _azureClientId.Trim();
+
     private bool _clearCurseForgeKey;
     private bool _clearSmtpPassword;
 
@@ -38,6 +62,7 @@ public partial class SettingsPage : ComponentBase
     private bool _mailBusy;
 
     [Inject] private ISettingsRepository Repository { get; set; } = default!;
+    [Inject] private IOptions<ServerOptions> ServerOptions { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
     [Inject] private SendTestEmail TestEmailUseCase { get; set; } = default!;
     [Inject] private StartMailServer StartMailUseCase { get; set; } = default!;
@@ -72,6 +97,10 @@ public partial class SettingsPage : ComponentBase
         _smtpFrom = settings.SmtpFrom ?? "";
         _smtpUseTls = settings.SmtpUseTls;
 
+        _azureClientId = settings.AzureClientId ?? "";
+        _azureClientIdFromFile = ServerOptions.Value.AzureClientId;
+        _hasAzureClientIdFromFile = !string.IsNullOrWhiteSpace(_azureClientIdFromFile);
+
         _curseForgeKey = "";
         _smtpPassword = "";
         _clearCurseForgeKey = false;
@@ -91,6 +120,7 @@ public partial class SettingsPage : ComponentBase
                 DefaultLoader = _defaultLoader,
                 DefaultMemoryMb = _defaultMemoryMb,
                 WorldBackupKeepCount = _worldBackupKeepCount,
+                AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey,
                 SmtpHost = _smtpHost,

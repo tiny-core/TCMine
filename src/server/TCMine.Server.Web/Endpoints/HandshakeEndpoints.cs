@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using TCMine.Contracts;
 using TCMine.Contracts.Handshake;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Endpoints;
@@ -39,7 +40,10 @@ public static class HandshakeEndpoints
 
     public static IEndpointRouteBuilder MapHandshake(this IEndpointRouteBuilder app)
     {
-        app.MapGet(Protocol.HandshakeRoute, (IOptions<ServerOptions> options) =>
+        app.MapGet(Protocol.HandshakeRoute, async (
+                IOptions<ServerOptions> options,
+                ISettingsRepository settings,
+                CancellationToken ct) =>
             {
                 var server = options.Value;
 
@@ -60,7 +64,7 @@ public static class HandshakeEndpoints
                         $"/updates/launcher/{channel}/"),
                     MinLauncherVersion = server.MinLauncherVersion,
                     UpdatesFrozen = server.FreezeLauncherUpdates,
-                    AzureClientId = server.AzureClientId,
+                    AzureClientId = await ResolveAzureClientIdAsync(settings, server, ct),
                     Capabilities = CurrentCapabilities
                 };
 
@@ -72,5 +76,24 @@ public static class HandshakeEndpoints
             .AllowAnonymous();
 
         return app;
+    }
+
+    /// <summary>
+    ///     De onde sai o client id do Azure: painel primeiro, appsettings depois.
+    ///     A ordem não é arbitrária. Registrar a app no Azure acontece DEPOIS do
+    ///     deploy, então o lugar natural do valor é a tela de configurações — e
+    ///     lido daqui, a mudança vale no próximo handshake, sem reiniciar o
+    ///     processo com jogadores conectados. O appsettings continua valendo como
+    ///     semente para que instalação já configurada por arquivo (ou por
+    ///     variável de ambiente, no Docker) siga de pé sem ninguém tocar em nada.
+    /// </summary>
+    private static async Task<string> ResolveAzureClientIdAsync(
+        ISettingsRepository settings,
+        ServerOptions server,
+        CancellationToken ct)
+    {
+        var stored = (await settings.GetAsync(ct)).AzureClientId;
+
+        return string.IsNullOrWhiteSpace(stored) ? server.AzureClientId : stored;
     }
 }
