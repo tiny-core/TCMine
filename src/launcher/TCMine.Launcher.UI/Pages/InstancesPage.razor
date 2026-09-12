@@ -45,6 +45,23 @@ else
                         </MudText>
                     </MudStack>
 
+                    @if (_active == instancia.Key)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.SportsEsports">
+                            Ativa
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.SportsEsports"
+                                   Disabled="_busy"
+                                   OnClick="@(() => ActivateAsync(instancia))">
+                            Jogar esta
+                        </MudButton>
+                    }
+
                     <MudTooltip Text="Abrir a pasta da instância">
                         <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
                                        OnClick="@(() => OpenFolder(instancia))"/>

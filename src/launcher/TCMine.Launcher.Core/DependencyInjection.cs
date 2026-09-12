@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddScoped<LoadCatalog>();
         services.AddScoped<InstallModpackVersion>();
         services.AddScoped<ListInstances>();
+        services.AddScoped<ChooseInstance>();
 
         return services;
     }

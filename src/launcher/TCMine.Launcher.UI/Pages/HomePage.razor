@@ -8,6 +8,74 @@
 @* O aviso de ligação vive na moldura, não aqui: repetir "sem ligação" em cada
    página faria o texto contradizer a barra de estado no dia em que uma delas
    ficasse para trás. *@
-<EmptyState Icon="@Icons.Material.Filled.SportsEsports"
-            Title="Nada para jogar ainda"
-            Description="Instale um modpack para ele aparecer aqui, com o botão de jogar e o servidor a que ele pertence."/>
+@if (_loading)
+{
+    <LoadingCards Count="1"/>
+}
+else if (_active is null)
+{
+    <EmptyState Icon="@Icons.Material.Filled.SportsEsports"
+                Title="@(_needsChoice ? "Escolha o que jogar" : "Nada para jogar ainda")"
+                Description="@(_needsChoice
+                                 ? "Você tem mais de uma instância instalada. Marque uma como ativa para ela aparecer aqui."
+                                 : "Instale um modpack para ele aparecer aqui, com o botão de jogar e o servidor a que ele pertence.")">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Href="@(_needsChoice ? "/instances" : "/modpacks")">
+            @(_needsChoice ? "Ver instâncias" : "Ver modpacks")
+        </MudButton>
+    </EmptyState>
+}
+else
+{
+    <MudPaper Class="pa-6 tc-fade-in" Elevation="0" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+            <MudAvatar Color="Color.Primary" Rounded="true" Size="Size.Large">
+                @_active.Manifest.ModpackName[..1].ToUpperInvariant()
+            </MudAvatar>
+
+            <MudStack Spacing="1" Style="min-width:0;flex:1;">
+                <MudText Typo="Typo.h6">@_active.Manifest.ModpackName</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    v@(_active.Manifest.Version) · @HumanSize.Bytes(_active.SizeBytes)
+                </MudText>
+            </MudStack>
+
+            @* Desabilitado com o motivo à vista, e não escondido: a tela promete
+               um botão de jogar, e omiti-lo faria o jogador procurar o que não
+               existe. Dizer que ainda não abre é honesto e some sozinho na fatia
+               que liga o jogo. *@
+            <MudTooltip Text="Esta versão do launcher ainda não abre o jogo.">
+                <span>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                               StartIcon="@Icons.Material.Filled.PlayArrow" Disabled="true">
+                        Jogar
+                    </MudButton>
+                </span>
+            </MudTooltip>
+        </MudStack>
+
+        @* Os servidores vêm do catálogo, não do manifesto: o administrador
+           re-aponta um servidor para outra versão a qualquer momento, e um
+           endereço gravado na instalação ficaria desatualizado calado. Sem rede,
+           o card acima continua inteiro — só esta parte não aparece. *@
+        @if (_servers.Count > 0)
+        {
+            <MudDivider Class="my-4"/>
+
+            <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
+
+            <MudStack Spacing="2" Class="mt-2">
+                @foreach (var servidor in _servers)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                        <ServerStatusChip Status="servidor.Status"/>
+                        <MudText Typo="Typo.body2">@servidor.Name</MudText>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            @servidor.ConnectAddress
+                        </MudText>
+                    </MudStack>
+                }
+            </MudStack>
+        }
+    </MudPaper>
+}
