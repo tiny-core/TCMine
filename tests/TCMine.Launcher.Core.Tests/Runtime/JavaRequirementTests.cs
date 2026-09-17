@@ -53,4 +53,18 @@ public class JavaRequirementTests
         // afeta packs que já ninguém publica.
         JavaRequirement.ForMinecraft(minecraft).ShouldBe(JavaRequirement.Newest);
     }
+
+    [Theory]
+    [InlineData("25.1")]
+    [InlineData("26.2")]
+    public void O_esquema_ano_release_vai_para_o_mais_novo(string minecraft)
+    {
+        // O Minecraft deixou "1.y.z" e passou a "ano.release". Tudo o que não é
+        // "1.x" é posterior ao que a tabela cobre.
+        // Este palpite já não é a fonte primária — quem responde é o
+        // IJavaRequirementSource, lendo o javaVersion da própria versão —, mas
+        // errar aqui voltaria a dar "Could not create the Java Virtual Machine"
+        // em quem estivesse sem rede.
+        JavaRequirement.ForMinecraft(minecraft).ShouldBe(JavaRequirement.Newest);
+    }
 }

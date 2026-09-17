@@ -83,6 +83,13 @@ public static class DependencyInjection
             client.Timeout = Timeout.InfiniteTimeSpan;
         });
 
+        services.AddHttpClient<IJavaRequirementSource, MojangJavaRequirementSource>(client =>
+        {
+            // Dois JSON pequenos. Demorar aqui atrasaria o arranque do jogo, e o
+            // palpite serve enquanto isso.
+            client.Timeout = TimeSpan.FromSeconds(20);
+        });
+
         // Cliente próprio e sem timeout: instalar um loader baixa dezenas de
         // megabytes de bibliotecas, e o cancelamento certo é o do jogador.
         services.AddHttpClient<IGameLauncher, CmlLibGameLauncher>(client =>

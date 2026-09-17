@@ -39,10 +39,24 @@ public class LaunchGameTests
     }
 
     [Fact]
-    public async Task O_java_pedido_vem_da_versao_do_minecraft()
+    public async Task O_java_declarado_pela_versao_vence_o_palpite()
     {
-        // A regra vive no JavaRequirement; o que este teste trava é que o caso
-        // de uso a consulta em vez de assumir um major fixo.
+        // O bug que este teste tranca: o Minecraft trocou de esquema de versão,
+        // o palpite não entendeu "26.2" e devolveu um Java velho. O jogo morria
+        // com "Could not create the Java Virtual Machine".
+        var java = new JavaFalso();
+
+        await Montar(java: java, javaDeclarado: 25).HandleAsync(
+            Instalada(minecraft: "26.2"), Config(), Sessao(), null, Ct);
+
+        java.Pedido.ShouldBe(25);
+    }
+
+    [Fact]
+    public async Task Sem_resposta_da_versao_cai_no_palpite()
+    {
+        // Versão desconhecida e sem rede: melhor abrir com um palpite do que não
+        // abrir.
         var java = new JavaFalso();
 
         await Montar(java: java).HandleAsync(
@@ -155,9 +169,11 @@ public class LaunchGameTests
         JavaFalso? java = null,
         MotorFalso? motor = null,
         AuthResult? conta = null,
-        GameSession? sessao = null) =>
+        GameSession? sessao = null,
+        int? javaDeclarado = null) =>
         new(autenticador ?? new ContaFalsa(conta ?? AuthResult.Success("token-do-minecraft")),
             java ?? new JavaFalso(),
+            new ExigenciaFalsa(javaDeclarado),
             motor ?? new MotorFalso(),
             sessao ?? new GameSession());
 
@@ -207,6 +223,12 @@ public class LaunchGameTests
             Task.FromResult(resultado);
 
         public Task SignOutAsync(CancellationToken ct) => Task.CompletedTask;
+    }
+
+    private sealed class ExigenciaFalsa(int? declarado) : IJavaRequirementSource
+    {
+        public Task<int?> GetRequiredJavaAsync(string minecraftVersion, CancellationToken ct) =>
+            Task.FromResult(declarado);
     }
 
     private sealed class JavaFalso : IJavaLocator

@@ -17,6 +17,7 @@ namespace TCMine.Launcher.Core.Modpacks;
 public sealed class LaunchGame(
     IMinecraftAuthenticator authenticator,
     IJavaLocator java,
+    IJavaRequirementSource javaRequirement,
     IGameLauncher launcher,
     GameSession game)
 {
@@ -56,7 +57,13 @@ public sealed class LaunchGame(
 
         progress?.Report(new GameLaunchProgress("Preparando o Java"));
 
-        var major = JavaRequirement.ForMinecraft(manifesto.MinecraftVersion);
+        // A versão diz qual Java quer; o palpite é o plano B. Nesta ordem porque
+        // já custou: a regra escrita à mão não entendeu "26.2" — o Minecraft
+        // trocou de esquema de versão —, devolveu um Java antigo, e o jogo morreu
+        // com "Could not create the Java Virtual Machine" por causa de uma flag
+        // que aquele Java não conhecia.
+        var major = await javaRequirement.GetRequiredJavaAsync(manifesto.MinecraftVersion!, ct)
+                    ?? JavaRequirement.ForMinecraft(manifesto.MinecraftVersion);
 
         string javaPath;
 
