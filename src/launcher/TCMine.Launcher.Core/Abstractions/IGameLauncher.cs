@@ -61,11 +61,11 @@ public sealed record GameLaunchProgress(string Phase, double? Fraction = null);
 /// <summary>
 ///     Se o jogo abriu, e o que dizer quando não.
 ///     O sucesso é "o processo arrancou", não "o jogador está a jogar": um crash
-///     três segundos depois é assunto do log, não desta chamada.
+///     três segundos depois é assunto do <see cref="Process" />, não desta chamada.
 /// </summary>
-public sealed record GameLaunchResult(bool Started, string? Message)
+public sealed record GameLaunchResult(bool Started, string? Message, IGameProcess? Process = null)
 {
-    public static GameLaunchResult Ok() => new(true, null);
+    public static GameLaunchResult Ok(IGameProcess process) => new(true, null, process);
 
     public static GameLaunchResult Failed(string message) => new(false, message);
 }

@@ -6,7 +6,7 @@ using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
 
-public partial class HomePage : ComponentBase
+public partial class HomePage : ComponentBase, IDisposable
 {
     private InstalledInstance? _active;
     private bool _needsChoice;
@@ -30,12 +30,30 @@ public partial class HomePage : ComponentBase
 
     [Inject] private LoadCatalog Catalog { get; set; } = default!;
 
+    [Inject] private GameSession Game { get; set; } = default!;
+
     [Inject] private LaunchGame Launch { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
+    /// <summary>
+    ///     Deixa de ouvir a sessão ao sair da tela.
+    ///     Sem isto cada visita acumula um assinante num singleton que vive tanto
+    ///     quanto a aplicação, e o jogo passaria a redesenhar telas mortas — uma
+    ///     vez por linha de log, que são milhares.
+    /// </summary>
+    public void Dispose()
+    {
+        Game.Changed -= AoMudarOJogo;
+        GC.SuppressFinalize(this);
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        // O jogo pode já estar a correr: o jogador abriu, foi ver os modpacks e
+        // voltou. A tela tem de o encontrar assim, e não em branco.
+        Game.Changed += AoMudarOJogo;
+
         try
         {
             var vista = await Active.CurrentAsync(CancellationToken.None);
@@ -52,6 +70,19 @@ public partial class HomePage : ComponentBase
         // importa e vem do disco, enquanto os servidores dependem de rede. Sem
         // esta ordem, um servidor lento deixaria a tela de jogar em branco.
         await CarregarServidoresAsync();
+    }
+
+    /// <summary>
+    ///     Redesenha quando o jogo escreve ou fecha.
+    ///     Vem de um fio de fundo, por isso o InvokeAsync: tocar no estado do
+    ///     componente fora do circuito é o caminho para uma tela que congela.
+    /// </summary>
+    private void AoMudarOJogo() => InvokeAsync(StateHasChanged);
+
+    private Task StopAsync()
+    {
+        Game.Kill();
+        return Task.CompletedTask;
     }
 
     /// <summary>

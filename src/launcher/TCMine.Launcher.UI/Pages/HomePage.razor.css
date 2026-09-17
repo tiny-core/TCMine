@@ -1,0 +1,17 @@
+/*
+    O registro do jogo. Monoespaçado porque o Minecraft alinha timestamps e
+    níveis em colunas, e uma fonte proporcional desfaz esse alinhamento — que é
+    o que torna um log legível de relance.
+
+    Altura limitada e rolagem própria: sem isto mil linhas empurram o resto da
+    página para fora do ecrã.
+*/
+.tc-game-log {
+    max-height: 18rem;
+    overflow-y: auto;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}

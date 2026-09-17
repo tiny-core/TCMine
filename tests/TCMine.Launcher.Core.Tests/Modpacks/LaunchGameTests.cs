@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Core.Sync;
+using TCMine.Launcher.Core.Tests.Fakes;
 
 namespace TCMine.Launcher.Core.Tests.Modpacks;
 
@@ -105,15 +106,44 @@ public class LaunchGameTests
     }
 
     [Fact]
+    public async Task Com_jogo_aberto_recusa_abrir_outro()
+    {
+        // Duas cópias na mesma pasta escrevem o mesmo mundo ao mesmo tempo e
+        // corrompem-no — e quem clicou duas vezes não faz ideia de que foi isso.
+        var sessao = new GameSession();
+        var motor = new MotorFalso();
+        var caso = Montar(motor: motor, sessao: sessao);
+
+        await caso.HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
+
+        var segundo = await caso.HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
+
+        segundo.Started.ShouldBeFalse();
+        segundo.Message!.ShouldContain("já está aberto");
+    }
+
+    [Fact]
+    public async Task Abrir_com_sucesso_deixa_a_sessao_a_correr()
+    {
+        var sessao = new GameSession();
+
+        await Montar(sessao: sessao).HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
+
+        sessao.IsRunning.ShouldBeTrue();
+        sessao.Running!.Manifest.ModpackName.ShouldBe("Pack de Teste");
+    }
+
+    [Fact]
     public async Task O_token_do_minecraft_e_readquirido_a_cada_abertura()
     {
         // Ele vale cerca de uma hora e NÃO é guardado: guardá-lo trocaria
         // "expira sozinho" por "fica no disco à espera de quem o leia".
         var autenticador = new ContaFalsa(AuthResult.Success("token-do-minecraft"));
-        var caso = Montar(autenticador: autenticador);
 
-        await caso.HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
-        await caso.HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
+        // Uma sessão nova por chamada: este teste é sobre o token, e reusar a
+        // mesma faria o segundo arranque ser recusado pelo guard do jogo aberto.
+        await Montar(autenticador: autenticador).HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
+        await Montar(autenticador: autenticador).HandleAsync(Instalada(), Config(), Sessao(), null, Ct);
 
         autenticador.Tentativas.ShouldBe(2);
     }
@@ -124,10 +154,12 @@ public class LaunchGameTests
         ContaFalsa? autenticador = null,
         JavaFalso? java = null,
         MotorFalso? motor = null,
-        AuthResult? conta = null) =>
+        AuthResult? conta = null,
+        GameSession? sessao = null) =>
         new(autenticador ?? new ContaFalsa(conta ?? AuthResult.Success("token-do-minecraft")),
             java ?? new JavaFalso(),
-            motor ?? new MotorFalso());
+            motor ?? new MotorFalso(),
+            sessao ?? new GameSession());
 
     private static LauncherConfig Config() => new()
     {
@@ -203,7 +235,7 @@ public class LaunchGameTests
             CancellationToken ct)
         {
             Recebido = request;
-            return Task.FromResult(GameLaunchResult.Ok());
+            return Task.FromResult(GameLaunchResult.Ok(new FakeGameProcess()));
         }
     }
 }

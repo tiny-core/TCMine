@@ -67,11 +67,14 @@ public sealed partial class CmlLibGameLauncher(
                     b => progress?.Report(new GameLaunchProgress("Baixando arquivos do jogo", b.ToRatio()))),
                 ct);
 
-            // Sem janela de consola e sem shell: o java.exe que o locator escolheu
-            // escreve em stdout, e é isso que permite mostrar o log do jogo mais
-            // adiante. Com UseShellExecute a saída não seria capturável.
+            // Sem janela de consola e sem shell, e com os dois canais redirigidos:
+            // é por isso que o locator escolheu java.exe e não javaw.exe. Tem de
+            // ser ANTES do Start — depois, o redirecionamento é ignorado e o log
+            // fica vazio sem dizer porquê.
             processo.StartInfo.UseShellExecute = false;
             processo.StartInfo.CreateNoWindow = true;
+            processo.StartInfo.RedirectStandardOutput = true;
+            processo.StartInfo.RedirectStandardError = true;
 
             progress?.Report(new GameLaunchProgress("Abrindo o jogo"));
 
@@ -79,7 +82,7 @@ public sealed partial class CmlLibGameLauncher(
 
             LogAbriu(versao, processo.Id);
 
-            return GameLaunchResult.Ok();
+            return GameLaunchResult.Ok(new SystemGameProcess(processo));
         }
         catch (OperationCanceledException)
         {

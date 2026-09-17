@@ -17,7 +17,8 @@ namespace TCMine.Launcher.Core.Modpacks;
 public sealed class LaunchGame(
     IMinecraftAuthenticator authenticator,
     IJavaLocator java,
-    IGameLauncher launcher)
+    IGameLauncher launcher,
+    GameSession game)
 {
     public async Task<GameLaunchResult> HandleAsync(
         InstalledInstance instance,
@@ -27,6 +28,12 @@ public sealed class LaunchGame(
         CancellationToken ct)
     {
         var manifesto = instance.Manifest;
+
+        // Antes de tudo, e sem custo: duas cópias na mesma pasta escrevem o mesmo
+        // mundo ao mesmo tempo e corrompem-no. O botão desabilitado já evita o
+        // clique duplo, mas não evita voltar à tela e clicar outra vez.
+        if (game.IsRunning)
+            return GameLaunchResult.Failed("O jogo já está aberto.");
 
         // Instalada por uma build anterior a isto existir. Adivinhar a versão
         // abriria o jogo errado — ou nenhum —, e reinstalar resolve de vez.
@@ -67,7 +74,7 @@ public sealed class LaunchGame(
             return GameLaunchResult.Failed($"Não foi possível preparar o Java {major}. {ex.Message}");
         }
 
-        return await launcher.LaunchAsync(
+        var resultado = await launcher.LaunchAsync(
             new GameLaunchRequest
             {
                 InstanceDirectory = instance.Path,
@@ -82,6 +89,22 @@ public sealed class LaunchGame(
             },
             progress,
             ct);
+
+        if (!resultado.Started || resultado.Process is null)
+            return resultado;
+
+        // Perdeu a corrida com outro arranque: o processo que acabou de abrir não
+        // é de ninguém, e deixá-lo correr daria as duas cópias que o guard acima
+        // existe para impedir.
+        if (!game.Attach(instance, resultado.Process))
+        {
+            resultado.Process.Kill();
+            resultado.Process.Dispose();
+
+            return GameLaunchResult.Failed("O jogo já está aberto.");
+        }
+
+        return resultado;
     }
 
     /// <summary>
