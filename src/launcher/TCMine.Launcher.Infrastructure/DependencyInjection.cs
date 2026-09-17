@@ -8,6 +8,7 @@ using TCMine.Launcher.Infrastructure.Connectivity;
 using TCMine.Launcher.Infrastructure.Content;
 using TCMine.Launcher.Infrastructure.Hub;
 using TCMine.Launcher.Infrastructure.Instances;
+using TCMine.Launcher.Infrastructure.Runtime;
 using TCMine.Launcher.Infrastructure.Identity;
 
 namespace TCMine.Launcher.Infrastructure;
@@ -73,6 +74,13 @@ public static class DependencyInjection
             {
                 CookieContainer = sp.GetRequiredService<CookieContainer>(), UseCookies = true
             });
+
+        // Sem timeout global, como nos blobs: um JRE são dezenas de megabytes e
+        // o cancelamento correto é o do jogador, pelo CancellationToken.
+        services.AddHttpClient<IJavaLocator, AdoptiumJavaLocator>(client =>
+        {
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
 
         // Sem hardlink por padrão: o host de Windows substitui. Ver NoFileLinker.
         services.AddSingleton<IFileLinker, NoFileLinker>();

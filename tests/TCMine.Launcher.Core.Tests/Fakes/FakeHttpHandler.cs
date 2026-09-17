@@ -30,6 +30,21 @@ public sealed class FakeHttpHandler : HttpMessageHandler
         return this;
     }
 
+    /// <summary>
+    ///     Resposta binária, para os casos em que o corpo É o conteúdo — um JRE
+    ///     comprimido, por exemplo. Sem isto o teste da extração teria de
+    ///     acreditar que o download funciona e verificar só o resto.
+    /// </summary>
+    public FakeHttpHandler RespondeBytes(string url, byte[] corpo)
+    {
+        _respostas[url] = () => new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            Content = new ByteArrayContent(corpo)
+        };
+
+        return this;
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
