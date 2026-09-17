@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<InstallModpackVersion>();
         services.AddScoped<ListInstances>();
         services.AddScoped<ChooseInstance>();
+        services.AddScoped<LaunchGame>();
 
         return services;
     }

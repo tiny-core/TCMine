@@ -19,7 +19,10 @@ public sealed class InstallModpackVersion(
     IBlobDownloader downloader,
     IInstanceStore instances)
 {
-    private const int ManifestSchema = 1;
+    // 2 acrescentou MinecraftVersion, Loader e LoaderVersion, sem os quais não
+    // se abre o jogo offline. Schema 1 continua legível — só não dá para jogar
+    // até reinstalar, e o caso de uso do launch explica isso.
+    private const int ManifestSchema = 2;
 
     /// <summary>
     ///     Instala a versão que o servidor considera a atual.
@@ -94,6 +97,10 @@ public sealed class InstallModpackVersion(
                 ModpackName = modpack.Name,
                 Version = manifesto.Version,
                 InstalledAt = DateTimeOffset.UtcNow,
+
+                MinecraftVersion = modpack.MinecraftVersion,
+                Loader = modpack.Loader,
+                LoaderVersion = manifesto.LoaderVersion,
 
                 // O manifesto gravado descreve o ESTADO FINAL desejado, e não o
                 // que esta execução mexeu: é contra ele que o próximo update vai

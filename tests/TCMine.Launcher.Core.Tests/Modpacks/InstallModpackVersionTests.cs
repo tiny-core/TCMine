@@ -214,13 +214,14 @@ public class InstallModpackVersionTests
         var versao = Versao(pack.Id, Arquivo("mods/jei.jar", "aa"));
 
         var cenario = new Cenario(pack, versao);
-        var fases = new List<InstallPhase>();
+        var progresso = new ProgressoSincrono<InstallProgress>();
 
-        await cenario.Instalar(new Progress<InstallProgress>(p => fases.Add(p.Phase)));
+        await cenario.Instalar(progresso);
 
-        // Progress<T> posta no contexto de sincronização, então a ordem exata não
-        // é garantida num teste; o que importa é que a conclusão foi anunciada.
-        fases.ShouldContain(InstallPhase.Done);
+        // Coletor síncrono, e não Progress<T>: aquele posta no contexto de
+        // sincronização e a asserção corria antes da callback. Passava sozinho e
+        // falhava com a suíte cheia — ou seja, nunca tinha verificado nada.
+        progresso.Relatado.Select(p => p.Phase).ShouldContain(InstallPhase.Done);
     }
 
     // ---------- apoio ----------

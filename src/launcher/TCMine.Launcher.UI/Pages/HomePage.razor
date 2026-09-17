@@ -40,19 +40,46 @@ else
                 </MudText>
             </MudStack>
 
-            @* Desabilitado com o motivo à vista, e não escondido: a tela promete
-               um botão de jogar, e omiti-lo faria o jogador procurar o que não
-               existe. Dizer que ainda não abre é honesto e some sozinho na fatia
-               que liga o jogo. *@
-            <MudTooltip Text="Esta versão do launcher ainda não abre o jogo.">
-                <span>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                               StartIcon="@Icons.Material.Filled.PlayArrow" Disabled="true">
-                        Jogar
-                    </MudButton>
-                </span>
-            </MudTooltip>
+            @* Desabilitado enquanto abre, e não só ocupado: clicar duas vezes
+               abriria duas cópias do jogo na mesma pasta, e duas instâncias a
+               escrever o mesmo mundo corrompem-no. *@
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                       StartIcon="@Icons.Material.Filled.PlayArrow"
+                       Disabled="@(_launching || !CanPlay)"
+                       OnClick="PlayAsync">
+                @if (_launching)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
+                Jogar
+            </MudButton>
         </MudStack>
+
+        @if (_launching || _phase is not null)
+        {
+            <MudDivider Class="my-4"/>
+
+            @* A fase em texto, e a barra só quando há fração: uma barra a fingir
+               progresso num passo que não sabe medir ensina o jogador a
+               desconfiar da barra toda. *@
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">@_phase</MudText>
+
+            @if (_fraction is { } fracao)
+            {
+                <MudProgressLinear Color="Color.Primary" Value="@(fracao * 100)" Class="mt-2"/>
+            }
+            else if (_launching)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2"/>
+            }
+        }
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                @_error
+            </MudAlert>
+        }
 
         @* Os servidores vêm do catálogo, não do manifesto: o administrador
            re-aponta um servidor para outra versão a qualquer momento, e um

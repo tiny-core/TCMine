@@ -1,3 +1,5 @@
+using TCMine.Contracts.Modpacks;
+
 namespace TCMine.Launcher.Core.Sync;
 
 /// <summary>
@@ -37,4 +39,26 @@ public sealed record InstanceManifest
 
     /// <summary>RAM escolhida pelo jogador. Nulo usa a recomendada do pack.</summary>
     public int? MemoryMb { get; init; }
+
+    // ---------- O que é preciso para ABRIR o jogo ----------
+    //
+    // Gravado na instalação, e aqui — ao contrário do endereço de um servidor —
+    // isso está certo: um Modpack fixa MinecraftVersion e Loader de forma
+    // IMUTÁVEL, e a ModpackVersion fixa a LoaderVersion. Não há o que envelhecer.
+    // É também o que permite jogar sem rede: sem estes campos, abrir o jogo
+    // exigiria consultar o catálogo, e um pack instalado deixaria de funcionar
+    // no avião.
+    //
+    // Nulos nos manifestos de Schema 1, escritos antes disto existir. Quem os
+    // tiver precisa reinstalar a instância uma vez — e o caso de uso do launch
+    // diz isso ao jogador em vez de adivinhar uma versão.
+
+    public string? MinecraftVersion { get; init; }
+
+    public ModLoader? Loader { get; init; }
+
+    public string? LoaderVersion { get; init; }
+
+    /// <summary>Tem o suficiente para abrir o jogo sem consultar o servidor.</summary>
+    public bool CanLaunch => !string.IsNullOrWhiteSpace(MinecraftVersion) && Loader is not null;
 }

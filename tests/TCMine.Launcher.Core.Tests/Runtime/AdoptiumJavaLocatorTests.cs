@@ -87,17 +87,14 @@ public class AdoptiumJavaLocatorTests : IDisposable
     public async Task O_progresso_vai_de_zero_a_um()
     {
         var zip = MontarZip();
-        var relatado = new List<double>();
+        var progresso = new ProgressoSincrono<double>();
 
-        await Montar(HandlerCom(zip, Sha256De(zip)))
-            .EnsureRuntimeAsync(21, new Progress<double>(relatado.Add), Ct);
+        await Montar(HandlerCom(zip, Sha256De(zip))).EnsureRuntimeAsync(21, progresso, Ct);
 
-        // Progress<T> despacha no contexto de sincronização; sem esperar, a lista
-        // pode estar vazia num teste que passou pelo download inteiro.
-        await Task.Delay(50, Ct);
-
-        relatado.ShouldNotBeEmpty();
-        relatado[^1].ShouldBe(1, 0.001);
+        // Coletor síncrono em vez de Progress<T> com um Task.Delay a rezar: o
+        // delay passava por sorte e teria começado a falhar com a suíte maior.
+        progresso.Relatado.ShouldNotBeEmpty();
+        progresso.Relatado[^1].ShouldBe(1, 0.001);
     }
 
     [Fact]

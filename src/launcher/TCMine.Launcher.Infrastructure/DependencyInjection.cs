@@ -8,6 +8,7 @@ using TCMine.Launcher.Infrastructure.Connectivity;
 using TCMine.Launcher.Infrastructure.Content;
 using TCMine.Launcher.Infrastructure.Hub;
 using TCMine.Launcher.Infrastructure.Instances;
+using TCMine.Launcher.Infrastructure.Game;
 using TCMine.Launcher.Infrastructure.Runtime;
 using TCMine.Launcher.Infrastructure.Identity;
 
@@ -81,6 +82,11 @@ public static class DependencyInjection
         {
             client.Timeout = Timeout.InfiniteTimeSpan;
         });
+
+        // Substituído pelo motor real na fatia do arranque do jogo. Registado
+        // desde já para o botão de jogar exercitar o caminho inteiro e falhar
+        // com uma frase, em vez de rebentar o DI.
+        services.AddSingleton<IGameLauncher, PendingGameLauncher>();
 
         // Sem hardlink por padrão: o host de Windows substitui. Ver NoFileLinker.
         services.AddSingleton<IFileLinker, NoFileLinker>();

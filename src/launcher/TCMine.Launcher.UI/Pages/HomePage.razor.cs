@@ -13,9 +13,24 @@ public partial class HomePage : ComponentBase
     private bool _loading = true;
     private IReadOnlyList<GameServerDto> _servers = [];
 
+    private bool _launching;
+    private string? _phase;
+    private double? _fraction;
+    private string? _error;
+
+    /// <summary>
+    ///     Há conta e pareamento para abrir o jogo.
+    ///     Verificado aqui e não dentro do caso de uso porque o botão precisa
+    ///     nascer desabilitado: oferecer "Jogar" a quem não entrou faria o clique
+    ///     existir só para recusar.
+    /// </summary>
+    private bool CanPlay => Shell.Player is not null && Shell.Pairing?.Config is not null;
+
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
     [Inject] private LoadCatalog Catalog { get; set; } = default!;
+
+    [Inject] private LaunchGame Launch { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
@@ -37,6 +52,48 @@ public partial class HomePage : ComponentBase
         // importa e vem do disco, enquanto os servidores dependem de rede. Sem
         // esta ordem, um servidor lento deixaria a tela de jogar em branco.
         await CarregarServidoresAsync();
+    }
+
+    /// <summary>
+    ///     Abre o jogo, com o andamento à vista.
+    ///     O erro fica NA TELA e não num snackbar: preparar o Java pode demorar
+    ///     minutos, e uma mensagem que desaparece sozinha some antes de o jogador
+    ///     voltar a olhar — justamente quando ela é a única explicação do que
+    ///     aconteceu.
+    /// </summary>
+    private async Task PlayAsync()
+    {
+        if (_active is null || Shell.Player is not { } jogador || Shell.Pairing?.Config is not { } config)
+            return;
+
+        _launching = true;
+        _error = null;
+        _fraction = null;
+
+        var andamento = new Progress<GameLaunchProgress>(p =>
+        {
+            _phase = p.Phase;
+            _fraction = p.Fraction;
+
+            // Progress<T> chega no contexto do circuito mas fora do ciclo de
+            // render: sem isto a barra fica parada até o próximo evento da tela.
+            InvokeAsync(StateHasChanged);
+        });
+
+        try
+        {
+            var resultado = await Launch.HandleAsync(
+                _active, config, jogador, andamento, CancellationToken.None);
+
+            if (!resultado.Started)
+                _error = resultado.Message;
+        }
+        finally
+        {
+            _launching = false;
+            _phase = null;
+            _fraction = null;
+        }
     }
 
     /// <summary>
