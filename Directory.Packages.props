@@ -94,4 +94,18 @@
     <PackageVersion Include="Microsoft.Identity.Client" Version="4.89.0" />
     <PackageVersion Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.89.0" />
   </ItemGroup>
+  <!--
+    Abrir o jogo. É o único lugar do produto onde não escrevemos o motor, e de
+    propósito: índice da Mojang, bibliotecas, assets, nativos, classpath e o
+    instalador do NeoForge (que é um programa Java) são plumbing igual em todo
+    launcher, invisível quando certo e indetectável fora da máquina do jogador
+    quando errado.
+
+    Fica atrás do IGameLauncher. Trocar de motor é reescrever uma classe, e é
+    esse o seguro que torna a dependência aceitável no caminho mais crítico.
+  -->
+  <ItemGroup Label="step_15">
+    <PackageVersion Include="CmlLib.Core" Version="4.0.6" />
+    <PackageVersion Include="CmlLib.Core.Installer.Forge" Version="1.1.1" />
+  </ItemGroup>
 </Project>

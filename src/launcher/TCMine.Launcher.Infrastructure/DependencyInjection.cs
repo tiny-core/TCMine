@@ -83,10 +83,12 @@ public static class DependencyInjection
             client.Timeout = Timeout.InfiniteTimeSpan;
         });
 
-        // Substituído pelo motor real na fatia do arranque do jogo. Registado
-        // desde já para o botão de jogar exercitar o caminho inteiro e falhar
-        // com uma frase, em vez de rebentar o DI.
-        services.AddSingleton<IGameLauncher, PendingGameLauncher>();
+        // Cliente próprio e sem timeout: instalar um loader baixa dezenas de
+        // megabytes de bibliotecas, e o cancelamento certo é o do jogador.
+        services.AddHttpClient<IGameLauncher, CmlLibGameLauncher>(client =>
+        {
+            client.Timeout = Timeout.InfiniteTimeSpan;
+        });
 
         // Sem hardlink por padrão: o host de Windows substitui. Ver NoFileLinker.
         services.AddSingleton<IFileLinker, NoFileLinker>();

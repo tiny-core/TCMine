@@ -174,13 +174,22 @@ public class LayerRules
     public void Launcher_Infrastructure_e_portavel()
     {
         // A infraestrutura do launcher — HTTP, SignalR, content store, manifesto
-        // de instância — é lógica que roda igual em qualquer sistema. O que é do
-        // Windows vive em TCMine.Launcher.Infrastructure.Windows e entra por
-        // porta: hoje o hardlink, amanhã DPAPI e o MSAL com broker.
+        // de instância, motor do jogo — é lógica que roda igual em qualquer
+        // sistema. O que é do Windows vive em TCMine.Launcher.Infrastructure.Windows
+        // e entra por porta: o hardlink e o MSAL.
         //
         // Esta regra é o que impede o atalho: uma chamada de P/Invoke "só desta
         // vez" aqui obrigaria a reescrever o projeto inteiro no dia do port, em
         // vez de escrever um Infrastructure.Linux ao lado.
+        //
+        // O CmlLib esteve nesta lista e SAIU, porque estar aqui era um erro de
+        // agrupamento: ele é multiplataforma, ao contrário do Microsoft.Win32, do
+        // System.Windows e do MSAL com broker, que são Windows-only de verdade. O
+        // próprio csproj deste projeto sempre listou "CmlLib" entre o que mora
+        // aqui — era a regra que discordava do desenho, não o contrário. O
+        // isolamento que interessa é o IGameLauncher: trocar de motor é reescrever
+        // uma classe, e nada acima dela sabe que o CmlLib existe. Continua
+        // proibido no Core, onde nenhum motor pode entrar.
         ShouldPass(Types.InAssembly(LauncherInfrastructure)
             .ShouldNot()
             .HaveDependencyOnAny(
@@ -188,7 +197,6 @@ public class LayerRules
                 "System.Windows",
                 "TCMine.Launcher.Infrastructure.Windows",
                 "Microsoft.Identity.Client",
-                "CmlLib",
                 "TCMine.Server")
             .GetResult());
     }
