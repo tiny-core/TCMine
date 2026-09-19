@@ -46,14 +46,7 @@ public sealed partial class CmlLibGameLauncher(
                 Path = layout,
                 JavaPath = request.JavaPath,
 
-                // A sessão é o que o jogo apresenta à Mojang. O token foi obtido
-                // há segundos pelo LaunchGame e não está guardado em lado nenhum.
-                Session = new MSession
-                {
-                    Username = request.PlayerName,
-                    AccessToken = request.AccessToken,
-                    UUID = request.PlayerUuid
-                },
+                Session = MontarSessao(request),
 
                 MaximumRamMb = request.MemoryMb ?? 4096
             };
@@ -96,6 +89,33 @@ public sealed partial class CmlLibGameLauncher(
 
             return GameLaunchResult.Failed($"Não foi possível abrir o jogo. {ex.Message}");
         }
+    }
+
+    /// <summary>
+    ///     A sessão que o jogo apresenta à Mojang.
+    ///     Sem token é o modo offline: parte-se da sessão offline do CmlLib, que
+    ///     traz as convenções dele para os campos que não conhecemos, e o UUID é
+    ///     substituído pelo que guardámos. Isso importa mais do que parece — o
+    ///     mundo do jogador é indexado pelo UUID, e deixar o CmlLib inventar um a
+    ///     partir do nome faria a partida offline abrir com inventário e posição
+    ///     de outra pessoa.
+    /// </summary>
+    private static MSession MontarSessao(GameLaunchRequest request)
+    {
+        if (request.AccessToken is not { Length: > 0 } token)
+        {
+            var offline = MSession.CreateOfflineSession(request.PlayerName);
+            offline.UUID = request.PlayerUuid;
+
+            return offline;
+        }
+
+        return new MSession
+        {
+            Username = request.PlayerName,
+            AccessToken = token,
+            UUID = request.PlayerUuid
+        };
     }
 
     /// <summary>

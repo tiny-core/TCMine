@@ -46,12 +46,15 @@ public sealed record GameLaunchRequest
     public required string PlayerUuid { get; init; }
 
     /// <summary>
-    ///     Access token do Minecraft, recém-obtido.
-    ///     NÃO é guardado em lado nenhum: é readquirido a cada abertura, porque
-    ///     vale cerca de uma hora e guardá-lo trocaria "expira sozinho" por "fica
-    ///     no disco à espera de quem o leia".
+    ///     Access token do Minecraft, recém-obtido — ou NULO para abrir em modo
+    ///     offline, quando não houve como falar com a Microsoft.
+    ///     Nunca é guardado: é readquirido a cada abertura, porque vale cerca de
+    ///     uma hora e guardá-lo trocaria "expira sozinho" por "fica no disco à
+    ///     espera de quem o leia".
+    ///     Sem token o jogo abre para um jogador só: entrar em servidores online
+    ///     exige prova de conta, e essa é uma regra do Minecraft, não nossa.
     /// </summary>
-    public required string AccessToken { get; init; }
+    public string? AccessToken { get; init; }
 
     public int? MemoryMb { get; init; }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Sync;
 using TCMine.Launcher.Infrastructure.Instances;
 
@@ -23,6 +24,7 @@ namespace TCMine.Launcher.Infrastructure.Serialization;
     WriteIndented = true)]
 [JsonSerializable(typeof(InstanceManifest))]
 [JsonSerializable(typeof(ActiveInstanceFile))]
+[JsonSerializable(typeof(PlayerProfile))]
 public sealed partial class LauncherJsonContext : JsonSerializerContext
 {
     private static readonly Lazy<JsonSerializerOptions> Lazy = new(() =>

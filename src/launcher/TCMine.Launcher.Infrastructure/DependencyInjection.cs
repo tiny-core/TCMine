@@ -102,6 +102,14 @@ public static class DependencyInjection
         services.AddSingleton<IContentStore, FileSystemContentStore>();
         services.AddSingleton<IInstanceStore, FileSystemInstanceStore>();
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
+        services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
+
+        services.AddHttpClient<IPlayerProfileSource, MinecraftServicesProfileSource>(client =>
+        {
+            // Um JSON minúsculo, e está no caminho de abrir o jogo: demorar aqui
+            // faria o jogador esperar por um nome que o cache já sabe.
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
 
         services.AddSingleton<LauncherHubClientFactory>();
 

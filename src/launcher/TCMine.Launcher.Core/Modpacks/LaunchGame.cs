@@ -1,5 +1,4 @@
 using TCMine.Contracts;
-using TCMine.Contracts.Identity;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Runtime;
 
@@ -16,6 +15,8 @@ namespace TCMine.Launcher.Core.Modpacks;
 /// </summary>
 public sealed class LaunchGame(
     IMinecraftAuthenticator authenticator,
+    IPlayerProfileSource profiles,
+    IPlayerProfileCache perfilGuardado,
     IJavaLocator java,
     IJavaRequirementSource javaRequirement,
     IGameLauncher launcher,
@@ -24,7 +25,6 @@ public sealed class LaunchGame(
     public async Task<GameLaunchResult> HandleAsync(
         InstalledInstance instance,
         LauncherConfig config,
-        LauncherSessionDto session,
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
@@ -45,15 +45,15 @@ public sealed class LaunchGame(
                 + $"Minecraft executar. Reinstale {manifesto.ModpackName} para poder jogar.");
         }
 
-        // O token PRIMEIRO, e de propósito: é o único passo que pode exigir o
+        // A conta PRIMEIRO, e de propósito: é o único passo que pode exigir o
         // jogador, e descobri-lo depois de baixar cinquenta megabytes de Java
         // seria fazê-lo esperar para só então pedir que entre outra vez.
         progress?.Report(new GameLaunchProgress("Verificando a conta"));
 
-        var conta = await authenticator.TrySilentAsync(config.AzureClientId, ct);
+        var quem = await IdentificarAsync(config, ct);
 
-        if (conta.Outcome is not AuthOutcome.Success)
-            return GameLaunchResult.Failed(MensagemDaConta(conta));
+        if (quem.Erro is not null)
+            return GameLaunchResult.Failed(quem.Erro);
 
         progress?.Report(new GameLaunchProgress("Preparando o Java"));
 
@@ -89,9 +89,9 @@ public sealed class LaunchGame(
                 Loader = manifesto.Loader!.Value,
                 LoaderVersion = manifesto.LoaderVersion,
                 JavaPath = javaPath,
-                PlayerName = session.DisplayName,
-                PlayerUuid = session.MinecraftUuid,
-                AccessToken = conta.AccessToken!,
+                PlayerName = quem.Profile!.Name,
+                PlayerUuid = quem.Profile.Uuid,
+                AccessToken = quem.AccessToken,
                 MemoryMb = manifesto.MemoryMb
             },
             progress,
@@ -115,19 +115,60 @@ public sealed class LaunchGame(
     }
 
     /// <summary>
-    ///     Por que a conta não serviu, na língua de quem vai agir.
-    ///     O desfecho importa: sem credencial guardada pede-se para entrar, e
-    ///     qualquer outra coisa é um problema que tentar de novo pode resolver.
-    ///     Trocar os dois faria o jogador clicar em "tentar de novo" para sempre
-    ///     quando o que faltava era fazer login.
+    ///     Quem vai jogar, e com que prova.
+    ///     Repare no que NÃO aparece aqui: o servidor TCMine. A identidade que o
+    ///     jogo exige é a do perfil do Minecraft, e o nosso servidor apenas a
+    ///     repassava — por isso, até agora, tê-lo fora do ar impedia abrir o jogo
+    ///     mesmo com internet e com a Microsoft a responder.
+    ///     Três desfechos, por ordem de preferência: token e perfil vivos (joga
+    ///     online); token vivo e perfil só em cache (raro, mas joga online na
+    ///     mesma); e nem token nem rede, com perfil guardado — abre offline.
     /// </summary>
-    private static string MensagemDaConta(AuthResult conta) => conta.Outcome switch
+    private async Task<Identidade> IdentificarAsync(LauncherConfig config, CancellationToken ct)
     {
-        AuthOutcome.NoStoredCredentials =>
-            "A sua sessão com a Microsoft expirou. Entre novamente para jogar.",
+        var conta = await authenticator.TrySilentAsync(config.AzureClientId, ct);
 
-        AuthOutcome.Cancelled => "Entrada cancelada.",
+        // Fechar a janela do login é uma decisão do jogador, não uma falha de
+        // rede: cair no modo offline aqui seria ignorar o que ele acabou de fazer.
+        if (conta.Outcome is AuthOutcome.Cancelled)
+            return new Identidade(Erro: "Entrada cancelada.");
 
-        _ => conta.Message ?? "Não foi possível verificar a sua conta Minecraft."
-    };
+        if (conta.Outcome is AuthOutcome.Success && conta.AccessToken is { } token)
+        {
+            if (await profiles.GetAsync(token, ct) is { } vivo)
+            {
+                // Guardado só quando veio do Minecraft: gravar o do cache de volta
+                // seria reescrever o mesmo ficheiro a cada abertura sem ganho.
+                await perfilGuardado.WriteAsync(vivo, ct);
+
+                return new Identidade(vivo, token);
+            }
+
+            // Token bom e perfil inalcançável: continua a dar para jogar online,
+            // e recusar por causa de um nome que já sabemos seria perder a
+            // partida por um detalhe cosmético.
+            return await perfilGuardado.ReadAsync(ct) is { } conhecido
+                ? new Identidade(conhecido, token)
+                : new Identidade(Erro:
+                    "A sua conta Microsoft respondeu, mas não foi possível obter o perfil do "
+                    + "Minecraft. Confirme que esta conta tem o jogo.");
+        }
+
+        // Sem conta: só resta o que ficou da última vez.
+        if (await perfilGuardado.ReadAsync(ct) is { } guardado)
+            return new Identidade(guardado, AccessToken: null);
+
+        return new Identidade(Erro: conta.Outcome is AuthOutcome.NoStoredCredentials
+            ? "Entre com a sua conta Microsoft pelo menos uma vez para poder jogar."
+            : conta.Message ?? "Não foi possível verificar a sua conta Minecraft.");
+    }
+
+    /// <summary>
+    ///     Quem joga. <c>AccessToken</c> nulo com perfil presente é o modo
+    ///     offline; <c>Erro</c> preenchido é o fim da linha.
+    /// </summary>
+    private sealed record Identidade(
+        PlayerProfile? Profile = null,
+        string? AccessToken = null,
+        string? Erro = null);
 }

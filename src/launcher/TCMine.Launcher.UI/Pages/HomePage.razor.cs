@@ -24,16 +24,17 @@ public partial class HomePage : ComponentBase, IDisposable
     ///     nascer desabilitado: oferecer "Jogar" a quem não entrou faria o clique
     ///     existir só para recusar.
     /// </summary>
-    private bool CanPlay => Shell.Player is not null && Shell.Pairing?.Config is not null;
-
     /// <summary>
-    ///     Por que o botão está desligado, na língua de quem pode agir.
-    ///     São dois casos com respostas opostas — esperar ou entrar — e um texto
-    ///     só para ambos mandaria metade dos jogadores fazer a coisa errada.
+    ///     Basta haver pareamento — é dele que sai o client id do Azure.
+    ///     Já exigiu sessão no servidor TCMine, e isso estava errado: quem o jogo
+    ///     precisa de conhecer é a conta Minecraft, e o caso de uso resolve-a
+    ///     sozinho (perfil vivo, perfil guardado, ou modo offline). Exigir sessão
+    ///     aqui desligava o botão justamente quando o servidor estava fora.
     /// </summary>
-    private string WhyCannotPlay => Shell.IsOffline
-        ? "O servidor não está a responder. Abrir o jogo ainda precisa dele nesta versão."
-        : "Entre com a sua conta Microsoft para poder jogar.";
+    private bool CanPlay => Shell.Pairing?.Config is not null;
+
+    /// <summary>O único caso que resta: nem sequer há servidor pareado.</summary>
+    private const string WhyCannotPlay = "Pareie com um servidor para poder jogar.";
 
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
@@ -103,7 +104,7 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private async Task PlayAsync()
     {
-        if (_active is null || Shell.Player is not { } jogador || Shell.Pairing?.Config is not { } config)
+        if (_active is null || Shell.Pairing?.Config is not { } config)
             return;
 
         _launching = true;
@@ -122,8 +123,7 @@ public partial class HomePage : ComponentBase, IDisposable
 
         try
         {
-            var resultado = await Launch.HandleAsync(
-                _active, config, jogador, andamento, CancellationToken.None);
+            var resultado = await Launch.HandleAsync(_active, config, andamento, CancellationToken.None);
 
             if (!resultado.Started)
                 _error = resultado.Message;
