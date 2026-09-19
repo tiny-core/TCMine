@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace TCMine.Launcher.App;
@@ -18,5 +20,32 @@ public partial class MainWindow : Window
         Resources.Add("services", services);
 
         InitializeComponent();
+    }
+
+    /// <summary>
+    ///     Descarta o WebView2 ao fechar.
+    ///     Sem isto o processo sobrevive à janela: o BlazorWebView segura o
+    ///     ambiente do WebView2 e o gestor do Blazor, e nenhum deles cai sozinho
+    ///     quando a janela some — o jogador fecha, a janela desaparece e o
+    ///     TCMine.Launcher.App continua no gestor de tarefas, impedindo inclusive
+    ///     a próxima abertura de se comportar como primeira.
+    /// </summary>
+    protected override void OnClosed(EventArgs e)
+    {
+        // IAsyncDisposable, não IDisposable — e descartado ANTES de o fecho
+        // seguir, porque é o WebView que segura o processo. O Task.Run tira a
+        // espera do dispatcher: bloqueá-lo aqui, à espera de algo que pode
+        // precisar dele, seria um deadlock no fecho.
+        try
+        {
+            Task.Run(async () => await ((IAsyncDisposable)WebView).DisposeAsync())
+                .Wait(TimeSpan.FromSeconds(5));
+        }
+        catch (AggregateException)
+        {
+            // Já em queda. Insistir não torna o fecho mais limpo.
+        }
+
+        base.OnClosed(e);
     }
 }

@@ -98,13 +98,37 @@ public partial class App : Application
         MainWindow.Show();
     }
 
-    protected override async void OnExit(ExitEventArgs e)
+    /// <summary>
+    ///     Para o host antes de o processo sair. SÍNCRONO, e era async void.
+    ///     O WPF não espera por um <c>async void</c>: ele seguia para o fecho
+    ///     assim que este método atingia o primeiro await, e o <c>Dispose</c>
+    ///     depois dele podia simplesmente nunca correr.
+    ///     O <c>Task.Run</c> tira a espera do dispatcher. Bloquear a thread de UI
+    ///     à espera de algo que precise dela seria um deadlock no fecho — a pior
+    ///     altura para o ter, porque não há mais interface para o mostrar.
+    ///     Com prazo, porque nada aqui vale prender o fecho para sempre.
+    /// </summary>
+    protected override void OnExit(ExitEventArgs e)
     {
-        await _host.StopAsync();
+        try
+        {
+            Task.Run(() => _host.StopAsync(TimeSpan.FromSeconds(5))).GetAwaiter().GetResult();
+        }
+        catch (Exception ex)
+        {
+            LogFalhaAoParar(_logger, ex);
+        }
+
         _host.Dispose();
 
         base.OnExit(e);
     }
+
+    private static readonly Action<ILogger, Exception?> LogFalhaAoParar =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(2, nameof(LogFalhaAoParar)),
+            "O host não parou limpo no fecho; a aplicação sai na mesma.");
 
     /// <summary>
     ///     Uma exceção não tratada na thread de UI derruba a aplicação sem dizer
