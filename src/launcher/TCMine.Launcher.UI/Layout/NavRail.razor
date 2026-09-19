@@ -23,11 +23,18 @@
 @code
 {
     private RenderFragment RenderItem(NavItem item) =>
-        @<MudTooltip Text="@item.Label" Placement="Placement.Right">
-            <MudIconButton Icon="@item.Icon"
-                           Href="@item.Href"
-                           Color="@(IsActive(item) ? Color.Primary : Color.Default)"
-                           Class="@($"tc-rail-btn {(IsActive(item) ? "tc-rail-btn-active" : "")}")"
-                           aria-label="@item.Label"/>
+        @<MudTooltip Text="@TooltipFor(item)" Placement="Placement.Right">
+            @* O span existe para o tooltip continuar a aparecer sobre um botão
+               desligado: o MudBlazor não dispara eventos de rato num elemento
+               desabilitado, e sem ele o jogador veria o ícone apagado sem nunca
+               saber porquê. *@
+            <span>
+                <MudIconButton Icon="@item.Icon"
+                               Href="@(IsDisabled(item) ? null : item.Href)"
+                               Disabled="@IsDisabled(item)"
+                               Color="@(IsActive(item) ? Color.Primary : Color.Default)"
+                               Class="@($"tc-rail-btn {(IsActive(item) ? "tc-rail-btn-active" : "")}")"
+                               aria-label="@item.Label"/>
+            </span>
         </MudTooltip>;
 }

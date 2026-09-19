@@ -43,6 +43,15 @@ public sealed class LauncherShellState
     /// <summary>O servidor respondeu. Sem isto não há como emitir sessão.</summary>
     public bool IsOnline => Pairing?.IsOnline is true;
 
+    /// <summary>
+    ///     Há servidor conhecido, mas ele não está atendendo.
+    ///     Distinto de "não pareado", que é o primeiro arranque e leva à tela de
+    ///     pareamento, e distinto de "a verificar", que é transitório. É este o
+    ///     estado em que o launcher continua útil — o que está no disco continua
+    ///     lá — e só o que depende do servidor fica de fora.
+    /// </summary>
+    public bool IsOffline => IsPaired && !IsOnline && !IsStartingUp;
+
     public bool IsSignedIn => Account?.IsSignedIn is true;
 
     public LauncherSessionDto? Player => Account?.Session;

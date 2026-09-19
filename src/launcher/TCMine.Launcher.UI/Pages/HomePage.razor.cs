@@ -26,6 +26,15 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private bool CanPlay => Shell.Player is not null && Shell.Pairing?.Config is not null;
 
+    /// <summary>
+    ///     Por que o botão está desligado, na língua de quem pode agir.
+    ///     São dois casos com respostas opostas — esperar ou entrar — e um texto
+    ///     só para ambos mandaria metade dos jogadores fazer a coisa errada.
+    /// </summary>
+    private string WhyCannotPlay => Shell.IsOffline
+        ? "O servidor não está a responder. Abrir o jogo ainda precisa dele nesta versão."
+        : "Entre com a sua conta Microsoft para poder jogar.";
+
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
     [Inject] private LoadCatalog Catalog { get; set; } = default!;

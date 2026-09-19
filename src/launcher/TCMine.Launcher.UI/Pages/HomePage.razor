@@ -40,6 +40,15 @@ else
                 </MudText>
             </MudStack>
 
+            @* Desligado sem motivo à vista é o pior dos dois mundos: o jogador
+               vê o botão e não sabe se a culpa é dele. *@
+            @if (!CanPlay && !Game.IsRunning)
+            {
+                <MudTooltip Text="@WhyCannotPlay" Placement="Placement.Left">
+                    <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Warning"/>
+                </MudTooltip>
+            }
+
             @* Com o jogo aberto o botão troca de papel em vez de ficar cinzento:
                um botão morto não diz nada, e quando o jogo pendura fechá-lo pela
                janela pode já não ser possível. *@

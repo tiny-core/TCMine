@@ -45,11 +45,17 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
                 return;
             }
 
-            // Servidor fora do ar não tem como emitir sessão. A tela de login
-            // continua sendo o destino certo — ela mostra o aviso da moldura e
-            // deixa tentar de novo.
-            if (pareamento.IsOnline)
-                Shell.Apply(await Account.ResumeAsync(pareamento.Config!, CancellationToken.None));
+            // Servidor fora do ar não tem como emitir sessão — e mandar para o
+            // login nesse caso prendia o jogador: a tela pede a conta Microsoft,
+            // o login precisa do servidor para trocar a prova por sessão, e o
+            // servidor é justamente o que não está lá. Sem saída, com o disco
+            // cheio de coisa instalada do outro lado.
+            // Offline fica-se onde se está. O que precisa de rede aparece
+            // desligado, com o motivo, em vez de levar a lado nenhum.
+            if (!pareamento.IsOnline)
+                return;
+
+            Shell.Apply(await Account.ResumeAsync(pareamento.Config!, CancellationToken.None));
 
             if (!Shell.IsSignedIn)
                 Navigation.NavigateTo("/login");
