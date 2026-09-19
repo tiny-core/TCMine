@@ -65,7 +65,16 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
         builder.UseSetting("Server:AzureClientId", ClientIdDoArquivo);
 
         builder.UseSetting("Database:Provider", "Sqlite");
-        builder.UseSetting("Database:ConnectionString", $"Data Source={_databasePath}");
+        // Pooling=False, e é o que substitui o ClearAllPools que estava no
+        // Dispose. Aquele resolvia o sintoma certo — sem ele o handle sobrevivia
+        // ao host e o ficheiro nunca era apagado — pelo meio errado: é GLOBAL ao
+        // processo, e limpava também os pools de fábricas que outros testes ainda
+        // estavam a usar em paralelo. A vítima levava
+        // "ObjectDisposedException: SQLitePCL.sqlite3" numa consulta que não tinha
+        // nada de errado, uma vez em cada dez execuções da suíte.
+        // Sem pool, cada conexão fecha de verdade ao ser descartada: o ficheiro
+        // sai no fim e nenhum teste toca no estado de outro.
+        builder.UseSetting("Database:ConnectionString", $"Data Source={_databasePath};Pooling=False");
 
         // Os ajustes do teste vêm por último de propósito: um caso que precise de
         // banco inacessível ou de configuração inválida tem de conseguir passar
@@ -80,11 +89,6 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
 
         if (!disposing)
             return;
-
-        // Sem isto o arquivo NUNCA é apagado: o provider devolve a conexão ao
-        // pool em vez de fechá-la, e o handle sobrevive à queda do host. Cada
-        // execução da suíte deixava uma dúzia de bancos para trás.
-        SqliteConnection.ClearAllPools();
 
         // O -wal e o -shm acompanham o banco quando o journal está em WAL.
         foreach (var arquivo in new[] { _databasePath, $"{_databasePath}-wal", $"{_databasePath}-shm" })
