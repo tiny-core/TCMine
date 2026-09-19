@@ -54,8 +54,22 @@ public class FakeServerConnection : IServerConnection
     /// <summary>Versão mais recente por modpack.</summary>
     public Dictionary<Guid, ModpackVersionDto> Latest { get; } = [];
 
-    public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct) =>
-        Task.FromResult(Latest.GetValueOrDefault(modpackId));
+    /// <summary>
+    ///     Que modpacks foram consultados, na ordem. Serve para provar que quem
+    ///     chama não pergunta a mesma coisa duas vezes.
+    /// </summary>
+    public List<Guid> LatestQueries { get; } = [];
+
+    public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct)
+    {
+        LatestQueries.Add(modpackId);
+
+        // Honra o Throws como os outros métodos: sem isto, um teste de canal em
+        // baixo passaria por este caminho como se tudo estivesse bem.
+        return Throws is not null
+            ? Task.FromException<ModpackVersionDto?>(Throws)
+            : Task.FromResult(Latest.GetValueOrDefault(modpackId));
+    }
 
     public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct) =>
         Throws is not null ? Task.FromException<ModpackVersionDto>(Throws)

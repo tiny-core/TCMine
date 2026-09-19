@@ -17,7 +17,7 @@ public sealed class InstallModpackVersion(
     IServerConnection connection,
     IContentStore content,
     IBlobDownloader downloader,
-    IInstanceStore instances)
+    IInstanceStore instances) : IInstanceInstaller
 {
     // 2 acrescentou MinecraftVersion, Loader e LoaderVersion, sem os quais não
     // se abre o jogo offline. Schema 1 continua legível — só não dá para jogar
@@ -218,6 +218,7 @@ public sealed record InstallProgress(
     int FilesTotal = 0,
     string? CurrentFile = null)
 {
+    public static readonly InstallProgress BackingUp = new(InstallPhase.BackingUp);
     public static readonly InstallProgress Planning = new(InstallPhase.Planning);
     public static readonly InstallProgress Cleaning = new(InstallPhase.Cleaning);
     public static readonly InstallProgress Done = new(InstallPhase.Done);
@@ -240,6 +241,9 @@ public sealed record InstallProgress(
 
 public enum InstallPhase
 {
+    /// <summary>Só acontece numa atualização, e só quando há mundo.</summary>
+    BackingUp,
+
     Planning,
     Downloading,
     Materializing,

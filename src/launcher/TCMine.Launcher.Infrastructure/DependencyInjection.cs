@@ -101,6 +101,7 @@ public static class DependencyInjection
         services.AddSingleton<IFileLinker, NoFileLinker>();
         services.AddSingleton<IContentStore, FileSystemContentStore>();
         services.AddSingleton<IInstanceStore, FileSystemInstanceStore>();
+        services.AddSingleton<IWorldBackup, ZipWorldBackup>();
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
 

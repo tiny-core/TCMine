@@ -22,6 +22,8 @@ public static class DependencyInjection
         services.AddScoped<ListInstances>();
         services.AddScoped<ChooseInstance>();
         services.AddScoped<LaunchGame>();
+        services.AddScoped<UpdateInstance>();
+        services.AddScoped<CheckInstanceUpdates>();
 
         // Singleton: o jogo aberto tem de sobreviver à navegação entre telas, do
         // mesmo modo que o estado do casco.
