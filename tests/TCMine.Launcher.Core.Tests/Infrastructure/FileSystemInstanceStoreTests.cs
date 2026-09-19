@@ -12,7 +12,7 @@ namespace TCMine.Launcher.Core.Tests.Infrastructure;
 /// </summary>
 public sealed class FileSystemInstanceStoreTests : IDisposable
 {
-    private readonly InstanceKey _chave = new(Guid.CreateVersion7(), Guid.CreateVersion7());
+    private readonly InstanceKey _chave = InstanceKey.New();
 
     private readonly string _raiz = Path.Combine(
         Path.GetTempPath(), "tcmine-inst-" + Guid.NewGuid().ToString("N")[..8]);
@@ -136,11 +136,11 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     private FileSystemInstanceStore Criar() =>
         new(new LauncherPaths(_raiz), NullLogger<FileSystemInstanceStore>.Instance);
 
-    private InstanceManifest Manifesto(Dictionary<string, string> arquivos) => new()
+    private static InstanceManifest Manifesto(Dictionary<string, string> arquivos) => new()
     {
         Schema = 1,
-        ModpackId = _chave.ModpackId,
-        ModpackVersionId = _chave.ModpackVersionId,
+        ModpackId = Guid.CreateVersion7(),
+        ModpackVersionId = Guid.CreateVersion7(),
         ModpackName = "Pack",
         Version = "1.0.0",
         InstalledAt = DateTimeOffset.UtcNow,

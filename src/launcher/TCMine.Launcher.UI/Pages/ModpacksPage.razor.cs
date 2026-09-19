@@ -91,8 +91,11 @@ public partial class ModpacksPage : ComponentBase
 
         try
         {
+            // Alvo nulo: instalar pelo catálogo cria sempre uma instância nova.
+            // A escolha entre atualizar e duplicar chega com a tela de
+            // atualização, que é quem tem uma instância existente em mãos.
             var resultado = await Installer.InstallLatestAsync(
-                config.ServerUrl, modpack, acompanhamento, CancellationToken.None);
+                config.ServerUrl, modpack, target: null, acompanhamento, CancellationToken.None);
 
             if (resultado.Succeeded)
             {

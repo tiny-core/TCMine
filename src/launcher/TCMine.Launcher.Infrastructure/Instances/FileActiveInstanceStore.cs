@@ -32,7 +32,10 @@ public sealed partial class FileActiveInstanceStore(
             var lido = await JsonSerializer.DeserializeAsync(
                 stream, LauncherJsonContext.Default.ActiveInstanceFile, ct);
 
-            return lido is null ? null : new InstanceKey(lido.ModpackId, lido.ModpackVersionId);
+            // Ficheiro da versão anterior guardava o par (modpack, versão) e não
+            // traz InstanceId: sem id, vale como ausente. A consequência é um
+            // clique — com uma instância só ela volta a ser a ativa sozinha.
+            return lido?.InstanceId is { Length: > 0 } id ? new InstanceKey(id) : null;
         }
         catch (Exception ex) when (ex is JsonException or IOException)
         {
@@ -58,7 +61,7 @@ public sealed partial class FileActiveInstanceStore(
         {
             await JsonSerializer.SerializeAsync(
                 stream,
-                new ActiveInstanceFile { ModpackId = key.ModpackId, ModpackVersionId = key.ModpackVersionId },
+                new ActiveInstanceFile { InstanceId = key.Id },
                 LauncherJsonContext.Default.ActiveInstanceFile,
                 ct);
         }
@@ -79,7 +82,10 @@ public sealed partial class FileActiveInstanceStore(
 /// </summary>
 public sealed record ActiveInstanceFile
 {
-    public required Guid ModpackId { get; init; }
-
-    public required Guid ModpackVersionId { get; init; }
+    /// <summary>
+    ///     Nulo nos ficheiros gravados antes de a instância ter identidade
+    ///     própria. Opcional de propósito: recusar o ficheiro inteiro por causa
+    ///     de um campo em falta custaria a escolha do jogador sem necessidade.
+    /// </summary>
+    public string? InstanceId { get; init; }
 }

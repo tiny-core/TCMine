@@ -5,8 +5,12 @@ namespace TCMine.Launcher.Core.Tests.Sync;
 
 public class ManifestDifferTests
 {
-    private static readonly InstanceKey Instancia =
-        new(Guid.CreateVersion7(), Guid.CreateVersion7());
+    private static readonly InstanceKey Instancia = InstanceKey.New();
+
+    // Os ids do pack deixaram de sair da chave: a instância tem identidade
+    // própria, e o que ela contém é assunto do manifesto.
+    private static readonly Guid PackId = Guid.CreateVersion7();
+    private static readonly Guid VersaoId = Guid.CreateVersion7();
 
     // ---------- Helpers ----------
     // Montar um ModpackVersionDto inteiro em cada teste esconderia o que
@@ -17,8 +21,8 @@ public class ManifestDifferTests
     {
         return new ModpackVersionDto
         {
-            Id = Instancia.ModpackVersionId,
-            ModpackId = Instancia.ModpackId,
+            Id = VersaoId,
+            ModpackId = PackId,
             Version = "1.0.0",
             LoaderVersion = "21.1.0",
             State = ModpackVersionState.Ready,

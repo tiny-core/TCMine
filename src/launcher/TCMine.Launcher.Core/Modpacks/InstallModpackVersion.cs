@@ -35,6 +35,7 @@ public sealed class InstallModpackVersion(
     public async Task<InstallResult> InstallLatestAsync(
         Uri serverUrl,
         ModpackDto modpack,
+        InstanceKey? target,
         IProgress<InstallProgress>? progress,
         CancellationToken ct)
     {
@@ -48,17 +49,28 @@ public sealed class InstallModpackVersion(
                 $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
         }
 
-        return await HandleAsync(serverUrl, modpack, ultima.Id, progress, ct);
+        return await HandleAsync(serverUrl, modpack, ultima.Id, target, progress, ct);
     }
 
+    /// <summary>
+    ///     Instala uma versão numa instância.
+    ///     O <paramref name="target" /> é quem decide entre atualizar e duplicar,
+    ///     e essa decisão é de quem chama — não daqui. Passar uma instância
+    ///     existente reescreve os mods dela e PRESERVA o mundo, porque o diff
+    ///     corre contra o manifesto que lá está; passar nulo cria uma instalação
+    ///     nova, com mundo próprio.
+    ///     Antes a chave saía do par (modpack, versão), e por isso atualizar
+    ///     fabricava sempre uma pasta nova e deixava o mundo para trás na antiga.
+    /// </summary>
     public async Task<InstallResult> HandleAsync(
         Uri serverUrl,
         ModpackDto modpack,
         Guid versionId,
+        InstanceKey? target,
         IProgress<InstallProgress>? progress,
         CancellationToken ct)
     {
-        var key = new InstanceKey(modpack.Id, versionId);
+        var key = target ?? InstanceKey.New();
 
         try
         {
@@ -117,7 +129,7 @@ public sealed class InstallModpackVersion(
 
             progress?.Report(InstallProgress.Done);
 
-            return InstallResult.Success(instalada);
+            return InstallResult.Success(key, instalada);
         }
         catch (OperationCanceledException)
         {
@@ -177,11 +189,19 @@ public sealed class InstallModpackVersion(
     }
 }
 
-public sealed record InstallResult(bool Succeeded, InstanceManifest? Instance, string? Error)
+/// <summary>
+///     O que saiu da instalação.
+///     A <see cref="Key" /> vem junto porque com identidade própria a instância
+///     deixou de ser deduzível do par (modpack, versão): quem instalou precisa
+///     dela para a marcar como ativa, para atualizar depois, ou apenas para saber
+///     em que pasta mexeu.
+/// </summary>
+public sealed record InstallResult(bool Succeeded, InstanceKey? Key, InstanceManifest? Instance, string? Error)
 {
-    public static InstallResult Success(InstanceManifest instance) => new(true, instance, null);
+    public static InstallResult Success(InstanceKey key, InstanceManifest instance) =>
+        new(true, key, instance, null);
 
-    public static InstallResult Failure(string error) => new(false, null, error);
+    public static InstallResult Failure(string error) => new(false, null, null, error);
 }
 
 /// <summary>

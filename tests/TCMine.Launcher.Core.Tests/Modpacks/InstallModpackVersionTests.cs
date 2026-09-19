@@ -82,7 +82,8 @@ public class InstallModpackVersionTests
 
         var cenario = new Cenario(pack, versao);
 
-        cenario.Instances.Manifests[new InstanceKey(pack.Id, versao.Id)] = new InstanceManifest
+        var chave = InstanceKey.New();
+        cenario.Instances.Manifests[chave] = new InstanceManifest
         {
             Schema = 1,
             ModpackId = pack.Id,
@@ -96,7 +97,7 @@ public class InstallModpackVersionTests
             ManagedFiles = new Dictionary<string, string> { ["mods/jei.jar"] = "aa", ["mods/velho.jar"] = "cc" }
         };
 
-        await cenario.Instalar();
+        await cenario.Instalar(chave);
 
         cenario.Instances.Deleted.ShouldBe(["mods/velho.jar"]);
     }
@@ -112,10 +113,11 @@ public class InstallModpackVersionTests
         var cenario = new Cenario(pack, versao);
         cenario.Content.Hashes.Add("aa");
 
-        cenario.Instances.Manifests[new InstanceKey(pack.Id, versao.Id)] = Manifesto(
+        var chave = InstanceKey.New();
+        cenario.Instances.Manifests[chave] = Manifesto(
             pack, versao, new Dictionary<string, string> { ["mods/jei.jar"] = "aa" });
 
-        await cenario.Instalar();
+        await cenario.Instalar(chave);
 
         cenario.Downloader.Requested.ShouldBeEmpty();
         cenario.Content.Materialized.ShouldBeEmpty();
@@ -151,12 +153,13 @@ public class InstallModpackVersionTests
 
         var cenario = new Cenario(pack, versao);
         cenario.Content.Hashes.Add("aa");
-        cenario.Instances.Manifests[new InstanceKey(pack.Id, versao.Id)] = Manifesto(
+        var chave = InstanceKey.New();
+        cenario.Instances.Manifests[chave] = Manifesto(
             pack, versao, new Dictionary<string, string> { ["mods/jei.jar"] = "aa" });
 
-        await cenario.Instalar();
+        await cenario.Instalar(chave);
 
-        var gravado = cenario.Instances.Manifests[new InstanceKey(pack.Id, versao.Id)];
+        var gravado = cenario.Instances.Manifests[chave];
 
         gravado.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "mods/rei.jar"], ignoreOrder: true);
     }
@@ -168,12 +171,12 @@ public class InstallModpackVersionTests
         // desfaria em silêncio um ajuste que ele fez de propósito.
         var pack = Modpack();
         var versao = Versao(pack.Id, Arquivo("mods/jei.jar", "aa"));
-        var chave = new InstanceKey(pack.Id, versao.Id);
+        var chave = InstanceKey.New();
 
         var cenario = new Cenario(pack, versao);
         cenario.Instances.Manifests[chave] = Manifesto(pack, versao, []) with { MemoryMb = 8192 };
 
-        await cenario.Instalar();
+        await cenario.Instalar(chave);
 
         cenario.Instances.Manifests[chave].MemoryMb.ShouldBe(8192);
     }
@@ -216,7 +219,7 @@ public class InstallModpackVersionTests
         var cenario = new Cenario(pack, versao);
         var progresso = new ProgressoSincrono<InstallProgress>();
 
-        await cenario.Instalar(progresso);
+        await cenario.Instalar(progresso: progresso);
 
         // Coletor síncrono, e não Progress<T>: aquele posta no contexto de
         // sincronização e a asserção corria antes da callback. Passava sozinho e
@@ -255,11 +258,19 @@ public class InstallModpackVersionTests
 
         private InstallModpackVersion Instalador => new(Connection, Content, Downloader, Instances);
 
-        public Task<InstallResult> Instalar(IProgress<InstallProgress>? progresso = null) =>
-            Instalador.HandleAsync(Servidor, Pack, Versao!.Id, progresso, Ct);
+        /// <summary>
+        ///     Alvo explícito: é ele que distingue atualizar de duplicar. Os
+        ///     casos que pré-semeiam uma instância passam a chave dela — sem
+        ///     isso o instalador criaria uma instância nova ao lado e o teste
+        ///     verificaria o diff contra uma pasta vazia, passando por engano.
+        /// </summary>
+        public Task<InstallResult> Instalar(
+            InstanceKey? alvo = null,
+            IProgress<InstallProgress>? progresso = null) =>
+            Instalador.HandleAsync(Servidor, Pack, Versao!.Id, alvo, progresso, Ct);
 
         public Task<InstallResult> InstalarUltima() =>
-            Instalador.InstallLatestAsync(Servidor, Pack, null, Ct);
+            Instalador.InstallLatestAsync(Servidor, Pack, target: null, null, Ct);
     }
 
     private static ModpackDto Modpack() => new()

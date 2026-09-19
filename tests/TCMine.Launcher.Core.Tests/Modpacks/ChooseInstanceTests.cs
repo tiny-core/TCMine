@@ -69,15 +69,15 @@ public class ChooseInstanceTests
 
     private static InstalledInstance Instalada(string nome)
     {
-        var chave = new InstanceKey(Guid.CreateVersion7(), Guid.CreateVersion7());
+        var chave = InstanceKey.New();
 
         return new InstalledInstance(
             chave,
             new InstanceManifest
             {
                 Schema = 1,
-                ModpackId = chave.ModpackId,
-                ModpackVersionId = chave.ModpackVersionId,
+                ModpackId = Guid.CreateVersion7(),
+                ModpackVersionId = Guid.CreateVersion7(),
                 ModpackName = nome,
                 Version = "1.0.0",
                 InstalledAt = DateTimeOffset.UtcNow,

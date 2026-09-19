@@ -119,15 +119,15 @@ public class GameSessionTests
 
     private static InstalledInstance Instalada()
     {
-        var chave = new InstanceKey(Guid.CreateVersion7(), Guid.CreateVersion7());
+        var chave = InstanceKey.New();
 
         return new InstalledInstance(
             chave,
             new InstanceManifest
             {
                 Schema = 2,
-                ModpackId = chave.ModpackId,
-                ModpackVersionId = chave.ModpackVersionId,
+                ModpackId = Guid.CreateVersion7(),
+                ModpackVersionId = Guid.CreateVersion7(),
                 ModpackName = "Pack",
                 Version = "1.0.0",
                 InstalledAt = DateTimeOffset.UtcNow,

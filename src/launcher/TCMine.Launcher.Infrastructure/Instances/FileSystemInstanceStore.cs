@@ -86,8 +86,12 @@ public sealed partial class FileSystemInstanceStore(
             if (manifesto is null)
                 continue;
 
+            // A chave vem do NOME DA PASTA, e não do manifesto. É o que faz as
+            // instalações antigas — nomeadas pela regra do par (modpack, versão) —
+            // continuarem a ser encontradas sem renomear nada, e o que permite
+            // duas instâncias do mesmo pack coexistirem.
             instaladas.Add(new InstalledInstance(
-                new InstanceKey(manifesto.ModpackId, manifesto.ModpackVersionId),
+                new InstanceKey(Path.GetFileName(pasta)),
                 manifesto,
                 TamanhoDe(pasta),
                 pasta));

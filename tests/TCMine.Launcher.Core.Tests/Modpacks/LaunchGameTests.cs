@@ -269,7 +269,7 @@ public class LaunchGameTests
     private static InstalledInstance Instalada(string minecraft = "1.21.1") => Instalada(Manifesto(minecraft));
 
     private static InstalledInstance Instalada(InstanceManifest manifesto) =>
-        new(new InstanceKey(manifesto.ModpackId, manifesto.ModpackVersionId),
+        new(InstanceKey.New(),
             manifesto,
             SizeBytes: 0,
             Path: "/instancias/teste");

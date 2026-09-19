@@ -67,19 +67,18 @@ public sealed class LauncherInstallContractTests : IDisposable
         // O caminho completo: manifesto pelo hub, bytes por HTTP, hash conferido,
         // arquivos materializados.
         var resultado = await launcher.GetRequiredService<InstallModpackVersion>()
-            .InstallLatestAsync(servidor.Address, pack, null, Ct);
+            .InstallLatestAsync(servidor.Address, pack, target: null, null, Ct);
 
         resultado.Succeeded.ShouldBeTrue(resultado.Error);
 
-        var instancia = launcher.GetRequiredService<IInstanceStore>()
-            .PathFor(new InstanceKey(modpackId, resultado.Instance!.ModpackVersionId));
+        var instancia = launcher.GetRequiredService<IInstanceStore>().PathFor(resultado.Key!.Value);
 
         (await File.ReadAllBytesAsync(Path.Combine(instancia, "mods", "jei.jar"), Ct)).ShouldBe(jar);
         (await File.ReadAllBytesAsync(Path.Combine(instancia, "config", "jei.toml"), Ct)).ShouldBe(config);
 
         // E o manifesto local ficou gravado: é ele, e não uma varredura da pasta,
         // que o próximo update vai usar para saber o que pode apagar.
-        resultado.Instance.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], ignoreOrder: true);
+        resultado.Instance!.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], ignoreOrder: true);
         resultado.Instance.ManagedFiles["mods/jei.jar"].ShouldBe(sha);
     }
 
@@ -110,10 +109,9 @@ public sealed class LauncherInstallContractTests : IDisposable
         var pack = catalogo.Entries.Single(e => e.Modpack.Id == modpackId).Modpack;
 
         var instalador = launcher.GetRequiredService<InstallModpackVersion>();
-        var primeira = await instalador.InstallLatestAsync(servidor.Address, pack, null, Ct);
+        var primeira = await instalador.InstallLatestAsync(servidor.Address, pack, target: null, null, Ct);
 
-        var instancia = launcher.GetRequiredService<IInstanceStore>()
-            .PathFor(new InstanceKey(modpackId, primeira.Instance!.ModpackVersionId));
+        var instancia = launcher.GetRequiredService<IInstanceStore>().PathFor(primeira.Key!.Value);
 
         // O jogador jogou: criou um mundo e mexeu nas opções.
         var mundo = Path.Combine(instancia, "saves", "meu-mundo", "level.dat");
@@ -121,7 +119,10 @@ public sealed class LauncherInstallContractTests : IDisposable
         await File.WriteAllTextAsync(mundo, "o mundo dele", Ct);
         await File.WriteAllTextAsync(Path.Combine(instancia, "options.txt"), "fov:90", Ct);
 
-        var segunda = await instalador.InstallLatestAsync(servidor.Address, pack, null, Ct);
+        // A MESMA instância, que é o que "atualizar" passou a significar. Com
+        // alvo nulo o instalador criaria uma instalação nova ao lado, e o mundo
+        // ficaria intacto na antiga — o teste passaria a verificar o nada.
+        var segunda = await instalador.InstallLatestAsync(servidor.Address, pack, primeira.Key, null, Ct);
 
         segunda.Succeeded.ShouldBeTrue(segunda.Error);
         File.Exists(mundo).ShouldBeTrue("o mundo do jogador não é gerenciado pelo launcher");
