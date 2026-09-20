@@ -19,6 +19,12 @@ public static class DependencyInjection
         services.AddScoped<SignIn>();
         services.AddScoped<LoadCatalog>();
         services.AddScoped<InstallModpackVersion>();
+
+        // A MESMA instância, e não um registo paralelo: resolver a interface por
+        // AddScoped<IInstanceInstaller, InstallModpackVersion>() criaria um
+        // segundo objeto no mesmo escopo — dois instaladores a partilhar o disco
+        // sem saberem um do outro.
+        services.AddScoped<IInstanceInstaller>(sp => sp.GetRequiredService<InstallModpackVersion>());
         services.AddScoped<ListInstances>();
         services.AddScoped<ChooseInstance>();
         services.AddScoped<LaunchGame>();
