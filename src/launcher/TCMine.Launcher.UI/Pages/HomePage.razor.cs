@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
+using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
+using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.UI.State;
 
@@ -12,6 +14,7 @@ public partial class HomePage : ComponentBase, IDisposable
     private bool _needsChoice;
     private bool _loading = true;
     private IReadOnlyList<GameServerDto> _servers = [];
+    private IReadOnlyList<ModpackNewsDto> _news = [];
 
     private bool _launching;
     private string? _phase;
@@ -40,6 +43,8 @@ public partial class HomePage : ComponentBase, IDisposable
 
     [Inject] private LoadCatalog Catalog { get; set; } = default!;
 
+    [Inject] private IServerConnection Connection { get; set; } = default!;
+
     [Inject] private GameSession Game { get; set; } = default!;
 
     [Inject] private LaunchGame Launch { get; set; } = default!;
@@ -54,7 +59,7 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     public void Dispose()
     {
-        Game.Changed -= AoMudarOJogo;
+        Game.Changed -= OnGameChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -62,7 +67,7 @@ public partial class HomePage : ComponentBase, IDisposable
     {
         // O jogo pode já estar a correr: o jogador abriu, foi ver os modpacks e
         // voltou. A tela tem de o encontrar assim, e não em branco.
-        Game.Changed += AoMudarOJogo;
+        Game.Changed += OnGameChanged;
 
         try
         {
@@ -79,7 +84,7 @@ public partial class HomePage : ComponentBase, IDisposable
         // Depois de a tela já poder desenhar: o card da instância é o que
         // importa e vem do disco, enquanto os servidores dependem de rede. Sem
         // esta ordem, um servidor lento deixaria a tela de jogar em branco.
-        await CarregarServidoresAsync();
+        await LoadSideAsync();
     }
 
     /// <summary>
@@ -87,7 +92,7 @@ public partial class HomePage : ComponentBase, IDisposable
     ///     Vem de um fio de fundo, por isso o InvokeAsync: tocar no estado do
     ///     componente fora do circuito é o caminho para uma tela que congela.
     /// </summary>
-    private void AoMudarOJogo() => InvokeAsync(StateHasChanged);
+    private void OnGameChanged() => InvokeAsync(StateHasChanged);
 
     private Task StopAsync()
     {
@@ -137,26 +142,39 @@ public partial class HomePage : ComponentBase, IDisposable
     }
 
     /// <summary>
-    ///     Os servidores do pack ativo, quando há ligação.
-    ///     Falhar aqui é silencioso de propósito: a tela de jogar tem de servir
+    ///     A coluna da direita: servidores e novidades do pack ativo.
+    ///     Falhar aqui é silencioso de propósito. Esta tela tem de servir
     ///     offline, e um erro vermelho sobre o catálogo faria parecer que a
-    ///     instância instalada também está com problema — quando ela está
-    ///     inteira no disco.
+    ///     instância instalada também está com problema — quando ela está inteira
+    ///     no disco, e o botão de jogar continua a funcionar.
     /// </summary>
-    private async Task CarregarServidoresAsync()
+    private async Task LoadSideAsync()
     {
         if (_active is null || Shell.Pairing?.Config is not { } config)
             return;
 
-        var catalogo = await Catalog.HandleAsync(config.ServerUrl, CancellationToken.None);
+        var catalog = await Catalog.HandleAsync(config.ServerUrl, CancellationToken.None);
 
-        if (catalogo.Failed)
+        if (catalog.Failed)
             return;
 
-        _servers = catalogo.Entries
+        _servers = catalog.Entries
             .FirstOrDefault(e => e.Modpack.Id == _active.Manifest.ModpackId)
             ?.Servers ?? [];
 
         StateHasChanged();
+
+        // Depois dos servidores, e numa chamada à parte: as novidades são o que
+        // menos importa nesta tela, e falhar a buscá-las não pode levar os
+        // servidores consigo.
+        try
+        {
+            _news = await Connection.GetNewsAsync(_active.Manifest.ModpackId, CancellationToken.None);
+            StateHasChanged();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Sem novidades a coluna simplesmente não as mostra.
+        }
     }
 }

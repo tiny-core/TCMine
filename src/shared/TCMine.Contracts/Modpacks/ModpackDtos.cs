@@ -83,6 +83,24 @@ public sealed record ModpackVersionSummaryDto
     public int? RecommendedMemoryMb { get; init; }
 }
 
+/// <summary>
+///     Uma novidade de modpack, como o launcher a mostra.
+///     Só sai daqui o que está publicado: um rascunho existe para o administrador
+///     escrever com calma, e servi-lo ao jogador tiraria justamente isso.
+/// </summary>
+public sealed record ModpackNewsDto
+{
+    public required Guid Id { get; init; }
+
+    public required string Title { get; init; }
+
+    /// <summary>Texto corrido. O launcher não interpreta marcação.</summary>
+    public required string Body { get; init; }
+
+    /// <summary>Quando foi escrita. Ordena a lista e data o cartão.</summary>
+    public required DateTimeOffset PostedAt { get; init; }
+}
+
 public enum ModLoader
 {
     Vanilla,

@@ -96,6 +96,10 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
         _connection.InvokeAsync<IReadOnlyList<ModpackVersionSummaryDto>>(
             nameof(IServerHub.GetVersionsAsync), modpackId);
 
+    public Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId) =>
+        _connection.InvokeAsync<IReadOnlyList<ModpackNewsDto>>(
+            nameof(IServerHub.GetNewsAsync), modpackId);
+
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync() =>
         _connection.InvokeAsync<IReadOnlyList<GameServerDto>>(nameof(IServerHub.GetServersAsync));
 

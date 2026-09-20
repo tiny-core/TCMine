@@ -2,9 +2,6 @@
 
 <PageTitle>Jogar</PageTitle>
 
-<PageHeader Title="Jogar"
-            Subtitle="A instância ativa e o botão que abre o jogo."/>
-
 @* O aviso de ligação vive na moldura, não aqui: repetir "sem ligação" em cada
    página faria o texto contradizer a barra de estado no dia em que uma delas
    ficasse para trás. *@
@@ -27,146 +24,149 @@ else if (_active is null)
 }
 else
 {
-    <MudPaper Class="pa-6 tc-fade-in" Elevation="0" Outlined="true">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
-            <MudAvatar Color="Color.Primary" Rounded="true" Size="Size.Large">
-                @_active.Manifest.ModpackName[..1].ToUpperInvariant()
-            </MudAvatar>
+    @* Duas colunas: o que se faz à esquerda, o que se lê à direita. Abaixo de
+       1100px passa a uma só — a barra lateral espremida transformaria os cartões
+       de novidade em colunas de uma palavra. *@
+    <div class="tc-home tc-fade-in">
+        <div class="tc-home-main">
+            <section class="tc-hero">
+                <div class="tc-hero-id">
+                    <MudAvatar Color="Color.Primary" Rounded="true" Size="Size.Large">
+                        @_active.Manifest.ModpackName[..1].ToUpperInvariant()
+                    </MudAvatar>
 
-            <MudStack Spacing="1" Style="min-width:0;flex:1;">
-                <MudText Typo="Typo.h6">@_active.Manifest.ModpackName</MudText>
-                <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                    v@(_active.Manifest.Version) · @HumanSize.Bytes(_active.SizeBytes)
-                </MudText>
-            </MudStack>
-
-            @* Desligado sem motivo à vista é o pior dos dois mundos: o jogador
-               vê o botão e não sabe se a culpa é dele. *@
-            @if (!CanPlay && !Game.IsRunning)
-            {
-                <MudTooltip Text="@WhyCannotPlay" Placement="Placement.Left">
-                    <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Warning"/>
-                </MudTooltip>
-            }
-
-            @* Com o jogo aberto o botão troca de papel em vez de ficar cinzento:
-               um botão morto não diz nada, e quando o jogo pendura fechá-lo pela
-               janela pode já não ser possível. *@
-            @if (Game.IsRunning)
-            {
-                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large"
-                           StartIcon="@Icons.Material.Filled.StopCircle"
-                           OnClick="StopAsync">
-                    Fechar o jogo
-                </MudButton>
-            }
-            else
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                           StartIcon="@Icons.Material.Filled.PlayArrow"
-                           Disabled="@(_launching || !CanPlay)"
-                           OnClick="PlayAsync">
-                    @if (_launching)
-                    {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                    }
-                    Jogar
-                </MudButton>
-            }
-        </MudStack>
-
-        @if (_launching || _phase is not null)
-        {
-            <MudDivider Class="my-4"/>
-
-            @* A fase em texto, e a barra só quando há fração: uma barra a fingir
-               progresso num passo que não sabe medir ensina o jogador a
-               desconfiar da barra toda. *@
-            <MudText Typo="Typo.body2" Class="mud-text-secondary">@_phase</MudText>
-
-            @if (_fraction is { } fracao)
-            {
-                <MudProgressLinear Color="Color.Primary" Value="@(fracao * 100)" Class="mt-2"/>
-            }
-            else if (_launching)
-            {
-                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2"/>
-            }
-        }
-
-        @if (_error is not null)
-        {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-4">
-                @_error
-            </MudAlert>
-        }
-
-        @* Saída diferente de zero é a única pista de que o jogo não fechou
-           sozinho. Sem isto, um crash é indistinguível de fechar pela janela. *@
-        @if (!Game.IsRunning && Game.LastExitCode is { } saida && saida != 0)
-        {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-4">
-                O jogo fechou com erro (código @saida). O registro abaixo tem a causa.
-            </MudAlert>
-        }
-
-        @* O log fica disponível depois de o jogo fechar, e não só enquanto corre:
-           é justamente depois que alguém vai procurá-lo. *@
-        @if (Game.Log.Count > 0)
-        {
-            <MudExpansionPanels Class="mt-4" Elevation="0">
-                <MudExpansionPanel Expanded="@(Game.LastExitCode is not null and not 0)">
-                    <TitleContent>
-                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
-                            <MudText Typo="Typo.body2">
-                                Registro do jogo (@Game.Log.Count @(Game.Log.Count is 1 ? "linha" : "linhas"))
-                            </MudText>
-                            @if (Game.IsRunning)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">
-                                    a jogar
-                                </MudChip>
-                            }
-                        </MudStack>
-                    </TitleContent>
-                    <ChildContent>
-                        <div class="tc-game-log">
-                            @* As últimas primeiro: a causa de um crash está no fim,
-                               e rolar mil linhas para a encontrar é trabalho que a
-                               tela pode poupar. *@
-                            @foreach (var linha in Game.Log.Reverse())
-                            {
-                                <div>@linha</div>
-                            }
-                        </div>
-                    </ChildContent>
-                </MudExpansionPanel>
-            </MudExpansionPanels>
-        }
-
-        @* Os servidores vêm do catálogo, não do manifesto: o administrador
-           re-aponta um servidor para outra versão a qualquer momento, e um
-           endereço gravado na instalação ficaria desatualizado calado. Sem rede,
-           o card acima continua inteiro — só esta parte não aparece. *@
-        @if (_servers.Count > 0)
-        {
-            <MudDivider Class="my-4"/>
-
-            <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
-
-            <MudStack Spacing="2" Class="mt-2">
-                @foreach (var servidor in _servers)
-                {
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                        <ServerStatusChip Status="servidor.Status"/>
-                        <MudText Typo="Typo.body2">@servidor.Name</MudText>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                            @servidor.ConnectAddress
+                    <div class="tc-hero-text">
+                        <MudText Typo="Typo.h4" Class="tc-hero-name">
+                            @_active.Manifest.ModpackName
                         </MudText>
-                    </MudStack>
-                }
-            </MudStack>
-        }
-    </MudPaper>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            v@(_active.Manifest.Version)
+                            · @(_active.Manifest.MinecraftVersion ?? "?")
+                            @if (_active.Manifest.Loader is { } loader)
+                            {
+                                <text> · @loader</text>
+                            }
+                            · @HumanSize.Bytes(_active.SizeBytes)
+                        </MudText>
+                    </div>
+                </div>
+
+                <div class="tc-hero-action">
+                    @* Desligado sem motivo à vista é o pior dos dois mundos: o
+                       jogador vê o botão e não sabe se a culpa é dele. *@
+                    @if (!CanPlay && !Game.IsRunning)
+                    {
+                        <MudTooltip Text="@WhyCannotPlay" Placement="Placement.Left">
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Warning"/>
+                        </MudTooltip>
+                    }
+
+                    @* Com o jogo aberto o botão troca de papel em vez de ficar
+                       cinzento: um botão morto não diz nada, e quando o jogo
+                       pendura fechá-lo pela janela pode já não ser possível. *@
+                    @if (Game.IsRunning)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Large"
+                                   StartIcon="@Icons.Material.Filled.StopCircle"
+                                   OnClick="StopAsync">
+                            Fechar o jogo
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                   Class="tc-play"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow"
+                                   Disabled="@(_launching || !CanPlay)"
+                                   OnClick="PlayAsync">
+                            @if (_launching)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            }
+                            Jogar
+                        </MudButton>
+                    }
+                </div>
+            </section>
+
+            @if (_launching || _phase is not null)
+            {
+                @* A fase em texto, e a barra só quando há fração: uma barra a
+                   fingir progresso num passo que não sabe medir ensina o jogador
+                   a desconfiar da barra toda. *@
+                <MudPaper Class="pa-4 mt-4" Elevation="0" Outlined="true">
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">@_phase</MudText>
+
+                    @if (_fraction is { } fraction)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Value="@(fraction * 100)" Class="mt-2"/>
+                    }
+                    else if (_launching)
+                    {
+                        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="mt-2"/>
+                    }
+                </MudPaper>
+            }
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    @_error
+                </MudAlert>
+            }
+
+            @* Saída diferente de zero é a única pista de que o jogo não fechou
+               sozinho. Sem isto, um crash é indistinguível de fechar pela janela. *@
+            @if (!Game.IsRunning && Game.LastExitCode is { } exitCode && exitCode != 0)
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    O jogo fechou com erro (código @exitCode). O registro abaixo tem a causa.
+                </MudAlert>
+            }
+
+            @* O log fica disponível depois de o jogo fechar, e não só enquanto
+               corre: é justamente depois que alguém vai procurá-lo. *@
+            @if (Game.Log.Count > 0)
+            {
+                <MudExpansionPanels Class="mt-4" Elevation="0">
+                    <MudExpansionPanel Expanded="@(Game.LastExitCode is not null and not 0)">
+                        <TitleContent>
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
+                                <MudText Typo="Typo.body2">
+                                    Registro do jogo (@Game.Log.Count @(Game.Log.Count is 1 ? "linha" : "linhas"))
+                                </MudText>
+                                @if (Game.IsRunning)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                             Variant="Variant.Text">
+                                        a jogar
+                                    </MudChip>
+                                }
+                            </MudStack>
+                        </TitleContent>
+                        <ChildContent>
+                            <div class="tc-game-log">
+                                @* As últimas primeiro: a causa de um crash está
+                                   no fim, e rolar mil linhas para a encontrar é
+                                   trabalho que a tela pode poupar. *@
+                                @foreach (var line in Game.Log.Reverse())
+                                {
+                                    <div>@line</div>
+                                }
+                            </div>
+                        </ChildContent>
+                    </MudExpansionPanel>
+                </MudExpansionPanels>
+            }
+        </div>
+
+        <aside class="tc-home-side">
+            @* Servidores e novidades vêm do catálogo. Sem rede a coluna some
+               inteira em vez de mostrar caixas vazias: o que importa nesta tela
+               está no disco e continua à esquerda. *@
+            <HomeServers Servers="_servers"/>
+            <HomeNews Posts="_news"/>
+        </aside>
+    </div>
 }

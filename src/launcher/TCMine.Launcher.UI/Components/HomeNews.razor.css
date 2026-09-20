@@ -1,0 +1,9 @@
+/*
+    O corpo de um post vem do painel e pode ter parágrafos. pre-wrap preserva as
+    quebras que o autor escreveu sem deixar de quebrar linha no fim da coluna —
+    que é o que aconteceria com pre puro numa lateral estreita.
+*/
+.tc-news-body {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}

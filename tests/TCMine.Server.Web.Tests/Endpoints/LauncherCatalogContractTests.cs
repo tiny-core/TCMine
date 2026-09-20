@@ -133,6 +133,70 @@ public sealed class LauncherCatalogContractTests
         versoes[0].LoaderVersion.ShouldBe("21.1.0");
     }
 
+    [Fact]
+    public async Task As_novidades_publicadas_atravessam_o_hub()
+    {
+        await using var servidor = new RealPortAppFactory
+        {
+            Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
+                new PerfilFixo(new MinecraftProfile("abc123", "ana")))
+        };
+
+        var modpackId = await SemearComNovidadesAsync(servidor);
+
+        await using var launcher = MontarLauncher();
+
+        var config = new TCMine.Contracts.LauncherConfig
+        {
+            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+        };
+
+        await launcher.GetRequiredService<SignIn>().InteractiveAsync(config, Ct);
+
+        var conexao = launcher.GetRequiredService<IServerConnection>();
+        await conexao.ConnectAsync(servidor.Address, Ct);
+
+        var novidades = await conexao.GetNewsAsync(modpackId, Ct);
+
+        // Da mais recente para a mais antiga, e SEM o rascunho: o filtro vive no
+        // hub e não na tela, porque quem tem a URL chama o método diretamente.
+        novidades.Select(n => n.Title).ShouldBe(["Segunda", "Primeira"]);
+        novidades[0].Body.ShouldBe("corpo da segunda");
+    }
+
+    private static async Task<Guid> SemearComNovidadesAsync(RealPortAppFactory factory)
+    {
+        using var escopo = factory.Services.CreateScope();
+        var modpacks = escopo.ServiceProvider.GetRequiredService<IModpackRepository>();
+        var news = escopo.ServiceProvider.GetRequiredService<INewsRepository>();
+
+        var modpack = new Modpack
+        {
+            Slug = $"pack-{Guid.CreateVersion7():N}"[..18],
+            Name = "Pack com novidades",
+            MinecraftVersion = "1.21.1",
+            Loader = ModLoader.NeoForge
+        };
+
+        await modpacks.CreateAsync(modpack, Ct);
+
+        foreach (var (titulo, publicado) in
+                 new[] { ("Primeira", true), ("Segunda", true), ("Rascunho", false) })
+        {
+            await news.AddAsync(
+                new News
+                {
+                    ModpackId = modpack.Id,
+                    Title = titulo,
+                    Body = $"corpo da {titulo.ToLowerInvariant()}",
+                    IsPublished = publicado
+                },
+                Ct);
+        }
+
+        return modpack.Id;
+    }
+
     /// <summary>
     ///     Um pack com duas versões publicadas, uma pré-lançamento e uma Draft.
     ///     As três últimas existem para provar o filtro: oferecer no seletor o

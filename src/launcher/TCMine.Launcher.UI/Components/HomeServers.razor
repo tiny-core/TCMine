@@ -1,0 +1,28 @@
+@* Onde jogar. Some inteiro quando não há: uma caixa vazia dizendo "nenhum
+   servidor" ocuparia a mesma altura de uma lista cheia para não dizer nada. *@
+
+@if (Servers.Count > 0)
+{
+    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
+
+        <MudStack Spacing="3" Class="mt-3">
+            @foreach (var server in Servers)
+            {
+                <div>
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                        <ServerStatusChip Status="server.Status"/>
+                        <MudText Typo="Typo.body2" Class="tc-side-name">@server.Name</MudText>
+                    </MudStack>
+
+                    @* Selecionável: entrar num servidor é copiar este endereço
+                       para o jogo, e um texto que não se consegue marcar obriga
+                       a digitá-lo à mão. *@
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary tc-side-address">
+                        @server.ConnectAddress
+                    </MudText>
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+}

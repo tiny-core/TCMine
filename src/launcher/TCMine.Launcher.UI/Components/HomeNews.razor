@@ -1,0 +1,27 @@
+@* Novidades do modpack. Some quando não há — um pack sem posts é o caso normal,
+   não uma falha que mereça ocupar espaço a explicar-se. *@
+
+@if (Posts.Count > 0)
+{
+    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.overline" Class="mud-text-secondary">Novidades</MudText>
+
+        <MudStack Spacing="4" Class="mt-3">
+            @foreach (var post in Posts)
+            {
+                <div>
+                    <MudText Typo="Typo.subtitle2" Class="tc-side-name">@post.Title</MudText>
+
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @post.PostedAt.ToLocalTime().ToString("d MMM yyyy")
+                    </MudText>
+
+                    @* Texto corrido, com as quebras do autor preservadas: o
+                       servidor não manda marcação, e interpretá-la aqui abriria
+                       a porta a HTML vindo de fora. *@
+                    <MudText Typo="Typo.body2" Class="tc-news-body mt-1">@post.Body</MudText>
+                </div>
+            }
+        </MudStack>
+    </MudPaper>
+}

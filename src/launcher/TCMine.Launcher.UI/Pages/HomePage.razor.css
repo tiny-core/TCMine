@@ -1,4 +1,76 @@
 /*
+    Duas colunas: agir à esquerda, ler à direita.
+
+    A lateral tem largura fixa porque o seu conteúdo é texto curto — nome de
+    servidor, título de novidade — e deixá-la crescer com a janela produziria
+    linhas de trinta palavras ao lado de um botão de jogar perdido no canto.
+*/
+.tc-home {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (min-width: 1100px) {
+    .tc-home {
+        grid-template-columns: minmax(0, 1fr) 21rem;
+    }
+}
+
+.tc-home-side {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+
+/*
+    O cartão da instância ativa. É a única coisa nesta tela que o jogador olha
+    todos os dias, então ocupa o topo inteiro e carrega o botão.
+*/
+.tc-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding: 1.75rem;
+    border-radius: 12px;
+    background: linear-gradient(135deg,
+        var(--mud-palette-surface) 0%,
+        var(--mud-palette-background-gray) 100%);
+    border: 1px solid var(--mud-palette-lines-default);
+}
+
+.tc-hero-id {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.tc-hero-text {
+    min-width: 0;
+}
+
+/* Um nome longo quebra a linha em vez de empurrar o botão para fora da tela. */
+.tc-hero-name {
+    overflow-wrap: anywhere;
+    line-height: 1.15;
+}
+
+.tc-hero-action {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tc-play {
+    min-width: 11rem;
+}
+
+/*
     O registro do jogo. Monoespaçado porque o Minecraft alinha timestamps e
     níveis em colunas, e uma fonte proporcional desfaz esse alinhamento — que é
     o que torna um log legível de relance.

@@ -27,6 +27,7 @@ namespace TCMine.Server.Web.Hubs;
 public sealed class MainHub(
     ICurrentUserScope scope,
     IModpackRepository modpacks,
+    INewsRepository news,
     ListAccessibleServers accessibleServers,
     SendServerCommand sendCommand,
     ConsoleBroadcaster broadcaster,
@@ -94,6 +95,33 @@ public sealed class MainHub(
             .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
             .OrderByDescending(v => v.Id)
             .Select(v => v.ToSummaryDto())
+            .ToArray();
+    }
+
+    /// <summary>
+    ///     As novidades publicadas de um pack, da mais recente para a mais
+    ///     antiga.
+    ///     O filtro de publicação é AQUI e não na tela: um rascunho existe para o
+    ///     administrador escrever com calma, e quem tem a URL do hub chama o
+    ///     método diretamente — esconder na interface não esconderia nada.
+    ///     Ordem pelo Id: GUID v7 são cronológicos, e o SQLite recusa
+    ///     DateTimeOffset em ORDER BY.
+    /// </summary>
+    public async Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId)
+    {
+        var posts = await news.ListByModpackAsync(modpackId, Context.ConnectionAborted);
+
+        // Array, e não expressão de coleção: ver a nota do GetModpacksAsync.
+        return posts
+            .Where(p => p.IsPublished)
+            .OrderByDescending(p => p.Id)
+            .Select(p => new ModpackNewsDto
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Body = p.Body,
+                PostedAt = p.CreatedAt
+            })
             .ToArray();
     }
 

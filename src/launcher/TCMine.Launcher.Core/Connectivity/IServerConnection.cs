@@ -40,6 +40,9 @@ public interface IServerConnection : IAsyncDisposable
     /// </summary>
     Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId, CancellationToken ct);
 
+    /// <summary>Novidades publicadas do pack, da mais recente para a mais antiga.</summary>
+    Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId, CancellationToken ct);
+
     /// <summary>O manifesto completo de uma versão. É sobre ele que o diff roda.</summary>
     Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct);
 }

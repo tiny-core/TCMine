@@ -37,6 +37,12 @@ public interface IServerHub
     /// </summary>
     Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId);
 
+    /// <summary>
+    ///     As novidades publicadas de um pack, da mais recente para a mais
+    ///     antiga. Rascunhos ficam de fora.
+    /// </summary>
+    Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId);
+
     Task<IReadOnlyList<GameServerDto>> GetServersAsync();
 
     /// <summary>Assina eventos de um servidor. Valida permissão no server.</summary>
