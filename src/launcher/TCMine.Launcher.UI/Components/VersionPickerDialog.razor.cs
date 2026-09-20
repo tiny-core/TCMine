@@ -7,9 +7,12 @@ namespace TCMine.Launcher.UI.Components;
 
 /// <summary>
 ///     Pergunta que versão instalar, e devolve o id escolhido.
-///     Carrega a lista ela própria em vez de a receber pronta: quem abre o
-///     diálogo quer perguntar, não quer saber do canal — e as duas telas que o
-///     usam teriam de repetir a mesma consulta e o mesmo tratamento de falha.
+///     Serve a INSTALAÇÃO e só ela. Escolher versão numa atualização seria poder
+///     descer para uma mais antiga por cima de uma instância existente, e isso
+///     parte mundos já jogados: os mods que sumissem levariam consigo os blocos e
+///     itens que eles registaram. Quem quer uma versão antiga instala-a ao lado.
+///     Carrega a lista ele próprio em vez de a receber pronta: quem o abre quer
+///     perguntar, não quer saber do canal.
 /// </summary>
 public partial class VersionPickerDialog : ComponentBase
 {
@@ -21,11 +24,6 @@ public partial class VersionPickerDialog : ComponentBase
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
-
-    /// <summary>A versão já instalada, para a marcar. Vazio quando é instalação nova.</summary>
-    [Parameter] public Guid Current { get; set; }
-
-    [Parameter] public string ConfirmLabel { get; set; } = "Instalar";
 
     [Inject] private IServerConnection Connection { get; set; } = default!;
 

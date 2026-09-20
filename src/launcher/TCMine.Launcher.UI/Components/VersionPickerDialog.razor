@@ -29,20 +29,16 @@
         else
         {
             <MudList T="Guid" @bind-SelectedValue="_selected" Dense="true">
-                @foreach (var versao in _versions)
+                @foreach (var version in _versions)
                 {
-                    <MudListItem T="Guid" Value="@versao.Id">
+                    <MudListItem T="Guid" Value="@version.Id">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                            <MudText Typo="Typo.body1">v@versao.Version</MudText>
+                            @* Parênteses obrigatórios: "v@algo.Coisa" cai na
+                               heurística de e-mail do Razor e sai literal na
+                               tela, sem nenhum erro de compilação a avisar. *@
+                            <MudText Typo="Typo.body1">v@(version.Version)</MudText>
 
-                            @if (versao.Id == Current)
-                            {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Primary"
-                                         Variant="Variant.Text">
-                                    instalada
-                                </MudChip>
-                            }
-                            else if (versao.Id == _versions[0].Id)
+                            @if (version.Id == _versions[0].Id)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Success"
                                          Variant="Variant.Text">
@@ -52,8 +48,8 @@
                         </MudStack>
 
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            @versao.PublishedAt.ToLocalTime().ToString("d MMM yyyy")
-                            · loader @versao.LoaderVersion
+                            @version.PublishedAt.ToLocalTime().ToString("d MMM yyyy")
+                            · loader @version.LoaderVersion
                         </MudText>
                     </MudListItem>
                 }
@@ -66,7 +62,7 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    Disabled="@(_selected == Guid.Empty)"
                    OnClick="Confirmar">
-            @ConfirmLabel
+            Instalar
         </MudButton>
     </DialogActions>
 </MudDialog>
