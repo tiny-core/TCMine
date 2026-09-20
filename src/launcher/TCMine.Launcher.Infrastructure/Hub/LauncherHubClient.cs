@@ -92,6 +92,10 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
     public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId) =>
         _connection.InvokeAsync<ModpackVersionDto?>(nameof(IServerHub.GetLatestVersionAsync), modpackId);
 
+    public Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId) =>
+        _connection.InvokeAsync<IReadOnlyList<ModpackVersionSummaryDto>>(
+            nameof(IServerHub.GetVersionsAsync), modpackId);
+
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync() =>
         _connection.InvokeAsync<IReadOnlyList<GameServerDto>>(nameof(IServerHub.GetServersAsync));
 

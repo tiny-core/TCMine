@@ -75,6 +75,28 @@ public sealed class MainHub(
         return ultima?.ToDto();
     }
 
+    /// <summary>
+    ///     O histórico instalável de um pack, da mais nova para a mais velha.
+    ///     Mesmo filtro do <see cref="GetLatestVersionAsync" />, e de propósito:
+    ///     pré-lançamentos são para teste do administrador, e arquivadas
+    ///     continuam a servir quem já as fixou mas não são oferecidas a uma
+    ///     instalação nova. Oferecer aqui o que o GetLatest esconde seria dar
+    ///     pela porta do lado o que a porta da frente recusa.
+    ///     Ordem pelo Id: são GUID v7, cronológicos, e o SQLite recusa
+    ///     DateTimeOffset em ORDER BY.
+    /// </summary>
+    public async Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId)
+    {
+        var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+
+        // Array, e não expressão de coleção: ver a nota do GetModpacksAsync.
+        return versoes
+            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
+            .OrderByDescending(v => v.Id)
+            .Select(v => v.ToSummaryDto())
+            .ToArray();
+    }
+
     public async Task<IReadOnlyList<GameServerDto>> GetServersAsync()
     {
         // Filtrar aqui e não no cliente: a lista vazia é a resposta correta para

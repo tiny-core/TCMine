@@ -1,0 +1,72 @@
+@* Escolher que versão instalar.
+
+   Lista e não um MudSelect: a data de publicação e a versão do loader são o que
+   decide a escolha de quem procura uma versão específica — normalmente porque um
+   servidor está fixado nela — e escondê-las atrás de um clique tornaria o
+   seletor decorativo. *@
+
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+        }
+        else if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                @_error
+            </MudAlert>
+        }
+        else if (_versions.Count is 0)
+        {
+            @* Distinto de falha: um pack sem nenhuma versão publicada é estado
+               legítimo, e dizer "erro" mandaria o jogador procurar problema onde
+               não há. *@
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                Este modpack ainda não tem versões publicadas.
+            </MudText>
+        }
+        else
+        {
+            <MudList T="Guid" @bind-SelectedValue="_selected" Dense="true">
+                @foreach (var versao in _versions)
+                {
+                    <MudListItem T="Guid" Value="@versao.Id">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <MudText Typo="Typo.body1">v@versao.Version</MudText>
+
+                            @if (versao.Id == Current)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                         Variant="Variant.Text">
+                                    instalada
+                                </MudChip>
+                            }
+                            else if (versao.Id == _versions[0].Id)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success"
+                                         Variant="Variant.Text">
+                                    mais recente
+                                </MudChip>
+                            }
+                        </MudStack>
+
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            @versao.PublishedAt.ToLocalTime().ToString("d MMM yyyy")
+                            · loader @versao.LoaderVersion
+                        </MudText>
+                    </MudListItem>
+                }
+            </MudList>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancelar">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_selected == Guid.Empty)"
+                   OnClick="Confirmar">
+            @ConfirmLabel
+        </MudButton>
+    </DialogActions>
+</MudDialog>

@@ -60,6 +60,29 @@ public sealed record ModpackFileDto
     public bool Optional { get; init; }
 }
 
+/// <summary>
+///     Uma versão na lista, SEM os arquivos.
+///     Tipo à parte e não um <see cref="ModpackVersionDto" /> de Files vazio: um
+///     pack com duzentos mods e vinte versões mandaria quatro mil entradas pelo
+///     fio para encher um seletor. E um DTO completo com a lista vazia seria pior
+///     do que grande — seria uma mentira que instala uma pasta sem mods e não dá
+///     erro nenhum. Quem instala continua obrigado a pedir o manifesto pelo id.
+/// </summary>
+public sealed record ModpackVersionSummaryDto
+{
+    public required Guid Id { get; init; }
+
+    /// <summary>SemVer da versão do pack, ex: "1.4.0".</summary>
+    public required string Version { get; init; }
+
+    public required string LoaderVersion { get; init; }
+
+    public required DateTimeOffset PublishedAt { get; init; }
+
+    /// <summary>RAM recomendada em MB. Sugestão para a UI, não um limite.</summary>
+    public int? RecommendedMemoryMb { get; init; }
+}
+
 public enum ModLoader
 {
     Vanilla,

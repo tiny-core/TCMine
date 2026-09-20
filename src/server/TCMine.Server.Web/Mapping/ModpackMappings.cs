@@ -29,6 +29,16 @@ public static class ModpackMappings
         };
     }
 
+    /// <summary>Para listas: o que o seletor mostra, sem os arquivos.</summary>
+    public static ModpackVersionSummaryDto ToSummaryDto(this ModpackVersion version) => new()
+    {
+        Id = version.Id,
+        Version = version.Version,
+        LoaderVersion = version.LoaderVersion,
+        PublishedAt = version.PublishedAt ?? default,
+        RecommendedMemoryMb = version.RecommendedMemoryMb
+    };
+
     public static ModpackVersionDto ToDto(this ModpackVersion version)
     {
         return new ModpackVersionDto

@@ -34,6 +34,12 @@ public interface IServerConnection : IAsyncDisposable
     /// </summary>
     Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct);
 
+    /// <summary>
+    ///     O histórico instalável, da mais nova para a mais velha. Sem os
+    ///     arquivos — instalar continua a pedir o manifesto por versão.
+    /// </summary>
+    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId, CancellationToken ct);
+
     /// <summary>O manifesto completo de uma versão. É sobre ele que o diff roda.</summary>
     Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct);
 }

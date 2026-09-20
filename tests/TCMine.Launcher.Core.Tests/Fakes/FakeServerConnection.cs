@@ -60,6 +60,15 @@ public class FakeServerConnection : IServerConnection
     /// </summary>
     public List<Guid> LatestQueries { get; } = [];
 
+    /// <summary>Histórico por modpack, para o seletor de versão.</summary>
+    public Dictionary<Guid, IReadOnlyList<ModpackVersionSummaryDto>> Histories { get; } = [];
+
+    public Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
+        Guid modpackId, CancellationToken ct) =>
+        Throws is not null
+            ? Task.FromException<IReadOnlyList<ModpackVersionSummaryDto>>(Throws)
+            : Task.FromResult(Histories.GetValueOrDefault(modpackId, []));
+
     public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct)
     {
         LatestQueries.Add(modpackId);

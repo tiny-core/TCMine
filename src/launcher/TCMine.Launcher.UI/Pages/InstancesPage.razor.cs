@@ -6,6 +6,7 @@ using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Core.Sync;
 using TCMine.Launcher.UI.Abstractions;
+using TCMine.Launcher.UI.Components;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
@@ -101,11 +102,22 @@ public partial class InstancesPage : ComponentBase
                 + $"{novidade.Version} numa pasta à parte, com mundo próprio, e deixa esta como está."),
             YesText = "Atualizar esta",
             NoText = "Criar nova instância",
-            CancelText = "Cancelar"
+            CancelText = "Escolher outra versão"
         });
 
+        // Cancelar vira "escolher versão" em vez de fechar sem nada: quem chegou
+        // aqui já decidiu que quer mexer nesta instância, e a pergunta que falta
+        // é qual versão — não se quer continuar. Sair mesmo é o X do diálogo.
+        var versaoId = novidade.Id;
+
         if (escolha is null)
-            return;
+        {
+            if (await PerguntarVersaoAsync(instancia) is not { } outra)
+                return;
+
+            versaoId = outra;
+            escolha = true;
+        }
 
         _busy = true;
 
@@ -115,10 +127,10 @@ public partial class InstancesPage : ComponentBase
 
             var resultado = escolha is true
                 ? await Updater.HandleAsync(
-                    config.ServerUrl, pack, novidade.Id, instancia,
+                    config.ServerUrl, pack, versaoId, instancia,
                     backupWorld: true, Acompanhar(temMundo), CancellationToken.None)
                 : await Installer.HandleAsync(
-                    config.ServerUrl, pack, novidade.Id, target: null,
+                    config.ServerUrl, pack, versaoId, target: null,
                     Acompanhar(false), CancellationToken.None);
 
             Snackbar.Add(
@@ -134,6 +146,23 @@ public partial class InstancesPage : ComponentBase
         }
 
         await LoadAsync();
+    }
+
+    private async Task<Guid?> PerguntarVersaoAsync(InstalledInstance instancia)
+    {
+        var parametros = new DialogParameters<VersionPickerDialog>
+        {
+            { d => d.ModpackId, instancia.Manifest.ModpackId },
+            { d => d.Current, instancia.Manifest.ModpackVersionId },
+            { d => d.ConfirmLabel, "Atualizar para esta" }
+        };
+
+        var dialogo = await Dialogs.ShowAsync<VersionPickerDialog>(
+            $"Versão de {instancia.Manifest.ModpackName}", parametros);
+
+        return (await dialogo.Result)?.Data is Guid escolhida && escolhida != Guid.Empty
+            ? escolhida
+            : null;
     }
 
     private Progress<InstallProgress> Acompanhar(bool comBackup) =>

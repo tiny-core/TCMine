@@ -62,7 +62,7 @@ else
                                    StartIcon="@Icons.Material.Filled.Upgrade"
                                    Disabled="_busy"
                                    OnClick="@(() => UpdateAsync(instancia, novidade))">
-                            Atualizar para v@novidade.Version
+                            Atualizar para v@(novidade.Version)
                         </MudButton>
                     }
 

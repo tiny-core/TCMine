@@ -118,6 +118,19 @@ else if (_catalog is not null)
                                        OnClick="@(() => InstallAsync(entrada.Modpack))">
                                 Instalar
                             </MudButton>
+
+                            @* Segundo caminho, e deliberadamente discreto: quem
+                               procura uma versão antiga normalmente sabe porquê —
+                               um servidor fixado nela — e quem não procura não
+                               deve ser convidado a escolher. *@
+                            <MudButton Variant="Variant.Text"
+                                       Size="Size.Small"
+                                       FullWidth="true"
+                                       Class="mt-1"
+                                       Disabled="@(_installing is not null)"
+                                       OnClick="@(() => InstallSpecificAsync(entrada.Modpack))">
+                                Escolher versão
+                            </MudButton>
                         }
                     </MudCardContent>
                 </MudCard>

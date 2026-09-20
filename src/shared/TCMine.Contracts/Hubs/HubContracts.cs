@@ -30,6 +30,13 @@ public interface IServerHub
     /// </summary>
     Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId);
 
+    /// <summary>
+    ///     Todas as versões instaláveis de um pack, da mais nova para a mais
+    ///     velha. Serve o seletor de versão; instalar continua a pedir o
+    ///     manifesto completo por <c>GetModpackVersionAsync</c>.
+    /// </summary>
+    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId);
+
     Task<IReadOnlyList<GameServerDto>> GetServersAsync();
 
     /// <summary>Assina eventos de um servidor. Valida permissão no server.</summary>
