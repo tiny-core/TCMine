@@ -3,6 +3,19 @@
 <PageTitle>Instâncias</PageTitle>
 
 <PageHeader Title="Instâncias" Subtitle="As instalações que ocupam disco nesta máquina.">
+    @* Só aparece quando há o que libertar, e com o número no rótulo: "remover
+       Java não utilizado" sem um tamanho ao lado é um botão que ninguém clica —
+       e um botão permanente que às vezes não faz nada é pior. *@
+    @if (_reclaimable > 0)
+    {
+        <MudButton Variant="Variant.Text"
+                   StartIcon="@Icons.Material.Filled.CleaningServices"
+                   Disabled="_busy"
+                   OnClick="CleanupJavaAsync">
+            Libertar @HumanSize.Bytes(_reclaimable) de Java
+        </MudButton>
+    }
+
     <MudButton Variant="Variant.Outlined"
                StartIcon="@Icons.Material.Filled.Refresh"
                Disabled="_loading"

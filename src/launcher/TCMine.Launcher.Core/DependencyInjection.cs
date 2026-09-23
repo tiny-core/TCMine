@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Core.Modpacks;
+using TCMine.Launcher.Core.Runtime;
 
 namespace TCMine.Launcher.Core;
 
@@ -30,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<LaunchGame>();
         services.AddScoped<UpdateInstance>();
         services.AddScoped<CheckInstanceUpdates>();
+        services.AddScoped<CleanupJavaRuntimes>();
 
         // Singleton: o jogo aberto tem de sobreviver à navegação entre telas, do
         // mesmo modo que o estado do casco.

@@ -62,6 +62,59 @@ public sealed partial class AdoptiumJavaLocator(
                    + "O formato do pacote do Adoptium mudou.");
     }
 
+    public Task<IReadOnlyList<InstalledRuntime>> ListAsync(CancellationToken ct)
+    {
+        if (!Directory.Exists(paths.RuntimesDirectory))
+            return Task.FromResult<IReadOnlyList<InstalledRuntime>>([]);
+
+        var runtimes = new List<InstalledRuntime>();
+
+        foreach (var directory in Directory.EnumerateDirectories(paths.RuntimesDirectory))
+        {
+            // Só pastas cujo nome é um major. Um ".tmp" de extração interrompida
+            // não é um JRE, e listá-lo ofereceria ao jogador apagar algo que o
+            // download seguinte vai limpar sozinho.
+            if (int.TryParse(Path.GetFileName(directory), CultureInfo.InvariantCulture, out var major))
+                runtimes.Add(new InstalledRuntime(major, TamanhoDe(directory)));
+        }
+
+        return Task.FromResult<IReadOnlyList<InstalledRuntime>>(runtimes);
+    }
+
+    public Task RemoveAsync(int majorVersion, CancellationToken ct)
+    {
+        var directory = Path.Combine(
+            paths.RuntimesDirectory, majorVersion.ToString(CultureInfo.InvariantCulture));
+
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, true);
+            LogRemovido(majorVersion);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    ///     Quanto ocupa uma pasta, somando tudo.
+    ///     Ficheiro inacessível conta zero em vez de atirar: isto serve um número
+    ///     na interface, e falhar a contagem inteira por causa de um ficheiro
+    ///     bloqueado seria trocar uma estimativa por nada.
+    /// </summary>
+    private static long TamanhoDe(string directory)
+    {
+        try
+        {
+            return new DirectoryInfo(directory)
+                .EnumerateFiles("*", SearchOption.AllDirectories)
+                .Sum(f => f.Length);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return 0;
+        }
+    }
+
     /// <summary>
     ///     O executável dentro de um JRE já extraído, ou nulo se não houver.
     ///     Procura em <c>*/bin/</c> e não recursivamente: o arquivo do Adoptium
@@ -220,6 +273,9 @@ public sealed partial class AdoptiumJavaLocator(
         Architecture.X86 => "x86",
         _ => "x64"
     };
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "JRE {Major} removido por não ser usado.")]
+    private partial void LogRemovido(int major);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Baixando JRE {Major} ({Pacote}).")]
     private partial void LogBaixando(int major, string pacote);

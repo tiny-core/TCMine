@@ -43,12 +43,12 @@ public class LaunchGameTests
         // O bug que este teste tranca: o Minecraft trocou de esquema de versão,
         // o palpite não entendeu "26.2" e devolveu um Java velho. O jogo morria
         // com "Could not create the Java Virtual Machine".
-        var java = new JavaFalso();
+        var java = new FakeJavaLocator();
 
         await Montar(java: java, javaDeclarado: 25).HandleAsync(
             Instalada(minecraft: "26.2"), Config(), null, Ct);
 
-        java.Pedido.ShouldBe(25);
+        java.Requested.ShouldBe(25);
     }
 
     [Fact]
@@ -56,12 +56,12 @@ public class LaunchGameTests
     {
         // Versão desconhecida e sem rede: melhor abrir com um palpite do que não
         // abrir.
-        var java = new JavaFalso();
+        var java = new FakeJavaLocator();
 
         await Montar(java: java).HandleAsync(
             Instalada(minecraft: "1.20.4"), Config(), null, Ct);
 
-        java.Pedido.ShouldBe(17);
+        java.Requested.ShouldBe(17);
     }
 
     [Fact]
@@ -163,12 +163,12 @@ public class LaunchGameTests
     {
         // Descobrir que a sessão expirou depois de cinquenta megabytes de
         // download seria fazer o jogador esperar para só então pedir que entre.
-        var java = new JavaFalso();
+        var java = new FakeJavaLocator();
 
         await Montar(java: java, conta: AuthResult.NoStoredCredentials()).HandleAsync(
             Instalada(), Config(), null, Ct);
 
-        java.Pedido.ShouldBeNull();
+        java.Requested.ShouldBeNull();
     }
 
     [Fact]
@@ -176,7 +176,7 @@ public class LaunchGameTests
     {
         // "Não foi possível abrir o jogo" não diz se adianta tentar de novo; o
         // texto do erro original diz.
-        var java = new JavaFalso { Erro = new InvalidOperationException("checksum não confere") };
+        var java = new FakeJavaLocator { Error = new InvalidOperationException("checksum não confere") };
 
         var resultado = await Montar(java: java).HandleAsync(
             Instalada(), Config(), null, Ct);
@@ -232,7 +232,7 @@ public class LaunchGameTests
 
     private static LaunchGame Montar(
         ContaFalsa? autenticador = null,
-        JavaFalso? java = null,
+        FakeJavaLocator? java = null,
         MotorFalso? motor = null,
         AuthResult? conta = null,
         GameSession? sessao = null,
@@ -242,7 +242,7 @@ public class LaunchGameTests
         new(autenticador ?? new ContaFalsa(conta ?? AuthResult.Success("token-do-minecraft")),
             perfis ?? new PerfilFalso(new PlayerProfile("Jogador", "abc123")),
             cache ?? new CacheFalso(),
-            java ?? new JavaFalso(),
+            java ?? new FakeJavaLocator(),
             new ExigenciaFalsa(javaDeclarado),
             motor ?? new MotorFalso(),
             sessao ?? new GameSession());
@@ -313,22 +313,6 @@ public class LaunchGameTests
     {
         public Task<int?> GetRequiredJavaAsync(string minecraftVersion, CancellationToken ct) =>
             Task.FromResult(declarado);
-    }
-
-    private sealed class JavaFalso : IJavaLocator
-    {
-        public int? Pedido { get; private set; }
-
-        public Exception? Erro { get; init; }
-
-        public Task<string> EnsureRuntimeAsync(int majorVersion, IProgress<double>? progress, CancellationToken ct)
-        {
-            Pedido = majorVersion;
-
-            return Erro is not null
-                ? Task.FromException<string>(Erro)
-                : Task.FromResult($"/runtimes/{majorVersion}/bin/java");
-        }
     }
 
     private sealed class MotorFalso : IGameLauncher

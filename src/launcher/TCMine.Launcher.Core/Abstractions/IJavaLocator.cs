@@ -14,4 +14,19 @@ public interface IJavaLocator
         int majorVersion,
         IProgress<double>? progress,
         CancellationToken ct);
+
+    /// <summary>
+    ///     Os JREs que estão no disco, com o que cada um ocupa.
+    ///     O tamanho vem junto porque é ele que justifica apagar: "remover Java
+    ///     não utilizado" sem um número ao lado é um botão que ninguém clica.
+    /// </summary>
+    Task<IReadOnlyList<InstalledRuntime>> ListAsync(CancellationToken ct);
+
+    /// <summary>
+    ///     Apaga um JRE. Puro cache: o custo de errar é voltar a descarregá-lo,
+    ///     e nenhum dado do jogador vive aqui.
+    /// </summary>
+    Task RemoveAsync(int majorVersion, CancellationToken ct);
 }
+
+public sealed record InstalledRuntime(int MajorVersion, long SizeBytes);

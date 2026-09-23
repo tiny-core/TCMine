@@ -4,9 +4,11 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
+using TCMine.Launcher.Core.Runtime;
 using TCMine.Launcher.Core.Sync;
 using TCMine.Launcher.UI.Abstractions;
 using TCMine.Launcher.UI.State;
+using TCMine.UI.Shared.Formatting;
 
 namespace TCMine.Launcher.UI.Pages;
 
@@ -18,6 +20,9 @@ public partial class InstancesPage : ComponentBase
 
     private IReadOnlyDictionary<InstanceKey, ModpackVersionDto> _updates =
         new Dictionary<InstanceKey, ModpackVersionDto>();
+
+    /// <summary>Bytes em JREs que nenhuma instância pede. Zero esconde o botão.</summary>
+    private long _reclaimable;
     private IReadOnlyList<InstalledInstance> _instances = [];
     private bool _loading = true;
 
@@ -32,6 +37,8 @@ public partial class InstancesPage : ComponentBase
     [Inject] private InstallModpackVersion Installer { get; set; } = default!;
 
     [Inject] private IWorldBackup Worlds { get; set; } = default!;
+
+    [Inject] private CleanupJavaRuntimes JavaCleanup { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
@@ -64,6 +71,9 @@ public partial class InstancesPage : ComponentBase
             _updates = Shell.IsOnline
                 ? await Updates.HandleAsync(_instances, CancellationToken.None)
                 : new Dictionary<InstanceKey, ModpackVersionDto>();
+
+            _reclaimable = (await JavaCleanup.FindUnusedAsync(CancellationToken.None))
+                .Sum(r => r.SizeBytes);
         }
         finally
         {
@@ -72,6 +82,34 @@ public partial class InstancesPage : ComponentBase
     }
 
     private void OpenFolder(InstalledInstance instancia) => Desktop.OpenFolder(instancia.Path);
+
+    /// <summary>
+    ///     Apaga os JREs que sobraram.
+    ///     Sem confirmação de propósito: é cache, o pior caso é voltar a
+    ///     descarregá-lo, e uma pergunta aqui seria cerimónia sobre algo que o
+    ///     jogador pediu explicitamente ao ver o tamanho no botão.
+    /// </summary>
+    private async Task CleanupJavaAsync()
+    {
+        _busy = true;
+
+        try
+        {
+            var freed = await JavaCleanup.HandleAsync(CancellationToken.None);
+
+            Snackbar.Add(
+                freed > 0
+                    ? $"{HumanSize.Bytes(freed)} libertados."
+                    : "Nada a libertar agora — feche o jogo e tente de novo.",
+                freed > 0 ? Severity.Success : Severity.Info);
+        }
+        finally
+        {
+            _busy = false;
+        }
+
+        await LoadAsync();
+    }
 
     /// <summary>
     ///     Pergunta antes, porque as duas saídas são irreversíveis de maneiras
