@@ -122,15 +122,21 @@ public sealed class LauncherCatalogContractTests
         var conexao = launcher.GetRequiredService<IServerConnection>();
         await conexao.ConnectAsync(servidor.Address, Ct);
 
-        var versoes = await conexao.GetVersionsAsync(modpackId, Ct);
+        var versoes = await conexao.GetVersionsAsync(modpackId, ReleaseChannel.Release, Ct);
 
         // Da mais nova para a mais velha, e sem a Draft nem a pré-lançamento:
-        // o seletor oferece só o que uma instalação nova pode fixar.
+        // o canal estável não vê o alpha.
         versoes.Select(v => v.Version).ShouldBe(["1.1.0", "1.0.0"]);
 
         // Sem os arquivos, por desenho — o resumo existe para a lista não
         // carregar o manifesto inteiro de cada versão.
         versoes[0].LoaderVersion.ShouldBe("21.1.0");
+
+        // E o alpha vê só a sua, que é o que faz dele um canal. A Draft continua
+        // de fora dos dois: não está publicada em canal nenhum.
+        var alphas = await conexao.GetVersionsAsync(modpackId, ReleaseChannel.Alpha, Ct);
+
+        alphas.Select(v => v.Version).ShouldBe(["1.2.0-beta"]);
     }
 
     [Fact]

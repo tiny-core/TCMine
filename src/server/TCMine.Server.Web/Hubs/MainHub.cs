@@ -5,6 +5,7 @@ using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Mapping;
 
 namespace TCMine.Server.Web.Hubs;
@@ -56,46 +57,48 @@ public sealed class MainHub(
     }
 
     /// <summary>
-    ///     A versão que o jogador deve instalar: a mais nova pronta e de canal
-    ///     release.
-    ///     Pré-lançamentos ficam de fora porque são para teste do administrador,
-    ///     e arquivadas também — elas continuam servindo quem já as fixou, mas
-    ///     não são oferecidas a uma instalação nova.
+    ///     A versão que o jogador deve instalar no canal pedido: a mais nova
+    ///     pronta daquele canal.
+    ///     Arquivadas ficam de fora dos dois canais — continuam a servir quem já
+    ///     as fixou, mas não são oferecidas a uma instalação nova.
     ///     A ordem vem do Id, e não da data: são GUID v7, cronológicos, e o SQLite
     ///     recusa DateTimeOffset em ORDER BY.
     /// </summary>
-    public async Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId)
+    public async Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, ReleaseChannel channel)
     {
         var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
 
-        var ultima = versoes
-            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
-            .OrderByDescending(v => v.Id)
-            .FirstOrDefault();
+        var ultima = Instalaveis(versoes, channel).FirstOrDefault();
 
         return ultima?.ToDto();
     }
 
     /// <summary>
-    ///     O histórico instalável de um pack, da mais nova para a mais velha.
-    ///     Mesmo filtro do <see cref="GetLatestVersionAsync" />, e de propósito:
-    ///     pré-lançamentos são para teste do administrador, e arquivadas
-    ///     continuam a servir quem já as fixou mas não são oferecidas a uma
-    ///     instalação nova. Oferecer aqui o que o GetLatest esconde seria dar
-    ///     pela porta do lado o que a porta da frente recusa.
-    ///     Ordem pelo Id: são GUID v7, cronológicos, e o SQLite recusa
-    ///     DateTimeOffset em ORDER BY.
+    ///     O que uma instalação nova pode fixar, da mais nova para a mais velha.
+    ///     Um canal não vê o outro, e é isso que o torna um canal: uma instância
+    ///     alpha que recebesse uma estável saltaria para trás sem o jogador pedir,
+    ///     e uma estável que recebesse uma alpha receberia código de teste.
     /// </summary>
-    public async Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId)
+    private static IEnumerable<ModpackVersion> Instalaveis(
+        IEnumerable<ModpackVersion> versoes,
+        ReleaseChannel channel) =>
+        versoes
+            .Where(v => v.State is ModpackVersionState.Ready && v.Channel == channel)
+            .OrderByDescending(v => v.Id);
+
+    /// <summary>
+    ///     O histórico instalável de um pack num canal, da mais nova para a mais
+    ///     velha. Mesmo filtro do <see cref="GetLatestVersionAsync" />, e de
+    ///     propósito: oferecer aqui o que o GetLatest esconde seria dar pela porta
+    ///     do lado o que a porta da frente recusa.
+    /// </summary>
+    public async Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
+        Guid modpackId, ReleaseChannel channel)
     {
         var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
 
         // Array, e não expressão de coleção: ver a nota do GetModpacksAsync.
-        return versoes
-            .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
-            .OrderByDescending(v => v.Id)
-            .Select(v => v.ToSummaryDto())
-            .ToArray();
+        return Instalaveis(versoes, channel).Select(v => v.ToSummaryDto()).ToArray();
     }
 
     /// <summary>

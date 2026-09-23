@@ -7,6 +7,16 @@
 
 <MudDialog>
     <DialogContent>
+        @* O canal em abas: são duas listas diferentes do mesmo pack, não um
+           filtro sobre uma lista só. Um checkbox "mostrar alphas" misturaria as
+           duas e convidaria a instalar uma por engano. *@
+        <MudTabs Elevation="0" Rounded="true" Class="mb-3"
+                 ActivePanelIndex="@((int)_channel)"
+                 ActivePanelIndexChanged="@(i => ChangeChannelAsync((ReleaseChannel)i))">
+            <MudTabPanel Text="Estável"/>
+            <MudTabPanel Text="Alpha"/>
+        </MudTabs>
+
         @if (_loading)
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
@@ -23,7 +33,9 @@
                legítimo, e dizer "erro" mandaria o jogador procurar problema onde
                não há. *@
             <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                Este modpack ainda não tem versões publicadas.
+                @(_channel is ReleaseChannel.Alpha
+                    ? "Este modpack ainda não tem nenhuma versão alpha."
+                    : "Este modpack ainda não tem versões publicadas.")
             </MudText>
         }
         else

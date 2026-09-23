@@ -16,6 +16,7 @@ namespace TCMine.Launcher.UI.Components;
 /// </summary>
 public partial class VersionPickerDialog : ComponentBase
 {
+    private ReleaseChannel _channel = ReleaseChannel.Release;
     private string? _error;
     private bool _loading = true;
     private Guid _selected;
@@ -27,11 +28,32 @@ public partial class VersionPickerDialog : ComponentBase
 
     [Inject] private IServerConnection Connection { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    /// <summary>
+    ///     Troca de canal e recarrega.
+    ///     A lista vem do servidor por canal e não é filtrada aqui: o que cada
+    ///     canal oferece é decisão dele, e reparti-la na tela seria uma segunda
+    ///     cópia da regra, pronta a discordar.
+    /// </summary>
+    private async Task ChangeChannelAsync(ReleaseChannel channel)
     {
+        if (_channel == channel)
+            return;
+
+        _channel = channel;
+
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _loading = true;
+        _error = null;
+
         try
         {
-            _versions = await Connection.GetVersionsAsync(ModpackId, CancellationToken.None);
+            _versions = await Connection.GetVersionsAsync(ModpackId, _channel, CancellationToken.None);
 
             // Pré-seleciona a mais recente: é a escolha certa na maioria das
             // vezes, e quem abriu o seletor para pegar outra só precisa de a

@@ -238,7 +238,7 @@ public class InstallModpackVersionTests
             if (versao is not null)
             {
                 Connection.Versions[versao.Id] = versao;
-                Connection.Latest[pack.Id] = versao;
+                Connection.Latest[(pack.Id, ReleaseChannel.Release)] = versao;
             }
 
             Versao = versao;
@@ -270,7 +270,7 @@ public class InstallModpackVersionTests
             Instalador.HandleAsync(Servidor, Pack, Versao!.Id, alvo, progresso, Ct);
 
         public Task<InstallResult> InstalarUltima() =>
-            Instalador.InstallLatestAsync(Servidor, Pack, target: null, null, Ct);
+            Instalador.InstallLatestAsync(Servidor, Pack, target: null, ReleaseChannel.Release, null, Ct);
     }
 
     private static ModpackDto Modpack() => new()

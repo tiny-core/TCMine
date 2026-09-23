@@ -130,7 +130,8 @@ public partial class ModpacksPage : ComponentBase
                     config.ServerUrl, modpack, escolhida, target: null,
                     acompanhamento, CancellationToken.None)
                 : await Installer.InstallLatestAsync(
-                    config.ServerUrl, modpack, target: null, acompanhamento, CancellationToken.None);
+                    config.ServerUrl, modpack, target: null, ReleaseChannel.Release,
+                    acompanhamento, CancellationToken.None);
 
             if (resultado.Succeeded)
             {

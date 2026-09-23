@@ -28,11 +28,16 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
     {
         var novidades = new Dictionary<InstanceKey, ModpackVersionDto>();
 
-        // Uma consulta por MODPACK, não por instância: duas instalações do mesmo
-        // pack — que agora são possíveis — pediriam a mesma resposta duas vezes.
-        foreach (var grupo in instances.GroupBy(i => i.Manifest.ModpackId))
+        // Uma consulta por (MODPACK, CANAL), e não por instância: duas
+        // instalações do mesmo pack pediriam a mesma resposta duas vezes, e uma
+        // alpha ao lado de uma estável precisa de respostas diferentes — é isso
+        // que faz do canal um canal. O canal sai do número da versão instalada,
+        // sem campo gravado a poder discordar.
+        foreach (var grupo in instances.GroupBy(i => (
+                     i.Manifest.ModpackId,
+                     Canal: ReleaseChannels.Of(i.Manifest.Version))))
         {
-            var ultima = await UltimaAsync(grupo.Key, ct);
+            var ultima = await UltimaAsync(grupo.Key.ModpackId, grupo.Key.Canal, ct);
 
             if (ultima is null)
                 continue;
@@ -44,11 +49,12 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
         return novidades;
     }
 
-    private async Task<ModpackVersionDto?> UltimaAsync(Guid modpackId, CancellationToken ct)
+    private async Task<ModpackVersionDto?> UltimaAsync(
+        Guid modpackId, ReleaseChannel channel, CancellationToken ct)
     {
         try
         {
-            return await connection.GetLatestVersionAsync(modpackId, ct);
+            return await connection.GetLatestVersionAsync(modpackId, channel, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

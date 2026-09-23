@@ -32,13 +32,15 @@ public interface IServerConnection : IAsyncDisposable
     ///     A versão que se deve instalar hoje. Nulo quando o pack ainda não
     ///     publicou nada — resposta legítima, não erro.
     /// </summary>
-    Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct);
+    Task<ModpackVersionDto?> GetLatestVersionAsync(
+        Guid modpackId, ReleaseChannel channel, CancellationToken ct);
 
     /// <summary>
     ///     O histórico instalável, da mais nova para a mais velha. Sem os
     ///     arquivos — instalar continua a pedir o manifesto por versão.
     /// </summary>
-    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId, CancellationToken ct);
+    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
+        Guid modpackId, ReleaseChannel channel, CancellationToken ct);
 
     /// <summary>Novidades publicadas do pack, da mais recente para a mais antiga.</summary>
     Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId, CancellationToken ct);

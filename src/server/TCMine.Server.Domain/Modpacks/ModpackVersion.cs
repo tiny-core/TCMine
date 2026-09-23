@@ -21,10 +21,16 @@ public sealed class ModpackVersion : Entity
     public required Guid ModpackId { get; set; }
 
     /// <summary>
-    ///     Versão pré-release (tem sufixo, ex: "-alpha"). SemVer: qualquer coisa
-    ///     depois do hífen é pré-release. Servidores só rodam releases estáveis.
+    ///     Versão pré-release (tem sufixo, ex: "-alpha"). Servidores só rodam
+    ///     releases estáveis.
+    ///     A regra vive em <see cref="ReleaseChannels" />, partilhada com o
+    ///     launcher: duas cópias do "qualquer coisa depois do hífen" acabariam a
+    ///     discordar, e o sintoma seria um pack a atualizar para o canal errado.
     /// </summary>
-    public bool IsPreRelease => Version.Contains('-');
+    public bool IsPreRelease => Channel is ReleaseChannel.Alpha;
+
+    /// <summary>O canal desta versão, derivado do número.</summary>
+    public ReleaseChannel Channel => ReleaseChannels.Of(Version);
 
     /// <summary>SemVer, ex: "1.4.0".</summary>
     public required string Version { get; set; }

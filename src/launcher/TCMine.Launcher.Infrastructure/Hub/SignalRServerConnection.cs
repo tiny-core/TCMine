@@ -78,12 +78,13 @@ public sealed partial class SignalRServerConnection(
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct) =>
         Exigir().GetServersAsync();
 
-    public Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, CancellationToken ct) =>
-        Exigir().GetLatestVersionAsync(modpackId);
+    public Task<ModpackVersionDto?> GetLatestVersionAsync(
+        Guid modpackId, ReleaseChannel channel, CancellationToken ct) =>
+        Exigir().GetLatestVersionAsync(modpackId, channel);
 
     public Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
-        Guid modpackId, CancellationToken ct) =>
-        Exigir().GetVersionsAsync(modpackId);
+        Guid modpackId, ReleaseChannel channel, CancellationToken ct) =>
+        Exigir().GetVersionsAsync(modpackId, channel);
 
     public Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId, CancellationToken ct) =>
         Exigir().GetNewsAsync(modpackId);

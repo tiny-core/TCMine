@@ -129,21 +129,32 @@ public partial class InstancesPage : ComponentBase
 
         var temMundo = Worlds.HasWorld(instancia.Key);
 
+        // Uma instância alpha não se duplica. O canal alpha existe para ACOMPANHAR
+        // pré-lançamentos, e cada cópia que ficasse para trás seria uma instalação
+        // presa numa alpha que ninguém mais vai atualizar — lixo no disco com cara
+        // de instância válida. Quem quer uma segunda instalação escolhe o canal no
+        // catálogo, onde a decisão é consciente.
+        var ehAlpha = ReleaseChannels.Of(instancia.Manifest.Version) is ReleaseChannel.Alpha;
+
         var escolha = await Dialogs.ShowMessageBoxAsync(new MessageBoxOptions
         {
             Title = $"Atualizar para v{novidade.Version}",
             MarkupMessage = new MarkupString(
-                $"<b>{instancia.Manifest.ModpackName}</b> está na v{instancia.Manifest.Version}.<br/><br/>"
-                + "<b>Atualizar esta instância</b> troca os mods e mantém o seu mundo, as suas "
-                + "configurações e a RAM escolhida."
+                $"<b>{instancia.Manifest.ModpackName}</b> está na v{instancia.Manifest.Version}."
+                + (ehAlpha ? " Esta instância acompanha o canal <b>alpha</b>." : "")
+                + "<br/><br/><b>Atualizar esta instância</b> troca os mods e mantém o seu mundo, as "
+                + "suas configurações e a RAM escolhida."
                 + (temMundo
                     ? "<br/><br/>Uma cópia do mundo é guardada antes de mexer em qualquer coisa. "
                       + "Se a cópia falhar, a atualização é cancelada."
                     : "")
-                + "<br/><br/><b>Criar nova instância</b> instala a v"
-                + $"{novidade.Version} numa pasta à parte, com mundo próprio, e deixa esta como está."),
+                + (ehAlpha
+                    ? ""
+                    : "<br/><br/><b>Criar nova instância</b> instala a v"
+                      + $"{novidade.Version} numa pasta à parte, com mundo próprio, e deixa esta "
+                      + "como está.")),
             YesText = "Atualizar esta",
-            NoText = "Criar nova instância",
+            NoText = ehAlpha ? null : "Criar nova instância",
             CancelText = "Cancelar"
         });
 

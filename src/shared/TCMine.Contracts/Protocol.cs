@@ -9,13 +9,19 @@
 public class Protocol
 {
     /// <summary>Protocolo que esta build fala.</summary>
-    public const int Current = 1;
+    public const int Current = 2;
 
     /// <summary>
     ///     Protocolo mais antigo ainda aceito. Manter N e N-1 dá ao admin uma
     ///     janela para atualizar sem derrubar os jogadores dele.
+    ///     Subiu para 2 junto com o Current, e a janela não se aplica desta vez:
+    ///     o canal de versões acrescentou um parâmetro às consultas do hub, e o
+    ///     SignalR resolve método por nome E aridade. Um launcher de protocolo 1
+    ///     conectaria e depois falharia na primeira consulta, com um erro que não
+    ///     fala de versão nenhuma. Recusar no handshake diz-lhe para atualizar,
+    ///     que é o que ele precisa de ouvir.
     /// </summary>
-    public const int MinimumSupported = 1;
+    public const int MinimumSupported = 2;
 
     /// <summary>
     ///     Rota do handshake. CONGELADA PARA SEMPRE: é o único endpoint que nunca

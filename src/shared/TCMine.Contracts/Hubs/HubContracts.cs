@@ -28,14 +28,14 @@ public interface IServerHub
     ///     launcher não teria de onde tirar um id de versão.
     ///     Nulo é resposta legítima: um pack recém-criado ainda não publicou nada.
     /// </summary>
-    Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId);
+    Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, ReleaseChannel channel);
 
     /// <summary>
     ///     Todas as versões instaláveis de um pack, da mais nova para a mais
     ///     velha. Serve o seletor de versão; instalar continua a pedir o
     ///     manifesto completo por <c>GetModpackVersionAsync</c>.
     /// </summary>
-    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId);
+    Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(Guid modpackId, ReleaseChannel channel);
 
     /// <summary>
     ///     As novidades publicadas de um pack, da mais recente para a mais

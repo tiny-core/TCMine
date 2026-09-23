@@ -48,13 +48,13 @@ public class CheckInstanceUpdatesTests
         // mesma coisa duas vezes seria desperdício no arranque de uma tela.
         var pack = Guid.CreateVersion7();
         var nova = Versao(pack);
-        var conexao = new FakeServerConnection { Latest = { [pack] = nova } };
+        var conexao = new FakeServerConnection { Latest = { [(pack, ReleaseChannel.Release)] = nova } };
 
         var novidades = await new CheckInstanceUpdates(conexao).HandleAsync(
             [Instalada(pack, Guid.CreateVersion7()), Instalada(pack, Guid.CreateVersion7())], Ct);
 
         novidades.Count.ShouldBe(2);
-        conexao.LatestQueries.ShouldBe([pack]);
+        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
     }
 
     [Fact]
@@ -71,6 +71,66 @@ public class CheckInstanceUpdatesTests
         novidades.ShouldBeEmpty();
     }
 
+    [Fact]
+    public async Task Uma_instancia_alpha_so_olha_para_o_canal_alpha()
+    {
+        // O essencial do canal. Uma alpha que recebesse a estável saltaria para
+        // trás sem ninguém pedir, e no caminho reescreveria os mods por cima de
+        // um mundo jogado em código de teste.
+        var pack = Guid.CreateVersion7();
+        var alphaNova = Versao(pack, "1.2.0-beta2");
+        var conexao = new FakeServerConnection
+        {
+            Latest =
+            {
+                [(pack, ReleaseChannel.Release)] = Versao(pack, "1.1.0"),
+                [(pack, ReleaseChannel.Alpha)] = alphaNova
+            }
+        };
+
+        var instancia = Instalada(pack, Guid.CreateVersion7(), "1.2.0-beta1");
+
+        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync([instancia], Ct);
+
+        novidades[instancia.Key].Id.ShouldBe(alphaNova.Id);
+        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Alpha)]);
+    }
+
+    [Fact]
+    public async Task Uma_estavel_nunca_recebe_alpha()
+    {
+        var pack = Guid.CreateVersion7();
+        var conexao = new FakeServerConnection
+        {
+            Latest = { [(pack, ReleaseChannel.Alpha)] = Versao(pack, "2.0.0-beta") }
+        };
+
+        // Só há alpha publicada. A estável fica onde está em vez de saltar de canal.
+        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync(
+            [Instalada(pack, Guid.CreateVersion7(), "1.0.0")], Ct);
+
+        novidades.ShouldBeEmpty();
+        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
+    }
+
+    [Fact]
+    public async Task Uma_alpha_e_uma_estavel_do_mesmo_pack_sao_duas_consultas()
+    {
+        // Agrupar só por modpack faria uma das duas receber a resposta da outra.
+        var pack = Guid.CreateVersion7();
+        var conexao = new FakeServerConnection();
+
+        await new CheckInstanceUpdates(conexao).HandleAsync(
+            [
+                Instalada(pack, Guid.CreateVersion7(), "1.0.0"),
+                Instalada(pack, Guid.CreateVersion7(), "1.1.0-beta")
+            ],
+            Ct);
+
+        conexao.LatestQueries.ShouldBe(
+            [(pack, ReleaseChannel.Release), (pack, ReleaseChannel.Alpha)], ignoreOrder: true);
+    }
+
     // ---------- apoio ----------
 
     private static CheckInstanceUpdates Montar(params (Guid Pack, ModpackVersionDto Versao)[] ultimas)
@@ -78,23 +138,23 @@ public class CheckInstanceUpdatesTests
         var conexao = new FakeServerConnection();
 
         foreach (var (pack, versao) in ultimas)
-            conexao.Latest[pack] = versao;
+            conexao.Latest[(pack, ReleaseChannel.Release)] = versao;
 
         return new CheckInstanceUpdates(conexao);
     }
 
-    private static ModpackVersionDto Versao(Guid packId) => new()
+    private static ModpackVersionDto Versao(Guid packId, string numero = "1.1.0") => new()
     {
         Id = Guid.CreateVersion7(),
         ModpackId = packId,
-        Version = "1.1.0",
+        Version = numero,
         LoaderVersion = "21.1.0",
         State = ModpackVersionState.Ready,
         PublishedAt = DateTimeOffset.UtcNow,
         Files = []
     };
 
-    private static InstalledInstance Instalada(Guid packId, Guid versaoId) =>
+    private static InstalledInstance Instalada(Guid packId, Guid versaoId, string numero = "1.0.0") =>
         new(InstanceKey.New(),
             new InstanceManifest
             {
@@ -102,7 +162,7 @@ public class CheckInstanceUpdatesTests
                 ModpackId = packId,
                 ModpackVersionId = versaoId,
                 ModpackName = "Pack",
-                Version = "1.0.0",
+                Version = numero,
                 InstalledAt = DateTimeOffset.UtcNow,
                 ManagedFiles = new Dictionary<string, string>()
             },

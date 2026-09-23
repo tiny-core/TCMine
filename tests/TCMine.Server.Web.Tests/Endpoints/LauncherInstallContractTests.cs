@@ -67,7 +67,7 @@ public sealed class LauncherInstallContractTests : IDisposable
         // O caminho completo: manifesto pelo hub, bytes por HTTP, hash conferido,
         // arquivos materializados.
         var resultado = await launcher.GetRequiredService<InstallModpackVersion>()
-            .InstallLatestAsync(servidor.Address, pack, target: null, null, Ct);
+            .InstallLatestAsync(servidor.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
 
         resultado.Succeeded.ShouldBeTrue(resultado.Error);
 
@@ -109,7 +109,7 @@ public sealed class LauncherInstallContractTests : IDisposable
         var pack = catalogo.Entries.Single(e => e.Modpack.Id == modpackId).Modpack;
 
         var instalador = launcher.GetRequiredService<InstallModpackVersion>();
-        var primeira = await instalador.InstallLatestAsync(servidor.Address, pack, target: null, null, Ct);
+        var primeira = await instalador.InstallLatestAsync(servidor.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
 
         var instancia = launcher.GetRequiredService<IInstanceStore>().PathFor(primeira.Key!.Value);
 
@@ -122,7 +122,7 @@ public sealed class LauncherInstallContractTests : IDisposable
         // A MESMA instância, que é o que "atualizar" passou a significar. Com
         // alvo nulo o instalador criaria uma instalação nova ao lado, e o mundo
         // ficaria intacto na antiga — o teste passaria a verificar o nada.
-        var segunda = await instalador.InstallLatestAsync(servidor.Address, pack, primeira.Key, null, Ct);
+        var segunda = await instalador.InstallLatestAsync(servidor.Address, pack, primeira.Key, ReleaseChannel.Release, null, Ct);
 
         segunda.Succeeded.ShouldBeTrue(segunda.Error);
         File.Exists(mundo).ShouldBeTrue("o mundo do jogador não é gerenciado pelo launcher");

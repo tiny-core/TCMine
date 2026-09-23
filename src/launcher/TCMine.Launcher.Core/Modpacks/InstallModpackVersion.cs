@@ -36,17 +36,21 @@ public sealed class InstallModpackVersion(
         Uri serverUrl,
         ModpackDto modpack,
         InstanceKey? target,
+        ReleaseChannel channel,
         IProgress<InstallProgress>? progress,
         CancellationToken ct)
     {
-        var ultima = await connection.GetLatestVersionAsync(modpack.Id, ct);
+        var ultima = await connection.GetLatestVersionAsync(modpack.Id, channel, ct);
 
         if (ultima is null)
         {
             // Resposta legítima: o administrador criou o pack e ainda não
-            // publicou. Dizer isso é melhor que uma falha genérica.
-            return InstallResult.Failure(
-                $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
+            // publicou naquele canal. Dizer qual canal importa — um pack pode ter
+            // estáveis e nenhuma alpha, e "não tem versão" sozinho mandaria
+            // procurar problema onde não há.
+            return InstallResult.Failure(channel is ReleaseChannel.Alpha
+                ? $"{modpack.Name} ainda não tem nenhuma versão alpha publicada."
+                : $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
         }
 
         return await HandleAsync(serverUrl, modpack, ultima.Id, target, progress, ct);
