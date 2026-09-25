@@ -26,6 +26,14 @@ public partial class VersionPickerDialog : ComponentBase
 
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 
+    /// <summary>
+    ///     As versões que já estão no disco. Aparecem marcadas e desligadas:
+    ///     instalar a mesma outra vez daria duas instâncias idênticas, que
+    ///     ocupam o dobro do disco e ficam indistinguíveis na lista.
+    /// </summary>
+    [Parameter] public IReadOnlySet<Guid> InstalledVersionIds { get; set; } =
+        new HashSet<Guid>();
+
     [Inject] private IServerConnection Connection { get; set; } = default!;
 
     protected override Task OnInitializedAsync() => LoadAsync();
@@ -55,11 +63,10 @@ public partial class VersionPickerDialog : ComponentBase
         {
             _versions = await Connection.GetVersionsAsync(ModpackId, _channel, CancellationToken.None);
 
-            // Pré-seleciona a mais recente: é a escolha certa na maioria das
-            // vezes, e quem abriu o seletor para pegar outra só precisa de a
-            // clicar. Abrir sem nada selecionado tornaria o botão inerte até um
-            // clique que não acrescenta informação nenhuma.
-            _selected = _versions.Count > 0 ? _versions[0].Id : Guid.Empty;
+            // Pré-seleciona a mais recente QUE AINDA NÃO ESTÁ INSTALADA: é a
+            // escolha certa na maioria das vezes, e cair numa já instalada
+            // abriria o diálogo com o botão desligado, parecendo avariado.
+            _selected = _versions.FirstOrDefault(v => !IsInstalled(v.Id))?.Id ?? Guid.Empty;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -70,6 +77,8 @@ public partial class VersionPickerDialog : ComponentBase
             _loading = false;
         }
     }
+
+    private bool IsInstalled(Guid versionId) => InstalledVersionIds.Contains(versionId);
 
     private void Confirmar() => Dialog.Close(DialogResult.Ok(_selected));
 

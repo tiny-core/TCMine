@@ -96,33 +96,39 @@ else if (_catalog is not null)
                                 @PhaseLabel(_progress)
                             </MudText>
                         }
-                        else if (_installed.Contains(entrada.Modpack.Id))
-                        {
-                            <MudButton Variant="Variant.Outlined"
-                                       Color="Color.Success"
-                                       StartIcon="@Icons.Material.Filled.CheckCircle"
-                                       FullWidth="true"
-                                       Class="mt-4"
-                                       Disabled="true">
-                                Instalado
-                            </MudButton>
-                        }
                         else
                         {
-                            <MudButton Variant="Variant.Filled"
-                                       Color="Color.Primary"
-                                       StartIcon="@Icons.Material.Filled.Download"
-                                       FullWidth="true"
-                                       Class="mt-4"
-                                       Disabled="@(_installing is not null)"
-                                       OnClick="@(() => InstallAsync(entrada.Modpack))">
-                                Instalar
-                            </MudButton>
+                            @if (_installed.Contains(entrada.Modpack.Id))
+                            {
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Success"
+                                           StartIcon="@Icons.Material.Filled.CheckCircle"
+                                           FullWidth="true"
+                                           Class="mt-4"
+                                           Disabled="true">
+                                    Instalado
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Filled"
+                                           Color="Color.Primary"
+                                           StartIcon="@Icons.Material.Filled.Download"
+                                           FullWidth="true"
+                                           Class="mt-4"
+                                           Disabled="@(_installing is not null)"
+                                           OnClick="@(() => InstallAsync(entrada.Modpack))">
+                                    Instalar
+                                </MudButton>
+                            }
 
-                            @* Segundo caminho, e deliberadamente discreto: quem
-                               procura uma versão antiga normalmente sabe porquê —
-                               um servidor fixado nela — e quem não procura não
-                               deve ser convidado a escolher. *@
+                            @* Sempre visível, inclusive com o pack já instalado:
+                               é por aqui que se instala uma segunda versão ao lado
+                               — outra alpha, ou a estável que um servidor fixou —
+                               e escondê-lo depois da primeira instalação tornava
+                               isso inalcançável pelo catálogo.
+                               Discreto na mesma: quem procura versão específica
+                               sabe porquê, e quem não procura não é convidado. *@
                             <MudButton Variant="Variant.Text"
                                        Size="Size.Small"
                                        FullWidth="true"

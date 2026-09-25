@@ -43,14 +43,21 @@
             <MudList T="Guid" @bind-SelectedValue="_selected" Dense="true">
                 @foreach (var version in _versions)
                 {
-                    <MudListItem T="Guid" Value="@version.Id">
+                    <MudListItem T="Guid" Value="@version.Id" Disabled="@IsInstalled(version.Id)">
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                             @* Parênteses obrigatórios: "v@algo.Coisa" cai na
                                heurística de e-mail do Razor e sai literal na
                                tela, sem nenhum erro de compilação a avisar. *@
                             <MudText Typo="Typo.body1">v@(version.Version)</MudText>
 
-                            @if (version.Id == _versions[0].Id)
+                            @if (IsInstalled(version.Id))
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary"
+                                         Variant="Variant.Text">
+                                    já instalada
+                                </MudChip>
+                            }
+                            else if (version.Id == _versions[0].Id)
                             {
                                 <MudChip T="string" Size="Size.Small" Color="Color.Success"
                                          Variant="Variant.Text">

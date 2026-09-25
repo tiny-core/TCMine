@@ -14,6 +14,15 @@ public partial class ModpacksPage : ComponentBase
     /// <summary>Modpacks com alguma versão instalada nesta máquina.</summary>
     private HashSet<Guid> _installed = [];
 
+    /// <summary>
+    ///     As versões que já existem no disco, de qualquer pack.
+    ///     O seletor usa-as para desligar o que já está instalado: instalar a
+    ///     mesma versão outra vez criaria uma segunda instância idêntica à
+    ///     primeira — disco gasto para ter duas cópias do mesmo, e duas entradas
+    ///     indistinguíveis na lista de instâncias.
+    /// </summary>
+    private HashSet<Guid> _installedVersions = [];
+
     private bool _loading;
 
     /// <summary>Instalação em curso. Uma de cada vez, de propósito — ver Install.</summary>
@@ -70,6 +79,7 @@ public partial class ModpacksPage : ComponentBase
         var instaladas = await Instances.HandleAsync(CancellationToken.None);
 
         _installed = [.. instaladas.Select(i => i.Manifest.ModpackId)];
+        _installedVersions = [.. instaladas.Select(i => i.Manifest.ModpackVersionId)];
     }
 
     /// <summary>
@@ -92,7 +102,8 @@ public partial class ModpacksPage : ComponentBase
 
         var parametros = new DialogParameters<VersionPickerDialog>
         {
-            { d => d.ModpackId, modpack.Id }
+            { d => d.ModpackId, modpack.Id },
+            { d => d.InstalledVersionIds, _installedVersions }
         };
 
         var dialogo = await Dialogs.ShowAsync<VersionPickerDialog>(
