@@ -3,6 +3,7 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components.Features.Modpacks;
@@ -58,6 +59,23 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     [Inject] private CompleteFromServerPack ServerPackUseCase { get; set; } = default!;
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
     [Inject] private CheckUpstreamUpdate UpstreamCheck { get; set; } = default!;
+    [Inject] private IModpackMembershipRepository Memberships { get; set; } = default!;
+    [Inject] private ICurrentUserScope Scope { get; set; } = default!;
+
+    /// <summary>Assinatura de dono, exibida no topo — visível a quem quer que veja a página.</summary>
+    private ModpackMemberView? _owner;
+
+    /// <summary>
+    ///     Edita mods, versões, ícone etc. Falso esconde as ações de edição sem
+    ///     esconder a página inteira: quem só olha continua vendo o pack.
+    /// </summary>
+    private bool _canEdit;
+
+    /// <summary>Apaga o modpack. Só o dono (ou o admin da instalação).</summary>
+    private bool _canDelete;
+
+    /// <summary>Convida/remove editores. Só o dono.</summary>
+    private bool _canManageEditors;
 
     /// <summary>Resultado da consulta à origem. Nulo enquanto não consultou (ou se falhou).</summary>
     private UpstreamUpdateStatus? _upstream;
@@ -113,6 +131,12 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
             }
 
             _serverCount = (await ServerRepository.ListByModpackAsync(ModpackId, CancellationToken.None)).Count;
+            _owner = await Memberships.GetOwnerAsync(ModpackId, CancellationToken.None);
+
+            var role = await Scope.GetModpackRoleAsync(ModpackId, CancellationToken.None);
+            _canEdit = role is { } r && ModpackAccessPolicy.CanEdit(r);
+            _canDelete = role is { } rd && ModpackAccessPolicy.CanDelete(rd);
+            _canManageEditors = role is { } rm && ModpackAccessPolicy.CanManageEditors(rm);
         }
 
         _isLoading = false;
@@ -366,6 +390,17 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         var dialog = await DialogService.ShowAsync<EditModpackDialog>("Editar modpack", parameters, options);
         if (await dialog.Result is { Canceled: false })
             await LoadAsync();
+    }
+
+    private async Task OpenManageEditors()
+    {
+        if (_modpack is null)
+            return;
+
+        var parameters = new DialogParameters { ["ModpackId"] = _modpack.Id };
+        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        await DialogService.ShowAsync<ManageModpackEditorsDialog>("Editores", parameters, options);
     }
 
     private async Task DeleteModpackAsync()

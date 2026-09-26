@@ -1,0 +1,90 @@
+@using TCMine.Contracts.Modpacks
+@inherits DialogComponentBase
+
+@* Quem edita este modpack.
+
+   Sem convite de propósito, ao contrário do servidor: editor já é conta
+   existente na instalação, então a pergunta é só qual conta, não como ela
+   chega até aqui (ver ManageModpackEditors.cs). *@
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Group" Text="Editores do modpack"/>
+    </TitleContent>
+
+    <DialogContent>
+        @if (!_loaded)
+        {
+            <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px"/>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudTable Items="_members" Dense="true" Hover="true">
+                    <HeaderContent>
+                        <MudTh>Conta</MudTh>
+                        <MudTh>Papel</MudTh>
+                        <MudTh Style="text-align:right;">Ações</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Conta">@context.DisplayName</MudTd>
+                        <MudTd DataLabel="Papel">
+                            @if (context.Role is ModpackRoleDto.Owner)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Text">
+                                    Dono
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">Editor</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align:right;">
+                            @if (context.Role is not ModpackRoleDto.Owner)
+                            {
+                                <MudTooltip Text="Tirar o acesso">
+                                    <MudIconButton Icon="@Icons.Material.Filled.PersonRemove" Size="Size.Small"
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => RemoveAsync(context))" Disabled="IsBusy"/>
+                                </MudTooltip>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                @if (_candidatos.Count > 0)
+                {
+                    <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                        <MudSelect T="Guid?" @bind-Value="_selecionado" Label="Conceder acesso a"
+                                   Variant="Variant.Outlined" Dense="true" Style="flex:1;">
+                            @foreach (var candidato in _candidatos)
+                            {
+                                <MudSelectItem T="Guid?" Value="candidato.Id">@candidato.DisplayName</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   OnClick="AddAsync" Disabled="@(IsBusy || _selecionado is null)">
+                            Adicionar
+                        </MudButton>
+                    </MudStack>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Todas as contas da instalação já têm acesso a este modpack.
+                    </MudText>
+                }
+
+                @if (IsBusy)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+                }
+            </MudStack>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" OnClick="Close">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>

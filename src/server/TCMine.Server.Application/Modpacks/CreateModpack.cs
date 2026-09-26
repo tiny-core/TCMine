@@ -2,6 +2,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Modpacks;
@@ -11,6 +12,7 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed partial class CreateModpack(
     IModpackRepository repository,
+    IModpackMembershipRepository memberships,
     ICurrentUserScope scope)
 {
     public async Task<Result<Guid>> HandleAsync(CreateModpackCommand command, CancellationToken ct)
@@ -43,6 +45,16 @@ public sealed partial class CreateModpack(
         };
 
         await repository.CreateAsync(modpack, ct);
+
+        // Quem cria vira Owner do modpack. Sem este vínculo o modpack nasceria
+        // sem ninguém que possa gerenciar editores ou apagá-lo — o OwnerId
+        // sozinho é costura de multi-tenant, não papel (ver IOwnedEntity).
+        if (scope.UserId is { } criador)
+        {
+            await memberships.AddAsync(
+                new ModpackMembership { UserId = criador, ModpackId = modpack.Id, Role = ModpackRole.Owner },
+                ct);
+        }
 
         return Result<Guid>.Success(modpack.Id);
     }

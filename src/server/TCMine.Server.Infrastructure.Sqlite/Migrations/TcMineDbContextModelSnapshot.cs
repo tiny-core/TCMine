@@ -137,6 +137,39 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("memberships", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.ModpackMembership", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackId");
+
+                    b.HasIndex("UserId", "ModpackId")
+                        .IsUnique();
+
+                    b.ToTable("modpack_memberships", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")

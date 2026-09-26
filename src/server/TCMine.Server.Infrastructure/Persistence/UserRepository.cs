@@ -57,4 +57,13 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
         db.Users.Update(user);
         await db.SaveChangesAsync(ct);
     }
+
+    public async Task<IReadOnlyList<User>> ListAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.Users
+            .AsNoTracking()
+            .OrderBy(u => u.DisplayName)
+            .ToListAsync(ct);
+    }
 }

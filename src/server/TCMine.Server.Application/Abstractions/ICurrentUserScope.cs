@@ -1,4 +1,5 @@
-﻿using TCMine.Contracts.Servers;
+﻿using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
 
@@ -24,4 +25,11 @@ public interface ICurrentUserScope
     ///     próxima chamada, não na próxima sessão.
     /// </summary>
     Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct);
+
+    /// <summary>
+    ///     Papel do usuário sobre um modpack. Nulo significa sem vínculo nenhum
+    ///     — mesmo contrato do <see cref="GetRoleAsync" />, ao vivo pela mesma
+    ///     razão: rebaixar um editor precisa valer na próxima chamada.
+    /// </summary>
+    Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct);
 }

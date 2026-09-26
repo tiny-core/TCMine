@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Modpacks;
@@ -16,6 +17,7 @@ namespace TCMine.Server.Application.Modpacks;
 public sealed partial class ImportUpstreamPack(
     IEnumerable<IUpstreamPackSource> sources,
     IModpackRepository repository,
+    IModpackMembershipRepository memberships,
     IBlobStore blobStore,
     IngestionScheduler scheduler,
     IJobProgressReporter progress,
@@ -92,6 +94,15 @@ public sealed partial class ImportUpstreamPack(
         };
 
         await repository.CreateAsync(modpack, ct);
+
+        // Quem importa vira Owner, mesma regra do CreateModpack — um pack
+        // importado não é menos dono de alguém do que um criado do zero.
+        if (scope.UserId is { } importador)
+        {
+            await memberships.AddAsync(
+                new ModpackMembership { UserId = importador, ModpackId = modpack.Id, Role = ModpackRole.Owner },
+                ct);
+        }
 
         var version = new ModpackVersion
         {

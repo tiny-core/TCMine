@@ -18,7 +18,7 @@ public sealed class DeleteAndQueueTests
         var modpack = NovoModpack();
         var repo = new FakeModpacks(modpack);
 
-        var result = await new DeleteModpack(repo, new FakeServers(Servidor(modpack.Id)))
+        var result = await new DeleteModpack(repo, new FakeServers(Servidor(modpack.Id)), new FakeUserScope())
             .HandleAsync(modpack.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -31,7 +31,7 @@ public sealed class DeleteAndQueueTests
         var modpack = NovoModpack();
         var repo = new FakeModpacks(modpack);
 
-        var result = await new DeleteModpack(repo, new FakeServers()).HandleAsync(
+        var result = await new DeleteModpack(repo, new FakeServers(), new FakeUserScope()).HandleAsync(
             modpack.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);

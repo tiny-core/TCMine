@@ -72,3 +72,27 @@ public enum ServerRole
     Admin = 20,
     Owner = 30
 }
+
+/// <summary>
+///     Vínculo entre usuário e modpack, com o papel dele ali.
+///     Mesma forma do <see cref="Membership" /> de servidor, e pelo mesmo
+///     motivo: permissão é sempre relativa a um recurso. Quem cria um modpack
+///     vira Owner dele (ver CreateModpack/ImportUpstreamPack); só ele — ou o
+///     admin da instalação, que manda em tudo — pode conceder Editor a
+///     outra conta.
+/// </summary>
+public sealed class ModpackMembership : Entity
+{
+    public required Guid UserId { get; set; }
+    public required Guid ModpackId { get; set; }
+    public required ModpackRole Role { get; set; }
+}
+
+public enum ModpackRole
+{
+    /// <summary>Edita mods, overrides, cria e publica versões.</summary>
+    Editor = 0,
+
+    /// <summary>Editor + gerencia quem mais edita, e pode apagar o modpack.</summary>
+    Owner = 10
+}

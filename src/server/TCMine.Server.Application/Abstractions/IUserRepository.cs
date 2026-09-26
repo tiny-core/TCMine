@@ -24,4 +24,11 @@ public interface IUserRepository
     Task AddAsync(User user, CancellationToken ct);
 
     Task UpdateAsync(User user, CancellationToken ct);
+
+    /// <summary>
+    ///     Todos os usuários, para o seletor de "conceder acesso a" — convite de
+    ///     servidor e editor de modpack. Poucas dezenas de contas numa instalação
+    ///     típica; pagina no dia em que isso deixar de ser verdade.
+    /// </summary>
+    Task<IReadOnlyList<User>> ListAsync(CancellationToken ct);
 }

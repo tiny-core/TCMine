@@ -24,27 +24,50 @@ else
                       SelectedVersionId="_selectedVersionId" SelectedVersion="_selectedVersion"
                       SelectedVersionIdChanged="OnVersionChanged">
         <HeaderActions>
-            @if (_modpack.Versions.Count > 0)
+            @if (_canEdit && _modpack.Versions.Count > 0)
             {
                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
                            StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateVersion">
                     Nova versão
                 </MudButton>
             }
-            @* Ações do modpack em si (não da versão), fora do caminho principal. *@
-            <MudMenu Icon="@Icons.Material.Filled.MoreVert"
-                     AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
-                     title="Ações do modpack">
-                <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="OpenEditModpack">
-                    Editar modpack
-                </MudMenuItem>
-                <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
-                             OnClick="DeleteModpackAsync">
-                    Apagar modpack
-                </MudMenuItem>
-            </MudMenu>
+            @* Ações do modpack em si (não da versão), fora do caminho principal.
+               Escondidas de quem só tem acesso de leitura: a página continua
+               visível, só as ações de dono/editor somem. *@
+            @if (_canEdit || _canManageEditors || _canDelete)
+            {
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert"
+                         AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight"
+                         title="Ações do modpack">
+                    @if (_canEdit)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Edit" OnClick="OpenEditModpack">
+                            Editar modpack
+                        </MudMenuItem>
+                    }
+                    @if (_canManageEditors)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Group" OnClick="OpenManageEditors">
+                            Editores
+                        </MudMenuItem>
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudMenuItem Icon="@Icons.Material.Filled.Delete" IconColor="Color.Error"
+                                     OnClick="DeleteModpackAsync">
+                            Apagar modpack
+                        </MudMenuItem>
+                    }
+                </MudMenu>
+            }
         </HeaderActions>
         <ChildContent>
+            @if (_owner is not null)
+            {
+                <MudText Typo="Typo.caption" Class="mud-text-secondary mb-4" Style="display:block;">
+                    Criado por @_owner.DisplayName
+                </MudText>
+            }
             @if (_modpack.Versions.Count is 0)
             {
                 <EmptyState Icon="@Icons.Material.Filled.Layers"

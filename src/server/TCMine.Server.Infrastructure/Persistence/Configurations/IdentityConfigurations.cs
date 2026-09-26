@@ -64,6 +64,29 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
     }
 }
 
+public sealed class ModpackMembershipConfiguration : IEntityTypeConfiguration<ModpackMembership>
+{
+    public void Configure(EntityTypeBuilder<ModpackMembership> builder)
+    {
+        builder.ToTable("modpack_memberships");
+
+        builder.HasKey(m => m.Id);
+
+        builder.Property(m => m.Role)
+            .HasConversion<string>()
+            .HasMaxLength(32)
+            .IsRequired();
+
+        // Um vínculo por usuário e modpack. Dois papéis para a mesma pessoa no
+        // mesmo modpack tornaria a autorização indeterminada.
+        builder.HasIndex(m => new { m.UserId, m.ModpackId }).IsUnique();
+
+        // A pergunta mais frequente do sistema: qual o papel deste usuário
+        // neste modpack? Roda em toda checagem de permissão.
+        builder.HasIndex(m => m.ModpackId);
+    }
+}
+
 public sealed class InviteConfiguration : IEntityTypeConfiguration<Invite>
 {
     public void Configure(EntityTypeBuilder<Invite> builder)

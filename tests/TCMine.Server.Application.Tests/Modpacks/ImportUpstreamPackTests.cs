@@ -3,6 +3,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 
 using TCMine.Server.Application.Tests.Fakes;
@@ -118,7 +119,8 @@ public sealed class ImportUpstreamPackTests
         var repo = new FakeRepo();
         var source = new FakeSource(PackComDoisModsEUmOverride()) { Disponivel = false };
         var useCase = new ImportUpstreamPack(
-            [source], repo, new FakeBlobStore(), new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
+            [source], repo, new FakeMemberships(), new FakeBlobStore(),
+            new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
             new FakeDownloader(), new FakeScope());
 
         var result = await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
@@ -130,7 +132,7 @@ public sealed class ImportUpstreamPackTests
     // ---- Fixtures ----
 
     private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeQueue? queue = null) =>
-        new([new FakeSource(pack)], repo, new FakeBlobStore(),
+        new([new FakeSource(pack)], repo, new FakeMemberships(), new FakeBlobStore(),
             new IngestionScheduler(repo, queue ?? new FakeQueue()),
             new FakeJobProgress(), new FakeDownloader(), new FakeScope());
 
@@ -201,6 +203,27 @@ public sealed class ImportUpstreamPackTests
 
         public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
             Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
+
+        public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackRoleDto?>(ModpackRoleDto.Owner);
+    }
+
+    private sealed class FakeMemberships : IModpackMembershipRepository
+    {
+        public Task AddAsync(ModpackMembership membership, CancellationToken ct) => Task.CompletedTask;
+
+        public Task<ModpackMembership?> GetAsync(Guid userId, Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackMembership?>(null);
+
+        public Task<IReadOnlyList<ModpackMemberView>> ListWithUsersAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ModpackMemberView>>([]);
+
+        public Task<ModpackMemberView?> GetOwnerAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackMemberView?>(null);
+
+        public Task UpdateAsync(ModpackMembership membership, CancellationToken ct) => Task.CompletedTask;
+
+        public Task RemoveAsync(Guid id, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class FakeRepo : FakeModpackRepositoryBase

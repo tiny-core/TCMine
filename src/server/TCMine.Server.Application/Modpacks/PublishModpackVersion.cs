@@ -1,5 +1,6 @@
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Modpacks;
 
@@ -9,7 +10,8 @@ namespace TCMine.Server.Application.Modpacks;
 public sealed class PublishModpackVersion(
     IModpackRepository repository,
     IServerHubNotifier notifier,
-    OverrideUndoService undo)
+    OverrideUndoService undo,
+    ICurrentUserScope scope)
 {
     /// <summary>
     ///     <paramref name="acceptPending" /> é o "eu sei o que estou fazendo" do
@@ -22,6 +24,10 @@ public sealed class PublishModpackVersion(
 
         if (version is null)
             return Result.Fail("Versão não encontrada.");
+
+        var auth = await scope.RequireAsync(version.ModpackId, ModpackAccessPolicy.CanEdit, ct);
+        if (!auth.Succeeded)
+            return auth;
 
         // ManualUploads, e não PendingMods: os enfileirados não pedem nada do
         // admin e não podem entrar nesta contagem.

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
@@ -55,6 +56,23 @@ public sealed class HttpContextUserScope(
         // Mapeamento explícito (ver ServerRoleMap): os dois enums têm os mesmos
         // valores hoje, mas um cast silencioso viraria bug no dia em que um
         // deles ganhasse um papel.
+        return membership?.Role.ToDto();
+    }
+
+    public async Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct)
+    {
+        if (UserId is not { } userId)
+            return null;
+
+        // Admin da instalação edita qualquer modpack.
+        if (IsInstanceAdmin)
+            return ModpackRoleDto.Owner;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var membership = await db.ModpackMemberships
+            .AsNoTracking()
+            .FirstOrDefaultAsync(m => m.UserId == userId && m.ModpackId == modpackId, ct);
+
         return membership?.Role.ToDto();
     }
 }

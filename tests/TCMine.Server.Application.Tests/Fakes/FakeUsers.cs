@@ -44,4 +44,7 @@ internal sealed class FakeUsers(params User[] seed) : IUserRepository
         Atualizado = true;
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<User>> ListAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<User>>([.. _users.OrderBy(u => u.DisplayName, StringComparer.OrdinalIgnoreCase)]);
 }

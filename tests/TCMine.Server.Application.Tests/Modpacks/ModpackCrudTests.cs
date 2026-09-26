@@ -27,7 +27,7 @@ public sealed class ModpackCrudTests
         var repo = new FakeModpacks();
         var antes = (repo.Modpack.Slug, repo.Modpack.MinecraftVersion, repo.Modpack.Loader);
 
-        var result = await new UpdateModpack(repo)
+        var result = await new UpdateModpack(repo, new FakeUserScope())
             .HandleAsync(repo.Modpack.Id, "  Nome Novo  ", "  resumo  ", Ct);
 
         result.Succeeded.ShouldBeTrue();
@@ -42,7 +42,7 @@ public sealed class ModpackCrudTests
     {
         var repo = new FakeModpacks();
 
-        var result = await new UpdateModpack(repo).HandleAsync(repo.Modpack.Id, "   ", null, Ct);
+        var result = await new UpdateModpack(repo, new FakeUserScope()).HandleAsync(repo.Modpack.Id, "   ", null, Ct);
 
         result.Succeeded.ShouldBeFalse();
         repo.Modpack.Name.ShouldBe("Original");
@@ -55,7 +55,7 @@ public sealed class ModpackCrudTests
         // parágrafo em branco no lugar do resumo.
         var repo = new FakeModpacks();
 
-        await new UpdateModpack(repo).HandleAsync(repo.Modpack.Id, "Nome", "   ", Ct);
+        await new UpdateModpack(repo, new FakeUserScope()).HandleAsync(repo.Modpack.Id, "Nome", "   ", Ct);
 
         repo.Modpack.Summary.ShouldBeNull();
     }
@@ -63,7 +63,7 @@ public sealed class ModpackCrudTests
     [Fact]
     public async Task Editar_modpack_inexistente_e_recusado()
     {
-        var result = await new UpdateModpack(new FakeModpacks())
+        var result = await new UpdateModpack(new FakeModpacks(), new FakeUserScope())
             .HandleAsync(Guid.CreateVersion7(), "Nome", null, Ct);
 
         result.Succeeded.ShouldBeFalse();
@@ -81,7 +81,7 @@ public sealed class ModpackCrudTests
         repo.Modpack.IconBlobSha256 = anterior;
 
         var blobs = new FakeBlobs();
-        var result = await new SetModpackIcon(repo, blobs)
+        var result = await new SetModpackIcon(repo, blobs, new FakeUserScope())
             .HandleAsync(repo.Modpack.Id, Imagem(), "image/png", Ct);
 
         result.Succeeded.ShouldBeTrue();
@@ -94,7 +94,7 @@ public sealed class ModpackCrudTests
     {
         var blobs = new FakeBlobs();
 
-        var result = await new SetModpackIcon(new FakeModpacks(), blobs)
+        var result = await new SetModpackIcon(new FakeModpacks(), blobs, new FakeUserScope())
             .HandleAsync(Guid.CreateVersion7(), Imagem(), "image/png", Ct);
 
         result.Succeeded.ShouldBeFalse();

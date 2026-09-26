@@ -1,5 +1,6 @@
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 
 namespace TCMine.Server.Application.Modpacks;
 
@@ -11,10 +12,15 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class DeleteModpack(
     IModpackRepository modpacks,
-    IServerRepository servers)
+    IServerRepository servers,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid modpackId, CancellationToken ct)
     {
+        var auth = await scope.RequireAsync(modpackId, ModpackAccessPolicy.CanDelete, ct);
+        if (!auth.Succeeded)
+            return auth;
+
         var modpack = await modpacks.GetByIdAsync(modpackId, ct);
         if (modpack is null)
             return Result.Fail("Modpack não encontrado.");

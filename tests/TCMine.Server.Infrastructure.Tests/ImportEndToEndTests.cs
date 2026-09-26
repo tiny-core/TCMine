@@ -40,13 +40,14 @@ public sealed class ImportEndToEndTests
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
         var repo = new ModpackRepository(new Fabrica(postgres));
+        var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
         var blobs = new BlobsEmMemoria();
 
         var pack = PackGrande();
         var fila = new FilaQueGuarda();
 
         var import = new ImportUpstreamPack(
-            [new OrigemFixa(pack)], repo, blobs,
+            [new OrigemFixa(pack)], repo, memberships, blobs,
             new IngestionScheduler(repo, fila),
             new ProgressoMudo(), new DownloaderFixo(), new EscopoDeTeste());
 
@@ -115,12 +116,13 @@ public sealed class ImportEndToEndTests
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
         var repo = new ModpackRepository(new Fabrica(postgres));
+        var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
         var blobs = new BlobsEmMemoria();
         var downloader = new DownloaderFixo();
         var fila = new FilaQueGuarda();
 
         var import = new ImportUpstreamPack(
-            [new OrigemFixa(PackGrande())], repo, blobs,
+            [new OrigemFixa(PackGrande())], repo, memberships, blobs,
             new IngestionScheduler(repo, fila),
             new ProgressoMudo(), new DownloaderFixo(), new EscopoDeTeste());
 
@@ -320,5 +322,8 @@ public sealed class ImportEndToEndTests
 
         public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
             Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
+
+        public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackRoleDto?>(ModpackRoleDto.Owner);
     }
 }

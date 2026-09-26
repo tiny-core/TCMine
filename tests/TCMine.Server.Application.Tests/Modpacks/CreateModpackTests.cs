@@ -2,6 +2,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 
 using TCMine.Server.Application.Tests.Fakes;
@@ -11,12 +12,13 @@ namespace TCMine.Server.Application.Tests.Modpacks;
 public class CreateModpackTests
 {
     private readonly IModpackRepository _repo = Substitute.For<IModpackRepository>();
+    private readonly IModpackMembershipRepository _memberships = Substitute.For<IModpackMembershipRepository>();
     private readonly ICurrentUserScope _scope = Substitute.For<ICurrentUserScope>();
 
     private CreateModpack CriarCasoDeUso()
     {
         _scope.OwnerId.Returns(Guid.CreateVersion7());
-        return new CreateModpack(_repo, _scope);
+        return new CreateModpack(_repo, _memberships, _scope);
     }
 
     private static CreateModpackCommand ComandoValido(string slug = "tech-medieval") =>
@@ -32,6 +34,22 @@ public class CreateModpackTests
 
         result.Succeeded.ShouldBeTrue();
         await _repo.Received(1).CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Quem_cria_vira_dono()
+    {
+        var criador = Guid.CreateVersion7();
+        _scope.UserId.Returns(criador);
+        _repo.SlugExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
+
+        var caso = CriarCasoDeUso();
+        var result = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
+
+        await _memberships.Received(1).AddAsync(
+            Arg.Is<ModpackMembership>(m =>
+                m.UserId == criador && m.ModpackId == result.Value && m.Role == ModpackRole.Owner),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

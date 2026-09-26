@@ -198,6 +198,8 @@ public sealed class ServerRulesTests
     {
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
+        public override Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
 
         public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
             Task.FromResult<ModpackVersion?>(version.Id == versionId ? version : null);
@@ -282,5 +284,7 @@ public sealed class ServerRulesTests
 
         public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
             Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
+        public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackRoleDto?>(ModpackRoleDto.Owner);
     }
 }

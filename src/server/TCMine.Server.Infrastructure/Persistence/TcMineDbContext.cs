@@ -13,6 +13,7 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<User> Users => Set<User>();
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<Invite> Invites => Set<Invite>();
+    public DbSet<ModpackMembership> ModpackMemberships => Set<ModpackMembership>();
     public DbSet<Modpack> Modpacks => Set<Modpack>();
     public DbSet<ModpackVersion> ModpackVersions => Set<ModpackVersion>();
     public DbSet<ModpackFile> ModpackFiles => Set<ModpackFile>();
