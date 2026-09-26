@@ -35,10 +35,6 @@
             O console aparece quando o servidor está no ar.
         </MudText>
     }
-    else if (_error is { Length: > 0 } erro)
-    {
-        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">@erro</MudAlert>
-    }
     else
     {
         <div class="tc-console" id="@_consoleId">

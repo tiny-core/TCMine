@@ -21,7 +21,7 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
 
         // Um Draft de cada vez: força terminar e publicar antes de começar a
         // próxima. Evita duas versões meio-feitas em paralelo.
-        var versions = await repository.ListVersionsAsync(modpack.Id, ct);
+        var versions = await repository.ListVersionSummariesAsync(modpack.Id, ct);
         if (versions.Any(v => v.State is ModpackVersionState.Draft))
             return Result<Guid>.Fail("Já existe uma versão em rascunho. Publique-a antes de criar outra.");
 

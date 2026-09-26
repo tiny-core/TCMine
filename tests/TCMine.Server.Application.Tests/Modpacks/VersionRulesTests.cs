@@ -141,6 +141,8 @@ public sealed class VersionRulesTests
 
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackVersion>>([.. modpack.Versions]);
+        public override Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ModpackVersion>>([.. modpack.Versions]);
 
         public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
             Task.FromResult(version?.Id == versionId

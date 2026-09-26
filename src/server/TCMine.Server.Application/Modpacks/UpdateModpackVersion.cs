@@ -40,7 +40,7 @@ public sealed class UpdateModpackVersion(IModpackRepository repository)
         // Se o número mudou, não pode colidir com outra versão do mesmo pack.
         if (!versionText.Equals(current.Version, StringComparison.OrdinalIgnoreCase))
         {
-            var siblings = await repository.ListVersionsAsync(current.ModpackId, ct);
+            var siblings = await repository.ListVersionSummariesAsync(current.ModpackId, ct);
             if (siblings.Any(v => v.Id != versionId
                                   && v.Version.Equals(versionText, StringComparison.OrdinalIgnoreCase)))
                 return Result.Fail($"A versão '{versionText}' já existe neste modpack.");

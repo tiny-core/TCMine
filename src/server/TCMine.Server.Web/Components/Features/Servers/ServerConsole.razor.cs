@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Web.Hubs;
 
 namespace TCMine.Server.Web.Components.Features.Servers;
 
@@ -25,12 +27,17 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
 
     private readonly string _consoleId = $"console-{Guid.CreateVersion7():N}";
 
+    /// <summary>
+    ///     Chave sintética para o broadcaster — não é uma conexão de Hub de
+    ///     verdade, só o que ele usa para contar ouvintes e ligar/desligar o
+    ///     bombeamento por servidor.
+    /// </summary>
+    private readonly string _subscriptionId = $"admin-console-{Guid.CreateVersion7():N}";
+
     private readonly Lock _gate = new();
     private readonly Queue<string> _lines = new();
 
     private bool _autoScroll = true;
-    private CancellationTokenSource? _cts;
-    private string? _error;
     private IJSObjectReference? _module;
     private bool _pending;
     private Timer? _renderTimer;
@@ -38,7 +45,8 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
 
     [Parameter] [EditorRequired] public GameServer Server { get; set; } = default!;
 
-    [Inject] private IServerOrchestrator Orchestrator { get; set; } = default!;
+    [Inject] private ConsoleBroadcaster Broadcaster { get; set; } = default!;
+    [Inject] private ICurrentUserScope Scope { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
 
     public async ValueTask DisposeAsync()
@@ -75,8 +83,6 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
     private void Start()
     {
         _streaming = true;
-        _error = null;
-        _cts = new CancellationTokenSource();
 
         // Redesenha em intervalo fixo, não a cada linha.
         _renderTimer = new Timer(_ =>
@@ -98,51 +104,39 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
             });
         }, null, RenderInterval, RenderInterval);
 
-        _ = PumpAsync(_cts.Token);
+        Broadcaster.LineReceived += OnLineReceived;
+
+        // Id sintético: o broadcaster só usa como chave para contar ouvintes e
+        // decidir se já existe (ou precisa abrir) um bombeamento para este
+        // servidor — é o mesmo mecanismo que já evita dez streams do Docker
+        // para dez abas do launcher, agora reaproveitado aqui em vez desta
+        // tela abrir o próprio stream por cima.
+        if (Scope.UserId is { } userId)
+            Broadcaster.Subscribe(_subscriptionId, userId, Server.Id);
     }
 
-    private async Task PumpAsync(CancellationToken ct)
+    private void OnLineReceived(Guid serverId, ConsoleLineDto line)
     {
-        try
-        {
-            await foreach (var line in Orchestrator.StreamLogsAsync(Server.Id, ct))
-            {
-                lock (_gate)
-                {
-                    // O painel exibe só o texto; o canal é usado pelo
-                    // bombeamento para o launcher, que precisa distinguir o log
-                    // da partida do estouro da JVM.
-                    _lines.Enqueue(line.Text);
-                    while (_lines.Count > MaxLines)
-                        _lines.Dequeue();
+        if (serverId != Server.Id)
+            return;
 
-                    _pending = true;
-                }
-            }
-        }
-        catch (OperationCanceledException)
+        lock (_gate)
         {
-            // Saída normal: o admin fechou o painel ou o servidor parou.
-        }
-        catch (Exception ex)
-        {
-            _error = $"Não foi possível seguir o console: {ex.Message}";
-            await InvokeAsync(StateHasChanged);
-        }
-        finally
-        {
-            _streaming = false;
+            // O painel exibe só o texto; o canal é usado pelo bombeamento para
+            // o launcher, que precisa distinguir o log da partida do estouro
+            // da JVM.
+            _lines.Enqueue(line.Text);
+            while (_lines.Count > MaxLines)
+                _lines.Dequeue();
+
+            _pending = true;
         }
     }
 
     private async Task StopAsync()
     {
-        if (_cts is { } cts)
-        {
-            await cts.CancelAsync();
-            cts.Dispose();
-            _cts = null;
-        }
+        Broadcaster.LineReceived -= OnLineReceived;
+        Broadcaster.Unsubscribe(_subscriptionId, Server.Id);
 
         if (_renderTimer is { } timer)
         {

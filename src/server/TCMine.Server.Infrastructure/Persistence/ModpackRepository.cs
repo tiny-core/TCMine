@@ -128,6 +128,16 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.ModpackVersions
+            .AsNoTracking()
+            .Where(v => v.ModpackId == modpackId)
+            .OrderByDescending(v => v.Id)
+            .ToListAsync(ct);
+    }
+
     public async Task CreateAsync(Modpack modpack, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

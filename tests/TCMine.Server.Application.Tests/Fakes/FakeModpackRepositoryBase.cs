@@ -37,6 +37,9 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public virtual Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
     public virtual Task CreateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();

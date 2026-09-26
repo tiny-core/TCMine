@@ -35,6 +35,15 @@ public interface IModpackRepository
 
     Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct);
 
+    /// <summary>
+    ///     Mesma lista, sem <c>Include(Files)</c>. Para quem só olha
+    ///     <c>State</c>/<c>Version</c>/<c>IsPreRelease</c> — checar rascunho antes
+    ///     de criar versão, achar a mais recente para uma checagem de update do
+    ///     launcher — materializar o grafo de arquivos inteiro do modpack a cada
+    ///     chamada é banda e memória gastas à toa nesses casos.
+    /// </summary>
+    Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct);
+
     Task RemoveAsync(Guid id, CancellationToken ct);
 
     /// <summary>Persiste um modpack novo.</summary>

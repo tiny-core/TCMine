@@ -66,11 +66,17 @@ public sealed class MainHub(
     /// </summary>
     public async Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, ReleaseChannel channel)
     {
-        var versions = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+        // Sem Files: só para achar QUAL é a versão mais recente do canal. Trazer
+        // o grafo de arquivos de todo o histórico do pack para descartar todas
+        // menos uma seria banda e memória gastas à toa — a chamada seguinte já
+        // busca só essa, com Files.
+        var summaries = await modpacks.ListVersionSummariesAsync(modpackId, Context.ConnectionAborted);
 
-        var latest = Installable(versions, channel).FirstOrDefault();
+        if (Installable(summaries, channel).FirstOrDefault() is not { } latest)
+            return null;
 
-        return latest?.ToDto();
+        var version = await modpacks.GetVersionAsync(latest.Id, Context.ConnectionAborted);
+        return version?.ToDto();
     }
 
     /// <summary>
@@ -95,7 +101,7 @@ public sealed class MainHub(
     public async Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
         Guid modpackId, ReleaseChannel channel)
     {
-        var versions = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+        var versions = await modpacks.ListVersionSummariesAsync(modpackId, Context.ConnectionAborted);
 
         // Array, e não expressão de coleção: ver a nota do GetModpacksAsync.
         return Installable(versions, channel).Select(v => v.ToSummaryDto()).ToArray();

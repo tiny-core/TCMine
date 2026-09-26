@@ -130,6 +130,8 @@ public sealed class ServerStatusReconcilerTests
 
         public Task RemoveBackupAsync(Guid backupId, CancellationToken ct) =>
             throw new NotImplementedException();
+        public Task<(int Count, long TotalBytes)> GetBackupUsageAsync(CancellationToken ct) =>
+            throw new NotImplementedException();
     }
 
     private sealed class FakeOrchestrator(GameServerStatus real) : IServerOrchestrator

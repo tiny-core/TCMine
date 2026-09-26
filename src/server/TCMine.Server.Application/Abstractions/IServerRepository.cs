@@ -16,6 +16,14 @@ public interface IServerRepository
     /// <summary>Snapshots de um servidor, do mais novo para o mais antigo.</summary>
     Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct);
 
+    /// <summary>
+    ///     Quantidade e bytes totais de TODOS os backups, de todos os
+    ///     servidores — agregado no banco numa consulta só. A tela de storage só
+    ///     quer o total; buscar backup por backup, um servidor de cada vez, seria
+    ///     N consultas para somar um número que o próprio banco já sabe somar.
+    /// </summary>
+    Task<(int Count, long TotalBytes)> GetBackupUsageAsync(CancellationToken ct);
+
     Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct);
 
     Task AddBackupAsync(WorldBackup backup, CancellationToken ct);

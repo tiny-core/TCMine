@@ -59,7 +59,9 @@ public sealed class FileSystemInstanceMaterializer(
         // Remove o que saiu da versão desde a última materialização (mods que
         // deixaram de existir). Só toca no que está no manifesto — world/ intacto.
         var manifestPath = Path.Combine(instancePath, ManifestFileName);
-        foreach (var stale in (await ReadManifestAsync(manifestPath, ct)).Where(p => !desired.Contains(p)))
+        var stales = (await ReadManifestAsync(manifestPath, ct)).Where(p => !desired.Contains(p));
+
+        await Parallel.ForEachAsync(stales, ct, (stale, _) =>
         {
             var full = Path.Combine(instancePath, stale);
 
@@ -73,24 +75,34 @@ public sealed class FileSystemInstanceMaterializer(
 
             if (File.Exists(full))
                 File.Delete(full);
-        }
 
-        foreach (var file in serverFiles)
-        {
-            ct.ThrowIfCancellationRequested();
+            return ValueTask.CompletedTask;
+        });
 
-            var target = Path.Combine(instancePath, Normalize(file.Path));
-            GuardInside(instancePath, target); // anti path traversal
-            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        // Paralelo, limitado: um pack grande tem milhares de arquivos (mods +
+        // overrides), e copiá-los um de cada vez — I/O de disco e, para o que
+        // não é hardlink, leitura do blob store — é o gargalo de trocar a
+        // versão de um servidor. O teto evita afogar o disco com todos de uma
+        // vez só, mesma lógica do MetricsCollector.
+        await Parallel.ForEachAsync(
+            serverFiles,
+            new ParallelOptions { MaxDegreeOfParallelism = MaxConcurrentPlacements, CancellationToken = ct },
+            async (file, token) =>
+            {
+                var target = Path.Combine(instancePath, Normalize(file.Path));
+                GuardInside(instancePath, target); // anti path traversal
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 
-            if (File.Exists(target))
-                File.Delete(target);
+                if (File.Exists(target))
+                    File.Delete(target);
 
-            await PlaceAsync(file, target, ct);
-        }
+                await PlaceAsync(file, target, token);
+            });
 
         await WriteManifestAsync(manifestPath, desired, ct);
     }
+
+    private const int MaxConcurrentPlacements = 8;
 
     // mods/ → hardlink (jars read-only, onde estão os bytes). Resto → cópia,
     // porque o servidor pode reescrevê-los e um hardlink corromperia o blob.

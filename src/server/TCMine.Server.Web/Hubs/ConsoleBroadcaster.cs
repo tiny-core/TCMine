@@ -46,6 +46,16 @@ public sealed partial class ConsoleBroadcaster(
     /// </summary>
     private readonly ConcurrentDictionary<string, Guid> _donoDaConexao = new();
 
+    /// <summary>
+    ///     Mesma linha que vai para o grupo do SignalR, para quem já está NESTE
+    ///     processo e não precisa de rede para ouvir — o painel do admin, que
+    ///     antes abria seu próprio stream do Docker por aba em vez de reusar
+    ///     este. Assinar via <see cref="Subscribe" /> com um id sintético (não
+    ///     precisa ser uma conexão de Hub de verdade) já entra na contagem de
+    ///     ouvintes e liga o bombeamento sozinho.
+    /// </summary>
+    public event Action<Guid, ConsoleLineDto>? LineReceived;
+
     public async ValueTask DisposeAsync()
     {
         foreach (var bombeamento in _porServidor.Values)
@@ -173,13 +183,13 @@ public sealed partial class ConsoleBroadcaster(
 
                 await foreach (var line in orchestrator.StreamLogsAsync(serverId, ct))
                 {
-                    await notifier.NotifyConsoleLineAsync(
-                        serverId,
-                        new ConsoleLineDto(
-                            DateTimeOffset.UtcNow,
-                            line.Text,
-                            line.IsError ? ConsoleStream.StdErr : ConsoleStream.StdOut),
-                        ct);
+                    var dto = new ConsoleLineDto(
+                        DateTimeOffset.UtcNow,
+                        line.Text,
+                        line.IsError ? ConsoleStream.StdErr : ConsoleStream.StdOut);
+
+                    await notifier.NotifyConsoleLineAsync(serverId, dto, ct);
+                    LineReceived?.Invoke(serverId, dto);
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)

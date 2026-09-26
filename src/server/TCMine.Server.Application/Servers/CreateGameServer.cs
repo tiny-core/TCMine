@@ -25,7 +25,7 @@ public sealed class CreateGameServer(
         // Só versões publicadas podem rodar (arquivos resolvidos e imutáveis).
         // Somente versões publicadas E estáveis rodam. Alpha/beta ficam de fora —
         // é onde os mods ainda podem partir o servidor.
-        var ready = (await modpacks.ListVersionsAsync(modpackId, ct))
+        var ready = (await modpacks.ListVersionSummariesAsync(modpackId, ct))
             .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
             .ToList();
         if (ready.Count == 0)

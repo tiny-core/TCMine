@@ -31,6 +31,9 @@ public abstract class FakeServerRepositoryBase : IServerRepository
     public virtual Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task<(int Count, long TotalBytes)> GetBackupUsageAsync(CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public virtual Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct) =>
         throw new NotImplementedException();
 

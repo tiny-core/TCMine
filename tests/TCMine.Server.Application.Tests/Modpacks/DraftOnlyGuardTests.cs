@@ -195,9 +195,11 @@ public sealed class DraftOnlyGuardTests
             Task.FromResult<ModpackVersion?>(version);
 
         public override Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
-
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(
             Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
+
+        public override Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
 
         public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)

@@ -90,17 +90,7 @@ public partial class StoragePage : ComponentBase, IDisposable
 
     private async Task LoadBackupUsageAsync()
     {
-        var servers = await Servers.ListAllAsync(CancellationToken.None);
-
-        _backupBytes = 0;
-        _backupCount = 0;
-
-        foreach (var server in servers)
-        {
-            var backups = await Servers.ListBackupsAsync(server.Id, CancellationToken.None);
-            _backupCount += backups.Count;
-            _backupBytes += backups.Sum(b => b.SizeBytes);
-        }
+        (_backupCount, _backupBytes) = await Servers.GetBackupUsageAsync(CancellationToken.None);
     }
 
     private void Toggle(string sha256, bool selected)

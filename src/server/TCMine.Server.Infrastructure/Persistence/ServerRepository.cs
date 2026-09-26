@@ -62,6 +62,21 @@ public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory)
             .ToListAsync(ct);
     }
 
+    public async Task<(int Count, long TotalBytes)> GetBackupUsageAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Uma consulta agregada no banco em vez de N idas (uma por servidor):
+        // GroupBy(constante) força um único grupo com todas as linhas, e o
+        // Count/Sum saem no mesmo SELECT.
+        var linha = await db.WorldBackups
+            .GroupBy(_ => 1)
+            .Select(g => new { Count = g.Count(), Bytes = g.Sum(b => b.SizeBytes) })
+            .FirstOrDefaultAsync(ct);
+
+        return linha is null ? (0, 0L) : (linha.Count, linha.Bytes);
+    }
+
     public async Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

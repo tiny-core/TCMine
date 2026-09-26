@@ -59,6 +59,16 @@ public sealed partial class MetricsCollector(
         }
     }
 
+    /// <summary>
+    ///     Teto de coletas simultâneas. Em série, cada servidor no ar custa ~1s
+    ///     (o /stats do Docker espera o delta de CPU internamente) mais o
+    ///     round-trip do RCON — com dez servidores a rodada já se aproxima do
+    ///     próprio intervalo de 15s, e as coletas atrasam ou empilham. Um teto
+    ///     em vez de paralelismo total evita afogar o daemon do Docker com
+    ///     dezenas de chamadas de uma vez só.
+    /// </summary>
+    private const int MaxConcurrentCollections = 6;
+
     private async Task CollectAsync(CancellationToken ct)
     {
         history.AddHost(SampleHost());
@@ -72,29 +82,35 @@ public sealed partial class MetricsCollector(
         var rcon = scope.ServiceProvider.GetRequiredService<IRconClient>();
         var notifier = scope.ServiceProvider.GetRequiredService<IServerHubNotifier>();
 
-        foreach (var server in servers)
+        await Parallel.ForEachAsync(
+            servers,
+            new ParallelOptions { MaxDegreeOfParallelism = MaxConcurrentCollections, CancellationToken = ct },
+            (server, token) => CollectOneAsync(server, stats, rcon, notifier, token));
+    }
+
+    private async ValueTask CollectOneAsync(
+        GameServer server, IContainerStats stats, IRconClient rcon, IServerHubNotifier notifier, CancellationToken ct)
+    {
+        // Servidor parado não tem container para amostrar; grava um ponto
+        // zerado para o gráfico mostrar a queda em vez de um buraco.
+        if (server.Status is not GameServerStatus.Running)
         {
-            // Servidor parado não tem container para amostrar; grava um ponto
-            // zerado para o gráfico mostrar a queda em vez de um buraco.
-            if (server.Status is not GameServerStatus.Running)
-            {
-                history.AddServer(server.Id, new MetricPoint(DateTimeOffset.UtcNow, 0, 0, 0));
+            history.AddServer(server.Id, new MetricPoint(DateTimeOffset.UtcNow, 0, 0, 0));
 
-                // Esquece a contagem: manter a última exibiria "5 jogadores"
-                // num servidor desligado.
-                players.Forget(server.Id);
-                continue;
-            }
-
-            var sample = await stats.SampleAsync(server.Id, ct);
-            history.AddServer(server.Id, new MetricPoint(
-                DateTimeOffset.UtcNow,
-                sample?.CpuPercent ?? 0,
-                sample?.MemoryUsedBytes ?? 0,
-                sample?.MemoryLimitBytes ?? 0));
-
-            await CollectPlayersAsync(server, rcon, notifier, ct);
+            // Esquece a contagem: manter a última exibiria "5 jogadores"
+            // num servidor desligado.
+            players.Forget(server.Id);
+            return;
         }
+
+        var sample = await stats.SampleAsync(server.Id, ct);
+        history.AddServer(server.Id, new MetricPoint(
+            DateTimeOffset.UtcNow,
+            sample?.CpuPercent ?? 0,
+            sample?.MemoryUsedBytes ?? 0,
+            sample?.MemoryLimitBytes ?? 0));
+
+        await CollectPlayersAsync(server, rcon, notifier, ct);
     }
 
     /// <summary>
