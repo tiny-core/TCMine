@@ -12,8 +12,8 @@ namespace TCMine.Launcher.Infrastructure.Instances;
 ///     pô-la no único sítio que a operação seguinte pode mexer. É a mesma razão
 ///     pela qual o servidor guarda os snapshots dele fora da pasta que o
 ///     materializador reescreve.
-///     Nada é apagado aqui. Uma política de retenção precisa de decidir o que
-///     perder, e essa decisão não se toma em silêncio no meio de uma atualização.
+///     Guarda as últimas <see cref="WorldBackupRetention.Keep" /> e deixa cair as
+///     mais antigas. A decisão de quantas é do Core; aqui só se apaga ficheiro.
 /// </summary>
 public sealed partial class ZipWorldBackup(
     IInstanceStore instances,
@@ -71,11 +71,47 @@ public sealed partial class ZipWorldBackup(
 
         LogCriado(destino);
 
+        // Depois de a nova estar no lugar, nunca antes: podar primeiro e falhar
+        // a criar deixaria o jogador com menos cópias do que tinha, por causa de
+        // uma atualização que nem aconteceu.
+        Podar(pasta);
+
         return destino;
+    }
+
+    /// <summary>
+    ///     Apaga as cópias que sobram.
+    ///     Falhar aqui não derruba nada: a cópia que interessa já está gravada, e
+    ///     recusar a atualização porque não se conseguiu apagar um ficheiro
+    ///     ANTIGO seria trocar um problema de disco por um impedimento.
+    /// </summary>
+    private void Podar(string pasta)
+    {
+        try
+        {
+            var nomes = Directory.EnumerateFiles(pasta, "saves-*.zip").Select(Path.GetFileName).OfType<string>();
+
+            foreach (var velho in WorldBackupRetention.Expired(nomes))
+            {
+                File.Delete(Path.Combine(pasta, velho));
+                LogPodado(velho);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            LogPodaFalhou(ex);
+        }
     }
 
     private string SavesDirectory(InstanceKey key) => Path.Combine(instances.PathFor(key), "saves");
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Cópia do mundo criada em {Caminho}.")]
     private partial void LogCriado(string caminho);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cópia antiga removida: {Nome}.")]
+    private partial void LogPodado(string nome);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Não foi possível remover cópias antigas; a nova está gravada.")]
+    private partial void LogPodaFalhou(Exception ex);
 }
