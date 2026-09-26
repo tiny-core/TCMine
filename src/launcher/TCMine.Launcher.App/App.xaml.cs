@@ -92,6 +92,11 @@ public partial class App : Application
         builder.Services.AddSingleton<IWindowChrome>(sp =>
             new WpfWindowChrome(sp.GetRequiredService<MainWindow>()));
 
+        // O pai do diálogo do broker. Mesma resolução tardia da moldura, e pelo
+        // mesmo motivo: a janela é resolvida pelo contêiner e só existe depois.
+        builder.Services.AddSingleton<IParentWindowHandle>(sp =>
+            new WpfParentWindowHandle(sp.GetRequiredService<MainWindow>()));
+
         _host = builder.Build();
         _logger = _host.Services.GetRequiredService<ILogger<App>>();
     }

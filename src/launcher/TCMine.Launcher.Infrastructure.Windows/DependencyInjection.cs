@@ -19,6 +19,8 @@ public static class DependencyInjection
         this IServiceCollection services,
         string rootDirectory)
     {
+        // Quem tem janela é o host, e ele regista a implementação: aqui só se
+        // declara que o broker precisa de uma.
         // Hardlink: é o que faz dez modpacks com o mesmo mod ocuparem um ficheiro.
         services.AddSingleton<IFileLinker, WindowsFileLinker>();
 
@@ -27,6 +29,7 @@ public static class DependencyInjection
         services.AddSingleton<IMicrosoftTokenProvider>(sp =>
             new MsalMicrosoftTokenProvider(
                 Path.Combine(rootDirectory, "identity"),
+                sp.GetRequiredService<IParentWindowHandle>(),
                 sp.GetRequiredService<ILogger<MsalMicrosoftTokenProvider>>()));
 
         return services;

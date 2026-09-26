@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Identity.Client;
+using Microsoft.Identity.Client.Broker;
 using Microsoft.Identity.Client.Extensions.Msal;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Identity;
@@ -25,6 +26,7 @@ namespace TCMine.Launcher.Infrastructure.Windows.Identity;
 /// </summary>
 public sealed partial class MsalMicrosoftTokenProvider(
     string cacheDirectory,
+    IParentWindowHandle window,
     ILogger<MsalMicrosoftTokenProvider> logger) : IMicrosoftTokenProvider, IDisposable
 {
     /// <summary>
@@ -87,12 +89,15 @@ public sealed partial class MsalMicrosoftTokenProvider(
         {
             var app = await ObterAppAsync(azureClientId, ct);
 
-            // Navegador do SISTEMA, não WebView embutida. É a diferença entre o
-            // jogador ver a barra de endereço da Microsoft e ser convidado a
-            // escrever a palavra-passe numa janela que qualquer um podia ter
-            // desenhado — e é o que faz o redirect URI ser http://localhost, o
-            // mesmo que a tela de configurações manda registar no Azure.
+            // Com broker, o diálogo é o do Windows e o jogador que já usa a
+            // conta Microsoft na máquina entra sem escrever nada. O pai importa:
+            // sem ele o diálogo abre ATRÁS do launcher e parece que travou.
+            // Sem broker disponível, o MSAL cai para o navegador do SISTEMA —
+            // nunca uma WebView embutida. É a diferença entre ver a barra de
+            // endereço da Microsoft e ser convidado a escrever a palavra-passe
+            // numa janela que qualquer um podia ter desenhado.
             var resultado = await app.AcquireTokenInteractive(Scopes)
+                .WithParentActivityOrWindow(() => window.Handle)
                 .WithUseEmbeddedWebView(false)
                 .ExecuteAsync(ct);
 
@@ -148,6 +153,12 @@ public sealed partial class MsalMicrosoftTokenProvider(
                 // pessoal; aceitar o audience organizacional deixaria o jogador
                 // entrar com a conta do trabalho e falhar no Xbox Live, longe daqui.
                 .WithAuthority(AzureCloudInstance.AzurePublic, AadAuthorityAudience.PersonalMicrosoftAccount)
+
+                // O broker do Windows (WAM). Quando não está disponível — versão
+                // antiga, política da máquina —, o MSAL cai sozinho para o
+                // navegador; por isso o redirect de loopback continua aqui, e por
+                // isso a tela de configurações manda registar os DOIS URIs.
+                .WithBroker(new BrokerOptions(BrokerOptions.OperatingSystems.Windows))
                 .WithRedirectUri("http://localhost")
                 .WithClientName("TCMine Launcher")
                 .Build();

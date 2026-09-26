@@ -415,10 +415,18 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   a porta. Registe por `AddWindowsLauncherInfrastructure(raiz)`, **depois** de
   `AddLauncherInfrastructure` — as duas portas têm implementação portável que
   recusa, e aqui o último registo vence.
-- **O TFM ainda é `net10.0-windows` seco, então o NuGet resolve o asset `net8.0`
-  do MSAL.** Serve o navegador do sistema e **não serve o WAM**: o broker exige
-  `net10.0-windows10.0.19041.0`, a mesma forma que o host WPF já carrega. É a
-  primeira linha da fatia do broker, não uma surpresa para descobrir depois.
+- **O broker do Windows (WAM) está ligado** — `WithBroker`, com o HWND vindo de
+  `IParentWindowHandle`, que o host implementa. Sem pai, o diálogo abre ATRÁS do
+  launcher e parece que o login travou. Sem broker disponível, o MSAL cai
+  sozinho para o navegador do sistema, e é por isso que o redirect de loopback
+  continua registado e a tela de configurações manda registar os DOIS URIs.
+- **O TFM de `Infrastructure.Windows` é `net10.0-windows` seco, e está certo.**
+  Este documento já afirmou que o broker exigia `net10.0-windows10.0.19041.0`,
+  por analogia com o WebView2 do host (§8). **Não exige**: com os dois TFMs o
+  NuGet resolve os mesmos assets, incluindo o `NativeInterop` que traz o runtime
+  do WAM. Foi medido no `project.assets.json`, não deduzido — e a analogia com o
+  WebView2 é justamente o tipo de raciocínio que produz uma afirmação errada com
+  cara de óbvia.
 - **Abrir o jogo é do CmlLib**, atrás de `IGameLauncher`, na infraestrutura
   PORTÁVEL. A regra de camada deixou de o proibir ali e isso foi correção, não
   concessão: ele é multiplataforma, ao contrário do `Microsoft.Win32`, do

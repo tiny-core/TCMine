@@ -93,6 +93,7 @@
   <ItemGroup Label="step_14">
     <PackageVersion Include="Microsoft.Identity.Client" Version="4.89.0" />
     <PackageVersion Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.89.0" />
+    <PackageVersion Include="Microsoft.Identity.Client.Broker" Version="4.89.0" />
   </ItemGroup>
   <!--
     Abrir o jogo. É o único lugar do produto onde não escrevemos o motor, e de

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
       O que só existe no Windows.
@@ -10,6 +10,12 @@
       reescrita.
   -->
   <PropertyGroup>
+    <!--
+        TFM seco, e fica assim. O broker do MSAL parecia exigir a versão do SDK
+        (como o WebView2 no host exige, ver §8) — não exige: com os dois TFMs o
+        NuGet resolve exatamente os mesmos assets, incluindo o NativeInterop que
+        traz o runtime do WAM. Medido, não deduzido.
+    -->
     <TargetFramework>net10.0-windows</TargetFramework>
 
     <!-- Permite compilar (não executar) no agente Linux do CI. -->
@@ -24,6 +30,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Identity.Client"/>
     <PackageReference Include="Microsoft.Identity.Client.Extensions.Msal"/>
+    <PackageReference Include="Microsoft.Identity.Client.Broker"/>
   </ItemGroup>
 
   <ItemGroup>
