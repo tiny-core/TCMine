@@ -29,6 +29,7 @@ public static class DependencyInjection
         services.AddScoped<IInstanceInstaller>(sp => sp.GetRequiredService<InstallModpackVersion>());
         services.AddScoped<ListInstances>();
         services.AddScoped<ChooseInstance>();
+        services.AddScoped<SetInstanceMemory>();
         services.AddScoped<LaunchGame>();
         services.AddScoped<UpdateInstance>();
         services.AddScoped<CheckInstanceUpdates>();

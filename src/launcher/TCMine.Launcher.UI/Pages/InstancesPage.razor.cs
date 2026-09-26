@@ -40,6 +40,8 @@ public partial class InstancesPage : ComponentBase
 
     [Inject] private CleanupJavaRuntimes JavaCleanup { get; set; } = default!;
 
+    [Inject] private SetInstanceMemory Memory { get; set; } = default!;
+
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
@@ -82,6 +84,26 @@ public partial class InstancesPage : ComponentBase
     }
 
     private void OpenFolder(InstalledInstance instancia) => Desktop.OpenFolder(instancia.Path);
+
+    /// <summary>
+    ///     Grava a RAM da instância.
+    ///     Vazio volta à recomendada do pack, e isso é escolha e não engano: o
+    ///     jogador que apaga o número está a dizer "decide tu".
+    /// </summary>
+    private async Task SetMemoryAsync(InstalledInstance instancia, int? megabytes)
+    {
+        var resultado = await Memory.HandleAsync(instancia, megabytes, CancellationToken.None);
+
+        if (!resultado.Succeeded)
+        {
+            Snackbar.Add(resultado.Error!, Severity.Warning);
+            return;
+        }
+
+        // Relê em vez de mexer no objeto em memória: o manifesto no disco é a
+        // verdade, e uma cópia editada à mão aqui seria uma segunda versão dela.
+        await LoadAsync();
+    }
 
     /// <summary>
     ///     Apaga os JREs que sobraram.

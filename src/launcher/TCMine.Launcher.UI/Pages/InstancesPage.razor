@@ -96,6 +96,24 @@ else
                         </MudButton>
                     }
 
+                    @* Inline e estreito, em vez de um diálogo: é um número, e
+                       abrir uma janela para o pedir custaria mais cliques do que
+                       o ajuste vale. Grava ao sair do campo — a cada tecla
+                       escreveria o manifesto meia dúzia de vezes. *@
+                    <MudNumericField T="int?"
+                                     Value="@instancia.Manifest.MemoryMb"
+                                     ValueChanged="@(v => SetMemoryAsync(instancia, v))"
+                                     Immediate="false"
+                                     Min="@SetInstanceMemory.MinimumMb"
+                                     Step="512"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Adornment="Adornment.End"
+                                     AdornmentText="MB"
+                                     Placeholder="padrão"
+                                     Style="width:9rem;"
+                                     Disabled="_busy"/>
+
                     <MudTooltip Text="Abrir a pasta da instância">
                         <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
                                        OnClick="@(() => OpenFolder(instancia))"/>
