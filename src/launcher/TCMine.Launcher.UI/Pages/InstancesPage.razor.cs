@@ -12,11 +12,10 @@ using TCMine.UI.Shared.Formatting;
 
 namespace TCMine.Launcher.UI.Pages;
 
-public partial class InstancesPage : ComponentBase
+public partial class InstancesPage : ComponentBase, IDisposable
 {
     private InstanceKey? _active;
     private bool _busy;
-    private string? _busyLabel;
 
     private IReadOnlyDictionary<InstanceKey, ModpackVersionDto> _updates =
         new Dictionary<InstanceKey, ModpackVersionDto>();
@@ -44,6 +43,8 @@ public partial class InstancesPage : ComponentBase
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
+    [Inject] private InstallOperationState Operation { get; set; } = default!;
+
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     [Inject] private IDesktopShell Desktop { get; set; } = default!;
@@ -52,7 +53,19 @@ public partial class InstancesPage : ComponentBase
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    protected override Task OnInitializedAsync() => LoadAsync();
+    public void Dispose()
+    {
+        Operation.Changed -= OnOperationChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        Operation.Changed += OnOperationChanged;
+        return LoadAsync();
+    }
+
+    private void OnOperationChanged() => InvokeAsync(StateHasChanged);
 
     private async Task LoadAsync()
     {
@@ -146,7 +159,7 @@ public partial class InstancesPage : ComponentBase
     /// </summary>
     private async Task UpdateAsync(InstalledInstance instance, ModpackVersionDto newer)
     {
-        if (Shell.Pairing?.Config is not { } config || _busy)
+        if (Shell.Pairing?.Config is not { } config || _busy || Operation.IsRunning)
             return;
 
         var temMundo = Worlds.HasWorld(instance.Key);
@@ -184,18 +197,20 @@ public partial class InstancesPage : ComponentBase
             return;
 
         _busy = true;
+        Operation.Begin(null);
 
         try
         {
             var pack = PackDe(instance);
+            var progress = new Progress<InstallProgress>(Operation.Report);
 
             var result = choice is true
                 ? await Updater.HandleAsync(
                     config.ServerUrl, pack, newer.Id, instance,
-                    backupWorld: true, Acompanhar(temMundo), CancellationToken.None)
+                    backupWorld: true, progress, CancellationToken.None)
                 : await Installer.HandleAsync(
                     config.ServerUrl, pack, newer.Id, target: null,
-                    Acompanhar(false), CancellationToken.None);
+                    progress, CancellationToken.None);
 
             Snackbar.Add(
                 result.Succeeded
@@ -206,27 +221,22 @@ public partial class InstancesPage : ComponentBase
         finally
         {
             _busy = false;
-            _busyLabel = null;
+            Operation.Finish();
         }
 
         await LoadAsync();
     }
 
-    private Progress<InstallProgress> Acompanhar(bool comBackup) =>
-        new Progress<InstallProgress>(p =>
-        {
-            _busyLabel = p.Phase switch
-            {
-                InstallPhase.BackingUp => "Copiando o mundo…",
-                InstallPhase.Downloading => "Baixando arquivos…",
-                InstallPhase.Materializing => "Instalando…",
-                InstallPhase.Cleaning => "Limpando o que sobrou…",
-                InstallPhase.Done => null,
-                _ => comBackup ? "Preparando…" : "Planejando…"
-            };
-
-            InvokeAsync(StateHasChanged);
-        });
+    /// <summary>O texto para a fase atual — null em Done, que já vira o toast de sucesso.</summary>
+    private static string? BusyLabel(InstallProgress? progress) => progress?.Phase switch
+    {
+        InstallPhase.BackingUp => "Copiando o mundo…",
+        InstallPhase.Downloading => "Baixando arquivos…",
+        InstallPhase.Materializing => "Instalando…",
+        InstallPhase.Cleaning => "Limpando o que sobrou…",
+        InstallPhase.Done => null,
+        _ => "Preparando…"
+    };
 
     /// <summary>
     ///     O modpack, reconstruído a partir do manifesto local.

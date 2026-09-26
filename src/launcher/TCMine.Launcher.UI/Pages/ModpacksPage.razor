@@ -85,15 +85,15 @@ else if (_catalog is not null)
                         @* O botão vira a barra: durante a instalação o jogador
                            quer ver o andamento no lugar onde clicou, e não numa
                            faixa em outro canto da tela. *@
-                        @if (_installing == entrada.Modpack.Id)
+                        @if (Operation.ModpackId == entrada.Modpack.Id)
                         {
                             <MudProgressLinear Color="Color.Primary"
                                                Class="mt-4"
-                                               Indeterminate="@(_progress?.Fraction is null)"
-                                               Value="@((_progress?.Fraction ?? 0) * 100)"/>
+                                               Indeterminate="@(Operation.Progress?.Fraction is null)"
+                                               Value="@((Operation.Progress?.Fraction ?? 0) * 100)"/>
 
                             <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
-                                @PhaseLabel(_progress)
+                                @PhaseLabel(Operation.Progress)
                             </MudText>
                         }
                         else
@@ -116,7 +116,7 @@ else if (_catalog is not null)
                                            StartIcon="@Icons.Material.Filled.Download"
                                            FullWidth="true"
                                            Class="mt-4"
-                                           Disabled="@(_installing is not null)"
+                                           Disabled="@Operation.IsRunning"
                                            OnClick="@(() => InstallAsync(entrada.Modpack))">
                                     Instalar
                                 </MudButton>
@@ -133,7 +133,7 @@ else if (_catalog is not null)
                                        Size="Size.Small"
                                        FullWidth="true"
                                        Class="mt-1"
-                                       Disabled="@(_installing is not null)"
+                                       Disabled="@Operation.IsRunning"
                                        OnClick="@(() => InstallSpecificAsync(entrada.Modpack))">
                                 Escolher versão
                             </MudButton>

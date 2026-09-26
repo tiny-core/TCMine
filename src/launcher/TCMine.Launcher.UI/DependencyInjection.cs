@@ -16,6 +16,8 @@ public static class DependencyInjection
         // Singleton, não scoped: em Blazor Hybrid existe um circuito só, e o
         // estado tem de sobreviver à navegação entre páginas.
         services.AddSingleton<LauncherShellState>();
+        services.AddSingleton<InstallOperationState>();
+        services.AddScoped<PostPairingRoute>();
 
         services.AddMudServices();
 

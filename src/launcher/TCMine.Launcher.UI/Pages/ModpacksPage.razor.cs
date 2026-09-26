@@ -7,7 +7,7 @@ using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
 
-public partial class ModpacksPage : ComponentBase
+public partial class ModpacksPage : ComponentBase, IDisposable
 {
     private CatalogView? _catalog;
 
@@ -25,11 +25,6 @@ public partial class ModpacksPage : ComponentBase
 
     private bool _loading;
 
-    /// <summary>Instalação em curso. Uma de cada vez, de propósito — ver Install.</summary>
-    private Guid? _installing;
-
-    private InstallProgress? _progress;
-
     [Inject] private LoadCatalog Catalog { get; set; } = default!;
 
     [Inject] private InstallModpackVersion Installer { get; set; } = default!;
@@ -38,15 +33,30 @@ public partial class ModpacksPage : ComponentBase
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
+    [Inject] private InstallOperationState Operation { get; set; } = default!;
+
     [Inject] private IDialogService Dialogs { get; set; } = default!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
+    public void Dispose()
+    {
+        Operation.Changed -= OnOperationChanged;
+        GC.SuppressFinalize(this);
+    }
+
     protected override async Task OnInitializedAsync()
     {
+        // Assina ANTES de carregar: uma instalação que termina entre o assign e
+        // o load não é perdida, e reabrir a tela no meio de uma em curso mostra
+        // a barra de novo — é para isto que o estado saiu do campo local.
+        Operation.Changed += OnOperationChanged;
+
         await LoadAsync();
         await RefreshInstalledAsync();
     }
+
+    private void OnOperationChanged() => InvokeAsync(StateHasChanged);
 
     /// <summary>
     ///     Quantos jogadores, quando o servidor está no ar. Parado, o número
@@ -97,7 +107,7 @@ public partial class ModpacksPage : ComponentBase
     /// </summary>
     private async Task InstallSpecificAsync(ModpackDto modpack)
     {
-        if (_installing is not null)
+        if (Operation.IsRunning)
             return;
 
         var parameters = new DialogParameters<VersionPickerDialog>
@@ -119,17 +129,12 @@ public partial class ModpacksPage : ComponentBase
 
     private async Task InstallAsync(ModpackDto modpack, Guid? versionId)
     {
-        if (Shell.Pairing?.Config is not { } config || _installing is not null)
+        if (Shell.Pairing?.Config is not { } config || Operation.IsRunning)
             return;
 
-        _installing = modpack.Id;
-        _progress = InstallProgress.Planning;
+        Operation.Begin(modpack.Id);
 
-        var progress = new Progress<InstallProgress>(p =>
-        {
-            _progress = p;
-            InvokeAsync(StateHasChanged);
-        });
+        var progress = new Progress<InstallProgress>(Operation.Report);
 
         try
         {
@@ -156,8 +161,7 @@ public partial class ModpacksPage : ComponentBase
         }
         finally
         {
-            _installing = null;
-            _progress = null;
+            Operation.Finish();
         }
     }
 }

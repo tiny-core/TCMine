@@ -24,13 +24,15 @@
     </MudButton>
 </PageHeader>
 
-@if (_busyLabel is not null)
+@if (Operation.IsRunning)
 {
     @* O andamento aqui e não num diálogo: atualizar demora, e um diálogo modal
        a girar prenderia a tela inteira por algo que o jogador pode acompanhar
-       enquanto olha o resto. *@
+       enquanto olha o resto. Operation é compartilhado: aparece aqui mesmo que
+       a instalação tenha começado no catálogo e o jogador tenha navegado para
+       cá no meio dela — antes esse progresso só existia na tela onde nasceu. *@
     <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
-        <MudText Typo="Typo.body2" Class="mb-2">@_busyLabel</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@BusyLabel(Operation.Progress)</MudText>
         <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
     </MudPaper>
 }
@@ -73,7 +75,7 @@ else
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.Upgrade"
-                                   Disabled="_busy"
+                                   Disabled="@(_busy || Operation.IsRunning)"
                                    OnClick="@(() => UpdateAsync(instancia, novidade))">
                             Atualizar para v@(novidade.Version)
                         </MudButton>

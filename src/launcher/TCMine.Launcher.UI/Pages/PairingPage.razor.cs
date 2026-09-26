@@ -17,6 +17,8 @@ public partial class PairingPage : ComponentBase
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
+    [Inject] private PostPairingRoute PostPairing { get; set; } = default!;
+
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     private async Task OnKeyDown(KeyboardEventArgs e)
@@ -40,7 +42,15 @@ public partial class PairingPage : ComponentBase
 
             if (estado.IsOnline)
             {
-                Navigation.NavigateTo("/");
+                // Sem isto, o jogador saía de /pair direto para o catálogo sem
+                // sessão nenhuma: OnInitializedAsync do ShellLayout (que faz
+                // este mesmo passo) já tinha rodado e voltado cedo, porque
+                // "não pareado" foi o desfecho da PRIMEIRA vez que ele correu —
+                // pareamento feito na hora não o refaz sozinho.
+                var destino = await PostPairing.ResolveAsync(estado, CancellationToken.None);
+                if (destino is not null)
+                    Navigation.NavigateTo(destino);
+
                 return;
             }
 

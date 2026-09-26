@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Launcher.Core.Connectivity;
-using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Layout;
@@ -11,9 +10,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private ServerPairing Pairing { get; set; } = default!;
 
-    [Inject] private SignIn Account { get; set; } = default!;
-
-    [Inject] private UpdateLauncher Updater { get; set; } = default!;
+    [Inject] private PostPairingRoute PostPairing { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
@@ -57,17 +54,14 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             if (!pairing.IsOnline)
                 return;
 
-            // Antes do login, e de propósito: uma atualização reinicia a
-            // aplicação, e fazê-la depois de o jogador entrar desperdiçaria o
-            // login que ele acabou de fazer. Devolve verdadeiro só quando vai
-            // mesmo reiniciar — daí parar aqui.
-            if (await Updater.HandleAsync(pairing.Server, CancellationToken.None))
-                return;
+            var destino = await PostPairing.ResolveAsync(pairing, CancellationToken.None);
 
-            Shell.Apply(await Account.ResumeAsync(pairing.Config!, CancellationToken.None));
-
-            if (!Shell.IsSignedIn)
-                Navigation.NavigateTo("/login");
+            // Só navega quando manda para o login: com sessão já válida, o
+            // arranque não deve atropelar uma rota profunda que o jogador tenha
+            // pedido (ex.: reabrir direto na aba de mods de uma instância).
+            // destino nulo = vai reiniciar para se atualizar.
+            if (destino is "/login")
+                Navigation.NavigateTo(destino);
         }
         finally
         {
