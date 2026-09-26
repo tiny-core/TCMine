@@ -31,6 +31,7 @@ public static class StorageLayout
         Derivar(derivados, configuration, "BlobStorage:RootPath", $"{raiz}/data/blobs");
         Derivar(derivados, configuration, "Instances:RootPath", $"{raiz}/instances");
         Derivar(derivados, configuration, "DataProtection:KeysPath", $"{raiz}/data/keys");
+        Derivar(derivados, configuration, "LauncherUpdates:RootPath", $"{raiz}/updates/launcher");
 
         if (derivados.Count > 0)
             builder.AddInMemoryCollection(derivados);

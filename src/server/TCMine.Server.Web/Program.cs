@@ -269,6 +269,7 @@ app.UseSerilogRequestLogging();
 app.UseRateLimiter();
 
 app.MapHandshake();
+app.MapLauncherUpdates();
 app.MapBlobs();
 
 // /health responde o conjunto completo de propósito: quem aponta o orquestrador
