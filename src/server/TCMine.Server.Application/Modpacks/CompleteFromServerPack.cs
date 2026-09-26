@@ -114,7 +114,12 @@ public sealed partial class CompleteFromServerPack(
                     OriginReference = fileId
                 };
 
-                version.UpsertFile(file);
+                // O Id devolvido é da linha antiga que este arquivo substituiu (mesmo
+                // ProjectSlug já resolvido antes) — sem apagá-la explicitamente, o
+                // Update em grafo destacado não cascateia a remoção, e sobram dois
+                // .jar do mesmo mod em mods/ (ver §8 do CLAUDE.md).
+                if (version.UpsertFile(file) is { } substituido)
+                    await repository.RemoveFileAsync(version.Id, substituido, ct);
 
                 if (version.ResolvePending(pendencia.ProjectSlug) is { } resolvida)
                     await repository.RemovePendingAsync(version.Id, resolvida, ct);

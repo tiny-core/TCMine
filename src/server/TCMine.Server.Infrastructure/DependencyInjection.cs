@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Infrastructure.Docker;
 using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.CurseForge;
@@ -46,8 +45,11 @@ public static class DependencyInjection
             })
             .AddStandardResilienceHandler();
 
-        // HttpClient nomeado para o download dos mods durante a ingestão.
-        services.AddScoped<ModpackIngestionService>();
+        // ModpackIngestionService é caso de uso (mora em Application/Modpacks) e
+        // já é registrado em AddTcMineApplication — registrá-lo aqui também violava
+        // a regra de ouro do DI (CLAUDE.md §2): duplicata inofensiva hoje (o
+        // último registro por tipo concreto vence), mas raiz clássica de bug se um
+        // dia só um dos dois for atualizado.
 
         services.AddHttpClient<IModSearch, ModrinthModSearch>(client =>
             {

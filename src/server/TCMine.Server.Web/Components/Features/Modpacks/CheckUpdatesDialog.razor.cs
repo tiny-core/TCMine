@@ -22,7 +22,7 @@ public partial class CheckUpdatesDialog : IDisposable
 
     [Inject] private CheckModpackVersionUpdates CheckUseCase { get; set; } = default!;
     [Inject] private CloneVersion CloneUseCase { get; set; } = default!;
-    [Inject] private IIngestionQueue IngestionQueue { get; set; } = default!;
+    [Inject] private QueueIngestion QueueIngestionUseCase { get; set; } = default!;
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
 
     private JobProgress? Progress => _jobId == Guid.Empty ? null : Jobs.Get(_jobId);
@@ -83,7 +83,22 @@ public partial class CheckUpdatesDialog : IDisposable
                 .Select(u => new ModIngestionItem(u.Origin, u.ProjectSlug, null, u.Side))
                 .ToList();
 
-            await IngestionQueue.EnqueueAsync(newVersionId, items, CancellationToken.None);
+            // Passa pelo QueueIngestion (via IngestionScheduler), não pela fila
+            // direto: ele grava a pendência Queued ANTES de enfileirar, para o
+            // pedido sobreviver a uma queda do processo entre o clique e o worker
+            // pegar o item. Sem seleção nenhuma, só cria a versão — não há o que
+            // enfileirar.
+            if (items.Count > 0)
+            {
+                var ingest = await QueueIngestionUseCase.HandleAsync(
+                    new QueueIngestionCommand(newVersionId, items), CancellationToken.None);
+
+                if (!ingest.Succeeded)
+                {
+                    Snackbar.Add(ingest.Error!, Severity.Error);
+                    return;
+                }
+            }
 
             Snackbar.Add($"Versão {_newVersion} criada; atualizando {items.Count} mod(s)…", Severity.Success);
             Dialog.Close(DialogResult.Ok(newVersionId));

@@ -113,9 +113,16 @@ public sealed class ModpackRepositoryTests : IDisposable
         version.UpsertFile(Arquivo(version.Id, "mods/jei.jar", "jei"));
         await repo.AddVersionAsync(version, CancellationToken.None);
 
-        var toEdit = await repo.GetVersionAsync(version.Id, CancellationToken.None);
-        toEdit!.Files.Clear(); // tira o arquivo da coleção
-        await repo.UpdateVersionAsync(toEdit, CancellationToken.None);
+        // Files não expõe mais Clear() por fora — é a própria garantia que o
+        // encapsulamento do domínio adiciona (§8). Simula o mesmo grafo
+        // detached "sem o arquivo" com uma versão nova, mesmo Id, que nunca
+        // chegou a carregar Files.
+        var semArquivos = NovaVersao(modpack.Id, "9.9-detached");
+        typeof(TCMine.Server.Domain.Common.Entity)
+            .GetProperty(nameof(TCMine.Server.Domain.Common.Entity.Id))!
+            .SetValue(semArquivos, version.Id);
+
+        await repo.UpdateVersionAsync(semArquivos, CancellationToken.None);
 
         // O arquivo continua no banco — Update não o apagou.
         var reloaded = await repo.GetVersionAsync(version.Id, CancellationToken.None);

@@ -50,22 +50,25 @@ public static class ModpackMappings
             State = version.State,
             PublishedAt = version.PublishedAt ?? default,
             RecommendedMemoryMb = version.RecommendedMemoryMb,
-            Files =
-            [
-                .. version.Files
-                    // Server-only nunca vai ao cliente: ele não precisa e seria banda
-                    // desperdiçada. O filtro do lado do launcher é uma segunda linha;
-                    // esta é a primeira.
-                    .Where(f => f.Side is not FileSide.ServerOnly)
-                    .Select(f => new ModpackFileDto
-                    {
-                        Path = f.Path,
-                        Sha256 = f.Sha256,
-                        SizeBytes = f.SizeBytes,
-                        Side = f.Side,
-                        Optional = f.Optional
-                    })
-            ]
+            // .ToArray(), NUNCA [.. x]: o alvo é IReadOnlyList<ModpackFileDto>, e uma
+            // expressão de coleção contra essa interface materializa o tipo interno
+            // sintetizado pelo compilador, que o MessagePack do launcher não
+            // serializa — a chamada de Hub derruba a conexão em runtime (ver §8 do
+            // CLAUDE.md; já aconteceu com GetModpacksAsync/GetServersAsync).
+            Files = version.Files
+                // Server-only nunca vai ao cliente: ele não precisa e seria banda
+                // desperdiçada. O filtro do lado do launcher é uma segunda linha;
+                // esta é a primeira.
+                .Where(f => f.Side is not FileSide.ServerOnly)
+                .Select(f => new ModpackFileDto
+                {
+                    Path = f.Path,
+                    Sha256 = f.Sha256,
+                    SizeBytes = f.SizeBytes,
+                    Side = f.Side,
+                    Optional = f.Optional
+                })
+                .ToArray()
         };
     }
 }

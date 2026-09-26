@@ -81,13 +81,20 @@ public sealed class ModpackVersion : Entity
     /// </summary>
     public string? UpstreamServerPackFileId { get; set; }
 
-    public List<ModpackFile> Files { get; } = [];
+    // Backing fields expostos como IReadOnlyList: mutação só pelos métodos desta
+    // classe (UpsertFile/UpsertPending/ResolvePending), que checam o State antes
+    // de mexer. Um List<T> público deixaria qualquer chamador fazer
+    // Files.Add(...) direto numa versão Ready/Archived, furando a invariante de
+    // imutabilidade sem o compilador reclamar.
+    private readonly List<ModpackFile> _files = [];
+    public IReadOnlyList<ModpackFile> Files => _files;
 
     /// <summary>
     ///     Mods que a ingestão não trouxe e que esperam upload manual. Não
     ///     impedem a versão de existir — impedem publicar sem o admin assumir.
     /// </summary>
-    public List<PendingMod> PendingMods { get; } = [];
+    private readonly List<PendingMod> _pendingMods = [];
+    public IReadOnlyList<PendingMod> PendingMods => _pendingMods;
 
     public bool HasPendingMods => PendingMods.Count > 0;
 
@@ -289,10 +296,10 @@ public sealed class ModpackVersion : Entity
             // em PendingMod.TakeOverFrom — é o que impede o INSERT duplicado
             // no índice único (ModpackVersionId, ProjectSlug).
             pending.TakeOverFrom(existing);
-            PendingMods.Remove(existing);
+            _pendingMods.Remove(existing);
         }
 
-        PendingMods.Add(pending);
+        _pendingMods.Add(pending);
         Touch();
     }
 
@@ -307,7 +314,7 @@ public sealed class ModpackVersion : Entity
         if (existing is null)
             return null;
 
-        PendingMods.Remove(existing);
+        _pendingMods.Remove(existing);
         Touch();
         return existing.Id;
     }
@@ -331,12 +338,12 @@ public sealed class ModpackVersion : Entity
             if (existing is not null)
             {
                 replacedId = existing.Id;
-                Files.Remove(existing);
+                _files.Remove(existing);
             }
         }
 
         file.ModpackVersionId = Id;
-        Files.Add(file);
+        _files.Add(file);
         UpdatedAt = DateTimeOffset.UtcNow;
 
         return replacedId;

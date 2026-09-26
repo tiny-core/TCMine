@@ -62,6 +62,15 @@ public sealed class FileSystemInstanceMaterializer(
         foreach (var stale in (await ReadManifestAsync(manifestPath, ct)).Where(p => !desired.Contains(p)))
         {
             var full = Path.Combine(instancePath, stale);
+
+            // Mesma guarda do laço de escrita, e pela mesma razão: o manifesto é
+            // gravado DENTRO da instância, que é o /data montado no container.
+            // Um mod com execução de código lá dentro (console de Minecraft já é
+            // execução arbitrária, por design) podia injetar uma entrada tipo
+            // "../../outro-servidor/world/level.dat" — sem esta checagem, o
+            // PROCESSO HOST apagaria fora do container na próxima republicação.
+            GuardInside(instancePath, full);
+
             if (File.Exists(full))
                 File.Delete(full);
         }

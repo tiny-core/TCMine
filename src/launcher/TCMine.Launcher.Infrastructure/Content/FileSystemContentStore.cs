@@ -139,8 +139,21 @@ public sealed partial class FileSystemContentStore(
         return Convert.ToHexStringLower(hash.GetHashAndReset());
     }
 
-    private string PathFor(string sha256) =>
-        Path.Combine(paths.StoreDirectory, sha256[..2], sha256[2..4], sha256);
+    private string PathFor(string sha256)
+    {
+        // Mesma validação do FileSystemBlobStore no servidor: o hash chega de
+        // fora (manifesto que o servidor serve), e sem checar formato aqui um
+        // valor com ".." ou barra vira path traversal no disco do jogador —
+        // ainda que hoje o próprio servidor já recuse hash inválido antes,
+        // defesa em profundidade não deveria depender só do lado remoto.
+        if (!IsValidHash(sha256))
+            throw new ArgumentException($"Hash inválido: {sha256}", nameof(sha256));
+
+        var normalizado = sha256.ToLowerInvariant();
+        return Path.Combine(paths.StoreDirectory, normalizado[..2], normalizado[2..4], normalizado);
+    }
+
+    private static bool IsValidHash(string value) => value.Length is 64 && value.All(char.IsAsciiHexDigit);
 
     [LoggerMessage(Level = LogLevel.Error,
         Message = "Conteúdo baixado não confere: esperado {Esperado}, obtido {Computed}.")]

@@ -46,7 +46,7 @@ public class ModpackVersionTests
     {
         var version = NovaVersao();
         version.MarkResolving();
-        version.Files.Add(ArquivoQualquer(version.Id));
+        version.UpsertFile(ArquivoQualquer(version.Id));
 
         version.MarkReady();
 

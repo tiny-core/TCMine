@@ -1,4 +1,3 @@
-using Microsoft.Data.Sqlite;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Tests.Infrastructure;
 
@@ -52,7 +51,10 @@ public sealed class StoragePathsTests
             await using var factory = new TcMineAppFactory(
                 settings:
                 [
-                    ("Database:ConnectionString", $"Data Source={Path.Combine(pastaBanco, "tcmine.db")}"),
+                    // Pooling=False, senão o handle sobrevive ao host e o
+                    // ClearAllPools() global voltaria a ser necessário — exatamente
+                    // o padrão banido pelo CLAUDE.md §8 (flake de ~10% da suíte).
+                    ("Database:ConnectionString", $"Data Source={Path.Combine(pastaBanco, "tcmine.db")};Pooling=False"),
                     ("BlobStorage:RootPath", Path.Combine(raiz, "blobs"))
                 ]);
 
@@ -68,8 +70,6 @@ public sealed class StoragePathsTests
         }
         finally
         {
-            SqliteConnection.ClearAllPools();
-
             try
             {
                 if (Directory.Exists(raiz))

@@ -39,7 +39,7 @@ public partial class ModSearchDialog
     [Parameter] public ModLoader Loader { get; set; }
 
     [Inject] private IEnumerable<IModSearch> Searches { get; set; } = default!;
-    [Inject] private IIngestionQueue Queue { get; set; } = default!;
+    [Inject] private QueueIngestion QueueIngestionUseCase { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -142,20 +142,21 @@ public partial class ModSearchDialog
 
     private Task Add()
     {
-        return RunAsync(async () =>
-        {
-            // O ProjectId da busca vira ProjectSlug do arquivo — identidade
-            // estável do mod (slug no Modrinth, id numérico no CurseForge).
-            // Lado Both por padrão; a grade permite ajustar depois.
-            // FileId null = versão mais recente compatível.
-            var items = _results
-                .Where(r => _selected.Contains(r.ProjectId))
-                .Select(r => new ModIngestionItem(_origin, r.ProjectId, null, FileSide.Both))
-                .ToList();
+        // O ProjectId da busca vira ProjectSlug do arquivo — identidade
+        // estável do mod (slug no Modrinth, id numérico no CurseForge).
+        // Lado Both por padrão; a grade permite ajustar depois.
+        // FileId null = versão mais recente compatível.
+        var items = _results
+            .Where(r => _selected.Contains(r.ProjectId))
+            .Select(r => new ModIngestionItem(_origin, r.ProjectId, null, FileSide.Both))
+            .ToList();
 
-            await Queue.EnqueueAsync(VersionId, items, CancellationToken.None);
-            Snackbar.Add($"{items.Count} mod(s) na fila de importação.", Severity.Info);
-            Dialog.Close(DialogResult.Ok(true));
-        });
+        // Passa pelo QueueIngestion (via IngestionScheduler), não pela fila
+        // direto: ele grava a pendência Queued ANTES de enfileirar, para o
+        // pedido sobreviver a uma queda do processo entre o clique e o worker
+        // pegar o item.
+        return SubmitAsync(
+            () => QueueIngestionUseCase.HandleAsync(new QueueIngestionCommand(VersionId, items), CancellationToken.None),
+            $"{items.Count} mod(s) na fila de importação.");
     }
 }
