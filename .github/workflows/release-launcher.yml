@@ -1,0 +1,148 @@
+# Publica o launcher do TCMine a partir de uma tag do git.
+#
+# Dispara em tags "launcher-v*" — o prefixo separa os dois produtos do
+# repositório, para que uma release do servidor não construa o launcher e
+# vice-versa.
+#
+# O que sai daqui é a saída do Velopack: o instalador, o pacote e o índice do
+# canal. O administrador copia esses ficheiros para
+# {Storage:RootPath}/updates/launcher/{canal}/ no servidor, que é a pasta que o
+# endpoint /updates/launcher/{canal}/ serve. O TCMine não publica no servidor
+# sozinho de propósito: a máquina que constrói não devia ter credencial de
+# escrita na que serve jogadores.
+
+name: Publicar launcher
+
+on:
+  push:
+    tags:
+      - "launcher-v*"
+
+  # Permite disparar à mão para testar o workflow sem criar tag. Nesse caso sai
+  # marcado como 0.0.1-manual e NÃO cria release no GitHub.
+  workflow_dispatch:
+
+concurrency:
+  group: release-launcher
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  publicar:
+    # Windows, e não ubuntu como o resto: o host é WPF e o alvo é win-x64. O
+    # EnableWindowsTargeting deixa o CI de Linux COMPILAR o projeto, que é outra
+    # coisa — publicar um executável exige a plataforma.
+    runs-on: windows-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Descobrir versão e canal
+        id: info
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            versao="${GITHUB_REF_NAME#launcher-v}"   # launcher-v1.2.3 -> 1.2.3
+          else
+            versao="0.0.1-manual"
+          fi
+
+          # O canal vem do PROTOCOLO, não da versão do produto, e é lido do
+          # código para não haver dois lugares a discordar: é exatamente assim
+          # que o handshake o monta. Publicar no canal errado entrega uma
+          # atualização que o servidor nunca vai oferecer.
+          protocolo="$(grep -oP 'Current\s*=\s*\K[0-9]+' src/shared/TCMine.Contracts/Protocol.cs)"
+
+          if [ -z "${protocolo}" ]; then
+            echo "Não consegui ler Protocol.Current — o formato do arquivo mudou." >&2
+            exit 1
+          fi
+
+          {
+            echo "versao=${versao}"
+            echo "canal=win-x64-p${protocolo}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Versão ${versao}, canal win-x64-p${protocolo}"
+
+      # Os testes rodam ANTES de publicar, e não num workflow à parte que talvez
+      # tenha passado numa versão anterior do código: um launcher publicado é
+      # imutável na prática, porque alguém já pode tê-lo instalado.
+      - name: Testes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for projeto in tests/*/; do
+            [ -f "${projeto}"*.csproj ] || continue
+            dotnet run --project "$projeto" -c Release
+          done
+
+      # Self-contained: o jogador não tem de instalar runtime nenhum, e o
+      # Velopack substitui a pasta inteira a cada update — meio caminho para uma
+      # instalação dependente do runtime seria uma dependência a mais para dar
+      # errado na máquina de outra pessoa.
+      - name: Publicar
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dotnet publish src/launcher/TCMine.Launcher.App \
+            -c Release \
+            -r win-x64 \
+            --self-contained true \
+            -p:Version=${{ steps.info.outputs.versao }} \
+            -p:InformationalVersion=${{ steps.info.outputs.versao }} \
+            -o publicado
+
+      - name: Empacotar com o Velopack
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dotnet tool install -g vpk
+          export PATH="$PATH:$HOME/.dotnet/tools"
+
+          vpk pack \
+            --packId TCMine.Launcher \
+            --packVersion "${{ steps.info.outputs.versao }}" \
+            --packDir publicado \
+            --mainExe TCMine.Launcher.App.exe \
+            --packTitle "TCMine Launcher" \
+            --channel "${{ steps.info.outputs.canal }}" \
+            --outputDir releases
+
+      # Sempre, inclusive na execução manual: é assim que se confere o que saiu
+      # sem ter de criar uma tag para descobrir que o empacotamento falhou.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: launcher-${{ steps.info.outputs.canal }}
+          path: releases/
+
+      # Só com tag. Uma execução manual serve para testar o workflow, e criar
+      # release a partir dela encheria a lista de versões que ninguém pediu.
+      - name: Criar release no GitHub
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: releases/*
+          body: |
+            Launcher ${{ steps.info.outputs.versao }} — canal `${{ steps.info.outputs.canal }}`.
+
+            Para publicar: copie estes ficheiros para
+            `{Storage:RootPath}/updates/launcher/${{ steps.info.outputs.canal }}/`
+            no servidor. Os launchers instalados encontram-nos na abertura
+            seguinte.

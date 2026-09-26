@@ -449,6 +449,17 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 - **O token do Minecraft é readquirido a cada abertura** por `TrySilentAsync`, e
   a conta é verificada ANTES do Java: descobrir a sessão expirada depois de
   cinquenta megabytes seria fazer esperar para só então pedir login.
+- **Atualização do próprio launcher**: o servidor serve
+  `/updates/launcher/{canal}/` a partir de `LauncherUpdates:RootPath` (derivado
+  de `Storage:RootPath`), e o launcher consome por Velopack. O canal vem do
+  PROTOCOLO, não da versão do produto. **Só funciona numa build empacotada pelo
+  `vpk`**: a partir do código-fonte não há instalação para substituir e a
+  biblioteca sai em silêncio — o que é o certo, senão ela reiniciar-se-ia no meio
+  de uma depuração.
+  Publicar é a tag `launcher-v*` (workflow `release-launcher.yml`, em
+  windows-latest), e depois **copiar os ficheiros para a pasta do servidor à
+  mão**: a máquina que constrói não devia ter credencial de escrita na que serve
+  jogadores.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 
