@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +14,7 @@ using TCMine.Launcher.Infrastructure;
 using TCMine.Launcher.Infrastructure.Windows;
 using TCMine.Launcher.UI;
 using TCMine.Launcher.UI.Abstractions;
+using Velopack;
 
 namespace TCMine.Launcher.App;
 
@@ -34,6 +35,13 @@ public partial class App : Application
 
     public App()
     {
+        // ANTES de tudo o resto, e isto não é preferência: o Velopack usa o
+        // próprio executável como ferramenta de instalação e desinstalação, e é
+        // esta chamada que intercepta esses arranques. Depois de abrir uma
+        // janela já é tarde — o instalador mostraria a interface do launcher em
+        // vez de instalar.
+        VelopackApp.Build().Run();
+
         // ContentRootPath explícito: aberto pelo atalho do menu Iniciar, o
         // diretório atual do processo é o que o Explorer decidir, e a
         // configuração seria procurada no lugar errado.

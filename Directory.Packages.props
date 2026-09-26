@@ -108,4 +108,15 @@
     <PackageVersion Include="CmlLib.Core" Version="4.0.6" />
     <PackageVersion Include="CmlLib.Core.Installer.Forge" Version="1.1.1" />
   </ItemGroup>
+  <!--
+    Atualização do próprio launcher. O servidor serve o feed; isto consome-o.
+
+    Só faz alguma coisa numa build empacotada pelo vpk: executada a partir do
+    código-fonte não há instalação para substituir, e a biblioteca diz isso em
+    vez de tentar. É o comportamento certo, e é também porque esta parte não tem
+    teste de verdade — o que se testa é a DECISÃO de atualizar, que vive no Core.
+  -->
+  <ItemGroup Label="step_16">
+    <PackageVersion Include="Velopack" Version="1.2.158" />
+  </ItemGroup>
 </Project>

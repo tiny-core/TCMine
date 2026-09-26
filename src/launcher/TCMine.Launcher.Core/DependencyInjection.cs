@@ -17,6 +17,7 @@ public static class DependencyInjection
     public static IServiceCollection AddLauncherCore(this IServiceCollection services)
     {
         services.AddScoped<ServerPairing>();
+        services.AddScoped<UpdateLauncher>();
         services.AddScoped<SignIn>();
         services.AddScoped<LoadCatalog>();
         services.AddScoped<InstallModpackVersion>();

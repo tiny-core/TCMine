@@ -16,6 +16,7 @@
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack"/>
     <PackageReference Include="CmlLib.Core"/>
     <PackageReference Include="CmlLib.Core.Installer.Forge"/>
+    <PackageReference Include="Velopack"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -10,6 +10,7 @@ using TCMine.Launcher.Infrastructure.Hub;
 using TCMine.Launcher.Infrastructure.Instances;
 using TCMine.Launcher.Infrastructure.Game;
 using TCMine.Launcher.Infrastructure.Runtime;
+using TCMine.Launcher.Infrastructure.Updates;
 using TCMine.Launcher.Infrastructure.Identity;
 
 namespace TCMine.Launcher.Infrastructure;
@@ -102,6 +103,7 @@ public static class DependencyInjection
         services.AddSingleton<IContentStore, FileSystemContentStore>();
         services.AddSingleton<IInstanceStore, FileSystemInstanceStore>();
         services.AddSingleton<IWorldBackup, ZipWorldBackup>();
+        services.AddSingleton<ILauncherUpdater, VelopackLauncherUpdater>();
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
 

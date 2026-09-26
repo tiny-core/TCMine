@@ -13,6 +13,8 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private SignIn Account { get; set; } = default!;
 
+    [Inject] private UpdateLauncher Updater { get; set; } = default!;
+
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     public void Dispose()
@@ -53,6 +55,13 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             // Offline fica-se onde se está. O que precisa de rede aparece
             // desligado, com o motivo, em vez de levar a lado nenhum.
             if (!pareamento.IsOnline)
+                return;
+
+            // Antes do login, e de propósito: uma atualização reinicia a
+            // aplicação, e fazê-la depois de o jogador entrar desperdiçaria o
+            // login que ele acabou de fazer. Devolve verdadeiro só quando vai
+            // mesmo reiniciar — daí parar aqui.
+            if (await Updater.HandleAsync(pareamento.Server, CancellationToken.None))
                 return;
 
             Shell.Apply(await Account.ResumeAsync(pareamento.Config!, CancellationToken.None));
