@@ -247,6 +247,38 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `ToDelete` — o applier do launcher jamais deve passar dados do jogador ao differ. O primeiro update apagaria os
   mundos.
 
+### 7.0 Instância, canal e atualização
+
+- **A instância tem identidade PRÓPRIA** (`InstanceKey`), e não é mais o par
+  (modpack, versão). A diferença decide duas coisas: atualizar mantendo o mundo
+  — mesma instância, versão nova — e ter duas instalações do mesmo pack, cada
+  uma no seu mundo. Com a chave no par, todo update criava pasta nova e o mundo
+  ficava para trás.
+- **O identificador É o nome da pasta.** Não é economia: as instalações
+  anteriores foram adotadas pelo nome que já tinham, e por isso a mudança não
+  precisou de migração — ninguém renomeou pasta com mundo dentro. `ListAsync`
+  tira a chave do diretório, não do manifesto.
+- **Quem instala decide o alvo**: chave existente atualiza, `null` cria. O
+  catálogo passa `null`; a tela de atualização passa a chave da instância.
+- **Uma instância existente só anda para a FRENTE.** Escolher versão é coisa da
+  instalação, nunca da atualização: descer para uma versão antiga por cima de
+  uma instalação parte os mundos jogados — os mods que somem levam consigo os
+  blocos e itens que registaram.
+- **Backup antes, e a falha dele CANCELA a atualização.** É a ordem que torna a
+  operação reversível, a mesma regra do servidor. Automático quando há mundo, e
+  não um checkbox: backup que depende de lembrar de marcar não existe no dia em
+  que importa. O `.zip` vai para `{raiz}/backups/{instância}/`, fora da pasta que
+  o instalador reescreve. **Nada é apagado** — retenção continua por fazer.
+- **Canal** (`ReleaseChannel`) sai do NÚMERO da versão, por SemVer: o que tem
+  hífen é alpha. Não é campo gravado — guardá-lo criaria um segundo lugar para a
+  verdade, e o dia em que discordassem seria um pack a atualizar para o canal
+  errado. A regra vive em `ReleaseChannels.Of`, partilhada com o `IsPreRelease`
+  do domínio.
+- **Um canal não vê o outro**, e é isso que faz dele um canal. A verificação de
+  atualização agrupa por **(modpack, canal)**. Uma instância alpha não se
+  duplica: cada cópia deixada para trás seria uma instalação presa numa alpha que
+  ninguém mais atualiza.
+
 ### 7.1 O casco do launcher (WPF hospedando Blazor)
 
 O launcher usa **as mesmas telas do painel**: Blazor + MudBlazor + `TCMine.UI.Shared`.
@@ -273,6 +305,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `_content/TCMine.UI.Shared/tcmine.css`; o que é do casco, em
   `_content/TCMine.Launcher.UI/launcher.css`; o resto é `.razor.css` isolado.
   **Nada vem da rede** — o launcher tem de abrir sem internet.
+- **Protocolo**: `Protocol.Current` está em **2**, e o mínimo também. Subiu
+  quando o canal de versões acrescentou um parâmetro a dois métodos do hub — o
+  SignalR resolve por nome E aridade, então um launcher de protocolo 1
+  conectaria e falharia na primeira consulta com um erro que não fala de versão.
+  Recusar no handshake diz-lhe para atualizar. **Mudança de aridade no hub é
+  mudança quebrada**; campo opcional novo num DTO não é.
 - **Pareamento**: `ServerPairing` (no Core) é o primeiro caso de uso a rodar.
   `ResumeAsync` lê o `tcmine.json` e confirma o handshake; `PairAsync` valida o
   endereço digitado, faz o handshake e só então grava. Duas regras não são
@@ -302,6 +340,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   servidor devolve — o mesmo do painel. Esse cookie vive num `CookieContainer`
   **singleton** partilhado pelos clientes HTTP; um pote por cliente faria o
   jogador entrar e ser anônimo no pedido seguinte.
+- **O servidor fora do ar NÃO prende o jogador.** O arranque já mandou para
+  `/login` nesse caso, e o login não tinha como ajudar: ele pede a conta
+  Microsoft, entrar troca a prova por sessão no TCMine, e o TCMine é justamente
+  o que não está lá. Offline fica-se onde se está, e o que precisa de rede
+  aparece desligado no trilho com o motivo — Modpacks e Novidades saem, Jogar e
+  Instâncias ficam, porque leem o disco.
 - **O resultado do login mora no `LauncherShellState`, não na página.** A
   tentativa que mais importa é a do arranque (credencial guardada), e ela
   acontece no `ShellLayout`. Guardando o resultado num campo da tela de login,
@@ -375,6 +419,36 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   do MSAL.** Serve o navegador do sistema e **não serve o WAM**: o broker exige
   `net10.0-windows10.0.19041.0`, a mesma forma que o host WPF já carrega. É a
   primeira linha da fatia do broker, não uma surpresa para descobrir depois.
+- **Abrir o jogo é do CmlLib**, atrás de `IGameLauncher`, na infraestrutura
+  PORTÁVEL. A regra de camada deixou de o proibir ali e isso foi correção, não
+  concessão: ele é multiplataforma, ao contrário do `Microsoft.Win32`, do
+  `System.Windows` e do MSAL com broker — o próprio csproj sempre o listou aqui.
+  O isolamento que interessa é a porta: trocar de motor é reescrever uma classe.
+- **NeoForge não tem instalador no CmlLib**, e é o loader padrão dos packs
+  modernos. O oficial é um programa Java e nós já gerimos um JRE: corre headless
+  contra a raiz partilhada e deixa uma entrada em `versions/`. Os dois pipes dele
+  são drenados em PARALELO — não drenar enche o buffer e pendura o processo sem
+  erro nenhum.
+- **Layout do jogo**: a pasta da instância é o *game dir*; `libraries/`,
+  `versions/` e `assets/` apontam para `{raiz}/minecraft`. Dez packs partilham
+  centenas de megabytes. O `MinecraftPath` não tem conceito de game dir — o
+  construtor de dois argumentos só move os assets —, mas todas as propriedades
+  são settable, então o layout monta-se.
+- **`java.exe`, não `javaw.exe`.** O javaw é do subsistema gráfico e não escreve
+  em stdout: com ele, mostrar o log do jogo seria impossível e todo crash viraria
+  "fechou sozinho".
+- **Que Java usar vem da VERSÃO, não de palpite** (`IJavaRequirementSource` lê o
+  `javaVersion` do JSON; disco primeiro, Mojang depois). O `JavaRequirement` é só
+  o plano B — e já falhou: o Minecraft trocou "1.y.z" por "ano.release", o parse
+  recusou "26.2" e o fallback estava numa constante envelhecida. O jogo morria
+  com "Could not create the Java Virtual Machine".
+- **A identidade do jogador vem do MINECRAFT, não do servidor TCMine**
+  (`IPlayerProfileSource`). Vinha do nosso servidor por conveniência, e por isso
+  tê-lo fora do ar impedia jogar com internet e Microsoft a responder. Sem rede,
+  o último perfil guardado (nome e UUID, NUNCA token) abre em modo offline.
+- **O token do Minecraft é readquirido a cada abertura** por `TrySilentAsync`, e
+  a conta é verificada ANTES do Java: descobrir a sessão expirada depois de
+  cinquenta megabytes seria fazer esperar para só então pedir login.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 
@@ -458,6 +532,32 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   id do Azure no dia do pareamento (ver §7.1). A regra geral: tudo o que o
   servidor descreve sobre si mesmo tem de ser reabsorvido no handshake seguinte,
   senão uma correção no painel nunca alcança quem já pareou.
+- **`v@algo.Coisa` no Razor sai LITERAL.** É a heurística de endereço de e-mail:
+  `letra@letra` não vira expressão, e não há erro de compilação a avisar. Use
+  `v@(algo.Coisa)`.
+- **Um registo em falta no DI não é bug de lógica — é uma peça que ninguém
+  ligou.** Os testes montam os casos de uso à mão com fakes e nunca pedem nada
+  ao contentor; 764 deles passaram sobre uma tela que rebentava ao abrir.
+  `DependencyInjectionTests` monta a coleção real com `ValidateOnBuild` e
+  `ValidateScopes` e resolve tudo. Ao acrescentar uma dependência, é ele que
+  avisa.
+- **`Progress<T>` num teste é uma corrida.** Ele posta no contexto de
+  sincronização, então a asserção corre antes da callback: passa sozinho e falha
+  com a suíte cheia — ou seja, nunca verificou nada. Use o
+  `ProgressoSincrono<T>` dos fakes.
+- **`SqliteConnection.ClearAllPools()` é GLOBAL ao processo.** Estava no
+  `Dispose` da fábrica de testes e limpava o pool de fábricas que outros testes
+  ainda usavam em paralelo; a vítima levava `ObjectDisposedException` numa
+  consulta correta, uma vez em cada dez execuções. `Pooling=False` na connection
+  string resolve o mesmo problema sem tocar em ninguém.
+- **O `BlazorWebView` é `IAsyncDisposable`, não `IDisposable`.** Esquecê-lo
+  compila e parece completo — e o processo sobrevive ao fecho da janela. O
+  `OnExit` também não pode ser `async void`: o WPF não espera por ele e o
+  `Dispose` depois do primeiro await pode nunca correr.
+- **O Xbox devolve `xui`/`uhs` em minúsculas** (ver acima) e o **MessagePack
+  recusa expressão de coleção** (ver acima): as duas armadilhas repetem-se em
+  cada tipo novo que atravessa o hub. Método de hub devolve `ToArray()`, e
+  contrato novo ganha teste no socket REAL — os testes que falam JSON não veem.
 
 ---
 
