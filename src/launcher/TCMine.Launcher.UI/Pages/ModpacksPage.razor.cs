@@ -100,19 +100,19 @@ public partial class ModpacksPage : ComponentBase
         if (_installing is not null)
             return;
 
-        var parametros = new DialogParameters<VersionPickerDialog>
+        var parameters = new DialogParameters<VersionPickerDialog>
         {
             { d => d.ModpackId, modpack.Id },
             { d => d.InstalledVersionIds, _installedVersions }
         };
 
-        var dialogo = await Dialogs.ShowAsync<VersionPickerDialog>(
-            $"Instalar {modpack.Name}", parametros);
+        var dialog = await Dialogs.ShowAsync<VersionPickerDialog>(
+            $"Instalar {modpack.Name}", parameters);
 
-        var resultado = await dialogo.Result;
+        var result = await dialog.Result;
 
-        if (resultado?.Data is Guid versao && versao != Guid.Empty)
-            await InstallAsync(modpack, versao);
+        if (result?.Data is Guid version && version != Guid.Empty)
+            await InstallAsync(modpack, version);
     }
 
     private Task InstallAsync(ModpackDto modpack) => InstallAsync(modpack, null);
@@ -125,7 +125,7 @@ public partial class ModpacksPage : ComponentBase
         _installing = modpack.Id;
         _progress = InstallProgress.Planning;
 
-        var acompanhamento = new Progress<InstallProgress>(p =>
+        var progress = new Progress<InstallProgress>(p =>
         {
             _progress = p;
             InvokeAsync(StateHasChanged);
@@ -136,22 +136,22 @@ public partial class ModpacksPage : ComponentBase
             // Alvo nulo: instalar pelo catálogo cria sempre uma instância nova.
             // A escolha entre atualizar e duplicar mora na tela de instâncias,
             // que é quem tem uma instância existente em mãos.
-            var resultado = versionId is { } escolhida
+            var result = versionId is { } chosen
                 ? await Installer.HandleAsync(
-                    config.ServerUrl, modpack, escolhida, target: null,
-                    acompanhamento, CancellationToken.None)
+                    config.ServerUrl, modpack, chosen, target: null,
+                    progress, CancellationToken.None)
                 : await Installer.InstallLatestAsync(
                     config.ServerUrl, modpack, target: null, ReleaseChannel.Release,
-                    acompanhamento, CancellationToken.None);
+                    progress, CancellationToken.None);
 
-            if (resultado.Succeeded)
+            if (result.Succeeded)
             {
                 Snackbar.Add($"{modpack.Name} instalado.", Severity.Success);
                 await RefreshInstalledAsync();
             }
             else
             {
-                Snackbar.Add(resultado.Error!, Severity.Error);
+                Snackbar.Add(result.Error!, Severity.Error);
             }
         }
         finally

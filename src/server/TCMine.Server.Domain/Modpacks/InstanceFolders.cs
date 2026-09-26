@@ -41,7 +41,7 @@ public static class InstanceFolders
         if (barra <= 0)
             return Mods;
 
-        var pasta = path[..barra];
-        return Assets.Contains(pasta, StringComparer.OrdinalIgnoreCase) ? pasta.ToLowerInvariant() : Mods;
+        var folder = path[..barra];
+        return Assets.Contains(folder, StringComparer.OrdinalIgnoreCase) ? folder.ToLowerInvariant() : Mods;
     }
 }

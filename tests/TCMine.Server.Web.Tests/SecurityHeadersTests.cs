@@ -24,14 +24,14 @@ public class SecurityHeadersTests
     [InlineData("X-Content-Type-Options", "nosniff")]
     [InlineData("X-Frame-Options", "DENY")]
     [InlineData("Referrer-Policy", "strict-origin-when-cross-origin")]
-    public async Task Resposta_traz_o_cabecalho(string nome, string valorEsperado)
+    public async Task Resposta_traz_o_cabecalho(string name, string valorEsperado)
     {
         using var factory = new TcMineAppFactory();
         using var client = factory.CreateClient();
 
-        var resposta = await client.GetAsync(RotaSemBanco, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(RotaSemBanco, TestContext.Current.CancellationToken);
 
-        resposta.Headers.GetValues(nome).ShouldContain(valorEsperado);
+        response.Headers.GetValues(name).ShouldContain(valorEsperado);
     }
 
     [Theory]
@@ -76,12 +76,12 @@ public class SecurityHeadersTests
         using var factory = new TcMineAppFactory();
         using var client = factory.CreateClient();
 
-        var resposta = await client.SendAsync(
+        var response = await client.SendAsync(
             RequisicaoAtrasDeProxy("painel.exemplo.com"), TestContext.Current.CancellationToken);
 
         // Em desenvolvimento a app roda em http; prometer https ao navegador
         // trancaria o próprio ambiente local por 30 dias.
-        resposta.Headers.Contains("Strict-Transport-Security").ShouldBeFalse();
+        response.Headers.Contains("Strict-Transport-Security").ShouldBeFalse();
     }
 
     [Fact]
@@ -90,12 +90,12 @@ public class SecurityHeadersTests
         using var factory = new TcMineAppFactory("Production");
         using var client = factory.CreateClient();
 
-        var resposta = await client.SendAsync(
+        var response = await client.SendAsync(
             RequisicaoAtrasDeProxy("painel.exemplo.com"), TestContext.Current.CancellationToken);
 
         // Só aparece porque o UseHsts roda DEPOIS do UseForwardedHeaders: é o
         // X-Forwarded-Proto que conta a verdade sobre o esquema atrás do proxy.
-        resposta.Headers.GetValues("Strict-Transport-Security")
+        response.Headers.GetValues("Strict-Transport-Security")
             .ShouldContain(v => v.Contains("max-age=", StringComparison.Ordinal));
     }
 
@@ -104,11 +104,11 @@ public class SecurityHeadersTests
     {
         using var factory = new TcMineAppFactory("Production");
 
-        var opcoes = factory.Services
+        var options = factory.Services
             .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
             .Get(CookieAuthenticationDefaults.AuthenticationScheme);
 
-        opcoes.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.Always);
+        options.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.Always);
     }
 
     [Fact]
@@ -118,9 +118,9 @@ public class SecurityHeadersTests
 
         // O padrão do ASP.NET aqui é SecurePolicy.None — o cookie sai sem Secure
         // mesmo sobre https. Passou despercebido até alguém olhar o Set-Cookie.
-        var opcoes = factory.Services.GetRequiredService<IOptions<AntiforgeryOptions>>().Value;
+        var options = factory.Services.GetRequiredService<IOptions<AntiforgeryOptions>>().Value;
 
-        opcoes.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.Always);
+        options.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.Always);
     }
 
     [Fact]
@@ -128,13 +128,13 @@ public class SecurityHeadersTests
     {
         using var factory = new TcMineAppFactory();
 
-        var sessao = factory.Services
+        var session = factory.Services
             .GetRequiredService<IOptionsMonitor<CookieAuthenticationOptions>>()
             .Get(CookieAuthenticationDefaults.AuthenticationScheme);
 
         // O outro lado da regra: exigir Secure em Development tornaria o login
         // impossível de testar localmente, onde a app roda em http puro.
-        sessao.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.SameAsRequest);
+        session.Cookie.SecurePolicy.ShouldBe(CookieSecurePolicy.SameAsRequest);
     }
 
     private static async Task<string> LerCspAsync()
@@ -142,11 +142,11 @@ public class SecurityHeadersTests
         using var factory = new TcMineAppFactory();
         using var client = factory.CreateClient();
 
-        var resposta = await client.GetAsync(RotaSemBanco, TestContext.Current.CancellationToken);
+        var response = await client.GetAsync(RotaSemBanco, TestContext.Current.CancellationToken);
 
         // O framework acrescenta um segundo Content-Security-Policy só com
         // frame-ancestors; juntar os valores evita depender da ordem entre eles.
-        return string.Join(" ", resposta.Headers.GetValues("Content-Security-Policy"));
+        return string.Join(" ", response.Headers.GetValues("Content-Security-Policy"));
     }
 
     private static HttpRequestMessage RequisicaoAtrasDeProxy(string host)

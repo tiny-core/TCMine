@@ -48,15 +48,15 @@ public class AuthRateLimitTests
         for (var i = 0; i <= Permitidas; i++)
             await TentarLoginAsync(client);
 
-        var resposta = await TentarLoginAsync(client);
+        var response = await TentarLoginAsync(client);
 
         // Post de formulário vem do navegador: 429 cru seria uma página branca.
         // Volta para /login com ?error=, que a tela já sabe exibir.
-        resposta.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
 
-        var destino = resposta.Headers.Location!.ToString();
-        destino.ShouldStartWith("/login?error=");
-        Uri.UnescapeDataString(destino).ShouldContain("Tentativas demais");
+        var target = response.Headers.Location!.ToString();
+        target.ShouldStartWith("/login?error=");
+        Uri.UnescapeDataString(target).ShouldContain("Tentativas demais");
     }
 
     [Fact]
@@ -92,8 +92,8 @@ public class AuthRateLimitTests
     ///     credencial inválida — os dois são 302, e olhar só o status faria o teste
     ///     passar sem limitador nenhum.
     /// </summary>
-    private static bool EhBloqueio(HttpResponseMessage resposta) =>
-        resposta.StatusCode == HttpStatusCode.Redirect
-        && Uri.UnescapeDataString(resposta.Headers.Location?.ToString() ?? "")
+    private static bool EhBloqueio(HttpResponseMessage response) =>
+        response.StatusCode == HttpStatusCode.Redirect
+        && Uri.UnescapeDataString(response.Headers.Location?.ToString() ?? "")
             .Contains("Tentativas demais", StringComparison.Ordinal);
 }

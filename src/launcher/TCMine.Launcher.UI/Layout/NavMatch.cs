@@ -36,9 +36,9 @@ public static class NavMatch
     ///     frente e nenhuma atrás. Sem isto, "/modpacks" e "modpacks/" seriam
     ///     rotas diferentes conforme o link que trouxe o jogador até aqui.
     /// </summary>
-    private static string Normalize(string caminho)
+    private static string Normalize(string path)
     {
-        var limpo = caminho.Split('?')[0].Split('#')[0].Trim('/');
+        var limpo = path.Split('?')[0].Split('#')[0].Trim('/');
 
         return limpo.Length is 0 ? "/" : "/" + limpo;
     }

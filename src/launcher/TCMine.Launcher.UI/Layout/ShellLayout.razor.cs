@@ -38,10 +38,10 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
         try
         {
-            var pareamento = await Pairing.ResumeAsync(CancellationToken.None);
-            Shell.Apply(pareamento);
+            var pairing = await Pairing.ResumeAsync(CancellationToken.None);
+            Shell.Apply(pairing);
 
-            if (!pareamento.IsPaired)
+            if (!pairing.IsPaired)
             {
                 Navigation.NavigateTo("/pair");
                 return;
@@ -54,17 +54,17 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             // cheio de coisa instalada do outro lado.
             // Offline fica-se onde se está. O que precisa de rede aparece
             // desligado, com o motivo, em vez de levar a lado nenhum.
-            if (!pareamento.IsOnline)
+            if (!pairing.IsOnline)
                 return;
 
             // Antes do login, e de propósito: uma atualização reinicia a
             // aplicação, e fazê-la depois de o jogador entrar desperdiçaria o
             // login que ele acabou de fazer. Devolve verdadeiro só quando vai
             // mesmo reiniciar — daí parar aqui.
-            if (await Updater.HandleAsync(pareamento.Server, CancellationToken.None))
+            if (await Updater.HandleAsync(pairing.Server, CancellationToken.None))
                 return;
 
-            Shell.Apply(await Account.ResumeAsync(pareamento.Config!, CancellationToken.None));
+            Shell.Apply(await Account.ResumeAsync(pairing.Config!, CancellationToken.None));
 
             if (!Shell.IsSignedIn)
                 Navigation.NavigateTo("/login");

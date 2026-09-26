@@ -83,20 +83,20 @@ public partial class InstancesPage : ComponentBase
         }
     }
 
-    private void OpenFolder(InstalledInstance instancia) => Desktop.OpenFolder(instancia.Path);
+    private void OpenFolder(InstalledInstance instance) => Desktop.OpenFolder(instance.Path);
 
     /// <summary>
     ///     Grava a RAM da instância.
     ///     Vazio volta à recomendada do pack, e isso é escolha e não engano: o
     ///     jogador que apaga o número está a dizer "decide tu".
     /// </summary>
-    private async Task SetMemoryAsync(InstalledInstance instancia, int? megabytes)
+    private async Task SetMemoryAsync(InstalledInstance instance, int? megabytes)
     {
-        var resultado = await Memory.HandleAsync(instancia, megabytes, CancellationToken.None);
+        var result = await Memory.HandleAsync(instance, megabytes, CancellationToken.None);
 
-        if (!resultado.Succeeded)
+        if (!result.Succeeded)
         {
-            Snackbar.Add(resultado.Error!, Severity.Warning);
+            Snackbar.Add(result.Error!, Severity.Warning);
             return;
         }
 
@@ -144,25 +144,25 @@ public partial class InstancesPage : ComponentBase
     ///     levariam consigo os blocos e itens que registaram. Quem quer uma
     ///     versão antiga instala-a pelo catálogo, e ela nasce ao lado.
     /// </summary>
-    private async Task UpdateAsync(InstalledInstance instancia, ModpackVersionDto novidade)
+    private async Task UpdateAsync(InstalledInstance instance, ModpackVersionDto newer)
     {
         if (Shell.Pairing?.Config is not { } config || _busy)
             return;
 
-        var temMundo = Worlds.HasWorld(instancia.Key);
+        var temMundo = Worlds.HasWorld(instance.Key);
 
         // Uma instância alpha não se duplica. O canal alpha existe para ACOMPANHAR
         // pré-lançamentos, e cada cópia que ficasse para trás seria uma instalação
         // presa numa alpha que ninguém mais vai atualizar — lixo no disco com cara
         // de instância válida. Quem quer uma segunda instalação escolhe o canal no
         // catálogo, onde a decisão é consciente.
-        var ehAlpha = ReleaseChannels.Of(instancia.Manifest.Version) is ReleaseChannel.Alpha;
+        var ehAlpha = ReleaseChannels.Of(instance.Manifest.Version) is ReleaseChannel.Alpha;
 
-        var escolha = await Dialogs.ShowMessageBoxAsync(new MessageBoxOptions
+        var choice = await Dialogs.ShowMessageBoxAsync(new MessageBoxOptions
         {
-            Title = $"Atualizar para v{novidade.Version}",
+            Title = $"Atualizar para v{newer.Version}",
             MarkupMessage = new MarkupString(
-                $"<b>{instancia.Manifest.ModpackName}</b> está na v{instancia.Manifest.Version}."
+                $"<b>{instance.Manifest.ModpackName}</b> está na v{instance.Manifest.Version}."
                 + (ehAlpha ? " Esta instância acompanha o canal <b>alpha</b>." : "")
                 + "<br/><br/><b>Atualizar esta instância</b> troca os mods e mantém o seu mundo, as "
                 + "suas configurações e a RAM escolhida."
@@ -173,35 +173,35 @@ public partial class InstancesPage : ComponentBase
                 + (ehAlpha
                     ? ""
                     : "<br/><br/><b>Criar nova instância</b> instala a v"
-                      + $"{novidade.Version} numa pasta à parte, com mundo próprio, e deixa esta "
+                      + $"{newer.Version} numa pasta à parte, com mundo próprio, e deixa esta "
                       + "como está.")),
             YesText = "Atualizar esta",
             NoText = ehAlpha ? null : "Criar nova instância",
             CancelText = "Cancelar"
         });
 
-        if (escolha is null)
+        if (choice is null)
             return;
 
         _busy = true;
 
         try
         {
-            var pack = PackDe(instancia);
+            var pack = PackDe(instance);
 
-            var resultado = escolha is true
+            var result = choice is true
                 ? await Updater.HandleAsync(
-                    config.ServerUrl, pack, novidade.Id, instancia,
+                    config.ServerUrl, pack, newer.Id, instance,
                     backupWorld: true, Acompanhar(temMundo), CancellationToken.None)
                 : await Installer.HandleAsync(
-                    config.ServerUrl, pack, novidade.Id, target: null,
+                    config.ServerUrl, pack, newer.Id, target: null,
                     Acompanhar(false), CancellationToken.None);
 
             Snackbar.Add(
-                resultado.Succeeded
-                    ? $"{instancia.Manifest.ModpackName} v{novidade.Version} pronto."
-                    : resultado.Error!,
-                resultado.Succeeded ? Severity.Success : Severity.Error);
+                result.Succeeded
+                    ? $"{instance.Manifest.ModpackName} v{newer.Version} pronto."
+                    : result.Error!,
+                result.Succeeded ? Severity.Success : Severity.Error);
         }
         finally
         {
@@ -234,13 +234,13 @@ public partial class InstancesPage : ComponentBase
     ///     precisa saber sobre o pack já está gravado na instância, e ir buscá-lo
     ///     de novo seria uma ida à rede a mais num caminho que já tem várias.
     /// </summary>
-    private static ModpackDto PackDe(InstalledInstance instancia) => new()
+    private static ModpackDto PackDe(InstalledInstance instance) => new()
     {
-        Id = instancia.Manifest.ModpackId,
+        Id = instance.Manifest.ModpackId,
         Slug = "",
-        Name = instancia.Manifest.ModpackName,
-        MinecraftVersion = instancia.Manifest.MinecraftVersion ?? "",
-        Loader = instancia.Manifest.Loader ?? ModLoader.Vanilla
+        Name = instance.Manifest.ModpackName,
+        MinecraftVersion = instance.Manifest.MinecraftVersion ?? "",
+        Loader = instance.Manifest.Loader ?? ModLoader.Vanilla
     };
 
     /// <summary>
@@ -249,14 +249,14 @@ public partial class InstancesPage : ComponentBase
     ///     jogador na lista depois de escolher obrigaria-o a descobrir sozinho
     ///     que o resultado está noutro sítio.
     /// </summary>
-    private async Task ActivateAsync(InstalledInstance instancia)
+    private async Task ActivateAsync(InstalledInstance instance)
     {
         _busy = true;
 
         try
         {
-            await Active.SetAsync(instancia.Key, CancellationToken.None);
-            _active = instancia.Key;
+            await Active.SetAsync(instance.Key, CancellationToken.None);
+            _active = instance.Key;
         }
         finally
         {
@@ -271,13 +271,13 @@ public partial class InstancesPage : ComponentBase
     ///     Remover leva o mundo do jogador junto — é a única ação do launcher
     ///     que destrói algo que não dá para baixar de novo.
     /// </summary>
-    private async Task RemoveAsync(InstalledInstance instancia)
+    private async Task RemoveAsync(InstalledInstance instance)
     {
         var confirmado = await Dialogs.ShowMessageBoxAsync(new MessageBoxOptions
         {
             Title = "Remover instância",
             MarkupMessage = new MarkupString(
-                $"Isto apaga <b>{instancia.Manifest.ModpackName}</b> e tudo que está na pasta dela, "
+                $"Isto apaga <b>{instance.Manifest.ModpackName}</b> e tudo que está na pasta dela, "
                 + "<b>inclusive os mundos</b> criados nesta instância.<br/><br/>"
                 + "Os mods continuam no store compartilhado e não precisarão ser baixados de novo."),
             YesText = "Remover",
@@ -291,9 +291,9 @@ public partial class InstancesPage : ComponentBase
 
         try
         {
-            await Instances.RemoveAsync(instancia, CancellationToken.None);
+            await Instances.RemoveAsync(instance, CancellationToken.None);
 
-            Snackbar.Add($"{instancia.Manifest.ModpackName} removido.", Severity.Success);
+            Snackbar.Add($"{instance.Manifest.ModpackName} removido.", Severity.Success);
 
             await LoadAsync();
         }

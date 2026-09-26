@@ -142,9 +142,9 @@ public sealed class DraftOnlyGuardTests
 
         Assert.True(result.Succeeded);
 
-        var arquivo = Assert.Single(version.Files);
-        Assert.Equal("config/x.toml", arquivo.Path);
-        Assert.Equal(ModFileOrigin.Override, arquivo.Origin);
+        var file = Assert.Single(version.Files);
+        Assert.Equal("config/x.toml", file.Path);
+        Assert.Equal(ModFileOrigin.Override, file.Origin);
     }
 
     // ---- Fixtures ----

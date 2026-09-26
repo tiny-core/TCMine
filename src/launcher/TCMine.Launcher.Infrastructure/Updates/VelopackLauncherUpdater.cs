@@ -27,9 +27,9 @@ public sealed partial class VelopackLauncherUpdater(
             if (!manager.IsInstalled)
                 return false;
 
-            var novidade = await manager.CheckForUpdatesAsync();
+            var newer = await manager.CheckForUpdatesAsync();
 
-            if (novidade is null)
+            if (newer is null)
                 return false;
 
             // CA1873 avisa que o argumento pode ser caro de avaliar com o log
@@ -38,29 +38,29 @@ public sealed partial class VelopackLauncherUpdater(
             // em vez da string não serve: o gerador recusa um parâmetro que não
             // prometa ToString.
 #pragma warning disable CA1873
-            LogEncontrou(novidade.TargetFullRelease.Version.ToString());
+            LogFound(newer.TargetFullRelease.Version.ToString());
 #pragma warning restore CA1873
 
-            await manager.DownloadUpdatesAsync(novidade, cancelToken: ct);
+            await manager.DownloadUpdatesAsync(newer, cancelToken: ct);
 
             // Reinicia AQUI e não no fecho: a substituição acontece com o
             // processo fora do caminho, e adiar significaria manter uma cópia
             // pronta no disco à espera de um fecho que pode nunca ser limpo.
-            manager.ApplyUpdatesAndRestart(novidade);
+            manager.ApplyUpdatesAndRestart(newer);
 
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogFalhou(ex);
+            LogFailed(ex);
             return false;
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Atualização do launcher encontrada: {Versao}.")]
-    private partial void LogEncontrou(string versao);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Atualização do launcher encontrada: {Version}.")]
+    private partial void LogFound(string version);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Não foi possível atualizar o launcher; seguindo com a versão atual.")]
-    private partial void LogFalhou(Exception ex);
+    private partial void LogFailed(Exception ex);
 }

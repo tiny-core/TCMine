@@ -20,41 +20,41 @@ public sealed class UpdateFromUpstreamTests
     [Fact]
     public async Task Cria_rascunho_novo_sem_tocar_na_versao_atual()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")]);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.True(result.Succeeded);
 
-        var rascunho = cenario.Repo.Adicionada!;
+        var rascunho = scenario.Repo.Adicionada!;
         Assert.Equal(ModpackVersionState.Draft, rascunho.State);
         Assert.Equal("1.1.0", rascunho.Version);
 
         // A versão atual pode estar publicada (imutável) e pode ter servidor
         // fixado nela: nunca é tocada.
-        Assert.Equal("1.0.0", cenario.Atual.Version);
-        Assert.Single(cenario.Atual.Files);
+        Assert.Equal("1.0.0", scenario.Atual.Version);
+        Assert.Single(scenario.Atual.Files);
     }
 
     [Fact]
     public async Task Mod_atualizado_nao_copia_o_jar_velho_e_vai_para_a_fila()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         // Copiar o antigo deixaria o .jar velho no rascunho até a ingestão
         // rodar — e se ela falhasse, a versão publicaria com o mod errado.
-        Assert.DoesNotContain(cenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
+        Assert.DoesNotContain(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
 
-        var item = Assert.Single(cenario.Queue.Enfileirados);
+        var item = Assert.Single(scenario.Queue.Enfileirados);
         Assert.Equal("jei", item.ProjectId);
         Assert.Equal("v2", item.FileId);
     }
@@ -64,28 +64,28 @@ public sealed class UpdateFromUpstreamTests
     {
         // O caso que motivou o merge inteiro: o extra do admin sobrevive a uma
         // atualização de verdade (o autor subiu o jei).
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1"), ("meu-mod", "x1")],
             delesMods: [("jei", "v2")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        Assert.Contains(cenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "meu-mod");
+        Assert.Contains(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "meu-mod");
     }
 
     [Fact]
     public async Task Mod_removido_pelo_autor_nao_e_copiado()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1"), ("velho", "v1")],
             nossosMods: [("jei", "v1"), ("velho", "v1")],
             delesMods: [("jei", "v1")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        Assert.DoesNotContain(cenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "velho");
-        Assert.Contains(cenario.Repo.Adicionada.Files, f => f.ProjectSlug == "jei");
+        Assert.DoesNotContain(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "velho");
+        Assert.Contains(scenario.Repo.Adicionada.Files, f => f.ProjectSlug == "jei");
     }
 
     [Fact]
@@ -93,22 +93,22 @@ public sealed class UpdateFromUpstreamTests
     {
         // Autor e admin trocaram o mesmo mod. Aplicar o do autor apagaria a
         // escolha do admin sem ele pedir.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v2")],
             delesMods: [("jei", "v3")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        var mantido = Assert.Single(cenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
+        var mantido = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
         Assert.Equal("v2", mantido.OriginReference);
-        Assert.Empty(cenario.Queue.Enfileirados);
+        Assert.Empty(scenario.Queue.Enfileirados);
     }
 
     [Fact]
     public async Task Config_que_o_admin_nao_tocou_recebe_a_versao_do_autor()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [],
             nossosMods: [],
             delesMods: [],
@@ -116,9 +116,9 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/a.toml", "original")], // intocado
             delesOverrides: [("config/a.toml", "novo do autor")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        var config = Assert.Single(cenario.Repo.Adicionada!.Files, f => f.Path == "config/a.toml");
+        var config = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.Path == "config/a.toml");
         Assert.Equal(Sha("novo do autor"), config.Sha256);
     }
 
@@ -129,7 +129,7 @@ public sealed class UpdateFromUpstreamTests
         // que a atualização não pode comer. O mod atualizado junto existe para
         // haver rascunho: se SÓ o config divergisse e ele fosse do admin, não
         // sobraria nada a aplicar.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")],
@@ -137,9 +137,9 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/a.toml", "editado por mim")],
             delesOverrides: [("config/a.toml", "novo do autor")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        var config = Assert.Single(cenario.Repo.Adicionada!.Files, f => f.Path == "config/a.toml");
+        var config = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.Path == "config/a.toml");
         Assert.Equal(Sha("editado por mim"), config.Sha256);
     }
 
@@ -149,7 +149,7 @@ public sealed class UpdateFromUpstreamTests
         // Regressão: o plano só olhava mods, então um pack que publicou apenas
         // ajustes de config era recusado com "nada mudou" — e pack grande faz
         // isso o tempo todo.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v1")],
@@ -157,8 +157,8 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/a.toml", "original")],
             delesOverrides: [("config/a.toml", "ajustado pelo autor")]);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Single(result.Value!.Plan.Overrides.Updated);
@@ -169,7 +169,7 @@ public sealed class UpdateFromUpstreamTests
     {
         // Sem isto, um pack que reorganiza a pasta config/ acumula lixo a cada
         // atualização — e o launcher instala esse lixo na máquina do jogador.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [],
             nossosMods: [],
             delesMods: [],
@@ -177,13 +177,13 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/velho.toml", "original"), ("config/fica.toml", "x")],
             delesOverrides: [("config/fica.toml", "x")]);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Single(result.Value!.Plan.Overrides.Removed);
 
-        var rascunho = cenario.Repo.Adicionada!;
+        var rascunho = scenario.Repo.Adicionada!;
         Assert.DoesNotContain(rascunho.Files, f => f.Path == "config/velho.toml");
         Assert.Contains(rascunho.Files, f => f.Path == "config/fica.toml");
     }
@@ -192,7 +192,7 @@ public sealed class UpdateFromUpstreamTests
     public async Task Config_removido_pelo_autor_mas_editado_pelo_admin_permanece()
     {
         // Remover a customização do admin seria a única coisa pior que ignorá-la.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")],
@@ -200,9 +200,9 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/meu.toml", "editado por mim")],
             delesOverrides: []);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        var rascunho = cenario.Repo.Adicionada!;
+        var rascunho = scenario.Repo.Adicionada!;
         var config = Assert.Single(rascunho.Files, f => f.Path == "config/meu.toml");
         Assert.Equal(Sha("editado por mim"), config.Sha256);
     }
@@ -210,7 +210,7 @@ public sealed class UpdateFromUpstreamTests
     [Fact]
     public async Task Remocao_so_de_config_conta_como_mudanca()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v1")],
@@ -218,8 +218,8 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [("config/velho.toml", "original")],
             delesOverrides: []);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.True(result.Succeeded);
     }
@@ -227,7 +227,7 @@ public sealed class UpdateFromUpstreamTests
     [Fact]
     public async Task Config_novo_do_autor_entra()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [],
             nossosMods: [],
             delesMods: [],
@@ -235,9 +235,9 @@ public sealed class UpdateFromUpstreamTests
             nossosOverrides: [],
             delesOverrides: [("config/novo.toml", "conteudo")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        Assert.Contains(cenario.Repo.Adicionada!.Files, f => f.Path == "config/novo.toml");
+        Assert.Contains(scenario.Repo.Adicionada!.Files, f => f.Path == "config/novo.toml");
     }
 
     [Fact]
@@ -245,31 +245,31 @@ public sealed class UpdateFromUpstreamTests
     {
         // Sem isto, a atualização seguinte compararia contra a base velha e
         // acusaria como "mudança do admin" tudo o que o autor fez agora.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")]);
 
-        await cenario.UseCase.HandleAsync(cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
-        var snapshot = UpstreamSnapshot.FromJson(cenario.Repo.Adicionada!.UpstreamSnapshotJson);
+        var snapshot = UpstreamSnapshot.FromJson(scenario.Repo.Adicionada!.UpstreamSnapshotJson);
         Assert.NotNull(snapshot);
         Assert.Equal("v2", snapshot!.Mods["jei"]);
 
         // E a procedência da release, para o "4.2 → 4.3" da próxima vez.
-        Assert.Equal("file-novo", cenario.Repo.Adicionada.UpstreamFileId);
+        Assert.Equal("file-novo", scenario.Repo.Adicionada.UpstreamFileId);
     }
 
     [Fact]
     public async Task DryRun_devolve_o_plano_sem_gravar_nada()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")]);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "", CancellationToken.None, true);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "", CancellationToken.None, true);
 
         Assert.True(result.Succeeded);
         Assert.Single(result.Value!.Plan.Update);
@@ -277,8 +277,8 @@ public sealed class UpdateFromUpstreamTests
 
         // Nada gravado: é o que permite a tela mostrar o diff antes de o admin
         // decidir.
-        Assert.Null(cenario.Repo.Adicionada);
-        Assert.Empty(cenario.Queue.Enfileirados);
+        Assert.Null(scenario.Repo.Adicionada);
+        Assert.Empty(scenario.Queue.Enfileirados);
     }
 
     [Fact]
@@ -286,39 +286,39 @@ public sealed class UpdateFromUpstreamTests
     {
         // Sem a base não há como distinguir "o autor mexeu" de "o admin mexeu",
         // e o merge viraria um "sobrescreve tudo" disfarçado.
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v2")]);
 
-        cenario.Atual.UpstreamSnapshotJson = null;
+        scenario.Atual.UpstreamSnapshotJson = null;
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Null(cenario.Repo.Adicionada);
+        Assert.Null(scenario.Repo.Adicionada);
     }
 
     [Fact]
     public async Task Recusa_quando_nada_mudou()
     {
-        var cenario = Cenario(
+        var scenario = Cenario(
             baseMods: [("jei", "v1")],
             nossosMods: [("jei", "v1")],
             delesMods: [("jei", "v1")]);
 
-        var result = await cenario.UseCase.HandleAsync(
-            cenario.Atual.Id, "1.1.0", CancellationToken.None);
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         Assert.False(result.Succeeded);
-        Assert.Null(cenario.Repo.Adicionada);
+        Assert.Null(scenario.Repo.Adicionada);
     }
 
     // ---- Fixtures ----
 
-    private static string Sha(string conteudo) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(conteudo)));
+    private static string Sha(string content) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
 
     private static Contexto Cenario(
         (string Slug, string File)[] baseMods,

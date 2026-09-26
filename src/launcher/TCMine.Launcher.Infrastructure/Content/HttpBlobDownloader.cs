@@ -21,20 +21,20 @@ public sealed partial class HttpBlobDownloader(
         // ResponseHeadersRead: sem isto o HttpClient bufferiza o corpo inteiro em
         // memória antes de devolver, e um modpack de centenas de megabytes viraria
         // centenas de megabytes de heap.
-        var resposta = await http.GetAsync(endpoint, HttpCompletionOption.ResponseHeadersRead, ct);
+        var response = await http.GetAsync(endpoint, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        if (!resposta.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
-            LogFalhou(endpoint, (int)resposta.StatusCode);
-            resposta.Dispose();
+            LogFailed(endpoint, (int)response.StatusCode);
+            response.Dispose();
 
             throw new HttpRequestException(
-                $"O servidor respondeu {(int)resposta.StatusCode} ao baixar {sha256[..8]}.");
+                $"O servidor respondeu {(int)response.StatusCode} ao baixar {sha256[..8]}.");
         }
 
-        return await resposta.Content.ReadAsStreamAsync(ct);
+        return await response.Content.ReadAsStreamAsync(ct);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Download de {Endpoint} respondeu {StatusCode}.")]
-    private partial void LogFalhou(Uri endpoint, int statusCode);
+    private partial void LogFailed(Uri endpoint, int statusCode);
 }

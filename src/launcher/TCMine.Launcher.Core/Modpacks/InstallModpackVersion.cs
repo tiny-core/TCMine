@@ -40,9 +40,9 @@ public sealed class InstallModpackVersion(
         IProgress<InstallProgress>? progress,
         CancellationToken ct)
     {
-        var ultima = await connection.GetLatestVersionAsync(modpack.Id, channel, ct);
+        var latest = await connection.GetLatestVersionAsync(modpack.Id, channel, ct);
 
-        if (ultima is null)
+        if (latest is null)
         {
             // Resposta legítima: o administrador criou o pack e ainda não
             // publicou naquele canal. Dizer qual canal importa — um pack pode ter
@@ -53,7 +53,7 @@ public sealed class InstallModpackVersion(
                 : $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
         }
 
-        return await HandleAsync(serverUrl, modpack, ultima.Id, target, progress, ct);
+        return await HandleAsync(serverUrl, modpack, latest.Id, target, progress, ct);
     }
 
     /// <summary>
@@ -80,7 +80,7 @@ public sealed class InstallModpackVersion(
         {
             progress?.Report(InstallProgress.Planning);
 
-            var manifesto = await connection.GetModpackVersionAsync(versionId, ct);
+            var manifest = await connection.GetModpackVersionAsync(versionId, ct);
 
             // ---------------------------------------------------------------
             // GUARD CRÍTICO. O conjunto local vem do MANIFESTO que gravamos, e
@@ -94,9 +94,9 @@ public sealed class InstallModpackVersion(
 
             var noStore = await content.ListHashesAsync(ct);
 
-            var plano = ManifestDiffer.Plan(key, manifesto, arquivosLocais, noStore, includeOptional: false);
+            var plano = ManifestDiffer.Plan(key, manifest, arquivosLocais, noStore, includeOptional: false);
 
-            await BaixarAsync(serverUrl, plano, progress, ct);
+            await DownloadAsync(serverUrl, plano, progress, ct);
             await MaterializarAsync(key, plano, progress, ct);
 
             if (plano.ToDelete.Count > 0)
@@ -105,35 +105,35 @@ public sealed class InstallModpackVersion(
                 await instances.DeleteFilesAsync(key, plano.ToDelete, ct);
             }
 
-            var instalada = new InstanceManifest
+            var installed = new InstanceManifest
             {
                 Schema = ManifestSchema,
                 ModpackId = modpack.Id,
                 ModpackVersionId = versionId,
                 ModpackName = modpack.Name,
-                Version = manifesto.Version,
+                Version = manifest.Version,
                 InstalledAt = DateTimeOffset.UtcNow,
 
                 MinecraftVersion = modpack.MinecraftVersion,
                 Loader = modpack.Loader,
-                LoaderVersion = manifesto.LoaderVersion,
+                LoaderVersion = manifest.LoaderVersion,
 
                 // O manifesto gravado descreve o ESTADO FINAL desejado, e não o
                 // que esta execução mexeu: é contra ele que o próximo update vai
                 // diferenciar, e um registro parcial faria o diff seguinte achar
                 // que os arquivos intocados são lixo.
-                ManagedFiles = manifesto.Files
+                ManagedFiles = manifest.Files
                     .Where(f => f.Side is not FileSide.ServerOnly && !f.Optional)
                     .ToDictionary(f => f.Path, f => f.Sha256),
 
-                MemoryMb = local?.MemoryMb ?? manifesto.RecommendedMemoryMb
+                MemoryMb = local?.MemoryMb ?? manifest.RecommendedMemoryMb
             };
 
-            await instances.WriteManifestAsync(key, instalada, ct);
+            await instances.WriteManifestAsync(key, installed, ct);
 
             progress?.Report(InstallProgress.Done);
 
-            return InstallResult.Success(key, instalada);
+            return InstallResult.Success(key, installed);
         }
         catch (OperationCanceledException)
         {
@@ -147,7 +147,7 @@ public sealed class InstallModpackVersion(
         }
     }
 
-    private async Task BaixarAsync(
+    private async Task DownloadAsync(
         Uri serverUrl, SyncPlan plano, IProgress<InstallProgress>? progress, CancellationToken ct)
     {
         if (plano.ToDownload.Count is 0)
@@ -156,17 +156,17 @@ public sealed class InstallModpackVersion(
         long baixados = 0;
         var total = plano.BytesToDownload;
 
-        foreach (var arquivo in plano.ToDownload)
+        foreach (var file in plano.ToDownload)
         {
-            progress?.Report(InstallProgress.Downloading(baixados, total, arquivo.Path));
+            progress?.Report(InstallProgress.Downloading(baixados, total, file.Path));
 
-            await using var origem = await downloader.OpenAsync(serverUrl, arquivo.Sha256, ct);
+            await using var source = await downloader.OpenAsync(serverUrl, file.Sha256, ct);
 
             // O store recalcula o hash enquanto grava e rejeita se não bater: o
             // arquivo pode ter chegado corrompido ou adulterado no caminho.
-            await content.AddAsync(arquivo.Sha256, origem, ct);
+            await content.AddAsync(file.Sha256, source, ct);
 
-            baixados += arquivo.SizeBytes;
+            baixados += file.SizeBytes;
         }
 
         progress?.Report(InstallProgress.Downloading(total, total, null));
@@ -178,14 +178,14 @@ public sealed class InstallModpackVersion(
         var raiz = instances.PathFor(key);
         var feitos = 0;
 
-        foreach (var arquivo in plano.ToMaterialize)
+        foreach (var file in plano.ToMaterialize)
         {
-            progress?.Report(InstallProgress.Materializing(feitos, plano.ToMaterialize.Count, arquivo.Path));
+            progress?.Report(InstallProgress.Materializing(feitos, plano.ToMaterialize.Count, file.Path));
 
             await content.MaterializeAsync(
-                arquivo.Sha256,
-                Path.Combine(raiz, arquivo.Path),
-                InstanceLayout.CanHardLink(arquivo.Path),
+                file.Sha256,
+                Path.Combine(raiz, file.Path),
+                InstanceLayout.CanHardLink(file.Path),
                 ct);
 
             feitos++;

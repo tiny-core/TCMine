@@ -34,26 +34,26 @@ public sealed partial class CmlLibGameLauncher(
     {
         try
         {
-            var layout = MontarLayout(request.InstanceDirectory);
+            var layout = BuildLayout(request.InstanceDirectory);
             var launcher = new MinecraftLauncher(layout);
 
             progress?.Report(new GameLaunchProgress("Preparando o Minecraft"));
 
-            var versao = await ResolverVersaoAsync(launcher, layout, request, progress, ct);
+            var version = await ResolveVersionAsync(launcher, layout, request, progress, ct);
 
-            var opcoes = new MLaunchOption
+            var options = new MLaunchOption
             {
                 Path = layout,
                 JavaPath = request.JavaPath,
 
-                Session = MontarSessao(request),
+                Session = BuildSession(request),
 
                 MaximumRamMb = request.MemoryMb ?? 4096
             };
 
-            var processo = await launcher.InstallAndBuildProcessAsync(
-                versao,
-                opcoes,
+            var process = await launcher.InstallAndBuildProcessAsync(
+                version,
+                options,
                 new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(
                     e => progress?.Report(new GameLaunchProgress($"Baixando: {e.Name}"))),
                 new Progress<CmlLib.Core.ByteProgress>(
@@ -64,18 +64,18 @@ public sealed partial class CmlLibGameLauncher(
             // é por isso que o locator escolheu java.exe e não javaw.exe. Tem de
             // ser ANTES do Start — depois, o redirecionamento é ignorado e o log
             // fica vazio sem dizer porquê.
-            processo.StartInfo.UseShellExecute = false;
-            processo.StartInfo.CreateNoWindow = true;
-            processo.StartInfo.RedirectStandardOutput = true;
-            processo.StartInfo.RedirectStandardError = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.CreateNoWindow = true;
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.RedirectStandardError = true;
 
             progress?.Report(new GameLaunchProgress("Abrindo o jogo"));
 
-            processo.Start();
+            process.Start();
 
-            LogAbriu(versao, processo.Id);
+            LogStarted(version, process.Id);
 
-            return GameLaunchResult.Ok(new SystemGameProcess(processo));
+            return GameLaunchResult.Ok(new SystemGameProcess(process));
         }
         catch (OperationCanceledException)
         {
@@ -85,7 +85,7 @@ public sealed partial class CmlLibGameLauncher(
         {
             // A causa real vale mais do que uma frase nossa: é ela que diz se
             // adianta tentar de novo, e o jogador vai colá-la a pedir ajuda.
-            LogFalhou(ex, request.MinecraftVersion, request.Loader.ToString());
+            LogFailed(ex, request.MinecraftVersion, request.Loader.ToString());
 
             return GameLaunchResult.Failed($"Não foi possível abrir o jogo. {ex.Message}");
         }
@@ -100,7 +100,7 @@ public sealed partial class CmlLibGameLauncher(
     ///     partir do nome faria a partida offline abrir com inventário e posição
     ///     de outra pessoa.
     /// </summary>
-    private static MSession MontarSessao(GameLaunchRequest request)
+    private static MSession BuildSession(GameLaunchRequest request)
     {
         if (request.AccessToken is not { Length: > 0 } token)
         {
@@ -127,16 +127,16 @@ public sealed partial class CmlLibGameLauncher(
     ///     centenas de megabytes em vez de os baixarem dez vezes — a mesma lógica
     ///     do content store para os mods.
     /// </summary>
-    private MinecraftPath MontarLayout(string instanceDirectory)
+    private MinecraftPath BuildLayout(string instanceDirectory)
     {
-        var comum = Path.Combine(paths.RootDirectory, "minecraft");
+        var shared = Path.Combine(paths.RootDirectory, "minecraft");
 
         return new MinecraftPath(instanceDirectory)
         {
-            Library = Path.Combine(comum, "libraries"),
-            Versions = Path.Combine(comum, "versions"),
-            Assets = Path.Combine(comum, "assets"),
-            Runtime = Path.Combine(comum, "runtime")
+            Library = Path.Combine(shared, "libraries"),
+            Versions = Path.Combine(shared, "versions"),
+            Assets = Path.Combine(shared, "assets"),
+            Runtime = Path.Combine(shared, "runtime")
         };
     }
 
@@ -147,7 +147,7 @@ public sealed partial class CmlLibGameLauncher(
     ///     único que não tem instalador na biblioteca — ver
     ///     <see cref="NeoForgeInstaller" />.
     /// </summary>
-    private async Task<string> ResolverVersaoAsync(
+    private async Task<string> ResolveVersionAsync(
         MinecraftLauncher launcher,
         MinecraftPath layout,
         GameLaunchRequest request,
@@ -164,13 +164,13 @@ public sealed partial class CmlLibGameLauncher(
         {
             ModLoader.Vanilla => mc,
 
-            ModLoader.Fabric => await new FabricInstaller(http).Install(mc, Exigir(loader, "Fabric"), layout),
+            ModLoader.Fabric => await new FabricInstaller(http).Install(mc, Require(loader, "Fabric"), layout),
 
-            ModLoader.Quilt => await new QuiltInstaller(http).Install(mc, Exigir(loader, "Quilt"), layout),
+            ModLoader.Quilt => await new QuiltInstaller(http).Install(mc, Require(loader, "Quilt"), layout),
 
             ModLoader.Forge => await new ForgeInstaller(launcher).Install(
                 mc,
-                Exigir(loader, "Forge"),
+                Require(loader, "Forge"),
                 new ForgeInstallOptions
                 {
                     JavaPath = request.JavaPath,
@@ -182,7 +182,7 @@ public sealed partial class CmlLibGameLauncher(
                 }),
 
             ModLoader.NeoForge => await new NeoForgeInstaller(http, _logger).InstallAsync(
-                mc, Exigir(loader, "NeoForge"), request.JavaPath, layout, progress, ct),
+                mc, Require(loader, "NeoForge"), request.JavaPath, layout, progress, ct),
 
             _ => throw new NotSupportedException($"Loader não suportado: {request.Loader}.")
         };
@@ -193,15 +193,15 @@ public sealed partial class CmlLibGameLauncher(
     ///     tem de dizer isso — sem esta verificação o CmlLib receberia nulo e
     ///     falharia com uma mensagem sobre argumentos.
     /// </summary>
-    private static string Exigir(string? loaderVersion, string loader) =>
+    private static string Require(string? loaderVersion, string loader) =>
         string.IsNullOrWhiteSpace(loaderVersion)
             ? throw new InvalidOperationException(
                 $"Este modpack usa {loader} mas não diz qual versão do loader. Avise o administrador.")
             : loaderVersion;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Jogo aberto: versão {Versao}, processo {Pid}.")]
-    private partial void LogAbriu(string versao, int pid);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Jogo aberto: versão {Version}, processo {Pid}.")]
+    private partial void LogStarted(string version, int pid);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao abrir o jogo ({Minecraft}, {Loader}).")]
-    private partial void LogFalhou(Exception ex, string minecraft, string loader);
+    private partial void LogFailed(Exception ex, string minecraft, string loader);
 }

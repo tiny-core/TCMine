@@ -93,8 +93,8 @@ public partial class ModSearchDialog
     };
 
     private string IncompatibleHint(ModSearchResult r) =>
-        r.LatestVersions is { Length: > 0 } versoes
-            ? $"Este mod tem versões para {versoes} — nenhuma para {MinecraftVersion} com {Loader}."
+        r.LatestVersions is { Length: > 0 } versions
+            ? $"Este mod tem versões para {versions} — nenhuma para {MinecraftVersion} com {Loader}."
             : $"Sem release para Minecraft {MinecraftVersion} com {Loader}.";
 
     private async Task OnKeyUp(KeyboardEventArgs e)

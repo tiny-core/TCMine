@@ -145,14 +145,14 @@ public sealed class WorldBackupTests
 
         var repo = new FakeServers(server);
         var store = new FakeStore();
-        var destino = Versao("2.0.0");
+        var target = Versao("2.0.0");
 
-        var result = await NewChange(repo, store, destino, GameServerStatus.Stopped)
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
+        var result = await NewChange(repo, store, target, GameServerStatus.Stopped)
+            .HandleAsync(server.Id, target.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.True(store.Criou);
-        Assert.Equal(destino.Id, server.ModpackVersionId);
+        Assert.Equal(target.Id, server.ModpackVersionId);
         Assert.Equal(WorldBackupReason.BeforeVersionChange, repo.Adicionado!.Reason);
     }
 
@@ -165,11 +165,11 @@ public sealed class WorldBackupTests
         server.WorldInitializedAt = DateTimeOffset.UtcNow.AddDays(-1);
 
         var repo = new FakeServers(server);
-        var destino = Versao("2.0.0");
+        var target = Versao("2.0.0");
         var original = server.ModpackVersionId;
 
-        var result = await NewChange(repo, new FakeStore { Explode = true }, destino, GameServerStatus.Stopped)
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
+        var result = await NewChange(repo, new FakeStore { Explode = true }, target, GameServerStatus.Stopped)
+            .HandleAsync(server.Id, target.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(original, server.ModpackVersionId);
@@ -184,10 +184,10 @@ public sealed class WorldBackupTests
         server.WorldInitializedAt = DateTimeOffset.UtcNow.AddDays(-1);
 
         var repo = new FakeServers(server);
-        var destino = Versao("2.0.0");
+        var target = Versao("2.0.0");
 
-        var result = await NewChange(repo, new FakeStore(), destino, GameServerStatus.Running)
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
+        var result = await NewChange(repo, new FakeStore(), target, GameServerStatus.Running)
+            .HandleAsync(server.Id, target.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
     }
@@ -198,10 +198,10 @@ public sealed class WorldBackupTests
         var server = Servidor();
         var repo = new FakeServers(server);
         var store = new FakeStore();
-        var destino = Versao("2.0.0");
+        var target = Versao("2.0.0");
 
-        var result = await NewChange(repo, store, destino, GameServerStatus.Stopped)
-            .HandleAsync(server.Id, destino.Id, CancellationToken.None);
+        var result = await NewChange(repo, store, target, GameServerStatus.Stopped)
+            .HandleAsync(server.Id, target.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
 
@@ -408,10 +408,10 @@ public sealed class WorldBackupTests
             new FakeSettings(manter), new FakeJobProgress(), new FakeUserScope(papel));
 
     private static ChangeServerVersion NewChange(
-        FakeServers repo, FakeStore store, ModpackVersion destino, GameServerStatus status)
+        FakeServers repo, FakeStore store, ModpackVersion target, GameServerStatus status)
     {
         var orchestrator = new FakeOrchestrator(status);
-        var modpacks = new FakeModpacks(destino);
+        var modpacks = new FakeModpacks(target);
 
         var backup = new CreateWorldBackup(
             repo, orchestrator, new FakeRcon(), store, modpacks,

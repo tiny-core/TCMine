@@ -22,7 +22,7 @@ internal static class AutenticacaoDeTeste
         // pipeline real rejeita.
         var token = ExtrairToken(await client.GetStringAsync("/setup"));
 
-        var resposta = await client.PostAsync("/auth/setup", new FormUrlEncodedContent(
+        var response = await client.PostAsync("/auth/setup", new FormUrlEncodedContent(
         [
             new KeyValuePair<string, string>("__RequestVerificationToken", token),
             new KeyValuePair<string, string>("email", "admin@tcmine.test"),
@@ -30,10 +30,10 @@ internal static class AutenticacaoDeTeste
             new KeyValuePair<string, string>("password", "senha-bem-comprida-123")
         ]));
 
-        if (resposta.StatusCode is not (HttpStatusCode.Redirect or HttpStatusCode.Found))
-            throw new InvalidOperationException($"Setup falhou: {resposta.StatusCode}");
+        if (response.StatusCode is not (HttpStatusCode.Redirect or HttpStatusCode.Found))
+            throw new InvalidOperationException($"Setup falhou: {response.StatusCode}");
 
-        var setCookie = resposta.Headers.TryGetValues("Set-Cookie", out var valores)
+        var setCookie = response.Headers.TryGetValues("Set-Cookie", out var valores)
             ? valores.FirstOrDefault(v => v.StartsWith("tcmine.auth=", StringComparison.Ordinal))
             : null;
 

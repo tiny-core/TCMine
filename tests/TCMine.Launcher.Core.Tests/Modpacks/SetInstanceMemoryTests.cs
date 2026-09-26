@@ -21,12 +21,12 @@ public class SetInstanceMemoryTests
     public async Task Grava_o_valor_escolhido()
     {
         var store = new FakeInstanceStore();
-        var instancia = Instalada();
+        var instance = Instalada();
 
-        var resultado = await new SetInstanceMemory(store).HandleAsync(instancia, 8192, Ct);
+        var result = await new SetInstanceMemory(store).HandleAsync(instance, 8192, Ct);
 
-        resultado.Succeeded.ShouldBeTrue();
-        store.Manifests[instancia.Key].MemoryMb.ShouldBe(8192);
+        result.Succeeded.ShouldBeTrue();
+        store.Manifests[instance.Key].MemoryMb.ShouldBe(8192);
     }
 
     [Fact]
@@ -35,11 +35,11 @@ public class SetInstanceMemoryTests
         // Apagar o número é uma escolha — "decide tu" —, não um engano a
         // corrigir com o valor anterior.
         var store = new FakeInstanceStore();
-        var instancia = Instalada(4096);
+        var instance = Instalada(4096);
 
-        await new SetInstanceMemory(store).HandleAsync(instancia, null, Ct);
+        await new SetInstanceMemory(store).HandleAsync(instance, null, Ct);
 
-        store.Manifests[instancia.Key].MemoryMb.ShouldBeNull();
+        store.Manifests[instance.Key].MemoryMb.ShouldBeNull();
     }
 
     [Fact]
@@ -48,11 +48,11 @@ public class SetInstanceMemoryTests
         // Abaixo de 512 MB o jogo nem arranca. Gravar e deixar falhar depois
         // esconderia a causa atrás de um crash da JVM.
         var store = new FakeInstanceStore();
-        var instancia = Instalada(4096);
+        var instance = Instalada(4096);
 
-        var resultado = await new SetInstanceMemory(store).HandleAsync(instancia, 256, Ct);
+        var result = await new SetInstanceMemory(store).HandleAsync(instance, 256, Ct);
 
-        resultado.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeFalse();
         store.Manifests.ShouldBeEmpty();
     }
 
@@ -63,16 +63,16 @@ public class SetInstanceMemoryTests
         // diff vai ler, e regravá-lo pela metade faria a atualização seguinte
         // achar que os ficheiros em falta na lista são lixo — e apagá-los.
         var store = new FakeInstanceStore();
-        var instancia = Instalada();
+        var instance = Instalada();
 
-        await new SetInstanceMemory(store).HandleAsync(instancia, 2048, Ct);
+        await new SetInstanceMemory(store).HandleAsync(instance, 2048, Ct);
 
-        var gravado = store.Manifests[instancia.Key];
+        var stored = store.Manifests[instance.Key];
 
-        gravado.ManagedFiles.Keys.ShouldBe(["mods/jei.jar"]);
-        gravado.MinecraftVersion.ShouldBe("1.21.1");
-        gravado.Loader.ShouldBe(ModLoader.NeoForge);
-        gravado.ModpackVersionId.ShouldBe(instancia.Manifest.ModpackVersionId);
+        stored.ManagedFiles.Keys.ShouldBe(["mods/jei.jar"]);
+        stored.MinecraftVersion.ShouldBe("1.21.1");
+        stored.Loader.ShouldBe(ModLoader.NeoForge);
+        stored.ModpackVersionId.ShouldBe(instance.Manifest.ModpackVersionId);
     }
 
     private static InstalledInstance Instalada(int? memoria = null) =>

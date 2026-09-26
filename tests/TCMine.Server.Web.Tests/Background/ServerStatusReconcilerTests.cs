@@ -20,26 +20,26 @@ public sealed class ServerStatusReconcilerTests
     public async Task Servidor_que_continuou_no_ar_volta_a_constar_como_Running()
     {
         // O caso que motivou tudo: o painel reinicia, o container nunca parou.
-        var servidor = Servidor(GameServerStatus.Stopped);
-        var repo = new FakeServers(servidor);
+        var server = Servidor(GameServerStatus.Stopped);
+        var repo = new FakeServers(server);
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
             repo, new FakeOrchestrator(GameServerStatus.Running), Ct);
 
         corrigidos.ShouldBe(1);
-        servidor.Status.ShouldBe(GameServerStatus.Running);
-        repo.Gravados.ShouldBe([servidor.Id]);
+        server.Status.ShouldBe(GameServerStatus.Running);
+        repo.Gravados.ShouldBe([server.Id]);
     }
 
     [Fact]
     public async Task Servidor_que_caiu_enquanto_o_painel_estava_fora_vira_Crashed()
     {
-        var servidor = Servidor(GameServerStatus.Running);
+        var server = Servidor(GameServerStatus.Running);
 
         await ServerStatusReconciler.ReconcileAsync(
-            new FakeServers(servidor), new FakeOrchestrator(GameServerStatus.Crashed), Ct);
+            new FakeServers(server), new FakeOrchestrator(GameServerStatus.Crashed), Ct);
 
-        servidor.Status.ShouldBe(GameServerStatus.Crashed);
+        server.Status.ShouldBe(GameServerStatus.Crashed);
     }
 
     [Fact]

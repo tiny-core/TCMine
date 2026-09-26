@@ -26,52 +26,52 @@ public class ModpackVersionTests
     [Fact]
     public void Nao_publica_pulando_a_resolucao()
     {
-        var versao = NovaVersao();
+        var version = NovaVersao();
 
-        Should.Throw<InvalidOperationException>(() => versao.MarkReady());
+        Should.Throw<InvalidOperationException>(() => version.MarkReady());
     }
 
     [Fact]
     public void Nao_publica_versao_sem_arquivos()
     {
         // Um pack vazio passaria batido e só quebraria na máquina do jogador.
-        var versao = NovaVersao();
-        versao.MarkResolving();
+        var version = NovaVersao();
+        version.MarkResolving();
 
-        Should.Throw<InvalidOperationException>(() => versao.MarkReady());
+        Should.Throw<InvalidOperationException>(() => version.MarkReady());
     }
 
     [Fact]
     public void Fluxo_feliz_leva_a_ready_com_data_de_publicacao()
     {
-        var versao = NovaVersao();
-        versao.MarkResolving();
-        versao.Files.Add(ArquivoQualquer(versao.Id));
+        var version = NovaVersao();
+        version.MarkResolving();
+        version.Files.Add(ArquivoQualquer(version.Id));
 
-        versao.MarkReady();
+        version.MarkReady();
 
-        versao.State.ShouldBe(ModpackVersionState.Ready);
-        versao.PublishedAt.ShouldNotBeNull();
+        version.State.ShouldBe(ModpackVersionState.Ready);
+        version.PublishedAt.ShouldNotBeNull();
     }
 
     [Fact]
     public void Versao_que_falhou_pode_tentar_de_novo()
     {
-        var versao = NovaVersao();
-        versao.MarkResolving();
-        versao.MarkFailed("Mod X não permite redistribuição.");
+        var version = NovaVersao();
+        version.MarkResolving();
+        version.MarkFailed("Mod X não permite redistribuição.");
 
-        versao.MarkResolving();
+        version.MarkResolving();
 
-        versao.State.ShouldBe(ModpackVersionState.Resolving);
-        versao.FailureReason.ShouldBeNull();
+        version.State.ShouldBe(ModpackVersionState.Resolving);
+        version.FailureReason.ShouldBeNull();
     }
 
     [Fact]
     public void Nao_arquiva_versao_que_nunca_foi_publicada()
     {
-        var versao = NovaVersao();
+        var version = NovaVersao();
 
-        Should.Throw<InvalidOperationException>(() => versao.Archive());
+        Should.Throw<InvalidOperationException>(() => version.Archive());
     }
 }

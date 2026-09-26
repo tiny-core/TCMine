@@ -104,8 +104,8 @@ public sealed partial class ModrinthModSearch(
     private static string? VersoesRecentes(Hit hit)
     {
         // As últimas da lista são as mais novas na resposta do Modrinth.
-        var versoes = hit.Versions.TakeLast(4).Reverse().ToList();
-        return versoes.Count is 0 ? null : string.Join(", ", versoes);
+        var versions = hit.Versions.TakeLast(4).Reverse().ToList();
+        return versions.Count is 0 ? null : string.Join(", ", versions);
     }
 
     private sealed record Hit(

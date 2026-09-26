@@ -110,7 +110,14 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Comentários em português (PT-BR)**, com **explicações claras do porquê** — não do óbvio. Um bom comentário explica a
   *decisão* ou o *risco*, não repete o que o código já diz. Exemplo bom: `// Detached graph: Update marca tudo
   Modified de uma vez, mas com filhos novos o resultado é imprevisível.`
-- **Nomes de métodos de teste podem ficar em português** (é a exceção).
+- **Nomes de métodos de teste podem ficar em português** (é a exceção — e só os
+  de TESTE; um helper de teste segue a regra geral).
+- A base já foi varrida uma vez para cumprir isto. Duas armadilhas de quem
+  repetir a operação: os `{Placeholder}` de um `[LoggerMessage]` vivem dentro de
+  uma string mas são **acoplados ao nome do parâmetro** — renomear um sem o
+  outro quebra a compilação com um erro que fala de template; e uma string
+  interpolada mistura português que fica com identificador que muda, na mesma
+  linha. Renomear com regex sobre o ficheiro inteiro estraga comentário e texto.
 
 ### 4.2 Logging
 

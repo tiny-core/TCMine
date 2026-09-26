@@ -25,22 +25,22 @@ public sealed partial class FileSystemContentStore(
 
     public async Task AddAsync(string sha256, Stream content, CancellationToken ct)
     {
-        var destino = PathFor(sha256);
+        var target = PathFor(sha256);
 
-        if (File.Exists(destino))
+        if (File.Exists(target))
             return;
 
-        Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
 
         // Grava em temporário no MESMO diretório: o move final é atômico dentro
         // do volume, então ninguém nunca vê um blob pela metade — e uma queda no
         // meio do download deixa lixo temporário, não um arquivo corrompido que
         // o store passaria a servir como bom.
-        var temporario = destino + ".tmp";
+        var temporary = target + ".tmp";
 
         try
         {
-            var calculado = await GravarCalculandoAsync(content, temporario, ct);
+            var calculado = await GravarCalculandoAsync(content, temporary, ct);
 
             if (!string.Equals(calculado, sha256, StringComparison.OrdinalIgnoreCase))
             {
@@ -53,12 +53,12 @@ public sealed partial class FileSystemContentStore(
                     $"O conteúdo baixado não confere: esperado {sha256}, obtido {calculado}.");
             }
 
-            File.Move(temporario, destino, true);
+            File.Move(temporary, target, true);
         }
         finally
         {
-            if (File.Exists(temporario))
-                File.Delete(temporario);
+            if (File.Exists(temporary))
+                File.Delete(temporary);
         }
     }
 
@@ -69,10 +69,10 @@ public sealed partial class FileSystemContentStore(
 
         var hashes = Directory
             .EnumerateFiles(paths.StoreDirectory, "*", SearchOption.AllDirectories)
-            .Select(caminho => Path.GetFileName(caminho))
+            .Select(path => Path.GetFileName(path))
             // Ignora os .tmp de downloads interrompidos: eles não são conteúdo
             // válido, e contá-los faria o diff pular um download necessário.
-            .Where(nome => nome.Length is 64)
+            .Where(name => name.Length is 64)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return Task.FromResult<IReadOnlySet<string>>(hashes);
@@ -81,10 +81,10 @@ public sealed partial class FileSystemContentStore(
     public async Task MaterializeAsync(
         string sha256, string destinationPath, bool allowHardLink, CancellationToken ct)
     {
-        var origem = PathFor(sha256);
+        var source = PathFor(sha256);
 
-        if (!File.Exists(origem))
-            throw new FileNotFoundException($"O conteúdo {sha256} não está no store.", origem);
+        if (!File.Exists(source))
+            throw new FileNotFoundException($"O conteúdo {sha256} não está no store.", source);
 
         Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
 
@@ -93,12 +93,12 @@ public sealed partial class FileSystemContentStore(
         if (File.Exists(destinationPath))
             File.Delete(destinationPath);
 
-        if (allowHardLink && linker.TryCreateHardLink(origem, destinationPath))
+        if (allowHardLink && linker.TryCreateHardLink(source, destinationPath))
             return;
 
         // Volume diferente, sistema sem suporte, ou arquivo que o jogo reescreve.
         // Copiar é o caminho correto, não uma degradação.
-        await using var entrada = File.OpenRead(origem);
+        await using var entrada = File.OpenRead(source);
         await using var saida = File.Create(destinationPath);
 
         await entrada.CopyToAsync(saida, ct);
@@ -111,7 +111,7 @@ public sealed partial class FileSystemContentStore(
 
         var total = Directory
             .EnumerateFiles(paths.StoreDirectory, "*", SearchOption.AllDirectories)
-            .Sum(caminho => new FileInfo(caminho).Length);
+            .Sum(path => new FileInfo(path).Length);
 
         return Task.FromResult(total);
     }
@@ -120,16 +120,16 @@ public sealed partial class FileSystemContentStore(
     ///     Grava e calcula o hash na MESMA passada. Ler o arquivo de novo para
     ///     conferir dobraria a E/S de cada download.
     /// </summary>
-    private static async Task<string> GravarCalculandoAsync(Stream origem, string destino, CancellationToken ct)
+    private static async Task<string> GravarCalculandoAsync(Stream source, string target, CancellationToken ct)
     {
         using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
-        await using (var saida = File.Create(destino))
+        await using (var saida = File.Create(target))
         {
             var buffer = new byte[81920];
             int lidos;
 
-            while ((lidos = await origem.ReadAsync(buffer, ct)) > 0)
+            while ((lidos = await source.ReadAsync(buffer, ct)) > 0)
             {
                 hash.AppendData(buffer, 0, lidos);
                 await saida.WriteAsync(buffer.AsMemory(0, lidos), ct);
@@ -143,6 +143,6 @@ public sealed partial class FileSystemContentStore(
         Path.Combine(paths.StoreDirectory, sha256[..2], sha256[2..4], sha256);
 
     [LoggerMessage(Level = LogLevel.Error,
-        Message = "Conteúdo baixado não confere: esperado {Esperado}, obtido {Obtido}.")]
-    private partial void LogHashDivergente(string esperado, string obtido);
+        Message = "Conteúdo baixado não confere: esperado {Esperado}, obtido {Computed}.")]
+    private partial void LogHashDivergente(string esperado, string computed);
 }

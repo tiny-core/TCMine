@@ -46,9 +46,9 @@ public sealed class ImportUpstreamPackTests
         await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
 
         // Override entra resolvido (o conteúdo veio no zip)...
-        var arquivo = Assert.Single(repo.AddedVersion!.Files);
-        Assert.Equal("config/mod.toml", arquivo.Path);
-        Assert.Equal(ModFileOrigin.Override, arquivo.Origin);
+        var file = Assert.Single(repo.AddedVersion!.Files);
+        Assert.Equal("config/mod.toml", file.Path);
+        Assert.Equal(ModFileOrigin.Override, file.Origin);
 
         // ...e os mods vão para a fila, que baixa em background.
         Assert.Equal(2, queue.Enfileirados.Count);

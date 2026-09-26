@@ -30,9 +30,9 @@ public sealed partial class WindowsFileLinker(ILogger<WindowsFileLinker> logger)
         //
         // O código do erro é lido ANTES da chamada de log (CA1873): qualquer
         // trabalho entre a API e o GetLastWin32Error pode sobrescrever o valor.
-        var erro = Marshal.GetLastWin32Error();
+        var error = Marshal.GetLastWin32Error();
 
-        LogNaoLigou(erro, newLinkPath);
+        LogNaoLigou(error, newLinkPath);
 
         return false;
     }
@@ -43,6 +43,6 @@ public sealed partial class WindowsFileLinker(ILogger<WindowsFileLinker> logger)
     private static partial bool CreateHardLink(string lpFileName, string lpExistingFileName, nint reserved);
 
     [LoggerMessage(Level = LogLevel.Debug,
-        Message = "Hardlink recusado (erro {Erro}) para {Destino}; será copiado.")]
-    private partial void LogNaoLigou(int erro, string destino);
+        Message = "Hardlink recusado (erro {Error}) para {Target}; será copiado.")]
+    private partial void LogNaoLigou(int error, string target);
 }

@@ -72,7 +72,7 @@ public sealed partial class CompleteFromServerPack(
             // A pendência guarda o ID da release; o zip traz nomes de arquivo.
             // Esta consulta é a ponte entre os dois, e é uma só para a lista
             // inteira.
-            var nomes = await source.GetFileNamesAsync(
+            var names = await source.GetFileNamesAsync(
                 [.. pendencias.Select(p => p.FileId).OfType<string>()], ct);
 
             var preenchidos = 0;
@@ -85,23 +85,23 @@ public sealed partial class CompleteFromServerPack(
                 Passo(pendencia.DisplayName, feitos++, pendencias.Count);
 
                 if (pendencia.FileId is not { Length: > 0 } fileId
-                    || !nomes.TryGetValue(fileId, out var nomeDoArquivo)
+                    || !names.TryGetValue(fileId, out var nomeDoArquivo)
                     || !pack.ModFileNames.Contains(nomeDoArquivo))
                 {
                     continue;
                 }
 
-                await using var conteudo = pack.OpenMod(nomeDoArquivo);
+                await using var content = pack.OpenMod(nomeDoArquivo);
 
                 // Sem hash esperado: o zip é a fonte, não há um segundo valor
                 // com que confrontar. O blob store devolve o hash real.
-                var sha = await blobStore.PutAsync(conteudo, null, "application/java-archive", ct);
+                var sha = await blobStore.PutAsync(content, null, "application/java-archive", ct);
 
-                var caminho = $"mods/{nomeDoArquivo}";
-                var arquivo = new ModpackFile
+                var path = $"mods/{nomeDoArquivo}";
+                var file = new ModpackFile
                 {
                     ModpackVersionId = version.Id,
-                    Path = caminho,
+                    Path = path,
                     Sha256 = sha,
                     SizeBytes = await TamanhoAsync(blobStore, sha, ct),
                     Side = pendencia.Side,
@@ -114,7 +114,7 @@ public sealed partial class CompleteFromServerPack(
                     OriginReference = fileId
                 };
 
-                version.UpsertFile(arquivo);
+                version.UpsertFile(file);
 
                 if (version.ResolvePending(pendencia.ProjectSlug) is { } resolvida)
                     await repository.RemovePendingAsync(version.Id, resolvida, ct);
@@ -164,19 +164,19 @@ public sealed partial class CompleteFromServerPack(
         var doServidor = new HashSet<string>(pack.ModFileNames, StringComparer.OrdinalIgnoreCase);
         var marcados = 0;
 
-        foreach (var arquivo in version.Files)
+        foreach (var file in version.Files)
         {
-            if (arquivo.Side is not FileSide.Both
-                || !arquivo.Path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
+            if (file.Side is not FileSide.Both
+                || !file.Path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
 
-            var nome = arquivo.Path[("mods/".Length)..];
-            if (doServidor.Contains(nome))
+            var name = file.Path[("mods/".Length)..];
+            if (doServidor.Contains(name))
                 continue;
 
-            arquivo.Side = FileSide.ClientOnly;
+            file.Side = FileSide.ClientOnly;
             marcados++;
         }
 

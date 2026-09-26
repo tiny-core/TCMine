@@ -1,4 +1,4 @@
-using System.Formats.Tar;
+﻿using System.Formats.Tar;
 using System.Globalization;
 using System.IO.Compression;
 using System.Net.Http.Json;
@@ -32,31 +32,31 @@ public sealed partial class AdoptiumJavaLocator(
         IProgress<double>? progress,
         CancellationToken ct)
     {
-        var destino = Path.Combine(
+        var target = Path.Combine(
             paths.RuntimesDirectory, majorVersion.ToString(CultureInfo.InvariantCulture));
 
         // Caminho quente: já está no disco. Acontece em todo arranque depois do
         // primeiro, e não pode custar uma ida à rede — o jogador clicou em jogar.
-        if (Localizar(destino) is { } jaInstalado)
+        if (Locate(target) is { } jaInstalado)
             return jaInstalado;
 
-        var pacote = await DescobrirAsync(majorVersion, ct);
+        var package = await DiscoverAsync(majorVersion, ct);
 
-        LogBaixando(majorVersion, pacote.Name!);
+        LogDownloading(majorVersion, package.Name!);
 
-        var arquivo = await BaixarAsync(pacote, progress, ct);
+        var file = await DownloadAsync(package, progress, ct);
 
         try
         {
-            ExtrairParaDestino(arquivo, pacote.Name!, destino);
+            ExtractTo(file, package.Name!, target);
         }
         finally
         {
             // O arquivo comprimido não serve para mais nada e são ~45 MB.
-            File.Delete(arquivo);
+            File.Delete(file);
         }
 
-        return Localizar(destino)
+        return Locate(target)
                ?? throw new InvalidOperationException(
                    $"O JRE {majorVersion} foi extraído mas não tem executável em bin/. "
                    + "O formato do pacote do Adoptium mudou.");
@@ -75,7 +75,7 @@ public sealed partial class AdoptiumJavaLocator(
             // não é um JRE, e listá-lo ofereceria ao jogador apagar algo que o
             // download seguinte vai limpar sozinho.
             if (int.TryParse(Path.GetFileName(directory), CultureInfo.InvariantCulture, out var major))
-                runtimes.Add(new InstalledRuntime(major, TamanhoDe(directory)));
+                runtimes.Add(new InstalledRuntime(major, SizeOf(directory)));
         }
 
         return Task.FromResult<IReadOnlyList<InstalledRuntime>>(runtimes);
@@ -89,7 +89,7 @@ public sealed partial class AdoptiumJavaLocator(
         if (Directory.Exists(directory))
         {
             Directory.Delete(directory, true);
-            LogRemovido(majorVersion);
+            LogRemoved(majorVersion);
         }
 
         return Task.CompletedTask;
@@ -101,7 +101,7 @@ public sealed partial class AdoptiumJavaLocator(
     ///     na interface, e falhar a contagem inteira por causa de um ficheiro
     ///     bloqueado seria trocar uma estimativa por nada.
     /// </summary>
-    private static long TamanhoDe(string directory)
+    private static long SizeOf(string directory)
     {
         try
         {
@@ -122,9 +122,9 @@ public sealed partial class AdoptiumJavaLocator(
     ///     muda a cada release, e varrer uma árvore de milhares de ficheiros a
     ///     cada clique em jogar seria pagar caro por um caminho previsível.
     /// </summary>
-    private static string? Localizar(string destino)
+    private static string? Locate(string target)
     {
-        if (!Directory.Exists(destino))
+        if (!Directory.Exists(target))
             return null;
 
         // java.exe e NÃO javaw.exe, apesar de o javaw ser o costume em
@@ -134,32 +134,32 @@ public sealed partial class AdoptiumJavaLocator(
         // mostra consola nenhuma e mantém a saída capturável.
         var executavel = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "java.exe" : "java";
 
-        return Directory.EnumerateDirectories(destino)
-            .Select(pasta => Path.Combine(pasta, "bin", executavel))
+        return Directory.EnumerateDirectories(target)
+            .Select(folder => Path.Combine(folder, "bin", executavel))
             .FirstOrDefault(File.Exists);
     }
 
-    private async Task<AdoptiumPackage> DescobrirAsync(int majorVersion, CancellationToken ct)
+    private async Task<AdoptiumPackage> DiscoverAsync(int majorVersion, CancellationToken ct)
     {
         var url = "https://api.adoptium.net/v3/assets/latest/"
                   + $"{majorVersion}/hotspot?image_type=jre&vendor=eclipse"
-                  + $"&os={SistemaOperativo()}&architecture={Arquitectura()}";
+                  + $"&os={OsName()}&architecture={CpuArchitecture()}";
 
         var assets = await http.GetFromJsonAsync(url, AdoptiumJsonContext.Default.AdoptiumAssetArray, ct);
 
-        var pacote = assets?.FirstOrDefault()?.Binary?.Package;
+        var package = assets?.FirstOrDefault()?.Binary?.Package;
 
         // Sem link ou sem checksum não há download seguro possível. Falhar aqui,
         // com a combinação pedida no texto, poupa investigar um erro de extração
         // mais à frente que não teria nada a ver com a causa.
-        if (pacote?.Link is not { Length: > 0 } || pacote.Checksum is not { Length: > 0 }
-                                                || pacote.Name is not { Length: > 0 })
+        if (package?.Link is not { Length: > 0 } || package.Checksum is not { Length: > 0 }
+                                                || package.Name is not { Length: > 0 })
         {
             throw new InvalidOperationException(
-                $"O Adoptium não tem JRE {majorVersion} para {SistemaOperativo()}/{Arquitectura()}.");
+                $"O Adoptium não tem JRE {majorVersion} para {OsName()}/{CpuArchitecture()}.");
         }
 
-        return pacote;
+        return package;
     }
 
     /// <summary>
@@ -168,37 +168,37 @@ public sealed partial class AdoptiumJavaLocator(
     ///     deixaria um download truncado virar um JRE meio extraído que falha
     ///     mais tarde, longe daqui.
     /// </summary>
-    private async Task<string> BaixarAsync(
-        AdoptiumPackage pacote,
+    private async Task<string> DownloadAsync(
+        AdoptiumPackage package,
         IProgress<double>? progress,
         CancellationToken ct)
     {
         Directory.CreateDirectory(paths.RuntimesDirectory);
 
-        var temporario = Path.Combine(paths.RuntimesDirectory, $"{Guid.CreateVersion7():N}.download");
+        var temporary = Path.Combine(paths.RuntimesDirectory, $"{Guid.CreateVersion7():N}.download");
 
-        using var resposta = await http.GetAsync(
-            pacote.Link, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await http.GetAsync(
+            package.Link, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        resposta.EnsureSuccessStatusCode();
+        response.EnsureSuccessStatusCode();
 
         // O tamanho vem do índice, não do Content-Length: atrás de um proxy que
         // recomprime, o cabeçalho mente e a barra de progresso passa de 100%.
-        var total = pacote.Size > 0 ? pacote.Size : resposta.Content.Headers.ContentLength ?? 0;
+        var total = package.Size > 0 ? package.Size : response.Content.Headers.ContentLength ?? 0;
 
         using var sha = SHA256.Create();
 
-        await using (var origem = await resposta.Content.ReadAsStreamAsync(ct))
-        await using (var destino = File.Create(temporario))
+        await using (var source = await response.Content.ReadAsStreamAsync(ct))
+        await using (var target = File.Create(temporary))
         {
             var buffer = new byte[81920];
             long lidos = 0;
             int n;
 
-            while ((n = await origem.ReadAsync(buffer, ct)) > 0)
+            while ((n = await source.ReadAsync(buffer, ct)) > 0)
             {
                 sha.TransformBlock(buffer, 0, n, null, 0);
-                await destino.WriteAsync(buffer.AsMemory(0, n), ct);
+                await target.WriteAsync(buffer.AsMemory(0, n), ct);
 
                 lidos += n;
 
@@ -209,20 +209,20 @@ public sealed partial class AdoptiumJavaLocator(
             sha.TransformFinalBlock([], 0, 0);
         }
 
-        var obtido = Convert.ToHexStringLower(sha.Hash!);
+        var computed = Convert.ToHexStringLower(sha.Hash!);
 
-        if (!obtido.Equals(pacote.Checksum, StringComparison.OrdinalIgnoreCase))
+        if (!computed.Equals(package.Checksum, StringComparison.OrdinalIgnoreCase))
         {
-            File.Delete(temporario);
+            File.Delete(temporary);
 
             // Não é paranoia: este ficheiro vira um executável que corremos na
             // máquina do jogador. Aceitar bytes que não batem seria correr o que
             // quer que tenha chegado pelo caminho.
             throw new InvalidOperationException(
-                $"O JRE baixado não corresponde ao checksum publicado pelo Adoptium ({pacote.Name}).");
+                $"O JRE baixado não corresponde ao checksum publicado pelo Adoptium ({package.Name}).");
         }
 
-        return temporario;
+        return temporary;
     }
 
     /// <summary>
@@ -232,34 +232,34 @@ public sealed partial class AdoptiumJavaLocator(
     ///     sai cedo no arquivo. O jogo abriria e morreria por falta de uma
     ///     biblioteca, sem nada a apontar para aqui.
     /// </summary>
-    private static void ExtrairParaDestino(string arquivo, string nome, string destino)
+    private static void ExtractTo(string file, string name, string target)
     {
-        var temporario = destino + ".tmp";
+        var temporary = target + ".tmp";
 
-        if (Directory.Exists(temporario))
-            Directory.Delete(temporario, true);
+        if (Directory.Exists(temporary))
+            Directory.Delete(temporary, true);
 
-        Directory.CreateDirectory(temporario);
+        Directory.CreateDirectory(temporary);
 
-        if (nome.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+        if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
         {
-            ZipFile.ExtractToDirectory(arquivo, temporario);
+            ZipFile.ExtractToDirectory(file, temporary);
         }
         else
         {
-            using var comprimido = File.OpenRead(arquivo);
+            using var comprimido = File.OpenRead(file);
             using var gzip = new GZipStream(comprimido, CompressionMode.Decompress);
 
-            TarFile.ExtractToDirectory(gzip, temporario, overwriteFiles: true);
+            TarFile.ExtractToDirectory(gzip, temporary, overwriteFiles: true);
         }
 
-        if (Directory.Exists(destino))
-            Directory.Delete(destino, true);
+        if (Directory.Exists(target))
+            Directory.Delete(target, true);
 
-        Directory.Move(temporario, destino);
+        Directory.Move(temporary, target);
     }
 
-    private static string SistemaOperativo()
+    private static string OsName()
     {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             return "windows";
@@ -267,7 +267,7 @@ public sealed partial class AdoptiumJavaLocator(
         return RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? "mac" : "linux";
     }
 
-    private static string Arquitectura() => RuntimeInformation.OSArchitecture switch
+    private static string CpuArchitecture() => RuntimeInformation.OSArchitecture switch
     {
         Architecture.Arm64 => "aarch64",
         Architecture.X86 => "x86",
@@ -275,8 +275,8 @@ public sealed partial class AdoptiumJavaLocator(
     };
 
     [LoggerMessage(Level = LogLevel.Information, Message = "JRE {Major} removido por não ser usado.")]
-    private partial void LogRemovido(int major);
+    private partial void LogRemoved(int major);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Baixando JRE {Major} ({Pacote}).")]
-    private partial void LogBaixando(int major, string pacote);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Baixando JRE {Major} ({Package}).")]
+    private partial void LogDownloading(int major, string package);
 }

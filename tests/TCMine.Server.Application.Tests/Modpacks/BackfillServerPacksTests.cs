@@ -20,14 +20,14 @@ public sealed class BackfillServerPacksTests
     [Fact]
     public async Task Preenche_versao_importada_que_ainda_nao_sabia()
     {
-        var versao = Versao(upstreamFileId: "5555");
-        var repo = new FakeRepo(Modpack(), versao);
-        var origem = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", "https://exemplo/pack") };
+        var version = Versao(upstreamFileId: "5555");
+        var repo = new FakeRepo(Modpack(), version);
+        var source = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", "https://exemplo/pack") };
 
-        var total = await new BackfillServerPacks([origem], repo).HandleAsync(Ct);
+        var total = await new BackfillServerPacks([source], repo).HandleAsync(Ct);
 
         total.ShouldBe(1);
-        repo.ServerPacksGravados[versao.Id].ShouldBe(("777", "https://exemplo/pack"));
+        repo.ServerPacksGravados[version.Id].ShouldBe(("777", "https://exemplo/pack"));
     }
 
     [Fact]
@@ -36,13 +36,13 @@ public sealed class BackfillServerPacksTests
         // A condição é o que limita o trabalho a uma vez por versão: uma vez
         // preenchida, ela deixa de ser candidata e o arranque seguinte não gasta
         // chamada nenhuma com ela.
-        var versao = Versao(upstreamFileId: "5555");
-        versao.UpstreamServerPackFileId = "ja-sabia";
+        var version = Versao(upstreamFileId: "5555");
+        version.UpstreamServerPackFileId = "ja-sabia";
 
-        var repo = new FakeRepo(Modpack(), versao);
-        var origem = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", null) };
+        var repo = new FakeRepo(Modpack(), version);
+        var source = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", null) };
 
-        var total = await new BackfillServerPacks([origem], repo).HandleAsync(Ct);
+        var total = await new BackfillServerPacks([source], repo).HandleAsync(Ct);
 
         total.ShouldBe(0);
         repo.ServerPacksGravados.ShouldBeEmpty();
@@ -53,9 +53,9 @@ public sealed class BackfillServerPacksTests
     {
         // Versão criada à mão não tem release na origem para consultar.
         var repo = new FakeRepo(Modpack(), Versao(upstreamFileId: null));
-        var origem = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", null) };
+        var source = new FakeSource { ServerPackInfo = new UpstreamServerPack("777", null) };
 
-        var total = await new BackfillServerPacks([origem], repo).HandleAsync(Ct);
+        var total = await new BackfillServerPacks([source], repo).HandleAsync(Ct);
 
         total.ShouldBe(0);
     }
@@ -64,9 +64,9 @@ public sealed class BackfillServerPacksTests
     public async Task Nao_grava_nada_quando_a_release_nao_tem_server_pack()
     {
         var repo = new FakeRepo(Modpack(), Versao(upstreamFileId: "5555"));
-        var origem = new FakeSource { ServerPackInfo = null };
+        var source = new FakeSource { ServerPackInfo = null };
 
-        var total = await new BackfillServerPacks([origem], repo).HandleAsync(Ct);
+        var total = await new BackfillServerPacks([source], repo).HandleAsync(Ct);
 
         total.ShouldBe(0);
         repo.ServerPacksGravados.ShouldBeEmpty();
@@ -78,9 +78,9 @@ public sealed class BackfillServerPacksTests
         // Sem chave de API a origem se declara indisponível. Isso não é erro: a
         // informação não é urgente e o próximo arranque tenta de novo.
         var repo = new FakeRepo(Modpack(), Versao(upstreamFileId: "5555"));
-        var origem = new FakeSource { Disponivel = false };
+        var source = new FakeSource { Disponivel = false };
 
-        var total = await new BackfillServerPacks([origem], repo).HandleAsync(Ct);
+        var total = await new BackfillServerPacks([source], repo).HandleAsync(Ct);
 
         total.ShouldBe(0);
         repo.ServerPacksGravados.ShouldBeEmpty();
@@ -112,13 +112,13 @@ public sealed class BackfillServerPacksTests
             ValueTask.FromResult(Disponivel);
     }
 
-    private sealed class FakeRepo(Modpack modpack, ModpackVersion versao) : FakeModpackRepositoryBase
+    private sealed class FakeRepo(Modpack modpack, ModpackVersion version) : FakeModpackRepositoryBase
     {
         public override Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<Modpack>>([modpack]);
 
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(
             Guid modpackId, CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<ModpackVersion>>([versao]);
+            Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
     }
 }

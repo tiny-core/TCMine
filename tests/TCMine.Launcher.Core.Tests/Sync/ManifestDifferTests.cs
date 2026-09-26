@@ -17,7 +17,7 @@ public class ManifestDifferTests
     // realmente importa. Estes dois métodos deixam cada caso com duas ou três
     // linhas de setup, e o que varia fica evidente.
 
-    private static ModpackVersionDto Manifest(params ModpackFileDto[] arquivos)
+    private static ModpackVersionDto Manifest(params ModpackFileDto[] files)
     {
         return new ModpackVersionDto
         {
@@ -27,19 +27,19 @@ public class ManifestDifferTests
             LoaderVersion = "21.1.0",
             State = ModpackVersionState.Ready,
             PublishedAt = DateTimeOffset.UtcNow,
-            Files = arquivos
+            Files = files
         };
     }
 
     private static ModpackFileDto Arquivo(
-        string caminho,
+        string path,
         string hash,
         FileSide lado = FileSide.Both,
         bool opcional = false)
     {
         return new ModpackFileDto
         {
-            Path = caminho,
+            Path = path,
             Sha256 = hash,
             SizeBytes = 1024,
             Side = lado,

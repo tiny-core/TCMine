@@ -126,9 +126,9 @@ public static class LoaderVersionRange
     /// <summary>Compara segmento a segmento; o que faltar conta como zero.</summary>
     private static int Compare(int[] a, int[] b)
     {
-        var tamanho = Math.Max(a.Length, b.Length);
+        var size = Math.Max(a.Length, b.Length);
 
-        for (var i = 0; i < tamanho; i++)
+        for (var i = 0; i < size; i++)
         {
             var esquerda = i < a.Length ? a[i] : 0;
             var direita = i < b.Length ? b[i] : 0;

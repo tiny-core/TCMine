@@ -22,11 +22,11 @@ public sealed class DuplicateJobGuardTests
     public async Task Recusa_uma_segunda_verificacao_da_mesma_versao()
     {
         var version = Versao();
-        var progresso = new FakeJobProgress();
-        progresso.EmCurso.Add(version.Id);
+        var progress = new FakeJobProgress();
+        progress.EmCurso.Add(version.Id);
 
         var result = await new CheckModpackVersionUpdates(
-                new FakeRepo(version), [], progresso)
+                new FakeRepo(version), [], progress)
             .HandleAsync(version.Id, Ct);
 
         result.Succeeded.ShouldBeFalse();

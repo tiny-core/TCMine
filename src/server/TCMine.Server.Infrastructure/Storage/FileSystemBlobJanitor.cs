@@ -54,11 +54,11 @@ public sealed partial class FileSystemBlobJanitor(
     }
 
     /// <summary>Lê até <paramref name="tamanho" /> arquivos, pulando o que não é blob.</summary>
-    private static List<StoredBlob> NextBatch(IEnumerator<string> caminhos, int tamanho)
+    private static List<StoredBlob> NextBatch(IEnumerator<string> caminhos, int size)
     {
-        var lote = new List<StoredBlob>(tamanho);
+        var lote = new List<StoredBlob>(size);
 
-        while (lote.Count < tamanho && caminhos.MoveNext())
+        while (lote.Count < size && caminhos.MoveNext())
         {
             var path = caminhos.Current;
             var name = Path.GetFileName(path);

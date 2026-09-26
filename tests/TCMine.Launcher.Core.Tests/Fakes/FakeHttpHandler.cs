@@ -59,9 +59,9 @@ public sealed class FakeHttpHandler : HttpMessageHandler
 
         // Sem resposta registrada é erro do teste, não cenário: um 404 silencioso
         // faria o caso passar pelo caminho de falha e parecer verde por engano.
-        if (!_respostas.TryGetValue(url, out var resposta))
+        if (!_respostas.TryGetValue(url, out var response))
             throw new InvalidOperationException($"O teste não registrou resposta para {url}.");
 
-        return resposta();
+        return response();
     }
 }

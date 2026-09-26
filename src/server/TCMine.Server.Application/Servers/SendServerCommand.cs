@@ -64,11 +64,11 @@ public sealed class SendServerCommand(
         if (status is not GameServerStatus.Running)
             return Result<string>.Fail("O servidor precisa estar no ar para receber comandos.");
 
-        var linha = args.Count is 0 ? command : $"{command} {string.Join(' ', args)}";
+        var line = args.Count is 0 ? command : $"{command} {string.Join(' ', args)}";
 
         try
         {
-            var saida = await rcon.ExecuteAsync(serverId, linha, ct);
+            var saida = await rcon.ExecuteAsync(serverId, line, ct);
             return Result<string>.Success(saida);
         }
         catch (RconUnavailableException ex)

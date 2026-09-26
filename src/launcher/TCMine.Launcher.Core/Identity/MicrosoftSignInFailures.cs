@@ -32,7 +32,7 @@ public static class MicrosoftSignInFailures
     ///     apenas nos casos que ninguém previu, porque nesses ela é a única
     ///     pista — e some nos casos conhecidos, onde só atrapalharia.
     /// </summary>
-    public static AuthResult Traduzir(string? codigo, string? detalhe) => codigo switch
+    public static AuthResult Traduzir(string? code, string? detalhe) => code switch
     {
         // Uma decisão, não uma falha: avisar seria repetir ao jogador o que ele
         // acabou de fazer, e a tela trata este desfecho em silêncio.

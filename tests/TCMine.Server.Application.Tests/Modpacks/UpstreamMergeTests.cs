@@ -111,7 +111,7 @@ public sealed class UpstreamMergeTests
     [Fact]
     public void Overrides_nao_contam_como_mod()
     {
-        var arquivos = new List<ModpackFile>
+        var files = new List<ModpackFile>
         {
             File("jei", "v1"),
             new()
@@ -126,7 +126,7 @@ public sealed class UpstreamMergeTests
             }
         };
 
-        var plano = UpstreamMerge.Plan(Base(("jei", "v1")), Deles(("jei", "v1")), arquivos);
+        var plano = UpstreamMerge.Plan(Base(("jei", "v1")), Deles(("jei", "v1")), files);
 
         // O override não pode aparecer como "mod que o admin adicionou", senão
         // toda versão importada acusaria milhares de acréscimos falsos.

@@ -66,11 +66,11 @@ public sealed class MainHub(
     /// </summary>
     public async Task<ModpackVersionDto?> GetLatestVersionAsync(Guid modpackId, ReleaseChannel channel)
     {
-        var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+        var versions = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
 
-        var ultima = Instalaveis(versoes, channel).FirstOrDefault();
+        var latest = Installable(versions, channel).FirstOrDefault();
 
-        return ultima?.ToDto();
+        return latest?.ToDto();
     }
 
     /// <summary>
@@ -79,10 +79,10 @@ public sealed class MainHub(
     ///     alpha que recebesse uma estável saltaria para trás sem o jogador pedir,
     ///     e uma estável que recebesse uma alpha receberia código de teste.
     /// </summary>
-    private static IEnumerable<ModpackVersion> Instalaveis(
-        IEnumerable<ModpackVersion> versoes,
+    private static IEnumerable<ModpackVersion> Installable(
+        IEnumerable<ModpackVersion> versions,
         ReleaseChannel channel) =>
-        versoes
+        versions
             .Where(v => v.State is ModpackVersionState.Ready && v.Channel == channel)
             .OrderByDescending(v => v.Id);
 
@@ -95,10 +95,10 @@ public sealed class MainHub(
     public async Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
         Guid modpackId, ReleaseChannel channel)
     {
-        var versoes = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
+        var versions = await modpacks.ListVersionsAsync(modpackId, Context.ConnectionAborted);
 
         // Array, e não expressão de coleção: ver a nota do GetModpacksAsync.
-        return Instalaveis(versoes, channel).Select(v => v.ToSummaryDto()).ToArray();
+        return Installable(versions, channel).Select(v => v.ToSummaryDto()).ToArray();
     }
 
     /// <summary>
@@ -134,10 +134,10 @@ public sealed class MainHub(
         // quem não foi convidado, e devolver tudo para a interface esconder
         // entregaria nome e endereço de servidores alheios a qualquer um que
         // olhasse a mensagem do hub.
-        var servidores = await accessibleServers.HandleAsync(Context.ConnectionAborted);
+        var servers = await accessibleServers.HandleAsync(Context.ConnectionAborted);
 
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
-        return servidores.Select(s => s.ToDto(players)).ToArray();
+        return servers.Select(s => s.ToDto(players)).ToArray();
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

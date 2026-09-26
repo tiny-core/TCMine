@@ -38,8 +38,8 @@ public sealed class LauncherSyncContractTests
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
         };
 
-        var conteudo = "conteudo do jar"u8.ToArray();
-        var (versionId, sha) = await SemearVersaoPublicadaAsync(factory, conteudo);
+        var content = "conteudo do jar"u8.ToArray();
+        var (versionId, sha) = await SemearVersaoPublicadaAsync(factory, content);
 
         var client = factory.CreateClient();
 
@@ -59,24 +59,24 @@ public sealed class LauncherSyncContractTests
         await using var hub = Conectar(factory, cookie);
         await hub.StartAsync(Ct);
 
-        var manifesto = await hub.InvokeAsync<ModpackVersionDto>(
+        var manifest = await hub.InvokeAsync<ModpackVersionDto>(
             nameof(IServerHub.GetModpackVersionAsync), versionId, Ct);
 
-        manifesto.ShouldNotBeNull();
+        manifest.ShouldNotBeNull();
 
-        var arquivo = manifesto.Files.ShouldHaveSingleItem();
-        arquivo.Path.ShouldBe("mods/jei.jar");
-        arquivo.Sha256.ShouldBe(sha);
+        var file = manifest.Files.ShouldHaveSingleItem();
+        file.Path.ShouldBe("mods/jei.jar");
+        file.Sha256.ShouldBe(sha);
 
         // O tamanho vai no manifesto porque o launcher mostra progresso antes de
         // começar: sem ele, a barra só existiria depois do download.
-        arquivo.SizeBytes.ShouldBe(conteudo.Length);
+        file.SizeBytes.ShouldBe(content.Length);
 
         // 3. Baixa o que o manifesto mandou, pelo hash.
-        var download = await client.GetAsync($"/api/v1/blobs/{arquivo.Sha256}", Ct);
+        var download = await client.GetAsync($"/api/v1/blobs/{file.Sha256}", Ct);
 
         download.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await download.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(conteudo);
+        (await download.Content.ReadAsByteArrayAsync(Ct)).ShouldBe(content);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class LauncherSyncContractTests
     }
 
     private static async Task<(Guid VersionId, string Sha)> SemearVersaoPublicadaAsync(
-        TcMineAppFactory factory, byte[] conteudo)
+        TcMineAppFactory factory, byte[] content)
     {
         using var escopo = factory.Services.CreateScope();
         var repo = escopo.ServiceProvider.GetRequiredService<IModpackRepository>();
@@ -124,7 +124,7 @@ public sealed class LauncherSyncContractTests
         // Pelo store de verdade: é o hash que ele calcula que o manifesto
         // publica e o download resolve. Inventar um sha aqui testaria a nossa
         // aritmética, não o caminho.
-        using var stream = new MemoryStream(conteudo);
+        using var stream = new MemoryStream(content);
         var sha = await blobs.PutAsync(stream, null, "application/java-archive", Ct);
 
         var modpack = new Modpack
@@ -145,7 +145,7 @@ public sealed class LauncherSyncContractTests
             ModpackVersionId = version.Id,
             Path = "mods/jei.jar",
             Sha256 = sha,
-            SizeBytes = conteudo.Length,
+            SizeBytes = content.Length,
             Side = FileSide.Both,
             Origin = ModFileOrigin.CurseForge,
             ProjectSlug = "jei"

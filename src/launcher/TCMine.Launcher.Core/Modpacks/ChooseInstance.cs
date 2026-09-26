@@ -36,7 +36,7 @@ public sealed class ChooseInstance(IInstanceStore instances, IActiveInstanceStor
         IReadOnlyList<InstalledInstance> installed,
         InstanceKey? chosen)
     {
-        if (chosen is { } chave && installed.FirstOrDefault(i => i.Key == chave) is { } encontrada)
+        if (chosen is { } key && installed.FirstOrDefault(i => i.Key == key) is { } encontrada)
             return encontrada;
 
         return installed.Count is 1 ? installed[0] : null;

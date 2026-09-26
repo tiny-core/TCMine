@@ -52,16 +52,16 @@ public sealed partial class MsalMicrosoftTokenProvider(
     {
         try
         {
-            var app = await ObterAppAsync(azureClientId, ct);
+            var app = await GetAppAsync(azureClientId, ct);
 
             // Nenhuma conta em cache é o primeiro arranque de toda instalação —
             // resultado normal, e a tela trata-o em silêncio.
-            if ((await app.GetAccountsAsync()).FirstOrDefault() is not { } conta)
+            if ((await app.GetAccountsAsync()).FirstOrDefault() is not { } account)
                 return AuthResult.NoStoredCredentials();
 
-            var resultado = await app.AcquireTokenSilent(Scopes, conta).ExecuteAsync(ct);
+            var result = await app.AcquireTokenSilent(Scopes, account).ExecuteAsync(ct);
 
-            return AuthResult.Success(resultado.AccessToken);
+            return AuthResult.Success(result.AccessToken);
         }
         catch (MsalUiRequiredException)
         {
@@ -69,7 +69,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
             // de vista do arranque é o mesmo que não haver nada: o jogador
             // precisa de entrar, e dizer-lhe "a sua credencial expirou" antes de
             // ele ter pedido alguma coisa é ruído.
-            LogPrecisaDeInteracao();
+            LogNeedsInteraction();
             return AuthResult.NoStoredCredentials();
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -78,7 +78,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
         }
         catch (MsalException ex)
         {
-            LogFalhou(ex, ex.ErrorCode);
+            LogFailed(ex, ex.ErrorCode);
             return MicrosoftSignInFailures.Traduzir(ex.ErrorCode, ex.Message);
         }
     }
@@ -87,7 +87,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
     {
         try
         {
-            var app = await ObterAppAsync(azureClientId, ct);
+            var app = await GetAppAsync(azureClientId, ct);
 
             // Com broker, o diálogo é o do Windows e o jogador que já usa a
             // conta Microsoft na máquina entra sem escrever nada. O pai importa:
@@ -96,12 +96,12 @@ public sealed partial class MsalMicrosoftTokenProvider(
             // nunca uma WebView embutida. É a diferença entre ver a barra de
             // endereço da Microsoft e ser convidado a escrever a palavra-passe
             // numa janela que qualquer um podia ter desenhado.
-            var resultado = await app.AcquireTokenInteractive(Scopes)
+            var result = await app.AcquireTokenInteractive(Scopes)
                 .WithParentActivityOrWindow(() => window.Handle)
                 .WithUseEmbeddedWebView(false)
                 .ExecuteAsync(ct);
 
-            return AuthResult.Success(resultado.AccessToken);
+            return AuthResult.Success(result.AccessToken);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -109,7 +109,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
         }
         catch (MsalException ex)
         {
-            LogFalhou(ex, ex.ErrorCode);
+            LogFailed(ex, ex.ErrorCode);
             return MicrosoftSignInFailures.Traduzir(ex.ErrorCode, ex.Message);
         }
     }
@@ -121,10 +121,10 @@ public sealed partial class MsalMicrosoftTokenProvider(
         if (_app is not { } app)
             return;
 
-        foreach (var conta in await app.GetAccountsAsync())
-            await app.RemoveAsync(conta);
+        foreach (var account in await app.GetAccountsAsync())
+            await app.RemoveAsync(account);
 
-        LogSaiu();
+        LogSignedOut();
     }
 
     /// <summary>
@@ -135,7 +135,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
     ///     Trocar de servidor troca o client id e obriga a reconstruir; é raro, e
     ///     por isso não há dicionário aqui.
     /// </summary>
-    private async Task<IPublicClientApplication> ObterAppAsync(string azureClientId, CancellationToken ct)
+    private async Task<IPublicClientApplication> GetAppAsync(string azureClientId, CancellationToken ct)
     {
         if (_app is { } pronta && _clientIdDaApp == azureClientId)
             return pronta;
@@ -163,7 +163,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
                 .WithClientName("TCMine Launcher")
                 .Build();
 
-            await RegistarCacheAsync(app, azureClientId);
+            await RegisterCacheAsync(app, azureClientId);
 
             _app = app;
             _clientIdDaApp = azureClientId;
@@ -185,7 +185,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
     ///     política de grupo) degrada o login para "entrar a cada arranque", que é
     ///     incómodo; recusar o arranque por causa disso seria pior.
     /// </summary>
-    private async Task RegistarCacheAsync(IPublicClientApplication app, string azureClientId)
+    private async Task RegisterCacheAsync(IPublicClientApplication app, string azureClientId)
     {
         try
         {
@@ -199,7 +199,7 @@ public sealed partial class MsalMicrosoftTokenProvider(
         }
         catch (MsalCachePersistenceException ex)
         {
-            LogCacheIndisponivel(ex);
+            LogNoSecureStorage(ex);
         }
     }
 
@@ -212,15 +212,15 @@ public sealed partial class MsalMicrosoftTokenProvider(
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Credencial da Microsoft precisa de interação; tratada como ausente.")]
-    private partial void LogPrecisaDeInteracao();
+    private partial void LogNeedsInteraction();
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Login com a Microsoft falhou ({Codigo}).")]
-    private partial void LogFalhou(Exception ex, string? codigo);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Login com a Microsoft falhou ({Code}).")]
+    private partial void LogFailed(Exception ex, string? code);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Contas da Microsoft removidas desta máquina.")]
-    private partial void LogSaiu();
+    private partial void LogSignedOut();
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Sem armazenamento seguro para o cache do MSAL: o jogador terá de entrar a cada arranque.")]
-    private partial void LogCacheIndisponivel(Exception ex);
+    private partial void LogNoSecureStorage(Exception ex);
 }

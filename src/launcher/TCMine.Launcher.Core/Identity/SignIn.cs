@@ -30,7 +30,7 @@ public sealed class SignIn(
         if (auth.Outcome is not AuthOutcome.Success)
             return SignInState.SignedOut();
 
-        return await TrocarPorSessaoAsync(config.ServerUrl, auth.AccessToken!, ct);
+        return await ExchangeForSessionAsync(config.ServerUrl, auth.AccessToken!, ct);
     }
 
     /// <summary>Abre o fluxo interativo. Vem de um clique, então pode falar.</summary>
@@ -41,7 +41,7 @@ public sealed class SignIn(
         switch (auth.Outcome)
         {
             case AuthOutcome.Success:
-                return await TrocarPorSessaoAsync(config.ServerUrl, auth.AccessToken!, ct);
+                return await ExchangeForSessionAsync(config.ServerUrl, auth.AccessToken!, ct);
 
             // Fechar a janela do navegador é uma decisão, não uma falha. Avisar
             // seria repetir ao jogador o que ele acabou de fazer.
@@ -70,15 +70,15 @@ public sealed class SignIn(
         return SignInState.SignedOut();
     }
 
-    private async Task<SignInState> TrocarPorSessaoAsync(Uri serverUrl, string accessToken, CancellationToken ct)
+    private async Task<SignInState> ExchangeForSessionAsync(Uri serverUrl, string accessToken, CancellationToken ct)
     {
-        var sessao = await api.SignInAsync(serverUrl, accessToken, ct);
+        var session = await api.SignInAsync(serverUrl, accessToken, ct);
 
-        return sessao.Outcome switch
+        return session.Outcome switch
         {
-            SessionOutcome.Success => SignInState.SignedIn(sessao.Session!),
-            SessionOutcome.Rejected => SignInState.Rejected(sessao.Message!),
-            _ => SignInState.Failed(sessao.Message!)
+            SessionOutcome.Success => SignInState.SignedIn(session.Session!),
+            SessionOutcome.Rejected => SignInState.Rejected(session.Message!),
+            _ => SignInState.Failed(session.Message!)
         };
     }
 }

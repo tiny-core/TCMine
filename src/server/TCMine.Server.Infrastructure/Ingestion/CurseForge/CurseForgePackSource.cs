@@ -184,7 +184,7 @@ public sealed partial class CurseForgePackSource(
     public async Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
         IReadOnlyList<string> fileIds, CancellationToken ct)
     {
-        var nomes = new Dictionary<string, string>(StringComparer.Ordinal);
+        var names = new Dictionary<string, string>(StringComparer.Ordinal);
 
         var ids = fileIds
             .Select(id => int.TryParse(id, out var n) ? n : (int?)null)
@@ -193,7 +193,7 @@ public sealed partial class CurseForgePackSource(
             .ToList();
 
         if (ids.Count is 0)
-            return nomes;
+            return names;
 
         // O mesmo endpoint em lote que o WithNamesAsync usa para nomes de mod,
         // só que de arquivos: uma chamada resolve a lista inteira de pendências.
@@ -208,12 +208,12 @@ public sealed partial class CurseForgePackSource(
 
             foreach (var file in response?.Data ?? [])
             {
-                if (file.FileName is { Length: > 0 } nome)
-                    nomes[file.Id.ToString(CultureInfo.InvariantCulture)] = nome;
+                if (file.FileName is { Length: > 0 } name)
+                    names[file.Id.ToString(CultureInfo.InvariantCulture)] = name;
             }
         }
 
-        return nomes;
+        return names;
     }
 
     public async Task<UpstreamServerPack?> GetServerPackAsync(
@@ -258,25 +258,25 @@ public sealed partial class CurseForgePackSource(
         // Em disco, e não em memória: o server pack de um pack grande passa de
         // um gigabyte, e o MemoryStream do pack de cliente já é o teto do que
         // dá para segurar.
-        var caminho = Path.Combine(Path.GetTempPath(), $"tcmine-serverpack-{Guid.CreateVersion7():N}.zip");
+        var path = Path.Combine(Path.GetTempPath(), $"tcmine-serverpack-{Guid.CreateVersion7():N}.zip");
 
         try
         {
             using var download = await http.GetAsync(new Uri(url), HttpCompletionOption.ResponseHeadersRead, ct);
             download.EnsureSuccessStatusCode();
 
-            await using (var destino = File.Create(caminho))
-            await using (var origem = await download.Content.ReadAsStreamAsync(ct))
-                await origem.CopyToAsync(destino, ct);
+            await using (var target = File.Create(path))
+            await using (var source = await download.Content.ReadAsStreamAsync(ct))
+                await source.CopyToAsync(target, ct);
 
-            return new ZipServerPackReader(caminho);
+            return new ZipServerPackReader(path);
         }
         catch
         {
             // O arquivo parcial não serve para nada e ocuparia o disco até o
             // próximo boot da máquina.
-            if (File.Exists(caminho))
-                File.Delete(caminho);
+            if (File.Exists(path))
+                File.Delete(path);
 
             throw;
         }
@@ -419,10 +419,10 @@ internal sealed class ZipServerPackReader : IServerPackReader
     private readonly ZipArchive _zip;
     private readonly Dictionary<string, ZipArchiveEntry> _mods;
 
-    public ZipServerPackReader(string caminho)
+    public ZipServerPackReader(string path)
     {
-        _caminho = caminho;
-        _zip = ZipFile.OpenRead(caminho);
+        _caminho = path;
+        _zip = ZipFile.OpenRead(path);
 
         // O zip às vezes tem tudo sob uma pasta raiz, às vezes não. Casar pelo
         // trecho "mods/" cobre os dois sem depender do formato do autor.

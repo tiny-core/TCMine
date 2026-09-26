@@ -29,13 +29,13 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
         // exatamente o que precisa de se atualizar.
         await SemearAsync("win-x64-p2", "RELEASES", "conteudo do feed");
 
-        using var factory = Montar();
+        using var factory = Build();
 
-        var resposta = await factory.CreateClient()
+        var response = await factory.CreateClient()
             .GetAsync("/updates/launcher/win-x64-p2/RELEASES", Ct);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await resposta.Content.ReadAsStringAsync(Ct)).ShouldBe("conteudo do feed");
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync(Ct)).ShouldBe("conteudo do feed");
     }
 
     [Fact]
@@ -43,12 +43,12 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
     {
         await SemearAsync("win-x64-p2", "RELEASES", "x");
 
-        using var factory = Montar();
+        using var factory = Build();
 
-        var resposta = await factory.CreateClient()
+        var response = await factory.CreateClient()
             .GetAsync("/updates/launcher/win-x64-p2/nao-existe.nupkg", Ct);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -56,12 +56,12 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
     {
         await SemearAsync("win-x64-p2", "RELEASES", "x");
 
-        using var factory = Montar();
+        using var factory = Build();
 
-        var resposta = await factory.CreateClient()
+        var response = await factory.CreateClient()
             .GetAsync("/updates/launcher/win-x64-p99/RELEASES", Ct);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Theory]
@@ -74,11 +74,11 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
         await SemearAsync("win-x64-p2", "RELEASES", "x");
         await File.WriteAllTextAsync(Path.Combine(_raiz, "..", "segredo.txt"), "nao devia sair", Ct);
 
-        using var factory = Montar();
+        using var factory = Build();
 
-        var resposta = await factory.CreateClient().GetAsync(rota, Ct);
+        var response = await factory.CreateClient().GetAsync(rota, Ct);
 
-        resposta.StatusCode.ShouldNotBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldNotBe(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -88,21 +88,21 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
         // para ela responder 404 sempre seria prometer outra vez o que não há.
         using var factory = new TcMineAppFactory();
 
-        var resposta = await factory.CreateClient()
+        var response = await factory.CreateClient()
             .GetAsync("/updates/launcher/win-x64-p2/RELEASES", Ct);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
-    private TcMineAppFactory Montar() =>
+    private TcMineAppFactory Build() =>
         new(settings: ("LauncherUpdates:RootPath", _raiz));
 
-    private async Task SemearAsync(string canal, string ficheiro, string conteudo)
+    private async Task SemearAsync(string canal, string file, string content)
     {
-        var pasta = Path.Combine(_raiz, canal);
+        var folder = Path.Combine(_raiz, canal);
 
-        Directory.CreateDirectory(pasta);
+        Directory.CreateDirectory(folder);
 
-        await File.WriteAllTextAsync(Path.Combine(pasta, ficheiro), conteudo, Ct);
+        await File.WriteAllTextAsync(Path.Combine(folder, file), content, Ct);
     }
 }

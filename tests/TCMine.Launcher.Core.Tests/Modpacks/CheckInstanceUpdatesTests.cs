@@ -23,11 +23,11 @@ public class CheckInstanceUpdatesTests
     {
         var pack = Guid.CreateVersion7();
         var nova = Versao(pack);
-        var instancia = Instalada(pack, Guid.CreateVersion7());
+        var instance = Instalada(pack, Guid.CreateVersion7());
 
-        var novidades = await Montar((pack, nova)).HandleAsync([instancia], Ct);
+        var news = await Build((pack, nova)).HandleAsync([instance], Ct);
 
-        novidades[instancia.Key].Id.ShouldBe(nova.Id);
+        news[instance.Key].Id.ShouldBe(nova.Id);
     }
 
     [Fact]
@@ -36,9 +36,9 @@ public class CheckInstanceUpdatesTests
         var pack = Guid.CreateVersion7();
         var atual = Versao(pack);
 
-        var novidades = await Montar((pack, atual)).HandleAsync([Instalada(pack, atual.Id)], Ct);
+        var news = await Build((pack, atual)).HandleAsync([Instalada(pack, atual.Id)], Ct);
 
-        novidades.ShouldBeEmpty();
+        news.ShouldBeEmpty();
     }
 
     [Fact]
@@ -48,13 +48,13 @@ public class CheckInstanceUpdatesTests
         // mesma coisa duas vezes seria desperdício no arranque de uma tela.
         var pack = Guid.CreateVersion7();
         var nova = Versao(pack);
-        var conexao = new FakeServerConnection { Latest = { [(pack, ReleaseChannel.Release)] = nova } };
+        var connection = new FakeServerConnection { Latest = { [(pack, ReleaseChannel.Release)] = nova } };
 
-        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync(
+        var news = await new CheckInstanceUpdates(connection).HandleAsync(
             [Instalada(pack, Guid.CreateVersion7()), Instalada(pack, Guid.CreateVersion7())], Ct);
 
-        novidades.Count.ShouldBe(2);
-        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
+        news.Count.ShouldBe(2);
+        connection.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
     }
 
     [Fact]
@@ -63,12 +63,12 @@ public class CheckInstanceUpdatesTests
         // "Não saber" não é "há novidade": botões que falham ao clicar seriam
         // piores do que nenhum, e esta consulta é um extra sobre uma tela que
         // tem de servir offline.
-        var conexao = new FakeServerConnection { Throws = new InvalidOperationException("canal fechado") };
+        var connection = new FakeServerConnection { Throws = new InvalidOperationException("canal fechado") };
 
-        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync(
+        var news = await new CheckInstanceUpdates(connection).HandleAsync(
             [Instalada(Guid.CreateVersion7(), Guid.CreateVersion7())], Ct);
 
-        novidades.ShouldBeEmpty();
+        news.ShouldBeEmpty();
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public class CheckInstanceUpdatesTests
         // um mundo jogado em código de teste.
         var pack = Guid.CreateVersion7();
         var alphaNova = Versao(pack, "1.2.0-beta2");
-        var conexao = new FakeServerConnection
+        var connection = new FakeServerConnection
         {
             Latest =
             {
@@ -88,29 +88,29 @@ public class CheckInstanceUpdatesTests
             }
         };
 
-        var instancia = Instalada(pack, Guid.CreateVersion7(), "1.2.0-beta1");
+        var instance = Instalada(pack, Guid.CreateVersion7(), "1.2.0-beta1");
 
-        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync([instancia], Ct);
+        var news = await new CheckInstanceUpdates(connection).HandleAsync([instance], Ct);
 
-        novidades[instancia.Key].Id.ShouldBe(alphaNova.Id);
-        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Alpha)]);
+        news[instance.Key].Id.ShouldBe(alphaNova.Id);
+        connection.LatestQueries.ShouldBe([(pack, ReleaseChannel.Alpha)]);
     }
 
     [Fact]
     public async Task Uma_estavel_nunca_recebe_alpha()
     {
         var pack = Guid.CreateVersion7();
-        var conexao = new FakeServerConnection
+        var connection = new FakeServerConnection
         {
             Latest = { [(pack, ReleaseChannel.Alpha)] = Versao(pack, "2.0.0-beta") }
         };
 
         // Só há alpha publicada. A estável fica onde está em vez de saltar de canal.
-        var novidades = await new CheckInstanceUpdates(conexao).HandleAsync(
+        var news = await new CheckInstanceUpdates(connection).HandleAsync(
             [Instalada(pack, Guid.CreateVersion7(), "1.0.0")], Ct);
 
-        novidades.ShouldBeEmpty();
-        conexao.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
+        news.ShouldBeEmpty();
+        connection.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
     }
 
     [Fact]
@@ -118,29 +118,29 @@ public class CheckInstanceUpdatesTests
     {
         // Agrupar só por modpack faria uma das duas receber a resposta da outra.
         var pack = Guid.CreateVersion7();
-        var conexao = new FakeServerConnection();
+        var connection = new FakeServerConnection();
 
-        await new CheckInstanceUpdates(conexao).HandleAsync(
+        await new CheckInstanceUpdates(connection).HandleAsync(
             [
                 Instalada(pack, Guid.CreateVersion7(), "1.0.0"),
                 Instalada(pack, Guid.CreateVersion7(), "1.1.0-beta")
             ],
             Ct);
 
-        conexao.LatestQueries.ShouldBe(
+        connection.LatestQueries.ShouldBe(
             [(pack, ReleaseChannel.Release), (pack, ReleaseChannel.Alpha)], ignoreOrder: true);
     }
 
     // ---------- apoio ----------
 
-    private static CheckInstanceUpdates Montar(params (Guid Pack, ModpackVersionDto Versao)[] ultimas)
+    private static CheckInstanceUpdates Build(params (Guid Pack, ModpackVersionDto Versao)[] ultimas)
     {
-        var conexao = new FakeServerConnection();
+        var connection = new FakeServerConnection();
 
-        foreach (var (pack, versao) in ultimas)
-            conexao.Latest[(pack, ReleaseChannel.Release)] = versao;
+        foreach (var (pack, version) in ultimas)
+            connection.Latest[(pack, ReleaseChannel.Release)] = version;
 
-        return new CheckInstanceUpdates(conexao);
+        return new CheckInstanceUpdates(connection);
     }
 
     private static ModpackVersionDto Versao(Guid packId, string numero = "1.1.0") => new()

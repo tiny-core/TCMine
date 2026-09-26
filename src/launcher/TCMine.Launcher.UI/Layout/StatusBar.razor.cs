@@ -12,7 +12,7 @@ public partial class StatusBar : ComponentBase, IDisposable
 
     private string ConnectionLabel => Shell.Connection switch
     {
-        ConnectionState.Connected => $"Ligado a {Shell.ServerName ?? "servidor"}",
+        ConnectionState.Connected => $"Ligado a {Shell.ServerName ?? "server"}",
         ConnectionState.Connecting => "A verificar ligação…",
 
         // "Sem servidor" e "sem ligação" pedem ações diferentes: uma é parear,

@@ -102,13 +102,13 @@ public class AuthorizationRules
         casosDeUso.GetTypes().ShouldNotBeEmpty(
             $"Nenhum tipo em {Namespace}: o namespace mudou e esta regra parou de olhar.");
 
-        ArchResult resultado = casosDeUso
+        ArchResult result = casosDeUso
             .Should()
             .HaveDependencyOn(typeof(ICurrentUserScope).FullName)
             .GetResult();
 
         // FailingTypeNames vem null quando ninguém reprova.
-        return [.. (resultado.FailingTypeNames ?? []).Select(NomeSimples)];
+        return [.. (result.FailingTypeNames ?? []).Select(NomeSimples)];
     }
 
     private static string NomeSimples(string nomeCompleto) =>

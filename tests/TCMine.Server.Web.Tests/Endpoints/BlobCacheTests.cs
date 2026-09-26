@@ -24,11 +24,11 @@ public sealed class BlobCacheTests : IDisposable
         using var factory = ComStore();
         using var client = factory.CreateClient();
 
-        var resposta = await client.GetAsync($"/api/v1/blobs/{sha}", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync($"/api/v1/blobs/{sha}", TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var cache = resposta.Headers.CacheControl.ShouldNotBeNull();
+        var cache = response.Headers.CacheControl.ShouldNotBeNull();
         cache.Public.ShouldBeTrue();
         cache.MaxAge.ShouldBe(TimeSpan.FromDays(365));
 
@@ -44,11 +44,11 @@ public sealed class BlobCacheTests : IDisposable
         using var factory = ComStore();
         using var client = factory.CreateClient();
 
-        var resposta = await client.GetAsync($"/api/v1/blobs/{sha}", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync($"/api/v1/blobs/{sha}", TestContext.Current.CancellationToken);
 
         // O hash JÁ é a identidade do conteúdo; inventar outro validador seria
         // manter dois nomes para a mesma coisa.
-        resposta.Headers.ETag!.Tag.ShouldBe($"\"{sha}\"");
+        response.Headers.ETag!.Tag.ShouldBe($"\"{sha}\"");
     }
 
     [Fact]
@@ -61,12 +61,12 @@ public sealed class BlobCacheTests : IDisposable
         var requisicao = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/blobs/{sha}");
         requisicao.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(1000, 1999);
 
-        var resposta = await client.SendAsync(requisicao, TestContext.Current.CancellationToken);
+        var response = await client.SendAsync(requisicao, TestContext.Current.CancellationToken);
 
         // O cache longo não pode ter custado o resume: sem Range, um download de
         // 400 MB interrompido recomeça do zero.
-        resposta.StatusCode.ShouldBe(HttpStatusCode.PartialContent);
-        resposta.Content.Headers.ContentLength.ShouldBe(1000);
+        response.StatusCode.ShouldBe(HttpStatusCode.PartialContent);
+        response.Content.Headers.ContentLength.ShouldBe(1000);
     }
 
     [Fact]
@@ -76,25 +76,25 @@ public sealed class BlobCacheTests : IDisposable
         using var client = factory.CreateClient();
 
         var ausente = new string('0', 64);
-        var resposta = await client.GetAsync($"/api/v1/blobs/{ausente}", TestContext.Current.CancellationToken);
+        var response = await client.GetAsync($"/api/v1/blobs/{ausente}", TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
 
         // Guardar um 404 por um ano significaria que o blob enviado depois ficava
         // invisível para quem já tinha perguntado por ele.
-        (resposta.Headers.CacheControl?.MaxAge).ShouldBeNull();
+        (response.Headers.CacheControl?.MaxAge).ShouldBeNull();
     }
 
     private TcMineAppFactory ComStore() => new(settings: ("BlobStorage:RootPath", _raiz));
 
     /// <summary>Escreve o arquivo no layout shard do store e devolve o hash.</summary>
-    private string GravarBlob(byte[] conteudo)
+    private string GravarBlob(byte[] content)
     {
-        var sha = Convert.ToHexStringLower(SHA256.HashData(conteudo));
+        var sha = Convert.ToHexStringLower(SHA256.HashData(content));
 
-        var caminho = Path.Combine(_raiz, sha[..2], sha[2..4], sha);
-        Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
-        File.WriteAllBytes(caminho, conteudo);
+        var path = Path.Combine(_raiz, sha[..2], sha[2..4], sha);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllBytes(path, content);
 
         return sha;
     }

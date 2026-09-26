@@ -38,16 +38,16 @@ public sealed partial class CurseForgeModResolver(
             // nada, e a pendência que sobrava dizia "sem versão compatível" para
             // um arquivo que estava lá o tempo todo.
             var mod = await GetModAsync(modId, ct);
-            var conteudo = ConteudoDe(mod?.ClassId);
+            var content = ConteudoDe(mod?.ClassId);
 
-            var files = await FindFilesAsync(modId, request, conteudo, ct);
+            var files = await FindFilesAsync(modId, request, content, ct);
             if (files is null || files.Count is 0)
             {
                 return new ModResolution.NotFound(
-                    conteudo.EhMod
+                    content.EhMod
                         ? $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion} com {request.Loader}."
                         : $"Nenhum arquivo do projeto {modId} para Minecraft {request.MinecraftVersion}.",
-                    conteudo.Pasta);
+                    content.Pasta);
             }
 
             // FileId específico quando pedido; senão o mais recente compatível.
@@ -64,13 +64,13 @@ public sealed partial class CurseForgeModResolver(
             // rigor — ele é GLSL lido pelo Iris —, e reprovar por isso
             // devolveria uma pendência falsa para um arquivo que a própria
             // consulta ao CurseForge já filtrou por versão.
-            if (conteudo.EhMod
+            if (content.EhMod
                 && !file.GameVersions.Contains(request.MinecraftVersion, StringComparer.OrdinalIgnoreCase))
             {
                 return new ModResolution.NotFound(
                     $"O arquivo escolhido do projeto {modId} declara "
                     + $"[{string.Join(", ", file.GameVersions)}], e não Minecraft {request.MinecraftVersion}.",
-                    conteudo.Pasta);
+                    content.Pasta);
             }
 
             // Sem downloadUrl = autor negou redistribuição por terceiros. Levamos
@@ -81,7 +81,7 @@ public sealed partial class CurseForgeModResolver(
                     ? new Uri($"https://www.curseforge.com/minecraft/mc-mods/{slug}")
                     : new Uri($"https://www.curseforge.com/projects/{modId.ToString(CultureInfo.InvariantCulture)}");
 
-                return new ModResolution.DistributionDenied(mod?.Name ?? $"Projeto {modId}", page, conteudo.Pasta);
+                return new ModResolution.DistributionDenied(mod?.Name ?? $"Projeto {modId}", page, content.Pasta);
             }
 
             var dependencies = file.Dependencies
@@ -108,8 +108,8 @@ public sealed partial class CurseForgeModResolver(
 
                 // Shader e resource pack são de cliente por natureza; para mod,
                 // o lado continua saindo das tags de ambiente do arquivo.
-                conteudo.Lado ?? SideOf(file.GameVersions),
-                conteudo.Pasta);
+                content.Lado ?? SideOf(file.GameVersions),
+                content.Pasta);
         }
         catch (HttpRequestException ex)
         {
@@ -137,7 +137,7 @@ public sealed partial class CurseForgeModResolver(
     };
 
     private async Task<IReadOnlyList<CurseForgeFile>?> FindFilesAsync(
-        int modId, ModRequest request, (bool EhMod, string Pasta, FileSide? Lado) conteudo,
+        int modId, ModRequest request, (bool EhMod, string Pasta, FileSide? Lado) content,
         CancellationToken ct)
     {
         var url = $"/v1/mods/{modId}/files"
@@ -145,7 +145,7 @@ public sealed partial class CurseForgeModResolver(
 
         // O filtro de loader só se aplica a mod. Era ele que escondia os
         // shaderpacks de um pack inteiro.
-        var loaderType = conteudo.EhMod ? CurseForgeApiClient.ToLoaderType(request.Loader) : 0;
+        var loaderType = content.EhMod ? CurseForgeApiClient.ToLoaderType(request.Loader) : 0;
         if (loaderType is not 0)
             url += $"&modLoaderType={loaderType}";
 

@@ -58,10 +58,10 @@ public sealed class StoragePathsTests
 
             // Uma requisição qualquer que toque o banco: se a pasta faltasse, o
             // arranque teria falhado antes de responder.
-            var resposta = await factory.CreateClient().GetAsync(
+            var response = await factory.CreateClient().GetAsync(
                 "/health/live", TestContext.Current.CancellationToken);
 
-            resposta.IsSuccessStatusCode.ShouldBeTrue();
+            response.IsSuccessStatusCode.ShouldBeTrue();
 
             Directory.Exists(pastaBanco).ShouldBeTrue();
             Directory.Exists(Path.Combine(raiz, "blobs")).ShouldBeTrue();

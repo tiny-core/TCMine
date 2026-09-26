@@ -43,7 +43,7 @@ public sealed partial class FileActiveInstanceStore(
             // tela de jogar continua a abrir, e a escolha reconstrói-se sozinha
             // (ou com um clique). Estourar aqui deixaria o launcher inútil por
             // causa de um ficheiro que existe só para poupar um clique.
-            LogIlegivel(ex, Caminho);
+            LogUnreadable(ex, Caminho);
             return null;
         }
     }
@@ -55,9 +55,9 @@ public sealed partial class FileActiveInstanceStore(
         // Temporário e move, como no tcmine.json e no manifesto: um ficheiro
         // truncado por uma queda a meio da escrita seria lido como ausente, e o
         // jogador perderia a escolha sem nunca saber porquê.
-        var temporario = Caminho + ".tmp";
+        var temporary = Caminho + ".tmp";
 
-        await using (var stream = File.Create(temporario))
+        await using (var stream = File.Create(temporary))
         {
             await JsonSerializer.SerializeAsync(
                 stream,
@@ -66,12 +66,12 @@ public sealed partial class FileActiveInstanceStore(
                 ct);
         }
 
-        File.Move(temporario, Caminho, true);
+        File.Move(temporary, Caminho, true);
     }
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Escolha de instância ilegível em {Caminho}; tratada como ausente.")]
-    private partial void LogIlegivel(Exception ex, string caminho);
+        Message = "Escolha de instância ilegível em {Path}; tratada como ausente.")]
+    private partial void LogUnreadable(Exception ex, string path);
 }
 
 /// <summary>

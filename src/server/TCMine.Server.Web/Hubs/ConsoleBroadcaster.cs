@@ -125,13 +125,13 @@ public sealed partial class ConsoleBroadcaster(
         if (!_porConexao.TryRemove(connectionId, out var assinaturas))
             return;
 
-        Guid[] servidores;
+        Guid[] servers;
         lock (assinaturas)
         {
-            servidores = [.. assinaturas];
+            servers = [.. assinaturas];
         }
 
-        foreach (var serverId in servidores)
+        foreach (var serverId in servers)
             Soltar(serverId);
     }
 
@@ -153,11 +153,11 @@ public sealed partial class ConsoleBroadcaster(
     private Bombeamento Iniciar(Guid serverId)
     {
         var bombeamento = new Bombeamento();
-        bombeamento.Tarefa = BombearAsync(serverId, bombeamento.Cancelamento.Token);
+        bombeamento.Tarefa = PumpAsync(serverId, bombeamento.Cancelamento.Token);
         return bombeamento;
     }
 
-    private async Task BombearAsync(Guid serverId, CancellationToken ct)
+    private async Task PumpAsync(Guid serverId, CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -171,14 +171,14 @@ public sealed partial class ConsoleBroadcaster(
                 var orchestrator = escopo.ServiceProvider.GetRequiredService<IServerOrchestrator>();
                 var notifier = escopo.ServiceProvider.GetRequiredService<IServerHubNotifier>();
 
-                await foreach (var linha in orchestrator.StreamLogsAsync(serverId, ct))
+                await foreach (var line in orchestrator.StreamLogsAsync(serverId, ct))
                 {
                     await notifier.NotifyConsoleLineAsync(
                         serverId,
                         new ConsoleLineDto(
                             DateTimeOffset.UtcNow,
-                            linha.Text,
-                            linha.IsError ? ConsoleStream.StdErr : ConsoleStream.StdOut),
+                            line.Text,
+                            line.IsError ? ConsoleStream.StdErr : ConsoleStream.StdOut),
                         ct);
                 }
             }

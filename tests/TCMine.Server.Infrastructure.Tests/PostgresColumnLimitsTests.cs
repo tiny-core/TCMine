@@ -34,18 +34,18 @@ public sealed class PostgresColumnLimitsTests
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
         await using var db = postgres.CreateContext();
 
-        var caminho = "config/" + new string('x', ModpackFile.MaxPathLength - "config/".Length);
-        var versao = await SemearVersaoAsync(db);
+        var path = "config/" + new string('x', ModpackFile.MaxPathLength - "config/".Length);
+        var version = await SemearVersaoAsync(db);
 
         db.ModpackFiles.Add(new ModpackFile
         {
-            ModpackVersionId = versao,
-            Path = caminho,
+            ModpackVersionId = version,
+            Path = path,
             Sha256 = new string('a', 64),
             SizeBytes = 10,
             Side = FileSide.Both,
             Origin = ModFileOrigin.Override,
-            ProjectSlug = ModpackFile.OverrideSlug(caminho)
+            ProjectSlug = ModpackFile.OverrideSlug(path)
         });
 
         await Should.NotThrowAsync(() => db.SaveChangesAsync(Ct));
@@ -61,11 +61,11 @@ public sealed class PostgresColumnLimitsTests
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
         await using var db = postgres.CreateContext();
 
-        var versao = await SemearVersaoAsync(db);
+        var version = await SemearVersaoAsync(db);
 
         db.ModpackFiles.Add(new ModpackFile
         {
-            ModpackVersionId = versao,
+            ModpackVersionId = version,
             Path = "mods/exemplo.jar",
             Sha256 = new string('b', 64),
             SizeBytes = 10,
@@ -149,22 +149,22 @@ public sealed class PostgresColumnLimitsTests
             Loader = ModLoader.NeoForge
         };
 
-        var versao = new ModpackVersion
+        var version = new ModpackVersion
         {
             ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
         };
 
-        versao.UpsertFile(ArquivoEm(versao.Id, "mods/jei.jar", "jei"));
-        versao.UpsertFile(ArquivoEm(versao.Id, "shaderpacks/complementary.zip", "shader"));
+        version.UpsertFile(ArquivoEm(version.Id, "mods/jei.jar", "jei"));
+        version.UpsertFile(ArquivoEm(version.Id, "shaderpacks/complementary.zip", "shader"));
 
         await repo.CreateAsync(modpack, Ct);
-        await repo.AddVersionAsync(versao, Ct);
+        await repo.AddVersionAsync(version, Ct);
 
         var recursos = await repo.ListVersionFilesAsync(
-            versao.Id, VersionFileScope.Assets, null, new PageRequest(0, 25), Ct);
+            version.Id, VersionFileScope.Assets, null, new PageRequest(0, 25), Ct);
 
         var mods = await repo.ListVersionFilesAsync(
-            versao.Id, VersionFileScope.Mods, null, new PageRequest(0, 25), Ct);
+            version.Id, VersionFileScope.Mods, null, new PageRequest(0, 25), Ct);
 
         recursos.Items.Select(f => f.Path).ShouldBe(["shaderpacks/complementary.zip"]);
         mods.Items.Select(f => f.Path).ShouldBe(["mods/jei.jar"]);
@@ -215,7 +215,7 @@ public sealed class PostgresColumnLimitsTests
             Loader = ModLoader.NeoForge
         };
 
-        var versao = new ModpackVersion
+        var version = new ModpackVersion
         {
             ModpackId = modpack.Id,
             Version = "1.0.0",
@@ -223,9 +223,9 @@ public sealed class PostgresColumnLimitsTests
         };
 
         db.Modpacks.Add(modpack);
-        db.ModpackVersions.Add(versao);
+        db.ModpackVersions.Add(version);
         await db.SaveChangesAsync(Ct);
 
-        return versao.Id;
+        return version.Id;
     }
 }

@@ -39,44 +39,44 @@ public sealed partial class ZipWorldBackup(
         if (!Directory.Exists(saves))
             throw new InvalidOperationException("Esta instância não tem mundos para copiar.");
 
-        var pasta = Path.Combine(paths.RootDirectory, "backups", key.Id);
+        var folder = Path.Combine(paths.RootDirectory, "backups", key.Id);
 
-        Directory.CreateDirectory(pasta);
+        Directory.CreateDirectory(folder);
 
         // Data e hora no nome, em UTC e ordenável: o jogador vai olhar para uma
         // lista destes ficheiros no dia em que precisar, e precisa de perceber
         // qual é o mais recente sem abrir nenhum.
-        var destino = Path.Combine(pasta, $"saves-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.zip");
+        var target = Path.Combine(folder, $"saves-{DateTimeOffset.UtcNow:yyyyMMdd-HHmmss}.zip");
 
         // Para um temporário e só depois move: uma queda a meio deixaria um .zip
         // truncado com nome de backup bom, que é pior do que não ter backup —
         // descobre-se no dia em que se tenta restaurar.
-        var temporario = destino + ".tmp";
+        var temporary = target + ".tmp";
 
         try
         {
             await Task.Run(
-                () => ZipFile.CreateFromDirectory(saves, temporario, CompressionLevel.Fastest, false),
+                () => ZipFile.CreateFromDirectory(saves, temporary, CompressionLevel.Fastest, false),
                 ct);
 
-            File.Move(temporario, destino, true);
+            File.Move(temporary, target, true);
         }
         catch
         {
-            if (File.Exists(temporario))
-                File.Delete(temporario);
+            if (File.Exists(temporary))
+                File.Delete(temporary);
 
             throw;
         }
 
-        LogCriado(destino);
+        LogCreated(target);
 
         // Depois de a nova estar no lugar, nunca antes: podar primeiro e falhar
         // a criar deixaria o jogador com menos cópias do que tinha, por causa de
         // uma atualização que nem aconteceu.
-        Podar(pasta);
+        Prune(folder);
 
-        return destino;
+        return target;
     }
 
     /// <summary>
@@ -85,33 +85,33 @@ public sealed partial class ZipWorldBackup(
     ///     recusar a atualização porque não se conseguiu apagar um ficheiro
     ///     ANTIGO seria trocar um problema de disco por um impedimento.
     /// </summary>
-    private void Podar(string pasta)
+    private void Prune(string folder)
     {
         try
         {
-            var nomes = Directory.EnumerateFiles(pasta, "saves-*.zip").Select(Path.GetFileName).OfType<string>();
+            var names = Directory.EnumerateFiles(folder, "saves-*.zip").Select(Path.GetFileName).OfType<string>();
 
-            foreach (var velho in WorldBackupRetention.Expired(nomes))
+            foreach (var velho in WorldBackupRetention.Expired(names))
             {
-                File.Delete(Path.Combine(pasta, velho));
-                LogPodado(velho);
+                File.Delete(Path.Combine(folder, velho));
+                LogPruned(velho);
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            LogPodaFalhou(ex);
+            LogPruneFailed(ex);
         }
     }
 
     private string SavesDirectory(InstanceKey key) => Path.Combine(instances.PathFor(key), "saves");
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Cópia do mundo criada em {Caminho}.")]
-    private partial void LogCriado(string caminho);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cópia do mundo criada em {Path}.")]
+    private partial void LogCreated(string path);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Cópia antiga removida: {Nome}.")]
-    private partial void LogPodado(string nome);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Cópia antiga removida: {Name}.")]
+    private partial void LogPruned(string name);
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Não foi possível remover cópias antigas; a nova está gravada.")]
-    private partial void LogPodaFalhou(Exception ex);
+    private partial void LogPruneFailed(Exception ex);
 }

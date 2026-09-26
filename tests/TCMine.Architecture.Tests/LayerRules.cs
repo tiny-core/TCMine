@@ -37,13 +37,13 @@ public class LayerRules
     ///     Mensagem de falha com os tipos culpados. O padrão do NetArchTest só
     ///     diz que falhou, e aí você fica caçando qual classe foi.
     /// </summary>
-    private static void ShouldPass(ArchResult resultado)
+    private static void ShouldPass(ArchResult result)
     {
-        var culpados = resultado.FailingTypeNames is { } nomes
-            ? string.Join(", ", nomes)
+        var culpados = result.FailingTypeNames is { } names
+            ? string.Join(", ", names)
             : "(nenhum informado)";
 
-        resultado.IsSuccessful.ShouldBeTrue($"Tipos violando a regra: {culpados}");
+        result.IsSuccessful.ShouldBeTrue($"Tipos violando a regra: {culpados}");
     }
 
     [Fact]

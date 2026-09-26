@@ -30,7 +30,7 @@ public sealed class ListAccessibleServersTests
     [Fact]
     public async Task So_aparecem_os_servidores_em_que_ha_vinculo()
     {
-        var jogador = Guid.CreateVersion7();
+        var player = Guid.CreateVersion7();
         var meu = Servidor("Meu");
         var alheio = Servidor("Alheio");
 
@@ -38,11 +38,11 @@ public sealed class ListAccessibleServersTests
                 new FakeServers(meu, alheio),
                 new FakeMemberships(new Membership
                 {
-                    UserId = jogador,
+                    UserId = player,
                     GameServerId = meu.Id,
                     Role = ServerRole.Moderator
                 }),
-                Jogador(jogador))
+                Jogador(player))
             .HandleAsync(TestContext.Current.CancellationToken);
 
         var unico = lista.ShouldHaveSingleItem();
@@ -83,12 +83,12 @@ public sealed class ListAccessibleServersTests
 
     private static FakeUserScope Jogador(Guid id) => new(null) { UserId = id };
 
-    private static GameServer Servidor(string nome) => new()
+    private static GameServer Servidor(string name) => new()
     {
-        Name = nome,
+        Name = name,
         ModpackId = Guid.CreateVersion7(),
         ModpackVersionId = Guid.CreateVersion7(),
-        ConnectAddress = $"{nome.ToLowerInvariant()}:25565",
+        ConnectAddress = $"{name.ToLowerInvariant()}:25565",
         RconSecret = "segredo"
     };
 

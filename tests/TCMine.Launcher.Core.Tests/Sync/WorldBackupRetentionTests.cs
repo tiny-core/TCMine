@@ -13,9 +13,9 @@ public class WorldBackupRetentionTests
     [Fact]
     public void Guarda_as_mais_recentes_e_deixa_cair_as_velhas()
     {
-        var nomes = Enumerable.Range(1, 8).Select(i => $"saves-2026010{i}-120000.zip").ToArray();
+        var names = Enumerable.Range(1, 8).Select(i => $"saves-2026010{i}-120000.zip").ToArray();
 
-        var expiradas = WorldBackupRetention.Expired(nomes, keep: 5);
+        var expiradas = WorldBackupRetention.Expired(names, keep: 5);
 
         expiradas.ShouldBe(
             ["saves-20260103-120000.zip", "saves-20260102-120000.zip", "saves-20260101-120000.zip"],
@@ -27,21 +27,21 @@ public class WorldBackupRetentionTests
     {
         // Esta função corre logo a seguir a criar uma cópia. Apagá-la seria
         // destruir exatamente a que a atualização acabou de exigir.
-        var nomes = new[]
+        var names = new[]
         {
             "saves-20260101-120000.zip", "saves-20260102-120000.zip", "saves-20260103-120000.zip"
         };
 
-        WorldBackupRetention.Expired(nomes, keep: 1)
+        WorldBackupRetention.Expired(names, keep: 1)
             .ShouldNotContain("saves-20260103-120000.zip");
     }
 
     [Fact]
     public void Abaixo_do_limite_nada_expira()
     {
-        var nomes = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
+        var names = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
 
-        WorldBackupRetention.Expired(nomes, keep: 5).ShouldBeEmpty();
+        WorldBackupRetention.Expired(names, keep: 5).ShouldBeEmpty();
     }
 
     [Fact]
@@ -50,9 +50,9 @@ public class WorldBackupRetentionTests
         // A leitura oposta seria catastrófica e silenciosa: "guardar zero" a
         // apagar todas as cópias do jogador na primeira atualização. É a mesma
         // convenção do painel.
-        var nomes = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
+        var names = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
 
-        WorldBackupRetention.Expired(nomes, keep: 0).ShouldBeEmpty();
+        WorldBackupRetention.Expired(names, keep: 0).ShouldBeEmpty();
     }
 
     [Fact]

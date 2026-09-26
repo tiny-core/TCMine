@@ -90,7 +90,7 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
         // Join explícito: não há navegação entre Membership e User no modelo, e
         // criá-la só para esta tela arrastaria carregamento implícito para todas
         // as checagens de permissão, que não querem o usuário inteiro.
-        var linhas = await (
+        var lines = await (
             from m in db.Memberships.AsNoTracking()
             join u in db.Users.AsNoTracking() on m.UserId equals u.Id
             where m.GameServerId == gameServerId
@@ -109,7 +109,7 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
         // banco daria ordem alfabética (Admin, Member, Moderator), não hierarquia.
         return
         [
-            .. linhas
+            .. lines
                 .Select(l => new ServerMemberView(
                     l.MembershipId, l.UserId, l.DisplayName, l.MinecraftUuid,
                     l.Role.ToDto(), l.LastSeenAt))

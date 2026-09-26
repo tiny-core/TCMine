@@ -23,7 +23,7 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     private readonly string _database = $"tcmine_teste_{Guid.CreateVersion7():N}";
     private readonly string _servidor;
 
-    private PostgresTestDatabase(string servidor) => _servidor = servidor;
+    private PostgresTestDatabase(string server) => _servidor = server;
 
     /// <summary>Connection string do servidor, ou nulo quando não há um configurado.</summary>
     public static string? ServerConnectionString =>
@@ -37,27 +37,27 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     /// </summary>
     public static async Task<PostgresTestDatabase> CreateAsync(CancellationToken ct)
     {
-        var servidor = ServerConnectionString
+        var server = ServerConnectionString
                        ?? throw new InvalidOperationException(
                            $"{ConnectionVariable} não está definida. Use Assert.Skip antes de chamar.");
 
-        var instancia = new PostgresTestDatabase(servidor);
+        var instance = new PostgresTestDatabase(server);
 
-        await using (var admin = new TcMineDbContext(Opcoes(servidor)))
+        await using (var admin = new TcMineDbContext(Opcoes(server)))
         {
             // O nome do banco é gerado aqui a partir de um GUID, nunca vem de
             // fora — e CREATE DATABASE não aceita parâmetro, então interpolar é
             // o único caminho.
 #pragma warning disable EF1002
             await admin.Database.ExecuteSqlRawAsync(
-                $"CREATE DATABASE \"{instancia._database}\"", ct);
+                $"CREATE DATABASE \"{instance._database}\"", ct);
 #pragma warning restore EF1002
         }
 
-        await using var db = instancia.CreateContext();
+        await using var db = instance.CreateContext();
         await db.Database.MigrateAsync(ct);
 
-        return instancia;
+        return instance;
     }
 
     public TcMineDbContext CreateContext() => new(Opcoes(ConnectionStringDoBanco()));

@@ -91,12 +91,12 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
             return;
 
         // O -wal e o -shm acompanham o banco quando o journal está em WAL.
-        foreach (var arquivo in new[] { _databasePath, $"{_databasePath}-wal", $"{_databasePath}-shm" })
+        foreach (var file in new[] { _databasePath, $"{_databasePath}-wal", $"{_databasePath}-shm" })
         {
             try
             {
-                if (File.Exists(arquivo))
-                    File.Delete(arquivo);
+                if (File.Exists(file))
+                    File.Delete(file);
             }
             catch (IOException)
             {

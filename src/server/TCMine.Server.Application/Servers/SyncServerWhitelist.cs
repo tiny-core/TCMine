@@ -58,10 +58,10 @@ public sealed partial class SyncServerWhitelist(
                 // Sem perfil Minecraft não há o que adicionar: é alguém que criou
                 // conta no painel e ainda não entrou no jogo. Some sozinho no
                 // primeiro login, quando o UUID chega.
-                if (membro.DisplayName is not { Length: > 0 } nome || membro.MinecraftUuid is null)
+                if (membro.DisplayName is not { Length: > 0 } name || membro.MinecraftUuid is null)
                     continue;
 
-                await rcon.ExecuteAsync(gameServerId, $"whitelist add {nome}", ct);
+                await rcon.ExecuteAsync(gameServerId, $"whitelist add {name}", ct);
             }
 
             // Relê o arquivo: sem isto, uma entrada escrita fora do jogo não

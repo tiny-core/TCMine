@@ -30,10 +30,10 @@ public sealed class ImportRecoveryTests
         // fila sem rastro no banco — exatamente o buraco que isto veio fechar.
         repo.Eventos.ShouldBe(["gravou", "enfileirou"]);
 
-        var gravado = repo.Registros.Single();
-        gravado.ProjectId.ShouldBe("999");
-        gravado.DisplayName.ShouldBe("All the Mods 10");
-        result.Value.ShouldBe(gravado.Id);
+        var stored = repo.Registros.Single();
+        stored.ProjectId.ShouldBe("999");
+        stored.DisplayName.ShouldBe("All the Mods 10");
+        result.Value.ShouldBe(stored.Id);
     }
 
     [Fact]

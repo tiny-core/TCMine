@@ -23,14 +23,14 @@ public sealed class MainHubIdentidadeTests
         await using var factory = new TcMineAppFactory();
         var cookie = await factory.EntrarComoAdminAsync();
 
-        await using var conexao = ConectarAsync(factory, cookie, transporte);
-        await conexao.StartAsync(TestContext.Current.CancellationToken);
+        await using var connection = ConectarAsync(factory, cookie, transporte);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
 
         // Id inexistente de propósito: o admin da instalação é Owner de tudo
         // sem ir ao banco, então o único jeito de isto falhar é o hub não
         // enxergar o usuário. Assinar um servidor que existisse confundiria
         // "não sei quem você é" com "este servidor não existe".
-        var acao = async () => await conexao.InvokeAsync(
+        var acao = async () => await connection.InvokeAsync(
             nameof(IServerHub.SubscribeServerAsync),
             Guid.CreateVersion7());
 

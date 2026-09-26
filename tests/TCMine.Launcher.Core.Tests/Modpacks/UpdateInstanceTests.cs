@@ -22,9 +22,9 @@ public class UpdateInstanceTests
         // os dois caminhos: nem a versão antiga, nem a garantia de poder voltar.
         var ordem = new List<string>();
         var backup = new BackupFalso(temMundo: true, ordem);
-        var cenario = Cenario(backup, ordem);
+        var scenario = Cenario(backup, ordem);
 
-        await cenario.HandleAsync(
+        await scenario.HandleAsync(
             Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
 
         ordem.ShouldBe(["backup", "instalação"]);
@@ -37,13 +37,13 @@ public class UpdateInstanceTests
         // existe é o caso em que o jogador perde tudo sem ninguém saber.
         var ordem = new List<string>();
         var backup = new BackupFalso(temMundo: true, ordem) { Erro = new IOException("disco cheio") };
-        var cenario = Cenario(backup, ordem);
+        var scenario = Cenario(backup, ordem);
 
-        var resultado = await cenario.HandleAsync(
+        var result = await scenario.HandleAsync(
             Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
 
-        resultado.Succeeded.ShouldBeFalse();
-        resultado.Error!.ShouldContain("disco cheio");
+        result.Succeeded.ShouldBeFalse();
+        result.Error!.ShouldContain("disco cheio");
         ordem.ShouldNotContain("instalação");
     }
 
@@ -54,9 +54,9 @@ public class UpdateInstanceTests
         // ignorar o aviso.
         var ordem = new List<string>();
         var backup = new BackupFalso(temMundo: false, ordem);
-        var cenario = Cenario(backup, ordem);
+        var scenario = Cenario(backup, ordem);
 
-        await cenario.HandleAsync(
+        await scenario.HandleAsync(
             Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
 
         ordem.ShouldBe(["instalação"]);
@@ -67,9 +67,9 @@ public class UpdateInstanceTests
     {
         var ordem = new List<string>();
         var backup = new BackupFalso(temMundo: true, ordem);
-        var cenario = Cenario(backup, ordem);
+        var scenario = Cenario(backup, ordem);
 
-        await cenario.HandleAsync(
+        await scenario.HandleAsync(
             Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: false, null, Ct);
 
         ordem.ShouldBe(["instalação"]);
@@ -81,13 +81,13 @@ public class UpdateInstanceTests
         // O ponto inteiro desta fatia. Com alvo nulo o instalador criaria uma
         // instalação ao lado e o mundo ficaria para trás na antiga.
         var ordem = new List<string>();
-        var instalador = new InstaladorFalso(ordem);
-        var instancia = Instalada();
+        var installer = new InstaladorFalso(ordem);
+        var instance = Instalada();
 
-        await new UpdateInstance(instalador, new BackupFalso(false, ordem)).HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), instancia, backupWorld: true, null, Ct);
+        await new UpdateInstance(installer, new BackupFalso(false, ordem)).HandleAsync(
+            Servidor, Pack, Guid.CreateVersion7(), instance, backupWorld: true, null, Ct);
 
-        instalador.Alvo.ShouldBe(instancia.Key);
+        installer.Alvo.ShouldBe(instance.Key);
     }
 
     // ---------- apoio ----------

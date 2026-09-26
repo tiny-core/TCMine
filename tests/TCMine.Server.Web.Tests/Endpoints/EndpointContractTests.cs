@@ -23,16 +23,16 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
     [Fact]
     public async Task Painel_sem_sessao_vai_para_o_login()
     {
-        var resposta = await Cliente.GetAsync("/", TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync("/", TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.Redirect);
+        response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
 
         // O middleware de cookie devolve Location absoluto; o nosso OnRejected
         // devolve relativo. Comparar o caminho vale para os dois.
-        var destino = resposta.Headers.Location!;
-        var caminho = destino.IsAbsoluteUri ? destino.AbsolutePath : destino.ToString();
+        var target = response.Headers.Location!;
+        var path = target.IsAbsoluteUri ? target.AbsolutePath : target.ToString();
 
-        caminho.ShouldStartWith("/login");
+        path.ShouldStartWith("/login");
     }
 
     [Fact]
@@ -40,11 +40,11 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
     {
         var rota = $"/api/v1/servers/{Guid.CreateVersion7()}/backups/{Guid.CreateVersion7()}";
 
-        var resposta = await Cliente.GetAsync(rota, TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync(rota, TestContext.Current.CancellationToken);
 
         // Um backup carrega dados dos jogadores. Seja 302 para o login ou 401, o
         // que não pode acontecer é 200.
-        resposta.StatusCode.ShouldNotBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldNotBe(HttpStatusCode.OK);
     }
 
     [Fact]
@@ -53,19 +53,19 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
         // Anônimo por necessidade: o launcher precisa descobrir se é compatível
         // ANTES de conseguir autenticar. Se um dia isto passar a exigir sessão,
         // todo cliente antigo perde a mensagem de "atualize".
-        var resposta = await Cliente.GetAsync("/api/handshake", TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync("/api/handshake", TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]
     public async Task Blob_com_hash_malformado_e_erro_do_cliente()
     {
-        var resposta = await Cliente.GetAsync("/api/v1/blobs/nao-e-hash", TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync("/api/v1/blobs/nao-e-hash", TestContext.Current.CancellationToken);
 
         // 400 e não 500: o hash vem da URL, então formato inválido é erro de
         // quem pediu.
-        resposta.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
@@ -73,9 +73,9 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
     {
         var ausente = new string('0', 64);
 
-        var resposta = await Cliente.GetAsync($"/api/v1/blobs/{ausente}", TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync($"/api/v1/blobs/{ausente}", TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     /// <summary>

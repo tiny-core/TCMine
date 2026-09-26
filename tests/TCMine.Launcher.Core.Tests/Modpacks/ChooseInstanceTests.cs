@@ -67,23 +67,23 @@ public class ChooseInstanceTests
         new ActiveInstanceView(Instalada("Alpha"), 3).NeedsChoice.ShouldBeFalse();
     }
 
-    private static InstalledInstance Instalada(string nome)
+    private static InstalledInstance Instalada(string name)
     {
-        var chave = InstanceKey.New();
+        var key = InstanceKey.New();
 
         return new InstalledInstance(
-            chave,
+            key,
             new InstanceManifest
             {
                 Schema = 1,
                 ModpackId = Guid.CreateVersion7(),
                 ModpackVersionId = Guid.CreateVersion7(),
-                ModpackName = nome,
+                ModpackName = name,
                 Version = "1.0.0",
                 InstalledAt = DateTimeOffset.UtcNow,
                 ManagedFiles = new Dictionary<string, string>()
             },
             SizeBytes: 0,
-            Path: $"/instancias/{nome}");
+            Path: $"/instancias/{name}");
     }
 }

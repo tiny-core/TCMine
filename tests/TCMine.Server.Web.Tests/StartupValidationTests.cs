@@ -19,11 +19,11 @@ public class StartupValidationTests
         // em cada cliente, silenciosamente.
         using var factory = new TcMineAppFactory("Production", ("Server:PublicUrl", ""));
 
-        var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+        var error = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
 
         // Específico de propósito: duas regras diferentes citam PublicUrl, e
         // asserção genérica passaria com a regra errada disparando.
-        erro.Message.ShouldContain("obrigatório fora de Development");
+        error.Message.ShouldContain("obrigatório fora de Development");
     }
 
     [Fact]
@@ -51,9 +51,9 @@ public class StartupValidationTests
         using var factory = new TcMineAppFactory(
             settings: ("Server:AzureClientId", "nao-e-um-guid"));
 
-        var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+        var error = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
 
-        erro.Message.ShouldContain("Server:AzureClientId");
+        error.Message.ShouldContain("Server:AzureClientId");
     }
 
     [Fact]
@@ -61,9 +61,9 @@ public class StartupValidationTests
     {
         using var factory = new TcMineAppFactory(settings: ("Server:PublicUrl", "ftp://exemplo.com/"));
 
-        var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+        var error = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
 
-        erro.Message.ShouldContain("http/https");
+        error.Message.ShouldContain("http/https");
     }
 
     [Fact]
@@ -71,9 +71,9 @@ public class StartupValidationTests
     {
         using var factory = new TcMineAppFactory(settings: ("Server:Name", "   "));
 
-        var erro = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
+        var error = Should.Throw<OptionsValidationException>(() => factory.CreateClient());
 
-        erro.Message.ShouldContain("Server:Name");
+        error.Message.ShouldContain("Server:Name");
     }
 
     [Fact]
@@ -85,9 +85,9 @@ public class StartupValidationTests
         // quebrada.
         using var factory = new TcMineAppFactory(settings: ("Database:Provider", "MySql"));
 
-        var erro = Should.Throw<InvalidOperationException>(() => factory.CreateClient());
+        var error = Should.Throw<InvalidOperationException>(() => factory.CreateClient());
 
-        erro.Message.ShouldContain("Database:Provider");
+        error.Message.ShouldContain("Database:Provider");
     }
 
     [Fact]
@@ -95,9 +95,9 @@ public class StartupValidationTests
     {
         using var factory = new TcMineAppFactory(settings: ("Database:ConnectionString", ""));
 
-        var erro = Should.Throw<InvalidOperationException>(() => factory.CreateClient());
+        var error = Should.Throw<InvalidOperationException>(() => factory.CreateClient());
 
-        erro.Message.ShouldContain("Database:ConnectionString");
+        error.Message.ShouldContain("Database:ConnectionString");
     }
 
     [Fact]

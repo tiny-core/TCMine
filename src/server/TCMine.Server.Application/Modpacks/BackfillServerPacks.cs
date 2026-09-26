@@ -39,15 +39,15 @@ public sealed class BackfillServerPacks(
             if (source is null)
                 continue;
 
-            var versoes = await repository.ListVersionsAsync(modpack.Id, ct);
+            var versions = await repository.ListVersionsAsync(modpack.Id, ct);
 
-            foreach (var versao in versoes)
+            foreach (var version in versions)
             {
                 ct.ThrowIfCancellationRequested();
 
                 // Já sabemos, ou não há como saber: os dois casos saem daqui.
-                if (versao.UpstreamServerPackFileId is { Length: > 0 }
-                    || versao.UpstreamFileId is not { Length: > 0 } fileId)
+                if (version.UpstreamServerPackFileId is { Length: > 0 }
+                    || version.UpstreamFileId is not { Length: > 0 } fileId)
                 {
                     continue;
                 }
@@ -57,7 +57,7 @@ public sealed class BackfillServerPacks(
                     continue;
 
                 await repository.SetServerPackAsync(
-                    versao.Id, serverPack.FileId, serverPack.PageUrl, ct);
+                    version.Id, serverPack.FileId, serverPack.PageUrl, ct);
 
                 preenchidas++;
             }

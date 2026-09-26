@@ -28,7 +28,7 @@ public sealed class LaunchGame(
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
-        var manifesto = instance.Manifest;
+        var manifest = instance.Manifest;
 
         // Antes de tudo, e sem custo: duas cópias na mesma pasta escrevem o mesmo
         // mundo ao mesmo tempo e corrompem-no. O botão desabilitado já evita o
@@ -38,11 +38,11 @@ public sealed class LaunchGame(
 
         // Instalada por uma build anterior a isto existir. Adivinhar a versão
         // abriria o jogo errado — ou nenhum —, e reinstalar resolve de vez.
-        if (!manifesto.CanLaunch)
+        if (!manifest.CanLaunch)
         {
             return GameLaunchResult.Failed(
                 $"Esta instância foi instalada por uma versão antiga do launcher e não sabe qual "
-                + $"Minecraft executar. Reinstale {manifesto.ModpackName} para poder jogar.");
+                + $"Minecraft executar. Reinstale {manifest.ModpackName} para poder jogar.");
         }
 
         // A conta PRIMEIRO, e de propósito: é o único passo que pode exigir o
@@ -50,7 +50,7 @@ public sealed class LaunchGame(
         // seria fazê-lo esperar para só então pedir que entre outra vez.
         progress?.Report(new GameLaunchProgress("Verificando a conta"));
 
-        var quem = await IdentificarAsync(config, ct);
+        var quem = await IdentifyAsync(config, ct);
 
         if (quem.Erro is not null)
             return GameLaunchResult.Failed(quem.Erro);
@@ -62,8 +62,8 @@ public sealed class LaunchGame(
         // trocou de esquema de versão —, devolveu um Java antigo, e o jogo morreu
         // com "Could not create the Java Virtual Machine" por causa de uma flag
         // que aquele Java não conhecia.
-        var major = await javaRequirement.GetRequiredJavaAsync(manifesto.MinecraftVersion!, ct)
-                    ?? JavaRequirement.ForMinecraft(manifesto.MinecraftVersion);
+        var major = await javaRequirement.GetRequiredJavaAsync(manifest.MinecraftVersion!, ct)
+                    ?? JavaRequirement.ForMinecraft(manifest.MinecraftVersion);
 
         string javaPath;
 
@@ -81,37 +81,37 @@ public sealed class LaunchGame(
             return GameLaunchResult.Failed($"Não foi possível preparar o Java {major}. {ex.Message}");
         }
 
-        var resultado = await launcher.LaunchAsync(
+        var result = await launcher.LaunchAsync(
             new GameLaunchRequest
             {
                 InstanceDirectory = instance.Path,
-                MinecraftVersion = manifesto.MinecraftVersion!,
-                Loader = manifesto.Loader!.Value,
-                LoaderVersion = manifesto.LoaderVersion,
+                MinecraftVersion = manifest.MinecraftVersion!,
+                Loader = manifest.Loader!.Value,
+                LoaderVersion = manifest.LoaderVersion,
                 JavaPath = javaPath,
                 PlayerName = quem.Profile!.Name,
                 PlayerUuid = quem.Profile.Uuid,
                 AccessToken = quem.AccessToken,
-                MemoryMb = manifesto.MemoryMb
+                MemoryMb = manifest.MemoryMb
             },
             progress,
             ct);
 
-        if (!resultado.Started || resultado.Process is null)
-            return resultado;
+        if (!result.Started || result.Process is null)
+            return result;
 
         // Perdeu a corrida com outro arranque: o processo que acabou de abrir não
         // é de ninguém, e deixá-lo correr daria as duas cópias que o guard acima
         // existe para impedir.
-        if (!game.Attach(instance, resultado.Process))
+        if (!game.Attach(instance, result.Process))
         {
-            resultado.Process.Kill();
-            resultado.Process.Dispose();
+            result.Process.Kill();
+            result.Process.Dispose();
 
             return GameLaunchResult.Failed("O jogo já está aberto.");
         }
 
-        return resultado;
+        return result;
     }
 
     /// <summary>
@@ -124,16 +124,16 @@ public sealed class LaunchGame(
     ///     online); token vivo e perfil só em cache (raro, mas joga online na
     ///     mesma); e nem token nem rede, com perfil guardado — abre offline.
     /// </summary>
-    private async Task<Identidade> IdentificarAsync(LauncherConfig config, CancellationToken ct)
+    private async Task<Identity> IdentifyAsync(LauncherConfig config, CancellationToken ct)
     {
-        var conta = await authenticator.TrySilentAsync(config.AzureClientId, ct);
+        var account = await authenticator.TrySilentAsync(config.AzureClientId, ct);
 
         // Fechar a janela do login é uma decisão do jogador, não uma falha de
         // rede: cair no modo offline aqui seria ignorar o que ele acabou de fazer.
-        if (conta.Outcome is AuthOutcome.Cancelled)
-            return new Identidade(Erro: "Entrada cancelada.");
+        if (account.Outcome is AuthOutcome.Cancelled)
+            return new Identity(Erro: "Entrada cancelada.");
 
-        if (conta.Outcome is AuthOutcome.Success && conta.AccessToken is { } token)
+        if (account.Outcome is AuthOutcome.Success && account.AccessToken is { } token)
         {
             if (await profiles.GetAsync(token, ct) is { } vivo)
             {
@@ -141,33 +141,33 @@ public sealed class LaunchGame(
                 // seria reescrever o mesmo ficheiro a cada abertura sem ganho.
                 await perfilGuardado.WriteAsync(vivo, ct);
 
-                return new Identidade(vivo, token);
+                return new Identity(vivo, token);
             }
 
             // Token bom e perfil inalcançável: continua a dar para jogar online,
             // e recusar por causa de um nome que já sabemos seria perder a
             // partida por um detalhe cosmético.
             return await perfilGuardado.ReadAsync(ct) is { } conhecido
-                ? new Identidade(conhecido, token)
-                : new Identidade(Erro:
+                ? new Identity(conhecido, token)
+                : new Identity(Erro:
                     "A sua conta Microsoft respondeu, mas não foi possível obter o perfil do "
                     + "Minecraft. Confirme que esta conta tem o jogo.");
         }
 
         // Sem conta: só resta o que ficou da última vez.
         if (await perfilGuardado.ReadAsync(ct) is { } guardado)
-            return new Identidade(guardado, AccessToken: null);
+            return new Identity(guardado, AccessToken: null);
 
-        return new Identidade(Erro: conta.Outcome is AuthOutcome.NoStoredCredentials
+        return new Identity(Erro: account.Outcome is AuthOutcome.NoStoredCredentials
             ? "Entre com a sua conta Microsoft pelo menos uma vez para poder jogar."
-            : conta.Message ?? "Não foi possível verificar a sua conta Minecraft.");
+            : account.Message ?? "Não foi possível verificar a sua conta Minecraft.");
     }
 
     /// <summary>
     ///     Quem joga. <c>AccessToken</c> nulo com perfil presente é o modo
     ///     offline; <c>Erro</c> preenchido é o fim da linha.
     /// </summary>
-    private sealed record Identidade(
+    private sealed record Identity(
         PlayerProfile? Profile = null,
         string? AccessToken = null,
         string? Erro = null);

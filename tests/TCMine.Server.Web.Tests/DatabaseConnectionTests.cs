@@ -16,7 +16,7 @@ public sealed class DatabaseConnectionTests
     [Fact]
     public void Campos_separados_viram_connection_string_do_postgres()
     {
-        var resultado = Construir(new()
+        var result = Construir(new()
         {
             ["Database:Provider"] = "Postgres",
             ["Database:Host"] = "postgres",
@@ -26,7 +26,7 @@ public sealed class DatabaseConnectionTests
             ["Database:Password"] = "segredo"
         });
 
-        var lida = new NpgsqlConnectionStringBuilder(resultado);
+        var lida = new NpgsqlConnectionStringBuilder(result);
         lida.Host.ShouldBe("postgres");
         lida.Port.ShouldBe(5433);
         lida.Database.ShouldBe("tcmine");
@@ -43,14 +43,14 @@ public sealed class DatabaseConnectionTests
     {
         // O motivo de existir o builder em vez de interpolar texto: um ";" na
         // senha encerraria o campo e o resto viraria outro parâmetro.
-        var resultado = Construir(new()
+        var result = Construir(new()
         {
             ["Database:Provider"] = "Postgres",
             ["Database:Host"] = "postgres",
             ["Database:Password"] = senha
         });
 
-        new NpgsqlConnectionStringBuilder(resultado).Password.ShouldBe(senha);
+        new NpgsqlConnectionStringBuilder(result).Password.ShouldBe(senha);
     }
 
     [Fact]

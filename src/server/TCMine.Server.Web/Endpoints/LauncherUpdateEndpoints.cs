@@ -36,13 +36,13 @@ public static class LauncherUpdateEndpoints
                 string file,
                 CancellationToken ct) =>
             {
-                if (!TentarResolver(raiz, channel, file, out var caminho))
+                if (!TentarResolver(raiz, channel, file, out var path))
                     return Results.NotFound();
 
                 // O Velopack pede o RELEASES e depois o .nupkg. Nenhum dos dois
                 // tem tipo registado, e sem um explícito o ASP.NET recusa-se a
                 // servir — o launcher receberia 404 num ficheiro que existe.
-                return Results.File(caminho, "application/octet-stream", enableRangeProcessing: true);
+                return Results.File(path, "application/octet-stream", enableRangeProcessing: true);
             })
             // Anónimo pela mesma razão do handshake: um launcher que PRECISA de
             // atualizar pode ser velho demais para saber autenticar-se. Os
@@ -61,9 +61,9 @@ public static class LauncherUpdateEndpoints
     ///     O ASP.NET normaliza muita coisa, mas "muita coisa" não é uma garantia
     ///     de que se dependa para servir disco.
     /// </summary>
-    private static bool TentarResolver(string raiz, string channel, string file, out string caminho)
+    private static bool TentarResolver(string raiz, string channel, string file, out string path)
     {
-        caminho = "";
+        path = "";
 
         if (channel.Length is 0 || file.Length is 0)
             return false;
@@ -80,7 +80,7 @@ public static class LauncherUpdateEndpoints
         if (!File.Exists(candidato))
             return false;
 
-        caminho = candidato;
+        path = candidato;
         return true;
     }
 }

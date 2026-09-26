@@ -26,12 +26,12 @@ public class MinecraftAuthenticatorTests
     public async Task Cadeia_completa_devolve_o_token_do_minecraft()
     {
         var handler = CadeiaFeliz();
-        var auth = Montar(handler, AuthResult.Success("token-da-microsoft"));
+        var auth = Build(handler, AuthResult.Success("token-da-microsoft"));
 
-        var resultado = await auth.TrySilentAsync("client", Ct);
+        var result = await auth.TrySilentAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.Success);
-        resultado.AccessToken.ShouldBe("token-do-minecraft");
+        result.Outcome.ShouldBe(AuthOutcome.Success);
+        result.AccessToken.ShouldBe("token-do-minecraft");
     }
 
     [Fact]
@@ -41,7 +41,7 @@ public class MinecraftAuthenticatorTests
         // É o erro mais fácil de cometer e o mais difícil de diagnosticar.
         var handler = CadeiaFeliz();
 
-        await Montar(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
+        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
 
         handler.Pedidos[0].Body.ShouldContain("\"RpsTicket\":\"d=token-da-microsoft\"");
     }
@@ -53,7 +53,7 @@ public class MinecraftAuthenticatorTests
         // que não valem para o pedido têm de sair do JSON, não ir nulos.
         var handler = CadeiaFeliz();
 
-        await Montar(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
+        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
 
         var pedidoAoXsts = handler.Pedidos[1].Body;
 
@@ -69,7 +69,7 @@ public class MinecraftAuthenticatorTests
         // mesmo jogador, e usá-lo aqui compila, parece certo e é recusado.
         var handler = CadeiaFeliz();
 
-        await Montar(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
+        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
 
         handler.Pedidos[2].Body.ShouldContain("XBL3.0 x=hash-do-xsts;token-do-xsts-final");
     }
@@ -81,14 +81,14 @@ public class MinecraftAuthenticatorTests
             .Responde(XboxLive, HttpStatusCode.OK, RespostaDoXboxLive())
             .Responde(Xsts, HttpStatusCode.Unauthorized, new { XErr = 2148916233L });
 
-        var resultado = await Montar(handler, AuthResult.Success("token-da-microsoft"))
+        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
             .SignInAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.Failed);
+        result.Outcome.ShouldBe(AuthOutcome.Failed);
 
         // A mensagem é o produto deste caso: sem ela o jogador vê "não foi
         // possível entrar" e não tem como saber que precisa criar um perfil.
-        resultado.Message!.ShouldContain("xbox.com");
+        result.Message!.ShouldContain("xbox.com");
     }
 
     [Fact]
@@ -98,10 +98,10 @@ public class MinecraftAuthenticatorTests
             .Responde(XboxLive, HttpStatusCode.OK, RespostaDoXboxLive())
             .Responde(Xsts, HttpStatusCode.Unauthorized, new { XErr = 2148916238L });
 
-        var resultado = await Montar(handler, AuthResult.Success("token-da-microsoft"))
+        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
             .SignInAsync("client", Ct);
 
-        resultado.Message!.ShouldContain("família");
+        result.Message!.ShouldContain("família");
     }
 
     [Fact]
@@ -111,9 +111,9 @@ public class MinecraftAuthenticatorTests
         // o primeiro arranque de toda instalação mostrar um erro.
         var handler = new FakeHttpHandler();
 
-        var resultado = await Montar(handler, AuthResult.NoStoredCredentials()).TrySilentAsync("client", Ct);
+        var result = await Build(handler, AuthResult.NoStoredCredentials()).TrySilentAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.NoStoredCredentials);
+        result.Outcome.ShouldBe(AuthOutcome.NoStoredCredentials);
         handler.Pedidos.ShouldBeEmpty();
     }
 
@@ -122,9 +122,9 @@ public class MinecraftAuthenticatorTests
     {
         var handler = new FakeHttpHandler();
 
-        var resultado = await Montar(handler, AuthResult.Cancelled()).SignInAsync("client", Ct);
+        var result = await Build(handler, AuthResult.Cancelled()).SignInAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.Cancelled);
+        result.Outcome.ShouldBe(AuthOutcome.Cancelled);
         handler.Pedidos.ShouldBeEmpty();
     }
 
@@ -134,11 +134,11 @@ public class MinecraftAuthenticatorTests
         // O desfecho e a mensagem do provedor atravessam a cadeia sem tradução.
         var handler = new FakeHttpHandler();
 
-        var resultado = await Montar(handler, AuthResult.Unavailable("build sem login"))
+        var result = await Build(handler, AuthResult.Unavailable("build sem login"))
             .SignInAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.Unavailable);
-        resultado.Message.ShouldBe("build sem login");
+        result.Outcome.ShouldBe(AuthOutcome.Unavailable);
+        result.Message.ShouldBe("build sem login");
     }
 
     [Fact]
@@ -147,10 +147,10 @@ public class MinecraftAuthenticatorTests
         var handler = new FakeHttpHandler()
             .Responde(XboxLive, HttpStatusCode.OK, new { DisplayClaims = new { xui = new[] { new { uhs = "h" } } } });
 
-        var resultado = await Montar(handler, AuthResult.Success("token-da-microsoft"))
+        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
             .TrySilentAsync("client", Ct);
 
-        resultado.Outcome.ShouldBe(AuthOutcome.Failed);
+        result.Outcome.ShouldBe(AuthOutcome.Failed);
 
         // Não chegou ao XSTS: seguir com token nulo daria NullReference no salto
         // seguinte, e o jogador veria um erro sem relação com a causa.
@@ -164,7 +164,7 @@ public class MinecraftAuthenticatorTests
         var provedor = new ProvedorFalso(AuthResult.NoStoredCredentials());
         var handler = new FakeHttpHandler();
 
-        await Montar(handler, provedor).SignOutAsync(Ct);
+        await Build(handler, provedor).SignOutAsync(Ct);
 
         provedor.Saiu.ShouldBeTrue();
         handler.Pedidos.ShouldBeEmpty();
@@ -188,21 +188,21 @@ public class MinecraftAuthenticatorTests
         DisplayClaims = new { xui = new[] { new { uhs = "hash-do-xbox-live" } } }
     };
 
-    private static MinecraftAuthenticator Montar(FakeHttpHandler handler, AuthResult daMicrosoft) =>
-        Montar(handler, new ProvedorFalso(daMicrosoft));
+    private static MinecraftAuthenticator Build(FakeHttpHandler handler, AuthResult daMicrosoft) =>
+        Build(handler, new ProvedorFalso(daMicrosoft));
 
-    private static MinecraftAuthenticator Montar(FakeHttpHandler handler, ProvedorFalso provedor) =>
+    private static MinecraftAuthenticator Build(FakeHttpHandler handler, ProvedorFalso provedor) =>
         new(new HttpClient(handler), provedor, NullLogger<MinecraftAuthenticator>.Instance);
 
-    private sealed class ProvedorFalso(AuthResult resultado) : IMicrosoftTokenProvider
+    private sealed class ProvedorFalso(AuthResult result) : IMicrosoftTokenProvider
     {
         public bool Saiu { get; private set; }
 
         public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(resultado);
+            Task.FromResult(result);
 
         public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(resultado);
+            Task.FromResult(result);
 
         public Task SignOutAsync(CancellationToken ct)
         {

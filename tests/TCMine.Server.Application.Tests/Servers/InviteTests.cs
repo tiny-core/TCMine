@@ -27,13 +27,13 @@ public sealed class InviteTests
             .HandleAsync(ServidorId, ServerRoleDto.Moderator, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
-        var codigo = result.Value!;
+        var code = result.Value!;
 
         // O que fica gravado não pode servir como convite: banco vazado não
         // pode virar acesso aos servidores.
         invites.Adicionado.ShouldNotBeNull();
-        invites.Adicionado.CodeHash.ShouldNotBe(codigo);
-        invites.Adicionado.CodeHash.ShouldBe(SecureToken.Hash(SecureToken.NormalizeCode(codigo)));
+        invites.Adicionado.CodeHash.ShouldNotBe(code);
+        invites.Adicionado.CodeHash.ShouldBe(SecureToken.Hash(SecureToken.NormalizeCode(code)));
         invites.Adicionado.Role.ShouldBe(ServerRole.Moderator);
     }
 
@@ -70,18 +70,18 @@ public sealed class InviteTests
     [Fact]
     public async Task Resgate_cria_o_vinculo_com_o_papel_do_convite()
     {
-        var (codigo, invite) = NovoConvite(ServerRole.Moderator);
+        var (code, invite) = NovoConvite(ServerRole.Moderator);
         var memberships = new FakeMemberships();
-        var jogador = Guid.CreateVersion7();
+        var player = Guid.CreateVersion7();
 
         var result = await new RedeemInvite(
                 new FakeInvites(invite), memberships, new FakeWhitelistSync(),
-                new FakeUserScope(null) { UserId = jogador })
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+                new FakeUserScope(null) { UserId = player })
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
         memberships.Adicionado.ShouldNotBeNull();
-        memberships.Adicionado.UserId.ShouldBe(jogador);
+        memberships.Adicionado.UserId.ShouldBe(player);
         memberships.Adicionado.GameServerId.ShouldBe(ServidorId);
         memberships.Adicionado.Role.ShouldBe(ServerRole.Moderator);
     }
@@ -89,16 +89,16 @@ public sealed class InviteTests
     [Fact]
     public async Task Codigo_serve_uma_vez_so()
     {
-        var (codigo, invite) = NovoConvite(ServerRole.Member);
+        var (code, invite) = NovoConvite(ServerRole.Member);
         var invites = new FakeInvites(invite);
 
         var primeira = await new RedeemInvite(invites, new FakeMemberships(), new FakeWhitelistSync(), Jogador())
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         // Outra pessoa, mesmo código: um convite que serve duas vezes deixaria
         // de haver como saber quem entrou por ele.
         var segunda = await new RedeemInvite(invites, new FakeMemberships(), new FakeWhitelistSync(), Jogador())
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         primeira.Succeeded.ShouldBeTrue();
         segunda.Succeeded.ShouldBeFalse();
@@ -107,11 +107,11 @@ public sealed class InviteTests
     [Fact]
     public async Task Convite_expirado_nao_serve()
     {
-        var codigo = SecureToken.GenerateCode();
-        var invite = Convite(codigo, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
+        var code = SecureToken.GenerateCode();
+        var invite = Convite(code, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
 
         var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
     }
@@ -119,11 +119,11 @@ public sealed class InviteTests
     [Fact]
     public async Task Convite_revogado_nao_serve()
     {
-        var (codigo, invite) = NovoConvite(ServerRole.Member);
+        var (code, invite) = NovoConvite(ServerRole.Member);
         invite.Revoke(DateTimeOffset.UtcNow);
 
         var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeFalse();
     }
@@ -133,14 +133,14 @@ public sealed class InviteTests
     {
         // Diferenciar permitiria varrer códigos: saber que um existe, ainda que
         // expirado, já diz que o formato e o alfabeto estão certos.
-        var codigo = SecureToken.GenerateCode();
-        var expirado = Convite(codigo, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
+        var code = SecureToken.GenerateCode();
+        var expirado = Convite(code, ServerRole.Member, DateTimeOffset.UtcNow.AddMinutes(-1));
 
         var inexistente = await new RedeemInvite(new FakeInvites(), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(SecureToken.GenerateCode(), TestContext.Current.CancellationToken);
 
         var vencido = await new RedeemInvite(new FakeInvites(expirado), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         vencido.Error.ShouldBe(inexistente.Error);
     }
@@ -150,8 +150,8 @@ public sealed class InviteTests
     {
         // O código é lido de uma mensagem e digitado à mão. Recusar por causa
         // da caixa só geraria suporte.
-        var (codigo, invite) = NovoConvite(ServerRole.Member);
-        var digitado = codigo.Replace("-", "").ToLowerInvariant();
+        var (code, invite) = NovoConvite(ServerRole.Member);
+        var digitado = code.Replace("-", "").ToLowerInvariant();
 
         var result = await new RedeemInvite(new FakeInvites(invite), new FakeMemberships(), new FakeWhitelistSync(), Jogador())
             .HandleAsync(digitado, TestContext.Current.CancellationToken);
@@ -162,12 +162,12 @@ public sealed class InviteTests
     [Fact]
     public async Task Convite_promove_mas_nunca_rebaixa_quem_ja_e_membro()
     {
-        var jogador = Guid.CreateVersion7();
-        var (codigo, invite) = NovoConvite(ServerRole.Member);
+        var player = Guid.CreateVersion7();
+        var (code, invite) = NovoConvite(ServerRole.Member);
 
         var existente = new Membership
         {
-            UserId = jogador,
+            UserId = player,
             GameServerId = ServidorId,
             Role = ServerRole.Admin
         };
@@ -176,8 +176,8 @@ public sealed class InviteTests
                 new FakeInvites(invite),
                 new FakeMemberships(existente),
                 new FakeWhitelistSync(),
-                new FakeUserScope(null) { UserId = jogador })
-            .HandleAsync(codigo, TestContext.Current.CancellationToken);
+                new FakeUserScope(null) { UserId = player })
+            .HandleAsync(code, TestContext.Current.CancellationToken);
 
         result.Succeeded.ShouldBeTrue();
 
@@ -344,13 +344,13 @@ public sealed class InviteTests
 
     private static (string Codigo, Invite Convite) NovoConvite(ServerRole role)
     {
-        var codigo = SecureToken.GenerateCode();
-        return (codigo, Convite(codigo, role, DateTimeOffset.UtcNow.AddDays(7)));
+        var code = SecureToken.GenerateCode();
+        return (code, Convite(code, role, DateTimeOffset.UtcNow.AddDays(7)));
     }
 
-    private static Invite Convite(string codigo, ServerRole role, DateTimeOffset expira) => new()
+    private static Invite Convite(string code, ServerRole role, DateTimeOffset expira) => new()
     {
-        CodeHash = SecureToken.Hash(SecureToken.NormalizeCode(codigo)),
+        CodeHash = SecureToken.Hash(SecureToken.NormalizeCode(code)),
         GameServerId = ServidorId,
         Role = role,
         CreatedByUserId = Guid.CreateVersion7(),

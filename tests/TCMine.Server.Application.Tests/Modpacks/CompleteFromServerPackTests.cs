@@ -26,7 +26,7 @@ public sealed class CompleteFromServerPackTests
         var version = Rascunho();
         version.UpsertPending(Pendencia(version.Id, "1234", "5678", "Corail Tombstone"));
 
-        var (caso, repo) = Montar(version, new FakePack(("tombstone-1.21.jar", "conteudo")),
+        var (caso, repo) = Build(version, new FakePack(("tombstone-1.21.jar", "conteudo")),
             new Dictionary<string, string> { ["5678"] = "tombstone-1.21.jar" });
 
         var result = await caso.HandleAsync(version.Id, Ct);
@@ -49,15 +49,15 @@ public sealed class CompleteFromServerPackTests
         var version = Rascunho();
         version.UpsertPending(Pendencia(version.Id, "1234", "5678", "Tombstone", FileSide.ClientOnly));
 
-        var (caso, _) = Montar(version, new FakePack(("tombstone-1.21.jar", "x")),
+        var (caso, _) = Build(version, new FakePack(("tombstone-1.21.jar", "x")),
             new Dictionary<string, string> { ["5678"] = "tombstone-1.21.jar" });
 
         await caso.HandleAsync(version.Id, Ct);
 
-        var arquivo = version.Files.Single();
-        arquivo.ProjectSlug.ShouldBe("1234");
-        arquivo.OriginReference.ShouldBe("5678");
-        arquivo.Side.ShouldBe(FileSide.ClientOnly, "o lado vem da pendência, não é chutado como Both");
+        var file = version.Files.Single();
+        file.ProjectSlug.ShouldBe("1234");
+        file.OriginReference.ShouldBe("5678");
+        file.Side.ShouldBe(FileSide.ClientOnly, "o lado vem da pendência, não é chutado como Both");
     }
 
     [Fact]
@@ -67,7 +67,7 @@ public sealed class CompleteFromServerPackTests
         version.UpsertPending(Pendencia(version.Id, "1234", "5678", "Tombstone"));
         version.UpsertPending(Pendencia(version.Id, "9999", "8888", "Mod só de cliente"));
 
-        var (caso, _) = Montar(version, new FakePack(("tombstone-1.21.jar", "x")),
+        var (caso, _) = Build(version, new FakePack(("tombstone-1.21.jar", "x")),
             new Dictionary<string, string> { ["5678"] = "tombstone-1.21.jar", ["8888"] = "so-cliente.jar" });
 
         var result = await caso.HandleAsync(version.Id, Ct);
@@ -88,7 +88,7 @@ public sealed class CompleteFromServerPackTests
         version.MarkResolving();
         version.MarkReady();
 
-        var (caso, _) = Montar(version, new FakePack(("tombstone-1.21.jar", "x")),
+        var (caso, _) = Build(version, new FakePack(("tombstone-1.21.jar", "x")),
             new Dictionary<string, string> { ["5678"] = "tombstone-1.21.jar" });
 
         var result = await caso.HandleAsync(version.Id, Ct);
@@ -103,7 +103,7 @@ public sealed class CompleteFromServerPackTests
         var version = Rascunho();
         version.UpsertPending(Pendencia(version.Id, "1234", "5678", "Tombstone"));
 
-        var (caso, _) = Montar(version, null,
+        var (caso, _) = Build(version, null,
             new Dictionary<string, string> { ["5678"] = "tombstone-1.21.jar" });
 
         var result = await caso.HandleAsync(version.Id, Ct);
@@ -124,7 +124,7 @@ public sealed class CompleteFromServerPackTests
         version.UpsertFile(Arquivo(version.Id, "mods/colorwheel.jar", "colorwheel"));
         version.UpsertFile(Arquivo(version.Id, "mods/jei.jar", "jei"));
 
-        var (caso, _) = Montar(version, new FakePack(("jei.jar", "x")), []);
+        var (caso, _) = Build(version, new FakePack(("jei.jar", "x")), []);
 
         var result = await caso.HandleAsync(version.Id, Ct);
 
@@ -140,11 +140,11 @@ public sealed class CompleteFromServerPackTests
         // ServerOnly saiu de uma decisão — do admin ou da origem. Não é chute
         // nosso para sobrescrever com uma inferência.
         var version = Rascunho();
-        var arquivo = Arquivo(version.Id, "mods/so-servidor.jar", "so-servidor");
-        arquivo.Side = FileSide.ServerOnly;
-        version.UpsertFile(arquivo);
+        var file = Arquivo(version.Id, "mods/so-servidor.jar", "so-servidor");
+        file.Side = FileSide.ServerOnly;
+        version.UpsertFile(file);
 
-        var (caso, _) = Montar(version, new FakePack(("outro.jar", "x")), []);
+        var (caso, _) = Build(version, new FakePack(("outro.jar", "x")), []);
 
         var result = await caso.HandleAsync(version.Id, Ct);
 
@@ -160,7 +160,7 @@ public sealed class CompleteFromServerPackTests
         var version = Rascunho();
         version.UpsertFile(Arquivo(version.Id, "mods/colorwheel.jar", "colorwheel"));
 
-        var (caso, _) = Montar(version, new FakePack(("outro.jar", "x")), []);
+        var (caso, _) = Build(version, new FakePack(("outro.jar", "x")), []);
 
         var result = await caso.HandleAsync(version.Id, Ct);
 
@@ -179,17 +179,17 @@ public sealed class CompleteFromServerPackTests
         ProjectSlug = slug
     };
 
-    private static (CompleteFromServerPack Caso, FakeRepo Repo) Montar(
+    private static (CompleteFromServerPack Caso, FakeRepo Repo) Build(
         ModpackVersion version, FakePack? pack, Dictionary<string, string> fileNames)
     {
-        var origem = new FakeSource { ServerPack = pack };
-        foreach (var (id, nome) in fileNames)
-            origem.FileNames[id] = nome;
+        var source = new FakeSource { ServerPack = pack };
+        foreach (var (id, name) in fileNames)
+            source.FileNames[id] = name;
 
         var repo = new FakeRepo(version);
 
         return (new CompleteFromServerPack(
-            [origem], repo, new FakeBlobs(), new FakeJobProgress(),
+            [source], repo, new FakeBlobs(), new FakeJobProgress(),
             NullLogger<CompleteFromServerPack>.Instance), repo);
     }
 
@@ -202,12 +202,12 @@ public sealed class CompleteFromServerPackTests
     };
 
     private static PendingMod Pendencia(
-        Guid versionId, string slug, string fileId, string nome, FileSide side = FileSide.Both) =>
+        Guid versionId, string slug, string fileId, string name, FileSide side = FileSide.Both) =>
         new()
         {
             ModpackVersionId = versionId,
             ProjectSlug = slug,
-            DisplayName = nome,
+            DisplayName = name,
             Origin = ModFileOrigin.CurseForge,
             FileId = fileId,
             Side = side,

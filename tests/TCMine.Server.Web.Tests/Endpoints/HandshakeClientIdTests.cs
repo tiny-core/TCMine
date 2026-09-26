@@ -25,9 +25,9 @@ public class HandshakeClientIdTests
         using var factory = new TcMineAppFactory();
         var cliente = factory.CreateClient();
 
-        var resposta = await LerAsync(cliente);
+        var response = await LerAsync(cliente);
 
-        resposta.AzureClientId.ShouldBe(TcMineAppFactory.ClientIdDoArquivo);
+        response.AzureClientId.ShouldBe(TcMineAppFactory.ClientIdDoArquivo);
     }
 
     [Fact]
@@ -38,11 +38,11 @@ public class HandshakeClientIdTests
 
         await GravarNoPainelAsync(factory, DoPainel);
 
-        var resposta = await LerAsync(cliente);
+        var response = await LerAsync(cliente);
 
         // Sem reiniciar o processo: é a razão de o handshake ler do repositório
         // em vez de IOptions, que é fixado no arranque.
-        resposta.AzureClientId.ShouldBe(DoPainel);
+        response.AzureClientId.ShouldBe(DoPainel);
     }
 
     [Fact]
@@ -57,17 +57,17 @@ public class HandshakeClientIdTests
         // A precedência é "painel se houver", não "painel para sempre". Um admin
         // que apaga o campo espera voltar ao que o arquivo diz, e não ficar sem
         // login nenhum.
-        var resposta = await LerAsync(cliente);
+        var response = await LerAsync(cliente);
 
-        resposta.AzureClientId.ShouldBe(TcMineAppFactory.ClientIdDoArquivo);
+        response.AzureClientId.ShouldBe(TcMineAppFactory.ClientIdDoArquivo);
     }
 
     private static async Task<HandshakeResponse> LerAsync(HttpClient cliente)
     {
-        var resposta = await cliente.GetFromJsonAsync<HandshakeResponse>(
+        var response = await cliente.GetFromJsonAsync<HandshakeResponse>(
             "/api/handshake", TestContext.Current.CancellationToken);
 
-        return resposta.ShouldNotBeNull();
+        return response.ShouldNotBeNull();
     }
 
     private static async Task GravarNoPainelAsync(TcMineAppFactory factory, string? clientId)

@@ -22,14 +22,14 @@ public sealed class ChangeFileSideTests
     public async Task Grava_o_lado_novo()
     {
         var version = Rascunho();
-        var arquivo = version.Files.Single();
+        var file = version.Files.Single();
         var repo = new FakeRepo(version);
 
         var result = await new ChangeFileSide(repo)
-            .HandleAsync(version.Id, arquivo.Id, FileSide.ClientOnly, Ct);
+            .HandleAsync(version.Id, file.Id, FileSide.ClientOnly, Ct);
 
         result.Succeeded.ShouldBeTrue(result.Error);
-        repo.LadosGravados[arquivo.Id].ShouldBe(FileSide.ClientOnly);
+        repo.LadosGravados[file.Id].ShouldBe(FileSide.ClientOnly);
     }
 
     [Fact]
@@ -37,11 +37,11 @@ public sealed class ChangeFileSideTests
     {
         // Clicar no valor que já está lá não é motivo para tocar o banco.
         var version = Rascunho();
-        var arquivo = version.Files.Single();
+        var file = version.Files.Single();
         var repo = new FakeRepo(version);
 
         var result = await new ChangeFileSide(repo)
-            .HandleAsync(version.Id, arquivo.Id, FileSide.Both, Ct);
+            .HandleAsync(version.Id, file.Id, FileSide.Both, Ct);
 
         result.Succeeded.ShouldBeTrue();
         repo.LadosGravados.ShouldBeEmpty();
@@ -51,14 +51,14 @@ public sealed class ChangeFileSideTests
     public async Task Recusa_versao_publicada()
     {
         var version = Rascunho();
-        var arquivo = version.Files.Single();
+        var file = version.Files.Single();
         version.MarkResolving();
         version.MarkReady();
 
         var repo = new FakeRepo(version);
 
         var result = await new ChangeFileSide(repo)
-            .HandleAsync(version.Id, arquivo.Id, FileSide.ClientOnly, Ct);
+            .HandleAsync(version.Id, file.Id, FileSide.ClientOnly, Ct);
 
         result.Succeeded.ShouldBeFalse();
         result.Error!.ShouldContain("rascunho");

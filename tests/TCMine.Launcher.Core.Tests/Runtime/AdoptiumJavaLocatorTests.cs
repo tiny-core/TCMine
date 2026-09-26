@@ -43,10 +43,10 @@ public class AdoptiumJavaLocatorTests : IDisposable
         var zip = MontarZip();
         var handler = HandlerCom(zip, Sha256De(zip));
 
-        var caminho = await Montar(handler).EnsureRuntimeAsync(21, null, Ct);
+        var path = await Build(handler).EnsureRuntimeAsync(21, null, Ct);
 
-        File.Exists(caminho).ShouldBeTrue();
-        caminho.ShouldEndWith(Path.Combine("bin", Executavel));
+        File.Exists(path).ShouldBeTrue();
+        path.ShouldEndWith(Path.Combine("bin", Executavel));
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public class AdoptiumJavaLocatorTests : IDisposable
         var handler = HandlerCom(MontarZip(), new string('a', 64));
 
         await Should.ThrowAsync<InvalidOperationException>(
-            async () => await Montar(handler).EnsureRuntimeAsync(21, null, Ct));
+            async () => await Build(handler).EnsureRuntimeAsync(21, null, Ct));
 
         // Nem o .download temporário nem um JRE meio extraído sobrevivem: o
         // arranque seguinte tem de tentar de novo, não achar lixo pela frente.
@@ -77,9 +77,9 @@ public class AdoptiumJavaLocatorTests : IDisposable
 
         var handler = new FakeHttpHandler();
 
-        var caminho = await Montar(handler).EnsureRuntimeAsync(21, null, Ct);
+        var path = await Build(handler).EnsureRuntimeAsync(21, null, Ct);
 
-        caminho.ShouldBe(Path.Combine(bin, Executavel));
+        path.ShouldBe(Path.Combine(bin, Executavel));
         handler.Pedidos.ShouldBeEmpty();
     }
 
@@ -87,14 +87,14 @@ public class AdoptiumJavaLocatorTests : IDisposable
     public async Task O_progresso_vai_de_zero_a_um()
     {
         var zip = MontarZip();
-        var progresso = new ProgressoSincrono<double>();
+        var progress = new ProgressoSincrono<double>();
 
-        await Montar(HandlerCom(zip, Sha256De(zip))).EnsureRuntimeAsync(21, progresso, Ct);
+        await Build(HandlerCom(zip, Sha256De(zip))).EnsureRuntimeAsync(21, progress, Ct);
 
         // Coletor síncrono em vez de Progress<T> com um Task.Delay a rezar: o
         // delay passava por sorte e teria começado a falhar com a suíte maior.
-        progresso.Relatado.ShouldNotBeEmpty();
-        progresso.Relatado[^1].ShouldBe(1, 0.001);
+        progress.Relatado.ShouldNotBeEmpty();
+        progress.Relatado[^1].ShouldBe(1, 0.001);
     }
 
     [Fact]
@@ -105,15 +105,15 @@ public class AdoptiumJavaLocatorTests : IDisposable
         var handler = new FakeHttpHandler();
         handler.Responde(IndiceUrl(21), System.Net.HttpStatusCode.OK, Array.Empty<object>());
 
-        var erro = await Should.ThrowAsync<InvalidOperationException>(
-            async () => await Montar(handler).EnsureRuntimeAsync(21, null, Ct));
+        var error = await Should.ThrowAsync<InvalidOperationException>(
+            async () => await Build(handler).EnsureRuntimeAsync(21, null, Ct));
 
-        erro.Message.ShouldContain("JRE 21");
+        error.Message.ShouldContain("JRE 21");
     }
 
     // ---------- apoio ----------
 
-    private AdoptiumJavaLocator Montar(FakeHttpHandler handler) =>
+    private AdoptiumJavaLocator Build(FakeHttpHandler handler) =>
         new(new HttpClient(handler), new LauncherPaths(_raiz), NullLogger<AdoptiumJavaLocator>.Instance);
 
     private static string IndiceUrl(int major) =>

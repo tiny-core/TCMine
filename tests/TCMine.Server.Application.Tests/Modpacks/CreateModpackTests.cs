@@ -28,9 +28,9 @@ public class CreateModpackTests
         _repo.SlugExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(false);
         var caso = CriarCasoDeUso();
 
-        var resultado = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeTrue();
+        result.Succeeded.ShouldBeTrue();
         await _repo.Received(1).CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 
@@ -40,9 +40,9 @@ public class CreateModpackTests
         _repo.SlugExistsAsync("tech-medieval", Arg.Any<CancellationToken>()).Returns(true);
         var caso = CriarCasoDeUso();
 
-        var resultado = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync(ComandoValido(), TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeFalse();
         await _repo.DidNotReceive().CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 
@@ -56,9 +56,9 @@ public class CreateModpackTests
     {
         var caso = CriarCasoDeUso();
 
-        var resultado = await caso.HandleAsync(ComandoValido(slug), TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync(ComandoValido(slug), TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeFalse();
         await _repo.DidNotReceive().CreateAsync(Arg.Any<Modpack>(), Arg.Any<CancellationToken>());
     }
 

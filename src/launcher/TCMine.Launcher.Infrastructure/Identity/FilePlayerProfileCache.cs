@@ -35,7 +35,7 @@ public sealed partial class FilePlayerProfileCache(
         }
         catch (Exception ex) when (ex is JsonException or IOException)
         {
-            LogIlegivel(ex, Caminho);
+            LogUnreadable(ex, Caminho);
             return null;
         }
     }
@@ -46,18 +46,18 @@ public sealed partial class FilePlayerProfileCache(
 
         // Temporário e move, como o resto: um ficheiro truncado por uma queda
         // seria lido como ausente, e o jogador perderia o modo offline sem saber.
-        var temporario = Caminho + ".tmp";
+        var temporary = Caminho + ".tmp";
 
-        await using (var stream = File.Create(temporario))
+        await using (var stream = File.Create(temporary))
         {
             await JsonSerializer.SerializeAsync(
                 stream, profile, LauncherJsonContext.Default.PlayerProfile, ct);
         }
 
-        File.Move(temporario, Caminho, true);
+        File.Move(temporary, Caminho, true);
     }
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Perfil guardado ilegível em {Caminho}; tratado como ausente.")]
-    private partial void LogIlegivel(Exception ex, string caminho);
+        Message = "Perfil guardado ilegível em {Path}; tratado como ausente.")]
+    private partial void LogUnreadable(Exception ex, string path);
 }

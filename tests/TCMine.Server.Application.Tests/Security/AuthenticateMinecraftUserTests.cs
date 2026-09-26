@@ -19,9 +19,9 @@ public sealed class AuthenticateMinecraftUserTests
         var users = new FakeUsers();
         var caso = new AuthenticateMinecraftUser(users, new FakeProfiles("ana", "abc123"));
 
-        var resultado = await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeTrue();
+        result.Succeeded.ShouldBeTrue();
         users.Adicionado.ShouldNotBeNull();
         users.Adicionado.MinecraftUuid.ShouldBe("abc123");
         users.Adicionado.DisplayName.ShouldBe("ana");
@@ -52,10 +52,10 @@ public sealed class AuthenticateMinecraftUserTests
         var users = new FakeUsers(existente);
         var caso = new AuthenticateMinecraftUser(users, new FakeProfiles("nome-novo", "abc123"));
 
-        var resultado = await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeTrue();
-        resultado.Value.ShouldBeSameAs(existente);
+        result.Succeeded.ShouldBeTrue();
+        result.Value.ShouldBeSameAs(existente);
 
         // Uma conta duplicada aqui significaria o jogador perdendo os próprios
         // vínculos toda vez que trocasse de nome no jogo.
@@ -69,9 +69,9 @@ public sealed class AuthenticateMinecraftUserTests
         var users = new FakeUsers();
         var caso = new AuthenticateMinecraftUser(users, new FakeProfiles(null));
 
-        var resultado = await caso.HandleAsync("token-ruim", TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync("token-ruim", TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeFalse();
         users.Adicionado.ShouldBeNull();
     }
 
@@ -82,9 +82,9 @@ public sealed class AuthenticateMinecraftUserTests
         var profiles = new FakeProfiles("ana", "abc123");
         var caso = new AuthenticateMinecraftUser(users, profiles);
 
-        var resultado = await caso.HandleAsync("   ", TestContext.Current.CancellationToken);
+        var result = await caso.HandleAsync("   ", TestContext.Current.CancellationToken);
 
-        resultado.Succeeded.ShouldBeFalse();
+        result.Succeeded.ShouldBeFalse();
         profiles.Consultado.ShouldBeFalse();
     }
 

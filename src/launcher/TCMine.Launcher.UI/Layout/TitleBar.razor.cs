@@ -19,8 +19,8 @@ public partial class TitleBar : ComponentBase, IDisposable
     ///     janela é qual. O nome do produto fica, porque a janela também aparece
     ///     na barra de tarefas ao lado de tudo o mais.
     /// </summary>
-    private string Title => Shell.ServerName is { Length: > 0 } servidor
-        ? $"{AppInfo.Title} — {servidor}"
+    private string Title => Shell.ServerName is { Length: > 0 } server
+        ? $"{AppInfo.Title} — {server}"
         : AppInfo.Title;
 
     public void Dispose()

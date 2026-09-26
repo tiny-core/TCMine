@@ -40,15 +40,15 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         var raiz = Directory.GetParent(layout.Versions)!.FullName;
 
         Directory.CreateDirectory(raiz);
-        GarantirPerfilDoLauncher(raiz);
+        EnsureLauncherProfile(raiz);
 
-        var jar = await BaixarInstaladorAsync(neoForgeVersion, ct);
+        var jar = await DownloadInstallerAsync(neoForgeVersion, ct);
 
         try
         {
             progress?.Report(new GameLaunchProgress($"Instalando NeoForge {neoForgeVersion}"));
 
-            await CorrerInstaladorAsync(javaPath, jar, raiz, ct);
+            await RunInstallerAsync(javaPath, jar, raiz, ct);
         }
         finally
         {
@@ -65,34 +65,34 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         return nomeDaVersao;
     }
 
-    private async Task<string> BaixarInstaladorAsync(string neoForgeVersion, CancellationToken ct)
+    private async Task<string> DownloadInstallerAsync(string neoForgeVersion, CancellationToken ct)
     {
         var url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/"
                   + $"{neoForgeVersion}/neoforge-{neoForgeVersion}-installer.jar";
 
-        var destino = Path.Combine(Path.GetTempPath(), $"neoforge-{Guid.CreateVersion7():N}.jar");
+        var target = Path.Combine(Path.GetTempPath(), $"neoforge-{Guid.CreateVersion7():N}.jar");
 
-        using var resposta = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
 
-        if (!resposta.IsSuccessStatusCode)
+        if (!response.IsSuccessStatusCode)
         {
             // 404 aqui quer dizer versão que não existe, e essa é a informação
             // útil: o admin publicou um pack com um NeoForge que ninguém tem.
             throw new InvalidOperationException(
                 $"O NeoForge {neoForgeVersion} não está disponível no repositório oficial "
-                + $"(HTTP {(int)resposta.StatusCode}).");
+                + $"(HTTP {(int)response.StatusCode}).");
         }
 
-        await using (var origem = await resposta.Content.ReadAsStreamAsync(ct))
-        await using (var arquivo = File.Create(destino))
+        await using (var source = await response.Content.ReadAsStreamAsync(ct))
+        await using (var file = File.Create(target))
         {
-            await origem.CopyToAsync(arquivo, ct);
+            await source.CopyToAsync(file, ct);
         }
 
-        return destino;
+        return target;
     }
 
-    private async Task CorrerInstaladorAsync(
+    private async Task RunInstallerAsync(
         string javaPath,
         string jar,
         string raiz,
@@ -111,25 +111,25 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
             CreateNoWindow = true
         };
 
-        using var processo = Process.Start(info)
+        using var process = Process.Start(info)
                              ?? throw new InvalidOperationException(
                                  "Não foi possível executar o instalador do NeoForge.");
 
         // Lidas em paralelo: o instalador escreve bastante, e não drenar os dois
         // canais enche o buffer do pipe e trava o processo para sempre — sem
         // erro, sem saída, só um jogo que nunca abre.
-        var saida = processo.StandardOutput.ReadToEndAsync(ct);
-        var erro = processo.StandardError.ReadToEndAsync(ct);
+        var saida = process.StandardOutput.ReadToEndAsync(ct);
+        var error = process.StandardError.ReadToEndAsync(ct);
 
-        await processo.WaitForExitAsync(ct);
+        await process.WaitForExitAsync(ct);
 
-        if (processo.ExitCode is 0)
+        if (process.ExitCode is 0)
             return;
 
-        LogInstaladorFalhou(logger, processo.ExitCode, (await erro).Trim(), (await saida).Trim(), null);
+        LogInstallerFailed(logger, process.ExitCode, (await error).Trim(), (await saida).Trim(), null);
 
         throw new InvalidOperationException(
-            $"O instalador do NeoForge terminou com erro {processo.ExitCode}.");
+            $"O instalador do NeoForge terminou com erro {process.ExitCode}.");
     }
 
     /// <summary>
@@ -138,17 +138,17 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
     ///     escrever um perfil lá. Um ficheiro com um objeto vazio satisfaz a
     ///     verificação, e o perfil que ele grava é ignorado por nós.
     /// </summary>
-    private static void GarantirPerfilDoLauncher(string raiz)
+    private static void EnsureLauncherProfile(string raiz)
     {
-        var caminho = Path.Combine(raiz, "launcher_profiles.json");
+        var path = Path.Combine(raiz, "launcher_profiles.json");
 
-        if (!File.Exists(caminho))
-            File.WriteAllText(caminho, """{"profiles":{},"version":3}""");
+        if (!File.Exists(path))
+            File.WriteAllText(path, """{"profiles":{},"version":3}""");
     }
 
-    private static readonly Action<ILogger, int, string, string, Exception?> LogInstaladorFalhou =
+    private static readonly Action<ILogger, int, string, string, Exception?> LogInstallerFailed =
         LoggerMessage.Define<int, string, string>(
             LogLevel.Error,
-            new EventId(1, nameof(LogInstaladorFalhou)),
+            new EventId(1, nameof(LogInstallerFailed)),
             "Instalador do NeoForge saiu com {Codigo}. stderr: {Erro} stdout: {Saida}");
 }

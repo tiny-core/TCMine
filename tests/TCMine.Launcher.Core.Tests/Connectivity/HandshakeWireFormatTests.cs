@@ -28,18 +28,18 @@ public class HandshakeWireFormatTests
     [Fact]
     public void A_resposta_do_servidor_e_desserializavel_pelo_launcher()
     {
-        var resposta = JsonSerializer.Deserialize(
+        var response = JsonSerializer.Deserialize(
             RespostaReal, TcMineJsonContext.Default.HandshakeResponse);
 
-        resposta.ShouldNotBeNull();
-        resposta.ServerName.ShouldBe("TCMine Server");
-        resposta.ProtocolMin.ShouldBe(1);
-        resposta.ProtocolMax.ShouldBe(1);
-        resposta.LauncherChannel.ShouldBe("win-x64-p1");
-        resposta.AzureClientId.ShouldBe("demo-client-id");
-        resposta.Capabilities.ShouldContain("console.stream");
-        resposta.MinLauncherVersion.ShouldBeNull();
-        resposta.UpdatesFrozen.ShouldBeFalse();
+        response.ShouldNotBeNull();
+        response.ServerName.ShouldBe("TCMine Server");
+        response.ProtocolMin.ShouldBe(1);
+        response.ProtocolMax.ShouldBe(1);
+        response.LauncherChannel.ShouldBe("win-x64-p1");
+        response.AzureClientId.ShouldBe("demo-client-id");
+        response.Capabilities.ShouldContain("console.stream");
+        response.MinLauncherVersion.ShouldBeNull();
+        response.UpdatesFrozen.ShouldBeFalse();
     }
 
     [Fact]

@@ -26,42 +26,42 @@ public sealed partial class MinecraftServicesProfileSource(
     {
         try
         {
-            using var pedido = new HttpRequestMessage(HttpMethod.Get, ProfileUrl);
-            pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var request = new HttpRequestMessage(HttpMethod.Get, ProfileUrl);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
-            using var resposta = await http.SendAsync(pedido, ct);
+            using var response = await http.SendAsync(request, ct);
 
-            if (!resposta.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
                 // 404 aqui é a conta não ter o jogo — Microsoft válida, Minecraft
                 // não comprado. Distinto de rede em baixo, e o jogador precisa de
                 // saber a diferença, mas a decisão do que dizer é de quem chama.
-                LogRecusou((int)resposta.StatusCode);
+                LogRejected((int)response.StatusCode);
                 return null;
             }
 
-            var perfil = await resposta.Content.ReadFromJsonAsync(
+            var perfil = await response.Content.ReadFromJsonAsync(
                 MinecraftProfileJsonContext.Default.MinecraftProfileResponse, ct);
 
-            return perfil?.Name is { Length: > 0 } nome && perfil.Id is { Length: > 0 } id
-                ? new PlayerProfile(nome, id)
+            return perfil?.Name is { Length: > 0 } name && perfil.Id is { Length: > 0 } id
+                ? new PlayerProfile(name, id)
                 : null;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             // Sem rede é o caso normal deste método, não uma falha: quem chama
             // recorre ao perfil guardado.
-            LogIndisponivel(ex);
+            LogUnavailable(ex);
             return null;
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "O Minecraft recusou o perfil com HTTP {Codigo}.")]
-    private partial void LogRecusou(int codigo);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "O Minecraft recusou o perfil com HTTP {Code}.")]
+    private partial void LogRejected(int code);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Perfil do Minecraft indisponível; o launcher usa o último conhecido.")]
-    private partial void LogIndisponivel(Exception ex);
+    private partial void LogUnavailable(Exception ex);
 }
 
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]

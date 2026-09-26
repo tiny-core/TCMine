@@ -27,7 +27,7 @@ public sealed partial class LauncherSessionApi(
 
         try
         {
-            var resposta = await http.PostAsJsonAsync(
+            var response = await http.PostAsJsonAsync(
                 endpoint,
                 new MinecraftLoginRequest { AccessToken = minecraftAccessToken },
                 TcMineJsonContext.Default.MinecraftLoginRequest,
@@ -36,7 +36,7 @@ public sealed partial class LauncherSessionApi(
             // 401 é o servidor dizendo que a credencial não serve; qualquer
             // outro código é problema de infraestrutura. A distinção decide se a
             // interface oferece "tentar de novo" ou manda trocar de conta.
-            if (resposta.StatusCode is HttpStatusCode.Unauthorized)
+            if (response.StatusCode is HttpStatusCode.Unauthorized)
             {
                 LogRecusado(endpoint);
 
@@ -44,18 +44,18 @@ public sealed partial class LauncherSessionApi(
                     "O servidor não reconheceu esta conta Minecraft. Verifique se é a conta certa.");
             }
 
-            if (!resposta.IsSuccessStatusCode)
+            if (!response.IsSuccessStatusCode)
             {
-                LogFalhou(endpoint, (int)resposta.StatusCode);
-                return SessionResult.Failed($"O servidor respondeu {(int)resposta.StatusCode} ao entrar.");
+                LogFailed(endpoint, (int)response.StatusCode);
+                return SessionResult.Failed($"O servidor respondeu {(int)response.StatusCode} ao entrar.");
             }
 
-            var sessao = await resposta.Content.ReadFromJsonAsync(
+            var session = await response.Content.ReadFromJsonAsync(
                 TcMineJsonContext.Default.LauncherSessionDto, ct);
 
-            return sessao is null
+            return session is null
                 ? SessionResult.Failed("O servidor aceitou a conta mas não devolveu a sessão.")
-                : SessionResult.Success(sessao);
+                : SessionResult.Success(session);
         }
         catch (HttpRequestException ex)
         {
@@ -92,7 +92,7 @@ public sealed partial class LauncherSessionApi(
     private partial void LogRecusado(Uri endpoint);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Entrada em {Endpoint} respondeu {StatusCode}.")]
-    private partial void LogFalhou(Uri endpoint, int statusCode);
+    private partial void LogFailed(Uri endpoint, int statusCode);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao falar com {Endpoint}.")]
     private partial void LogErro(Exception ex, Uri endpoint);

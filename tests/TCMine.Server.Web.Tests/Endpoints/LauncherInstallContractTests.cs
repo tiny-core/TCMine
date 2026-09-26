@@ -38,7 +38,7 @@ public sealed class LauncherInstallContractTests : IDisposable
     [Fact]
     public async Task O_jogador_instala_e_o_disco_fica_igual_ao_manifesto()
     {
-        await using var servidor = new RealPortAppFactory
+        await using var server = new RealPortAppFactory
         {
             Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
@@ -47,39 +47,39 @@ public sealed class LauncherInstallContractTests : IDisposable
         var jar = "conteudo do jar de teste"u8.ToArray();
         var config = "chave = valor"u8.ToArray();
 
-        var (modpackId, sha) = await SemearVersaoAsync(servidor, jar, config);
+        var (modpackId, sha) = await SemearVersaoAsync(server, jar, config);
 
         await using var launcher = MontarLauncher();
 
-        var pareamento = new TCMine.Contracts.LauncherConfig
+        var pairing = new TCMine.Contracts.LauncherConfig
         {
-            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
 
-        (await launcher.GetRequiredService<SignIn>().InteractiveAsync(pareamento, Ct))
+        (await launcher.GetRequiredService<SignIn>().InteractiveAsync(pairing, Ct))
             .IsSignedIn.ShouldBeTrue();
 
         var catalogo = await launcher.GetRequiredService<LoadCatalog>()
-            .HandleAsync(servidor.Address, Ct);
+            .HandleAsync(server.Address, Ct);
 
         var pack = catalogo.Entries.Single(e => e.Modpack.Id == modpackId).Modpack;
 
         // O caminho completo: manifesto pelo hub, bytes por HTTP, hash conferido,
         // arquivos materializados.
-        var resultado = await launcher.GetRequiredService<InstallModpackVersion>()
-            .InstallLatestAsync(servidor.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
+        var result = await launcher.GetRequiredService<InstallModpackVersion>()
+            .InstallLatestAsync(server.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
 
-        resultado.Succeeded.ShouldBeTrue(resultado.Error);
+        result.Succeeded.ShouldBeTrue(result.Error);
 
-        var instancia = launcher.GetRequiredService<IInstanceStore>().PathFor(resultado.Key!.Value);
+        var instance = launcher.GetRequiredService<IInstanceStore>().PathFor(result.Key!.Value);
 
-        (await File.ReadAllBytesAsync(Path.Combine(instancia, "mods", "jei.jar"), Ct)).ShouldBe(jar);
-        (await File.ReadAllBytesAsync(Path.Combine(instancia, "config", "jei.toml"), Ct)).ShouldBe(config);
+        (await File.ReadAllBytesAsync(Path.Combine(instance, "mods", "jei.jar"), Ct)).ShouldBe(jar);
+        (await File.ReadAllBytesAsync(Path.Combine(instance, "config", "jei.toml"), Ct)).ShouldBe(config);
 
         // E o manifesto local ficou gravado: é ele, e não uma varredura da pasta,
         // que o próximo update vai usar para saber o que pode apagar.
-        resultado.Instance!.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], ignoreOrder: true);
-        resultado.Instance.ManagedFiles["mods/jei.jar"].ShouldBe(sha);
+        result.Instance!.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], ignoreOrder: true);
+        result.Instance.ManagedFiles["mods/jei.jar"].ShouldBe(sha);
     }
 
     [Fact]
@@ -88,45 +88,45 @@ public sealed class LauncherInstallContractTests : IDisposable
         // A segunda instalação é um diff contra o manifesto local: nada mudou,
         // então nada acontece. E o mundo criado entre as duas continua lá — ele
         // nunca esteve no conjunto gerenciado, então nunca entrou no ToDelete.
-        await using var servidor = new RealPortAppFactory
+        await using var server = new RealPortAppFactory
         {
             Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
         };
 
-        var (modpackId, _) = await SemearVersaoAsync(servidor, "jar"u8.ToArray(), "cfg"u8.ToArray());
+        var (modpackId, _) = await SemearVersaoAsync(server, "jar"u8.ToArray(), "cfg"u8.ToArray());
 
         await using var launcher = MontarLauncher();
 
-        var pareamento = new TCMine.Contracts.LauncherConfig
+        var pairing = new TCMine.Contracts.LauncherConfig
         {
-            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
 
-        await launcher.GetRequiredService<SignIn>().InteractiveAsync(pareamento, Ct);
+        await launcher.GetRequiredService<SignIn>().InteractiveAsync(pairing, Ct);
 
-        var catalogo = await launcher.GetRequiredService<LoadCatalog>().HandleAsync(servidor.Address, Ct);
+        var catalogo = await launcher.GetRequiredService<LoadCatalog>().HandleAsync(server.Address, Ct);
         var pack = catalogo.Entries.Single(e => e.Modpack.Id == modpackId).Modpack;
 
-        var instalador = launcher.GetRequiredService<InstallModpackVersion>();
-        var primeira = await instalador.InstallLatestAsync(servidor.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
+        var installer = launcher.GetRequiredService<InstallModpackVersion>();
+        var primeira = await installer.InstallLatestAsync(server.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
 
-        var instancia = launcher.GetRequiredService<IInstanceStore>().PathFor(primeira.Key!.Value);
+        var instance = launcher.GetRequiredService<IInstanceStore>().PathFor(primeira.Key!.Value);
 
         // O jogador jogou: criou um mundo e mexeu nas opções.
-        var mundo = Path.Combine(instancia, "saves", "meu-mundo", "level.dat");
+        var mundo = Path.Combine(instance, "saves", "meu-mundo", "level.dat");
         Directory.CreateDirectory(Path.GetDirectoryName(mundo)!);
         await File.WriteAllTextAsync(mundo, "o mundo dele", Ct);
-        await File.WriteAllTextAsync(Path.Combine(instancia, "options.txt"), "fov:90", Ct);
+        await File.WriteAllTextAsync(Path.Combine(instance, "options.txt"), "fov:90", Ct);
 
         // A MESMA instância, que é o que "atualizar" passou a significar. Com
         // alvo nulo o instalador criaria uma instalação nova ao lado, e o mundo
         // ficaria intacto na antiga — o teste passaria a verificar o nada.
-        var segunda = await instalador.InstallLatestAsync(servidor.Address, pack, primeira.Key, ReleaseChannel.Release, null, Ct);
+        var segunda = await installer.InstallLatestAsync(server.Address, pack, primeira.Key, ReleaseChannel.Release, null, Ct);
 
         segunda.Succeeded.ShouldBeTrue(segunda.Error);
         File.Exists(mundo).ShouldBeTrue("o mundo do jogador não é gerenciado pelo launcher");
-        File.Exists(Path.Combine(instancia, "options.txt")).ShouldBeTrue();
+        File.Exists(Path.Combine(instance, "options.txt")).ShouldBeTrue();
     }
 
     private ServiceProvider MontarLauncher()
@@ -167,14 +167,14 @@ public sealed class LauncherInstallContractTests : IDisposable
             Loader = ModLoader.NeoForge
         };
 
-        var versao = new ModpackVersion
+        var version = new ModpackVersion
         {
             ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
         };
 
-        versao.UpsertFile(new ModpackFile
+        version.UpsertFile(new ModpackFile
         {
-            ModpackVersionId = versao.Id,
+            ModpackVersionId = version.Id,
             Path = "mods/jei.jar",
             Sha256 = shaJar,
             SizeBytes = jar.Length,
@@ -183,9 +183,9 @@ public sealed class LauncherInstallContractTests : IDisposable
             ProjectSlug = "jei"
         });
 
-        versao.UpsertFile(new ModpackFile
+        version.UpsertFile(new ModpackFile
         {
-            ModpackVersionId = versao.Id,
+            ModpackVersionId = version.Id,
             Path = "config/jei.toml",
             Sha256 = shaConfig,
             SizeBytes = config.Length,
@@ -194,11 +194,11 @@ public sealed class LauncherInstallContractTests : IDisposable
             ProjectSlug = "override:config/jei.toml"
         });
 
-        versao.MarkResolving();
-        versao.MarkReady();
+        version.MarkResolving();
+        version.MarkReady();
 
         await repo.CreateAsync(modpack, Ct);
-        await repo.AddVersionAsync(versao, Ct);
+        await repo.AddVersionAsync(version, Ct);
 
         return (modpack.Id, shaJar);
     }

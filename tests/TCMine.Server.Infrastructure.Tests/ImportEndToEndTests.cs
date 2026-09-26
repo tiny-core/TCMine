@@ -57,15 +57,15 @@ public sealed class ImportEndToEndTests
         // ---- O que a importação gravou ----
 
         var modpack = await repo.GetByIdAsync(criado.Value, Ct);
-        var versao = (await repo.ListVersionsAsync(criado.Value, Ct)).Single();
+        var version = (await repo.ListVersionsAsync(criado.Value, Ct)).Single();
 
         modpack.ShouldNotBeNull();
-        versao.State.ShouldBe(ModpackVersionState.Draft);
+        version.State.ShouldBe(ModpackVersionState.Draft);
 
         // O snapshot da origem guarda um par projeto/arquivo e o NOME de cada
         // mod: num pack deste tamanho são dezenas de KB, e a coluna já foi
         // varchar(512).
-        var comSnapshot = await repo.GetVersionAsync(versao.Id, Ct);
+        var comSnapshot = await repo.GetVersionAsync(version.Id, Ct);
         comSnapshot!.UpstreamSnapshotJson.ShouldNotBeNullOrEmpty();
         comSnapshot.UpstreamSnapshotJson!.Length.ShouldBeGreaterThan(10_000);
 
@@ -82,9 +82,9 @@ public sealed class ImportEndToEndTests
             new InspetorMudo(), new ProgressoMudo(),
             NullLogger<ModpackIngestionService>.Instance);
 
-        await ingestao.IngestAsync(versao.Id, fila.Itens, Ct);
+        await ingestao.IngestAsync(version.Id, fila.Itens, Ct);
 
-        var depois = await repo.GetVersionAsync(versao.Id, Ct);
+        var depois = await repo.GetVersionAsync(version.Id, Ct);
 
         // Volta ao rascunho: pendência não reprova a versão.
         depois!.State.ShouldBe(ModpackVersionState.Draft);
@@ -125,23 +125,23 @@ public sealed class ImportEndToEndTests
             new ProgressoMudo(), new DownloaderFixo(), new EscopoDeTeste());
 
         var criado = await import.HandleAsync(ModFileOrigin.CurseForge, "925200", null, Ct);
-        var versao = (await repo.ListVersionsAsync(criado.Value, Ct)).Single();
+        var version = (await repo.ListVersionsAsync(criado.Value, Ct)).Single();
 
         ModpackIngestionService Servico() => new(
             repo, blobs, [new ResolverDeTeste()], downloader,
             new InspetorMudo(), new ProgressoMudo(),
             NullLogger<ModpackIngestionService>.Instance);
 
-        await Servico().IngestAsync(versao.Id, fila.Itens, Ct);
+        await Servico().IngestAsync(version.Id, fila.Itens, Ct);
 
         var primeiraPassada = downloader.Baixados;
-        var apos = await repo.GetVersionAsync(versao.Id, Ct);
+        var apos = await repo.GetVersionAsync(version.Id, Ct);
         var arquivosDepoisDaPrimeira = apos!.Files.Count;
 
         // Volta a Draft entre as duas: a ingestão exige rascunho.
-        await Should.NotThrowAsync(() => Servico().IngestAsync(versao.Id, fila.Itens, Ct));
+        await Should.NotThrowAsync(() => Servico().IngestAsync(version.Id, fila.Itens, Ct));
 
-        var final = await repo.GetVersionAsync(versao.Id, Ct);
+        var final = await repo.GetVersionAsync(version.Id, Ct);
 
         final!.Files.Count.ShouldBe(arquivosDepoisDaPrimeira, "reingerir não pode acumular arquivo");
         downloader.Baixados.ShouldBe(primeiraPassada, "o que não mudou não desce de novo");

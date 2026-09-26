@@ -60,11 +60,11 @@ public sealed class InviteFlowTests
             await semConvite.ShouldThrowAsync<HubException>();
         }
 
-        var codigo = await SemearConviteAsync(factory, servidorId);
+        var code = await SemearConviteAsync(factory, servidorId);
 
         var resgate = await client.PostAsJsonAsync(
             "/api/v1/invites/redeem",
-            new RedeemInviteRequest { Code = codigo },
+            new RedeemInviteRequest { Code = code },
             TestContext.Current.CancellationToken);
 
         resgate.StatusCode.ShouldBe(HttpStatusCode.NoContent);
@@ -113,11 +113,11 @@ public sealed class InviteFlowTests
             vazia.ShouldBeEmpty();
         }
 
-        var codigo = await SemearConviteAsync(factory, servidorId);
+        var code = await SemearConviteAsync(factory, servidorId);
 
         await client.PostAsJsonAsync(
             "/api/v1/invites/redeem",
-            new RedeemInviteRequest { Code = codigo },
+            new RedeemInviteRequest { Code = code },
             TestContext.Current.CancellationToken);
 
         await using var depois = Conectar(factory, cookie);
@@ -126,9 +126,9 @@ public sealed class InviteFlowTests
         var lista = await depois.InvokeAsync<IReadOnlyList<GameServerDto>>(
             nameof(IServerHub.GetServersAsync), TestContext.Current.CancellationToken);
 
-        var servidor = lista.ShouldHaveSingleItem();
-        servidor.Id.ShouldBe(servidorId);
-        servidor.Role.ShouldBe(ServerRoleDto.Moderator);
+        var server = lista.ShouldHaveSingleItem();
+        server.Id.ShouldBe(servidorId);
+        server.Role.ShouldBe(ServerRoleDto.Moderator);
 
         // O DTO não tem onde carregar o segredo, e é essa a garantia: quem tem a
         // senha do RCON controla a máquina do jogo. Se um dia alguém acrescentar
@@ -146,12 +146,12 @@ public sealed class InviteFlowTests
             AllowAutoRedirect = false
         });
 
-        var resposta = await client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/api/v1/invites/redeem",
             new RedeemInviteRequest { Code = "AAAA-BBBB-CCCC-DDDD" },
             TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldNotBe(HttpStatusCode.NoContent);
+        response.StatusCode.ShouldNotBe(HttpStatusCode.NoContent);
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public sealed class InviteFlowTests
     /// </summary>
     private static async Task<string> SemearConviteAsync(TcMineAppFactory factory, Guid servidorId)
     {
-        var codigo = Server.Application.Security.SecureToken.GenerateCode();
+        var code = Server.Application.Security.SecureToken.GenerateCode();
 
         using var escopo = factory.Services.CreateScope();
         var db = await escopo.ServiceProvider
@@ -171,7 +171,7 @@ public sealed class InviteFlowTests
         db.Invites.Add(new Invite
         {
             CodeHash = Server.Application.Security.SecureToken.Hash(
-                Server.Application.Security.SecureToken.NormalizeCode(codigo)),
+                Server.Application.Security.SecureToken.NormalizeCode(code)),
             GameServerId = servidorId,
             Role = ServerRole.Moderator,
             CreatedByUserId = Guid.CreateVersion7(),
@@ -179,7 +179,7 @@ public sealed class InviteFlowTests
         });
 
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
-        return codigo;
+        return code;
     }
 
     /// <summary>
@@ -194,7 +194,7 @@ public sealed class InviteFlowTests
             .GetRequiredService<IDbContextFactory<TcMineDbContext>>()
             .CreateDbContextAsync(TestContext.Current.CancellationToken);
 
-        var servidor = new GameServer
+        var server = new GameServer
         {
             Name = "Survival",
             ModpackId = Guid.CreateVersion7(),
@@ -203,10 +203,10 @@ public sealed class InviteFlowTests
             RconSecret = "segredo-que-nao-pode-vazar"
         };
 
-        db.GameServers.Add(servidor);
+        db.GameServers.Add(server);
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
 
-        return servidor.Id;
+        return server.Id;
     }
 
     private static HubConnection Conectar(TcMineAppFactory factory, string cookie) =>

@@ -26,21 +26,21 @@ public sealed class LauncherAuthEndpointsTests
         await using var factory = ComPerfil(new MinecraftProfile("abc123", "ana"));
         var client = factory.CreateClient();
 
-        var resposta = await client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/api/v1/auth/minecraft",
             new MinecraftLoginRequest { AccessToken = "token-bom" },
             TestContext.Current.CancellationToken);
 
-        resposta.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var sessao = await resposta.Content.ReadFromJsonAsync<LauncherSessionDto>(
+        var session = await response.Content.ReadFromJsonAsync<LauncherSessionDto>(
             TestContext.Current.CancellationToken);
 
-        sessao.ShouldNotBeNull();
-        sessao.MinecraftUuid.ShouldBe("abc123");
-        sessao.DisplayName.ShouldBe("ana");
+        session.ShouldNotBeNull();
+        session.MinecraftUuid.ShouldBe("abc123");
+        session.DisplayName.ShouldBe("ana");
 
-        resposta.Headers.GetValues("Set-Cookie")
+        response.Headers.GetValues("Set-Cookie")
             .ShouldContain(c => c.StartsWith("tcmine.auth=", StringComparison.Ordinal));
     }
 
@@ -50,14 +50,14 @@ public sealed class LauncherAuthEndpointsTests
         await using var factory = ComPerfil(null);
         var client = factory.CreateClient();
 
-        var resposta = await client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/api/v1/auth/minecraft",
             new MinecraftLoginRequest { AccessToken = "token-ruim" },
             TestContext.Current.CancellationToken);
 
         // 401 e não 400: o pedido estava correto, a credencial é que não serve.
-        resposta.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
-        resposta.Headers.Contains("Set-Cookie").ShouldBeFalse();
+        response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        response.Headers.Contains("Set-Cookie").ShouldBeFalse();
     }
 
     [Fact]
@@ -66,16 +66,16 @@ public sealed class LauncherAuthEndpointsTests
         await using var factory = ComPerfil(new MinecraftProfile("abc123", "ana"));
         var client = factory.CreateClient();
 
-        var resposta = await client.PostAsJsonAsync(
+        var response = await client.PostAsJsonAsync(
             "/api/v1/auth/minecraft",
             new MinecraftLoginRequest { AccessToken = "token-bom" },
             TestContext.Current.CancellationToken);
 
-        var cookie = resposta.Headers.GetValues("Set-Cookie")
+        var cookie = response.Headers.GetValues("Set-Cookie")
             .First(c => c.StartsWith("tcmine.auth=", StringComparison.Ordinal))
             .Split(';')[0];
 
-        await using var conexao = new HubConnectionBuilder()
+        await using var connection = new HubConnectionBuilder()
             .WithUrl(new Uri(factory.Server.BaseAddress, HubRoutes.Main), options =>
             {
                 options.Transports = HttpTransportType.LongPolling;
@@ -84,11 +84,11 @@ public sealed class LauncherAuthEndpointsTests
             })
             .Build();
 
-        await conexao.StartAsync(TestContext.Current.CancellationToken);
+        await connection.StartAsync(TestContext.Current.CancellationToken);
 
         // A conexão é aceita — a sessão é legítima. O que falta é vínculo, e é
         // o Membership (fatia do convite) que vai concedê-lo.
-        var acao = async () => await conexao.InvokeAsync(
+        var acao = async () => await connection.InvokeAsync(
             nameof(IServerHub.SubscribeServerAsync),
             Guid.CreateVersion7());
 

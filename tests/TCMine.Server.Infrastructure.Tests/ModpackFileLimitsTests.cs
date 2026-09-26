@@ -58,10 +58,10 @@ public sealed class ModpackFileLimitsTests
 
         var entidade = db.Model.FindEntityType(typeof(ModpackFile))!;
 
-        foreach (var nome in new[] { nameof(ModpackFile.Path), nameof(ModpackFile.ProjectSlug) })
+        foreach (var name in new[] { nameof(ModpackFile.Path), nameof(ModpackFile.ProjectSlug) })
         {
-            entidade.FindProperty(nome)!.GetMaxLength()
-                .ShouldNotBe(512, $"{nome} precisa de limite próprio, não o da convenção global");
+            entidade.FindProperty(name)!.GetMaxLength()
+                .ShouldNotBe(512, $"{name} precisa de limite próprio, não o da convenção global");
         }
     }
 }

@@ -81,9 +81,9 @@ public sealed partial class DockerMailServerOrchestrator(
         // A chave é gerada no primeiro arranque e fica num arquivo dentro do
         // container. Ler o arquivo é mais firme que pedir ao setup: o formato do
         // arquivo é estável e o comando muda entre versões da imagem.
-        var caminho = $"/tmp/docker-mailserver/opendkim/keys/{domain}/mail.txt";
+        var path = $"/tmp/docker-mailserver/opendkim/keys/{domain}/mail.txt";
 
-        var saida = await docker.ExecAsync(ContainerName, ["cat", caminho], ct);
+        var saida = await docker.ExecAsync(ContainerName, ["cat", path], ct);
 
         return string.IsNullOrWhiteSpace(saida) ? null : LimparRegistro(saida);
     }

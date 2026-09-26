@@ -26,7 +26,7 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
         IReadOnlyList<InstalledInstance> instances,
         CancellationToken ct)
     {
-        var novidades = new Dictionary<InstanceKey, ModpackVersionDto>();
+        var news = new Dictionary<InstanceKey, ModpackVersionDto>();
 
         // Uma consulta por (MODPACK, CANAL), e não por instância: duas
         // instalações do mesmo pack pediriam a mesma resposta duas vezes, e uma
@@ -37,16 +37,16 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
                      i.Manifest.ModpackId,
                      Canal: ReleaseChannels.Of(i.Manifest.Version))))
         {
-            var ultima = await UltimaAsync(grupo.Key.ModpackId, grupo.Key.Canal, ct);
+            var latest = await UltimaAsync(grupo.Key.ModpackId, grupo.Key.Canal, ct);
 
-            if (ultima is null)
+            if (latest is null)
                 continue;
 
-            foreach (var instancia in grupo.Where(i => i.Manifest.ModpackVersionId != ultima.Id))
-                novidades[instancia.Key] = ultima;
+            foreach (var instance in grupo.Where(i => i.Manifest.ModpackVersionId != latest.Id))
+                news[instance.Key] = latest;
         }
 
-        return novidades;
+        return news;
     }
 
     private async Task<ModpackVersionDto?> UltimaAsync(

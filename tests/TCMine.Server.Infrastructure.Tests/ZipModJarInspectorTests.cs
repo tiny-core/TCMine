@@ -72,15 +72,15 @@ public sealed class ZipModJarInspectorTests
         info.DeclaredSide.ShouldBeNull("o neoforge.mods.toml não tem campo de lado por mod");
     }
 
-    private static MemoryStream Jar(string caminho, string conteudo)
+    private static MemoryStream Jar(string path, string content)
     {
         var buffer = new MemoryStream();
 
         using (var zip = new ZipArchive(buffer, ZipArchiveMode.Create, true))
         {
-            var entrada = zip.CreateEntry(caminho);
+            var entrada = zip.CreateEntry(path);
             using var escrita = entrada.Open();
-            escrita.Write(Encoding.UTF8.GetBytes(conteudo));
+            escrita.Write(Encoding.UTF8.GetBytes(content));
         }
 
         buffer.Position = 0;

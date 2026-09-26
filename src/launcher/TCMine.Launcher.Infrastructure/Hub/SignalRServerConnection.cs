@@ -73,24 +73,24 @@ public sealed partial class SignalRServerConnection(
     }
 
     public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync(CancellationToken ct) =>
-        Exigir().GetModpacksAsync();
+        Require().GetModpacksAsync();
 
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct) =>
-        Exigir().GetServersAsync();
+        Require().GetServersAsync();
 
     public Task<ModpackVersionDto?> GetLatestVersionAsync(
         Guid modpackId, ReleaseChannel channel, CancellationToken ct) =>
-        Exigir().GetLatestVersionAsync(modpackId, channel);
+        Require().GetLatestVersionAsync(modpackId, channel);
 
     public Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
         Guid modpackId, ReleaseChannel channel, CancellationToken ct) =>
-        Exigir().GetVersionsAsync(modpackId, channel);
+        Require().GetVersionsAsync(modpackId, channel);
 
     public Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId, CancellationToken ct) =>
-        Exigir().GetNewsAsync(modpackId);
+        Require().GetNewsAsync(modpackId);
 
     public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct) =>
-        Exigir().GetModpackVersionAsync(versionId);
+        Require().GetModpackVersionAsync(versionId);
 
     public async ValueTask DisposeAsync() => await FecharAsync();
 
@@ -100,7 +100,7 @@ public sealed partial class SignalRServerConnection(
     ///     mensagem clara é melhor que devolver lista vazia, que a tela exibiria
     ///     como "o servidor não tem modpacks".
     /// </summary>
-    private LauncherHubClient Exigir() =>
+    private LauncherHubClient Require() =>
         _client ?? throw new InvalidOperationException("O canal com o servidor não está aberto.");
 
     private async Task FecharAsync()

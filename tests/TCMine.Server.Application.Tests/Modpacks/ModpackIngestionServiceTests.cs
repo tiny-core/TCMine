@@ -211,8 +211,8 @@ public sealed class ModpackIngestionServiceTests
 
         Assert.Equal(ModpackVersionState.Failed, version.State);
 
-        var (_, erro) = Assert.Single(progress.Completed);
-        Assert.NotNull(erro);
+        var (_, error) = Assert.Single(progress.Completed);
+        Assert.NotNull(error);
     }
 
     [Fact]

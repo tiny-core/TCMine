@@ -67,7 +67,7 @@ public sealed class GameSession
 
         // Sem await de propósito: a bomba vive enquanto o jogo viver, e quem
         // abriu o jogo não pode ficar preso até ele fechar.
-        _ = BombearAsync(process);
+        _ = PumpAsync(process);
 
         return true;
     }
@@ -81,13 +81,13 @@ public sealed class GameSession
         }
     }
 
-    private async Task BombearAsync(IGameProcess process)
+    private async Task PumpAsync(IGameProcess process)
     {
         try
         {
-            await foreach (var linha in process.ReadOutputAsync(CancellationToken.None))
+            await foreach (var line in process.ReadOutputAsync(CancellationToken.None))
             {
-                _log.Enqueue(linha);
+                _log.Enqueue(line);
 
                 while (_log.Count > MaxLogLines)
                     _log.TryDequeue(out _);
@@ -105,7 +105,7 @@ public sealed class GameSession
         {
             lock (_porta)
             {
-                LastExitCode = SairEmSilencio(process);
+                LastExitCode = ExitCodeOrNull(process);
                 _processo = null;
                 Running = null;
             }
@@ -122,7 +122,7 @@ public sealed class GameSession
     ///     <c>finally</c> que limpa o estado, e falhar nele deixaria o launcher a
     ///     achar que ainda há um jogo aberto para sempre.
     /// </summary>
-    private static int? SairEmSilencio(IGameProcess process)
+    private static int? ExitCodeOrNull(IGameProcess process)
     {
         try
         {

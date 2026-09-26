@@ -25,9 +25,9 @@ public sealed class FakeGameProcess : IGameProcess
 
     public async IAsyncEnumerable<string> ReadOutputAsync([EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var linha in _linhas.Reader.ReadAllAsync(ct))
+        await foreach (var line in _linhas.Reader.ReadAllAsync(ct))
         {
-            yield return linha;
+            yield return line;
 
             if (Erro is not null)
                 throw Erro;
@@ -42,7 +42,7 @@ public sealed class FakeGameProcess : IGameProcess
 
     public void Dispose() { }
 
-    public void Escrever(string linha) => _linhas.Writer.TryWrite(linha);
+    public void Escrever(string line) => _linhas.Writer.TryWrite(line);
 
     public void Terminar() => _linhas.Writer.TryComplete();
 }

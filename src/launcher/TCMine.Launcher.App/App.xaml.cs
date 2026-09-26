@@ -129,7 +129,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            LogFalhaAoParar(_logger, ex);
+            LogStopFailed(_logger, ex);
         }
 
         _host.Dispose();
@@ -137,10 +137,10 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    private static readonly Action<ILogger, Exception?> LogFalhaAoParar =
+    private static readonly Action<ILogger, Exception?> LogStopFailed =
         LoggerMessage.Define(
             LogLevel.Warning,
-            new EventId(2, nameof(LogFalhaAoParar)),
+            new EventId(2, nameof(LogStopFailed)),
             "O host não parou limpo no fecho; a aplicação sai na mesma.");
 
     /// <summary>
@@ -173,11 +173,11 @@ public partial class App : Application
     {
         var assembly = Assembly.GetExecutingAssembly();
 
-        var versao = assembly
+        var version = assembly
                          .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
                          .InformationalVersion
                      ?? "0.0.0-dev";
 
-        return new LauncherAppInfo { Title = "TCMine Launcher", Version = versao };
+        return new LauncherAppInfo { Title = "TCMine Launcher", Version = version };
     }
 }

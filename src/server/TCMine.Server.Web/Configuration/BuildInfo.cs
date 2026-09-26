@@ -28,8 +28,8 @@ public static class BuildInfo
 
         // O SDK acrescenta "+<sha do commit>" quando o repositório é conhecido.
         // O hash não cabe num rodapé e não diz nada a quem opera.
-        var versao = bruta.Split('+')[0];
+        var version = bruta.Split('+')[0];
 
-        return versao is "1.0.0" or "0.0.0" ? "dev" : versao;
+        return version is "1.0.0" or "0.0.0" ? "dev" : version;
     }
 }

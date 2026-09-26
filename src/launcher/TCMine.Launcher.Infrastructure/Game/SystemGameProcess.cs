@@ -21,9 +21,9 @@ internal sealed class SystemGameProcess : IGameProcess
 
     private readonly Process _processo;
 
-    public SystemGameProcess(Process processo)
+    public SystemGameProcess(Process process)
     {
-        _processo = processo;
+        _processo = process;
 
         _processo.OutputDataReceived += AoReceber;
         _processo.ErrorDataReceived += AoReceber;
@@ -47,8 +47,8 @@ internal sealed class SystemGameProcess : IGameProcess
         // nunca termina, e a sessão ficaria eternamente "a jogar".
         _ = FecharAoSairAsync();
 
-        await foreach (var linha in _linhas.Reader.ReadAllAsync(ct))
-            yield return linha;
+        await foreach (var line in _linhas.Reader.ReadAllAsync(ct))
+            yield return line;
     }
 
     public void Kill()

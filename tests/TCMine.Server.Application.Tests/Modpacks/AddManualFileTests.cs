@@ -20,11 +20,11 @@ public sealed class AddManualFileTests
     [InlineData("mods/../../fora.jar")]
     [InlineData("..\\fora.jar")]
     [InlineData("mods/..")]
-    public async Task Recusa_caminho_que_escapa_da_instancia(string caminho)
+    public async Task Recusa_caminho_que_escapa_da_instancia(string path)
     {
-        var (caso, repo, blobs) = Montar();
+        var (caso, repo, blobs) = Build();
 
-        var result = await caso.HandleAsync(Comando(repo.Rascunho.Id, caminho), Ct);
+        var result = await caso.HandleAsync(Comando(repo.Rascunho.Id, path), Ct);
 
         result.Succeeded.ShouldBeFalse();
 
@@ -37,11 +37,11 @@ public sealed class AddManualFileTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("/")]
-    public async Task Recusa_caminho_vazio(string caminho)
+    public async Task Recusa_caminho_vazio(string path)
     {
-        var (caso, repo, _) = Montar();
+        var (caso, repo, _) = Build();
 
-        var result = await caso.HandleAsync(Comando(repo.Rascunho.Id, caminho), Ct);
+        var result = await caso.HandleAsync(Comando(repo.Rascunho.Id, path), Ct);
 
         result.Succeeded.ShouldBeFalse();
     }
@@ -51,7 +51,7 @@ public sealed class AddManualFileTests
     {
         // O admin digita o caminho como está acostumado no sistema dele; o pack
         // usa barra normal e caminho relativo, sempre.
-        var (caso, repo, _) = Montar();
+        var (caso, repo, _) = Build();
 
         var result = await caso.HandleAsync(Comando(repo.Rascunho.Id, "/config\\mod\\arquivo.toml"), Ct);
 
@@ -64,7 +64,7 @@ public sealed class AddManualFileTests
     {
         // Versão Ready é imutável: quem já instalou não receberia o arquivo
         // novo, e o manifesto deixaria de descrever o que está no disco.
-        var (caso, repo, blobs) = Montar();
+        var (caso, repo, blobs) = Build();
 
         var result = await caso.HandleAsync(Comando(repo.Publicada.Id, "mods/x.jar"), Ct);
 
@@ -77,7 +77,7 @@ public sealed class AddManualFileTests
     {
         // Dois arquivos no mesmo lugar tornariam indeterminado qual vale, e no
         // disco um sobrescreveria o outro.
-        var (caso, repo, _) = Montar();
+        var (caso, repo, _) = Build();
 
         await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/JEI.jar"), Ct);
         var segunda = await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/jei.jar"), Ct);
@@ -88,7 +88,7 @@ public sealed class AddManualFileTests
     [Fact]
     public async Task Versao_inexistente_e_recusada()
     {
-        var (caso, _, _) = Montar();
+        var (caso, _, _) = Build();
 
         var result = await caso.HandleAsync(Comando(Guid.CreateVersion7(), "mods/x.jar"), Ct);
 
@@ -101,7 +101,7 @@ public sealed class AddManualFileTests
         new(versionId, path, new MemoryStream(Encoding.UTF8.GetBytes("conteudo")),
             "application/java-archive", FileSide.Both, false);
 
-    private static (AddManualFile Caso, FakeRepo Repo, FakeBlobs Blobs) Montar()
+    private static (AddManualFile Caso, FakeRepo Repo, FakeBlobs Blobs) Build()
     {
         var repo = new FakeRepo();
         var blobs = new FakeBlobs();

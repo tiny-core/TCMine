@@ -23,8 +23,8 @@ public partial class ManualUploadDialog
         if (ProjectSlug is { Length: > 0 })
             _targetFolder = InstanceFolders.Mods;
 
-        if (DefaultFolder is { Length: > 0 } pasta)
-            _targetFolder = pasta;
+        if (DefaultFolder is { Length: > 0 } folder)
+            _targetFolder = folder;
 
         if (DefaultSide is { } lado)
             _side = lado;

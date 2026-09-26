@@ -26,47 +26,47 @@ public sealed partial class MojangJavaRequirementSource(
     {
         try
         {
-            return LerDoDisco(minecraftVersion) ?? await LerDaMojangAsync(minecraftVersion, ct);
+            return ReadFromDisk(minecraftVersion) ?? await ReadFromMojangAsync(minecraftVersion, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            LogNaoDeuParaSaber(ex, minecraftVersion);
+            LogUnknownJava(ex, minecraftVersion);
             return null;
         }
     }
 
     private string VersionsDirectory => Path.Combine(paths.RootDirectory, "minecraft", "versions");
 
-    private int? LerDoDisco(string minecraftVersion)
+    private int? ReadFromDisk(string minecraftVersion)
     {
-        var caminho = Path.Combine(VersionsDirectory, minecraftVersion, $"{minecraftVersion}.json");
+        var path = Path.Combine(VersionsDirectory, minecraftVersion, $"{minecraftVersion}.json");
 
-        return File.Exists(caminho) ? Extrair(File.ReadAllBytes(caminho)) : null;
+        return File.Exists(path) ? Extract(File.ReadAllBytes(path)) : null;
     }
 
-    private async Task<int?> LerDaMojangAsync(string minecraftVersion, CancellationToken ct)
+    private async Task<int?> ReadFromMojangAsync(string minecraftVersion, CancellationToken ct)
     {
-        using var manifesto = JsonDocument.Parse(await http.GetByteArrayAsync(ManifestUrl, ct));
+        using var manifest = JsonDocument.Parse(await http.GetByteArrayAsync(ManifestUrl, ct));
 
         // ValueKind explícito, e não FirstOrDefault().TryGetProperty(): o default
         // de um JsonElement é Undefined, e perguntar-lhe por uma propriedade
         // ATIRA. Funcionaria — o catch lá fora devolveria nulo — mas registaria
         // "não deu para saber" quando a resposta certa é "a Mojang não conhece
         // esta versão", que é outra coisa e manda investigar noutro sítio.
-        var versao = manifesto.RootElement
+        var version = manifest.RootElement
             .GetProperty("versions")
             .EnumerateArray()
             .FirstOrDefault(v => v.GetProperty("id").GetString() == minecraftVersion);
 
-        if (versao.ValueKind is not JsonValueKind.Object || !versao.TryGetProperty("url", out var url))
+        if (version.ValueKind is not JsonValueKind.Object || !version.TryGetProperty("url", out var url))
         {
             // Acontece com snapshots e com um pack publicado com a versão escrita
             // à mão errada.
-            LogVersaoDesconhecida(minecraftVersion);
+            LogUnknownVersion(minecraftVersion);
             return null;
         }
 
-        return Extrair(await http.GetByteArrayAsync(url.GetString()!, ct));
+        return Extract(await http.GetByteArrayAsync(url.GetString()!, ct));
     }
 
     /// <summary>
@@ -74,7 +74,7 @@ public sealed partial class MojangJavaRequirementSource(
     ///     Versões antigas do Minecraft não declaram este bloco — nasceram antes
     ///     de a Mojang gerir o Java —, e para elas não saber é a resposta honesta.
     /// </summary>
-    private static int? Extrair(byte[] json)
+    private static int? Extract(byte[] json)
     {
         using var documento = JsonDocument.Parse(json);
 
@@ -85,10 +85,10 @@ public sealed partial class MojangJavaRequirementSource(
     }
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "A Mojang não conhece a versão {Versao}; o Java virá do palpite.")]
-    private partial void LogVersaoDesconhecida(string versao);
+        Message = "A Mojang não conhece a versão {Version}; o Java virá do palpite.")]
+    private partial void LogUnknownVersion(string version);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Não foi possível saber que Java a versão {Versao} pede; usando o palpite.")]
-    private partial void LogNaoDeuParaSaber(Exception ex, string versao);
+        Message = "Não foi possível saber que Java a versão {Version} pede; usando o palpite.")]
+    private partial void LogUnknownJava(Exception ex, string version);
 }

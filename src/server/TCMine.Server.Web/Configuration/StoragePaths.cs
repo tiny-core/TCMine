@@ -32,13 +32,13 @@ public static class StoragePaths
         if (configuration["BlobStorage:RootPath"] is { Length: > 0 } blobs)
             pastas.Add(blobs);
 
-        if (configuration["Instances:RootPath"] is { Length: > 0 } instancias)
+        if (configuration["Instances:RootPath"] is { Length: > 0 } instances)
         {
-            pastas.Add(instancias);
+            pastas.Add(instances);
 
             // Os snapshots ficam FORA da pasta da instância, que o
             // materializador reescreve a cada troca de versão.
-            pastas.Add(Path.Combine(instancias, "backups"));
+            pastas.Add(Path.Combine(instances, "backups"));
         }
 
         // Chaves de proteção de dados. Sem elas persistidas, toda sessão cai a
@@ -46,8 +46,8 @@ public static class StoragePaths
         // SMTP) deixa de ser legível.
         pastas.Add(KeysPath(configuration, environment));
 
-        foreach (var pasta in pastas)
-            Criar(pasta, environment.ContentRootPath);
+        foreach (var folder in pastas)
+            Criar(folder, environment.ContentRootPath);
 
         ValidarCaminhoDeInstancias(configuration);
     }
@@ -139,14 +139,14 @@ public static class StoragePaths
         return string.IsNullOrEmpty(diretorio) ? null : diretorio;
     }
 
-    private static void Criar(string caminho, string contentRoot)
+    private static void Criar(string path, string contentRoot)
     {
         // Relativo é relativo à raiz do conteúdo, não ao diretório de trabalho:
         // um serviço do systemd ou um container podem iniciar o processo de
         // qualquer lugar, e aí "data/" apontaria para outro lugar a cada vez.
-        var absoluto = Path.IsPathRooted(caminho)
-            ? caminho
-            : Path.GetFullPath(Path.Combine(contentRoot, caminho));
+        var absoluto = Path.IsPathRooted(path)
+            ? path
+            : Path.GetFullPath(Path.Combine(contentRoot, path));
 
         if (Directory.Exists(absoluto))
             return;

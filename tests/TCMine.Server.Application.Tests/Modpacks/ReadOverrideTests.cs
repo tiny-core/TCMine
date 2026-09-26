@@ -13,8 +13,8 @@ public sealed class ReadOverrideTests
     [Fact]
     public async Task Le_arquivo_de_texto_normal()
     {
-        var conteudo = Encoding.UTF8.GetBytes("greeting=olá\n");
-        var (useCase, _) = Build("config/mod.toml", conteudo);
+        var content = Encoding.UTF8.GetBytes("greeting=olá\n");
+        var (useCase, _) = Build("config/mod.toml", content);
 
         var result = await useCase.HandleAsync(Guid.Empty, "config/mod.toml", CancellationToken.None);
 
@@ -55,7 +55,7 @@ public sealed class ReadOverrideTests
     // ---- Fixtures ----
 
     private static (ReadOverride UseCase, FakeBlobStore Store) Build(
-        string path, byte[] conteudo, long? tamanhoDeclarado = null)
+        string path, byte[] content, long? tamanhoDeclarado = null)
     {
         var version = new ModpackVersion { ModpackId = Guid.Empty, Version = "1.0.0", LoaderVersion = "1" };
         version.UpsertFile(new ModpackFile
@@ -63,26 +63,26 @@ public sealed class ReadOverrideTests
             ModpackVersionId = version.Id,
             Path = path,
             Sha256 = new string('a', 64),
-            SizeBytes = tamanhoDeclarado ?? conteudo.Length,
+            SizeBytes = tamanhoDeclarado ?? content.Length,
             Side = FileSide.Both,
             Origin = ModFileOrigin.Override,
             ProjectSlug = $"override:{path}"
         });
 
-        var store = new FakeBlobStore(conteudo);
+        var store = new FakeBlobStore(content);
         return (new ReadOverride(new FakeRepo(version), store), store);
     }
 
     // ---- Fakes ----
 
-    private sealed class FakeBlobStore(byte[] conteudo) : FakeBlobStoreBase
+    private sealed class FakeBlobStore(byte[] content) : FakeBlobStoreBase
     {
         public bool Aberto { get; private set; }
 
         public override Task<Stream> OpenAsync(string sha256, CancellationToken ct)
         {
             Aberto = true;
-            return Task.FromResult<Stream>(new MemoryStream(conteudo));
+            return Task.FromResult<Stream>(new MemoryStream(content));
         }
 
         public override Task<bool> ExistsAsync(string sha256, CancellationToken ct) => Task.FromResult(true);

@@ -23,18 +23,18 @@ public class LaunchGameTests
     {
         var motor = new MotorFalso();
 
-        var resultado = await Montar(motor: motor).HandleAsync(
+        var result = await Build(motor: motor).HandleAsync(
             Instalada(), Config(), null, Ct);
 
-        resultado.Started.ShouldBeTrue();
+        result.Started.ShouldBeTrue();
 
-        var pedido = motor.Recebido.ShouldNotBeNull();
-        pedido.AccessToken.ShouldBe("token-do-minecraft");
-        pedido.JavaPath.ShouldBe("/runtimes/21/bin/java");
-        pedido.MinecraftVersion.ShouldBe("1.21.1");
-        pedido.Loader.ShouldBe(ModLoader.NeoForge);
-        pedido.PlayerUuid.ShouldBe("abc123");
-        pedido.PlayerName.ShouldBe("Jogador");
+        var request = motor.Recebido.ShouldNotBeNull();
+        request.AccessToken.ShouldBe("token-do-minecraft");
+        request.JavaPath.ShouldBe("/runtimes/21/bin/java");
+        request.MinecraftVersion.ShouldBe("1.21.1");
+        request.Loader.ShouldBe(ModLoader.NeoForge);
+        request.PlayerUuid.ShouldBe("abc123");
+        request.PlayerName.ShouldBe("Jogador");
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class LaunchGameTests
         // com "Could not create the Java Virtual Machine".
         var java = new FakeJavaLocator();
 
-        await Montar(java: java, javaDeclarado: 25).HandleAsync(
+        await Build(java: java, javaDeclarado: 25).HandleAsync(
             Instalada(minecraft: "26.2"), Config(), null, Ct);
 
         java.Requested.ShouldBe(25);
@@ -58,7 +58,7 @@ public class LaunchGameTests
         // abrir.
         var java = new FakeJavaLocator();
 
-        await Montar(java: java).HandleAsync(
+        await Build(java: java).HandleAsync(
             Instalada(minecraft: "1.20.4"), Config(), null, Ct);
 
         java.Requested.ShouldBe(17);
@@ -69,14 +69,14 @@ public class LaunchGameTests
     {
         // Sem MinecraftVersion não há o que executar, e adivinhar abriria o jogo
         // errado. A mensagem tem de nomear o pack: o jogador pode ter vários.
-        var manifesto = Manifesto() with { MinecraftVersion = null, Loader = null };
+        var manifest = Manifesto() with { MinecraftVersion = null, Loader = null };
 
-        var resultado = await Montar().HandleAsync(
-            Instalada(manifesto), Config(), null, Ct);
+        var result = await Build().HandleAsync(
+            Instalada(manifest), Config(), null, Ct);
 
-        resultado.Started.ShouldBeFalse();
-        resultado.Message!.ShouldContain("Reinstale");
-        resultado.Message!.ShouldContain("Pack de Teste");
+        result.Started.ShouldBeFalse();
+        result.Message!.ShouldContain("Reinstale");
+        result.Message!.ShouldContain("Pack de Teste");
     }
 
     [Fact]
@@ -84,11 +84,11 @@ public class LaunchGameTests
     {
         // Primeira instalação sem nunca ter entrado: não há identidade nenhuma, e
         // "tente de novo" mandaria o jogador clicar para sempre sem resolver.
-        var resultado = await Montar(conta: AuthResult.NoStoredCredentials()).HandleAsync(
+        var result = await Build(account: AuthResult.NoStoredCredentials()).HandleAsync(
             Instalada(), Config(), null, Ct);
 
-        resultado.Started.ShouldBeFalse();
-        resultado.Message!.ShouldContain("pelo menos uma vez");
+        result.Started.ShouldBeFalse();
+        result.Message!.ShouldContain("pelo menos uma vez");
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class LaunchGameTests
         var cache = new CacheFalso();
         var motor = new MotorFalso();
 
-        await Montar(motor: motor, cache: cache,
+        await Build(motor: motor, cache: cache,
                 perfis: new PerfilFalso(new PlayerProfile("Steve", "uuid-do-steve")))
             .HandleAsync(Instalada(), Config(), null, Ct);
 
@@ -116,13 +116,13 @@ public class LaunchGameTests
         // regra é do Minecraft, não nossa.
         var motor = new MotorFalso();
 
-        var resultado = await Montar(
+        var result = await Build(
                 motor: motor,
-                conta: AuthResult.Failed("sem rede"),
+                account: AuthResult.Failed("sem rede"),
                 cache: new CacheFalso(new PlayerProfile("Steve", "uuid-do-steve")))
             .HandleAsync(Instalada(), Config(), null, Ct);
 
-        resultado.Started.ShouldBeTrue();
+        result.Started.ShouldBeTrue();
         motor.Recebido!.AccessToken.ShouldBeNull();
         motor.Recebido.PlayerName.ShouldBe("Steve");
     }
@@ -132,13 +132,13 @@ public class LaunchGameTests
     {
         // Fechar a janela é uma decisão do jogador, não uma falha de rede: abrir
         // offline aqui seria ignorar o que ele acabou de fazer.
-        var resultado = await Montar(
-                conta: AuthResult.Cancelled(),
+        var result = await Build(
+                account: AuthResult.Cancelled(),
                 cache: new CacheFalso(new PlayerProfile("Steve", "uuid-do-steve")))
             .HandleAsync(Instalada(), Config(), null, Ct);
 
-        resultado.Started.ShouldBeFalse();
-        resultado.Message!.ShouldContain("cancelada");
+        result.Started.ShouldBeFalse();
+        result.Message!.ShouldContain("cancelada");
     }
 
     [Fact]
@@ -148,7 +148,7 @@ public class LaunchGameTests
         // um detalhe cosmético.
         var motor = new MotorFalso();
 
-        await Montar(
+        await Build(
                 motor: motor,
                 perfis: new PerfilFalso(null),
                 cache: new CacheFalso(new PlayerProfile("Steve", "uuid-do-steve")))
@@ -165,7 +165,7 @@ public class LaunchGameTests
         // download seria fazer o jogador esperar para só então pedir que entre.
         var java = new FakeJavaLocator();
 
-        await Montar(java: java, conta: AuthResult.NoStoredCredentials()).HandleAsync(
+        await Build(java: java, account: AuthResult.NoStoredCredentials()).HandleAsync(
             Instalada(), Config(), null, Ct);
 
         java.Requested.ShouldBeNull();
@@ -178,11 +178,11 @@ public class LaunchGameTests
         // texto do erro original diz.
         var java = new FakeJavaLocator { Error = new InvalidOperationException("checksum não confere") };
 
-        var resultado = await Montar(java: java).HandleAsync(
+        var result = await Build(java: java).HandleAsync(
             Instalada(), Config(), null, Ct);
 
-        resultado.Started.ShouldBeFalse();
-        resultado.Message!.ShouldContain("checksum não confere");
+        result.Started.ShouldBeFalse();
+        result.Message!.ShouldContain("checksum não confere");
     }
 
     [Fact]
@@ -190,9 +190,9 @@ public class LaunchGameTests
     {
         // Duas cópias na mesma pasta escrevem o mesmo mundo ao mesmo tempo e
         // corrompem-no — e quem clicou duas vezes não faz ideia de que foi isso.
-        var sessao = new GameSession();
+        var session = new GameSession();
         var motor = new MotorFalso();
-        var caso = Montar(motor: motor, sessao: sessao);
+        var caso = Build(motor: motor, session: session);
 
         await caso.HandleAsync(Instalada(), Config(), null, Ct);
 
@@ -205,12 +205,12 @@ public class LaunchGameTests
     [Fact]
     public async Task Abrir_com_sucesso_deixa_a_sessao_a_correr()
     {
-        var sessao = new GameSession();
+        var session = new GameSession();
 
-        await Montar(sessao: sessao).HandleAsync(Instalada(), Config(), null, Ct);
+        await Build(session: session).HandleAsync(Instalada(), Config(), null, Ct);
 
-        sessao.IsRunning.ShouldBeTrue();
-        sessao.Running!.Manifest.ModpackName.ShouldBe("Pack de Teste");
+        session.IsRunning.ShouldBeTrue();
+        session.Running!.Manifest.ModpackName.ShouldBe("Pack de Teste");
     }
 
     [Fact]
@@ -222,30 +222,30 @@ public class LaunchGameTests
 
         // Uma sessão nova por chamada: este teste é sobre o token, e reusar a
         // mesma faria o segundo arranque ser recusado pelo guard do jogo aberto.
-        await Montar(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
-        await Montar(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
+        await Build(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
+        await Build(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
 
         autenticador.Tentativas.ShouldBe(2);
     }
 
     // ---------- apoio ----------
 
-    private static LaunchGame Montar(
+    private static LaunchGame Build(
         ContaFalsa? autenticador = null,
         FakeJavaLocator? java = null,
         MotorFalso? motor = null,
-        AuthResult? conta = null,
-        GameSession? sessao = null,
+        AuthResult? account = null,
+        GameSession? session = null,
         int? javaDeclarado = null,
         PerfilFalso? perfis = null,
         CacheFalso? cache = null) =>
-        new(autenticador ?? new ContaFalsa(conta ?? AuthResult.Success("token-do-minecraft")),
+        new(autenticador ?? new ContaFalsa(account ?? AuthResult.Success("token-do-minecraft")),
             perfis ?? new PerfilFalso(new PlayerProfile("Jogador", "abc123")),
             cache ?? new CacheFalso(),
             java ?? new FakeJavaLocator(),
             new ExigenciaFalsa(javaDeclarado),
             motor ?? new MotorFalso(),
-            sessao ?? new GameSession());
+            session ?? new GameSession());
 
     private static LauncherConfig Config() => new()
     {
@@ -268,24 +268,24 @@ public class LaunchGameTests
 
     private static InstalledInstance Instalada(string minecraft = "1.21.1") => Instalada(Manifesto(minecraft));
 
-    private static InstalledInstance Instalada(InstanceManifest manifesto) =>
+    private static InstalledInstance Instalada(InstanceManifest manifest) =>
         new(InstanceKey.New(),
-            manifesto,
+            manifest,
             SizeBytes: 0,
             Path: "/instancias/teste");
 
-    private sealed class ContaFalsa(AuthResult resultado) : IMinecraftAuthenticator
+    private sealed class ContaFalsa(AuthResult result) : IMinecraftAuthenticator
     {
         public int Tentativas { get; private set; }
 
         public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct)
         {
             Tentativas++;
-            return Task.FromResult(resultado);
+            return Task.FromResult(result);
         }
 
         public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(resultado);
+            Task.FromResult(result);
 
         public Task SignOutAsync(CancellationToken ct) => Task.CompletedTask;
     }

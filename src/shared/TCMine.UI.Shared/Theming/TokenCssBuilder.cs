@@ -47,8 +47,8 @@ public static class TokenCssBuilder
 
     private static void AppendVariables(StringBuilder css, IEnumerable<KeyValuePair<string, string>> tokens)
     {
-        foreach (var (nome, valor) in tokens)
-            css.Append("    ").Append(Prefix).Append('-').Append(nome).Append(": ").Append(valor).AppendLine(";");
+        foreach (var (name, valor) in tokens)
+            css.Append("    ").Append(Prefix).Append('-').Append(name).Append(": ").Append(valor).AppendLine(";");
     }
 
     /// <summary>

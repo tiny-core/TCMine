@@ -16,7 +16,7 @@ public sealed class IngestionWorkPlannerTests
     [Fact]
     public void Pendencia_comum_entra_no_plano()
     {
-        var (modpack, version) = Montar();
+        var (modpack, version) = Build();
         version.UpsertPending(Pendente("jei", PendingModReason.Queued));
 
         var plano = IngestionWorkPlanner.PlanRetry(version, modpack);
@@ -29,7 +29,7 @@ public sealed class IngestionWorkPlannerTests
     {
         // É decisão do autor do mod, não falha nossa. Insistir gasta chamada de
         // API e devolve o mesmo "não" toda vez.
-        var (modpack, version) = Montar();
+        var (modpack, version) = Build();
         version.UpsertPending(Pendente("proibido", PendingModReason.DistributionDenied));
 
         IngestionWorkPlanner.PlanRetry(version, modpack).ShouldBeEmpty();
@@ -83,7 +83,7 @@ public sealed class IngestionWorkPlannerTests
     [Fact]
     public void Versao_sem_pendencia_nem_snapshot_nao_tem_o_que_fazer()
     {
-        var (modpack, version) = Montar();
+        var (modpack, version) = Build();
 
         IngestionWorkPlanner.PlanRetry(version, modpack).ShouldBeEmpty();
     }
@@ -100,7 +100,7 @@ public sealed class IngestionWorkPlannerTests
         Side = FileSide.Both
     };
 
-    private static (Modpack Modpack, ModpackVersion Version) Montar()
+    private static (Modpack Modpack, ModpackVersion Version) Build()
     {
         var modpack = new Modpack
         {
@@ -117,7 +117,7 @@ public sealed class IngestionWorkPlannerTests
 
     private static (Modpack Modpack, ModpackVersion Version) ComSnapshot(params string[] mods)
     {
-        var (modpack, version) = Montar();
+        var (modpack, version) = Build();
 
         modpack.UpstreamProvider = ModFileOrigin.CurseForge;
         version.UpstreamSnapshotJson = new UpstreamSnapshot

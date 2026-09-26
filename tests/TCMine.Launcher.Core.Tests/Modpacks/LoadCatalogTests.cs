@@ -135,23 +135,23 @@ public class LoadCatalogTests
 
     // ---------- apoio ----------
 
-    private static ModpackDto Modpack(string nome) => new()
+    private static ModpackDto Modpack(string name) => new()
     {
         Id = Guid.CreateVersion7(),
-        Slug = nome.ToLowerInvariant(),
-        Name = nome,
+        Slug = name.ToLowerInvariant(),
+        Name = name,
         MinecraftVersion = "1.21.1",
         Loader = ModLoader.NeoForge
     };
 
     private static GameServerDto Server(
         Guid modpackId,
-        string nome,
+        string name,
         GameServerStatus status = GameServerStatus.Running,
         int online = 0) => new()
     {
         Id = Guid.CreateVersion7(),
-        Name = nome,
+        Name = name,
         ModpackId = modpackId,
         ModpackVersionId = Guid.CreateVersion7(),
         ConnectAddress = "jogo.exemplo:25565",

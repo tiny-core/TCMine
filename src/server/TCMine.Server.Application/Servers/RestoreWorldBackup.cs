@@ -52,8 +52,8 @@ public sealed partial class RestoreWorldBackup(
         // Snapshot de outra versão: os mods que geraram esse mundo podem não ser
         // os que estão fixados agora.
         if (!acceptVersionMismatch
-            && backup.ModpackVersionId is { } origem
-            && origem != server.ModpackVersionId)
+            && backup.ModpackVersionId is { } source
+            && source != server.ModpackVersionId)
         {
             return Result.Fail(
                 $"Este backup é da versão {backup.ModpackVersionLabel ?? "anterior"}, e o servidor está "

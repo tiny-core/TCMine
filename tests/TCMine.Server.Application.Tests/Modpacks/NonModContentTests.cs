@@ -25,8 +25,8 @@ public sealed class NonModContentTests
 
         await Ingerir(version, new ResolveEm("shaderpacks", "complementary.zip", FileSide.ClientOnly));
 
-        var arquivo = Assert.Single(version.Files);
-        Assert.Equal("shaderpacks/complementary.zip", arquivo.Path);
+        var file = Assert.Single(version.Files);
+        Assert.Equal("shaderpacks/complementary.zip", file.Path);
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public sealed class NonModContentTests
     private static ModpackVersion NovaVersao() =>
         new() { ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.100" };
 
-    private sealed class ResolveEm(string pasta, string arquivo, FileSide? lado) : IModResolver
+    private sealed class ResolveEm(string folder, string file, FileSide? lado) : IModResolver
     {
         public ModFileOrigin Origin => ModFileOrigin.CurseForge;
         public ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
@@ -73,14 +73,14 @@ public sealed class NonModContentTests
         public Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct) =>
             Task.FromResult<ModResolution>(new ModResolution.Resolved(
                 "999",
-                arquivo,
+                file,
                 null,
                 10,
                 new Uri("https://exemplo/arquivo"),
                 [],
                 null,
                 lado,
-                pasta));
+                folder));
     }
 
     private sealed class FakeRepo(ModpackVersion version) : FakeModpackRepositoryBase

@@ -35,14 +35,14 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     public async Task Grava_e_le_o_manifesto_de_volta()
     {
         var store = Criar();
-        var manifesto = Manifesto(new Dictionary<string, string> { ["mods/jei.jar"] = "aa" });
+        var manifest = Manifesto(new Dictionary<string, string> { ["mods/jei.jar"] = "aa" });
 
-        await store.WriteManifestAsync(_chave, manifesto, Ct);
+        await store.WriteManifestAsync(_chave, manifest, Ct);
 
         var lido = await store.ReadManifestAsync(_chave, Ct);
 
         lido.ShouldNotBeNull();
-        lido.ManagedFiles.ShouldBe(manifesto.ManagedFiles);
+        lido.ManagedFiles.ShouldBe(manifest.ManagedFiles);
         lido.ModpackName.ShouldBe("Pack");
     }
 
@@ -53,9 +53,9 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
         // baixa tudo de novo e NÃO apaga nada — porque sem conjunto gerenciado
         // não há o que apagar. Perder disco é aceitável; perder o mundo não.
         var store = Criar();
-        var pasta = store.PathFor(_chave);
-        Directory.CreateDirectory(pasta);
-        await File.WriteAllTextAsync(Path.Combine(pasta, InstanceManifest.FileName), "{ lixo", Ct);
+        var folder = store.PathFor(_chave);
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(Path.Combine(folder, InstanceManifest.FileName), "{ lixo", Ct);
 
         (await store.ReadManifestAsync(_chave, Ct)).ShouldBeNull();
     }
@@ -64,17 +64,17 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     public async Task Apaga_os_arquivos_pedidos_e_so_eles()
     {
         var store = Criar();
-        var pasta = store.PathFor(_chave);
+        var folder = store.PathFor(_chave);
 
-        await EscreverAsync(pasta, "mods/velho.jar");
-        await EscreverAsync(pasta, "saves/mundo/level.dat");
-        await EscreverAsync(pasta, "options.txt");
+        await EscreverAsync(folder, "mods/velho.jar");
+        await EscreverAsync(folder, "saves/mundo/level.dat");
+        await EscreverAsync(folder, "options.txt");
 
         await store.DeleteFilesAsync(_chave, ["mods/velho.jar"], Ct);
 
-        File.Exists(Path.Combine(pasta, "mods", "velho.jar")).ShouldBeFalse();
-        File.Exists(Path.Combine(pasta, "saves", "mundo", "level.dat")).ShouldBeTrue("o mundo é do jogador");
-        File.Exists(Path.Combine(pasta, "options.txt")).ShouldBeTrue();
+        File.Exists(Path.Combine(folder, "mods", "velho.jar")).ShouldBeFalse();
+        File.Exists(Path.Combine(folder, "saves", "mundo", "level.dat")).ShouldBeTrue("o mundo é do jogador");
+        File.Exists(Path.Combine(folder, "options.txt")).ShouldBeTrue();
     }
 
     [Fact]
@@ -97,13 +97,13 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     {
         // Sem isto a instância acumula esqueletos de versões antigas para sempre.
         var store = Criar();
-        var pasta = store.PathFor(_chave);
-        await EscreverAsync(pasta, "config/antigo/coisa.toml");
+        var folder = store.PathFor(_chave);
+        await EscreverAsync(folder, "config/antigo/coisa.toml");
 
         await store.DeleteFilesAsync(_chave, [Path.Combine("config", "antigo", "coisa.toml")], Ct);
 
-        Directory.Exists(Path.Combine(pasta, "config", "antigo")).ShouldBeFalse();
-        Directory.Exists(pasta).ShouldBeTrue("a raiz da instância fica");
+        Directory.Exists(Path.Combine(folder, "config", "antigo")).ShouldBeFalse();
+        Directory.Exists(folder).ShouldBeTrue("a raiz da instância fica");
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     private FileSystemInstanceStore Criar() =>
         new(new LauncherPaths(_raiz), NullLogger<FileSystemInstanceStore>.Instance);
 
-    private static InstanceManifest Manifesto(Dictionary<string, string> arquivos) => new()
+    private static InstanceManifest Manifesto(Dictionary<string, string> files) => new()
     {
         Schema = 1,
         ModpackId = Guid.CreateVersion7(),
@@ -144,14 +144,14 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
         ModpackName = "Pack",
         Version = "1.0.0",
         InstalledAt = DateTimeOffset.UtcNow,
-        ManagedFiles = arquivos
+        ManagedFiles = files
     };
 
     private static async Task EscreverAsync(string raiz, string relativo)
     {
-        var caminho = Path.Combine(raiz, relativo.Replace('/', Path.DirectorySeparatorChar));
+        var path = Path.Combine(raiz, relativo.Replace('/', Path.DirectorySeparatorChar));
 
-        Directory.CreateDirectory(Path.GetDirectoryName(caminho)!);
-        await File.WriteAllTextAsync(caminho, "conteudo", Ct);
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        await File.WriteAllTextAsync(path, "conteudo", Ct);
     }
 }

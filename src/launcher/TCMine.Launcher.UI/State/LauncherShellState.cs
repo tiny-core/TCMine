@@ -61,7 +61,7 @@ public sealed class LauncherShellState
     ///     jogador pelo UUID.
     /// </summary>
     public string AvatarInitial =>
-        Player?.DisplayName is { Length: > 0 } nome ? nome[..1].ToUpperInvariant() : "?";
+        Player?.DisplayName is { Length: > 0 } name ? name[..1].ToUpperInvariant() : "?";
 
     /// <summary>Nome do servidor, quando pareado. Vai na barra de título.</summary>
     public string? ServerName => Pairing?.Server?.ServerName ?? Pairing?.Config?.DisplayName;

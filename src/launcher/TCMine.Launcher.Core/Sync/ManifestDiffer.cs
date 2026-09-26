@@ -40,22 +40,22 @@ public static class ManifestDiffer
         var baixar = new List<ModpackFileDto>();
         var materializar = new List<ModpackFileDto>();
 
-        foreach (var arquivo in desejados)
+        foreach (var file in desejados)
         {
             var jaEstaCorreto =
-                localFiles.TryGetValue(arquivo.Path, out var hashLocal) &&
-                string.Equals(hashLocal, arquivo.Sha256, StringComparison.OrdinalIgnoreCase);
+                localFiles.TryGetValue(file.Path, out var hashLocal) &&
+                string.Equals(hashLocal, file.Sha256, StringComparison.OrdinalIgnoreCase);
 
             if (jaEstaCorreto)
                 continue;
 
-            materializar.Add(arquivo);
+            materializar.Add(file);
 
             // Só entra na fila de download se o conteúdo não existir em
             // lugar nenhum. Um mod compartilhado com outro modpack já
             // instalado não é baixado de novo.
-            if (!storeHashes.Contains(arquivo.Sha256))
-                baixar.Add(arquivo);
+            if (!storeHashes.Contains(file.Sha256))
+                baixar.Add(file);
         }
 
         // Sobras da versão anterior. Sem esta limpeza, um mod removido do
@@ -65,7 +65,7 @@ public static class ManifestDiffer
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var apagar = localFiles.Keys
-            .Where(caminho => !caminhosDesejados.Contains(caminho))
+            .Where(path => !caminhosDesejados.Contains(path))
             .ToList();
 
         return new SyncPlan

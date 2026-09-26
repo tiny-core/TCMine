@@ -18,12 +18,12 @@ public sealed class FilePathGuardTests
     [InlineData("../../etc/passwd")]
     [InlineData("mods/../../../fora.jar")]
     [InlineData("..\\..\\windows\\system32\\x.dll")]
-    public async Task Upload_recusa_caminho_que_escapa_da_instancia(string caminho)
+    public async Task Upload_recusa_caminho_que_escapa_da_instancia(string path)
     {
         var version = Rascunho();
 
         var result = await NewUpload(version).HandleAsync(
-            Comando(version.Id, caminho), CancellationToken.None);
+            Comando(version.Id, path), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Empty(version.Files);

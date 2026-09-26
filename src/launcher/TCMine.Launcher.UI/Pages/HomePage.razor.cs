@@ -116,7 +116,7 @@ public partial class HomePage : ComponentBase, IDisposable
         _error = null;
         _fraction = null;
 
-        var andamento = new Progress<GameLaunchProgress>(p =>
+        var progress = new Progress<GameLaunchProgress>(p =>
         {
             _phase = p.Phase;
             _fraction = p.Fraction;
@@ -128,10 +128,10 @@ public partial class HomePage : ComponentBase, IDisposable
 
         try
         {
-            var resultado = await Launch.HandleAsync(_active, config, andamento, CancellationToken.None);
+            var result = await Launch.HandleAsync(_active, config, progress, CancellationToken.None);
 
-            if (!resultado.Started)
-                _error = resultado.Message;
+            if (!result.Started)
+                _error = result.Message;
         }
         finally
         {

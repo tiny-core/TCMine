@@ -109,10 +109,10 @@ public sealed class PageRenderTests
         var client = factory.CreateClient();
         client.DefaultRequestHeaders.Add("Cookie", cookie);
 
-        var resposta = await client.GetAsync(rota, Ct);
+        var response = await client.GetAsync(rota, Ct);
 
-        return resposta.IsSuccessStatusCode
-            ? await resposta.Content.ReadAsStringAsync(Ct)
+        return response.IsSuccessStatusCode
+            ? await response.Content.ReadAsStringAsync(Ct)
             : null;
     }
 

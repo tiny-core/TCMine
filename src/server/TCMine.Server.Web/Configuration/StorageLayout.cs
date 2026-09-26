@@ -28,10 +28,10 @@ public static class StorageLayout
 
         Dictionary<string, string?> derivados = [];
 
-        Derivar(derivados, configuration, "BlobStorage:RootPath", $"{raiz}/data/blobs");
-        Derivar(derivados, configuration, "Instances:RootPath", $"{raiz}/instances");
-        Derivar(derivados, configuration, "DataProtection:KeysPath", $"{raiz}/data/keys");
-        Derivar(derivados, configuration, "LauncherUpdates:RootPath", $"{raiz}/updates/launcher");
+        Derive(derivados, configuration, "BlobStorage:RootPath", $"{raiz}/data/blobs");
+        Derive(derivados, configuration, "Instances:RootPath", $"{raiz}/instances");
+        Derive(derivados, configuration, "DataProtection:KeysPath", $"{raiz}/data/keys");
+        Derive(derivados, configuration, "LauncherUpdates:RootPath", $"{raiz}/updates/launcher");
 
         if (derivados.Count > 0)
             builder.AddInMemoryCollection(derivados);
@@ -42,13 +42,13 @@ public static class StorageLayout
     ///     perigoso se sobrescrevesse — passaria por cima de variável de
     ///     ambiente, que é justamente como o admin configura em container.
     /// </summary>
-    private static void Derivar(
-        Dictionary<string, string?> destino,
+    private static void Derive(
+        Dictionary<string, string?> target,
         IConfiguration configuration,
-        string chave,
+        string key,
         string valor)
     {
-        if (string.IsNullOrWhiteSpace(configuration[chave]))
-            destino[chave] = valor;
+        if (string.IsNullOrWhiteSpace(configuration[key]))
+            target[key] = valor;
     }
 }

@@ -30,11 +30,11 @@ public sealed class FileSystemContentStoreTests : IDisposable
     public async Task Guarda_e_reconhece_o_conteudo()
     {
         var store = Criar();
-        var (conteudo, sha) = Conteudo("um mod qualquer");
+        var (content, sha) = Conteudo("um mod qualquer");
 
         (await store.ContainsAsync(sha, Ct)).ShouldBeFalse();
 
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
 
         (await store.ContainsAsync(sha, Ct)).ShouldBeTrue();
         (await store.ListHashesAsync(Ct)).ShouldContain(sha);
@@ -75,10 +75,10 @@ public sealed class FileSystemContentStoreTests : IDisposable
     {
         // Dois modpacks com o mesmo mod chegam aqui com o mesmo hash.
         var store = Criar();
-        var (conteudo, sha) = Conteudo("compartilhado");
+        var (content, sha) = Conteudo("compartilhado");
 
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
 
         (await store.ListHashesAsync(Ct)).Count.ShouldBe(1);
     }
@@ -87,14 +87,14 @@ public sealed class FileSystemContentStoreTests : IDisposable
     public async Task Materializa_copiando_quando_nao_ha_hardlink()
     {
         var store = Criar();
-        var (conteudo, sha) = Conteudo("jar");
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
+        var (content, sha) = Conteudo("jar");
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
 
-        var destino = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
+        var target = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
 
-        await store.MaterializeAsync(sha, destino, allowHardLink: false, Ct);
+        await store.MaterializeAsync(sha, target, allowHardLink: false, Ct);
 
-        (await File.ReadAllBytesAsync(destino, Ct)).ShouldBe(conteudo);
+        (await File.ReadAllBytesAsync(target, Ct)).ShouldBe(content);
     }
 
     [Fact]
@@ -103,16 +103,16 @@ public sealed class FileSystemContentStoreTests : IDisposable
         // Sobrescrever um hardlink existente escreveria NO BLOB, e a corrupção
         // viajaria para todas as instâncias que o compartilham.
         var store = Criar();
-        var (conteudo, sha) = Conteudo("novo");
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
+        var (content, sha) = Conteudo("novo");
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
 
-        var destino = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
-        Directory.CreateDirectory(Path.GetDirectoryName(destino)!);
-        await File.WriteAllTextAsync(destino, "versão antiga bem mais longa", Ct);
+        var target = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
+        Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+        await File.WriteAllTextAsync(target, "versão antiga bem mais longa", Ct);
 
-        await store.MaterializeAsync(sha, destino, allowHardLink: false, Ct);
+        await store.MaterializeAsync(sha, target, allowHardLink: false, Ct);
 
-        (await File.ReadAllBytesAsync(destino, Ct)).ShouldBe(conteudo);
+        (await File.ReadAllBytesAsync(target, Ct)).ShouldBe(content);
     }
 
     [Fact]
@@ -131,12 +131,12 @@ public sealed class FileSystemContentStoreTests : IDisposable
         var store = new FileSystemContentStore(
             new LauncherPaths(_raiz), linker, NullLogger<FileSystemContentStore>.Instance);
 
-        var (conteudo, sha) = Conteudo("jar");
-        await store.AddAsync(sha, new MemoryStream(conteudo), Ct);
+        var (content, sha) = Conteudo("jar");
+        await store.AddAsync(sha, new MemoryStream(content), Ct);
 
-        var destino = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
+        var target = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
 
-        await store.MaterializeAsync(sha, destino, allowHardLink: true, Ct);
+        await store.MaterializeAsync(sha, target, allowHardLink: true, Ct);
 
         linker.Chamadas.ShouldHaveSingleItem();
     }

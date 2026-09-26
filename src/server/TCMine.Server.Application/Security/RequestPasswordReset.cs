@@ -36,7 +36,7 @@ public sealed class RequestPasswordReset(IUserRepository users, IEmailSender ema
             $"""
              Olá, {user.DisplayName}.
 
-             Recebemos um pedido para redefinir a sua senha do painel TCMine.
+             Recebemos um request para redefinir a sua senha do painel TCMine.
              Abra o link abaixo para escolher uma nova senha:
 
              {link}

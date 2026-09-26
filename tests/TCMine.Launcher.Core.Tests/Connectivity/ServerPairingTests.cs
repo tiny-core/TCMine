@@ -18,9 +18,9 @@ public class ServerPairingTests
     [Fact]
     public async Task Sem_configuracao_o_launcher_esta_nao_pareado()
     {
-        var pareamento = new ServerPairing(new HandshakeFalso(), new ConfigFalso(null));
+        var pairing = new ServerPairing(new HandshakeFalso(), new ConfigFalso(null));
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         estado.Status.ShouldBe(PairingStatus.NotPaired);
         estado.IsPaired.ShouldBeFalse();
@@ -30,9 +30,9 @@ public class ServerPairingTests
     public async Task Configuracao_valida_e_servidor_no_ar_devolve_pareado()
     {
         var config = new ConfigFalso(Config("https://servidor.exemplo/"));
-        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+        var pairing = new ServerPairing(new HandshakeFalso(Ok()), config);
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         estado.IsOnline.ShouldBeTrue();
         estado.Server!.ServerName.ShouldBe("Servidor de Teste");
@@ -45,11 +45,11 @@ public class ServerPairingTests
         // manda o jogador redigitar o endereço porque a rede caiu.
         var config = new ConfigFalso(Config("https://servidor.exemplo/"));
 
-        var pareamento = new ServerPairing(
+        var pairing = new ServerPairing(
             new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Unreachable, null, "sem rede")),
             config);
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         estado.Status.ShouldBe(PairingStatus.Unreachable);
         estado.IsPaired.ShouldBeTrue("o endereço continua conhecido");
@@ -61,11 +61,11 @@ public class ServerPairingTests
     {
         // Distinto de "inacessível" porque tentar de novo não resolve — a tela
         // precisa dizer para atualizar, não para esperar.
-        var pareamento = new ServerPairing(
+        var pairing = new ServerPairing(
             new HandshakeFalso(new HandshakeResult(HandshakeOutcome.LauncherTooOld, null, "atualize")),
             new ConfigFalso(null));
 
-        var estado = await pareamento.PairAsync("https://servidor.exemplo", Ct);
+        var estado = await pairing.PairAsync("https://servidor.exemplo", Ct);
 
         estado.Status.ShouldBe(PairingStatus.Incompatible);
         estado.Message.ShouldBe("atualize");
@@ -77,9 +77,9 @@ public class ServerPairingTests
         // O client id vem do servidor, não do instalador: é ele quem sabe contra
         // qual app do Azure os jogadores dele autenticam.
         var config = new ConfigFalso(null);
-        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+        var pairing = new ServerPairing(new HandshakeFalso(Ok()), config);
 
-        var estado = await pareamento.PairAsync("servidor.exemplo", Ct);
+        var estado = await pairing.PairAsync("servidor.exemplo", Ct);
 
         estado.IsOnline.ShouldBeTrue();
         config.Gravado.ShouldNotBeNull();
@@ -92,9 +92,9 @@ public class ServerPairingTests
     public async Task Endereco_sem_esquema_assume_https()
     {
         var handshake = new HandshakeFalso(Ok());
-        var pareamento = new ServerPairing(handshake, new ConfigFalso(null));
+        var pairing = new ServerPairing(handshake, new ConfigFalso(null));
 
-        await pareamento.PairAsync("  servidor.exemplo  ", Ct);
+        await pairing.PairAsync("  servidor.exemplo  ", Ct);
 
         handshake.Chamado.ShouldBe(new Uri("https://servidor.exemplo"));
     }
@@ -106,9 +106,9 @@ public class ServerPairingTests
         // claro. Por isso o teste também exige que ninguém tenha sido chamado.
         var handshake = new HandshakeFalso(Ok());
         var config = new ConfigFalso(null);
-        var pareamento = new ServerPairing(handshake, config);
+        var pairing = new ServerPairing(handshake, config);
 
-        var estado = await pareamento.PairAsync("http://servidor.exemplo", Ct);
+        var estado = await pairing.PairAsync("http://servidor.exemplo", Ct);
 
         estado.Status.ShouldBe(PairingStatus.Invalid);
         estado.Message!.ShouldContain("HTTPS");
@@ -121,9 +121,9 @@ public class ServerPairingTests
     {
         // A exceção que torna o desenvolvimento possível sem certificado.
         var handshake = new HandshakeFalso(Ok());
-        var pareamento = new ServerPairing(handshake, new ConfigFalso(null));
+        var pairing = new ServerPairing(handshake, new ConfigFalso(null));
 
-        var estado = await pareamento.PairAsync("http://localhost:5144", Ct);
+        var estado = await pairing.PairAsync("http://localhost:5144", Ct);
 
         estado.IsOnline.ShouldBeTrue();
     }
@@ -131,9 +131,9 @@ public class ServerPairingTests
     [Fact]
     public async Task Endereco_vazio_pede_um_endereco_em_vez_de_estourar()
     {
-        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), new ConfigFalso(null));
+        var pairing = new ServerPairing(new HandshakeFalso(Ok()), new ConfigFalso(null));
 
-        var estado = await pareamento.PairAsync("   ", Ct);
+        var estado = await pairing.PairAsync("   ", Ct);
 
         estado.Status.ShouldBe(PairingStatus.Invalid);
         estado.Message.ShouldNotBeNullOrWhiteSpace();
@@ -151,9 +151,9 @@ public class ServerPairingTests
             null));
 
         var config = new ConfigFalso(null);
-        var pareamento = new ServerPairing(handshake, config);
+        var pairing = new ServerPairing(handshake, config);
 
-        var estado = await pareamento.PairAsync("https://servidor.exemplo", Ct);
+        var estado = await pairing.PairAsync("https://servidor.exemplo", Ct);
 
         estado.Status.ShouldBe(PairingStatus.Invalid);
         estado.Message!.ShouldContain("administrador");
@@ -169,11 +169,11 @@ public class ServerPairingTests
         // servidor passava a responder o id certo, e quem já tinha pareado
         // continuava a abrir o navegador com o id antigo — sem nada na tela que
         // sugerisse onde estava o erro.
-        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
-        var config = new ConfigFalso(salvo);
-        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+        var saved = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
+        var config = new ConfigFalso(saved);
+        var pairing = new ServerPairing(new HandshakeFalso(Ok()), config);
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         estado.Config!.AzureClientId.ShouldBe("client-do-servidor");
         config.Gravado!.AzureClientId.ShouldBe("client-do-servidor");
@@ -183,15 +183,15 @@ public class ServerPairingTests
     public async Task Retomar_sem_novidade_nao_escreve_no_disco()
     {
         // Caminho mais quente do launcher: acontece a cada arranque.
-        var salvo = Config("https://servidor.exemplo") with
+        var saved = Config("https://servidor.exemplo") with
         {
             AzureClientId = "client-do-servidor", DisplayName = "Servidor de Teste"
         };
 
-        var config = new ConfigFalso(salvo);
-        var pareamento = new ServerPairing(new HandshakeFalso(Ok()), config);
+        var config = new ConfigFalso(saved);
+        var pairing = new ServerPairing(new HandshakeFalso(Ok()), config);
 
-        await pareamento.ResumeAsync(Ct);
+        await pairing.ResumeAsync(Ct);
 
         config.Gravado.ShouldBeNull();
     }
@@ -199,14 +199,14 @@ public class ServerPairingTests
     [Fact]
     public async Task Servidor_fora_do_ar_nao_mexe_no_que_esta_gravado()
     {
-        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-que-funciona" };
-        var config = new ConfigFalso(salvo);
+        var saved = Config("https://servidor.exemplo") with { AzureClientId = "id-que-funciona" };
+        var config = new ConfigFalso(saved);
 
-        var pareamento = new ServerPairing(
+        var pairing = new ServerPairing(
             new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Unreachable, null, "fora do ar")),
             config);
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         config.Gravado.ShouldBeNull();
         estado.Config!.AzureClientId.ShouldBe("id-que-funciona");
@@ -218,14 +218,14 @@ public class ServerPairingTests
         // Um painel com o campo em branco é estado transitório. Adotá-lo daria um
         // tcmine.json que o próprio launcher recusa a carregar no arranque
         // seguinte — trocar "ainda não configurado" por "pareamento perdido".
-        var salvo = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
-        var config = new ConfigFalso(salvo);
+        var saved = Config("https://servidor.exemplo") with { AzureClientId = "id-antigo" };
+        var config = new ConfigFalso(saved);
 
-        var pareamento = new ServerPairing(
+        var pairing = new ServerPairing(
             new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Ok, Resposta(clientId: ""), null)),
             config);
 
-        var estado = await pareamento.ResumeAsync(Ct);
+        var estado = await pairing.ResumeAsync(Ct);
 
         estado.Config!.AzureClientId.ShouldBe("id-antigo");
     }
@@ -251,7 +251,7 @@ public class ServerPairingTests
         AzureClientId = clientId
     };
 
-    private sealed class HandshakeFalso(HandshakeResult? resultado = null) : IHandshakeClient
+    private sealed class HandshakeFalso(HandshakeResult? result = null) : IHandshakeClient
     {
         public Uri? Chamado { get; private set; }
 
@@ -260,7 +260,7 @@ public class ServerPairingTests
             Chamado = serverUrl;
 
             return Task.FromResult(
-                resultado ?? new HandshakeResult(HandshakeOutcome.Unreachable, null, "sem resposta"));
+                result ?? new HandshakeResult(HandshakeOutcome.Unreachable, null, "sem resposta"));
         }
     }
 

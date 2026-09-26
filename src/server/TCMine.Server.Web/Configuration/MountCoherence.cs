@@ -49,13 +49,13 @@ public static class MountCoherence
         if (!File.Exists("/proc/self/mountinfo"))
             return;
 
-        if (configuration["Instances:RootPath"] is not { Length: > 0 } instancias)
+        if (configuration["Instances:RootPath"] is not { Length: > 0 } instances)
             return;
 
-        string[] linhas;
+        string[] lines;
         try
         {
-            linhas = File.ReadAllLines("/proc/self/mountinfo");
+            lines = File.ReadAllLines("/proc/self/mountinfo");
         }
         catch (IOException)
         {
@@ -63,7 +63,7 @@ public static class MountCoherence
             return;
         }
 
-        if (Analisar(linhas, instancias) is { } problema)
+        if (Analisar(lines, instances) is { } problema)
             throw new InvalidOperationException(problema);
     }
 
@@ -75,25 +75,25 @@ public static class MountCoherence
     /// </summary>
     public static string? Analisar(IReadOnlyList<string> mountInfo, string instancesPath)
     {
-        var caminho = instancesPath.TrimEnd('/');
+        var path = instancesPath.TrimEnd('/');
 
         string? melhorPonto = null;
         string? melhorOrigem = null;
 
-        foreach (var linha in mountInfo)
+        foreach (var line in mountInfo)
         {
             // Formato: id pai major:minor ORIGEM PONTO opções... - tipo fonte ...
-            var campos = linha.Split(' ');
+            var campos = line.Split(' ');
             if (campos.Length < 5)
                 continue;
 
-            var origem = campos[3];
+            var source = campos[3];
             var ponto = campos[4].TrimEnd('/');
 
             if (ponto.Length is 0)
                 ponto = "/";
 
-            if (!Contem(ponto, caminho))
+            if (!Contem(ponto, path))
                 continue;
 
             // O mount mais específico é quem manda: /a e /a/b podem existir
@@ -101,7 +101,7 @@ public static class MountCoherence
             if (melhorPonto is null || ponto.Length > melhorPonto.Length)
             {
                 melhorPonto = ponto;
-                melhorOrigem = origem;
+                melhorOrigem = source;
             }
         }
 
@@ -134,8 +134,8 @@ public static class MountCoherence
     }
 
     /// <summary>O caminho está sob este ponto de montagem?</summary>
-    private static bool Contem(string ponto, string caminho) =>
+    private static bool Contem(string ponto, string path) =>
         ponto is "/"
-        || caminho.Equals(ponto, StringComparison.Ordinal)
-        || caminho.StartsWith(ponto + "/", StringComparison.Ordinal);
+        || path.Equals(ponto, StringComparison.Ordinal)
+        || path.StartsWith(ponto + "/", StringComparison.Ordinal);
 }

@@ -23,10 +23,10 @@ public sealed class WhitelistTests
     public async Task Liga_a_lista_e_acrescenta_cada_membro()
     {
         var rcon = new FakeRcon();
-        var servidor = Servidor(ligada: true, GameServerStatus.Running);
+        var server = Servidor(ligada: true, GameServerStatus.Running);
 
-        await Sync(servidor, rcon, Membro("Steve", "uuid-1"), Membro("Alex", "uuid-2"))
-            .HandleAsync(servidor.Id, Ct);
+        await Sync(server, rcon, Membro("Steve", "uuid-1"), Membro("Alex", "uuid-2"))
+            .HandleAsync(server.Id, Ct);
 
         rcon.Comandos.ShouldContain("whitelist on");
         rcon.Comandos.ShouldContain("whitelist add Steve");
@@ -41,9 +41,9 @@ public sealed class WhitelistTests
     {
         // Não precisa da lista: quem estava dentro continua, e a porta abre.
         var rcon = new FakeRcon();
-        var servidor = Servidor(ligada: false, GameServerStatus.Running);
+        var server = Servidor(ligada: false, GameServerStatus.Running);
 
-        await Sync(servidor, rcon, Membro("Steve", "uuid-1")).HandleAsync(servidor.Id, Ct);
+        await Sync(server, rcon, Membro("Steve", "uuid-1")).HandleAsync(server.Id, Ct);
 
         rcon.Comandos.ShouldBe(["whitelist off"]);
     }
@@ -54,9 +54,9 @@ public sealed class WhitelistTests
         // Conta criada no painel que ainda não entrou no jogo: não há nome de
         // jogador para adicionar. Entra sozinha no primeiro login.
         var rcon = new FakeRcon();
-        var servidor = Servidor(ligada: true, GameServerStatus.Running);
+        var server = Servidor(ligada: true, GameServerStatus.Running);
 
-        await Sync(servidor, rcon, Membro("Steve", null)).HandleAsync(servidor.Id, Ct);
+        await Sync(server, rcon, Membro("Steve", null)).HandleAsync(server.Id, Ct);
 
         rcon.Comandos.ShouldNotContain("whitelist add Steve");
     }
@@ -67,9 +67,9 @@ public sealed class WhitelistTests
         // Sem RCON não há o que fazer, e falhar aqui abortaria o resgate de um
         // convite perfeitamente válido. A próxima subida sincroniza.
         var rcon = new FakeRcon();
-        var servidor = Servidor(ligada: true, GameServerStatus.Stopped);
+        var server = Servidor(ligada: true, GameServerStatus.Stopped);
 
-        await Sync(servidor, rcon, Membro("Steve", "uuid-1")).HandleAsync(servidor.Id, Ct);
+        await Sync(server, rcon, Membro("Steve", "uuid-1")).HandleAsync(server.Id, Ct);
 
         rcon.Comandos.ShouldBeEmpty();
     }
@@ -79,20 +79,20 @@ public sealed class WhitelistTests
     {
         // Resgatar um convite vale mesmo que a whitelist não tenha entrado: o
         // vínculo está gravado e a próxima subida refaz a lista.
-        var servidor = Servidor(ligada: true, GameServerStatus.Running);
+        var server = Servidor(ligada: true, GameServerStatus.Running);
         var rcon = new FakeRcon { Estoura = true };
 
         await Should.NotThrowAsync(() =>
-            Sync(servidor, rcon, Membro("Steve", "uuid-1")).HandleAsync(servidor.Id, Ct));
+            Sync(server, rcon, Membro("Steve", "uuid-1")).HandleAsync(server.Id, Ct));
     }
 
     private static SyncServerWhitelist Sync(
-        GameServer servidor, FakeRcon rcon, params ServerMemberView[] membros) =>
-        new(new FakeServers(servidor), new MembrosFixos(membros), rcon,
+        GameServer server, FakeRcon rcon, params ServerMemberView[] membros) =>
+        new(new FakeServers(server), new MembrosFixos(membros), rcon,
             NullLogger<SyncServerWhitelist>.Instance);
 
-    private static ServerMemberView Membro(string nome, string? uuid) =>
-        new(Guid.CreateVersion7(), Guid.CreateVersion7(), nome, uuid, ServerRoleDto.Member, null);
+    private static ServerMemberView Membro(string name, string? uuid) =>
+        new(Guid.CreateVersion7(), Guid.CreateVersion7(), name, uuid, ServerRoleDto.Member, null);
 
     private static GameServer Servidor(bool ligada, GameServerStatus status) => new()
     {
@@ -120,10 +120,10 @@ public sealed class WhitelistTests
         }
     }
 
-    private sealed class FakeServers(GameServer servidor) : FakeServerRepositoryBase
+    private sealed class FakeServers(GameServer server) : FakeServerRepositoryBase
     {
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
-            Task.FromResult<GameServer?>(servidor);
+            Task.FromResult<GameServer?>(server);
     }
 
     /// <summary>

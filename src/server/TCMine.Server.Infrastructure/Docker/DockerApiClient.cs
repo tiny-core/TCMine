@@ -92,13 +92,13 @@ public sealed class DockerApiClient
 
             // Byte 0 do cabeçalho é o canal: 1=stdout, 2=stderr. Era lido e
             // descartado; é o que distingue o log da partida do estouro da JVM.
-            var erro = header[0] is 2;
+            var error = header[0] is 2;
 
-            var tamanho = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(4));
-            if (tamanho <= 0)
+            var size = BinaryPrimitives.ReadInt32BigEndian(header.AsSpan(4));
+            if (size <= 0)
                 continue;
 
-            var corpo = new byte[tamanho];
+            var corpo = new byte[size];
             if (!await FillAsync(stream, corpo, ct))
                 break;
 
@@ -113,7 +113,7 @@ public sealed class DockerApiClient
                 if (quebra < 0)
                     break;
 
-                yield return new ConsoleLine(texto[..quebra].TrimEnd('\r'), erro);
+                yield return new ConsoleLine(texto[..quebra].TrimEnd('\r'), error);
                 pendente.Remove(0, quebra + 1);
             }
         }

@@ -28,11 +28,11 @@ public sealed class ChangeFileSide(IModpackRepository repository)
         if (version.State is not ModpackVersionState.Draft)
             return Result.Fail("Só é possível editar uma versão em rascunho.");
 
-        var arquivo = version.Files.FirstOrDefault(f => f.Id == fileId);
-        if (arquivo is null)
+        var file = version.Files.FirstOrDefault(f => f.Id == fileId);
+        if (file is null)
             return Result.Fail("Arquivo não encontrado nesta versão.");
 
-        if (arquivo.Side == side)
+        if (file.Side == side)
             return Result.Success();
 
         // Gravação estreita: uma coluna de uma linha. Passar pelo

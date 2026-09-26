@@ -74,13 +74,13 @@ public sealed class CurseForgeModSearch(CurseForgeApiClient api) : IModSearch
     /// <summary>As versões mais recentes que o mod atende, para explicar a recusa.</summary>
     private static string? VersoesRecentes(CurseForgeMod mod)
     {
-        var versoes = mod.LatestFilesIndexes
+        var versions = mod.LatestFilesIndexes
             .Select(f => f.GameVersion)
             .Where(v => v is { Length: > 0 })
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Take(4)
             .ToList();
 
-        return versoes.Count is 0 ? null : string.Join(", ", versoes);
+        return versions.Count is 0 ? null : string.Join(", ", versions);
     }
 }

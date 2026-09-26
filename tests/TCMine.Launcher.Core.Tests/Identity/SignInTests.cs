@@ -146,14 +146,14 @@ public class SignInTests
         UserId = Guid.CreateVersion7(), DisplayName = "ana", MinecraftUuid = "abc123"
     };
 
-    private sealed class AutenticadorFalso(AuthResult resultado, Action? registro = null)
+    private sealed class AutenticadorFalso(AuthResult result, Action? registro = null)
         : IMinecraftAuthenticator
     {
         public Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(resultado);
+            Task.FromResult(result);
 
         public Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct) =>
-            Task.FromResult(resultado);
+            Task.FromResult(result);
 
         public Task SignOutAsync(CancellationToken ct)
         {
@@ -162,7 +162,7 @@ public class SignInTests
         }
     }
 
-    private sealed class ApiFalsa(SessionResult? resultado = null, Action? registro = null) : ILauncherSessionApi
+    private sealed class ApiFalsa(SessionResult? result = null, Action? registro = null) : ILauncherSessionApi
     {
         public string? TokenRecebido { get; private set; }
 
@@ -170,7 +170,7 @@ public class SignInTests
         {
             TokenRecebido = minecraftAccessToken;
 
-            return Task.FromResult(resultado ?? SessionResult.Failed("sem resposta"));
+            return Task.FromResult(result ?? SessionResult.Failed("sem resposta"));
         }
 
         public Task SignOutAsync(Uri serverUrl, CancellationToken ct)

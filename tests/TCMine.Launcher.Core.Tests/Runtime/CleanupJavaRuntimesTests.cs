@@ -22,7 +22,7 @@ public class CleanupJavaRuntimesTests
     {
         var java = new FakeJavaLocator { Installed = { [21] = 100, [25] = 200 } };
 
-        var freed = await Montar(java, declarado: 25, "26.2").HandleAsync(Ct);
+        var freed = await Build(java, declarado: 25, "26.2").HandleAsync(Ct);
 
         java.Removed.ShouldBe([21]);
         freed.ShouldBe(100);
@@ -33,7 +33,7 @@ public class CleanupJavaRuntimesTests
     {
         var java = new FakeJavaLocator { Installed = { [21] = 100 } };
 
-        await Montar(java, declarado: 21, "1.21.1").HandleAsync(Ct);
+        await Build(java, declarado: 21, "1.21.1").HandleAsync(Ct);
 
         java.Removed.ShouldBeEmpty();
     }
@@ -48,7 +48,7 @@ public class CleanupJavaRuntimesTests
 
         session.Attach(Instalada("26.2"), new FakeGameProcess());
 
-        var freed = await Montar(java, declarado: 25, "26.2", session).HandleAsync(Ct);
+        var freed = await Build(java, declarado: 25, "26.2", session).HandleAsync(Ct);
 
         java.Removed.ShouldBeEmpty();
         freed.ShouldBe(0);
@@ -74,7 +74,7 @@ public class CleanupJavaRuntimesTests
         // de divergirem é uma descarga, não uma falha.
         var java = new FakeJavaLocator { Installed = { [17] = 100, [25] = 200 } };
 
-        await Montar(java, declarado: null, "26.2").HandleAsync(Ct);
+        await Build(java, declarado: null, "26.2").HandleAsync(Ct);
 
         java.Removed.ShouldBe([17]);
     }
@@ -85,24 +85,24 @@ public class CleanupJavaRuntimesTests
         // A tela mostra o número antes de perguntar; contar não pode agir.
         var java = new FakeJavaLocator { Installed = { [21] = 100, [25] = 200 } };
 
-        var sobrando = await Montar(java, declarado: 25, "26.2").FindUnusedAsync(Ct);
+        var unused = await Build(java, declarado: 25, "26.2").FindUnusedAsync(Ct);
 
-        sobrando.Select(r => r.MajorVersion).ShouldBe([21]);
+        unused.Select(r => r.MajorVersion).ShouldBe([21]);
         java.Removed.ShouldBeEmpty();
     }
 
     // ---------- apoio ----------
 
-    private static CleanupJavaRuntimes Montar(
+    private static CleanupJavaRuntimes Build(
         FakeJavaLocator java,
         int? declarado,
         string minecraft,
         GameSession? session = null)
     {
         var instances = new FakeInstanceStore();
-        var instalada = Instalada(minecraft);
+        var installed = Instalada(minecraft);
 
-        instances.Manifests[instalada.Key] = instalada.Manifest;
+        instances.Manifests[installed.Key] = installed.Manifest;
 
         return new CleanupJavaRuntimes(
             instances, new ExigenciaFalsa(declarado), java, session ?? new GameSession());

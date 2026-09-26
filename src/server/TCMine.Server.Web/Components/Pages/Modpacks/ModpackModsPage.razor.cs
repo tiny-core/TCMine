@@ -89,12 +89,12 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     private void OnJobChanged() => _ = InvokeAsync(async () =>
     {
         // Terminou: os arquivos novos já estão no banco, então vale reler.
-        if (Jobs.TryConsumeCompletion(VersionId, out var erro))
+        if (Jobs.TryConsumeCompletion(VersionId, out var error))
         {
             await LoadAsync();
 
-            if (erro is { Length: > 0 })
-                Snackbar.Add(erro, Severity.Error);
+            if (error is { Length: > 0 })
+                Snackbar.Add(error, Severity.Error);
         }
 
         StateHasChanged();

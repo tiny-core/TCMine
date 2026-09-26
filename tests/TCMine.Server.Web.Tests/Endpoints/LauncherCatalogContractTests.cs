@@ -32,20 +32,20 @@ public sealed class LauncherCatalogContractTests
     [Fact]
     public async Task Jogador_entra_e_o_catalogo_chega_pelo_hub()
     {
-        await using var servidor = new RealPortAppFactory
+        await using var server = new RealPortAppFactory
         {
             Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
         };
 
-        var nome = $"Pack {Guid.CreateVersion7():N}"[..12];
-        await SemearModpackAsync(servidor, nome);
+        var name = $"Pack {Guid.CreateVersion7():N}"[..12];
+        await SemearModpackAsync(server, name);
 
         await using var launcher = MontarLauncher();
 
         var config = new TCMine.Contracts.LauncherConfig
         {
-            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
 
         // 1. Entra: o token vira cookie de sessão, guardado pelo cliente.
@@ -56,10 +56,10 @@ public sealed class LauncherCatalogContractTests
 
         // 2. Pede o catálogo pelo hub. Ninguém passou credencial aqui: se o
         //    cookie não tivesse acompanhado, a negociação levaria 401.
-        var catalogo = await launcher.GetRequiredService<LoadCatalog>().HandleAsync(servidor.Address, Ct);
+        var catalogo = await launcher.GetRequiredService<LoadCatalog>().HandleAsync(server.Address, Ct);
 
         catalogo.Failed.ShouldBeFalse(catalogo.Error ?? "sem erro");
-        catalogo.Entries.ShouldContain(e => e.Modpack.Name == nome);
+        catalogo.Entries.ShouldContain(e => e.Modpack.Name == name);
     }
 
     [Fact]
@@ -67,11 +67,11 @@ public sealed class LauncherCatalogContractTests
     {
         // O outro lado da mesma moeda: a proteção do hub não pode depender de a
         // interface esconder a tela.
-        await using var servidor = new RealPortAppFactory();
+        await using var server = new RealPortAppFactory();
         await using var launcher = MontarLauncher();
 
         var catalogo = await launcher.GetRequiredService<LoadCatalog>()
-            .HandleAsync(servidor.Address, Ct);
+            .HandleAsync(server.Address, Ct);
 
         catalogo.Failed.ShouldBeTrue("um anônimo não pode listar o catálogo");
     }
@@ -102,39 +102,39 @@ public sealed class LauncherCatalogContractTests
         // Atravessar É o teste. Um tipo novo neste caminho é exatamente onde o
         // MessagePack já mordeu uma vez — a chamada morre em runtime e derruba a
         // conexão, e nenhum teste que fale JSON vê isso acontecer.
-        await using var servidor = new RealPortAppFactory
+        await using var server = new RealPortAppFactory
         {
             Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
         };
 
-        var modpackId = await SemearComVersoesAsync(servidor);
+        var modpackId = await SemearComVersoesAsync(server);
 
         await using var launcher = MontarLauncher();
 
         var config = new TCMine.Contracts.LauncherConfig
         {
-            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
 
         await launcher.GetRequiredService<SignIn>().InteractiveAsync(config, Ct);
 
-        var conexao = launcher.GetRequiredService<IServerConnection>();
-        await conexao.ConnectAsync(servidor.Address, Ct);
+        var connection = launcher.GetRequiredService<IServerConnection>();
+        await connection.ConnectAsync(server.Address, Ct);
 
-        var versoes = await conexao.GetVersionsAsync(modpackId, ReleaseChannel.Release, Ct);
+        var versions = await connection.GetVersionsAsync(modpackId, ReleaseChannel.Release, Ct);
 
         // Da mais nova para a mais velha, e sem a Draft nem a pré-lançamento:
         // o canal estável não vê o alpha.
-        versoes.Select(v => v.Version).ShouldBe(["1.1.0", "1.0.0"]);
+        versions.Select(v => v.Version).ShouldBe(["1.1.0", "1.0.0"]);
 
         // Sem os arquivos, por desenho — o resumo existe para a lista não
         // carregar o manifesto inteiro de cada versão.
-        versoes[0].LoaderVersion.ShouldBe("21.1.0");
+        versions[0].LoaderVersion.ShouldBe("21.1.0");
 
         // E o alpha vê só a sua, que é o que faz dele um canal. A Draft continua
         // de fora dos dois: não está publicada em canal nenhum.
-        var alphas = await conexao.GetVersionsAsync(modpackId, ReleaseChannel.Alpha, Ct);
+        var alphas = await connection.GetVersionsAsync(modpackId, ReleaseChannel.Alpha, Ct);
 
         alphas.Select(v => v.Version).ShouldBe(["1.2.0-beta"]);
     }
@@ -142,32 +142,32 @@ public sealed class LauncherCatalogContractTests
     [Fact]
     public async Task As_novidades_publicadas_atravessam_o_hub()
     {
-        await using var servidor = new RealPortAppFactory
+        await using var server = new RealPortAppFactory
         {
             Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
                 new PerfilFixo(new MinecraftProfile("abc123", "ana")))
         };
 
-        var modpackId = await SemearComNovidadesAsync(servidor);
+        var modpackId = await SemearComNovidadesAsync(server);
 
         await using var launcher = MontarLauncher();
 
         var config = new TCMine.Contracts.LauncherConfig
         {
-            Schema = 1, ServerUrl = servidor.Address, AzureClientId = "client-id-de-teste"
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
 
         await launcher.GetRequiredService<SignIn>().InteractiveAsync(config, Ct);
 
-        var conexao = launcher.GetRequiredService<IServerConnection>();
-        await conexao.ConnectAsync(servidor.Address, Ct);
+        var connection = launcher.GetRequiredService<IServerConnection>();
+        await connection.ConnectAsync(server.Address, Ct);
 
-        var novidades = await conexao.GetNewsAsync(modpackId, Ct);
+        var news = await connection.GetNewsAsync(modpackId, Ct);
 
         // Da mais recente para a mais antiga, e SEM o rascunho: o filtro vive no
         // hub e não na tela, porque quem tem a URL chama o método diretamente.
-        novidades.Select(n => n.Title).ShouldBe(["Segunda", "Primeira"]);
-        novidades[0].Body.ShouldBe("corpo da segunda");
+        news.Select(n => n.Title).ShouldBe(["Segunda", "Primeira"]);
+        news[0].Body.ShouldBe("corpo da segunda");
     }
 
     private static async Task<Guid> SemearComNovidadesAsync(RealPortAppFactory factory)
@@ -227,7 +227,7 @@ public sealed class LauncherCatalogContractTests
         foreach (var (numero, publicar) in
                  new[] { ("1.0.0", true), ("1.1.0", true), ("1.2.0-beta", true), ("1.3.0", false) })
         {
-            var versao = new ModpackVersion
+            var version = new ModpackVersion
             {
                 ModpackId = modpack.Id,
                 Version = numero,
@@ -238,9 +238,9 @@ public sealed class LauncherCatalogContractTests
             {
                 // Uma versão sem arquivos não publica — regra do domínio, e este
                 // teste não a está a testar. Um mod chega.
-                versao.UpsertFile(new ModpackFile
+                version.UpsertFile(new ModpackFile
                 {
-                    ModpackVersionId = versao.Id,
+                    ModpackVersionId = version.Id,
                     Path = "mods/jei.jar",
                     Sha256 = new string('a', 64),
                     SizeBytes = 1,
@@ -249,17 +249,17 @@ public sealed class LauncherCatalogContractTests
                     ProjectSlug = "jei"
                 });
 
-                versao.MarkResolving();
-                versao.MarkReady();
+                version.MarkResolving();
+                version.MarkReady();
             }
 
-            await repo.AddVersionAsync(versao, Ct);
+            await repo.AddVersionAsync(version, Ct);
         }
 
         return modpack.Id;
     }
 
-    private static async Task SemearModpackAsync(RealPortAppFactory factory, string nome)
+    private static async Task SemearModpackAsync(RealPortAppFactory factory, string name)
     {
         using var escopo = factory.Services.CreateScope();
         var repo = escopo.ServiceProvider.GetRequiredService<IModpackRepository>();
@@ -268,7 +268,7 @@ public sealed class LauncherCatalogContractTests
             new Modpack
             {
                 Slug = $"pack-{Guid.CreateVersion7():N}"[..18],
-                Name = nome,
+                Name = name,
                 MinecraftVersion = "1.21.1",
                 Loader = ModLoader.NeoForge
             },

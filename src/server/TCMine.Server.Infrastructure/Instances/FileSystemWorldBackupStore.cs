@@ -101,37 +101,37 @@ public sealed partial class FileSystemWorldBackupStore(
         string instancePath, List<string> itens, string destination,
         Action<int, int>? onProgress, CancellationToken ct)
     {
-        var arquivos = new List<string>();
+        var files = new List<string>();
         foreach (var item in itens)
         {
             var full = Path.Combine(instancePath, item);
 
             if (Directory.Exists(full))
-                arquivos.AddRange(Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories));
+                files.AddRange(Directory.EnumerateFiles(full, "*", SearchOption.AllDirectories));
             else if (File.Exists(full))
-                arquivos.Add(full);
+                files.Add(full);
         }
 
         using var zip = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None);
         using var archive = new ZipArchive(zip, ZipArchiveMode.Create);
 
         var done = 0;
-        foreach (var arquivo in arquivos)
+        foreach (var file in files)
         {
             ct.ThrowIfCancellationRequested();
 
-            var relative = Path.GetRelativePath(instancePath, arquivo).Replace('\\', '/');
+            var relative = Path.GetRelativePath(instancePath, file).Replace('\\', '/');
 
             // Fastest, não Optimal: os .mca já são comprimidos por dentro, então
             // o esforço extra rende quase nada e dobra o tempo num mundo grande.
-            archive.CreateEntryFromFile(arquivo, relative, CompressionLevel.Fastest);
+            archive.CreateEntryFromFile(file, relative, CompressionLevel.Fastest);
 
             done++;
             if (done % 200 is 0)
-                onProgress?.Invoke(done, arquivos.Count);
+                onProgress?.Invoke(done, files.Count);
         }
 
-        onProgress?.Invoke(arquivos.Count, arquivos.Count);
+        onProgress?.Invoke(files.Count, files.Count);
     }
 
     private static void Extract(

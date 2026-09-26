@@ -19,12 +19,12 @@ public class GameSessionTests
     [Fact]
     public void Enquanto_ha_jogo_aberto_o_segundo_attach_e_recusado()
     {
-        var sessao = new GameSession();
+        var session = new GameSession();
         var primeiro = new FakeGameProcess();
 
-        sessao.Attach(Instalada(), primeiro).ShouldBeTrue();
-        sessao.Attach(Instalada(), new FakeGameProcess()).ShouldBeFalse();
-        sessao.IsRunning.ShouldBeTrue();
+        session.Attach(Instalada(), primeiro).ShouldBeTrue();
+        session.Attach(Instalada(), new FakeGameProcess()).ShouldBeFalse();
+        session.IsRunning.ShouldBeTrue();
     }
 
     [Fact]
@@ -32,30 +32,30 @@ public class GameSessionTests
     {
         // Um código diferente de zero é a única pista de que o jogo não fechou
         // sozinho. Apagá-lo no fecho tiraria a informação quando ela nasce.
-        var sessao = new GameSession();
-        var processo = new FakeGameProcess { CodigoDeSaida = 1 };
+        var session = new GameSession();
+        var process = new FakeGameProcess { CodigoDeSaida = 1 };
 
-        sessao.Attach(Instalada(), processo);
-        processo.Terminar();
+        session.Attach(Instalada(), process);
+        process.Terminar();
 
-        await EsperarAsync(() => !sessao.IsRunning);
+        await EsperarAsync(() => !session.IsRunning);
 
-        sessao.Running.ShouldBeNull();
-        sessao.LastExitCode.ShouldBe(1);
+        session.Running.ShouldBeNull();
+        session.LastExitCode.ShouldBe(1);
     }
 
     [Fact]
     public async Task Depois_de_fechar_da_para_abrir_outra_vez()
     {
-        var sessao = new GameSession();
+        var session = new GameSession();
         var primeiro = new FakeGameProcess();
 
-        sessao.Attach(Instalada(), primeiro);
+        session.Attach(Instalada(), primeiro);
         primeiro.Terminar();
 
-        await EsperarAsync(() => !sessao.IsRunning);
+        await EsperarAsync(() => !session.IsRunning);
 
-        sessao.Attach(Instalada(), new FakeGameProcess()).ShouldBeTrue();
+        session.Attach(Instalada(), new FakeGameProcess()).ShouldBeTrue();
     }
 
     [Fact]
@@ -63,21 +63,21 @@ public class GameSessionTests
     {
         // As antigas caem pela frente, que é o lado certo: num crash o que
         // interessa é o fim.
-        var sessao = new GameSession();
-        var processo = new FakeGameProcess();
+        var session = new GameSession();
+        var process = new FakeGameProcess();
 
-        sessao.Attach(Instalada(), processo);
+        session.Attach(Instalada(), process);
 
         for (var i = 0; i < GameSession.MaxLogLines + 50; i++)
-            processo.Escrever($"linha {i}");
+            process.Escrever($"linha {i}");
 
-        processo.Terminar();
+        process.Terminar();
 
-        await EsperarAsync(() => !sessao.IsRunning);
+        await EsperarAsync(() => !session.IsRunning);
 
-        sessao.Log.Count.ShouldBe(GameSession.MaxLogLines);
-        sessao.Log[^1].ShouldBe($"linha {GameSession.MaxLogLines + 49}");
-        sessao.Log[0].ShouldBe("linha 50");
+        session.Log.Count.ShouldBe(GameSession.MaxLogLines);
+        session.Log[^1].ShouldBe($"linha {GameSession.MaxLogLines + 49}");
+        session.Log[0].ShouldBe("linha 50");
     }
 
     [Fact]
@@ -86,16 +86,16 @@ public class GameSessionTests
         // O jogo continua a correr; perder o launcher por causa de um pipe seria
         // pior do que perder o log. E ficar "a jogar" para sempre impediria
         // qualquer abertura seguinte.
-        var sessao = new GameSession();
-        var processo = new FakeGameProcess { Erro = new IOException("pipe fechado") };
+        var session = new GameSession();
+        var process = new FakeGameProcess { Erro = new IOException("pipe fechado") };
 
-        sessao.Attach(Instalada(), processo);
-        processo.Escrever("antes do erro");
+        session.Attach(Instalada(), process);
+        process.Escrever("antes do erro");
 
-        await EsperarAsync(() => !sessao.IsRunning);
+        await EsperarAsync(() => !session.IsRunning);
 
-        sessao.IsRunning.ShouldBeFalse();
-        sessao.Log.ShouldContain(l => l.Contains("pipe fechado", StringComparison.Ordinal));
+        session.IsRunning.ShouldBeFalse();
+        session.Log.ShouldContain(l => l.Contains("pipe fechado", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -119,10 +119,10 @@ public class GameSessionTests
 
     private static InstalledInstance Instalada()
     {
-        var chave = InstanceKey.New();
+        var key = InstanceKey.New();
 
         return new InstalledInstance(
-            chave,
+            key,
             new InstanceManifest
             {
                 Schema = 2,

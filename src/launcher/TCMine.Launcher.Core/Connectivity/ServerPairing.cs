@@ -16,21 +16,21 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
     /// </summary>
     public async Task<PairingState> ResumeAsync(CancellationToken ct)
     {
-        var salvo = await config.TryLoadAsync(ct);
+        var saved = await config.TryLoadAsync(ct);
 
-        if (salvo is null)
+        if (saved is null)
             return PairingState.NotPaired();
 
-        var resultado = await handshake.PerformAsync(salvo.ServerUrl, ct);
+        var result = await handshake.PerformAsync(saved.ServerUrl, ct);
 
         // Note que o config vai junto mesmo na falha: servidor fora do ar não
         // desfaz pareamento, e apagá-lo aqui mandaria o jogador redigitar o
         // endereço a cada oscilação de rede.
-        var atual = resultado.Outcome is HandshakeOutcome.Ok
-            ? await AtualizarAsync(salvo, resultado.Response!, ct)
-            : salvo;
+        var atual = result.Outcome is HandshakeOutcome.Ok
+            ? await RefreshAsync(saved, result.Response!, ct)
+            : saved;
 
-        return PairingState.FromHandshake(resultado, atual);
+        return PairingState.FromHandshake(result, atual);
     }
 
     /// <summary>
@@ -47,23 +47,23 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
     ///     trocaria "o administrador ainda não configurou" por um ficheiro que o
     ///     próprio launcher recusa a carregar no arranque seguinte.
     /// </summary>
-    private async Task<LauncherConfig> AtualizarAsync(
-        LauncherConfig salvo,
-        HandshakeResponse resposta,
+    private async Task<LauncherConfig> RefreshAsync(
+        LauncherConfig saved,
+        HandshakeResponse response,
         CancellationToken ct)
     {
-        var clientId = string.IsNullOrWhiteSpace(resposta.AzureClientId)
-            ? salvo.AzureClientId
-            : resposta.AzureClientId;
+        var clientId = string.IsNullOrWhiteSpace(response.AzureClientId)
+            ? saved.AzureClientId
+            : response.AzureClientId;
 
-        var nome = string.IsNullOrWhiteSpace(resposta.ServerName)
-            ? salvo.DisplayName
-            : resposta.ServerName;
+        var name = string.IsNullOrWhiteSpace(response.ServerName)
+            ? saved.DisplayName
+            : response.ServerName;
 
-        if (clientId == salvo.AzureClientId && nome == salvo.DisplayName)
-            return salvo;
+        if (clientId == saved.AzureClientId && name == saved.DisplayName)
+            return saved;
 
-        var novo = salvo with { AzureClientId = clientId, DisplayName = nome };
+        var novo = saved with { AzureClientId = clientId, DisplayName = name };
 
         await config.SaveAsync(novo, ct);
 
@@ -76,17 +76,17 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
     /// </summary>
     public async Task<PairingState> PairAsync(string address, CancellationToken ct)
     {
-        if (!TryNormalize(address, out var url, out var erro))
-            return PairingState.Rejected(erro);
+        if (!TryNormalize(address, out var url, out var error))
+            return PairingState.Rejected(error);
 
-        var resultado = await handshake.PerformAsync(url, ct);
+        var result = await handshake.PerformAsync(url, ct);
 
-        if (resultado.Outcome is not HandshakeOutcome.Ok)
-            return PairingState.FromHandshake(resultado, null);
+        if (result.Outcome is not HandshakeOutcome.Ok)
+            return PairingState.FromHandshake(result, null);
 
-        var resposta = resultado.Response!;
+        var response = result.Response!;
 
-        if (string.IsNullOrWhiteSpace(resposta.AzureClientId))
+        if (string.IsNullOrWhiteSpace(response.AzureClientId))
         {
             // O servidor está de pé e fala o nosso protocolo, mas sem o client id
             // do Azure não há como autenticar ninguém — e o LauncherConfig se
@@ -94,7 +94,7 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
             // leria "AzureClientId ausente" e concluiria que o launcher está
             // quebrado, quando quem tem de agir é o administrador.
             return PairingState.Rejected(
-                $"O servidor {resposta.ServerName} respondeu, mas ainda não está "
+                $"O servidor {response.ServerName} respondeu, mas ainda não está "
                 + "configurado para o login de jogadores. Avise o administrador.");
         }
 
@@ -105,8 +105,8 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
 
             // O client id vem do servidor, não do instalador: é ele quem sabe
             // contra qual app do Azure os jogadores dele autenticam.
-            AzureClientId = resposta.AzureClientId,
-            DisplayName = resposta.ServerName
+            AzureClientId = response.AzureClientId,
+            DisplayName = response.ServerName
         };
 
         var problemas = novo.Validate();
@@ -116,7 +116,7 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
 
         await config.SaveAsync(novo, ct);
 
-        return PairingState.Paired(novo, resposta);
+        return PairingState.Paired(novo, response);
     }
 
     /// <summary>
