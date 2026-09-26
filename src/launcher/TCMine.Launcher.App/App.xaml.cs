@@ -4,7 +4,13 @@ using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
 using TCMine.Launcher.App.Chrome;
+// Serilog também declara um ILogger, e ele não tem nada que ver com o do
+// Extensions.Logging que o resto do arquivo usa (LoggerMessage.Define, o campo
+// _logger). Mesma armadilha documentada no CLAUDE.md para o LogLevel do MSAL —
+// sem o alias, toda referência bare a ILogger neste arquivo vira CS0104.
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 #if DEBUG
 using TCMine.Launcher.App.Dev;
 #endif
@@ -63,6 +69,18 @@ public partial class App : Application
         var raiz = System.IO.Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TCMine");
 
+        // Sem isto, uma falha (ex.: login) só aparecia com um depurador
+        // anexado — nenhum arquivo, nenhum jeito de o jogador reportar o que
+        // aconteceu. Um arquivo por dia, guardando duas semanas: o suficiente
+        // para investigar sem crescer sem limite.
+        builder.Services.AddSerilog(config => config
+            .MinimumLevel.Information()
+            .WriteTo.File(
+                System.IO.Path.Combine(raiz, "logs", "launcher-.log"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 14,
+                formatProvider: System.Globalization.CultureInfo.InvariantCulture));
+
         builder.Services.AddLauncherInfrastructure(raiz);
 
         // Substitui as portas que a infraestrutura portável só sabe recusar:
@@ -95,7 +113,9 @@ public partial class App : Application
         // O pai do diálogo do broker. Mesma resolução tardia da moldura, e pelo
         // mesmo motivo: a janela é resolvida pelo contêiner e só existe depois.
         builder.Services.AddSingleton<IParentWindowHandle>(sp =>
-            new WpfParentWindowHandle(sp.GetRequiredService<MainWindow>()));
+            new WpfParentWindowHandle(
+                sp.GetRequiredService<MainWindow>(),
+                sp.GetRequiredService<ILogger<WpfParentWindowHandle>>()));
 
         _host = builder.Build();
         _logger = _host.Services.GetRequiredService<ILogger<App>>();

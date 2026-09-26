@@ -6,8 +6,30 @@
 
 <Router AppAssembly="@typeof(AssemblyMarker).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="@routeData" DefaultLayout="@typeof(ShellLayout)"/>
-        <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+        @* SEM @key aqui: o ShellLayout mora dentro deste RouteView, e o
+           arranque (handshake, pareamento, sessão) precisa rodar só uma vez
+           por sessão — uma chave que mudasse a cada rota remontaria o
+           RouteView (e o layout dentro dele) a cada navegação, disparando o
+           arranque de novo e criando um laço entre o handshake e o login.
+           LoggingErrorBoundary já se reseta sozinho ao navegar (ver a
+           própria classe), então não precisa disso. *@
+        <LoggingErrorBoundary>
+            <ChildContent>
+                <RouteView RouteData="@routeData" DefaultLayout="@typeof(ShellLayout)"/>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1"/>
+            </ChildContent>
+            <ErrorContent Context="ex">
+                <LayoutView Layout="@typeof(ShellLayout)">
+                    <EmptyState Icon="@Icons.Material.Filled.ErrorOutline"
+                                Title="Algo deu errado nesta tela"
+                                Description="@ex.Message">
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/" Target="_self">
+                            Voltar ao início
+                        </MudButton>
+                    </EmptyState>
+                </LayoutView>
+            </ErrorContent>
+        </LoggingErrorBoundary>
     </Found>
     @* Rota inexistente só acontece por engano nosso. Sem este bloco a janela
        ficaria em branco, escondendo o erro em vez de mostrá-lo. *@

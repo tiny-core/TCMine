@@ -120,4 +120,14 @@
   <ItemGroup Label="step_16">
     <PackageVersion Include="Velopack" Version="1.2.158" />
   </ItemGroup>
+  <!--
+    Log persistido do launcher. Sem isto, uma exceção só aparecia com um
+    depurador anexado — nenhum arquivo, nenhum jeito de o jogador reportar o
+    que aconteceu. O servidor já usa Serilog (step_06); aqui é o mesmo
+    logger, só com um sink de arquivo em vez do pipeline do ASP.NET Core.
+  -->
+  <ItemGroup Label="step_17">
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
 </Project>

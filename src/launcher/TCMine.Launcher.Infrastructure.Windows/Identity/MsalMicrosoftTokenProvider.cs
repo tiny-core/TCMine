@@ -81,6 +81,16 @@ public sealed partial class MsalMicrosoftTokenProvider(
             LogFailed(ex, ex.ErrorCode);
             return MicrosoftSignInFailures.Traduzir(ex.ErrorCode, ex.Message);
         }
+        // Qualquer exceção que não seja do MSAL (ex.: falha ao resolver o HWND
+        // do broker) não pode escapar até o BlazorWebView: sem um handler de
+        // UnhandledException ligado, o clique morreria em silêncio — o jogador
+        // via o botão "não reagir" e nada mais. Aqui é silencioso por design (é
+        // a tentativa automática do arranque), mas registrado.
+        catch (Exception ex)
+        {
+            LogFailed(ex, ex.GetType().Name);
+            return AuthResult.NoStoredCredentials();
+        }
     }
 
     public async Task<AuthResult> SignInAsync(string azureClientId, CancellationToken ct)
@@ -96,8 +106,16 @@ public sealed partial class MsalMicrosoftTokenProvider(
             // nunca uma WebView embutida. É a diferença entre ver a barra de
             // endereço da Microsoft e ser convidado a escrever a palavra-passe
             // numa janela que qualquer um podia ter desenhado.
+            //
+            // window.Handle, NUNCA () => window.Handle: esta versão do MSAL
+            // (4.89.0) não tem sobrecarga WithParentActivityOrWindow(Func<IntPtr>)
+            // — só (object) e (IntPtr). Um lambda cai na de object, que guarda o
+            // delegate como valor opaco e NUNCA o invoca; o broker então nunca lê
+            // handle nenhum e recusa com "window_handle_required" mesmo com a
+            // janela na tela. Ler a propriedade aqui, na hora, é seguro: SignInAsync
+            // só roda a partir de um clique, com a janela garantidamente visível.
             var result = await app.AcquireTokenInteractive(Scopes)
-                .WithParentActivityOrWindow(() => window.Handle)
+                .WithParentActivityOrWindow(window.Handle)
                 .WithUseEmbeddedWebView(false)
                 .ExecuteAsync(ct);
 
@@ -111,6 +129,14 @@ public sealed partial class MsalMicrosoftTokenProvider(
         {
             LogFailed(ex, ex.ErrorCode);
             return MicrosoftSignInFailures.Traduzir(ex.ErrorCode, ex.Message);
+        }
+        // Aqui a tentativa "pode falar" (veio de um clique): em vez de deixar
+        // escapar e o clique parecer morto, vira uma falha visível na tela de
+        // login — mesmo tratamento que um MsalException já recebia.
+        catch (Exception ex)
+        {
+            LogFailed(ex, ex.GetType().Name);
+            return AuthResult.Failed($"Falha inesperada ao entrar: {ex.Message}");
         }
     }
 
