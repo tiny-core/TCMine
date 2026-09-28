@@ -1,0 +1,144 @@
+@page "/public"
+@attribute [AllowAnonymous]
+@layout EmptyLayout
+@using TCMine.Contracts.Servers
+
+<PageTitle>TCMine — Modpacks e Servidores</PageTitle>
+
+<div class="tc-public">
+    <header class="tc-hero">
+        <img class="tc-hero-bg" src="/images/public/hero-cave.png" alt="" aria-hidden="true"/>
+        <div class="tc-hero-overlay"></div>
+
+        <div class="tc-hero-content">
+            <img class="tc-hero-logo" src="/images/public/logo-crystal.jpg" alt="TCMine"/>
+            <h1>TCMine</h1>
+            <p class="tc-hero-tagline">Modpacks e servidores de Minecraft, prontos para jogar.</p>
+
+            @if (_launcher is not null)
+            {
+                <a class="tc-cta" href="@_launcher.DownloadUrl">
+                    <span>Baixar o Launcher</span>
+                    <span class="tc-cta-version">v@(_launcher.Version)</span>
+                </a>
+            }
+            else
+            {
+                <p class="tc-cta-missing">O launcher ainda não foi publicado nesta instalação.</p>
+            }
+
+            @if (!_isLoading)
+            {
+                <div class="tc-stats">
+                    <div class="tc-stat">
+                        <strong>@TotalOnline</strong>
+                        <span>jogador@(TotalOnline == 1 ? "" : "es") online</span>
+                    </div>
+                    <div class="tc-stat">
+                        <strong>@OnlineServerCount</strong>
+                        <span>servidor@(OnlineServerCount == 1 ? "" : "es") no ar</span>
+                    </div>
+                    <div class="tc-stat">
+                        <strong>@_catalog.Modpacks.Count</strong>
+                        <span>modpack@(_catalog.Modpacks.Count == 1 ? "" : "s")</span>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <img class="tc-hero-mascot" src="/images/public/mascot-miner.jpg" alt="" aria-hidden="true"/>
+    </header>
+
+    <main class="tc-content">
+        <section class="tc-section" aria-labelledby="modpacks-heading">
+            <h2 id="modpacks-heading">Modpacks</h2>
+
+            @if (_isLoading)
+            {
+                <p class="tc-muted">Carregando…</p>
+            }
+            else if (_catalog.Modpacks.Count is 0)
+            {
+                <p class="tc-muted">Nenhum modpack publicado ainda.</p>
+            }
+            else
+            {
+                <div class="tc-grid">
+                    @foreach (var modpack in _catalog.Modpacks)
+                    {
+                        <article class="tc-card tc-fade-in">
+                            <div class="tc-card-icon">
+                                @if (modpack.IconUrl is not null)
+                                {
+                                    <img src="@modpack.IconUrl" alt=""/>
+                                }
+                                else
+                                {
+                                    <span class="tc-card-icon-fallback">@modpack.Name[..1].ToUpperInvariant()</span>
+                                }
+                            </div>
+                            <div class="tc-card-body">
+                                <h3>@modpack.Name</h3>
+                                <p class="tc-card-meta">
+                                    MC @modpack.MinecraftVersion · @LoaderLabel(modpack.Loader)
+                                </p>
+                                @if (!string.IsNullOrWhiteSpace(modpack.Summary))
+                                {
+                                    <p class="tc-card-summary">@modpack.Summary</p>
+                                }
+                                @if (modpack.OwnerDisplayName is { Length: > 0 } owner)
+                                {
+                                    <p class="tc-card-owner">Criado por @owner</p>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+
+        <section class="tc-section" aria-labelledby="servers-heading">
+            <h2 id="servers-heading">Servidores</h2>
+
+            @if (_isLoading)
+            {
+                <p class="tc-muted">Carregando…</p>
+            }
+            else if (_catalog.Servers.Count is 0)
+            {
+                <p class="tc-muted">Nenhum servidor no ar ainda.</p>
+            }
+            else
+            {
+                <div class="tc-grid">
+                    @foreach (var server in _catalog.Servers)
+                    {
+                        <article class="tc-card tc-server-card tc-fade-in">
+                            <div class="tc-server-head">
+                                <h3>@server.Name</h3>
+                                <span class="tc-status tc-status-@(server.Status is GameServerStatus.Running ? "on" : "off")">
+                                    <span class="tc-status-dot"></span>
+                                    @StatusLabel(server.Status)
+                                </span>
+                            </div>
+                            <p class="tc-card-meta">@server.ModpackName</p>
+
+                            @if (server.Status is GameServerStatus.Running)
+                            {
+                                <p class="tc-server-players">
+                                    <strong>@(server.OnlinePlayers?.ToString() ?? "?")</strong> / @server.MaxPlayers jogadores
+                                </p>
+                                <p class="tc-server-address">@server.ConnectAddress</p>
+                            }
+                        </article>
+                    }
+                </div>
+            }
+        </section>
+    </main>
+
+    <footer class="tc-footer">
+        <img src="/images/public/mascot-friendly.png" alt="" aria-hidden="true"/>
+        <p>TCMine — distribuindo modpacks desde sempre.</p>
+    </footer>
+</div>

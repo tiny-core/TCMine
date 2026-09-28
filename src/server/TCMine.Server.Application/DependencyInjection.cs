@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Public;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Storage;
@@ -20,6 +21,8 @@ public static class DependencyInjection
         services.AddScoped<ListModpackAccess>();
         services.AddScoped<AddModpackEditor>();
         services.AddScoped<RemoveModpackEditor>();
+
+        services.AddScoped<GetPublicCatalog>();
 
         services.AddScoped<AddManualFile>();
 

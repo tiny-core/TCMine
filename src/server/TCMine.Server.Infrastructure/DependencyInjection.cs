@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Public;
 using TCMine.Server.Infrastructure.Docker;
 using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.CurseForge;
@@ -144,6 +145,10 @@ public static class DependencyInjection
         services.AddHttpClient<QuiltVersionSource>();
 
         services.AddSingleton<IVersionCatalog, VersionCatalog>();
+
+        // Sem estado próprio — só lê um arquivo a cada chamada — mas singleton
+        // como os demais adaptadores sem estado por requisição.
+        services.AddSingleton<ILauncherReleaseSource, FileSystemLauncherReleaseSource>();
 
         return services;
     }
