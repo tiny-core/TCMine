@@ -9,13 +9,31 @@ Docker. Funcional e publicado como imagem, ainda em `0.x`: o conjunto de
 funcionalidades está inteiro, mas a instalação em cenários variados continua
 revelando arestas. O `1.0.0` fica reservado para quando isso parar de acontecer.
 
-**TCMine Launcher** — cliente desktop que instala e atualiza as instâncias do
-jogador. Em construção; o lado do servidor que ele consome já existe.
+**TCMine Launcher** — cliente desktop (Windows) que instala, atualiza e **abre**
+as instâncias do jogador. O laço está fechado: parear com o servidor, entrar com
+a conta Microsoft, instalar um modpack, e jogar.
 
 O fluxo central: o servidor publica **manifestos completos** de cada versão, e o
 launcher reconcilia o disco do jogador contra o manifesto — baixa o que falta,
 apaga o que sobrou. É um modelo declarativo: o manifesto descreve o estado
 final, e o launcher faz o disco convergir para ele.
+
+## O que o launcher faz
+
+- **Entra com a conta Microsoft** — Microsoft → Xbox Live → XSTS → Minecraft,
+  com o broker do Windows quando disponível e o navegador do sistema quando não.
+  Nunca uma WebView embutida.
+- **Instala e atualiza** reconciliando o disco contra o manifesto. Atualizar
+  preserva o mundo, as configurações e a RAM escolhida — e tira uma cópia do
+  mundo antes de mexer em qualquer coisa.
+- **Abre o jogo**, gerindo o Java que cada versão pede e instalando o loader
+  (NeoForge, Fabric, Quilt, Forge). Mostra o registro do jogo, então um crash
+  deixa de ser "fechou sozinho".
+- **Canal alpha** separado: uma instância alpha acompanha pré-lançamentos e
+  nunca salta para o canal estável.
+- **Funciona sem o servidor no ar.** O que está no disco continua jogável; só o
+  catálogo e as novidades ficam de fora.
+- **Atualiza-se sozinho**, pelo feed que o próprio TCMine Server publica.
 
 ## O que o servidor faz
 
@@ -34,9 +52,8 @@ final, e o launcher faz o disco convergir para ele.
 
 ## Rodar
 
-Requer Linux com Docker. O guia completo está em
-[docs/DEPLOY.md](docs/DEPLOY.md), incluindo uma seção para
-[ZimaOS e NAS](docs/DEPLOY.md#zimaos-e-outros-nas).
+Requer Linux com Docker. O guia completo — Docker, firewall, proxy reverso — está
+em [docs/DEPLOY.md](docs/DEPLOY.md).
 
 ```bash
 sudo mkdir -p /opt/tcmine && sudo chown -R 1654:1654 /opt/tcmine
@@ -44,7 +61,7 @@ cp .env.example .env      # ajuste TCMINE_ROOT, DOCKER_GID e TCMINE_PUBLIC_URL
 docker compose up -d
 ```
 
-Depois abra `https://seu-dominio/setup` para criar a conta de administrador.
+Depois abra `https://seu-dominio/admin/setup` para criar a conta de administrador.
 
 Dois requisitos que não dá para pular, e cujo sintoma não aponta a causa:
 
@@ -100,11 +117,16 @@ Detalhes de arquitetura e as decisões já tomadas estão em
 Tags com prefixo separam os dois produtos:
 
 ```bash
-git tag server-v0.2.0 && git push origin server-v0.2.0
+git tag server-v0.4.0   && git push origin server-v0.4.0     # imagem no Docker Hub
+git tag launcher-v0.1.0 && git push origin launcher-v0.1.0   # instalador + feed
 ```
 
-Isso roda os testes, publica a imagem no Docker Hub e cria a release. Ver
-[docs/RELEASE.md](docs/RELEASE.md).
+Os dois rodam os testes antes de publicar. O do launcher roda em Windows — o
+Linux compila o host WPF, mas publicar um executável exige a plataforma.
+
+**Ordem importa quando o protocolo sobe**: o launcher primeiro. Um launcher no
+canal antigo é recusado no handshake e mandado atualizar, e o canal novo só tem
+release depois que você a publica. Ver [docs/RELEASE.md](docs/RELEASE.md).
 
 O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 

@@ -275,7 +275,10 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   operação reversível, a mesma regra do servidor. Automático quando há mundo, e
   não um checkbox: backup que depende de lembrar de marcar não existe no dia em
   que importa. O `.zip` vai para `{raiz}/backups/{instância}/`, fora da pasta que
-  o instalador reescreve. **Nada é apagado** — retenção continua por fazer.
+  o instalador reescreve. A retenção guarda as **cinco** mais recentes por
+  instância (`WorldBackupRetention`, no Core porque decidir o que se perde merece
+  teste): a mais nova nunca expira — a poda corre logo depois de criar a cópia
+  que a atualização exigiu — e `keep: 0` significa ILIMITADO, não "apague tudo".
 - **Canal** (`ReleaseChannel`) sai do NÚMERO da versão, por SemVer: o que tem
   hífen é alpha. Não é campo gravado — guardá-lo criaria um segundo lugar para a
   verdade, e o dia em que discordassem seria um pack a atualizar para o canal

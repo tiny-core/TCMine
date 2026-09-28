@@ -1,11 +1,81 @@
 # Changelog
 
-Todas as mudanças relevantes do **TCMine Server**. As versões seguem
+Todas as mudanças relevantes do **TCMine Server** e, a partir da 0.4.0, também
+do **TCMine Launcher** — os dois são lançados por tags próprias
+(`server-v*`, `launcher-v*`), mas partilham repositório e protocolo. As versões
+seguem
 [SemVer](https://semver.org/lang/pt-BR/); enquanto estivermos em `0.x`, a API e
 o formato dos dados ainda podem mudar entre versões menores.
 
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
+
+## [Não lançado]
+
+A versão em que o launcher deixou de ser promessa. O laço fecha: parear, entrar
+com a conta Microsoft, instalar um modpack e **abrir o jogo**.
+
+### Adicionado — launcher
+
+- **Login com a Microsoft**, pela cadeia completa (Microsoft → Xbox Live → XSTS →
+  Minecraft). Usa o broker do Windows quando existe e o navegador do sistema
+  quando não — nunca uma WebView embutida, que é a diferença entre ver a barra de
+  endereço da Microsoft e escrever a palavra-passe numa janela que qualquer um
+  podia ter desenhado.
+
+- **Abrir o jogo**, com o Java que cada versão pede descarregado e partilhado
+  entre instâncias, e o loader instalado (NeoForge, Fabric, Quilt, Forge). O
+  registo do jogo aparece na tela, então um crash deixa de ser "fechou sozinho".
+
+- **Instâncias com identidade própria.** Atualizar mantém o mundo, as
+  configurações e a RAM escolhida; e o mesmo pack pode ter duas instalações, cada
+  uma no seu mundo — o que faz falta a quem joga em servidores fixados em versões
+  diferentes.
+
+- **Cópia do mundo antes de cada atualização**, automática quando há mundo. Se a
+  cópia falhar, a atualização é cancelada: é a ordem que torna a operação
+  reversível. Guarda as cinco mais recentes por instância.
+
+- **Canal alpha.** Uma instância alpha acompanha pré-lançamentos e nunca salta
+  para o canal estável, nem o contrário. Escolher versão é coisa da instalação:
+  uma instalação existente só anda para a frente, porque descer parte os mundos
+  jogados.
+
+- **Funciona sem o servidor no ar.** O que está no disco continua jogável; só o
+  catálogo e as novidades ficam de fora, desligados com o motivo à vista.
+
+- **Atualiza-se sozinho**, por Velopack, pelo feed que o servidor publica.
+
+### Adicionado — servidor
+
+- **Feed de atualização do launcher** em `/updates/launcher/{canal}/`, servido de
+  `LauncherUpdates:RootPath` (derivado de `Storage:RootPath`). Anónimo por
+  necessidade: um launcher velho demais para autenticar é exatamente o que
+  precisa de se atualizar.
+
+- **Histórico de versões e novidades pelo hub**, para o seletor de versão e a
+  tela inicial do launcher. Os dois filtram do lado do servidor — rascunho e
+  pré-lançamento não saem por engano.
+
+- **O client ID do Azure mudou-se para a tela de Configurações.** Registar a app
+  no Entra ID acontece depois do deploy, e antes disso o valor só existia em
+  `appsettings` — o administrador tinha de editar JSON dentro do container e
+  reiniciar. `Server:AzureClientId` sobrevive como semente.
+
+### Corrigido
+
+- A retenção de backups de mundo do **painel** nunca era gravada: o caso de uso
+  punha o valor na entidade e o repositório descartava-o, então ela voltava a
+  cinco a cada "Salvar".
+
+### Atualizar
+
+O **protocolo subiu para 2**, e o mínimo aceite subiu junto: um launcher de
+protocolo 1 é recusado no handshake e mandado atualizar. Como o canal do Velopack
+deriva do protocolo, **publique o launcher antes de subir o servidor** — senão o
+jogador recebe uma instrução que não tem como cumprir.
+
+Nada a fazer no banco: a migration nova aplica-se no arranque, como as outras.
 
 ## [0.3.0] — 2026-08-23
 
