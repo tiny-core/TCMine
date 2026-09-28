@@ -120,9 +120,13 @@ echo "Verificando:"
 afirmar "/health/ready responde (migrations aplicadas)" \
   bash -c "for _ in \$(seq 1 30); do curl -fsS '${BASE}/health/ready' >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1"
 
-html="$(curl -fsS "${CABECALHO[@]}" "${BASE}/setup" 2>/dev/null || true)"
+# /admin/setup, e não /setup: a rota mudou e este script continuou a pedir a
+# antiga. O curl -f trata o 404 como falha, a variável fica vazia e a asserção
+# reprova — com uma mensagem que fala de renderização, quando o problema era o
+# endereço. Um smoke que aponta para uma rota inexistente reprova para sempre.
+html="$(curl -fsS "${CABECALHO[@]}" "${BASE}/admin/setup" 2>/dev/null || true)"
 
-afirmar "/setup renderiza" bash -c "[ -n '${html:0:1}' ]"
+afirmar "/admin/setup renderiza" bash -c "[ -n '${html:0:1}' ]"
 
 # O ponto do teste. A página pré-renderiza no servidor mesmo com o script
 # quebrado, então "abriu" não prova nada: o que prova é o navegador conseguir

@@ -127,7 +127,7 @@ proxy_set_header Host $host;
 Para conferir sem proxy, simule o cabeçalho:
 
 ```bash
-curl -H 'X-Forwarded-Proto: https' -o /dev/null -w '%{http_code}\n' http://localhost:8080/setup
+curl -H 'X-Forwarded-Proto: https' -o /dev/null -w '%{http_code}\n' http://localhost:8080/admin/setup
 ```
 
 ### Atrás do Cloudflare
@@ -169,7 +169,7 @@ prático aqui, já que a nossa usa `frame-ancestors 'none'`.
 
 ## 5. Primeiro acesso
 
-Abra `https://seu-dominio/setup` e crie a conta de administrador. A tela só
+Abra `https://seu-dominio/admin/setup` e crie a conta de administrador. A tela só
 existe enquanto não houver nenhum usuário.
 
 ## ZimaOS e outros NAS
