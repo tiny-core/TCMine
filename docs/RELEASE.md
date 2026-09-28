@@ -5,7 +5,7 @@ O repositório abriga dois produtos, então a tag diz de qual se trata:
 | Tag | O que dispara |
 |---|---|
 | `server-v0.2.0` | Constrói a imagem e publica no Docker Hub |
-| `launcher-v0.1.0` | Reservado para o launcher — ainda sem workflow |
+| `launcher-v0.1.0` | Launcher (`release-launcher.yml`, em windows-latest) |
 
 O prefixo não é cosmético: sem ele, publicar o launcher reconstruiria o servidor
 e vice-versa.
@@ -81,13 +81,47 @@ O workflow aceita disparo manual (**Actions → Publicar imagem do servidor → 
 workflow**). Nesse caso a imagem sai como `0.0.0-manual` e não recebe `latest`,
 para um teste não virar a versão que os outros baixam.
 
-## Sobre o launcher
+## Lançar o launcher
 
-`launcher-v*` está reservada, sem workflow ainda. Quando existir, ela não vai
-publicar imagem: o launcher é distribuído pelo **Velopack**, e o feed é servido
-pelo próprio TCMine Server em `/updates/launcher/{canal}/`.
+```bash
+git tag launcher-v0.1.0
+git push origin launcher-v0.1.0
+```
 
-Vale lembrar de uma decisão já tomada, porque ela muda o formato desse workflow:
-o canal do Velopack deriva do **protocolo**, não da versão do produto — hoje
-`win-x64-p1`. É o que permite publicar launcher 1.6, 1.7 e 1.8 sem release
-nenhuma do servidor. Ver `Protocol.cs` e `HandshakeEndpoints.cs`.
+O workflow roda em **windows-latest** — o `EnableWindowsTargeting` deixa o Linux
+compilar o host WPF, mas publicar um executável exige a plataforma. Ele corre os
+testes, publica self-contained, empacota com o `vpk` e anexa o resultado a uma
+release do GitHub.
+
+O canal do Velopack deriva do **protocolo**, não da versão do produto — hoje
+`win-x64-p2`. É o que permite publicar launcher 1.6, 1.7 e 1.8 sem release
+nenhuma do servidor. O workflow lê o número do `Protocol.cs` em vez de o repetir,
+porque dois lugares com o mesmo número acabam a discordar e publicar no canal
+errado entrega uma atualização que o servidor nunca oferece.
+
+### Pôr a release no ar
+
+O workflow **não publica no servidor**, de propósito: a máquina que constrói não
+devia ter credencial de escrita na que serve jogadores. Baixe os ficheiros da
+release e copie-os para:
+
+```
+${TCMINE_ROOT}/updates/launcher/win-x64-p2/
+```
+
+É a pasta que `/updates/launcher/{canal}/` serve, derivada de `Storage:RootPath`.
+Os launchers instalados encontram a novidade na abertura seguinte.
+
+### O primeiro instalador
+
+O feed serve **atualizações**, não a primeira instalação. O `*-Setup.exe` da
+release é o que se entrega a quem ainda não tem o launcher — por download no
+site, no Discord, onde fizer sentido.
+
+### Quando o protocolo sobe
+
+Subir `Protocol.Current` muda o canal, e um launcher no canal antigo **deixa de
+ser aceite no handshake** (o mínimo sobe junto). Ele recebe "atualize", mas o
+canal antigo já não recebe releases — então publique a versão nova ANTES de
+subir o servidor, ou os jogadores ficam com uma instrução que não têm como
+cumprir.

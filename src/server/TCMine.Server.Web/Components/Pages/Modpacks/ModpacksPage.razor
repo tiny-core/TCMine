@@ -1,4 +1,4 @@
-@page "/modpacks"
+@page "/admin/modpacks"
 @using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
 @inject IModpackRepository Repository
@@ -83,7 +83,7 @@ else
                     </MudCardContent>
 
                     <MudCardActions>
-                        <MudButton Href="@($"/modpacks/{pack.Id}")"
+                        <MudButton Href="@($"/admin/modpacks/{pack.Id}")"
                                    Variant="Variant.Text" Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.OpenInNew">
                             Abrir

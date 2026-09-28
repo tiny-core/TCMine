@@ -17,6 +17,6 @@ public sealed class RedirectToLogin : ComponentBase
 
         // forceLoad: o login é SSR estático (precisa de HttpContext para o
         // cookie), então tem de sair do circuito interativo.
-        Navigation.NavigateTo($"/login?returnUrl={returnUrl}", true);
+        Navigation.NavigateTo($"/admin/login?returnUrl={returnUrl}", true);
     }
 }

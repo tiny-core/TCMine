@@ -66,7 +66,7 @@ public partial class ModpackAssetsPage
     }
 
     private void OnVersionChanged(Guid versionId) =>
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/recursos");
+        Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{versionId}/recursos");
 
     private async Task OpenUpload()
     {

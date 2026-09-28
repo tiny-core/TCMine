@@ -121,7 +121,7 @@ public static class RateLimitPolicies
     ///     token vive no corpo da requisição e não dá para reconstruir o link.
     /// </summary>
     private static string OriginPage(PathString path) =>
-        path.StartsWithSegments("/auth/setup") ? "/setup"
-        : path.StartsWithSegments("/auth/forgot-password") ? "/forgot-password"
-        : "/login";
+        path.StartsWithSegments("/auth/setup") ? "/admin/setup"
+        : path.StartsWithSegments("/auth/forgot-password") ? "/admin/forgot-password"
+        : "/admin/login";
 }

@@ -146,7 +146,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     private void OnVersionChanged(Guid versionId)
     {
         // Troca de versão numa aba por versão = navega para a mesma aba da nova.
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/mods");
+        Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{versionId}/mods");
     }
 
     // Enquanto a ingestão roda, a versão fica em Resolving. Recarrega até sair
@@ -231,6 +231,6 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         var dialog = await DialogService.ShowAsync<CheckUpdatesDialog>("Verificar atualizações", parameters, options);
 
         if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
-            Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
+            Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{newVersionId}/mods");
     }
 }

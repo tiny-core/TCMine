@@ -22,9 +22,9 @@ public sealed class LoginPageTests
         await factory.EntrarComoAdminAsync();
 
         var html = await factory.CreateClient().GetStringAsync(
-            "/login", TestContext.Current.CancellationToken);
+            "/admin/login", TestContext.Current.CancellationToken);
 
-        html.ShouldNotContain("/forgot-password");
+        html.ShouldNotContain("/admin/forgot-password");
         html.ShouldContain("não tem envio de e-mail configurado");
     }
 
@@ -36,9 +36,9 @@ public sealed class LoginPageTests
         await ConfigurarSmtpAsync(factory);
 
         var html = await factory.CreateClient().GetStringAsync(
-            "/login", TestContext.Current.CancellationToken);
+            "/admin/login", TestContext.Current.CancellationToken);
 
-        html.ShouldContain("/forgot-password");
+        html.ShouldContain("/admin/forgot-password");
     }
 
     private static async Task ConfigurarSmtpAsync(TcMineAppFactory factory)

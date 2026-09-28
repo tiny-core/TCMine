@@ -23,7 +23,7 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
     [Fact]
     public async Task Painel_sem_sessao_vai_para_o_login()
     {
-        var response = await Cliente.GetAsync("/", TestContext.Current.CancellationToken);
+        var response = await Cliente.GetAsync("/admin", TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
 
@@ -32,7 +32,18 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
         var target = response.Headers.Location!;
         var path = target.IsAbsoluteUri ? target.AbsolutePath : target.ToString();
 
-        path.ShouldStartWith("/login");
+        path.ShouldStartWith("/admin/login");
+    }
+
+    [Fact]
+    public async Task Pagina_publica_responde_sem_sessao()
+    {
+        // "/" agora é o catálogo público — o contrário do painel: o padrão
+        // vira exceção quando os dois trocam de lugar, e é fácil uma reverter
+        // sem a outra.
+        var response = await Cliente.GetAsync("/", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

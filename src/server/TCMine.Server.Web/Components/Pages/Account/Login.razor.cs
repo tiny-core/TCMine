@@ -32,7 +32,7 @@ public partial class Login : ComponentBase
         // administrador. O /setup se recusa a rodar depois que existe alguém.
         if (!await Users.AnyAsync(CancellationToken.None))
         {
-            Navigation.NavigateTo("/setup", true);
+            Navigation.NavigateTo("/admin/setup", true);
             return;
         }
 

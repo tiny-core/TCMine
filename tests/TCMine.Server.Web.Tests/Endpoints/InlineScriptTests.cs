@@ -22,7 +22,11 @@ public sealed class InlineScriptTests(PainelAutenticado painel) : IClassFixture<
     // Uma anônima e as autenticadas: as duas famílias renderizam por caminhos
     // diferentes (SSR estático e circuito interativo).
     public static TheoryData<string> Rotas =>
-        new() { "/setup", "/", "/modpacks", "/servers", "/mods", "/settings", "/storage" };
+        new()
+        {
+            "/admin/setup", "/", "/admin", "/admin/modpacks", "/admin/servers",
+            "/admin/mods", "/admin/settings", "/admin/storage"
+        };
 
     [Theory]
     [MemberData(nameof(Rotas))]

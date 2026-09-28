@@ -90,7 +90,7 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     // Trocar versão numa aba por versão navega para a mesma aba da nova. Como o
     // Monaco quebra com enhanced navigation, força recarregar (forceLoad).
     private void OnVersionChanged(Guid versionId) =>
-        Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{versionId}/overrides", true);
+        Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{versionId}/overrides", true);
 
     private async Task LoadAsync()
     {

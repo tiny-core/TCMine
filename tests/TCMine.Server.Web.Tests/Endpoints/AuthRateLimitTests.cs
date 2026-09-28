@@ -51,11 +51,11 @@ public class AuthRateLimitTests
         var response = await TentarLoginAsync(client);
 
         // Post de formulário vem do navegador: 429 cru seria uma página branca.
-        // Volta para /login com ?error=, que a tela já sabe exibir.
+        // Volta para /admin/login com ?error=, que a tela já sabe exibir.
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
 
         var target = response.Headers.Location!.ToString();
-        target.ShouldStartWith("/login?error=");
+        target.ShouldStartWith("/admin/login?error=");
         Uri.UnescapeDataString(target).ShouldContain("Tentativas demais");
     }
 

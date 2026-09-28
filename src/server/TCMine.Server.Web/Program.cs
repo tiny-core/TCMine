@@ -144,9 +144,9 @@ builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/login";
+        options.LoginPath = "/admin/login";
         options.LogoutPath = "/auth/logout";
-        options.AccessDeniedPath = "/login";
+        options.AccessDeniedPath = "/admin/login";
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.SlidingExpiration = true;
 

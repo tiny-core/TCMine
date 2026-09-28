@@ -1,4 +1,4 @@
-@page "/"
+@page "/admin"
 
 <PageTitle>Painel — TCMine</PageTitle>
 
@@ -30,7 +30,7 @@ else
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-8 mb-3">
         <MudText Typo="Typo.h6">Modpacks recentes</MudText>
         <MudSpacer/>
-        <MudButton Href="/modpacks" Variant="Variant.Text" Color="Color.Primary"
+        <MudButton Href="/admin/modpacks" Variant="Variant.Text" Color="Color.Primary"
                    EndIcon="@Icons.Material.Filled.ArrowForward">
             Ver todos
         </MudButton>
@@ -41,7 +41,7 @@ else
         <EmptyState Icon="@Icons.Material.Filled.Inventory2"
                     Title="Nenhum modpack ainda."
                     Description="Crie o primeiro para começar a distribuir aos jogadores.">
-            <MudButton Href="/modpacks" Variant="Variant.Filled" Color="Color.Primary"
+            <MudButton Href="/admin/modpacks" Variant="Variant.Filled" Color="Color.Primary"
                        StartIcon="@Icons.Material.Filled.Add">
                 Ir para Modpacks
             </MudButton>
@@ -75,7 +75,7 @@ else
                             </MudStack>
                         </MudCardContent>
                         <MudCardActions>
-                            <MudButton Href="@($"/modpacks/{pack.Id}")" Variant="Variant.Text"
+                            <MudButton Href="@($"/admin/modpacks/{pack.Id}")" Variant="Variant.Text"
                                        Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew">
                                 Abrir
                             </MudButton>

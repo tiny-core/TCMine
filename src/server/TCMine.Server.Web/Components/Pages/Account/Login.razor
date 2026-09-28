@@ -1,4 +1,4 @@
-@page "/login"
+@page "/admin/login"
 @attribute [AllowAnonymous]
 @* SSR estático: gravar o cookie de sessão exige HttpContext, que não existe
    dentro do circuito interativo. O formulário posta para /auth/login.
@@ -28,7 +28,7 @@
 
             @if (PodeRecuperar)
             {
-                <MudLink Href="/forgot-password" Typo="Typo.body2" Class="d-block text-center">
+                <MudLink Href="/admin/forgot-password" Typo="Typo.body2" Class="d-block text-center">
                     Esqueci minha senha
                 </MudLink>
             }

@@ -41,8 +41,8 @@ public partial class ModpackWorkspace : ComponentBase
 
     private List<BreadcrumbItem> Breadcrumbs =>
     [
-        new("Modpacks", "/modpacks"),
-        new(Modpack.Name, $"/modpacks/{Modpack.Id}", Active == ModpackTab.Overview)
+        new("Modpacks", "/admin/modpacks"),
+        new(Modpack.Name, $"/admin/modpacks/{Modpack.Id}", Active == ModpackTab.Overview)
     ];
 
     private Task OnVersionChanged(Guid versionId) => SelectedVersionIdChanged.InvokeAsync(versionId);

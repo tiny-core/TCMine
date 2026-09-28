@@ -40,7 +40,7 @@ public static class AuthEndpoints
             var result = await useCase.HandleAsync(email, password, ct);
             if (!result.Succeeded)
             {
-                var back = BuildUrl("/login", result.Error!, returnUrl);
+                var back = BuildUrl("/admin/login", result.Error!, returnUrl);
                 return Results.Redirect(back);
             }
 
@@ -62,14 +62,14 @@ public static class AuthEndpoints
         {
             var result = await useCase.HandleAsync(email, displayName, password, ct);
             if (!result.Succeeded)
-                return Results.Redirect(BuildUrl("/setup", result.Error!, null));
+                return Results.Redirect(BuildUrl("/admin/setup", result.Error!, null));
 
             // Já entra logado: acabou de provar que é dono da instalação.
             var created = await users.GetByIdAsync(result.Value, ct);
             if (created is not null)
                 await SignInAsync(http, created);
 
-            return Results.LocalRedirect("/");
+            return Results.LocalRedirect("/admin");
         });
 
         anonimas.MapPost("/forgot-password", async (
@@ -80,11 +80,11 @@ public static class AuthEndpoints
         {
             // O link precisa do endereço público do painel; monta a partir da
             // requisição atual para funcionar em qualquer host/porta.
-            var template = $"{http.Request.Scheme}://{http.Request.Host}/reset-password?token={{token}}";
+            var template = $"{http.Request.Scheme}://{http.Request.Host}/admin/reset-password?token={{token}}";
             await useCase.HandleAsync(email, template, ct);
 
             // Resposta idêntica exista ou não a conta — ver o caso de uso.
-            return Results.LocalRedirect("/forgot-password?sent=true");
+            return Results.LocalRedirect("/admin/forgot-password?sent=true");
         });
 
         anonimas.MapPost("/reset-password", async (
@@ -97,14 +97,14 @@ public static class AuthEndpoints
             var result = await useCase.HandleAsync(email, token, password, ct);
             if (!result.Succeeded)
             {
-                var back = $"/reset-password?token={Uri.EscapeDataString(token)}"
+                var back = $"/admin/reset-password?token={Uri.EscapeDataString(token)}"
                            + $"&error={Uri.EscapeDataString(result.Error!)}";
                 return Results.Redirect(back);
             }
 
             // Não entra logado de propósito: quem redefiniu prova a posse da
             // senha nova entrando com ela.
-            return Results.LocalRedirect("/login");
+            return Results.LocalRedirect("/admin/login");
         });
 
         // Fora do grupo: sair exige sessão, e limitar quem já está autenticado
@@ -112,7 +112,7 @@ public static class AuthEndpoints
         app.MapPost("/auth/logout", async (HttpContext http) =>
         {
             await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Results.LocalRedirect("/login");
+            return Results.LocalRedirect("/admin/login");
         });
 
         return app;
@@ -160,18 +160,19 @@ public static class AuthEndpoints
             : $"{url}&returnUrl={Uri.EscapeDataString(returnUrl)}";
     }
 
-    // Aceita só caminho relativo dentro do app; qualquer outra coisa vira "/".
+    // Aceita só caminho relativo dentro do app; qualquer outra coisa vira o
+    // painel — "/" agora é a página pública, não o destino de quem loga.
     private static string SafeReturnUrl(string? returnUrl)
     {
         if (string.IsNullOrWhiteSpace(returnUrl))
-            return "/";
+            return "/admin";
 
         var candidate = returnUrl.StartsWith('/') ? returnUrl : "/" + returnUrl;
 
         // "//host" e "/\host" são absolutos disfarçados.
         return candidate.StartsWith("//", StringComparison.Ordinal)
                || candidate.StartsWith("/\\", StringComparison.Ordinal)
-            ? "/"
+            ? "/admin"
             : candidate;
     }
 }

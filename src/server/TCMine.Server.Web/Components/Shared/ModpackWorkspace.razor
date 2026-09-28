@@ -63,34 +63,34 @@
     }
 
     <nav class="tc-tabs">
-        <a class="tc-tab @Cls(ModpackTab.Overview)" href="@($"/modpacks/{Modpack.Id}")">
+        <a class="tc-tab @Cls(ModpackTab.Overview)" href="@($"/admin/modpacks/{Modpack.Id}")">
             Visão geral
         </a>
         @if (SelectedVersionId != Guid.Empty)
         {
             <a class="tc-tab @Cls(ModpackTab.Mods)"
-               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/mods")">
+               href="@($"/admin/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/mods")">
                 Mods
             </a>
             @* Recursos: shaderpacks e resource packs. Aba própria porque não se
                gerenciam como mod, e na grade de mods sumiam no meio de centenas
                de linhas. *@
             <a class="tc-tab @Cls(ModpackTab.Assets)"
-               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/recursos")">
+               href="@($"/admin/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/recursos")">
                 Recursos
             </a>
 
             @* forceLoad (data-enhance-nav=false): a enhanced navigation desfaz o
                DOM que o Monaco monta e quebra o editor de overrides. *@
             <a class="tc-tab @Cls(ModpackTab.Overrides)" data-enhance-nav="false"
-               href="@($"/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/overrides")">
+               href="@($"/admin/modpacks/{Modpack.Id}/versions/{SelectedVersionId}/overrides")">
                 Overrides
             </a>
         }
-        <a class="tc-tab @Cls(ModpackTab.Servers)" href="@($"/modpacks/{Modpack.Id}/servers")">
+        <a class="tc-tab @Cls(ModpackTab.Servers)" href="@($"/admin/modpacks/{Modpack.Id}/servers")">
             Servidores
         </a>
-        <a class="tc-tab @Cls(ModpackTab.News)" href="@($"/modpacks/{Modpack.Id}/news")">
+        <a class="tc-tab @Cls(ModpackTab.News)" href="@($"/admin/modpacks/{Modpack.Id}/news")">
             Novidades
         </a>
     </nav>

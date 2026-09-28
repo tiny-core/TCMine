@@ -1,4 +1,4 @@
-@page "/modpacks/{ModpackId:guid}"
+@page "/admin/modpacks/{ModpackId:guid}"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
 @using TCMine.UI.Shared.Formatting
@@ -105,7 +105,7 @@ else
                         @if (_selectedVersion.State is ModpackVersionState.Draft)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                       Href="@($"/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods")"
+                                       Href="@($"/admin/modpacks/{ModpackId}/versions/{_selectedVersion.Id}/mods")"
                                        StartIcon="@Icons.Material.Filled.Add">Adicionar mods
                             </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Success"
@@ -122,7 +122,7 @@ else
                         else if (_selectedVersion.State is ModpackVersionState.Ready)
                         {
                             <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary"
-                                       Href="@($"/modpacks/{ModpackId}/servers")"
+                                       Href="@($"/admin/modpacks/{ModpackId}/servers")"
                                        StartIcon="@Icons.Material.Filled.Dns">Criar servidor
                             </MudButton>
                             <MudButton Size="Size.Small" Variant="Variant.Outlined"

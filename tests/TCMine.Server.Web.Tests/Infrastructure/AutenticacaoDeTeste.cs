@@ -20,7 +20,7 @@ internal static class AutenticacaoDeTeste
         // O POST de verdade carrega o token de antiforgery, então o teste tem de
         // buscar a página antes: pular essa etapa testaria um caminho que o
         // pipeline real rejeita.
-        var token = ExtrairToken(await client.GetStringAsync("/setup"));
+        var token = ExtrairToken(await client.GetStringAsync("/admin/setup"));
 
         var response = await client.PostAsync("/auth/setup", new FormUrlEncodedContent(
         [

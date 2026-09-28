@@ -1,4 +1,4 @@
-@page "/servers"
+@page "/admin/servers"
 @using TCMine.Contracts.Servers
 @using TCMine.Server.Domain.Servers
 
@@ -60,7 +60,7 @@ else
                     </MudStack>
                 </MudTd>
                 <MudTd DataLabel="Modpack">
-                    <MudLink Href="@($"/modpacks/{context.Server.ModpackId}/servers")" Typo="Typo.caption">
+                    <MudLink Href="@($"/admin/modpacks/{context.Server.ModpackId}/servers")" Typo="Typo.caption">
                         @context.ModpackName
                     </MudLink>
                 </MudTd>
@@ -105,7 +105,7 @@ else
                     {
                         <MudTooltip Text="Ver o console">
                             <MudIconButton Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"
-                                           Href="@($"/modpacks/{context.Server.ModpackId}/servers")"/>
+                                           Href="@($"/admin/modpacks/{context.Server.ModpackId}/servers")"/>
                         </MudTooltip>
                     }
                     @if (_busy.Contains(context.Server.Id))

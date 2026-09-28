@@ -33,8 +33,8 @@ public sealed class PageRenderTests
     /// </summary>
     public static TheoryData<string> Rotas => new()
     {
-        "/", "/modpacks", "/mods", "/servers", "/storage", "/settings",
-        "/login", "/forgot-password"
+        "/", "/admin", "/admin/modpacks", "/admin/mods", "/admin/servers",
+        "/admin/storage", "/admin/settings", "/admin/login", "/admin/forgot-password"
     };
 
     /// <summary>Abas do modpack que não são por versão.</summary>
@@ -58,7 +58,7 @@ public sealed class PageRenderTests
         await using var factory = new TcMineAppFactory();
         var (modpackId, _) = await SemearAsync(factory, comArquivos: true);
 
-        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}{sufixo}");
+        var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}{sufixo}");
 
         html.ShouldNotBeNull($"a aba /modpacks/id{sufixo} respondeu com erro");
     }
@@ -71,7 +71,7 @@ public sealed class PageRenderTests
         await using var factory = new TcMineAppFactory();
         var modpackId = await SemearModpackVazioAsync(factory);
 
-        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}");
+        var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}");
 
         html.ShouldNotBeNull("um modpack sem versões respondeu com erro");
     }
@@ -83,7 +83,7 @@ public sealed class PageRenderTests
         await using var factory = new TcMineAppFactory();
         var (modpackId, versionId) = await SemearAsync(factory, comArquivos: true);
 
-        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}/versions/{versionId}/{aba}");
+        var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}/versions/{versionId}/{aba}");
 
         html.ShouldNotBeNull($"a aba /{aba} respondeu com erro");
     }
@@ -97,7 +97,7 @@ public sealed class PageRenderTests
         await using var factory = new TcMineAppFactory();
         var (modpackId, versionId) = await SemearAsync(factory, comArquivos: false);
 
-        var html = await BuscarAsync(factory, $"/modpacks/{modpackId}/versions/{versionId}/{aba}");
+        var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}/versions/{versionId}/{aba}");
 
         html.ShouldNotBeNull($"a aba /{aba} vazia respondeu com erro");
     }

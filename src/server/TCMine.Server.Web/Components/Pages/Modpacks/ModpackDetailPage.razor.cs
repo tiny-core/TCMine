@@ -365,7 +365,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
         // Ok devolve o Id do Draft novo — leva o admin direto para os mods dele.
         if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
-            Navigation.NavigateTo($"/modpacks/{ModpackId}/versions/{newVersionId}/mods");
+            Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{newVersionId}/mods");
     }
 
     // ---- Ações do modpack (não da versão) ----
@@ -420,7 +420,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         {
             Snackbar.Add("Modpack apagado.", Severity.Success);
             // O modpack desta página deixou de existir; volta para o catálogo.
-            Navigation.NavigateTo("/modpacks");
+            Navigation.NavigateTo("/admin/modpacks");
         }
         else
         {
