@@ -752,3 +752,7 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   exibição que o servidor de jogo mandou.
 - **Restaurar backup de mundo com nuvem ligada abre um `CloudRollbackIncident`** (prévia de
   estorno) ANTES de religar o servidor. Estorno = linhas compensatórias no ledger.
+- **Backup a quente com nuvem ligada:** depois do `save-all flush`, rodar `tccloud checkpoint` pelo
+  RCON ANTES de copiar — senão o zip sai com o diário do mod atrasado em relação aos chunks.
+- **"Operações em dúvida" nunca são devolvidas automaticamente.** Depois de um crash o mod não sabe
+  se o mundo gravou o item; devolver às cegas duplica. Só o dono decide, pelo painel.
