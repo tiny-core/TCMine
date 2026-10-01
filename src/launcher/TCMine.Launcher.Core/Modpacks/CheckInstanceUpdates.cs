@@ -26,19 +26,26 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
         IReadOnlyList<InstalledInstance> instances,
         CancellationToken ct)
     {
-        var news = new Dictionary<InstanceKey, ModpackVersionDto>();
-
         // Uma consulta por (MODPACK, CANAL), e não por instância: duas
         // instalações do mesmo pack pediriam a mesma resposta duas vezes, e uma
         // alpha ao lado de uma estável precisa de respostas diferentes — é isso
         // que faz do canal um canal. O canal sai do número da versão instalada,
         // sem campo gravado a poder discordar.
-        foreach (var grupo in instances.GroupBy(i => (
-                     i.Manifest.ModpackId,
-                     Canal: ReleaseChannels.Of(i.Manifest.Version))))
-        {
-            var latest = await UltimaAsync(grupo.Key.ModpackId, grupo.Key.Canal, ct);
+        //
+        // Em paralelo, como no LoadCatalog: são consultas independentes no
+        // mesmo canal, e um jogador com vários packs instalados esperava uma
+        // ida-e-volta de rede de cada vez só para abrir a tela de instâncias.
+        var grupos = instances
+            .GroupBy(i => (i.Manifest.ModpackId, Canal: ReleaseChannels.Of(i.Manifest.Version)))
+            .ToArray();
 
+        var respostas = await Task.WhenAll(grupos.Select(async grupo =>
+            (Grupo: grupo, Latest: await UltimaAsync(grupo.Key.ModpackId, grupo.Key.Canal, ct))));
+
+        var news = new Dictionary<InstanceKey, ModpackVersionDto>();
+
+        foreach (var (grupo, latest) in respostas)
+        {
             if (latest is null)
                 continue;
 

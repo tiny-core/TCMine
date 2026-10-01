@@ -74,30 +74,56 @@ public sealed partial class FileSystemInstanceStore(
         if (!Directory.Exists(raiz))
             return [];
 
-        var instaladas = new List<InstalledInstance>();
+        // Ler o manifesto e somar o tamanho da pasta são independentes entre
+        // instâncias, e o segundo é caro: um mundo jogado tem milhares de
+        // arquivos (regiões, playerdata, logs). Somando uma instância de cada
+        // vez, de forma síncrona, a tela de instâncias travava por vários
+        // segundos a cada abertura — travava a UI inteira, porque corria na
+        // mesma thread do circuito Blazor. Task.Run tira o enumerate/stat
+        // dessa thread e o WhenAll deixa as instâncias correrem em paralelo.
+        var carregamentos = Directory.EnumerateDirectories(raiz)
+            .Select(folder => CarregarAsync(folder, ct));
 
-        foreach (var folder in Directory.EnumerateDirectories(raiz))
-        {
-            var manifest = await LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct);
+        var instaladas = await Task.WhenAll(carregamentos);
 
-            // Pasta sem manifesto não é instância nossa — pode ser sobra de uma
-            // instalação interrompida. Listá-la ofereceria ao jogador um card
-            // sem nome nem versão.
-            if (manifest is null)
-                continue;
+        return [.. instaladas
+            .OfType<InstalledInstance>()
+            .OrderBy(i => i.Manifest.ModpackName, StringComparer.CurrentCultureIgnoreCase)];
+    }
 
-            // A chave vem do NOME DA PASTA, e não do manifesto. É o que faz as
-            // instalações antigas — nomeadas pela regra do par (modpack, versão) —
-            // continuarem a ser encontradas sem renomear nada, e o que permite
-            // duas instâncias do mesmo pack coexistirem.
-            instaladas.Add(new InstalledInstance(
-                new InstanceKey(Path.GetFileName(folder)),
-                manifest,
-                SizeOf(folder),
-                folder));
-        }
+    public async Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct)
+    {
+        var raiz = Path.Combine(paths.RootDirectory, "instances");
 
-        return [.. instaladas.OrderBy(i => i.Manifest.ModpackName, StringComparer.CurrentCultureIgnoreCase)];
+        if (!Directory.Exists(raiz))
+            return [];
+
+        var manifestos = await Task.WhenAll(
+            Directory.EnumerateDirectories(raiz)
+                .Select(folder => LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct)));
+
+        return [.. manifestos.OfType<InstanceManifest>()];
+    }
+
+    /// <summary>
+    ///     Uma instância, ou null se a pasta não tiver manifesto — pode ser
+    ///     sobra de uma instalação interrompida, e listá-la ofereceria ao
+    ///     jogador um card sem nome nem versão.
+    /// </summary>
+    private async Task<InstalledInstance?> CarregarAsync(string folder, CancellationToken ct)
+    {
+        var manifest = await LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct);
+
+        if (manifest is null)
+            return null;
+
+        var tamanho = await Task.Run(() => SizeOf(folder), ct);
+
+        // A chave vem do NOME DA PASTA, e não do manifesto. É o que faz as
+        // instalações antigas — nomeadas pela regra do par (modpack, versão) —
+        // continuarem a ser encontradas sem renomear nada, e o que permite
+        // duas instâncias do mesmo pack coexistirem.
+        return new InstalledInstance(new InstanceKey(Path.GetFileName(folder)), manifest, tamanho, folder);
     }
 
     public Task DeleteFilesAsync(InstanceKey key, IEnumerable<string> relativePaths, CancellationToken ct)

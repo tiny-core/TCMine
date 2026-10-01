@@ -86,10 +86,12 @@ public partial class ModpacksPage : ComponentBase, IDisposable
 
     private async Task RefreshInstalledAsync()
     {
-        var instaladas = await Instances.HandleAsync(CancellationToken.None);
+        // Light: esta tela nunca mostra tamanho de instância, só se ela existe.
+        // A variante cheia soma o disco de cada mundo instalado à toa.
+        var manifestos = await Instances.HandleLightAsync(CancellationToken.None);
 
-        _installed = [.. instaladas.Select(i => i.Manifest.ModpackId)];
-        _installedVersions = [.. instaladas.Select(i => i.Manifest.ModpackVersionId)];
+        _installed = [.. manifestos.Select(m => m.ModpackId)];
+        _installedVersions = [.. manifestos.Select(m => m.ModpackVersionId)];
     }
 
     /// <summary>

@@ -21,6 +21,15 @@ public interface IInstanceStore
     Task<IReadOnlyList<InstalledInstance>> ListAsync(CancellationToken ct);
 
     /// <summary>
+    ///     Só os manifestos do que está instalado, sem somar o tamanho de
+    ///     nenhuma pasta. Para quem só precisa saber QUAL modpack/versão já
+    ///     existe no disco (ex.: desligar "instalar" no catálogo) — a tela de
+    ///     modpacks chamava <see cref="ListAsync" /> só para isto, e pagava o
+    ///     preço de varrer mundos inteiros por um dado que nunca aparecia.
+    /// </summary>
+    Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct);
+
+    /// <summary>
     ///     Apaga arquivos GERENCIADOS que sobraram da versão anterior. Recebe
     ///     caminhos relativos e nunca decide sozinho o que remover: quem decide é
     ///     o diff, a partir do manifesto local.

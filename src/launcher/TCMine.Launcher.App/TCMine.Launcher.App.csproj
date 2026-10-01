@@ -24,13 +24,6 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
 
-    <!--
-        Permite compilar (não executar) num agente Linux. O CI roda em ubuntu e
-        constrói a solução inteira; sem isto o build morre com NETSDK1100 e o
-        launcher deixaria de ser verificado a cada push.
-    -->
-    <EnableWindowsTargeting>true</EnableWindowsTargeting>
-
     <!-- [LibraryImport] gera marshalling unsafe. Fica contido neste projeto. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 

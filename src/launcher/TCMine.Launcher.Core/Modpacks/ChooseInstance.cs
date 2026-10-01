@@ -12,9 +12,19 @@ namespace TCMine.Launcher.Core.Modpacks;
 /// </summary>
 public sealed class ChooseInstance(IInstanceStore instances, IActiveInstanceStore active)
 {
-    public async Task<ActiveInstanceView> CurrentAsync(CancellationToken ct)
+    public Task<ActiveInstanceView> CurrentAsync(CancellationToken ct) =>
+        CurrentAsync(knownInstances: null, ct);
+
+    /// <summary>
+    ///     Mesma coisa, mas reaproveitando uma listagem de instâncias que quem
+    ///     chama já tem em mãos — evita listar a pasta de instâncias de novo
+    ///     quando a tela de instâncias, que acabou de listá-las para desenhar a
+    ///     própria página, também precisa saber qual está ativa.
+    /// </summary>
+    public async Task<ActiveInstanceView> CurrentAsync(
+        IReadOnlyList<InstalledInstance>? knownInstances, CancellationToken ct)
     {
-        var instaladas = await instances.ListAsync(ct);
+        var instaladas = knownInstances ?? await instances.ListAsync(ct);
 
         return new ActiveInstanceView(Resolve(instaladas, await active.ReadAsync(ct)), instaladas.Count);
     }

@@ -20,14 +20,26 @@ public sealed class CleanupJavaRuntimes(
     GameSession session)
 {
     /// <summary>O que dá para libertar agora, sem apagar nada.</summary>
-    public async Task<IReadOnlyList<InstalledRuntime>> FindUnusedAsync(CancellationToken ct)
+    public Task<IReadOnlyList<InstalledRuntime>> FindUnusedAsync(CancellationToken ct) =>
+        FindUnusedAsync(knownInstances: null, ct);
+
+    /// <summary>
+    ///     Mesma coisa, mas reaproveitando uma listagem de instâncias que quem
+    ///     chama já tem em mãos. A tela de instâncias listava as instâncias
+    ///     para desenhar a própria página e, ao chamar isto, mandava listar a
+    ///     MESMA pasta de novo por dentro — três varreduras do disco de
+    ///     instâncias por abertura de tela, cada uma somando o tamanho de
+    ///     mundos inteiros. Sem instâncias em mãos, cai para a listagem normal.
+    /// </summary>
+    public async Task<IReadOnlyList<InstalledRuntime>> FindUnusedAsync(
+        IReadOnlyList<InstalledInstance>? knownInstances, CancellationToken ct)
     {
         var installed = await java.ListAsync(ct);
 
         if (installed.Count is 0)
             return [];
 
-        var needed = await RequiredMajorsAsync(ct);
+        var needed = await RequiredMajorsAsync(knownInstances, ct);
 
         return [.. installed.Where(r => !needed.Contains(r.MajorVersion))];
     }
@@ -37,14 +49,17 @@ public sealed class CleanupJavaRuntimes(
     ///     Recusa-se com o jogo aberto: o processo em execução está a correr a
     ///     partir de uma destas pastas, e puxá-la debaixo dele mata a partida.
     /// </summary>
-    public async Task<long> HandleAsync(CancellationToken ct)
+    public Task<long> HandleAsync(CancellationToken ct) => HandleAsync(knownInstances: null, ct);
+
+    /// <summary>Mesma coisa, mas reaproveitando uma listagem já em mãos — ver <see cref="FindUnusedAsync(IReadOnlyList{InstalledInstance}?,CancellationToken)"/>.</summary>
+    public async Task<long> HandleAsync(IReadOnlyList<InstalledInstance>? knownInstances, CancellationToken ct)
     {
         if (session.IsRunning)
             return 0;
 
         long freed = 0;
 
-        foreach (var runtime in await FindUnusedAsync(ct))
+        foreach (var runtime in await FindUnusedAsync(knownInstances, ct))
         {
             await java.RemoveAsync(runtime.MajorVersion, ct);
             freed += runtime.SizeBytes;
@@ -61,11 +76,12 @@ public sealed class CleanupJavaRuntimes(
     ///     pode divergir do que está instalado; o preço disso é banda, e é o
     ///     preço certo a pagar por não ter de adivinhar melhor.
     /// </summary>
-    private async Task<HashSet<int>> RequiredMajorsAsync(CancellationToken ct)
+    private async Task<HashSet<int>> RequiredMajorsAsync(
+        IReadOnlyList<InstalledInstance>? knownInstances, CancellationToken ct)
     {
         var needed = new HashSet<int>();
 
-        foreach (var instance in await instances.ListAsync(ct))
+        foreach (var instance in knownInstances ?? await instances.ListAsync(ct))
         {
             var minecraft = instance.Manifest.MinecraftVersion;
 

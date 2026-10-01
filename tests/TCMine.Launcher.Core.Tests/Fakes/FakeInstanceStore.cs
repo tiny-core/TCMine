@@ -29,6 +29,9 @@ public sealed class FakeInstanceStore : IInstanceStore
             .. Manifests.Select(p => new InstalledInstance(p.Key, p.Value, 0, PathFor(p.Key)))
         ]);
 
+    public Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<InstanceManifest>>([.. Manifests.Values]);
+
     public Task DeleteFilesAsync(InstanceKey key, IEnumerable<string> relativePaths, CancellationToken ct)
     {
         Deleted.AddRange(relativePaths);

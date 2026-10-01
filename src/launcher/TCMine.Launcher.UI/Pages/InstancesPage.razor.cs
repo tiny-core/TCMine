@@ -75,10 +75,15 @@ public partial class InstancesPage : ComponentBase, IDisposable
         {
             _instances = await Instances.HandleAsync(CancellationToken.None);
 
+            // Passa _instances adiante em vez de deixar cada caso de uso listar
+            // a pasta de instâncias de novo por dentro: eram três varreduras do
+            // disco (cada uma somando o tamanho de mundos inteiros) para uma
+            // única abertura de tela.
+
             // A ativa vem resolvida, e não lida em bruto: com uma instância só
             // ela é a ativa sem ninguém ter escolhido, e a etiqueta tem de dizer
             // o mesmo que a tela de jogar mostra.
-            _active = (await Active.CurrentAsync(CancellationToken.None)).Active?.Key;
+            _active = (await Active.CurrentAsync(_instances, CancellationToken.None)).Active?.Key;
 
             // Só com servidor: sem ele não há como saber, e "não saber" não é o
             // mesmo que "não há novidade" — mostrar botões que falham ao clicar
@@ -87,7 +92,7 @@ public partial class InstancesPage : ComponentBase, IDisposable
                 ? await Updates.HandleAsync(_instances, CancellationToken.None)
                 : new Dictionary<InstanceKey, ModpackVersionDto>();
 
-            _reclaimable = (await JavaCleanup.FindUnusedAsync(CancellationToken.None))
+            _reclaimable = (await JavaCleanup.FindUnusedAsync(_instances, CancellationToken.None))
                 .Sum(r => r.SizeBytes);
         }
         finally
@@ -130,7 +135,7 @@ public partial class InstancesPage : ComponentBase, IDisposable
 
         try
         {
-            var freed = await JavaCleanup.HandleAsync(CancellationToken.None);
+            var freed = await JavaCleanup.HandleAsync(_instances, CancellationToken.None);
 
             Snackbar.Add(
                 freed > 0
