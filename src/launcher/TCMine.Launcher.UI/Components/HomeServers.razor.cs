@@ -12,4 +12,10 @@ namespace TCMine.Launcher.UI.Components;
 public partial class HomeServers : ComponentBase
 {
     [Parameter] [EditorRequired] public IReadOnlyList<GameServerDto> Servers { get; set; } = [];
+
+    /// <summary>
+    ///     Abrir o resgate de convite é decisão de quem usa o componente — ele
+    ///     só mostra a lista que recebeu, não sabe diálogo nem catálogo.
+    /// </summary>
+    [Parameter] [EditorRequired] public EventCallback OnRedeemInvite { get; set; }
 }

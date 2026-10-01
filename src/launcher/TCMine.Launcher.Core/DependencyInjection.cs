@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<ServerPairing>();
         services.AddScoped<UpdateLauncher>();
         services.AddScoped<SignIn>();
+        services.AddScoped<RedeemInvite>();
         services.AddScoped<LoadCatalog>();
         services.AddScoped<InstallModpackVersion>();
 

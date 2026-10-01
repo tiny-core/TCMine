@@ -178,5 +178,8 @@ public class SignInTests
             registro?.Invoke();
             return Task.CompletedTask;
         }
+
+        public Task<InviteRedeemResult> RedeemInviteAsync(Uri serverUrl, string code, CancellationToken ct) =>
+            Task.FromResult(InviteRedeemResult.Failed("não usado neste teste"));
     }
 }

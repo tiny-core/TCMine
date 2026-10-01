@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
+using TCMine.Launcher.UI.Components;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
@@ -50,6 +52,8 @@ public partial class HomePage : ComponentBase, IDisposable
     [Inject] private LaunchGame Launch { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
+
+    [Inject] private IDialogService Dialogs { get; set; } = default!;
 
     /// <summary>
     ///     Deixa de ouvir a sessão ao sair da tela.
@@ -176,5 +180,19 @@ public partial class HomePage : ComponentBase, IDisposable
         {
             // Sem novidades a coluna simplesmente não as mostra.
         }
+    }
+
+    /// <summary>
+    ///     Abre o diálogo de resgate e, se um convite entrar, recarrega a
+    ///     coluna lateral — é só assim que o servidor recém-liberado aparece
+    ///     sem o jogador precisar reabrir a tela.
+    /// </summary>
+    private async Task RedeemInviteAsync()
+    {
+        var dialog = await Dialogs.ShowAsync<RedeemInviteDialog>("Resgatar convite");
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+            await LoadSideAsync();
     }
 }

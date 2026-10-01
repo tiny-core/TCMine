@@ -1,0 +1,30 @@
+@* Resgatar um convite: o código vira acesso a um servidor (e some da tela de
+   "Onde jogar" assim que o catálogo recarrega). *@
+
+<MudDialog>
+    <DialogContent>
+        <MudTextField @bind-Value="_code" Label="Código do convite"
+                      Placeholder="XXXX-XXXX-XXXX-XXXX" Immediate="true"
+                      Disabled="_submitting" Class="mb-2"/>
+
+        @if (_error is not null)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true">
+                @_error
+            </MudAlert>
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Cancelar" Disabled="_submitting">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   Disabled="@(_submitting || string.IsNullOrWhiteSpace(_code))"
+                   OnClick="ResgatarAsync">
+            @if (_submitting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Resgatar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

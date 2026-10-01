@@ -1,11 +1,12 @@
-@* Onde jogar. Some inteiro quando não há: uma caixa vazia dizendo "nenhum
-   servidor" ocuparia a mesma altura de uma lista cheia para não dizer nada. *@
+@* Onde jogar. A lista de servidores é por Membership (ver ListAccessibleServers
+   no servidor) — uma conta nova não enxerga nenhum até resgatar um convite, e
+   por isso o link para resgatar fica aqui, não escondido numa tela à parte. *@
 
-@if (Servers.Count > 0)
-{
-    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
-        <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
 
+    @if (Servers.Count > 0)
+    {
         <MudStack Spacing="3" Class="mt-3">
             @foreach (var server in Servers)
             {
@@ -24,5 +25,17 @@
                 </div>
             }
         </MudStack>
-    </MudPaper>
-}
+    }
+    else
+    {
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-3">
+            Nenhum servidor ainda. Se alguém te convidou, resgate o código abaixo.
+        </MudText>
+    }
+
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.CardGiftcard"
+               Class="mt-3" OnClick="@(() => OnRedeemInvite.InvokeAsync())">
+        Tenho um convite
+    </MudButton>
+</MudPaper>

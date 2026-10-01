@@ -21,6 +21,7 @@ namespace TCMine.Contracts.Serialization;
 [JsonSerializable(typeof(HandshakeResponse))]
 [JsonSerializable(typeof(MinecraftLoginRequest))]
 [JsonSerializable(typeof(LauncherSessionDto))]
+[JsonSerializable(typeof(RedeemInviteRequest))]
 [JsonSerializable(typeof(ModpackDto))]
 [JsonSerializable(typeof(IReadOnlyList<ModpackDto>))]
 [JsonSerializable(typeof(ModpackVersionDto))]

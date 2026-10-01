@@ -73,6 +73,58 @@ public sealed partial class LauncherSessionApi(
         }
     }
 
+    public async Task<InviteRedeemResult> RedeemInviteAsync(Uri serverUrl, string code, CancellationToken ct)
+    {
+        var endpoint = new Uri(serverUrl, "/api/v1/invites/redeem");
+
+        try
+        {
+            var response = await http.PostAsJsonAsync(
+                endpoint,
+                new RedeemInviteRequest { Code = code },
+                TcMineJsonContext.Default.RedeemInviteRequest,
+                ct);
+
+            if (response.IsSuccessStatusCode)
+                return InviteRedeemResult.Success();
+
+            // Results.Problem devolve application/problem+json; a mensagem que
+            // o jogador precisa ver — "Convite inválido ou expirado." — está no
+            // campo "detail", não no corpo inteiro. JsonDocument porque isto é
+            // o único lugar que lê este formato: não vale um tipo no contexto
+            // de source-gen só por causa dele.
+            LogFailed(endpoint, (int)response.StatusCode);
+            var detail = await TryReadProblemDetailAsync(response, ct);
+
+            return InviteRedeemResult.Failed(detail ?? "Não foi possível resgatar o convite.");
+        }
+        catch (HttpRequestException ex)
+        {
+            LogErro(ex, endpoint);
+            return InviteRedeemResult.Failed("Não foi possível alcançar o servidor para resgatar o convite.");
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return InviteRedeemResult.Failed("O servidor demorou demais para responder.");
+        }
+    }
+
+    private static async Task<string?> TryReadProblemDetailAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+            return document.RootElement.TryGetProperty("detail", out var detail)
+                ? detail.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     public async Task SignOutAsync(Uri serverUrl, CancellationToken ct)
     {
         try

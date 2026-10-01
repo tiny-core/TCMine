@@ -14,6 +14,19 @@ public interface ILauncherSessionApi
     Task<SessionResult> SignInAsync(Uri serverUrl, string minecraftAccessToken, CancellationToken ct);
 
     Task SignOutAsync(Uri serverUrl, CancellationToken ct);
+
+    /// <summary>
+    ///     Troca um código de convite pelo vínculo com o servidor. Exige sessão
+    ///     já aberta — o cookie do <see cref="SignInAsync" /> é quem autentica
+    ///     este pedido.
+    /// </summary>
+    Task<InviteRedeemResult> RedeemInviteAsync(Uri serverUrl, string code, CancellationToken ct);
+}
+
+public sealed record InviteRedeemResult(bool Succeeded, string? Error)
+{
+    public static InviteRedeemResult Success() => new(true, null);
+    public static InviteRedeemResult Failed(string error) => new(false, error);
 }
 
 public sealed record SessionResult(
