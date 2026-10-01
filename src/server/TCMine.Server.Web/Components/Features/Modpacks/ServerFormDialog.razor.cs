@@ -20,6 +20,7 @@ public partial class ServerFormDialog
     private string _name = "";
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
+    private string _minecraftVersion = "";
 
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public GameServer? Existing { get; set; }
@@ -52,6 +53,12 @@ public partial class ServerFormDialog
             .Where(v => v.State is ModpackVersionState.Ready && !v.IsPreRelease)
         ];
         _selectedVersionId = _versions.FirstOrDefault()?.Id ?? Guid.Empty;
+
+        // A versão do Minecraft é do modpack (fixa, imutável), não da versão
+        // publicada — a legenda mostrava LoaderVersion rotulado de "Minecraft",
+        // que é outro número (ex.: a build do NeoForge).
+        var modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
+        _minecraftVersion = modpack?.MinecraftVersion ?? "";
     }
 
     private Task Save() => SubmitAsync(SaveCoreAsync, "Servidor salvo.");
