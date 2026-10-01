@@ -19,24 +19,9 @@ namespace TCMine.Server.Web.Tests.Endpoints;
 /// </summary>
 public class CsrfProtectionTests
 {
-    [Fact]
-    public async Task Login_sem_token_antiforgery_e_recusado()
-    {
-        using var factory = new TcMineAppFactory();
-        using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-
-        var response = await client.PostAsync(
-            "/auth/login",
-            new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("email", "ninguem@teste.local"),
-                new KeyValuePair<string, string>("password", "qualquer")
-            ]),
-            TestContext.Current.CancellationToken);
-
-        // 400 antes de qualquer credencial ser avaliada: um 302 para /login
-        // com ?error= significaria que o caso de uso RODOU sem token nenhum.
-        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-    }
+    // O login do painel (/auth/microsoft/start → /callback) é GET: não há
+    // formulário nenhum a proteger ali, só o /auth/setup continua sendo POST
+    // de formulário — é o único caso que resta para este teste.
 
     [Fact]
     public async Task Setup_sem_token_antiforgery_e_recusado()
@@ -47,9 +32,7 @@ public class CsrfProtectionTests
         var response = await client.PostAsync(
             "/auth/setup",
             new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("email", "admin@teste.local"),
-                new KeyValuePair<string, string>("displayName", "Admin"),
-                new KeyValuePair<string, string>("password", "SenhaForte123!")
+                new KeyValuePair<string, string>("azureClientId", "11111111-1111-1111-1111-111111111111")
             ]),
             TestContext.Current.CancellationToken);
 

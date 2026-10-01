@@ -6,25 +6,21 @@
 <PageTitle>Primeiro acesso — TCMine</PageTitle>
 
 <AuthShell Title="Primeiro acesso"
-           Subtitle="Crie a conta de administrador desta instalação. Esta tela fecha sozinha depois — só existe enquanto não há nenhum usuário."
+           Subtitle="Antes de entrar, informe o ID do aplicativo que você registrou no Entra ID para o login com a Microsoft. Esta tela fecha sozinha depois — só existe enquanto não há nenhum usuário."
            Error="@Error">
     <form method="post" action="/auth/setup">
         <AntiforgeryToken/>
 
         <MudStack Spacing="4">
-            <MudTextField T="string" name="displayName" Label="Nome"
-                          Variant="Variant.Outlined" Required="true"/>
-
-            <MudTextField T="string" name="email" InputType="InputType.Email"
-                          Label="E-mail" Variant="Variant.Outlined" Required="true"/>
-
-            <MudTextField T="string" name="password" InputType="InputType.Password"
-                          Label="Senha" Variant="Variant.Outlined" Required="true"
-                          HelperText="Mínimo de 8 caracteres."/>
+            <MudTextField T="string" name="azureClientId" Label="ID do aplicativo (cliente)"
+                          Variant="Variant.Outlined" Required="true"
+                          Placeholder="00000000-0000-0000-0000-000000000000"
+                          Adornment="Adornment.Start" AdornmentIcon="@Icons.Custom.Brands.Microsoft"
+                          HelperText="GUID do registro no Entra ID. Pode ser trocado depois, em Configurações."/>
 
             <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
                        Color="Color.Primary" Size="Size.Large" FullWidth="true">
-                Criar administrador
+                Continuar
             </MudButton>
         </MudStack>
     </form>

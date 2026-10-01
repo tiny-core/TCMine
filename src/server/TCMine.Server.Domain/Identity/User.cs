@@ -5,40 +5,22 @@ namespace TCMine.Server.Domain.Identity;
 public sealed class User : Entity
 {
     /// <summary>
-    ///     E-mail: é por ele que se faz login com conta local, e é o que liga uma
-    ///     conta local à conta Microsoft quando a mesma pessoa usa as duas.
-    ///     Nulo para quem entrou pelo launcher: o perfil do Minecraft devolve
-    ///     UUID e nome de jogador, nunca e-mail. Sintetizar um endereço falso só
-    ///     para preencher a coluna criaria uma conta que aparenta ter login
-    ///     local e caminho de recuperação de senha — nenhum dos dois existe.
-    /// </summary>
-    public string? Email { get; set; }
-
-    /// <summary>
-    ///     Hash da senha da conta local. Nulo quando o usuário só entra pela
-    ///     Microsoft — nunca guardamos senha em claro, e conta sem senha
-    ///     simplesmente não passa pelo login local.
-    /// </summary>
-    public string? PasswordHash { get; set; }
-
-    /// <summary>
-    ///     Object ID da Microsoft (claim "oid"). É a chave estável de identidade
-    ///     do lado Microsoft: e-mail e nome de exibição mudam, o oid não. Nulo
-    ///     enquanto a conta for só local.
+    ///     Object ID da Microsoft (claim "oid"). Nulo para quem só entrou pelo
+    ///     launcher: ele manda só o token do Minecraft para o servidor
+    ///     (<c>AuthenticateMinecraftUser</c>), não o token Microsoft que teria o
+    ///     oid — então um jogador comum nunca tem este campo preenchido, só
+    ///     quem já entrou no painel pela Microsoft (<c>AuthenticateMicrosoftUser</c>).
+    ///     Não há mais login local: toda conta nasce de uma Microsoft ou de um
+    ///     Minecraft, nunca de e-mail e senha.
     /// </summary>
     public string? MicrosoftObjectId { get; set; }
 
     /// <summary>
-    ///     Hash SHA-256 do token de recuperação de senha em aberto. Guardamos o
-    ///     hash, não o token: se o banco vazar, os links de reset já emitidos não
-    ///     servem para nada. Nulo quando não há pedido pendente.
+    ///     UUID da conta Minecraft, sem hífens. Nulo até a conta vincular um
+    ///     Minecraft — obrigatório para quem entra pelo launcher, opcional para
+    ///     quem entra pelo painel (a Microsoft sozinha já basta para administrar;
+    ///     o Minecraft aí é oportunista, e pode ser vinculado depois).
     /// </summary>
-    public string? PasswordResetTokenHash { get; set; }
-
-    /// <summary>Quando o token de recuperação expira. Nulo se não há pedido.</summary>
-    public DateTimeOffset? PasswordResetTokenExpiresAt { get; set; }
-
-    /// <summary>UUID da conta Minecraft, sem hífens. Nulo até o primeiro login no jogo.</summary>
     public string? MinecraftUuid { get; set; }
 
     public required string DisplayName { get; set; }

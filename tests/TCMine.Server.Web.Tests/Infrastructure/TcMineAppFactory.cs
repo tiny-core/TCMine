@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
+using TCMine.Server.Application.Abstractions;
 
 namespace TCMine.Server.Web.Tests.Infrastructure;
 
@@ -54,6 +55,17 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
         // teste: em produção a mensagem interna não deve sair para o cliente.
         builder.ConfigureTestServices(services =>
             services.Configure<HubOptions>(o => o.EnableDetailedErrors = true));
+
+        // Padrão para toda a suíte: o login do painel troca um code por uma
+        // identidade Microsoft, e isso é rede de verdade fora de teste. Antes
+        // de Servicos, para quem precisar de um comportamento diferente (ex.:
+        // falha da Microsoft, ou um admin COM Minecraft vinculado) poder
+        // substituir por cima.
+        builder.ConfigureTestServices(services =>
+        {
+            services.AddScoped<IMicrosoftOAuthClient, FakeMicrosoftOAuthClient>();
+            services.AddScoped<IMinecraftTokenExchange, FakeMinecraftTokenExchange>();
+        });
 
         if (Servicos is not null)
             builder.ConfigureTestServices(Servicos);

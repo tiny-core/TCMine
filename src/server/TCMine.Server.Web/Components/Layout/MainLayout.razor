@@ -1,4 +1,5 @@
 ﻿@inherits LayoutComponentBase
+@using TCMine.Server.Web.Endpoints
 
 <MudThemeProvider Theme="TcMineTheme.Default"
                   @bind-IsDarkMode="_isDarkMode"
@@ -39,9 +40,15 @@
                         @context.User.Identity?.Name
                     </MudText>
                     <MudDivider/>
-                    <MudMenuItem Icon="@Icons.Material.Filled.Password" OnClick="OpenChangePassword">
-                        Alterar senha
-                    </MudMenuItem>
+                    @if (!context.User.HasClaim(c => c.Type == TcMineClaims.HasMinecraft))
+                    {
+                        @* Href direto, sem OnClick: isto só inicia o redirect para a
+                           Microsoft, não muda nada por si — GET é o verbo certo. *@
+                        <MudMenuItem Icon="@Icons.Custom.Brands.Microsoft"
+                                     Href="/auth/microsoft/start?link=true&returnUrl=/admin">
+                            Vincular conta Minecraft
+                        </MudMenuItem>
+                    }
                     <MudMenuItem Icon="@Icons.Material.Filled.Logout" OnClick="LogoutAsync">
                         Sair
                     </MudMenuItem>

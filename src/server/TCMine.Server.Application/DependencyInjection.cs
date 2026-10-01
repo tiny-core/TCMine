@@ -73,8 +73,9 @@ public static class DependencyInjection
         services.AddScoped<ArchiveModpackVersion>();
         services.AddScoped<RestoreModpackVersion>();
 
-        services.AddScoped<AuthenticateUser>();
+        services.AddScoped<AuthenticateMicrosoftUser>();
         services.AddScoped<AuthenticateMinecraftUser>();
+        services.AddScoped<LinkMinecraftAccount>();
         services.AddScoped<CreateInvite>();
         services.AddScoped<ListServerAccess>();
         services.AddScoped<ListAccessibleServers>();
@@ -83,8 +84,6 @@ public static class DependencyInjection
         services.AddScoped<RevokeInvite>();
         services.AddScoped<RemoveMember>();
         services.AddScoped<ChangeMemberRole>();
-        services.AddScoped<CreateFirstAdmin>();
-        services.AddScoped<ChangePassword>();
         services.AddScoped<UpdateSettings>();
         services.AddScoped<SendTestEmail>();
         services.AddScoped<StartMailServer>();
@@ -101,8 +100,6 @@ public static class DependencyInjection
 
         services.AddScoped<ScanStorage>();
         services.AddScoped<DeleteOrphanBlobs>();
-        services.AddScoped<RequestPasswordReset>();
-        services.AddScoped<ResetPassword>();
 
         return services;
     }

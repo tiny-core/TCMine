@@ -12,7 +12,7 @@ namespace TCMine.Server.Web.Configuration;
 /// </summary>
 public static class RateLimitPolicies
 {
-    /// <summary>Login, setup e recuperação de senha.</summary>
+    /// <summary>Login (painel e launcher) e setup inicial.</summary>
     public const string AuthPolicy = "auth";
 
     /// <summary>Download de blob pelo launcher.</summary>
@@ -95,9 +95,16 @@ public static class RateLimitPolicies
         const string mensagem =
             "Tentativas demais em pouco tempo. Espere alguns minutos e tente de novo.";
 
-        // Post de formulário vem do navegador: um 429 cru seria uma página branca
-        // de erro. Volta para a tela de origem, que já sabe exibir ?error=.
-        if (http.Request.HasFormContentType)
+        // Post de formulário OU navegação de página inteira do painel (GET em
+        // /auth/microsoft/*: o navegador segue o link direto, não é fetch/XHR)
+        // vêm do navegador — um 429 cru seria uma página branca de erro nos
+        // dois casos. O download de blob (BlobPolicy) também é GET, mas é o
+        // launcher pedindo — ele espera um status, não um redirect para uma
+        // tela de login que não existe para ele.
+        var navegacaoDoPainel = HttpMethods.IsGet(http.Request.Method)
+                                 && http.Request.Path.StartsWithSegments("/auth/microsoft");
+
+        if (http.Request.HasFormContentType || navegacaoDoPainel)
         {
             http.Response.Redirect($"{OriginPage(http.Request.Path)}?error={Uri.EscapeDataString(mensagem)}");
             return ValueTask.CompletedTask;
@@ -116,12 +123,7 @@ public static class RateLimitPolicies
         return new ValueTask(http.Response.WriteAsync(mensagem, ct));
     }
 
-    /// <summary>
-    ///     Tela que originou o post. O reset de senha volta para o login porque o
-    ///     token vive no corpo da requisição e não dá para reconstruir o link.
-    /// </summary>
+    /// <summary>Tela que originou o pedido.</summary>
     private static string OriginPage(PathString path) =>
-        path.StartsWithSegments("/auth/setup") ? "/admin/setup"
-        : path.StartsWithSegments("/auth/forgot-password") ? "/admin/forgot-password"
-        : "/admin/login";
+        path.StartsWithSegments("/auth/setup") ? "/admin/setup" : "/admin/login";
 }

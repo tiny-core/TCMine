@@ -174,8 +174,8 @@ else
                 <MudListItem T="string" Icon="@Icons.Material.Filled.Looks3">
                     <MudText Typo="Typo.body2" Class="mb-2">
                         Adicione a plataforma <strong>cliente público / nativo</strong> e registre os
-                        dois URIs de redirecionamento abaixo — um por caminho de login, e faltando o
-                        do broker o jogador precisa digitar a senha toda vez:
+                        dois URIs do launcher abaixo — um por caminho de login, e faltando o do
+                        broker o jogador precisa digitar a senha toda vez:
                     </MudText>
                     <MudPaper Outlined="true" Class="pa-3 mb-1">
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">Navegador do sistema</MudText>
@@ -189,6 +189,16 @@ else
                     </MudPaper>
                 </MudListItem>
                 <MudListItem T="string" Icon="@Icons.Material.Filled.Looks4">
+                    <MudText Typo="Typo.body2" Class="mb-2">
+                        Adicione TAMBÉM a plataforma <strong>Web</strong> e registre este terceiro
+                        URI — é por ele que o PAINEL (não o launcher) entra com a Microsoft:
+                    </MudText>
+                    <MudPaper Outlined="true" Class="pa-3">
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Login do painel</MudText>
+                        <MudText Typo="Typo.body2"><code>@_microsoftCallbackUrl</code></MudText>
+                    </MudPaper>
+                </MudListItem>
+                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks5">
                     <MudText Typo="Typo.body2">
                         Habilite <strong>permitir fluxos de cliente público</strong> e copie o
                         <em>ID do aplicativo (cliente)</em> para o campo acima. A app não precisa de
@@ -206,7 +216,7 @@ else
 
         <MudTabPanel Text="E-mail" Icon="@Icons.Material.Filled.Email" Class="pa-6">
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-                Usado na recuperação de senha. Enquanto não houver servidor configurado,
+                Usado para notificações da instalação. Enquanto não houver servidor configurado,
                 as mensagens vão para o log do servidor em vez de serem enviadas.
             </MudText>
 

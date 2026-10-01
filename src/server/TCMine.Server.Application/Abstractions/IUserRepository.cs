@@ -9,10 +9,7 @@ public interface IUserRepository
 
     Task<User?> GetByIdAsync(Guid id, CancellationToken ct);
 
-    /// <summary>Busca por e-mail (login local). Comparação sem distinção de caixa.</summary>
-    Task<User?> GetByEmailAsync(string email, CancellationToken ct);
-
-    /// <summary>Busca pelo Object ID da Microsoft (login federado).</summary>
+    /// <summary>Busca pelo Object ID da Microsoft — a identidade de toda conta.</summary>
     Task<User?> GetByMicrosoftObjectIdAsync(string objectId, CancellationToken ct);
 
     /// <summary>

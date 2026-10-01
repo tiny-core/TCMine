@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
 using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
@@ -20,6 +21,15 @@ public partial class Home : ComponentBase
 
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    /// <summary>Volta do /auth/microsoft/callback depois de vincular o Minecraft.</summary>
+    [SupplyParameterFromQuery(Name = "linked")]
+    private bool? Linked { get; set; }
+
+    /// <summary>Mesma volta, quando vincular (ou o login) deu errado.</summary>
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
 
     private static int ProtocolVersion => Protocol.Current;
 
@@ -32,5 +42,10 @@ public partial class Home : ComponentBase
         _modpacks = [.. entities.Select(m => m.ToDto())];
         _servers = await ServerRepository.ListAllAsync(CancellationToken.None);
         _isLoading = false;
+
+        if (Linked == true)
+            Snackbar.Add("Conta Minecraft vinculada.", Severity.Success);
+        else if (!string.IsNullOrWhiteSpace(Error))
+            Snackbar.Add(Error, Severity.Error);
     }
 }

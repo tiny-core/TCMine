@@ -34,9 +34,11 @@ public sealed class AuthenticateMinecraftUser(
                 DisplayName = profile.Name,
                 MinecraftUuid = profile.Uuid,
 
-                // Sem e-mail e sem hash de senha de propósito: esta conta só
-                // entra pelo launcher. Um PasswordHash nulo é justamente o que
-                // faz o login local recusá-la.
+                // Sem MicrosoftObjectId de propósito: o launcher manda só o
+                // token do Minecraft, nunca o token Microsoft que traria o oid.
+                // Se esta mesma pessoa um dia entrar no painel pela Microsoft,
+                // nasce uma conta à parte — vincular as duas é trabalho futuro,
+                // não deste caso de uso.
                 LastSeenAt = DateTimeOffset.UtcNow
             };
 

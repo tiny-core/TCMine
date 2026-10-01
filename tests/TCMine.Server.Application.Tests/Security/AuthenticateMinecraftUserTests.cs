@@ -9,7 +9,7 @@ namespace TCMine.Server.Application.Tests.Security;
 ///     Login do jogador pelo launcher.
 ///     O que cada teste trava: que ninguém entra sem a Mojang confirmar, que
 ///     quem volta é reconhecido pelo UUID (e não pelo nome, que muda), e que a
-///     conta criada não ganha nenhum caminho de login local de brinde.
+///     conta criada pelo launcher não ganha identidade Microsoft de brinde.
 /// </summary>
 public sealed class AuthenticateMinecraftUserTests
 {
@@ -28,17 +28,16 @@ public sealed class AuthenticateMinecraftUserTests
     }
 
     [Fact]
-    public async Task Conta_criada_pelo_launcher_nao_tem_senha_nem_email()
+    public async Task Conta_criada_pelo_launcher_nao_tem_identidade_microsoft()
     {
         var users = new FakeUsers();
         var caso = new AuthenticateMinecraftUser(users, new FakeProfiles("ana", "abc123"));
 
         await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
 
-        // Sem estas duas garantias a conta apareceria como alvo de login local
-        // e de recuperação de senha — dois caminhos que ela não deveria ter.
-        users.Adicionado!.PasswordHash.ShouldBeNull();
-        users.Adicionado.Email.ShouldBeNull();
+        // O launcher manda só o token do Minecraft, nunca o da Microsoft — uma
+        // conta criada por ele não tem como ter ganho um oid de brinde.
+        users.Adicionado!.MicrosoftObjectId.ShouldBeNull();
     }
 
     [Fact]

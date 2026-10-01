@@ -26,13 +26,9 @@ public class AuthorizationRules
 
     /// <summary>
     ///     Casos de uso que ainda NÃO consultam o papel do usuário.
-    ///     Não é lista de perdão permanente: é dívida declarada, com data. Hoje
-    ///     ela não protege ninguém porque a instalação só admite um usuário — o
-    ///     CreateFirstAdmin recusa o segundo e nada no código cria Membership.
-    ///     No dia em que entrar o fluxo de convite, cada nome aqui vira uma porta
-    ///     aberta ao mesmo tempo: um Moderator convidado para moderar o chat
-    ///     poderia parar servidores, apagar backups e restaurar mundo por cima.
-    ///     Esvaziar esta lista faz parte de entregar aquele fluxo, não depois.
+    ///     Não é lista de perdão permanente: é dívida declarada, com data. O
+    ///     convite e o Membership já existem — um nome aparecendo aqui hoje é
+    ///     uma porta aberta de verdade, não uma hipótese futura.
     /// </summary>
     private static readonly string[] PendentesDeAutorizacao = [];
 

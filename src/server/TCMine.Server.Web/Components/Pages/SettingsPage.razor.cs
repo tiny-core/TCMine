@@ -32,6 +32,15 @@ public partial class SettingsPage : ComponentBase
             ? "{client-id}"
             : _azureClientId.Trim();
 
+    /// <summary>
+    ///     O terceiro URI, o do login do PAINEL — diferente dos outros dois, este
+    ///     não depende do client id, só do domínio onde este TCMine está servindo
+    ///     agora. BaseUri já vem com a porta certa em dev e o domínio certo atrás
+    ///     de proxy, então não há nada a calcular além de trocar a barra final
+    ///     pelo caminho do callback.
+    /// </summary>
+    private string _microsoftCallbackUrl => $"{Navigation.BaseUri.TrimEnd('/')}/auth/microsoft/callback";
+
     private bool _clearCurseForgeKey;
     private bool _clearSmtpPassword;
 
@@ -61,6 +70,7 @@ public partial class SettingsPage : ComponentBase
     private string _mailDomain = "";
     private bool _mailBusy;
 
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private ISettingsRepository Repository { get; set; } = default!;
     [Inject] private IOptions<ServerOptions> ServerOptions { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;

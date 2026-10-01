@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
-using MudBlazor;
-using TCMine.Server.Web.Components.Features.Account;
 
 namespace TCMine.Server.Web.Components.Layout;
 
@@ -12,7 +10,6 @@ public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
     private IJSObjectReference? _module;
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
-    [Inject] private IDialogService DialogService { get; set; } = default!;
 
     public async ValueTask DisposeAsync()
     {
@@ -54,12 +51,6 @@ public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
                 StateHasChanged();
             }
         }
-    }
-
-    private async Task OpenChangePassword()
-    {
-        var options = new DialogOptions { MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
-        await DialogService.ShowAsync<ChangePasswordDialog>("Alterar senha", options);
     }
 
     private async Task LogoutAsync()

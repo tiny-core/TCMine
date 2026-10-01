@@ -18,16 +18,6 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
         return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id, ct);
     }
 
-    public async Task<User?> GetByEmailAsync(string email, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-
-        // Normaliza dos dois lados: o e-mail é gravado em minúsculas, mas quem
-        // digita no login não tem obrigação de saber disso.
-        var normalized = email.ToLowerInvariant();
-        return await db.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalized, ct);
-    }
-
     public async Task<User?> GetByMicrosoftObjectIdAsync(string objectId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

@@ -21,10 +21,6 @@ internal sealed class FakeUsers(params User[] seed) : IUserRepository
     public Task<User?> GetByIdAsync(Guid id, CancellationToken ct) =>
         Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
 
-    public Task<User?> GetByEmailAsync(string email, CancellationToken ct) =>
-        Task.FromResult(_users.FirstOrDefault(u =>
-            string.Equals(u.Email, email, StringComparison.OrdinalIgnoreCase)));
-
     public Task<User?> GetByMicrosoftObjectIdAsync(string objectId, CancellationToken ct) =>
         Task.FromResult(_users.FirstOrDefault(u => u.MicrosoftObjectId == objectId));
 

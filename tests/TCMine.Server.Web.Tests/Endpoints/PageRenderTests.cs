@@ -34,7 +34,7 @@ public sealed class PageRenderTests
     public static TheoryData<string> Rotas => new()
     {
         "/", "/admin", "/admin/modpacks", "/admin/mods", "/admin/servers",
-        "/admin/storage", "/admin/settings", "/admin/login", "/admin/forgot-password"
+        "/admin/storage", "/admin/settings", "/admin/login"
     };
 
     /// <summary>Abas do modpack que não são por versão.</summary>

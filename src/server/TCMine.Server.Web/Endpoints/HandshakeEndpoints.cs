@@ -64,7 +64,7 @@ public static class HandshakeEndpoints
                         $"/updates/launcher/{channel}/"),
                     MinLauncherVersion = server.MinLauncherVersion,
                     UpdatesFrozen = server.FreezeLauncherUpdates,
-                    AzureClientId = await ResolveAzureClientIdAsync(settings, server, ct),
+                    AzureClientId = await AzureClientIdResolver.ResolveAsync(settings, server.AzureClientId, ct),
                     Capabilities = CurrentCapabilities
                 };
 
@@ -76,24 +76,5 @@ public static class HandshakeEndpoints
             .AllowAnonymous();
 
         return app;
-    }
-
-    /// <summary>
-    ///     De onde sai o client id do Azure: painel primeiro, appsettings depois.
-    ///     A ordem não é arbitrária. Registrar a app no Azure acontece DEPOIS do
-    ///     deploy, então o lugar natural do valor é a tela de configurações — e
-    ///     lido daqui, a mudança vale no próximo handshake, sem reiniciar o
-    ///     processo com jogadores conectados. O appsettings continua valendo como
-    ///     semente para que instalação já configurada por arquivo (ou por
-    ///     variável de ambiente, no Docker) siga de pé sem ninguém tocar em nada.
-    /// </summary>
-    private static async Task<string> ResolveAzureClientIdAsync(
-        ISettingsRepository settings,
-        ServerOptions server,
-        CancellationToken ct)
-    {
-        var stored = (await settings.GetAsync(ct)).AzureClientId;
-
-        return string.IsNullOrWhiteSpace(stored) ? server.AzureClientId : stored;
     }
 }

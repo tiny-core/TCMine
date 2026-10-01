@@ -12,23 +12,14 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasKey(u => u.Id);
 
-        builder.Property(u => u.Email).HasMaxLength(256);
-        builder.Property(u => u.PasswordHash).HasMaxLength(256);
-        builder.Property(u => u.PasswordResetTokenHash).HasMaxLength(64).IsFixedLength();
         builder.Property(u => u.MicrosoftObjectId).HasMaxLength(64);
         builder.Property(u => u.MinecraftUuid).HasMaxLength(32);
         builder.Property(u => u.DisplayName).HasMaxLength(128).IsRequired();
 
-        // Login local e ponte para a conta Microsoft: único por definição.
-        // Filtrado pelo mesmo motivo dos dois abaixo — quem entra pelo launcher
-        // não tem e-mail, e vários NULL quebrariam a restrição.
-        builder.HasIndex(u => u.Email)
-            .IsUnique()
-            .HasFilter(null);
-
         // Chave natural de identidade do lado Microsoft: é por ela que
-        // reconhecemos quem voltou. Filtrado porque contas só-locais têm NULL
-        // aqui, e vários NULL quebrariam o índice único.
+        // reconhecemos quem voltou ao painel. Filtrado porque uma conta que só
+        // entrou pelo launcher tem NULL aqui, e vários NULL quebrariam o
+        // índice único.
         builder.HasIndex(u => u.MicrosoftObjectId)
             .IsUnique()
             .HasFilter(null);

@@ -11,6 +11,7 @@ using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Security;
 using TCMine.Server.Infrastructure.Storage;
 using TCMine.Server.Infrastructure.Versions;
+using TCMine.MinecraftAuth;
 
 namespace TCMine.Server.Infrastructure;
 
@@ -103,7 +104,6 @@ public static class DependencyInjection
         services.AddScoped<IMembershipRepository, MembershipRepository>();
         services.AddScoped<IModpackMembershipRepository, ModpackMembershipRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
-        services.AddSingleton<IPasswordHasher, AspNetPasswordHasher>();
 
         // Verificação do login vindo do launcher. Resiliência padrão porque uma
         // instabilidade momentânea da Mojang não deve virar "não consigo entrar":
@@ -114,6 +114,26 @@ public static class DependencyInjection
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
             })
             .AddStandardResilienceHandler();
+
+        // Troca do código de autorização pelo token Microsoft (login do painel).
+        // Cliente próprio, sem o que quer que o resto do app use para falar com
+        // o próprio TCMine — isto fala só com a Microsoft.
+        services.AddHttpClient<IMicrosoftOAuthClient, MicrosoftOAuthClient>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .AddStandardResilienceHandler();
+
+        // Mesma cadeia Xbox Live → XSTS → Minecraft Services que o launcher usa
+        // (TCMine.MinecraftAuth, compartilhado) — aqui, para o login opcional do
+        // Minecraft no painel.
+        services.AddHttpClient<MinecraftTokenExchange>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            })
+            .AddStandardResilienceHandler();
+
+        services.AddScoped<IMinecraftTokenExchange, MinecraftTokenExchangeAdapter>();
 
         // O SmtpEmailSender consulta a configuração a cada envio e cai no
         // LoggingEmailSender quando não há SMTP — por isso o de log continua

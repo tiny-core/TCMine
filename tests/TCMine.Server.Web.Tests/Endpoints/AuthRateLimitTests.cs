@@ -6,10 +6,9 @@ namespace TCMine.Server.Web.Tests.Endpoints;
 
 /// <summary>
 ///     Limite de taxa nas rotas de autenticação.
-///     Sem ele, /auth/login aceita tentativas infinitas: além da força bruta, o
-///     hash de senha é caro por design, e algumas centenas de POSTs simultâneos
-///     saturam CPU e derrubam o painel — o mesmo endpoint serve de porta e de
-///     alavanca de negação de serviço.
+///     Sem ele, /auth/microsoft/start aceita tentativas infinitas — e mesmo sem
+///     senha para forçar, ainda é a porta de entrada: algumas centenas de GETs
+///     simultâneos continuam saturando CPU e derrubando o painel.
 ///     Cada teste monta a própria aplicação porque o contador vive no host: dois
 ///     testes no mesmo host disputariam a mesma cota e a ordem de execução
 ///     decidiria quem passa.
@@ -20,21 +19,21 @@ public class AuthRateLimitTests
     private const int Permitidas = 10;
 
     [Fact]
-    public async Task Decima_primeira_tentativa_de_login_e_bloqueada()
+    public async Task Decima_primeira_tentativa_e_bloqueada()
     {
         using var factory = new TcMineAppFactory();
         using var client = CriarCliente(factory);
 
         for (var i = 1; i <= Permitidas; i++)
         {
-            var permitida = await TentarLoginAsync(client);
+            var permitida = await TentarEntrarAsync(client);
 
-            // As dez primeiras chegam ao endpoint. Falham por credencial ou por
-            // antiforgery — o que importa é que passaram pelo limitador.
+            // As dez primeiras chegam ao endpoint e redirecionam para a
+            // Microsoft — o que importa é que passaram pelo limitador.
             EhBloqueio(permitida).ShouldBeFalse($"a tentativa {i} não deveria ter sido bloqueada");
         }
 
-        var excedente = await TentarLoginAsync(client);
+        var excedente = await TentarEntrarAsync(client);
 
         EhBloqueio(excedente).ShouldBeTrue("a 11ª tentativa deveria ter sido bloqueada");
     }
@@ -46,12 +45,12 @@ public class AuthRateLimitTests
         using var client = CriarCliente(factory);
 
         for (var i = 0; i <= Permitidas; i++)
-            await TentarLoginAsync(client);
+            await TentarEntrarAsync(client);
 
-        var response = await TentarLoginAsync(client);
+        var response = await TentarEntrarAsync(client);
 
-        // Post de formulário vem do navegador: 429 cru seria uma página branca.
-        // Volta para /admin/login com ?error=, que a tela já sabe exibir.
+        // 429 cru seria uma página branca no navegador. Volta para
+        // /admin/login com ?error=, que a tela já sabe exibir.
         response.StatusCode.ShouldBe(HttpStatusCode.Redirect);
 
         var target = response.Headers.Location!.ToString();
@@ -66,7 +65,7 @@ public class AuthRateLimitTests
         using var client = CriarCliente(factory);
 
         for (var i = 0; i <= Permitidas; i++)
-            await TentarLoginAsync(client);
+            await TentarEntrarAsync(client);
 
         var health = await client.GetAsync("/health/live", TestContext.Current.CancellationToken);
 
@@ -78,18 +77,12 @@ public class AuthRateLimitTests
     private static HttpClient CriarCliente(TcMineAppFactory factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    private static Task<HttpResponseMessage> TentarLoginAsync(HttpClient client) =>
-        client.PostAsync(
-            "/auth/login",
-            new FormUrlEncodedContent([
-                new KeyValuePair<string, string>("email", "ninguem@teste.local"),
-                new KeyValuePair<string, string>("password", "errada")
-            ]),
-            TestContext.Current.CancellationToken);
+    private static Task<HttpResponseMessage> TentarEntrarAsync(HttpClient client) =>
+        client.GetAsync("/auth/microsoft/start", TestContext.Current.CancellationToken);
 
     /// <summary>
-    ///     Distingue o redirecionamento do limitador do redirecionamento normal de
-    ///     credencial inválida — os dois são 302, e olhar só o status faria o teste
+    ///     Distingue o redirecionamento do limitador do redirecionamento normal
+    ///     para a Microsoft — os dois são 302, e olhar só o status faria o teste
     ///     passar sem limitador nenhum.
     /// </summary>
     private static bool EhBloqueio(HttpResponseMessage response) =>
