@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Options;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Components.Pages.Account;
 
@@ -13,7 +15,8 @@ public partial class Login : ComponentBase
     [SupplyParameterFromQuery(Name = "returnUrl")]
     private string? ReturnUrl { get; set; }
 
-    [Inject] private IUserRepository Users { get; set; } = default!;
+    [Inject] private ISettingsRepository Settings { get; set; } = default!;
+    [Inject] private IOptions<ServerOptions> ServerOptions { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     private string StartUrl => string.IsNullOrWhiteSpace(ReturnUrl)
@@ -22,9 +25,16 @@ public partial class Login : ComponentBase
 
     protected override async Task OnInitializedAsync()
     {
-        // Instalação nova: não há em quem fazer login ainda, então manda criar o
-        // administrador. O /setup se recusa a rodar depois que existe alguém.
-        if (!await Users.AnyAsync(CancellationToken.None))
+        // Sem Client ID não há para onde mandar o "Entrar com a Microsoft" —
+        // manda configurar primeiro. NÃO é "sem usuário ainda": salvar o
+        // Client ID no /setup não cria ninguém, só o primeiro login de
+        // verdade cria (e vira admin) — checar por usuário aqui faria esta
+        // tela devolver para o /setup outra vez, sempre, porque ninguém chega
+        // a clicar no botão.
+        var clientId = await AzureClientIdResolver.ResolveAsync(
+            Settings, ServerOptions.Value.AzureClientId, CancellationToken.None);
+
+        if (string.IsNullOrWhiteSpace(clientId))
             Navigation.NavigateTo("/admin/setup", true);
     }
 }

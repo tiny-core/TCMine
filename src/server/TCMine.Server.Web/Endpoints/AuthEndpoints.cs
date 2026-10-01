@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
@@ -45,6 +46,7 @@ public static class AuthEndpoints
             HttpContext http,
             ISettingsRepository settings,
             IOptions<ServerOptions> options,
+            IHostEnvironment env,
             [FromQuery] string? returnUrl,
             [FromQuery] bool? link,
             CancellationToken ct) =>
@@ -63,7 +65,7 @@ public static class AuthEndpoints
 
             var verifier = SecureToken.Generate();
             var state = SecureToken.Generate();
-            var redirectUri = CallbackUrl(http);
+            var redirectUri = CallbackUrl(http, options.Value.PublicUrl, env);
 
             http.Response.Cookies.Append(OAuthCookieName, EncodeOAuthCookie(state, verifier, isLink, returnUrl),
                 new CookieOptions
@@ -100,6 +102,7 @@ public static class AuthEndpoints
             IUserRepository users,
             ISettingsRepository settings,
             IOptions<ServerOptions> options,
+            IHostEnvironment env,
             CancellationToken ct) =>
         {
             var cookie = http.Request.Cookies[OAuthCookieName];
@@ -127,7 +130,7 @@ public static class AuthEndpoints
             }
 
             var clientId = await AzureClientIdResolver.ResolveAsync(settings, options.Value.AzureClientId, ct);
-            var redirectUri = CallbackUrl(http);
+            var redirectUri = CallbackUrl(http, options.Value.PublicUrl, env);
 
             // Vincular: a sessão já existe, só falta o Minecraft. Troca o código
             // direto pelo token Microsoft — sem passar por AuthenticateMicrosoftUser,
@@ -230,8 +233,30 @@ public static class AuthEndpoints
             new AuthenticationProperties { IsPersistent = true });
     }
 
-    private static string CallbackUrl(HttpContext http) =>
-        $"{http.Request.Scheme}://{http.Request.Host}/auth/microsoft/callback";
+    /// <summary>
+    ///     De onde sai o <c>redirect_uri</c> que a Microsoft exige bater
+    ///     EXATAMENTE com o cadastrado no app do Entra ID: do <c>PublicUrl</c>
+    ///     configurado, fora de Development — nunca do Scheme/Host da
+    ///     requisição em produção. É o mesmo motivo do
+    ///     <see cref="HandshakeEndpoints" />: atrás de um proxy reverso (o
+    ///     caso comum em produção, Docker incluído) o Host visto aqui pode não
+    ///     ser o que o jogador digitou, e o valor calculado nunca bateria com
+    ///     o que está registrado — a Microsoft devolve "invalid_request:
+    ///     redirect_uri is not valid" sem dizer que a causa é essa.
+    ///
+    ///     EM DEVELOPMENT, ignora o PublicUrl mesmo que ele exista: o
+    ///     appsettings.json base traz um valor de template
+    ///     ("https://localhost:7001") que não bate com NENHUM dos perfis reais
+    ///     do launchSettings.json (5144/7125) — usá-lo aqui mandaria sempre a
+    ///     porta errada para quem roda localmente, não importa qual perfil
+    ///     escolheu. Em dev não há proxy no meio, então o Scheme/Host da
+    ///     própria requisição já é a verdade — mesma exceção que
+    ///     OptionsValidation já faz para este campo.
+    /// </summary>
+    private static string CallbackUrl(HttpContext http, Uri? publicUrl, IHostEnvironment env) =>
+        !env.IsDevelopment() && publicUrl is not null
+            ? new Uri(publicUrl, "/auth/microsoft/callback").ToString()
+            : $"{http.Request.Scheme}://{http.Request.Host}/auth/microsoft/callback";
 
     /// <summary>
     ///     PKCE S256: SHA-256 do verifier, em base64url sem padding — é assim que

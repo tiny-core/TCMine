@@ -8,8 +8,17 @@
 <AuthShell Title="Entrar" Subtitle="Painel de administração." Error="@Error">
     @* GET de propósito: isto só inicia o redirect para a Microsoft, não muda
        nada por si — o que muda de estado é o callback, que valida state e
-       code_verifier antes de fazer qualquer coisa. *@
+       code_verifier antes de fazer qualquer coisa.
+
+       data-enhance-nav="false": sem isto, a enhanced navigation intercepta o
+       clique e tenta um fetch para /auth/microsoft/start — que responde um
+       302 para um domínio EXTERNO (login.microsoftonline.com). O fetch não
+       tem como "patchear" o DOM com a resposta de outra origem, então o
+       clique simplesmente não faz nada visível. Mesma classe de bug do Monaco
+       (ver ModpackWorkspace.razor); aqui o conteúdo que a enhanced nav não
+       sabe tratar não é um editor, é uma origem diferente. *@
     <MudButton Href="@StartUrl"
+               data-enhance-nav="false"
                Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" FullWidth="true"
                StartIcon="@Icons.Custom.Brands.Microsoft">
         Entrar com a Microsoft
