@@ -1,0 +1,28 @@
+<Solution>
+  <!--
+      Solução usada só pelo CI (ci.yml). O launcher não faz mais parte da
+      verificação automática — passou a ser exclusivo da IDE (§0/§12 do
+      CLAUDE.md) — então este arquivo lista tudo MENOS a pasta /Launcher/ da
+      TCMine.slnx. Quem abre o projeto na IDE continua usando TCMine.slnx, que
+      tem o launcher também.
+  -->
+  <Folder Name="/Server/">
+    <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj" />
+    <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure.Sqlite/TCMine.Server.Infrastructure.Sqlite.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure.Postgres/TCMine.Server.Infrastructure.Postgres.csproj" />
+    <Project Path="src/server/TCMine.Server.Web/TCMine.Server.Web.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj" />
+    <Project Path="src/shared/TCMine.UI.Shared/TCMine.UI.Shared.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Infrastructure.Tests/TCMine.Server.Infrastructure.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Web.Tests/TCMine.Server.Web.Tests.csproj" />
+  </Folder>
+</Solution>

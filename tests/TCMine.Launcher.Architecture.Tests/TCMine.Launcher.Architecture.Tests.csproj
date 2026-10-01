@@ -1,0 +1,34 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+      Referencia todos os projetos do launcher que participam das regras. Sem a
+      referência, o assembly não é carregado e o teste passaria sem verificar
+      nada — falso positivo silencioso, o pior tipo.
+
+      Separado de TCMine.Architecture.Tests de propósito: este projeto só
+      compila quando o launcher compila, e o launcher deixou de fazer parte do
+      CI (§0/§12 do CLAUDE.md) — verificar a arquitetura dele agora é trabalho
+      da IDE, não do GitHub Actions. As regras do servidor continuam correndo a
+      cada push no outro projeto.
+  -->
+  <ItemGroup>
+    <PackageReference Include="NetArchTest.Rules"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.UI\TCMine.Launcher.UI.csproj"/>
+    <ProjectReference Include="..\..\src\launcher\TCMine.Launcher.Infrastructure\TCMine.Launcher.Infrastructure.csproj"/>
+  </ItemGroup>
+
+  <!--
+      Nomes de método de teste em PT-BR com underscore são idiomáticos aqui (o
+      CLAUDE.md permite explicitamente). Fica no csproj e não no .editorconfig
+      porque a resolução do glob "tests/**" se mostrou instável entre builds —
+      a regra reaparecia em arquivos diferentes a cada compilação.
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+  </PropertyGroup>
+
+</Project>

@@ -77,25 +77,9 @@ jobs:
           echo "Versão ${versao}"
           echo "Tags: ${tags}"
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: global.json
-
-      # Os testes rodam ANTES de publicar, e não num workflow à parte que talvez
-      # tenha passado numa versão anterior do código: uma imagem publicada é
-      # imutável na prática, porque alguém já pode tê-la baixado.
-      - name: Testes
-        run: |
-          set -euo pipefail
-
-          # Um executável por suíte: o SDK do .NET 10 removeu o caminho VSTest e
-          # o runner do xUnit v3 é o próprio .exe do projeto. É o mesmo que o
-          # scripts/tc test faz.
-          for projeto in tests/*/; do
-            [ -f "${projeto}"*.csproj ] || continue
-            dotnet run --project "$projeto" -c Release
-          done
-
+      # Não roda os testes aqui: o ci.yml já os roda a cada push na master, e
+      # uma tag só se cria em cima de um commit que já passou por lá. Rodá-los
+      # de novo seria pagar o mesmo custo duas vezes pelo mesmo veredito.
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3

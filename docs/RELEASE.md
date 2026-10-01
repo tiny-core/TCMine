@@ -4,11 +4,10 @@ O repositório abriga dois produtos, então a tag diz de qual se trata:
 
 | Tag | O que dispara |
 |---|---|
-| `server-v0.2.0` | Constrói a imagem e publica no Docker Hub |
-| `launcher-v0.1.0` | Launcher (`release-launcher.yml`, em windows-latest) |
+| `server-v0.2.0` | Constrói a imagem e publica no Docker Hub (`release-server.yml`) |
 
-O prefixo não é cosmético: sem ele, publicar o launcher reconstruiria o servidor
-e vice-versa.
+O launcher não tem workflow: publicá-lo é um passo manual, feito na sua
+máquina Windows — ver [Lançar o launcher](#lançar-o-launcher) abaixo.
 
 ## Configurar uma vez
 
@@ -37,9 +36,11 @@ git tag server-v0.1.0
 git push origin server-v0.1.0
 ```
 
-O workflow roda as suítes de teste **e sobe a imagem** antes de publicar. Uma imagem publicada é
-imutável na prática — alguém pode tê-la baixado no minuto seguinte —, então não
-vale confiar num CI que passou numa versão anterior do código.
+O workflow **não roda os testes de novo** — o `ci.yml` já os roda a cada push na
+master, e uma tag só se cria em cima de um commit que já passou por lá. O que
+ele faz é **subir a imagem de verdade** antes de publicar, porque isso os
+testes não cobrem: já saiu release com o runtime do Blazor respondendo 404 sem
+nada ficar vermelho na suíte.
 
 A fumaça (`scripts/smoke-image.sh`) sobe o container contra um PostgreSQL de
 verdade e confere o que só quebra ali: as migrations aplicam, a página serve o
@@ -83,27 +84,68 @@ para um teste não virar a versão que os outros baixam.
 
 ## Lançar o launcher
 
-```bash
-git tag launcher-v0.1.0
-git push origin launcher-v0.1.0
+Não há workflow: o launcher é Windows (WPF + WebView2) e compilar/empacotar só
+faz sentido na sua própria máquina — é por isso que ele saiu do GitHub Actions
+(nem o `ci.yml` verifica mais o launcher a cada push; isso agora é trabalho da
+IDE, rodando `TCMine.slnx` e a suíte de testes localmente antes de publicar).
+
+```powershell
+./scripts/release-launcher.ps1 -Version 0.2.0
 ```
 
-O workflow roda em **windows-latest** — o `EnableWindowsTargeting` deixa o Linux
-compilar o host WPF, mas publicar um executável exige a plataforma. Ele corre os
-testes, publica self-contained, empacota com o `vpk` e anexa o resultado a uma
-release do GitHub.
+Rode do terminal — inclusive o embutido no Rider. O script:
 
-O canal do Velopack deriva do **protocolo**, não da versão do produto — hoje
-`win-x64-p2`. É o que permite publicar launcher 1.6, 1.7 e 1.8 sem release
-nenhuma do servidor. O workflow lê o número do `Protocol.cs` em vez de o repetir,
-porque dois lugares com o mesmo número acabam a discordar e publicar no canal
-errado entrega uma atualização que o servidor nunca oferece.
+1. Confere se o SDK do `global.json` resolve (e corrige o `PATH` sozinho se ele
+   só existir em `%USERPROFILE%\.dotnet`, em vez de morrer com "SDK not found").
+2. Roda `TCMine.Launcher.Core.Tests` e `TCMine.Launcher.Architecture.Tests` —
+   só o que o launcher toca, não a suíte inteira do servidor.
+3. Publica self-contained para win-x64. Self-contained porque o jogador não
+   deve instalar runtime nenhum, e o Velopack substitui a pasta inteira a cada
+   update — meio caminho dependente do runtime seria mais uma coisa para dar
+   errado na máquina de outra pessoa.
+4. Instala/atualiza o `vpk` global na MESMA versão do pacote `Velopack`
+   referenciado pelo launcher (`Directory.Packages.props`) — um `vpk`
+   desalinhado pode empacotar num formato que a biblioteca embutida não
+   entende, e o sintoma só aparece no autoupdate de quem já instalou.
+5. Empacota com o Velopack em `releases/launcher/`.
+
+O canal deriva do **protocolo**, não da versão do produto — hoje `win-x64-p2`,
+lido de `Protocol.Current` em `src/shared/TCMine.Contracts/Protocol.cs`. É o
+que permite publicar launcher 1.6, 1.7 e 1.8 sem release nenhuma do servidor;
+o script lê o número de lá em vez de repeti-lo, porque dois lugares discordando
+publicam no canal errado, entregando uma atualização que o servidor nunca vai
+oferecer.
+
+Use `-SkipTests` só para reexecuções rápidas sobre código já testado — não é o
+caminho normal. E abra o launcher publicado pelo menos uma vez antes de
+distribuir: um launcher publicado é tão imutável quanto uma imagem, porque
+alguém pode já ter instalado no minuto seguinte.
+
+### Configurar como Run Configuration no Rider
+
+`Run` → `Edit Configurations…` → `+` → `Shell Script` → aponte **Script path**
+para `scripts/release-launcher.ps1`, **Interpreter path** para `powershell.exe`,
+em **Interpreter options** ponha `-ExecutionPolicy Bypass` e em **Script
+options** passe `-Version 0.2.0` (troque a versão a cada release). Fica salvo
+em `.idea/`, que é local e não versionado — cada máquina configura a própria.
+
+O `-ExecutionPolicy Bypass` é necessário porque a política padrão do Windows
+recusa rodar `.ps1` sem estar assinado. É por invocação, não altera nada no
+sistema — a alternativa seria `Set-ExecutionPolicy -Scope CurrentUser
+RemoteSigned` uma vez só (afeta só o seu usuário), mas isso exige decidir mexer
+numa configuração do Windows, e a Run Configuration resolve sem isso.
+
+Pelo terminal (fora do Rider) é o mesmo parâmetro:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\release-launcher.ps1 -Version 0.2.0
+```
 
 ### Pôr a release no ar
 
-O workflow **não publica no servidor**, de propósito: a máquina que constrói não
-devia ter credencial de escrita na que serve jogadores. Baixe os ficheiros da
-release e copie-os para:
+Copie o conteúdo de `releases/launcher/` para o servidor — de propósito à mão,
+e não por um pipeline: a máquina onde você empacota não deveria ter credencial
+de escrita na que serve jogadores.
 
 ```
 ${TCMINE_ROOT}/updates/launcher/win-x64-p2/

@@ -474,9 +474,11 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `vpk`**: a partir do código-fonte não há instalação para substituir e a
   biblioteca sai em silêncio — o que é o certo, senão ela reiniciar-se-ia no meio
   de uma depuração.
-  Publicar é a tag `launcher-v*` (workflow `release-launcher.yml`, em
-  windows-latest), e depois **copiar os ficheiros para a pasta do servidor à
-  mão**: a máquina que constrói não devia ter credencial de escrita na que serve
+  Publicar é manual, na sua máquina Windows (`dotnet publish` + `vpk pack`, ver
+  `docs/RELEASE.md`), e não um workflow: o launcher saiu do GitHub Actions de
+  propósito (§12) — compilar/empacotar um WPF só faz sentido onde ele vai
+  rodar. Depois é **copiar os ficheiros para a pasta do servidor à mão**: a
+  máquina onde você empacota não devia ter credencial de escrita na que serve
   jogadores.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
@@ -542,9 +544,14 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   não `net10.0-windows`). O controle WPF do WebView2 renderiza por composição e
   chama as projeções WinRT; com o TFM seco o build passa e a janela morre no
   primeiro quadro com `FileNotFoundException: Microsoft.Windows.SDK.NET`.
-- **`EnableWindowsTargeting=true` no projeto WPF**: o CI roda em ubuntu e
-  constrói a solução inteira. Sem isso o build morre com NETSDK1100 e o launcher
-  deixaria de ser verificado a cada push.
+- **O launcher não faz mais parte do CI** (§12): `ci.yml` builda
+  `TCMine.Server.slnx`, que não lista nenhum projeto de `/src/launcher/`. O
+  `EnableWindowsTargeting` que existia em `TCMine.Launcher.App` e em
+  `TCMine.Launcher.Infrastructure.Windows` só servia para deixar o agente ubuntu
+  compilar (não rodar) esses TFMs Windows — sem CI tocando neles, a propriedade
+  virou configuração morta e foi removida dos dois csproj. Build e testes do
+  launcher (`TCMine.slnx`, que continua listando `/Launcher/`) são trabalho da
+  IDE, na sua máquina Windows, antes de commitar.
 - **`[LibraryImport]`** exige `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` no csproj (o marshalling gerado usa
   `unsafe`). Fica contido na Infrastructure do servidor e no `Launcher.App`.
 - **O Xbox devolve `DisplayClaims.xui[].uhs` em minúsculas**, e são os dois
