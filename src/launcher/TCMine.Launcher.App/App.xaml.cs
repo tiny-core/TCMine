@@ -155,6 +155,17 @@ public partial class App : Application
         _host.Dispose();
 
         base.OnExit(e);
+
+        // Garante que o processo morre. O WebView2 pode deixar threads/COM
+        // nativos vivos que o encerramento normal do .NET espera para sempre
+        // — era exatamente isso que fazia o TCMine.Launcher.App sobreviver à
+        // janela no gestor de tarefas, mesmo com o host já parado e a janela
+        // já fechada. Tudo que precisava rodar de propósito já rodou (host
+        // parado e descartado, base.OnExit chamado); daqui para a frente só
+        // interessa que o processo suma — e nada além do Environment.Exit
+        // garante isso contra algo que o WebView2 esteja segurando por fora
+        // do controle do runtime gerenciado.
+        Environment.Exit(0);
     }
 
     private static readonly Action<ILogger, Exception?> LogStopFailed =
