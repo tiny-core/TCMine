@@ -1,0 +1,142 @@
+# Nuvem de itens (TC Cloud Storage) — plano
+
+> Estado: **proposta**, nada implementado. Consumidor: mod `tccloud` (NeoForge 1.21.1), plano em
+> `docs/planos/tc-cloud-storage.md` do workspace **tc-minecraft-mods**. As regras que não podem ser
+> esquecidas estão resumidas na §13 do `CLAUDE.md`.
+
+## 1. Por que existe
+
+O jogador guarda itens numa nuvem do **dono** do servidor e os reencontra em outro servidor do mesmo
+dono (outro modpack, outro mundo). O mod do jogo expõe a nuvem para a rede do AE2; o TCMine é a
+fonte da verdade dos saldos, das regras e da auditoria. O mod só confirma uma mudança depois que o
+mundo que a causou foi salvo, e só um servidor por vez segura o canal de um jogador (lease com
+época). Isso torna crash, rollback e restauração de backup tratáveis sem duplicar itens.
+
+## 2. Domínio (`TCMine.Server.Domain/Cloud/`)
+
+| Entidade | Campos principais | Regras |
+|---|---|---|
+| `CloudVault` : `IOwnedEntity` | `Name`, `OwnerId`, `PolicyMode` (`Blocklist`/`Allowlist`), `PolicyVersion` (long), `LeaseTtlMinutes` (30), `MaxEncodedBytes` (8192), `MaxChannelsPerPlayer` (5), `MaxTypesPerChannel`, `MaxTotalPerChannel` (long), `IsEnabled` | mudar uma regra incrementa `PolicyVersion` |
+| `CloudServerCredential` | `GameServerId` (único), `VaultId`, `KeyPrefix` (8 chars visíveis), `KeyHash` (SHA-256), `CreatedAt`, `RevokedAt?`, `LastSeenAt?`, `ModVersion?`, `WorldId?` | uma ativa por servidor; o segredo só existe em memória ao gerar |
+| `CloudChannel` | `VaultId`, `PlayerUuid` (sem hífens, igual a `User.MinecraftUuid`), `Name`, `Status` (`Active`/`Frozen`), `FrozenReason?` | nome único por (vault, jogador); apagar só se vazio |
+| `CloudItemType` | `Fingerprint` (SHA-256 hex, único global), `ItemId` (`mod:item`), `ModId`, `EncodedItem` (bytes), `DisplayName`, `FirstSeenAt` | imutável; deduplicado entre nuvens (conteúdo endereçado, como o blob store) |
+| `CloudBalance` | PK (`ChannelId`, `ItemTypeId`), `Amount` (long ≥ 0) | linha removida quando chega a 0 |
+| `CloudLease` | PK (`VaultId`, `PlayerUuid`), `HolderServerId?`, `Epoch` (long, nunca diminui), `LastSeq`, `State` (`Free`/`Held`/`Releasing`), `HeartbeatAt`, `ExpiresAt`, `Version` (token de concorrência) | linha nunca apagada: a época precisa sobreviver |
+| `CloudBatch` | `VaultId`, `PlayerUuid`, `ServerId`, `Epoch`, `Seq`, `Status` (`Applied`/`Quarantined`/`Discarded`/`Reverted`), `PayloadHash`, `ReceivedAt` | único (VaultId, PlayerUuid, Epoch, Seq) |
+| `CloudLedgerEntry` | `ChannelId`, `ItemTypeId`, `Delta`, `BalanceAfter`, `Source` (`Game`/`Admin`/`Revert`/`QuarantineApply`), `BatchId?`, `ActorUserId?`, `Reason?`, `CreatedAt` | append-only: o código não tem método de Update/Delete |
+| `CloudQuarantine` | `BatchId`, `Reason` (`StaleEpoch`/`NegativeBalance`/`Divergence`/`QuotaExceeded`), `Payload` (JSON), `ResolvedAt?`, `ResolvedBy?`, `Resolution?` | aplicar só se o lease estiver livre |
+| `CloudItemRule` | `VaultId`, `Scope` (`Item`/`Mod`/`Tag`), `Pattern`, `Action` (`Allow`/`Block`), `Note`, `CreatedBy` | — |
+| `CloudSuspectItem` | `VaultId`, `ItemId`, `Reason`, `Count`, `FirstSeenAt`, `LastSeenAt`, `Status` (`Pending`/`Allowed`/`Blocked`) | decidir cria um `CloudItemRule` |
+| `CloudRollbackIncident` | `VaultId`, `ServerId`, `WorldId`, `Checkpoint` (JSON), `DetectedAt`, `Origin` (`Restore`/`Hello`), `Status` (`Open`/`Reverted`/`Accepted`), `ResolvedBy?` | aberto = servidor em somente leitura na nuvem |
+| `CloudAdminAuditEntry` | `ActorUserId`, `Action`, `TargetType`, `TargetId`, `Details` (JSON), `CreatedAt` | toda ação do painel |
+
+Mudanças em entidades existentes:
+- `GameServer.CloudVaultId?` (nulo = nuvem desligada). A regra de domínio
+  `AttachToVault(vault)` exige `vault.OwnerId == OwnerId`.
+- O orquestrador (`EnsureCreatedAsync`) injeta `TCMINE_CLOUD_URL`/`TCMINE_CLOUD_KEY` quando há
+  credencial ativa e força `ONLINE_MODE=true`.
+
+Tabelas: `cloud_vaults`, `cloud_server_credentials`, `cloud_channels`, `cloud_item_types`,
+`cloud_balances`, `cloud_leases`, `cloud_batches`, `cloud_ledger`, `cloud_quarantine`,
+`cloud_item_rules`, `cloud_suspect_items`, `cloud_rollback_incidents`, `cloud_admin_audit`.
+Índices: `cloud_ledger(ChannelId, Id)`, `cloud_batches(ServerId, Epoch, Seq)`,
+`cloud_balances(ChannelId)`, `cloud_channels(VaultId, PlayerUuid)`.
+`Amount`/`Delta` como `bigint` e testados no `PostgresColumnLimitsTests`.
+
+## 3. Casos de uso (`TCMine.Server.Application/Cloud/`)
+
+**API do mod** (autenticada pela chave do servidor):
+- `CloudHello`: registra versão/`WorldId`; compara o checkpoint com o último lote aplicado do
+  servidor e abre incidente se o mundo voltou no tempo; devolve config, `PolicyVersion` e
+  incidentes abertos.
+- `AcquireLease`: livre ou expirado → `Epoch++`, `Held` por este servidor, snapshot dos canais;
+  ocupado → `Result.Fail` com servidor e desde quando; incidente aberto ou canal congelado →
+  snapshot em modo somente leitura.
+- `Heartbeat` (lote de leases): renova `ExpiresAt`; devolve comandos (`Freeze`, `ForceRelease`,
+  `PolicyChanged`).
+- `ApplyBatch`: transação → valida credencial, lease (holder + época), seq (= `LastSeq + 1`;
+  ≤ `LastSeq` com o mesmo `PayloadHash` → "duplicado", sucesso), cotas, saldos ≥ 0, saldos
+  esperados → grava ledger + saldos + `LastSeq` + `Version++`. Qualquer falha de regra → quarentena
+  + congela o canal + `Result` com o motivo.
+- `ReleaseLease`: só se `LastSeq` bate (todos os lotes chegaram); senão, `Releasing` até chegarem.
+- `CreateChannel` / `RenameChannel` / `DeleteEmptyChannel`: exigem lease do jogador neste servidor.
+- `ReportSuspects`: soma em `CloudSuspectItem`.
+
+**Painel:**
+- Nuvens: `CreateVault`, `UpdateVaultSettings`, `AttachServer`/`DetachServer`,
+  `IssueServerKey`/`RevokeServerKey` (a nova chave aparece uma vez, ou vai direto para o container).
+- Jogadores: `SearchChannels` (por nome/UUID), `GetChannelBalances`, `GetLedger` (paginado por
+  `Id`), `FreezeChannel`/`UnfreezeChannel`, `AdjustBalance` (exige lease livre e motivo).
+- Leases: `ListLeases`, `ForceReleaseLease` (avisa: lotes não enviados daquele servidor irão para a
+  quarentena).
+- Políticas: `UpsertItemRule`, `DeleteItemRule`, `ResolveSuspect` (permitir/bloquear).
+- Quarentena: `ApplyQuarantined` (prévia; recusa se houver saldo negativo), `DiscardQuarantined`.
+- Incidentes: `PreviewRollback` (o que será estornado e onde o saldo ficaria negativo, porque os
+  itens já foram para outro servidor), `RevertRollback` (lançamentos compensatórios, limitados a 0,
+  com a diferença registrada), `AcceptRollback`.
+- Integração com `RestoreWorldBackup`: com a nuvem ligada, ao restaurar, ler
+  `world/tccloud/checkpoint.json` do zip, abrir o incidente (`Origin=Restore`) e mostrar a prévia
+  no mesmo diálogo da restauração.
+
+**Permissões** (padrão do projeto: permissão relativa ao recurso):
+- Dono da nuvem (`OwnerId`) e instance admin: tudo.
+- Fase posterior: `CloudVaultMembership` (`Viewer` vê saldos e auditoria; `Moderator` congela,
+  resolve suspeitos e quarentena; `Owner` ajusta saldo, mexe em chaves e configurações).
+- Toda ação de painel grava `CloudAdminAuditEntry`.
+
+## 4. API HTTP (`Endpoints/CloudEndpoints.cs`)
+
+- Grupo `/api/cloud/v1`, autenticação própria: `Authorization: Bearer tcs_<prefixo>_<segredo>` →
+  busca por prefixo → compara o SHA-256 em tempo constante → põe `ServerId` e `VaultId` no
+  contexto. **Não** usa o cookie de usuário.
+- Rate limit por credencial (`Microsoft.AspNetCore.RateLimiting`), corpo máximo (ex.: 1 MB) e no
+  máximo 500 operações por lote.
+- Contrato: DTOs em `TCMine.Contracts/Cloud` com `CloudProtocol.Current`. Versão divergente →
+  `426` com mensagem clara (mesma lição do `Protocol` do launcher).
+- Endpoints: `hello`, `policy`, `leases/acquire`, `leases/heartbeat`, `leases/release`, `batches`,
+  `channels` (POST/PATCH/DELETE), `reports/suspects`.
+- `Background/`: um serviço que expira leases (`ExpiresAt < agora`) e, no arranque, **estende**
+  todos os `Held` pelo TTL (a queda foi do TCMine, não do jogo).
+
+## 5. Telas do painel (`Components/Pages/Cloud/`)
+
+| Página | Conteúdo |
+|---|---|
+| **Nuvens** | lista das nuvens do dono, criar (com escolha lista negra/branca), totais |
+| **Nuvem › Servidores** | servidores do dono, ligar/desligar, status da chave (prefixo, último contato, versão do mod), rotacionar/revogar |
+| **Nuvem › Jogadores** | busca por nome/UUID → canais → saldos (nome, ID, quantidade) → histórico do canal; congelar; ajustar com motivo |
+| **Nuvem › Regras** | regras por item/mod/tag + fila de **suspeitos** com contagem e botões permitir/bloquear |
+| **Nuvem › Quarentena** | lotes com motivo, prévia do efeito, aplicar/descartar |
+| **Nuvem › Incidentes** | rollbacks detectados, prévia, reverter/aceitar |
+| **Nuvem › Leases** | quem está segurando o quê, onde e desde quando, forçar liberação |
+| **Nuvem › Auditoria** | ledger + ações de admin, filtros, exportar CSV |
+| **Nuvem › Configurações** | TTL, cotas, tamanho máximo do item, ligar/desligar |
+
+Padrões do projeto: MudBlazor, feedback de progresso em toda ação assíncrona, confirmação em ação
+destrutiva (forçar liberação, descartar, ajustar), contadores de pendências (suspeitos, quarentena,
+incidentes) no menu.
+
+## 6. Fases (fatias pequenas, de dentro para fora)
+
+| Fase | Entrega | Testes |
+|---|---|---|
+| **A. Domínio + persistência** | entidades, configs EF, migrations SQLite e Postgres | `Infrastructure.Tests` (SQLite em memória), `PostgresColumnLimitsTests` |
+| **B. API do mod** | autenticação por chave, hello/lease/heartbeat/batches/release, serviço de expiração | `Application.Tests` com fakes: idempotência, época velha → quarentena, saldo negativo, concorrência (dois lotes ao mesmo tempo), estender TTL no arranque; contrato em socket real |
+| **C. Painel básico** | nuvens, servidores, chaves, jogadores/saldos, leases | `DependencyInjectionTests`, smoke das rotas |
+| **D. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
+| **E. Orquestração** | `CloudVaultId` no `GameServer`, injeção de variáveis de ambiente, `ONLINE_MODE` | teste do materializador/orquestrador com fake |
+| Depois | `CloudVaultMembership`, ver canais no launcher (somente leitura, via hub) | — |
+
+## 7. Decisões e alternativas descartadas
+
+- **Banco central único da plataforma** (em vez de cada instalação TCMine guardar a nuvem dos seus
+  donos): descartado. O isolamento por dono já existe no modelo (`IOwnedEntity`), e um serviço
+  central viraria ponto único de falha e de custo.
+- **Saldo editável direto, sem ledger:** descartado. Sem histórico não há como investigar
+  duplicação, estornar rollback nem auditar o admin.
+- **Mod falando com o banco direto (Postgres):** descartado. Credencial de banco dentro de cada
+  servidor de jogo, sem regra de negócio no meio.
+- **Lease otimista** (deixar dois servidores mexerem e reconciliar depois): descartado. Reconciliar
+  itens não tem solução sem perda ou duplicação.
+- **Servidores externos** (fora do Docker do TCMine): fora da v1. Não dá para garantir
+  `online-mode` nem proteger a chave.

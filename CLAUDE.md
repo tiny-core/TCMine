@@ -724,3 +724,31 @@ clique é uma ida-e-volta com resposta e raciocínio. Regras:
 - Mudou uma porta (`IModpackRepository`, `IBlobStore`, `IUpstreamPackSource`)?
   Os fakes de teste herdam de `tests/.../Fakes/Fake*Base.cs`. Acrescente o
   membro **só na base**; nenhum teste precisa mudar.
+
+---
+
+## 13. Nuvem de itens (TC Cloud Storage)
+
+Guarda itens de jogadores fora do mundo para o mod `tccloud` (NeoForge). Plano completo e
+decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de `Cloud`.
+
+- **Isolamento por dono:** `CloudVault` tem `OwnerId`; um `GameServer` só liga a uma nuvem do
+  MESMO dono. Toda consulta da API do mod deriva o `CloudVaultId` da CHAVE do servidor, nunca de
+  um campo do corpo. Instance admin vê tudo no painel; a API do mod nunca.
+- **Chave do servidor = segredo como o `RconSecret`:** gerada pelo TCMine, injetada como variável
+  de ambiente (`TCMINE_CLOUD_KEY`) no container itzg, guardada só como hash SHA-256. Nunca em DTO,
+  log ou tela (a tela mostra só o prefixo). Rotacionar = gerar nova + recriar container.
+- **Só servidores orquestrados pelo TCMine** e com `ONLINE_MODE=true` recebem chave.
+- **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA
+  transação do ledger. Correção do admin = nova linha no ledger (Source=Admin, motivo obrigatório),
+  nunca UPDATE direto em saldo.
+- **Lote idempotente:** índice único (VaultId, PlayerUuid, Epoch, Seq). Reenvio do mesmo lote
+  devolve "já aplicado", não aplica duas vezes. Lote de época velha → quarentena, nunca aplicado
+  automaticamente. Saldo nunca fica negativo: o lote inteiro vai para a quarentena.
+- **Concorrência sem SELECT FOR UPDATE** (o SQLite não tem): o `CloudLease` tem token de
+  concorrência (`Version`); aplicar lote = transação que lê o lease, valida época/seq, aplica e
+  incrementa `Version`. `DbUpdateConcurrencyException` → o mod reenvia.
+- **O TCMine nunca decodifica item.** Guarda `EncodedItem` (blob opaco) + `ItemId` + nome de
+  exibição que o servidor de jogo mandou.
+- **Restaurar backup de mundo com nuvem ligada abre um `CloudRollbackIncident`** (prévia de
+  estorno) ANTES de religar o servidor. Estorno = linhas compensatórias no ledger.
