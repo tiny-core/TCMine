@@ -12,6 +12,7 @@ using TCMine.Launcher.Infrastructure.Game;
 using TCMine.Launcher.Infrastructure.Runtime;
 using TCMine.Launcher.Infrastructure.Updates;
 using TCMine.Launcher.Infrastructure.Identity;
+using TCMine.MinecraftAuth;
 
 namespace TCMine.Launcher.Infrastructure;
 
@@ -56,14 +57,17 @@ public static class DependencyInjection
         // degrau que falta: a cadeia depois dele já existe abaixo.
         services.AddSingleton<IMicrosoftTokenProvider, PendingMicrosoftTokenProvider>();
 
-        // Cliente PRÓPRIO, sem o CookieContainer partilhado: estes três serviços
-        // são da Microsoft, e mandar para eles o cookie de sessão do TCMine seria
-        // entregar a sessão do jogador a quem não tem nada com ela.
-        services.AddHttpClient<IMinecraftAuthenticator, MinecraftAuthenticator>(client =>
+        // Cliente PRÓPRIO, sem o CookieContainer partilhado: a troca com a Xbox
+        // Live, o XSTS e o Minecraft Services é com a Microsoft, e mandar para
+        // eles o cookie de sessão do TCMine seria entregar a sessão do jogador
+        // a quem não tem nada com ela.
+        services.AddHttpClient<MinecraftTokenExchange>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(30);
             })
             .AddStandardResilienceHandler();
+
+        services.AddTransient<IMinecraftAuthenticator, MinecraftAuthenticator>();
 
         services.AddHttpClient<IBlobDownloader, HttpBlobDownloader>(client =>
             {

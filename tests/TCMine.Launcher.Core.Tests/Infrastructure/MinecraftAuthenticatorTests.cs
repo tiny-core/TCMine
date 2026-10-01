@@ -3,16 +3,18 @@ using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Tests.Fakes;
 using TCMine.Launcher.Infrastructure.Identity;
+using TCMine.MinecraftAuth;
 
 namespace TCMine.Launcher.Core.Tests.Infrastructure;
 
 /// <summary>
-///     A cadeia Xbox Live → XSTS → Minecraft.
-///     Vale a pena testá-la a sério porque é a parte da autenticação que NÃO
-///     depende de app do Azure nem de broker: dado um token da Microsoft, tudo o
-///     que acontece daí em diante é HTTP com formato fixo. Cada detalhe abaixo já
-///     é um modo de falhar conhecido destas APIs — e todos falham com mensagens
-///     que não dizem o que está errado.
+///     O que é do <see cref="MinecraftAuthenticator" />: delegar ao
+///     <see cref="IMicrosoftTokenProvider" /> (MSAL) e, só se ele disser sim,
+///     ao <see cref="MinecraftTokenExchange" /> compartilhado — e traduzir entre
+///     os dois vocabulários de resultado. O detalhe de fio da cadeia Xbox
+///     Live → XSTS → Minecraft (prefixo "d=", par de token certo, mensagens de
+///     XErr) mudou-se para <c>TCMine.MinecraftAuth.Tests</c>, junto do código
+///     que ele testa.
 /// </summary>
 public class MinecraftAuthenticatorTests
 {
@@ -35,73 +37,15 @@ public class MinecraftAuthenticatorTests
     }
 
     [Fact]
-    public async Task O_ticket_do_xbox_live_leva_o_prefixo_d()
-    {
-        // Sem o "d=", o Xbox Live responde 400 com um token perfeitamente válido.
-        // É o erro mais fácil de cometer e o mais difícil de diagnosticar.
-        var handler = CadeiaFeliz();
-
-        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
-
-        handler.Pedidos[0].Body.ShouldContain("\"RpsTicket\":\"d=token-da-microsoft\"");
-    }
-
-    [Fact]
-    public async Task O_pedido_ao_xsts_nao_leva_campos_do_salto_anterior()
-    {
-        // O Xbox Live recusa propriedade desconhecida sem dizer qual. Os campos
-        // que não valem para o pedido têm de sair do JSON, não ir nulos.
-        var handler = CadeiaFeliz();
-
-        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
-
-        var pedidoAoXsts = handler.Pedidos[1].Body;
-
-        pedidoAoXsts.ShouldNotContain("RpsTicket");
-        pedidoAoXsts.ShouldNotContain("AuthMethod");
-        pedidoAoXsts.ShouldContain("\"UserTokens\":[\"token-do-xbox\"]");
-    }
-
-    [Fact]
-    public async Task O_minecraft_recebe_o_user_hash_do_xsts_com_o_token_do_xsts()
-    {
-        // O par tem de ser o do MESMO salto. O Xbox Live devolve um user hash do
-        // mesmo jogador, e usá-lo aqui compila, parece certo e é recusado.
-        var handler = CadeiaFeliz();
-
-        await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
-
-        handler.Pedidos[2].Body.ShouldContain("XBL3.0 x=hash-do-xsts;token-do-xsts-final");
-    }
-
-    [Fact]
-    public async Task Conta_sem_perfil_do_xbox_explica_o_que_fazer()
+    public async Task Minecraft_falhou_vira_AuthResult_Failed_com_a_mesma_mensagem()
     {
         var handler = new FakeHttpHandler()
-            .Responde(XboxLive, HttpStatusCode.OK, RespostaDoXboxLive())
-            .Responde(Xsts, HttpStatusCode.Unauthorized, new { XErr = 2148916233L });
+            .Responde(XboxLive, HttpStatusCode.Unauthorized);
 
-        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
-            .SignInAsync("client", Ct);
+        var result = await Build(handler, AuthResult.Success("token-da-microsoft")).TrySilentAsync("client", Ct);
 
         result.Outcome.ShouldBe(AuthOutcome.Failed);
-
-        // A mensagem é o produto deste caso: sem ela o jogador vê "não foi
-        // possível entrar" e não tem como saber que precisa criar um perfil.
-        result.Message!.ShouldContain("xbox.com");
-    }
-
-    [Fact]
-    public async Task Conta_de_menor_recebe_a_mensagem_da_familia()
-    {
-        var handler = new FakeHttpHandler()
-            .Responde(XboxLive, HttpStatusCode.OK, RespostaDoXboxLive())
-            .Responde(Xsts, HttpStatusCode.Unauthorized, new { XErr = 2148916238L });
-
-        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
-            .SignInAsync("client", Ct);
-
-        result.Message!.ShouldContain("família");
+        result.Message.ShouldNotBeNull().ShouldContain("Xbox Live");
     }
 
     [Fact]
@@ -142,22 +86,6 @@ public class MinecraftAuthenticatorTests
     }
 
     [Fact]
-    public async Task Resposta_sem_token_falha_em_vez_de_seguir()
-    {
-        var handler = new FakeHttpHandler()
-            .Responde(XboxLive, HttpStatusCode.OK, new { DisplayClaims = new { xui = new[] { new { uhs = "h" } } } });
-
-        var result = await Build(handler, AuthResult.Success("token-da-microsoft"))
-            .TrySilentAsync("client", Ct);
-
-        result.Outcome.ShouldBe(AuthOutcome.Failed);
-
-        // Não chegou ao XSTS: seguir com token nulo daria NullReference no salto
-        // seguinte, e o jogador veria um erro sem relação com a causa.
-        handler.Pedidos.Count.ShouldBe(1);
-    }
-
-    [Fact]
     public async Task Sair_nao_toca_na_rede()
     {
         // Sair é do provedor: é ele que tem cache. Nada aqui tem o que descartar.
@@ -192,7 +120,7 @@ public class MinecraftAuthenticatorTests
         Build(handler, new ProvedorFalso(daMicrosoft));
 
     private static MinecraftAuthenticator Build(FakeHttpHandler handler, ProvedorFalso provedor) =>
-        new(new HttpClient(handler), provedor, NullLogger<MinecraftAuthenticator>.Instance);
+        new(provedor, new MinecraftTokenExchange(new HttpClient(handler), NullLogger<MinecraftTokenExchange>.Instance));
 
     private sealed class ProvedorFalso(AuthResult result) : IMicrosoftTokenProvider
     {

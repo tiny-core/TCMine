@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TCMine.Launcher.Core\TCMine.Launcher.Core.csproj"/>
+    <ProjectReference Include="..\..\shared\TCMine.MinecraftAuth\TCMine.MinecraftAuth.csproj"/>
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+      A cadeia Xbox Live → XSTS → Minecraft Services, isolada do launcher e do
+      servidor: os dois precisam trocar um token Microsoft por um token do
+      Minecraft, e os três saltos depois do primeiro são HTTP puro — sem nada
+      de MSAL, de broker do Windows, nem de redirect de navegador, que são
+      coisas de COMO se chega ao token Microsoft, não desta troca.
+
+      REGRA: zero dependência de UI, de Windows, de EF Core. Se sentir vontade
+      de referenciar qualquer um dos três aqui, o tipo está no projeto errado.
+  -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+</Project>
