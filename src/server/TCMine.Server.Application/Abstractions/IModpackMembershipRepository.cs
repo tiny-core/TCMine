@@ -26,6 +26,13 @@ public interface IModpackMembershipRepository
     Task<IReadOnlyList<ModpackMemberView>> ListWithUsersAsync(Guid modpackId, CancellationToken ct);
 
     /// <summary>
+    ///     Vínculos de um usuário, em todos os modpacks — a mesma pergunta que
+    ///     <see cref="IMembershipRepository.ListByUserAsync" /> responde do lado
+    ///     dos servidores, para a tela "Usuários" mostrar os dois juntos.
+    /// </summary>
+    Task<IReadOnlyList<ModpackMembership>> ListByUserAsync(Guid userId, CancellationToken ct);
+
+    /// <summary>
     ///     O dono do modpack, para a assinatura "criado por" — informação que
     ///     qualquer um que vê o modpack enxerga, ao contrário da lista de
     ///     editores (essa sim só para quem gerencia acesso). Sem porta de caso

@@ -1,6 +1,8 @@
-@* Onde jogar. A lista de servidores é por Membership (ver ListAccessibleServers
-   no servidor) — uma conta nova não enxerga nenhum até resgatar um convite, e
-   por isso o link para resgatar fica aqui, não escondido numa tela à parte. *@
+@using TCMine.Contracts.Servers
+@* Onde jogar. Todo servidor aparece — mesmo o que o jogador ainda não pode
+   entrar (ver ListAccessibleServers no servidor): é o que torna "Pedir
+   acesso" possível, e o link para resgatar um convite fica aqui, não
+   escondido numa tela à parte. *@
 
 <MudPaper Class="pa-4" Elevation="0" Outlined="true">
     <MudText Typo="Typo.overline" Class="mud-text-secondary">Onde jogar</MudText>
@@ -16,12 +18,33 @@
                         <MudText Typo="Typo.body2" Class="tc-side-name">@server.Name</MudText>
                     </MudStack>
 
-                    @* Selecionável: entrar num servidor é copiar este endereço
-                       para o jogo, e um texto que não se consegue marcar obriga
-                       a digitá-lo à mão. *@
-                    <MudText Typo="Typo.caption" Class="mud-text-secondary tc-side-address">
-                        @server.ConnectAddress
-                    </MudText>
+                    @if (server.AccessState is ServerAccessState.Granted)
+                    {
+                        @* Selecionável: entrar num servidor é copiar este
+                           endereço para o jogo, e um texto que não se
+                           consegue marcar obriga a digitá-lo à mão. *@
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary tc-side-address">
+                            @server.ConnectAddress
+                        </MudText>
+                    }
+                    else if (EstaPendente(server))
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Pedido enviado — aguardando aprovação
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                   Disabled="_pedindo.Contains(server.Id)"
+                                   OnClick="@(() => PedirAcessoAsync(server))">
+                            @if (_pedindo.Contains(server.Id))
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            }
+                            Pedir acesso
+                        </MudButton>
+                    }
                 </div>
             }
         </MudStack>

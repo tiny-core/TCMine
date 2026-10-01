@@ -551,6 +551,44 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("pending_mods", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.AccessRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("GameServerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameServerId", "Status");
+
+                    b.HasIndex("UserId", "GameServerId");
+
+                    b.ToTable("access_requests", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Servers.GameServer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -757,6 +795,15 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasOne("TCMine.Server.Domain.Modpacks.ModpackVersion", null)
                         .WithMany("PendingMods")
                         .HasForeignKey("ModpackVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Servers.AccessRequest", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("GameServerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

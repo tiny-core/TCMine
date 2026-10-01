@@ -31,6 +31,7 @@ public sealed class MainHub(
     INewsRepository news,
     ListAccessibleServers accessibleServers,
     SendServerCommand sendCommand,
+    RequestServerAccess requestAccess,
     ConsoleBroadcaster broadcaster,
     IPlayerCountSource players) : Hub<ILauncherClient>, IServerHub
 {
@@ -136,10 +137,10 @@ public sealed class MainHub(
 
     public async Task<IReadOnlyList<GameServerDto>> GetServersAsync()
     {
-        // Filtrar aqui e não no cliente: a lista vazia é a resposta correta para
-        // quem não foi convidado, e devolver tudo para a interface esconder
-        // entregaria nome e endereço de servidores alheios a qualquer um que
-        // olhasse a mensagem do hub.
+        // O que esconder é decidido aqui, não no cliente: um servidor com
+        // whitelist aparece para qualquer autenticado (nome, sem endereço) para
+        // poder pedir acesso — devolver tudo sem filtro algum entregaria o
+        // endereço de servidores alheios a quem só olhasse a mensagem do hub.
         var servers = await accessibleServers.HandleAsync(Context.ConnectionAborted);
 
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
@@ -202,6 +203,14 @@ public sealed class MainHub(
         return result.Succeeded
             ? new CommandResultDto(true, result.Value, null)
             : new CommandResultDto(false, null, result.Error);
+    }
+
+    public async Task RequestServerAccessAsync(Guid gameServerId)
+    {
+        var result = await requestAccess.HandleAsync(gameServerId, Context.ConnectionAborted);
+
+        if (!result.Succeeded)
+            throw new HubException(result.Error);
     }
 
     /// <summary>

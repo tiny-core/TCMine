@@ -47,6 +47,15 @@ public sealed class ModpackMembershipRepository(IDbContextFactory<TcMineDbContex
         ];
     }
 
+    public async Task<IReadOnlyList<ModpackMembership>> ListByUserAsync(Guid userId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.ModpackMemberships
+            .AsNoTracking()
+            .Where(m => m.UserId == userId)
+            .ToListAsync(ct);
+    }
+
     public async Task<ModpackMemberView?> GetOwnerAsync(Guid modpackId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

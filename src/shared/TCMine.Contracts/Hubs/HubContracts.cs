@@ -55,6 +55,17 @@ public interface IServerHub
     ///     do server. Aqui o server autoriza, valida contra a allowlist e traduz.
     /// </summary>
     Task<CommandResultDto> SendCommandAsync(Guid serverId, string command, IReadOnlyList<string> args);
+
+    /// <summary>
+    ///     Pede acesso a um servidor com whitelist — o caminho inverso do
+    ///     convite. Idempotente: pedir de novo com um pedido já pendente não
+    ///     cria um segundo.
+    ///     Só isto do módulo de pedidos vive no Hub: quem decide (aprovar/
+    ///     recusar) é o painel, que roda no mesmo processo do servidor e injeta
+    ///     os casos de uso direto — sem precisar de um cliente SignalR para
+    ///     falar consigo mesmo.
+    /// </summary>
+    Task RequestServerAccessAsync(Guid gameServerId);
 }
 
 /// <summary>

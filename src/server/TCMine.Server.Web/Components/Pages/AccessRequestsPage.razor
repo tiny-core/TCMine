@@ -1,0 +1,55 @@
+@page "/admin/access-requests"
+
+<PageTitle>Pedidos de acesso — TCMine</PageTitle>
+
+<PageHeader Title="Pedidos de acesso"
+            Subtitle="Jogadores pedindo para entrar num servidor com whitelist."
+            Icon="@Icons.Material.Filled.PersonAddAlt">
+    @if (_isBusy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+</PageHeader>
+
+@if (!_loaded)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px"/>
+}
+else if (_requests.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        Nenhum pedido pendente.
+    </MudText>
+}
+else
+{
+    <MudTable Items="_requests" Dense="true" Hover="true" RowsPerPage="15">
+        <HeaderContent>
+            <MudTh>Jogador</MudTh>
+            <MudTh>Servidor</MudTh>
+            <MudTh>Pedido em</MudTh>
+            <MudTh Style="text-align:right;">Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Jogador">@context.DisplayName</MudTd>
+            <MudTd DataLabel="Servidor">@context.ServerName</MudTd>
+            <MudTd DataLabel="Pedido em">
+                <MudText Typo="Typo.caption">
+                    @context.RequestedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                </MudText>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                <MudTooltip Text="Aprovar">
+                    <MudIconButton Icon="@Icons.Material.Filled.Check" Size="Size.Small"
+                                   Color="Color.Success"
+                                   OnClick="@(() => ApproveAsync(context))" Disabled="_isBusy"/>
+                </MudTooltip>
+                <MudTooltip Text="Recusar">
+                    <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
+                                   Color="Color.Error"
+                                   OnClick="@(() => DenyAsync(context))" Disabled="_isBusy"/>
+                </MudTooltip>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}

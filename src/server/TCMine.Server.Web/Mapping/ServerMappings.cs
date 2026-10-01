@@ -23,7 +23,9 @@ public static class ServerMappings
             Name = server.Name,
             ModpackId = server.ModpackId,
             ModpackVersionId = server.ModpackVersionId,
-            ConnectAddress = server.ConnectAddress,
+
+            // Só sai com o acesso concedido — ver a nota em GameServerDto.
+            ConnectAddress = accessible.AccessState is ServerAccessState.Granted ? server.ConnectAddress : null,
             Status = server.Status,
 
             // Última contagem amostrada. Zero quando ainda não se sabe — o
@@ -33,7 +35,8 @@ public static class ServerMappings
             // launcher precisar perguntar.
             OnlinePlayers = players.TryGet(server.Id) ?? 0,
             MaxPlayers = server.MaxPlayers,
-            Role = accessible.Role
+            Role = accessible.Role,
+            AccessState = accessible.AccessState
         };
     }
 }

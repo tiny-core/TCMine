@@ -158,6 +158,7 @@ public class LoadCatalogTests
         Status = status,
         OnlinePlayers = online,
         MaxPlayers = 20,
-        Role = ServerRoleDto.Member
+        Role = ServerRoleDto.Member,
+        AccessState = ServerAccessState.Granted
     };
 }

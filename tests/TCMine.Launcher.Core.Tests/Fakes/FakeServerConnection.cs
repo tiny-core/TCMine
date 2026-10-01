@@ -99,6 +99,15 @@ public class FakeServerConnection : IServerConnection
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct) =>
         Throws is null ? Task.FromResult(Servers) : Task.FromException<IReadOnlyList<GameServerDto>>(Throws);
 
+    /// <summary>Servidores pedidos, na ordem — para provar que o id certo foi enviado.</summary>
+    public List<Guid> AccessRequested { get; } = [];
+
+    public Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct)
+    {
+        AccessRequested.Add(gameServerId);
+        return Throws is null ? Task.CompletedTask : Task.FromException(Throws);
+    }
+
     public ValueTask DisposeAsync()
     {
         // CA1816: a classe é herdável (o teste de ordem de saída deriva dela), e

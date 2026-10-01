@@ -1,22 +1,24 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;
 
 /// <summary>
-///     Os servidores que o usuário atual enxerga: os que tem vínculo, mais
-///     qualquer um sem whitelist — um servidor público não tem porque esconder
-///     a própria existência de quem ainda não foi convidado, só o controle
-///     sobre ele.
+///     Os servidores que o usuário atual enxerga — TODOS eles, mesmo os que ele
+///     ainda não pode entrar. Esconder a existência de um servidor com
+///     whitelist não protegeria nada a mais do que já esconder o endereço de
+///     conexão, e impediria o próprio motivo de existir do pedido de acesso:
+///     sem ver o servidor, não há o que pedir.
 ///     Não devolve <c>Result</c> porque não há falha de regra possível: quem não
-///     tem vínculo nenhum e só vê públicos vê uma lista correta, não um erro.
-///     Recusar seria pior — diria ao jogador que existe algo que ele não pode
-///     ver.
+///     tem vínculo nenhum ainda vê uma lista correta, não um erro. Recusar
+///     seria pior — diria ao jogador que existe algo que ele não pode ver.
 /// </summary>
 public sealed class ListAccessibleServers(
     IServerRepository servers,
     IMembershipRepository memberships,
+    IAccessRequestRepository requests,
     ICurrentUserScope scope)
 {
     public async Task<IReadOnlyList<AccessibleServer>> HandleAsync(CancellationToken ct)
@@ -30,28 +32,41 @@ public sealed class ListAccessibleServers(
         if (scope.IsInstanceAdmin)
         {
             var todos = await servers.ListAllAsync(ct);
-            return [.. todos.Select(s => new AccessibleServer(s, ServerRoleDto.Owner))];
+            return [.. todos.Select(s => new AccessibleServer(s, ServerRoleDto.Owner, ServerAccessState.Granted))];
         }
 
         var vinculos = await memberships.ListByUserAsync(userId, ct);
         var papelPorServidor = vinculos.ToDictionary(m => m.GameServerId, m => m.Role.ToDto());
 
+        var pendentes = await requests.ListPendingByUserAsync(userId, ct);
+        var pedidoPendentePara = pendentes.Select(r => r.GameServerId).ToHashSet();
+
         // Uma consulta e um filtro em memória, em vez de N buscas por id: a
         // lista de servidores de uma instalação é pequena, e o custo de trazê-la
-        // inteira é menor que o de uma ida ao banco por vínculo.
+        // inteira é menor que o de uma ida ao banco por servidor.
         var todosServidores = await servers.ListAllAsync(ct);
 
-        return
-        [
-            .. todosServidores
-                // Com vínculo: enxerga pelo papel que tem. Sem vínculo: só
-                // enxerga o que é público (sem whitelist) — e nesse caso o
-                // papel é Member, o mesmo "vê status, sem console" de quem foi
-                // convidado só para jogar.
-                .Where(s => papelPorServidor.ContainsKey(s.Id) || !s.WhitelistEnabled)
-                .Select(s => new AccessibleServer(
-                    s,
-                    papelPorServidor.TryGetValue(s.Id, out var papel) ? papel : ServerRoleDto.Member))
-        ];
+        return [.. todosServidores.Select(s => Resolve(s, papelPorServidor, pedidoPendentePara))];
+    }
+
+    private static AccessibleServer Resolve(
+        GameServer server,
+        Dictionary<Guid, ServerRoleDto> papelPorServidor,
+        HashSet<Guid> pedidoPendentePara)
+    {
+        if (papelPorServidor.TryGetValue(server.Id, out var papel))
+            return new AccessibleServer(server, papel, ServerAccessState.Granted);
+
+        // Sem whitelist: liberado para qualquer autenticado, sem precisar de
+        // pedido — é o que faz dele um servidor público.
+        if (!server.WhitelistEnabled)
+            return new AccessibleServer(server, ServerRoleDto.Member, ServerAccessState.Granted);
+
+        var estado = pedidoPendentePara.Contains(server.Id) ? ServerAccessState.Pending : ServerAccessState.None;
+
+        // O papel aqui não importa — sem Granted não há console nem comando —
+        // mas o campo é obrigatório no DTO, e Member é o valor que combina com
+        // "ainda não tem nada".
+        return new AccessibleServer(server, ServerRoleDto.Member, estado);
     }
 }

@@ -17,8 +17,8 @@ using TCMine.Server.Web.Tests.Infrastructure;
 namespace TCMine.Server.Web.Tests.Endpoints;
 
 /// <summary>
-///     O ciclo completo, com o pipeline real: o jogador entra pelo launcher, não
-///     enxerga nada, resgata um convite e passa a enxergar.
+///     O ciclo completo, com o pipeline real: o jogador entra pelo launcher, vê
+///     o servidor sem o endereço, resgata um convite e passa a enxergar tudo.
 ///     Existe porque as peças são testadas em separado e mesmo assim o caminho
 ///     pode não fechar — a sessão emitida pelo login do launcher precisa ser a
 ///     mesma que o hub reconhece, e o vínculo criado pelo resgate precisa ser o
@@ -81,7 +81,7 @@ public sealed class InviteFlowTests
     }
 
     [Fact]
-    public async Task Launcher_so_lista_servidor_depois_do_convite_e_sem_o_segredo_rcon()
+    public async Task Launcher_ve_o_servidor_sem_endereco_antes_do_convite_e_completo_depois_sem_o_segredo_rcon()
     {
         await using var factory = new TcMineAppFactory
         {
@@ -105,12 +105,16 @@ public sealed class InviteFlowTests
         {
             await antes.StartAsync(TestContext.Current.CancellationToken);
 
-            var vazia = await antes.InvokeAsync<IReadOnlyList<GameServerDto>>(
+            var antesDoConvite = await antes.InvokeAsync<IReadOnlyList<GameServerDto>>(
                 nameof(IServerHub.GetServersAsync), TestContext.Current.CancellationToken);
 
-            // Nome e endereço de conexão são exatamente o que alguém precisaria
-            // para tentar entrar onde não foi chamado.
-            vazia.ShouldBeEmpty();
+            // O servidor aparece — é o que torna "Pedir acesso" possível — mas
+            // o endereço de conexão, que é o que daria para tentar entrar onde
+            // não foi chamado, não sai até o acesso ser concedido.
+            var antesServer = antesDoConvite.ShouldHaveSingleItem();
+            antesServer.Id.ShouldBe(servidorId);
+            antesServer.AccessState.ShouldBe(ServerAccessState.None);
+            antesServer.ConnectAddress.ShouldBeNull();
         }
 
         var code = await SemearConviteAsync(factory, servidorId);
@@ -129,6 +133,8 @@ public sealed class InviteFlowTests
         var server = lista.ShouldHaveSingleItem();
         server.Id.ShouldBe(servidorId);
         server.Role.ShouldBe(ServerRoleDto.Moderator);
+        server.AccessState.ShouldBe(ServerAccessState.Granted);
+        server.ConnectAddress.ShouldNotBeNull();
 
         // O DTO não tem onde carregar o segredo, e é essa a garantia: quem tem a
         // senha do RCON controla a máquina do jogo. Se um dia alguém acrescentar

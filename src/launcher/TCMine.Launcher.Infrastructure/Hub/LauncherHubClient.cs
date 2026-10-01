@@ -117,6 +117,9 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
             nameof(IServerHub.SendCommandAsync), serverId, command, args);
     }
 
+    public Task RequestServerAccessAsync(Guid gameServerId) =>
+        _connection.InvokeAsync(nameof(IServerHub.RequestServerAccessAsync), gameServerId);
+
     // Eventos do servidor viram eventos .NET. A UI assina; o transporte
     // fica escondido.
     public event Action<Guid, Guid>? ModpackVersionPublished;

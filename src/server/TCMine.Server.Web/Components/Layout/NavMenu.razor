@@ -1,4 +1,5 @@
 @using TCMine.Server.Web.Configuration
+@using TCMine.Server.Web.Endpoints
 @* Menu de navegação lateral. Extraído do MainLayout para isolar a estrutura de
    navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
    destaca o item ativo pela rota. *@
@@ -23,6 +24,25 @@
     <MudNavLink Href="/admin/modpacks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">
         Modpacks
     </MudNavLink>
+
+    <MudNavLink Href="/admin/access-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAddAlt">
+        Pedidos de acesso
+    </MudNavLink>
+
+    @* Gerenciar quem é admin é poder sobre a instalação inteira — só quem já
+       é admin precisa enxergar o link. Esconder não substitui a checagem no
+       caso de uso (ListUsers/SetInstanceAdmin já recusam sozinhos); é só para
+       não oferecer no menu o que vai dar erro. *@
+    <AuthorizeView>
+        <Authorized>
+            @if (context.User.HasClaim(c => c.Type == TcMineClaims.InstanceAdmin))
+            {
+                <MudNavLink Href="/admin/users" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Group">
+                    Usuários
+                </MudNavLink>
+            }
+        </Authorized>
+    </AuthorizeView>
 
     <MudText Typo="Typo.subtitle2" Class="mud-text-secondary px-4 pt-4 pb-1">
         Sistema

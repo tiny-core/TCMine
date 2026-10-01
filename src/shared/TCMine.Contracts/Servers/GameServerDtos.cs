@@ -14,8 +14,15 @@ public sealed record GameServerDto
     /// </summary>
     public required Guid ModpackVersionId { get; init; }
 
-    /// <summary>Endereço para o servers.dat. Pode incluir porta.</summary>
-    public required string ConnectAddress { get; init; }
+    /// <summary>
+    ///     Endereço para o servers.dat. Pode incluir porta.
+    ///     Nulo quando <see cref="AccessState" /> não é <see cref="ServerAccessState.Granted" />
+    ///     — um servidor com whitelist aparece na lista para qualquer jogador
+    ///     poder pedir acesso, mas o endereço só sai depois que o pedido é
+    ///     aprovado. "Pedir acesso" perderia o sentido se o endereço já
+    ///     estivesse ali, pronto para tentar entrar de qualquer forma.
+    /// </summary>
+    public string? ConnectAddress { get; init; }
 
     public required GameServerStatus Status { get; init; }
     public int OnlinePlayers { get; init; }
@@ -28,6 +35,26 @@ public sealed record GameServerDto
     ///     oferecer o que vai dar erro.
     /// </summary>
     public required ServerRoleDto Role { get; init; }
+
+    /// <summary>Se o jogador já pode entrar, já pediu, ou ainda nem pediu.</summary>
+    public required ServerAccessState AccessState { get; init; }
+}
+
+/// <summary>
+///     Onde o jogador está, em relação a um servidor com whitelist.
+///     Um servidor sem whitelist é sempre <see cref="Granted" /> para quem está
+///     autenticado — não há o que pedir.
+/// </summary>
+public enum ServerAccessState
+{
+    /// <summary>Tem Membership: vê o endereço, pode entrar.</summary>
+    Granted,
+
+    /// <summary>Já pediu; o dono ainda não decidiu.</summary>
+    Pending,
+
+    /// <summary>Nem pediu ainda — é o estado que mostra o botão "Pedir acesso".</summary>
+    None
 }
 
 public enum GameServerStatus

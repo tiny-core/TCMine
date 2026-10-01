@@ -29,7 +29,7 @@ public sealed record ServerMemberView(
 ///     posso fazer em cada um" têm a mesma resposta: sem ele, a interface teria
 ///     de perguntar de novo, um por um.
 /// </summary>
-public sealed record AccessibleServer(GameServer Server, ServerRoleDto Role);
+public sealed record AccessibleServer(GameServer Server, ServerRoleDto Role, ServerAccessState AccessState);
 
 public sealed record ServerAccessView(
     IReadOnlyList<ServerMemberView> Members,

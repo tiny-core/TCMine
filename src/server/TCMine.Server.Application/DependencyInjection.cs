@@ -82,6 +82,12 @@ public static class DependencyInjection
         services.AddScoped<SendServerCommand>();
         services.AddScoped<RedeemInvite>();
         services.AddScoped<RevokeInvite>();
+        services.AddScoped<ListUsers>();
+        services.AddScoped<SetInstanceAdmin>();
+        services.AddScoped<RequestServerAccess>();
+        services.AddScoped<ListAccessRequests>();
+        services.AddScoped<ApproveAccessRequest>();
+        services.AddScoped<DenyAccessRequest>();
         services.AddScoped<RemoveMember>();
         services.AddScoped<ChangeMemberRole>();
         services.AddScoped<UpdateSettings>();

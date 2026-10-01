@@ -221,6 +221,9 @@ public sealed class ImportUpstreamPackTests
         public Task<ModpackMemberView?> GetOwnerAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<ModpackMemberView?>(null);
 
+        public Task<IReadOnlyList<ModpackMembership>> ListByUserAsync(Guid userId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<ModpackMembership>>([]);
+
         public Task UpdateAsync(ModpackMembership membership, CancellationToken ct) => Task.CompletedTask;
 
         public Task RemoveAsync(Guid id, CancellationToken ct) => Task.CompletedTask;

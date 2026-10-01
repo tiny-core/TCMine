@@ -47,4 +47,11 @@ public interface IServerConnection : IAsyncDisposable
 
     /// <summary>O manifesto completo de uma versão. É sobre ele que o diff roda.</summary>
     Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct);
+
+    /// <summary>
+    ///     Pede acesso a um servidor com whitelist. Lança se o servidor já tem
+    ///     dono recusando (já tem acesso, não existe) — a tela trata como
+    ///     qualquer outra falha de ação, não como desfecho normal.
+    /// </summary>
+    Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct);
 }

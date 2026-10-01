@@ -1,0 +1,50 @@
+<MudDialog>
+    <DialogContent>
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Servidores</MudText>
+            @if (_servers.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">Nenhum vínculo.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true" Class="mb-4">
+                    @foreach (var (name, role) in _servers)
+                    {
+                        <MudListItem T="string">
+                            @name
+                            <MudChip T="string" Size="Size.Small" Class="ml-2" Variant="Variant.Text">@role</MudChip>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+
+            <MudText Typo="Typo.subtitle2" Class="mb-2">Modpacks</MudText>
+            @if (_modpacks.Count == 0)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhum vínculo.</MudText>
+            }
+            else
+            {
+                <MudList T="string" Dense="true">
+                    @foreach (var (name, role) in _modpacks)
+                    {
+                        <MudListItem T="string">
+                            @name
+                            <MudChip T="string" Size="Size.Small" Class="ml-2" Variant="Variant.Text">@role</MudChip>
+                        </MudListItem>
+                    }
+                </MudList>
+            }
+        }
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton OnClick="Close">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>

@@ -21,6 +21,7 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<ImportRequest> ImportRequests => Set<ImportRequest>();
     public DbSet<GameServer> GameServers => Set<GameServer>();
     public DbSet<WorldBackup> WorldBackups => Set<WorldBackup>();
+    public DbSet<AccessRequest> AccessRequests => Set<AccessRequest>();
     public DbSet<Blob> Blobs => Set<Blob>();
 
     public DbSet<News> News => Set<News>();
