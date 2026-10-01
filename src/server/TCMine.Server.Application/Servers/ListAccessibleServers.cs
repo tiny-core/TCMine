@@ -5,11 +5,14 @@ using TCMine.Server.Application.Security;
 namespace TCMine.Server.Application.Servers;
 
 /// <summary>
-///     Os servidores que o usuário atual enxerga.
+///     Os servidores que o usuário atual enxerga: os que tem vínculo, mais
+///     qualquer um sem whitelist — um servidor público não tem porque esconder
+///     a própria existência de quem ainda não foi convidado, só o controle
+///     sobre ele.
 ///     Não devolve <c>Result</c> porque não há falha de regra possível: quem não
-///     tem vínculo nenhum vê uma lista vazia, e isso é uma resposta correta, não
-///     um erro. Recusar seria pior — diria ao jogador que existe algo que ele
-///     não pode ver.
+///     tem vínculo nenhum e só vê públicos vê uma lista correta, não um erro.
+///     Recusar seria pior — diria ao jogador que existe algo que ele não pode
+///     ver.
 /// </summary>
 public sealed class ListAccessibleServers(
     IServerRepository servers,
@@ -31,9 +34,6 @@ public sealed class ListAccessibleServers(
         }
 
         var vinculos = await memberships.ListByUserAsync(userId, ct);
-        if (vinculos.Count == 0)
-            return [];
-
         var papelPorServidor = vinculos.ToDictionary(m => m.GameServerId, m => m.Role.ToDto());
 
         // Uma consulta e um filtro em memória, em vez de N buscas por id: a
@@ -44,8 +44,14 @@ public sealed class ListAccessibleServers(
         return
         [
             .. todosServidores
-                .Where(s => papelPorServidor.ContainsKey(s.Id))
-                .Select(s => new AccessibleServer(s, papelPorServidor[s.Id]))
+                // Com vínculo: enxerga pelo papel que tem. Sem vínculo: só
+                // enxerga o que é público (sem whitelist) — e nesse caso o
+                // papel é Member, o mesmo "vê status, sem console" de quem foi
+                // convidado só para jogar.
+                .Where(s => papelPorServidor.ContainsKey(s.Id) || !s.WhitelistEnabled)
+                .Select(s => new AccessibleServer(
+                    s,
+                    papelPorServidor.TryGetValue(s.Id, out var papel) ? papel : ServerRoleDto.Member))
         ];
     }
 }

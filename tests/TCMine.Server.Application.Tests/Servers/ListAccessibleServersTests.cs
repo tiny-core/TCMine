@@ -8,9 +8,12 @@ namespace TCMine.Server.Application.Tests.Servers;
 
 /// <summary>
 ///     O que o launcher lista.
-///     A garantia que importa aqui é negativa: um servidor em que o jogador não
-///     tem vínculo não pode aparecer. Nome e endereço de conexão são justamente
-///     o que alguém precisaria para tentar entrar onde não foi chamado.
+///     A garantia negativa é a que importa mais: um servidor COM whitelist em
+///     que o jogador não tem vínculo não pode aparecer — nome e endereço de
+///     conexão são justamente o que alguém precisaria para tentar entrar onde
+///     não foi chamado. Um servidor SEM whitelist é o oposto: é público por
+///     definição, então esconder a existência dele do próprio jogador não
+///     protege nada, só impede de achar algo que estava aberto.
 /// </summary>
 public sealed class ListAccessibleServersTests
 {
@@ -70,6 +73,29 @@ public sealed class ListAccessibleServersTests
     }
 
     [Fact]
+    public async Task Servidor_publico_aparece_mesmo_sem_vinculo()
+    {
+        var player = Guid.CreateVersion7();
+        var publico = Servidor("Público", whitelistEnabled: false);
+        var privado = Servidor("Privado");
+
+        var lista = await new ListAccessibleServers(
+                new FakeServers(publico, privado), new FakeMemberships(), Jogador(player))
+            .HandleAsync(TestContext.Current.CancellationToken);
+
+        // O privado continua escondido de quem não foi convidado; só a
+        // ausência de whitelist abre a visibilidade, não a falta de vínculo em
+        // si.
+        var unico = lista.ShouldHaveSingleItem();
+        unico.Server.Name.ShouldBe("Público");
+
+        // Member: o mesmo "vê status, sem console" de quem foi convidado só
+        // para jogar — ver um servidor público não deve dar mais controle do
+        // que um convite comum daria.
+        unico.Role.ShouldBe(ServerRoleDto.Member);
+    }
+
+    [Fact]
     public async Task Sem_sessao_a_lista_vem_vazia()
     {
         var lista = await new ListAccessibleServers(
@@ -83,13 +109,14 @@ public sealed class ListAccessibleServersTests
 
     private static FakeUserScope Jogador(Guid id) => new(null) { UserId = id };
 
-    private static GameServer Servidor(string name) => new()
+    private static GameServer Servidor(string name, bool whitelistEnabled = true) => new()
     {
         Name = name,
         ModpackId = Guid.CreateVersion7(),
         ModpackVersionId = Guid.CreateVersion7(),
         ConnectAddress = $"{name.ToLowerInvariant()}:25565",
-        RconSecret = "segredo"
+        RconSecret = "segredo",
+        WhitelistEnabled = whitelistEnabled
     };
 
     private sealed class FakeServers(params GameServer[] seed) : FakeServerRepositoryBase
