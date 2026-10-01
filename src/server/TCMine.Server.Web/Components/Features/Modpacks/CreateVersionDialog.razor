@@ -25,7 +25,21 @@
         <MudSwitch T="bool" @bind-Value="_inheritFiles" Color="Color.Primary"
                    Label="Herdar mods e overrides da última versão publicada" Class="mt-2"/>
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
-            Começa igual à anterior; remova na grade o que não for mais necessário.
+            @if (_inheritFiles)
+            {
+                <text>Começa igual à anterior; remova na grade o que não for mais necessário.</text>
+            }
+            else
+            {
+                @* O rascunho nasce SEM nenhum mod — e sem isto aqui parece que o
+                   modpack inteiro foi zerado, quando na verdade só esta versão
+                   nova começa vazia. As versões já publicadas são imutáveis e
+                   continuam exatamente como estavam. *@
+                <text>
+                    Esta versão nasce <strong>sem nenhum mod</strong> — você adiciona do zero na
+                    grade depois de criar. As versões já publicadas não mudam em nada.
+                </text>
+            }
         </MudText>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"

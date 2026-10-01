@@ -49,6 +49,8 @@ public partial class CreateVersionDialog
 
         await SubmitAsync(
             () => CreateVersionUseCase.HandleAsync(command, CancellationToken.None),
-            "Versão criada como rascunho.");
+            _inheritFiles
+                ? "Versão criada como rascunho, com os mods da última publicada."
+                : "Versão criada como rascunho vazio — adicione os mods na grade.");
     }
 }

@@ -45,9 +45,19 @@ public static class PackVersion
         return channel == VersionChannel.Alpha ? $"{core}-alpha" : core;
     }
 
-    /// <summary>Próxima versão sugerida: incrementa o patch e marca alpha.</summary>
+    /// <summary>
+    ///     Próxima versão sugerida: incrementa o patch e marca alpha.
+    ///     Sem versão anterior (primeira do modpack), NÃO HÁ o que incrementar —
+    ///     <see cref="Parse" /> devolve 1.0.0 como valor neutro para outros usos
+    ///     (o editor de 3 caixas precisa de algo para mostrar vazio), mas aqui
+    ///     tratá-lo como "última versão" sugeria 1.0.1-alpha para quem nunca
+    ///     publicou nada — um número que não corresponde a nenhuma versão real.
+    /// </summary>
     public static string SuggestNext(string? lastVersion)
     {
+        if (string.IsNullOrWhiteSpace(lastVersion))
+            return Format(1, 0, 0, VersionChannel.Alpha);
+
         var (major, minor, patch, _) = Parse(lastVersion);
         return Format(major, minor, patch + 1, VersionChannel.Alpha);
     }
