@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Infrastructure.Persistence.Configurations;
@@ -37,6 +38,12 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
         builder.HasIndex(s => s.OwnerId);
         builder.HasIndex(s => s.ModpackVersionId);
         builder.HasIndex(s => s.ModpackId);
+
+        // Apagar a nuvem desliga a nuvem dos servidores, não apaga os servidores.
+        builder.HasOne<CloudVault>()
+            .WithMany()
+            .HasForeignKey(s => s.CloudVaultId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // Sem navegação para Modpack de propósito: GameServer e Modpack são
         // agregados diferentes. Referência por Id evita que uma consulta de

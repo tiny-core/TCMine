@@ -1,4 +1,6 @@
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Public;
 using TCMine.Server.Application.Security;
@@ -49,6 +51,20 @@ public static class DependencyInjection
         services.AddScoped<CreateNews>();
         services.AddScoped<UpdateNews>();
         services.AddScoped<DeleteNews>();
+
+        // Nuvem de itens (mod tccloud). TimeProvider em vez de UtcNow direto: a
+        // expiração do lease é regra de negócio e os testes precisam avançar o
+        // relógio. TryAdd para um teste poder registrar o relógio falso antes.
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<AuthenticateCloudServer>();
+        services.AddScoped<IssueCloudServerKey>();
+        services.AddScoped<CloudHello>();
+        services.AddScoped<AcquireCloudLease>();
+        services.AddScoped<HeartbeatCloudLeases>();
+        services.AddScoped<SubmitCloudBatch>();
+        services.AddScoped<ReleaseCloudLease>();
+        services.AddScoped<ReportCloudDoubtful>();
+        services.AddScoped<ExtendCloudLeasesAfterOutage>();
 
         services.AddScoped<CreateGameServer>();
         services.AddScoped<UpdateGameServer>();

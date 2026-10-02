@@ -1,3 +1,4 @@
+﻿using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Web.Background;
@@ -30,6 +31,12 @@ public sealed partial class InterruptedWorkRecovery(
         await RunAsync(
             () => scope.ServiceProvider.GetRequiredService<RecoverInterruptedImports>().HandleAsync(stoppingToken),
             LogImportsRecovered, LogImportsFailed);
+
+        // Leases da nuvem: enquanto o processo esteve fora, nenhum servidor de
+        // jogo conseguiu renovar. Sem isto eles expirariam por culpa nossa.
+        await RunAsync(
+            () => scope.ServiceProvider.GetRequiredService<ExtendCloudLeasesAfterOutage>().HandleAsync(stoppingToken),
+            LogCloudLeasesExtended, LogCloudLeasesFailed);
 
         // Por último, e de propósito: descobrir o server pack de packs já
         // importados é conveniência pura, faz chamadas à origem e não tem pressa
@@ -70,6 +77,12 @@ public sealed partial class InterruptedWorkRecovery(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao retomar as importações interrompidas.")]
     private partial void LogImportsFailed(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Nuvem: {Count} lease(s) estendido(s) após o arranque.")]
+    private partial void LogCloudLeasesExtended(int count);
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao estender os leases da nuvem no arranque.")]
+    private partial void LogCloudLeasesFailed(Exception ex);
 
     [LoggerMessage(
         Level = LogLevel.Information,

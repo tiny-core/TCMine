@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Public;
@@ -103,6 +103,8 @@ public static class DependencyInjection
         services.AddScoped<IInviteRepository, InviteRepository>();
         services.AddScoped<IMembershipRepository, MembershipRepository>();
         services.AddScoped<IAccessRequestRepository, AccessRequestRepository>();
+        services.AddScoped<ICloudCredentialRepository, CloudCredentialRepository>();
+        services.AddScoped<ICloudStorageRepository, CloudStorageRepository>();
         services.AddScoped<IModpackMembershipRepository, ModpackMembershipRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
 
