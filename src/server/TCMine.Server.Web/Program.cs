@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication.Cookies;
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -303,6 +303,7 @@ app.MapStaticAssets();
 app.MapAuth();
 app.MapLauncherAuth();
 app.MapWorldBackups();
+app.MapCloudApi();
 
 // RequireAuthorization no painel inteiro: o padrão passa a ser "precisa de
 // sessão", e as exceções (login, setup) se marcam com [AllowAnonymous]. O

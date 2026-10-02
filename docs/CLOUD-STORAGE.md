@@ -130,7 +130,7 @@ incidentes, em dúvida) no menu.
 |---|---|---|
 | **A1. Domínio + persistência do protocolo** ✅ | `CloudVault`, `CloudServerCredential`, `CloudChannel`, `CloudItemType`, `CloudBalance`, `CloudLease` (regras de época/seq no domínio), `CloudBatch`, `CloudLedgerEntry`, `CloudQuarantine`, `GameServer.CloudVaultId`; migration `AddCloudStorage` nos dois providers | `CloudLeaseTests`, `CloudEntitiesTests`, `CloudPersistenceTests` (índice único do lote, concorrência do lease, bigint, bytes) |
 | **A2. Domínio do painel** | `CloudItemRule`, `CloudSuspectItem`, `CloudRollbackIncident`, `CloudDoubtfulOperation`, `CloudAdminAuditEntry` (entra junto da fase D, que as usa) | idem |
-| **B. API do mod** | autenticação por chave, hello/lease/heartbeat/batches/release, serviço de expiração | `Application.Tests` com fakes: idempotência, época velha → quarentena, saldo negativo, concorrência (dois lotes ao mesmo tempo), estender TTL no arranque; contrato em socket real |
+| **B. API do mod** ✅ | `/api/cloud/v1`: filtro da chave (`CloudServerAuthFilter` → `AuthenticateCloudServer`), `hello`, `leases/acquire`, `leases/heartbeat`, `batches`, `leases/release`, `reports/doubtful`; limite por chave (`CloudPolicy`), corpo ≤ 2 MB; extensão dos leases no arranque (`InterruptedWorkRecovery`); `IssueCloudServerKey` (só dono) | `CloudBatchDecisionTests`, `CloudServerKeyTests`, `CloudApiContractTests` (13 cenários de ponta a ponta) |
 | **C. Painel básico** | nuvens, servidores, chaves, jogadores/saldos, leases | `DependencyInjectionTests`, smoke das rotas |
 | **D. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
 | **E. Orquestração** | `CloudVaultId` no `GameServer`, injeção de variáveis de ambiente, `ONLINE_MODE` | teste do materializador/orquestrador com fake |
@@ -149,3 +149,15 @@ incidentes, em dúvida) no menu.
   itens não tem solução sem perda ou duplicação.
 - **Servidores externos** (fora do Docker do TCMine): fora da v1. Não dá para garantir
   `online-mode` nem proteger a chave.
+
+## 8. Desvios em relação ao plano (fatia B)
+
+- **DTOs da API em `Application/Cloud/CloudApiModels.cs`, não em `TCMine.Contracts`.** O cliente é o mod
+  (Java), não o launcher; o Contracts é o que os dois produtos .NET compartilham.
+- **`TimeProvider` só na nuvem**: os casos de uso da nuvem recebem `TimeProvider` (registrado como
+  `TimeProvider.System`) porque a expiração do lease é regra de negócio testada avançando o relógio. O resto
+  do projeto continua com `DateTimeOffset.UtcNow`.
+- **Adiados para a fatia D (precisam das tabelas da A2):** detecção de rollback pelo checkpoint no `hello`
+  (por ora só registrado no log) e gravação das operações em dúvida (por ora só log `Warning`).
+- **Conflito ≠ erro:** só `DbUpdateConcurrencyException` e violação de índice único viram 409 ("reenvie").
+  Qualquer outra falha de gravação sobe como 500 — tratá-la como conflito faria o mod reenviar para sempre.

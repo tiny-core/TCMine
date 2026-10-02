@@ -1,6 +1,7 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using TCMine.Server.Application.Cloud;
 
 namespace TCMine.Server.Web.Configuration;
 
@@ -17,6 +18,20 @@ public static class RateLimitPolicies
 
     /// <summary>Download de blob pelo launcher.</summary>
     public const string BlobPolicy = "blobs";
+
+    /// <summary>API da nuvem chamada pelos servidores de jogo (mod tccloud).</summary>
+    public const string CloudPolicy = "cloud";
+
+    /// <summary>
+    ///     Requisições por minuto por CHAVE de servidor (não por IP: vários
+    ///     servidores de jogo do mesmo host Docker saem pelo mesmo endereço).
+    ///     O mod manda um lote por vez e espera a resposta, então mesmo um
+    ///     servidor cheio fica bem abaixo; o teto existe para uma chave vazada
+    ///     ou um mod com defeito não derrubar o TCMine.
+    /// </summary>
+    private const int CloudPermitLimit = 1200;
+
+    private static readonly TimeSpan CloudWindow = TimeSpan.FromMinutes(1);
 
     /// <summary>
     ///     Tentativas de autenticação por janela, por IP.
@@ -69,6 +84,15 @@ public static class RateLimitPolicies
                         PermitLimit = BlobConcurrency,
                         QueueLimit = BlobQueueLimit,
                         QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                    }));
+
+            options.AddPolicy(CloudPolicy, http =>
+                RateLimitPartition.GetFixedWindowLimiter(CloudKey(http), _ =>
+                    new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = CloudPermitLimit,
+                        Window = CloudWindow,
+                        QueueLimit = 0
                     }));
 
             options.OnRejected = OnRejectedAsync;
@@ -126,4 +150,17 @@ public static class RateLimitPolicies
     /// <summary>Tela que originou o pedido.</summary>
     private static string OriginPage(PathString path) =>
         path.StartsWithSegments("/auth/setup") ? "/admin/setup" : "/admin/login";
+
+    /// <summary>
+    ///     Partição da API da nuvem: o prefixo da chave (parte não secreta). Sem
+    ///     chave reconhecível, cai no IP — quem chuta chaves é limitado pela origem.
+    /// </summary>
+    private static string CloudKey(HttpContext http)
+    {
+        var header = http.Request.Headers.Authorization.ToString();
+        var prefix = header.StartsWith("Bearer ", StringComparison.Ordinal)
+            ? CloudServerKey.PrefixOf(header["Bearer ".Length..].Trim())
+            : null;
+        return prefix is null ? "ip:" + ClientKey(http) : "key:" + prefix;
+    }
 }

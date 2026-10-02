@@ -1,4 +1,4 @@
-using TCMine.Contracts.Servers;
+﻿using TCMine.Contracts.Servers;
 
 namespace TCMine.Server.Application.Security;
 
@@ -44,4 +44,10 @@ public static class ServerAccessPolicy
     ///     tornaria a distinção entre os dois papéis decorativa.
     /// </summary>
     public static bool CanManageMembers(ServerRoleDto role) => role >= ServerRoleDto.Owner;
+
+    /// <summary>
+    ///     Nuvem de itens: gerar e revogar a chave do servidor. Só o dono: a
+    ///     chave grava nos saldos dos jogadores de toda a nuvem.
+    /// </summary>
+    public static bool CanManageCloud(ServerRoleDto role) => role >= ServerRoleDto.Owner;
 }
