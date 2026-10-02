@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Domain.Blobs;
+using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
@@ -27,6 +28,17 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<News> News => Set<News>();
 
     public DbSet<InstallationSettings> InstallationSettings => Set<InstallationSettings>();
+
+    // Nuvem de itens (mod tccloud) — docs/CLOUD-STORAGE.md.
+    public DbSet<CloudVault> CloudVaults => Set<CloudVault>();
+    public DbSet<CloudServerCredential> CloudServerCredentials => Set<CloudServerCredential>();
+    public DbSet<CloudChannel> CloudChannels => Set<CloudChannel>();
+    public DbSet<CloudItemType> CloudItemTypes => Set<CloudItemType>();
+    public DbSet<CloudBalance> CloudBalances => Set<CloudBalance>();
+    public DbSet<CloudLease> CloudLeases => Set<CloudLease>();
+    public DbSet<CloudBatch> CloudBatches => Set<CloudBatch>();
+    public DbSet<CloudLedgerEntry> CloudLedger => Set<CloudLedgerEntry>();
+    public DbSet<CloudQuarantine> CloudQuarantine => Set<CloudQuarantine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

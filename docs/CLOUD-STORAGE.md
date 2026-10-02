@@ -128,7 +128,8 @@ incidentes, em dúvida) no menu.
 
 | Fase | Entrega | Testes |
 |---|---|---|
-| **A. Domínio + persistência** | entidades, configs EF, migrations SQLite e Postgres | `Infrastructure.Tests` (SQLite em memória), `PostgresColumnLimitsTests` |
+| **A1. Domínio + persistência do protocolo** ✅ | `CloudVault`, `CloudServerCredential`, `CloudChannel`, `CloudItemType`, `CloudBalance`, `CloudLease` (regras de época/seq no domínio), `CloudBatch`, `CloudLedgerEntry`, `CloudQuarantine`, `GameServer.CloudVaultId`; migration `AddCloudStorage` nos dois providers | `CloudLeaseTests`, `CloudEntitiesTests`, `CloudPersistenceTests` (índice único do lote, concorrência do lease, bigint, bytes) |
+| **A2. Domínio do painel** | `CloudItemRule`, `CloudSuspectItem`, `CloudRollbackIncident`, `CloudDoubtfulOperation`, `CloudAdminAuditEntry` (entra junto da fase D, que as usa) | idem |
 | **B. API do mod** | autenticação por chave, hello/lease/heartbeat/batches/release, serviço de expiração | `Application.Tests` com fakes: idempotência, época velha → quarentena, saldo negativo, concorrência (dois lotes ao mesmo tempo), estender TTL no arranque; contrato em socket real |
 | **C. Painel básico** | nuvens, servidores, chaves, jogadores/saldos, leases | `DependencyInjectionTests`, smoke das rotas |
 | **D. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
