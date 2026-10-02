@@ -1,4 +1,5 @@
 ﻿using TCMine.Contracts.Servers;
+using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Domain.Servers;
@@ -60,4 +61,29 @@ public sealed class GameServer : Entity, IOwnedEntity
     public bool HasWorld => WorldInitializedAt is not null;
 
     public Guid OwnerId { get; set; }
+
+    /// <summary>
+    ///     Nuvem de itens (mod tccloud) que este servidor usa. Nulo = nuvem
+    ///     desligada aqui (ex.: servidor de testes).
+    /// </summary>
+    public Guid? CloudVaultId { get; private set; }
+
+    /// <summary>
+    ///     Liga a uma nuvem. A regra que importa é a do dono: um servidor só
+    ///     enxerga a nuvem do próprio dono. Sem ela, quem tem um servidor poderia
+    ///     ler e gravar os itens dos jogadores de outra pessoa.
+    /// </summary>
+    public void AttachToCloudVault(CloudVault vault)
+    {
+        if (vault.OwnerId != OwnerId)
+            throw new InvalidOperationException("O servidor só pode usar uma nuvem do mesmo dono.");
+        CloudVaultId = vault.Id;
+        Touch();
+    }
+
+    public void DetachFromCloudVault()
+    {
+        CloudVaultId = null;
+        Touch();
+    }
 }
