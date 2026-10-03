@@ -6,7 +6,7 @@ namespace TCMine.Launcher.App.Chrome;
 
 /// <summary>
 ///     O HWND da janela principal, para o broker do Windows desenhar sobre ela.
-///     Lê a cada chamada em vez de guardar: o handle só existe depois de a
+///     Lê a cada chamada em vez de guardar: o handle só existe após a
 ///     janela ser mostrada, e o login silencioso do arranque corre antes disso.
 ///     Guardá-lo no construtor devolveria zero para sempre.
 ///     <c>EnsureHandle()</c>, e não <c>Handle</c>: a janela estar visível não

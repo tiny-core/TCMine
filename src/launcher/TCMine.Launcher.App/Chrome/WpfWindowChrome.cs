@@ -22,6 +22,11 @@ internal sealed partial class WpfWindowChrome : IWindowChrome
     private const uint WmNcLButtonDown = 0x00A1;
     private const nint HtCaption = 2;
 
+    // ---------- P/Invoke ----------
+
+    private const int SmCxDoubleClk = 36;
+    private const int SmCyDoubleClk = 37;
+
     private readonly Window _window;
 
     private Point _ultimoClique;
@@ -40,7 +45,7 @@ internal sealed partial class WpfWindowChrome : IWindowChrome
     public void BeginDrag() => _window.Dispatcher.Invoke(() =>
     {
         // O duplo clique na barra de título maximiza — comportamento que o
-        // Windows daria de graça se a legenda fosse dele. Como a entregamos ao
+        // Windows daria se a legenda fosse dele. Como a entregamos ao
         // WebView2, ele não chega: a segunda batida vira outro mouse-down, e o
         // sistema não sintetiza o NCLBUTTONDBLCLK. Detectamos aqui, com os
         // mesmos critérios do sistema (tempo e distância configurados pelo
@@ -80,7 +85,7 @@ internal sealed partial class WpfWindowChrome : IWindowChrome
         var atual = new Point(ponto.X, ponto.Y);
 
         // A tolerância de distância é a do sistema (SM_CXDOUBLECLK/CYDOUBLECLK):
-        // ninguém acerta o mesmo pixel duas vezes, e o valor é ajustável nas
+        // ninguém acerta o mesmo píxel duas vezes, e o valor é ajustável nas
         // opções de acessibilidade.
         var dentroDoTempo = agora - _ultimoCliqueTicks <= GetDoubleClickTime();
 
@@ -97,11 +102,6 @@ internal sealed partial class WpfWindowChrome : IWindowChrome
 
         return dentroDoTempo && dentroDaArea;
     }
-
-    // ---------- P/Invoke ----------
-
-    private const int SmCxDoubleClk = 36;
-    private const int SmCyDoubleClk = 37;
 
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]

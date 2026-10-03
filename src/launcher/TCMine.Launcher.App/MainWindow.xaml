@@ -7,38 +7,36 @@
         Width="1180" Height="700"
         MinWidth="1100" MinHeight="640"
         WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
         Background="#0B0B14">
 
     <!--
         A moldura do Windows sai de cena para a janela inteira ser Blazor.
-
         CaptionHeight=0 é o detalhe que faz isso funcionar: qualquer valor maior
         entregaria a faixa do topo ao gestor de janelas, e os botões desenhados
         em HTML lá dentro ficariam mortos (IsHitTestVisibleInChrome só vale para
         elementos WPF, e o conteúdo do WebView2 não é um). Em troca, arrastar
         passa a ser responsabilidade nossa — ver WpfWindowChrome.
-
         ResizeBorderThickness continua: redimensionar pela borda e o snap às
         laterais permanecem nativos, de graça.
-
         E repare no que NÃO está aqui: WindowStyle="None". Essa é a receita
         pré-WindowChrome, e ela quebra o maximizar — a janela cresce 7px para
         cada lado além do monitor, e a barra de estado some atrás da barra de
-        tarefas (comprovado: rect -7,-7 num ecrã de 3440x1440). Com o estilo
+        tarefas (comprovado: rect −7,-7 num ecrã de 3440x1440). Com o estilo
         padrão o Windows continua dono do enquadramento e o WindowChrome apenas
-        estende a área de cliente sobre a moldura, que é o que queríamos.
+        estende a área de cliente sobre a moldura.
     -->
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
                       ResizeBorderThickness="6"
-                      CornerRadius="0"
+                      CornerRadius="12"
                       GlassFrameThickness="0"
-                      UseAeroCaptionButtons="False"/>
+                      UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
     <blazor:BlazorWebView x:Name="WebView" HostPage="wwwroot\index.html" Services="{DynamicResource services}">
         <blazor:BlazorWebView.RootComponents>
-            <blazor:RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}"/>
+            <blazor:RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}" />
         </blazor:BlazorWebView.RootComponents>
     </blazor:BlazorWebView>
 

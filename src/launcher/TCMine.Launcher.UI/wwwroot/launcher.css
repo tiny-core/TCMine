@@ -8,6 +8,8 @@ html, body {
      durante o arrasto da janela ou um clique no trilho fica visível e feia. O
      conteúdo que existe para ser copiado reativa a seleção pontualmente. */
   user-select: none;
+  border-radius: 8px;
+  border: 1px solid var(--mud-palette-lines-default);
 }
 
 /* A janela não tem barra de rolagem do sistema: quem rola é a área de conteúdo,

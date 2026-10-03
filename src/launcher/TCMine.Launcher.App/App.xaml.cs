@@ -1,4 +1,6 @@
-﻿using System.Reflection;
+﻿using System.Globalization;
+using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,6 +8,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
 using TCMine.Launcher.App.Chrome;
+using TCMine.Launcher.Core;
+using TCMine.Launcher.Core.Abstractions;
+using TCMine.Launcher.Infrastructure;
+using TCMine.Launcher.Infrastructure.Windows;
+using TCMine.Launcher.UI;
+using TCMine.Launcher.UI.Abstractions;
+using Velopack;
 // Serilog também declara um ILogger, e ele não tem nada que ver com o do
 // Extensions.Logging que o resto do arquivo usa (LoggerMessage.Define, o campo
 // _logger). Mesma armadilha documentada no CLAUDE.md para o LogLevel do MSAL —
@@ -14,25 +23,24 @@ using ILogger = Microsoft.Extensions.Logging.ILogger;
 #if DEBUG
 using TCMine.Launcher.App.Dev;
 #endif
-using TCMine.Launcher.Core;
-using TCMine.Launcher.Core.Abstractions;
-using TCMine.Launcher.Infrastructure;
-using TCMine.Launcher.Infrastructure.Windows;
-using TCMine.Launcher.UI;
-using TCMine.Launcher.UI.Abstractions;
-using Velopack;
 
 namespace TCMine.Launcher.App;
 
 /// <summary>
 ///     Ponto de entrada. Monta o contêiner e abre a janela.
-///     Usa o host genérico em vez de um ServiceCollection solto porque o que vem
-///     a seguir precisa dele: a conexão com o hub e a reconciliação de estado são
+///     Usa o host genérico em vez de um ServiceCollection solto porque o que segue
+///     precisa dele: a conexão com o hub e a reconciliação de estado são
 ///     serviços em background com ciclo de vida próprio, e o host é quem os
-///     inicia e para junto com a aplicação.
+///     inicia e para com a aplicação.
 /// </summary>
 public partial class App : Application
 {
+    private static readonly Action<ILogger, Exception?> LogStopFailed =
+        LoggerMessage.Define(
+            LogLevel.Warning,
+            new EventId(2, nameof(LogStopFailed)),
+            "O host não parou limpo no fecho; a aplicação sai na mesma.");
+
     private readonly IHost _host;
 
     // Campo, e não uma resolução dentro do log: CA1873 cobra que o argumento de
@@ -43,7 +51,7 @@ public partial class App : Application
     {
         // ANTES de tudo o resto, e isto não é preferência: o Velopack usa o
         // próprio executável como ferramenta de instalação e desinstalação, e é
-        // esta chamada que intercepta esses arranques. Depois de abrir uma
+        // esta chamada que intercepta esses arranques. Após abrir uma
         // janela já é tarde — o instalador mostraria a interface do launcher em
         // vez de instalar.
         VelopackApp.Build().Run();
@@ -66,7 +74,7 @@ public partial class App : Application
         // A raiz da instalação: o tcmine.json, o content store e as instâncias
         // moram aqui, um nível acima da pasta que o autoupdate substitui.
         // Qualificado: num projeto WPF, o Path implícito é o System.Windows.Shapes.
-        var raiz = System.IO.Path.Combine(
+        var raiz = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TCMine");
 
         // Sem isto, uma falha (ex.: login) só aparecia com um depurador
@@ -76,10 +84,10 @@ public partial class App : Application
         builder.Services.AddSerilog(config => config
             .MinimumLevel.Information()
             .WriteTo.File(
-                System.IO.Path.Combine(raiz, "logs", "launcher-.log"),
+                Path.Combine(raiz, "logs", "launcher-.log"),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 14,
-                formatProvider: System.Globalization.CultureInfo.InvariantCulture));
+                formatProvider: CultureInfo.InvariantCulture));
 
         builder.Services.AddLauncherInfrastructure(raiz);
 
@@ -104,7 +112,7 @@ public partial class App : Application
 
         // A moldura precisa da janela, e a janela é resolvida pelo contêiner.
         // Não há ciclo: quem pede IWindowChrome é a barra de título, que só
-        // renderiza depois de a janela existir.
+        // renderiza após a janela existir.
         builder.Services.AddSingleton<IDesktopShell, WpfDesktopShell>();
 
         builder.Services.AddSingleton<IWindowChrome>(sp =>
@@ -123,12 +131,19 @@ public partial class App : Application
 
     protected override async void OnStartup(StartupEventArgs e)
     {
-        base.OnStartup(e);
+        try
+        {
+            base.OnStartup(e);
 
-        await _host.StartAsync();
+            await _host.StartAsync();
 
-        MainWindow = _host.Services.GetRequiredService<MainWindow>();
-        MainWindow.Show();
+            MainWindow = _host.Services.GetRequiredService<MainWindow>();
+            MainWindow.Show();
+        }
+        catch (Exception err)
+        {
+            MessageBox.Show(err.Message);
+        }
     }
 
     /// <summary>
@@ -152,7 +167,7 @@ public partial class App : Application
             LogStopFailed(_logger, ex);
         }
 
-        _host.Dispose();
+        // _host.Dispose();
 
         base.OnExit(e);
 
@@ -167,12 +182,6 @@ public partial class App : Application
         // do controle do runtime gerenciado.
         Environment.Exit(0);
     }
-
-    private static readonly Action<ILogger, Exception?> LogStopFailed =
-        LoggerMessage.Define(
-            LogLevel.Warning,
-            new EventId(2, nameof(LogStopFailed)),
-            "O host não parou limpo no fecho; a aplicação sai na mesma.");
 
     /// <summary>
     ///     Uma exceção não tratada na thread de UI derruba a aplicação sem dizer
@@ -205,9 +214,9 @@ public partial class App : Application
         var assembly = Assembly.GetExecutingAssembly();
 
         var version = assembly
-                         .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
-                         .InformationalVersion
-                     ?? "0.0.0-dev";
+                          .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+                          .InformationalVersion
+                      ?? "0.0.0-dev";
 
         return new LauncherAppInfo { Title = "TCMine Launcher", Version = version };
     }

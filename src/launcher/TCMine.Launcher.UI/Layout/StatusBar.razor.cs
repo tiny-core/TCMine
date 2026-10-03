@@ -6,9 +6,9 @@ namespace TCMine.Launcher.UI.Layout;
 
 public partial class StatusBar : ComponentBase, IDisposable
 {
-    [Inject] private LauncherShellState Shell { get; set; } = default!;
+    [Inject] private LauncherShellState Shell { get; set; } = null!;
 
-    [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
+    [Inject] private LauncherAppInfo AppInfo { get; set; } = null!;
 
     private string ConnectionLabel => Shell.Connection switch
     {

@@ -7,16 +7,16 @@ namespace TCMine.Launcher.UI.Layout;
 
 public partial class TitleBar : ComponentBase, IDisposable
 {
-    [Inject] private IWindowChrome Chrome { get; set; } = default!;
+    [Inject] private IWindowChrome Chrome { get; set; } = null!;
 
-    [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
+    [Inject] private LauncherAppInfo AppInfo { get; set; } = null!;
 
-    [Inject] private LauncherShellState Shell { get; set; } = default!;
+    [Inject] private LauncherShellState Shell { get; set; } = null!;
 
     /// <summary>
     ///     O LauncherConfig chama isto de "nome exibido na janela": um jogador
     ///     com dois servidores pareados em máquinas diferentes precisa saber qual
-    ///     janela é qual. O nome do produto fica, porque a janela também aparece
+    ///     janela é, qual. O nome do produto fica, porque a janela também aparece
     ///     na barra de tarefas ao lado de tudo o mais.
     /// </summary>
     private string Title => Shell.ServerName is { Length: > 0 } server
