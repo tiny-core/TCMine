@@ -45,6 +45,10 @@ O fluxo central: o servidor **publica manifestos completos** de cada versão; o 
 jogador contra o manifesto (baixa o que falta, apaga o que sobrou). É um modelo **declarativo** — o manifesto descreve o
 estado final desejado, e o launcher faz o disco convergir para ele.
 
+**Estável desde a 1.0.0.** O README lista o que ficou congelado (protocolo do launcher, `/api/v1`,
+`/api/cloud/v1`, chaves de configuração, layout de `TCMINE_ROOT`, migrations só para a frente). Mudar
+qualquer um deles de forma incompatível é versão MAIOR — **avise antes de propor**.
+
 ---
 
 ## 2. Arquitetura — Clean Architecture
@@ -816,8 +820,9 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
 - **Chave do servidor = segredo como o `RconSecret`:** gerada pelo TCMine a CADA start do servidor
   (`ProvisionServerCloudKey`, a anterior é revogada), gravada em `tccloud-server.json` na raiz da
   pasta da instância (`/data` no container) e guardada no banco só como hash SHA-256. Nunca em DTO,
-  log ou tela (a tela mostra só o prefixo). Arquivo e não variável de ambiente: o TCMine não recria
-  containers, e as variáveis só mudam recriando.
+  log ou tela (a tela mostra só o prefixo). Arquivo e não variável de ambiente: a chave muda a
+  CADA start, e uma variável mudaria a impressão digital da spec (§6) — o container seria recriado a
+  cada arranque, e a senha da nuvem iria parar no `docker inspect`.
 - **Só servidores orquestrados pelo TCMine** recebem chave. URL: `Server:CloudUrl` ou, sem ela,
   `Server:PublicUrl`. O `online-mode` é conferido pelo mod (recusa a nuvem em modo offline).
 - **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA
