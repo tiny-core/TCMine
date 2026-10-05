@@ -56,6 +56,10 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Diálogos: últimos chips capitalizados em minúsculas.** Varredura pelo
+  painel inteiro atrás do que a regra "chips em minúsculas" ainda não
+  tinha alcançado: o chip "Dono" do painel de membros de servidor e do
+  diálogo de editores de modpack, e o "Editor" deste último.
 - **Tela de Configurações no visual novo** (já usava `PageHeader` e
   `MudTabs`; faltava só nivelar): chips de status de integração ("Chave
   configurada"/"Login configurado"/"Jogadores não conseguem entrar"…) para

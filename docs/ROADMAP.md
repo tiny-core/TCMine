@@ -20,17 +20,15 @@ Referências: o protótipo aprovado (artifact "TCMine — proposta de redesenho"
 e o **TCMine Design System** (paleta pedra vulcânica, regras de texto e de
 interação). Tema, menu, visão geral e página pública já estão no código.
 
-- **Demais telas do painel**: diálogos (os que restam fora dos já tocados
-  nas fatias anteriores). Aplicar a mesma linguagem (cartões com borda
-  fina, rótulos micro, chips em minúsculas, estado sempre visível).
-  (Servidores, inventário de mods, nuvem, usuários, armazenamento e
-  configurações já feitas. A nuvem só cobriu a lista — `CloudVaultsPage` —
-  e os chips capitalizados que apareceram nos painéis; os demais painéis
-  de uma nuvem específica — servidores, jogadores, regras, quarentena, em
-  dúvida, incidentes, auditoria, configurações — não foram revisados tela
-  a tela.)
 - **Console**: levar o console para a linguagem nova (fundo afundado, eco do
-  comando, referência de comandos num painel lateral).
+  comando, referência de comandos num painel lateral). É o último
+  `--mud-palette-*` fora da Visão geral/Overrides de um modpack (ver
+  abaixo) — `ServerConsole.razor.css`.
+- **Visão geral e Overrides do modpack**: as duas abas do workspace de um
+  modpack que ainda não passaram pela reforma (`ModpackDetailPage`,
+  `ModpackOverridesPage` — CSS ainda em `--mud-palette-*`). Não eram
+  citadas à parte no texto original deste item, mas são telas distintas
+  pela mesma régua das demais. Uma tela por PR.
 
 ## 3. Dados que o painel ainda não registra
 
