@@ -11,6 +11,28 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [Não lançado]
+
+Launcher **1.1.0** (vai na próxima imagem do servidor).
+
+### Adicionado
+
+- **Entrar no servidor com um clique.** A lista de servidores da tela de jogar
+  ganhou o botão *Entrar*: abre o Minecraft já conectando ao servidor
+  (`--quickPlayMultiplayer`). Se o servidor estiver numa versão do modpack mais
+  nova que a da instância, ela é atualizada antes, com o backup automático do
+  mundo; se estiver numa mais antiga, o launcher recusa e explica — descer de
+  versão quebra o mundo. Servidor parado ou jogo já aberto deixam o botão
+  desligado, com o motivo.
+
+### Melhorado
+
+- **Downloads em paralelo.** O launcher baixava um arquivo de cada vez, e um
+  pack grande (ATM10: centenas de mods, milhares de configs) pagava a latência
+  de cada pedido em série — lento até em rede local. Agora são seis
+  simultâneos (o servidor aceita oito por cliente), os maiores primeiro, e o
+  mesmo conteúdo em dois caminhos é baixado uma vez só.
+
 ## [1.0.1] — 2026-10-05
 
 ### Corrigido

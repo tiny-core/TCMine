@@ -32,6 +32,7 @@ public static class DependencyInjection
         services.AddScoped<ChooseInstance>();
         services.AddScoped<SetInstanceMemory>();
         services.AddScoped<LaunchGame>();
+        services.AddScoped<JoinServer>();
         services.AddScoped<UpdateInstance>();
         services.AddScoped<CheckInstanceUpdates>();
         services.AddScoped<CleanupJavaRuntimes>();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
@@ -19,6 +20,7 @@ public partial class HomePage : ComponentBase, IDisposable
     private IReadOnlyList<ModpackNewsDto> _news = [];
 
     private bool _launching;
+    private Guid? _joining;
     private string? _phase;
     private double? _fraction;
     private string? _error;
@@ -41,6 +43,12 @@ public partial class HomePage : ComponentBase, IDisposable
     /// <summary>O único caso que resta: nem sequer há servidor pareado.</summary>
     private const string WhyCannotPlay = "Pareie com um servidor para poder jogar.";
 
+    private string? JoinBlockedReason =>
+        Game.IsRunning ? "O jogo já está aberto."
+        : _launching ? "Abrindo o jogo…"
+        : CanPlay ? null
+        : WhyCannotPlay;
+
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
     [Inject] private LoadCatalog Catalog { get; set; } = default!;
@@ -50,6 +58,8 @@ public partial class HomePage : ComponentBase, IDisposable
     [Inject] private GameSession Game { get; set; } = default!;
 
     [Inject] private LaunchGame Launch { get; set; } = default!;
+
+    [Inject] private JoinServer Join { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
@@ -111,9 +121,44 @@ public partial class HomePage : ComponentBase, IDisposable
     ///     voltar a olhar — justamente quando ela é a única explicação do que
     ///     aconteceu.
     /// </summary>
-    private async Task PlayAsync()
+    private Task PlayAsync() =>
+        RunLaunchAsync((active, config, progress) =>
+            Launch.HandleAsync(active, config, progress, CancellationToken.None));
+
+    /// <summary>
+    ///     Abre o jogo já dentro do servidor, alinhando antes a versão da
+    ///     instância com a dele — o andamento e o erro aparecem no mesmo sítio do
+    ///     "Jogar", porque é a mesma abertura.
+    /// </summary>
+    private async Task JoinAsync(GameServerDto server)
     {
-        if (_active is null || Shell.Pairing?.Config is not { } config)
+        _joining = server.Id;
+
+        try
+        {
+            await RunLaunchAsync(async (active, config, progress) =>
+            {
+                var result = await Join.HandleAsync(active, server, config, progress, CancellationToken.None);
+
+                // Atualizada no caminho: o cabeçalho mostra a versão, e
+                // continuar com a antiga em memória faria o "Jogar" seguinte
+                // abrir com o manifesto velho.
+                if (result.Updated is { } updated)
+                    _active = updated;
+
+                return result.Launch;
+            });
+        }
+        finally
+        {
+            _joining = null;
+        }
+    }
+
+    private async Task RunLaunchAsync(
+        Func<InstalledInstance, LauncherConfig, IProgress<GameLaunchProgress>, Task<GameLaunchResult>> launch)
+    {
+        if (_active is null || Shell.Pairing?.Config is not { } config || _launching)
             return;
 
         _launching = true;
@@ -132,7 +177,7 @@ public partial class HomePage : ComponentBase, IDisposable
 
         try
         {
-            var result = await Launch.HandleAsync(_active, config, progress, CancellationToken.None);
+            var result = await launch(_active, config, progress);
 
             if (!result.Started)
                 _error = result.Message;

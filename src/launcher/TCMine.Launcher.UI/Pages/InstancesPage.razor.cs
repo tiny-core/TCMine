@@ -206,7 +206,7 @@ public partial class InstancesPage : ComponentBase, IDisposable
 
         try
         {
-            var pack = PackDe(instance);
+            var pack = instance.Manifest.ToModpack();
             var progress = new Progress<InstallProgress>(Operation.Report);
 
             var result = choice is true
@@ -231,32 +231,6 @@ public partial class InstancesPage : ComponentBase, IDisposable
 
         await LoadAsync();
     }
-
-    /// <summary>O texto para a fase atual — null em Done, que já vira o toast de sucesso.</summary>
-    private static string? BusyLabel(InstallProgress? progress) => progress?.Phase switch
-    {
-        InstallPhase.BackingUp => "Copiando o mundo…",
-        InstallPhase.Downloading => "Baixando arquivos…",
-        InstallPhase.Materializing => "Instalando…",
-        InstallPhase.Cleaning => "Limpando o que sobrou…",
-        InstallPhase.Done => null,
-        _ => "Preparando…"
-    };
-
-    /// <summary>
-    ///     O modpack, reconstruído a partir do manifesto local.
-    ///     Evita depender do catálogo para atualizar: tudo o que o instalador
-    ///     precisa saber sobre o pack já está gravado na instância, e ir buscá-lo
-    ///     de novo seria uma ida à rede a mais num caminho que já tem várias.
-    /// </summary>
-    private static ModpackDto PackDe(InstalledInstance instance) => new()
-    {
-        Id = instance.Manifest.ModpackId,
-        Slug = "",
-        Name = instance.Manifest.ModpackName,
-        MinecraftVersion = instance.Manifest.MinecraftVersion ?? "",
-        Loader = instance.Manifest.Loader ?? ModLoader.Vanilla
-    };
 
     /// <summary>
     ///     Marca como ativa e leva para a tela de jogar.
