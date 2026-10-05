@@ -38,9 +38,9 @@
     else
     {
         <div class="tc-console" id="@_consoleId">
-            @foreach (var line in _lines)
+            @foreach (var entry in _lines)
             {
-                <div class="tc-console-line">@line</div>
+                <div class="tc-console-line @EntryClass(entry.Kind)">@entry.Text</div>
             }
 
             @if (_lines.Count == 0)
@@ -48,5 +48,81 @@
                 <div class="tc-console-line" style="opacity:.6;">Aguardando saída do servidor…</div>
             }
         </div>
+
+        @* Só para quem pode mandar comando: o servidor recusaria de qualquer
+           forma, mas uma caixa que só responde "não permitido" é um convite a
+           tentar. *@
+        @if (CanSend)
+        {
+            <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Class="mt-3">
+                <MudTextField T="string" @ref="_inputField"
+                              Value="_input" ValueChanged="OnInputChanged" Immediate="true"
+                              OnKeyDown="OnInputKeyDown"
+                              Placeholder="Digite um comando — ex.: say Olá a todos"
+                              HelperText="@InputHelper"
+                              Variant="Variant.Outlined" Margin="Margin.Dense"
+                              Adornment="Adornment.Start" AdornmentText="›"
+                              Disabled="_sending" Class="tc-console-input"
+                              Style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;"/>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Send"
+                           Disabled="@(_sending || string.IsNullOrWhiteSpace(_input))"
+                           OnClick="SendAsync" Class="mt-1">
+                    @if (_sending)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                    }
+                    Enviar
+                </MudButton>
+
+                <MudTooltip Text="Lista de comandos do Minecraft, com a sintaxe de cada um">
+                    <MudButton Variant="@(_showReference ? Variant.Filled : Variant.Outlined)"
+                               StartIcon="@Icons.Material.Filled.MenuBook"
+                               OnClick="@(() => _showReference = !_showReference)" Class="mt-1">
+                        Comandos
+                    </MudButton>
+                </MudTooltip>
+            </MudStack>
+
+            @if (_showReference)
+            {
+                <MudPaper Class="pa-3 mt-3" Elevation="0" Outlined="true">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2" Wrap="Wrap.Wrap">
+                        <MudTextField T="string" @bind-Value="_filter" Immediate="true"
+                                      Placeholder="Filtrar por nome ou descrição"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:360px;"/>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            Clique num comando para colocá-lo na caixa. Mods podem acrescentar outros — o console aceita todos.
+                        </MudText>
+                    </MudStack>
+
+                    @foreach (var group in ReferenceGroups)
+                    {
+                        <MudText Typo="Typo.overline" Class="mud-text-secondary d-block mt-2">@CategoryLabel(group.Key)</MudText>
+
+                        @foreach (var cmd in group)
+                        {
+                            <div class="tc-command-row" @onclick="@(() => UseCommandAsync(cmd))"
+                                 @onkeydown="@(e => e.Key is "Enter" or " " ? UseCommandAsync(cmd) : Task.CompletedTask)"
+                                 role="button" tabindex="0" title="Usar este comando">
+                                <code class="tc-command-syntax">@cmd.Syntax</code>
+                                <span class="tc-command-desc">@cmd.Description</span>
+                                @if (cmd.Destructive)
+                                {
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">cuidado</MudChip>
+                                }
+                            </div>
+                        }
+                    }
+
+                    @if (!ReferenceGroups.Any())
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhum comando com esse nome.</MudText>
+                    }
+                </MudPaper>
+            }
+        }
     }
 </MudPaper>
