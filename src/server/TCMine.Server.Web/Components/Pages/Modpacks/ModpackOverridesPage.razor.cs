@@ -12,14 +12,11 @@ namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackOverridesPage : IAsyncDisposable
 {
-    private bool? _appliedDarkMode;
     private bool _dirty;
 
     private string? _dragPath; // path a ser arrastado (definido no handle)
     private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
     private StandaloneCodeEditor _editor = default!;
-
-    private bool _editorReady;
 
     /// <summary>
     ///     Os scripts do Monaco já desceram. Enquanto for falso o editor NÃO
@@ -77,15 +74,29 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-    // Tema do app, cascateado pelo MainLayout. O Monaco monta fora do
-    // MudThemeProvider, então precisa deste sinal para casar claro/escuro.
-    [CascadingParameter(Name = "IsDarkMode")]
-    private bool IsDarkMode { get; set; }
+    // O painel só tem tema escuro (o alternador saiu); o Monaco monta fora do
+    // MudThemeProvider e não acompanha isso sozinho, mas também não tem mais
+    // o que acompanhar — é sempre este.
+    private const string MonacoTheme = "vs-dark";
 
-    // Nome do tema Monaco correspondente ao tema atual do app.
-    private string MonacoTheme => IsDarkMode ? "vs-dark" : "vs";
+    private (Guid Modpack, Guid Version) _loaded;
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    /// <summary>
+    ///     Recarrega quando a ROTA muda, e não só na primeira vez — mesma regra
+    ///     de ModpackModsPage/ModpackAssetsPage (ver CLAUDE.md, "Navegar desta
+    ///     página para a mesma página com outro id REAPROVEITA o componente").
+    ///     O forceLoad de <see cref="OnVersionChanged" /> já cobre a troca pelo
+    ///     seletor — isto é a rede de segurança para qualquer outra navegação
+    ///     que chegue aqui sem forceLoad.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded == (ModpackId, VersionId))
+            return;
+
+        _loaded = (ModpackId, VersionId);
+        await LoadAsync();
+    }
 
     // Trocar versão numa aba por versão navega para a mesma aba da nova. Como o
     // Monaco quebra com enhanced navigation, força recarregar (forceLoad).
@@ -234,20 +245,7 @@ public partial class ModpackOverridesPage : IAsyncDisposable
         await Task.Yield();
         await _editor.Layout();
 
-        _editorReady = true;
-        _appliedDarkMode = IsDarkMode;
         _editorMounted.TrySetResult();
-    }
-
-    // O tema do Monaco é global no JS; quando o admin alterna claro/escuro no
-    // app, aplicamos aqui para o editor acompanhar sem recarregar a página.
-    protected override async Task OnParametersSetAsync()
-    {
-        if (_editorReady && _appliedDarkMode != IsDarkMode)
-        {
-            await Global.SetTheme(JsRuntime, MonacoTheme);
-            _appliedDarkMode = IsDarkMode;
-        }
     }
 
     private static TreeItemData<string> ToItem(Node node)

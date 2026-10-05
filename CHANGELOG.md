@@ -17,6 +17,12 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 
 ### Adicionado
 
+- **Fonte Inter, autogospedada.** `TcMineTheme.Default` já pedia "Inter" na
+  tipografia desde a reformulação visual, mas sem `@font-face` nenhum o
+  navegador caía pro fallback em silêncio (o CSP do painel recusa o Google
+  Fonts, e o launcher tem de abrir sem rede). Quatro pesos estáticos
+  (400/500/600/700) agora vivem em `TCMine.UI.Shared/wwwroot/fonts`, licença
+  OFL ao lado.
 - **Comandos pelo console do painel.** O dono e os admins do servidor (e
   moderadores, dentro da lista permitida) mandam comandos pelo RCON direto da
   tela do servidor: Enter envia, ↑ e ↓ percorrem o histórico, e a sintaxe do
@@ -157,12 +163,23 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
   vez; o mesmo acontecia nas abas de detalhe, novidades e servidores ao trocar
   de modpack. Um teste agora exige que toda página com id na rota recarregue
   quando ele muda.
+- **A aba de Overrides só passava nesse teste por acaso.** O
+  `OnParametersSetAsync` dela existia só para acompanhar claro/escuro do
+  Monaco — nunca recarregou a versão trocada; quem a tirava do sério era o
+  `forceLoad` do seletor, não a troca de parâmetro. Simplificar o tema (ver
+  Melhorado) teria apagado esse `OnParametersSetAsync` por completo e
+  destravado o teste de verdade — agora ele recarrega como as demais.
 - **A página pública mostrava o endereço (IP) dos servidores** a qualquer
   visitante. Ele só sai para quem tem acesso aprovado, e o modelo público nem
   o carrega mais.
 
 ### Melhorado
 
+- **Overrides não alterna mais o tema do Monaco por `IsDarkMode`.** O
+  alternador de tema do painel saiu na reformulação visual — o cascading
+  value é sempre `true` — e a aba de Overrides continuava com o parâmetro,
+  o cálculo e a lógica de reaplicar tema no editor para um valor que nunca
+  muda. Tema do Monaco agora é uma constante.
 - **Downloads em paralelo.** O launcher baixava um arquivo de cada vez, e um
   pack grande (ATM10: centenas de mods, milhares de configs) pagava a latência
   de cada pedido em série — lento até em rede local. Agora são seis

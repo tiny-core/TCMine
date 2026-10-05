@@ -15,6 +15,50 @@ html, body {
 }
 
 /* --------------------------------------------------------------------------
+   Fonte Inter, autogospedada. O CSP do painel (font-src 'self') recusa o
+   Google Fonts, e o launcher tem de abrir sem rede — então os .woff2 vivem
+   no repositório (licença OFL, arquivo ao lado: fonts/Inter-LICENSE.txt), e
+   não num CDN. TcMineTheme.Default já pedia "Inter" na tipografia; sem este
+   @font-face o navegador caía pro fallback (Segoe UI) em silêncio, sem erro
+   nenhum que apontasse para a causa.
+   Quatro pesos estáticos (não a variável): bastam para o que o painel usa
+   (400 texto, 500 botão, 600/700 títulos) e pesam uma fração da fonte
+   variável inteira. url() relativo porque este CSS é servido de
+   _content/TCMine.UI.Shared/ nos dois hosts — resolve certo sem repetir o
+   prefixo. -------------------------------------------------------------------------- */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fonts/Inter-Regular.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fonts/Inter-Medium.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fonts/Inter-SemiBold.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fonts/Inter-Bold.woff2") format("woff2");
+}
+
+/* --------------------------------------------------------------------------
    Utilitárias. Usam as CSS vars do MudBlazor para acompanhar o tema.
    -------------------------------------------------------------------------- */
 
