@@ -1,8 +1,8 @@
 # Changelog
 
 Todas as mudanças relevantes do **TCMine Server** e, a partir da 0.4.0, também
-do **TCMine Launcher**, que partilham repositório e protocolo. Desde a versão
-seguinte à 1.0.0, o launcher vai dentro da imagem do servidor e a tag é uma só
+do **TCMine Launcher**, que partilham repositório e protocolo. Desde a 1.0.0, o
+launcher vai dentro da imagem do servidor e a tag é uma só
 (`server-v*`); o número dele vive em `src/launcher/VERSION`. As versões
 seguem [SemVer](https://semver.org/lang/pt-BR/). A partir da **1.0.0**, o que
 está em [Compromisso de estabilidade](README.md#compromisso-de-estabilidade) só
@@ -10,33 +10,6 @@ muda de forma incompatível numa versão MAIOR.
 
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
-
-## [Não lançado]
-
-### Adicionado
-
-- **O launcher vai dentro da imagem do servidor.** O `Dockerfile` compila o
-  launcher e leva o `vpk`; ao subir, o servidor o empacota em
-  `updates/launcher/{canal}/` — só quando a versão ou o endereço mudam. Lançar
-  o servidor passa a ser lançar o launcher dele, sem passo manual para
-  esquecer. A imagem cresce para ~1 GB. `LauncherUpdates__PublishBundled=false`
-  desliga; um pacote publicado à mão com versão maior é respeitado.
-
-- **O launcher já conhece o servidor.** O instalador gerado pelo servidor leva
-  um `server.json` com o `Server:PublicUrl`, e o launcher pareia sozinho no
-  primeiro uso — o jogador não digita endereço. Passa pelas mesmas regras do
-  endereço digitado (HTTPS, handshake); falhando, a tela de pareamento abre
-  com ele preenchido.
-
-- **`src/launcher/VERSION`** é a única fonte da versão do launcher: MSBuild,
-  `Dockerfile` e `release-launcher.ps1` leem dela (o script perdeu o
-  `-Version`). A release do servidor **falha** se o launcher mudou desde a tag
-  anterior e o número não subiu; o CI de PR avisa.
-
-### Corrigido
-
-- O link de download do launcher na página pública nunca aparecia: o servidor
-  lia o feed do Velopack num formato que ele não tem e não achava o instalador.
 
 ## [1.0.0] — 2026-10-05
 
@@ -70,6 +43,24 @@ a ingestão de mods com o que já está em casa antes de ir à rede.
   administrador; havendo uma única conta de admin antiga, ela é unida à nova,
   com modpacks, servidores e acessos.
 
+- **O launcher vai dentro da imagem do servidor.** O `Dockerfile` compila o
+  launcher e leva o `vpk`; ao subir, o servidor o empacota em
+  `updates/launcher/{canal}/` — só quando a versão ou o endereço mudam. Lançar
+  o servidor passa a ser lançar o launcher dele, sem passo manual para
+  esquecer. A imagem cresce para ~1 GB. `LauncherUpdates__PublishBundled=false`
+  desliga; um pacote publicado à mão com versão maior é respeitado.
+
+- **O launcher já conhece o servidor.** O instalador gerado pelo servidor leva
+  um `server.json` com o `Server:PublicUrl`, e o launcher pareia sozinho no
+  primeiro uso — o jogador não digita endereço. Passa pelas mesmas regras do
+  endereço digitado (HTTPS, handshake); falhando, a tela de pareamento abre
+  com ele preenchido.
+
+- **`src/launcher/VERSION`** é a única fonte da versão do launcher: MSBuild,
+  `Dockerfile` e `release-launcher.ps1` leem dela (o script perdeu o
+  `-Version`). A release do servidor **falha** se o launcher mudou desde a tag
+  anterior e o número não subiu; o CI de PR avisa.
+
 ### Removido
 
 - **E-mail.** O SMTP, o servidor de e-mail próprio (container
@@ -82,6 +73,9 @@ a ingestão de mods com o que já está em casa antes de ir à rede.
   [docs/RELEASE.md](docs/RELEASE.md#o-launcher)).
 
 ### Corrigido
+
+- O link de download do launcher na página pública nunca aparecia: o servidor
+  lia o feed do Velopack num formato que ele não tem e não achava o instalador.
 
 - **O servidor de jogo não subia na versão do modpack.** O container era criado
   uma vez e reaproveitado para sempre: trocar a versão do servidor (ou a
