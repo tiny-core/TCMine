@@ -51,6 +51,7 @@ Ajuste no `.env`:
 | `DOCKER_GID` | GID do grupo dono do socket: `getent group docker \| cut -d: -f3` |
 | `TCMINE_PUBLIC_URL` | Endereço público, com https. Vai no `tcmine.json` e no feed do launcher. |
 | `TCMINE_AZURE_CLIENT_ID` | Client ID da app Azure do login com a Microsoft. |
+| `Updates__Enabled` | `false` desliga o aviso de versão nova no painel (ele consulta as releases do GitHub a cada seis horas). Útil em máquina sem saída para a internet. |
 
 ### Uma raiz, quatro caminhos
 

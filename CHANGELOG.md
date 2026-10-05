@@ -98,6 +98,11 @@ com a conta Microsoft, instalar um modpack e **abrir o jogo**.
   essa metade. A importação também passou a recusar um pack já importado
   **antes** de baixar o zip.
 
+- **Aviso de atualização no painel.** O admin da instalação vê quando sai uma
+  versão estável nova do TCMine Server, com o link das notas e o comando para
+  atualizar. A consulta vai às releases `server-v*` do GitHub, com cache de seis
+  horas; `Updates__Enabled=false` desliga.
+
 - **Reaver a administração** (`/admin/claim`). Se nenhum administrador consegue
   entrar pela Microsoft — o caso de quem só tinha conta de e-mail e senha —, o
   servidor escreve no log, ao arrancar, um código de uso único. Quem opera a
@@ -117,6 +122,10 @@ com a conta Microsoft, instalar um modpack e **abrir o jogo**.
   [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher)).
 
 ### Corrigido
+
+- **A publicação da imagem ficava vermelha quando a release era criada pela
+  tela do GitHub.** A imagem saía, mas o último passo tentava criar uma release
+  que já existia. Agora ele só acerta as marcas da release existente.
 
 - **Mod do Modrinth em dobro.** A busca gravava o mod pelo slug, e o pack
   importado e as dependências pelo id do projeto: o mesmo mod pelos dois

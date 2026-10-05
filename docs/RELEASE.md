@@ -31,10 +31,23 @@ código*; o changelog descreve *o que mudou para quem usa* — são textos
 diferentes, e o segundo não se escreve sozinho. Depois da tag ele fica
 desalinhado do que foi publicado.
 
+Dois caminhos, os dois valem:
+
 ```bash
 git tag server-v0.1.0
 git push origin server-v0.1.0
 ```
+
+ou, na tela **Releases → Draft a new release** do GitHub, criar a tag
+`server-v0.1.0` ali mesmo e publicar. No segundo caso a release já existe quando
+o workflow termina, e ele só acerta as marcas (estável vira *latest*,
+pré-lançamento vira *pre-release*) — o título e as notas que você escreveu
+ficam. Antes ele tentava criá-la de novo e falhava com `Release.tag_name already
+exists`, **depois** de a imagem já estar publicada: a cruz vermelha não queria
+dizer que a versão não saiu.
+
+É a release estável mais nova `server-v*` que o painel consulta para avisar o
+admin de que há atualização. Rascunho e pré-lançamento não contam.
 
 O workflow **não roda os testes de novo** — o `ci.yml` já os roda a cada push na
 master, e uma tag só se cria em cima de um commit que já passou por lá. O que
