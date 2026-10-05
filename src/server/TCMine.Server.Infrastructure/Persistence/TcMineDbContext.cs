@@ -39,6 +39,11 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<CloudBatch> CloudBatches => Set<CloudBatch>();
     public DbSet<CloudLedgerEntry> CloudLedger => Set<CloudLedgerEntry>();
     public DbSet<CloudQuarantine> CloudQuarantine => Set<CloudQuarantine>();
+    public DbSet<CloudItemRule> CloudItemRules => Set<CloudItemRule>();
+    public DbSet<CloudSuspectItem> CloudSuspectItems => Set<CloudSuspectItem>();
+    public DbSet<CloudRollbackIncident> CloudRollbackIncidents => Set<CloudRollbackIncident>();
+    public DbSet<CloudDoubtfulOperation> CloudDoubtfulOperations => Set<CloudDoubtfulOperation>();
+    public DbSet<CloudAdminAuditEntry> CloudAdminAudit => Set<CloudAdminAuditEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

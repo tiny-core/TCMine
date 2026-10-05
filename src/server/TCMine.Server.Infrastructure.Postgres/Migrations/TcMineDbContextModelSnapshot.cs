@@ -58,6 +58,41 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("blobs", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudAdminAuditEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VaultId", "Id");
+
+                    b.ToTable("cloud_admin_audit", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudBalance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -178,6 +213,119 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .IsUnique();
 
                     b.ToTable("cloud_channels", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudDoubtfulOperation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Amount")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ChannelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("Index")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("PlayerUuid")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ReportId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VaultId", "Status");
+
+                    b.HasIndex("ServerId", "ReportId", "Index")
+                        .IsUnique();
+
+                    b.ToTable("cloud_doubtful_operations", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudItemRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Pattern")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("Scope")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VaultId", "Scope", "Pattern")
+                        .IsUnique();
+
+                    b.ToTable("cloud_item_rules", (string)null);
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudItemType", b =>
@@ -374,6 +522,56 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("cloud_quarantine", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudRollbackIncident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CheckpointJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detail")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorldId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServerId", "Status");
+
+                    b.HasIndex("VaultId", "Status");
+
+                    b.ToTable("cloud_rollback_incidents", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudServerCredential", b =>
                 {
                     b.Property<Guid>("Id")
@@ -425,6 +623,53 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasIndex("VaultId");
 
                     b.ToTable("cloud_server_credentials", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudSuspectItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Attempts")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("ItemId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VaultId", "ItemId")
+                        .IsUnique();
+
+                    b.ToTable("cloud_suspect_items", (string)null);
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudVault", b =>
@@ -1204,6 +1449,15 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("installation_settings", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudAdminAuditEntry", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudBalance", b =>
                 {
                     b.HasOne("TCMine.Server.Domain.Cloud.CloudChannel", null)
@@ -1229,6 +1483,24 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudChannel", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudDoubtfulOperation", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudItemRule", b =>
                 {
                     b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
                         .WithMany()
@@ -1281,6 +1553,15 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudRollbackIncident", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudServerCredential", b =>
                 {
                     b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
@@ -1289,6 +1570,15 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudSuspectItem", b =>
+                {
                     b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
                         .WithMany()
                         .HasForeignKey("VaultId")

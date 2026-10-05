@@ -216,7 +216,98 @@ public sealed class CloudApiContractTests
         resposta.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
+    // ---------------------------------------------------------------- governança (fatia D1)
+
+    [Fact]
+    public async Task Mundo_que_voltou_no_tempo_abre_incidente_e_trava_a_nuvem_naquele_servidor()
+    {
+        await using var env = await Ambiente.CriarAsync();
+        var mundo = Guid.CreateVersion7();
+        var a = env.Cliente(env.ChaveA);
+        await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(mundo, null));
+        var canal = (await Acquire(a)).Channels.Single().Id;
+        await Lote(a, Credito(canal, seq: 1, delta: 64, depois: 64));
+
+        // Reinício (chave nova) com o mundo restaurado de antes do lote 1.
+        var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
+        var hello = await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello", HelloDoMundo(mundo, []));
+
+        hello.ReadOnly.ShouldBeTrue();
+        hello.ReadOnlyReason!.ShouldContain("voltou no tempo");
+        (await env.ContarAsync(db => db.CloudRollbackIncidents)).ShouldBe(1);
+
+        // Novo boot com o incidente ainda aberto: continua travado, sem abrir outro.
+        (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello", HelloDoMundo(mundo, []))).ReadOnly.ShouldBeTrue();
+        (await env.ContarAsync(db => db.CloudRollbackIncidents)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Mapa_novo_nao_e_rollback()
+    {
+        await using var env = await Ambiente.CriarAsync();
+        var a = env.Cliente(env.ChaveA);
+        await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(Guid.CreateVersion7(), null));
+        var canal = (await Acquire(a)).Channels.Single().Id;
+        await Lote(a, Credito(canal, seq: 1, delta: 1, depois: 1));
+
+        var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
+        var hello = await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello",
+            HelloDoMundo(Guid.CreateVersion7(), []));
+
+        hello.ReadOnly.ShouldBeFalse();
+        (await env.ContarAsync(db => db.CloudRollbackIncidents)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Regras_chegam_no_hello_e_o_heartbeat_avisa_a_versao()
+    {
+        await using var env = await Ambiente.CriarAsync();
+        await env.CriarRegraAsync(CloudRuleScope.Mod, "refinedstorage", CloudRuleAction.Block);
+        var a = env.Cliente(env.ChaveA);
+
+        var hello = await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", Hello());
+        hello.Rules.Single().ShouldBe(new CloudRuleDto("Mod", "refinedstorage", "Block"));
+
+        await Acquire(a);
+        var hb = await PostAsync<CloudHeartbeatReply>(a, "/api/cloud/v1/leases/heartbeat",
+            new CloudHeartbeatRequest([new CloudHeldLeaseDto(Jogador, 1)]));
+        hb.PolicyVersion.ShouldBe(hello.PolicyVersion);
+
+        var policy = await PostAsync<CloudPolicyReply>(a, "/api/cloud/v1/policy", new { });
+        policy.Rules.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Suspeitos_somam_tentativas_e_duvidas_nao_duplicam_no_reenvio()
+    {
+        await using var env = await Ambiente.CriarAsync();
+        var a = env.Cliente(env.ChaveA);
+        var suspeito = new CloudSuspectsRequest([new CloudSuspectDto("SophisticatedBackpacks:Backpack", "storage_uuid", 2)]);
+        await PostOkAsync(a, "/api/cloud/v1/reports/suspects", suspeito);
+        await PostOkAsync(a, "/api/cloud/v1/reports/suspects", suspeito);
+
+        var duvida = new CloudDoubtfulRequest("boot-1",
+            [new CloudDoubtfulDto(Jogador, Guid.CreateVersion7(), Diamante, "RecentDebit", 3)]);
+        await PostOkAsync(a, "/api/cloud/v1/reports/doubtful", duvida);
+        await PostOkAsync(a, "/api/cloud/v1/reports/doubtful", duvida);
+
+        await using var db = await env.DbAsync();
+        var s = await db.CloudSuspectItems.SingleAsync(Ct);
+        s.ItemId.ShouldBe("sophisticatedbackpacks:backpack");
+        s.Attempts.ShouldBe(4);
+        (await db.CloudDoubtfulOperations.CountAsync(Ct)).ShouldBe(1);
+    }
+
     // ---------------------------------------------------------------- ajudantes
+
+    private static CloudHelloRequest HelloDoMundo(Guid mundo, Dictionary<string, CloudSeqPosition>? jogadores) =>
+        new(CloudProtocol.Current, "0.1.0", new CloudCheckpoint(mundo, jogadores));
+
+    private static async Task PostOkAsync(HttpClient client, string url, object body)
+    {
+        var resposta = await client.PostAsJsonAsync(url, body, Ct);
+        resposta.StatusCode.ShouldBe(HttpStatusCode.OK, await resposta.Content.ReadAsStringAsync(Ct));
+    }
 
     private static CloudHelloRequest Hello() =>
         new(CloudProtocol.Current, "0.1.0", new CloudCheckpoint(Guid.CreateVersion7(), null));
@@ -258,6 +349,7 @@ public sealed class CloudApiContractTests
         public required TcMineAppFactory Factory { get; init; }
         public required RelogioFalso Relogio { get; init; }
         public required Guid ServidorA { get; init; }
+        public required Guid Nuvem { get; init; }
         public required string ChaveA { get; init; }
         public required string ChaveB { get; init; }
 
@@ -281,7 +373,7 @@ public sealed class CloudApiContractTests
 
             return new Ambiente
             {
-                Factory = factory, Relogio = relogio, ServidorA = a.Id,
+                Factory = factory, Relogio = relogio, ServidorA = a.Id, Nuvem = nuvem.Id,
                 ChaveA = chaveA.Key, ChaveB = chaveB.Key
             };
         }
@@ -318,6 +410,34 @@ public sealed class CloudApiContractTests
             mudanca(servidor);
             await db.SaveChangesAsync(Ct);
         }
+
+        /// <summary>Simula um reinício do servidor A: chave nova, a anterior revogada (ProvisionServerCloudKey).</summary>
+        public async Task<string> RotacionarChaveAAsync()
+        {
+            await using var db = await Dbs().CreateDbContextAsync(Ct);
+            foreach (var antiga in await db.CloudServerCredentials.Where(c => c.GameServerId == ServidorA).ToListAsync(Ct))
+                antiga.Revoke(Relogio.GetUtcNow());
+            var (key, prefix, hash) = CloudServerKey.Generate();
+            db.CloudServerCredentials.Add(new CloudServerCredential
+                { GameServerId = ServidorA, VaultId = Nuvem, KeyPrefix = prefix, KeyHash = hash });
+            await db.SaveChangesAsync(Ct);
+            return key;
+        }
+
+        public async Task CriarRegraAsync(CloudRuleScope scope, string pattern, CloudRuleAction action)
+        {
+            await using var db = await Dbs().CreateDbContextAsync(Ct);
+            db.CloudItemRules.Add(new CloudItemRule { VaultId = Nuvem, Scope = scope, Pattern = pattern, Action = action });
+            await db.SaveChangesAsync(Ct);
+        }
+
+        public async Task<int> ContarAsync<T>(Func<TcMineDbContext, IQueryable<T>> tabela)
+        {
+            await using var db = await Dbs().CreateDbContextAsync(Ct);
+            return await tabela(db).CountAsync(Ct);
+        }
+
+        public Task<TcMineDbContext> DbAsync() => Dbs().CreateDbContextAsync(Ct);
 
         public async Task<long> SaldoAsync(string fingerprint)
         {

@@ -173,3 +173,86 @@ public sealed class CloudQuarantineConfiguration : IEntityTypeConfiguration<Clou
         builder.HasOne<CloudBatch>().WithMany().HasForeignKey(q => q.BatchId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public sealed class CloudItemRuleConfiguration : IEntityTypeConfiguration<CloudItemRule>
+{
+    public void Configure(EntityTypeBuilder<CloudItemRule> builder)
+    {
+        builder.ToTable("cloud_item_rules");
+        builder.HasKey(r => r.Id);
+        builder.Property(r => r.Scope).HasConversion<string>().HasMaxLength(8).IsRequired();
+        builder.Property(r => r.Action).HasConversion<string>().HasMaxLength(8).IsRequired();
+        builder.Property(r => r.Pattern).HasMaxLength(CloudItemRule.PatternMaxLength).IsRequired();
+        builder.Property(r => r.Note).HasMaxLength(256);
+
+        // Uma regra por (escopo, padrão): duas regras para o mesmo alvo seriam
+        // uma briga que só a precedência resolveria, sem o dono enxergar.
+        builder.HasIndex(r => new { r.VaultId, r.Scope, r.Pattern }).IsUnique();
+
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(r => r.VaultId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class CloudSuspectItemConfiguration : IEntityTypeConfiguration<CloudSuspectItem>
+{
+    public void Configure(EntityTypeBuilder<CloudSuspectItem> builder)
+    {
+        builder.ToTable("cloud_suspect_items");
+        builder.HasKey(s => s.Id);
+        builder.Property(s => s.ItemId).HasMaxLength(256).IsRequired();
+        builder.Property(s => s.Evidence).HasMaxLength(256).IsRequired();
+        builder.Property(s => s.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.HasIndex(s => new { s.VaultId, s.ItemId }).IsUnique();
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(s => s.VaultId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class CloudRollbackIncidentConfiguration : IEntityTypeConfiguration<CloudRollbackIncident>
+{
+    public void Configure(EntityTypeBuilder<CloudRollbackIncident> builder)
+    {
+        builder.ToTable("cloud_rollback_incidents");
+        builder.HasKey(i => i.Id);
+        builder.Property(i => i.CheckpointJson).IsRequired().Metadata.SetMaxLength(null);
+        builder.Property(i => i.Detail).HasMaxLength(2048).IsRequired();
+        builder.Property(i => i.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Ignore(i => i.IsOpen);
+        builder.HasIndex(i => new { i.ServerId, i.Status });
+        builder.HasIndex(i => new { i.VaultId, i.Status });
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(i => i.VaultId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class CloudDoubtfulOperationConfiguration : IEntityTypeConfiguration<CloudDoubtfulOperation>
+{
+    public void Configure(EntityTypeBuilder<CloudDoubtfulOperation> builder)
+    {
+        builder.ToTable("cloud_doubtful_operations");
+        builder.HasKey(d => d.Id);
+        builder.Property(d => d.ReportId).HasMaxLength(64).IsRequired();
+        builder.Property(d => d.PlayerUuid).HasMaxLength(32).IsRequired();
+        builder.Property(d => d.Fingerprint).HasMaxLength(CloudItemType.FingerprintLength).IsRequired();
+        builder.Property(d => d.Kind).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Property(d => d.Status).HasConversion<string>().HasMaxLength(16).IsRequired();
+        builder.Ignore(d => d.IsOpen);
+
+        // O mesmo relatório reenviado não duplica a fila.
+        builder.HasIndex(d => new { d.ServerId, d.ReportId, d.Index }).IsUnique();
+        builder.HasIndex(d => new { d.VaultId, d.Status });
+
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(d => d.VaultId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public sealed class CloudAdminAuditEntryConfiguration : IEntityTypeConfiguration<CloudAdminAuditEntry>
+{
+    public void Configure(EntityTypeBuilder<CloudAdminAuditEntry> builder)
+    {
+        builder.ToTable("cloud_admin_audit");
+        builder.HasKey(a => a.Id);
+        builder.Property(a => a.Action).HasMaxLength(64).IsRequired();
+        builder.Property(a => a.Details).HasMaxLength(2048).IsRequired();
+        builder.HasIndex(a => new { a.VaultId, a.Id });
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(a => a.VaultId).OnDelete(DeleteBehavior.Restrict);
+    }
+}

@@ -64,6 +64,8 @@ public static class DependencyInjection
         services.AddScoped<SubmitCloudBatch>();
         services.AddScoped<ReleaseCloudLease>();
         services.AddScoped<ReportCloudDoubtful>();
+        services.AddScoped<ReportCloudSuspects>();
+        services.AddScoped<GetCloudPolicy>();
         services.AddScoped<ExtendCloudLeasesAfterOutage>();
         services.AddScoped<ListCloudVaults>();
         services.AddScoped<CreateCloudVault>();
