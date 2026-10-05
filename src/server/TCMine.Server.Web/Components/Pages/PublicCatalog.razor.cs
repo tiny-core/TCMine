@@ -58,6 +58,14 @@ public partial class PublicCatalog : ComponentBase, IAsyncDisposable
         }
     }
 
+    /// <summary>Quantos servidores rodam o pack — o modelo público só traz o nome dele.</summary>
+    private int ServersOf(string modpackName) => _catalog.Servers.Count(s => s.ModpackName == modpackName);
+
+    private static int PlayersPercent(PublicServerView server) =>
+        server is { Status: GameServerStatus.Running, OnlinePlayers: { } n, MaxPlayers: > 0 }
+            ? Math.Clamp(n * 100 / server.MaxPlayers, 0, 100)
+            : 0;
+
     private static string LoaderLabel(ModLoader loader) => loader switch
     {
         ModLoader.Vanilla => "Vanilla",
@@ -70,12 +78,12 @@ public partial class PublicCatalog : ComponentBase, IAsyncDisposable
 
     private static string StatusLabel(GameServerStatus status) => status switch
     {
-        GameServerStatus.Running => "Online",
-        GameServerStatus.Starting => "Iniciando",
-        GameServerStatus.Stopping => "Parando",
-        GameServerStatus.Updating => "Atualizando",
-        GameServerStatus.Crashed => "Falhou",
-        _ => "Offline"
+        GameServerStatus.Running => "no ar",
+        GameServerStatus.Starting => "iniciando",
+        GameServerStatus.Stopping => "parando",
+        GameServerStatus.Updating => "atualizando",
+        GameServerStatus.Crashed => "fora do ar",
+        _ => "parado"
     };
 
     public async ValueTask DisposeAsync()
