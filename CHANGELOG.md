@@ -22,6 +22,11 @@ O texto completo de cada lançamento está na
   resolve (`sudo chown -R 1654:1654 ${TCMINE_ROOT}/updates`); qualquer outra
   falha do `vpk` chega ao log pela linha de erro dele, não pelo stack trace.
 
+- **Um proxy ou CDN podia continuar a entregar o instalador antigo.** O
+  `Setup.exe` e os índices do feed têm nome fixo e eram servidos sem
+  `Cache-Control`; agora vão com `no-cache` (os `.nupkg`, que levam a versão no
+  nome, ficam em cache), e o link da página pública leva `?v={versão}`.
+
 ## [1.0.0] — 2026-10-05
 
 A primeira versão estável. Fecha os defeitos que faziam o servidor de jogo

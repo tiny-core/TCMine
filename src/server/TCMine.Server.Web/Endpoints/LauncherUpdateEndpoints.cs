@@ -34,10 +34,18 @@ public static class LauncherUpdateEndpoints
         app.MapGet("/updates/launcher/{channel}/{file}", (
                 string channel,
                 string file,
-                CancellationToken ct) =>
+                HttpContext http) =>
             {
                 if (!TentarResolver(raiz, channel, file, out var path))
                     return Results.NotFound();
+
+                // O instalador e os índices têm nome FIXO e conteúdo que muda a
+                // cada versão. Sem isto, um proxy ou CDN (o Cloudflare guarda
+                // .exe por padrão) continuava a entregar o Setup.exe antigo
+                // depois de a imagem publicar o novo — o jogador instalava a
+                // versão velha, sem o endereço embutido. O .nupkg leva a versão
+                // no nome e nunca muda: esse pode ficar em cache para sempre.
+                http.Response.Headers.CacheControl = CacheControlFor(file);
 
                 // O Velopack pede o RELEASES e depois o .nupkg. Nenhum dos dois
                 // tem tipo registado, e sem um explícito o ASP.NET recusa-se a
@@ -53,6 +61,11 @@ public static class LauncherUpdateEndpoints
 
         return app;
     }
+
+    public static string CacheControlFor(string file) =>
+        file.EndsWith(".nupkg", StringComparison.OrdinalIgnoreCase)
+            ? "public, max-age=31536000, immutable"
+            : "no-cache";
 
     /// <summary>
     ///     O caminho do ficheiro dentro da pasta do canal, ou falso.

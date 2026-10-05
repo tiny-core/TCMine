@@ -39,6 +39,24 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
     }
 
     [Fact]
+    public async Task Instalador_e_indices_nao_ficam_em_cache_e_o_pacote_fica()
+    {
+        // Nome fixo, conteúdo novo a cada versão: um CDN que o guardasse
+        // entregava o Setup.exe antigo depois de a imagem publicar o novo.
+        await SemearAsync("win-x64-p2", "TCMine.Launcher-win-x64-p2-Setup.exe", "setup");
+        await SemearAsync("win-x64-p2", "TCMine.Launcher-1.0.0-win-x64-p2-full.nupkg", "pacote");
+
+        using var factory = Build();
+        var client = factory.CreateClient();
+
+        var setup = await client.GetAsync("/updates/launcher/win-x64-p2/TCMine.Launcher-win-x64-p2-Setup.exe", Ct);
+        var pacote = await client.GetAsync("/updates/launcher/win-x64-p2/TCMine.Launcher-1.0.0-win-x64-p2-full.nupkg", Ct);
+
+        setup.Headers.CacheControl!.NoCache.ShouldBeTrue();
+        pacote.Headers.CacheControl!.MaxAge.ShouldBe(TimeSpan.FromDays(365));
+    }
+
+    [Fact]
     public async Task Ficheiro_inexistente_da_404_e_nao_500()
     {
         await SemearAsync("win-x64-p2", "RELEASES", "x");
