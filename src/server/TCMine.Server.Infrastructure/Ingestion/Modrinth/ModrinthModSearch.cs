@@ -65,6 +65,38 @@ public sealed partial class ModrinthModSearch(
         }
     }
 
+    public async Task<IReadOnlyList<UpstreamRelease>> ListVersionsAsync(
+        string projectId, string minecraftVersion, ModLoader loader, CancellationToken ct)
+    {
+        // Mesmo filtro que a ingestão usa ao resolver: o que aparece aqui é
+        // exatamente o que ela aceitaria instalar.
+        var url = $"/v2/project/{Uri.EscapeDataString(projectId)}/version"
+                  + $"?game_versions={Uri.EscapeDataString($"[\"{minecraftVersion}\"]")}"
+                  + $"&loaders={Uri.EscapeDataString($"[\"{ToModrinthLoader(loader)}\"]")}";
+
+        try
+        {
+            var versions = await http.GetFromJsonAsync(
+                url, ModrinthJsonContext.Default.IReadOnlyListModrinthVersion, ct);
+
+            return versions is null
+                ? []
+                : versions
+                    .Select(v => new UpstreamRelease(
+                        v.Id,
+                        v.VersionNumber,
+                        v.DatePublished,
+                        v.VersionType is null or "release",
+                        string.Join(", ", v.GameVersions)))
+                    .ToArray();
+        }
+        catch (HttpRequestException ex)
+        {
+            LogSearchError(ex, projectId);
+            return [];
+        }
+    }
+
     // O nome do loader no domínio difere do que o Modrinth espera nas categorias.
     private static string ToModrinthLoader(ModLoader loader)
     {

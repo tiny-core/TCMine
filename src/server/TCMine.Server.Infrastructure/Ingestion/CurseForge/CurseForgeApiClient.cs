@@ -81,4 +81,15 @@ public sealed class CurseForgeApiClient(HttpClient http, ISettingsRepository set
         ModLoader.NeoForge => 6,
         _ => 0 // Vanilla: sem filtro de loader
     };
+
+    /// <summary>
+    ///     Só as versões do jogo, para exibição. O CurseForge mistura na mesma
+    ///     lista versão ("1.21.1"), loader ("NeoForge") e ambiente ("Client"):
+    ///     versão é o que começa com dígito.
+    /// </summary>
+    internal static string? MinecraftVersionsOf(IReadOnlyList<string> gameVersions)
+    {
+        var versions = gameVersions.Where(v => v.Length > 0 && char.IsDigit(v[0])).ToList();
+        return versions.Count is 0 ? null : string.Join(", ", versions);
+    }
 }

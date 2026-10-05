@@ -39,20 +39,38 @@ public sealed partial class ModrinthModResolver(
 
         try
         {
-            var versions = await http.GetFromJsonAsync(
-                url, ModrinthJsonContext.Default.IReadOnlyListModrinthVersion, ct);
+            ModrinthVersion version;
 
-            if (versions is null || versions.Count is 0)
+            if (request.FileId is { Length: > 0 } fileId)
             {
-                return new ModResolution.NotFound(
-                    $"Nenhuma versão de '{request.ProjectId}' para Minecraft {request.MinecraftVersion} com {loader}.");
-            }
+                // Release FIXADA (pack importado, versão escolhida pelo admin):
+                // busca exatamente ela. Antes ela era procurada na lista das
+                // compatíveis e, não achando, trocada em silêncio pela mais
+                // recente — o pack instalava uma versão que o autor nunca
+                // testou, e o admin achava que tinha escolhido outra.
+                var pinned = await http.GetFromJsonAsync(
+                    $"https://api.modrinth.com/v2/version/{Uri.EscapeDataString(fileId)}",
+                    ModrinthJsonContext.Default.ModrinthVersion, ct);
 
-            // Se um FileId específico foi pedido, procura por ele; senão pega a
-            // versão mais recente compatível.
-            var version = request.FileId is not null
-                ? versions.FirstOrDefault(v => v.Id == request.FileId) ?? versions[0]
-                : versions[0];
+                if (pinned is null)
+                    return new ModResolution.NotFound($"A versão {fileId} de '{request.ProjectId}' não existe no Modrinth.");
+
+                version = pinned;
+            }
+            else
+            {
+                var versions = await http.GetFromJsonAsync(
+                    url, ModrinthJsonContext.Default.IReadOnlyListModrinthVersion, ct);
+
+                if (versions is null || versions.Count is 0)
+                {
+                    return new ModResolution.NotFound(
+                        $"Nenhuma versão de '{request.ProjectId}' para Minecraft {request.MinecraftVersion} com {loader}.");
+                }
+
+                // Sem fixação: a mais recente compatível (a API ordena por data).
+                version = versions[0];
+            }
 
             // Confere o que foi escolhido em vez de confiar no filtro da query.
             // Um mod para a versão errada não dá erro: instala e derruba o
