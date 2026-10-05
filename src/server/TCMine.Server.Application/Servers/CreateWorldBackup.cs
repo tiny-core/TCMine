@@ -1,3 +1,4 @@
+﻿using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
@@ -17,7 +18,7 @@ namespace TCMine.Server.Application.Servers;
 ///     no meio seria pior que não ter backup: o servidor rodaria sem persistir
 ///     nada, e a próxima queda levaria tudo desde então.
 /// </summary>
-public sealed class CreateWorldBackup(
+public sealed partial class CreateWorldBackup(
     IServerRepository servers,
     IServerOrchestrator orchestrator,
     IRconClient rcon,
@@ -25,7 +26,8 @@ public sealed class CreateWorldBackup(
     IModpackRepository modpacks,
     ISettingsRepository settings,
     IJobProgressReporter progress,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    ILogger<CreateWorldBackup> logger)
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid serverId, string? note, CancellationToken ct,
@@ -73,6 +75,13 @@ public sealed class CreateWorldBackup(
 
                 // flush força a gravação síncrona do que está em memória.
                 await rcon.ExecuteAsync(serverId, "save-all flush", ct);
+
+                // Nuvem de itens: o mod grava o diário e o checkpoint DENTRO do mundo,
+                // mas guarda os créditos recentes até um save confirmado. Sem este
+                // passo o zip sairia com o checkpoint atrasado em relação aos chunks,
+                // e restaurar o backup acusaria um rollback maior que o real.
+                if (server.CloudVaultId is not null)
+                    await CheckpointCloudAsync(serverId, ct);
             }
 
             var stored = await store.CreateAsync(serverId, jobId == default ? null : Report, ct);
@@ -171,4 +180,22 @@ public sealed class CreateWorldBackup(
             await servers.RemoveBackupAsync(velho.Id, ct);
         }
     }
+
+    private async Task CheckpointCloudAsync(Guid serverId, CancellationToken ct)
+    {
+        try
+        {
+            await rcon.ExecuteAsync(serverId, "tccloud checkpoint", ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // O backup continua valendo para o mundo; só a nuvem pode acusar, ao
+            // restaurar, um rollback maior que o real — e aí o dono decide no painel.
+            LogCloudCheckpointFailed(ex, serverId);
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Nuvem: o checkpoint antes do backup do servidor {ServerId} falhou; o backup segue sem ele.")]
+    private partial void LogCloudCheckpointFailed(Exception ex, Guid serverId);
 }

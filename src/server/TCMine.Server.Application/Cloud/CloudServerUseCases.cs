@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
@@ -46,14 +45,14 @@ public sealed class ListCloudVaultServers(ICloudAdminRepository repo, IServerRep
 ///     UMA nuvem, e uma chave velha apontando para a nuvem anterior não pode
 ///     continuar gravando lá.
 /// </summary>
-public sealed partial class SetServerCloudVault(
+public sealed class SetServerCloudVault(
     ICloudAdminRepository repo,
     IServerRepository servers,
     ICloudCredentialRepository credentials,
     ICloudServerFiles files,
+    ICloudGovernanceRepository governance,
     ICurrentUserScope scope,
-    TimeProvider clock,
-    ILogger<SetServerCloudVault> logger)
+    TimeProvider clock)
 {
     public async Task<Result> HandleAsync(Guid serverId, Guid? vaultId, CancellationToken ct)
     {
@@ -66,6 +65,7 @@ public sealed partial class SetServerCloudVault(
             return Result.Fail("Servidor não encontrado.");
         if (server.CloudVaultId == vaultId)
             return Result.Success();
+        var previous = server.CloudVaultId;
 
         if (vaultId is { } id)
         {
@@ -91,12 +91,14 @@ public sealed partial class SetServerCloudVault(
         await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
         await servers.UpdateAsync(server, ct);
-        LogChanged(serverId, vaultId, scope.UserId);
+
+        // Registrado nas duas nuvens envolvidas: cada dono vê a sua história inteira.
+        if (previous is { } from)
+            await CloudAudit.WriteAsync(governance, from, scope.UserId, "server.detach", $"{server.Name} ({serverId})", ct);
+        if (vaultId is { } to)
+            await CloudAudit.WriteAsync(governance, to, scope.UserId, "server.attach", $"{server.Name} ({serverId})", ct);
         return Result.Success();
     }
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Nuvem: servidor {ServerId} passou para a nuvem {VaultId} (por {UserId}).")]
-    private partial void LogChanged(Guid serverId, Guid? vaultId, Guid? userId);
 }
 
 /// <summary>
@@ -104,12 +106,13 @@ public sealed partial class SetServerCloudVault(
 ///     requisição dele à nuvem recebe 401; a nuvem volta no próximo start (chave
 ///     nova), a não ser que o servidor seja desligado da nuvem.
 /// </summary>
-public sealed partial class RevokeCloudServerKey(
+public sealed class RevokeCloudServerKey(
+    IServerRepository servers,
     ICloudCredentialRepository credentials,
     ICloudServerFiles files,
+    ICloudGovernanceRepository governance,
     ICurrentUserScope scope,
-    TimeProvider clock,
-    ILogger<RevokeCloudServerKey> logger)
+    TimeProvider clock)
 {
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct)
     {
@@ -119,10 +122,8 @@ public sealed partial class RevokeCloudServerKey(
 
         await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
-        LogRevoked(serverId, scope.UserId);
+        if ((await servers.GetByIdAsync(serverId, ct)) is { CloudVaultId: { } vaultId } server)
+            await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "server.revoke_key", $"{server.Name} ({serverId})", ct);
         return Result.Success();
     }
-
-    [LoggerMessage(Level = LogLevel.Information, Message = "Nuvem: chave do servidor {ServerId} revogada (por {UserId}).")]
-    private partial void LogRevoked(Guid serverId, Guid? userId);
 }

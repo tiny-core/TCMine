@@ -78,6 +78,18 @@ public static class DependencyInjection
         services.AddScoped<GetCloudChannelBalances>();
         services.AddScoped<UnfreezeCloudChannel>();
         services.AddScoped<ForceReleaseCloudLease>();
+        services.AddScoped<ListCloudRules>();
+        services.AddScoped<AddCloudRule>();
+        services.AddScoped<RemoveCloudRule>();
+        services.AddScoped<ListCloudSuspects>();
+        services.AddScoped<ResolveCloudSuspect>();
+        services.AddScoped<ListCloudQuarantine>();
+        services.AddScoped<ResolveCloudQuarantine>();
+        services.AddScoped<ListCloudDoubtful>();
+        services.AddScoped<ResolveCloudDoubtful>();
+        services.AddScoped<ListCloudIncidents>();
+        services.AddScoped<ResolveCloudIncident>();
+        services.AddScoped<ListCloudAudit>();
 
         services.AddScoped<CreateGameServer>();
         services.AddScoped<UpdateGameServer>();

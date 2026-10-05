@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
@@ -48,10 +47,10 @@ public sealed class GetCloudChannelBalances(ICloudAdminRepository repo, ICurrent
 ///     quarentena — isso é da tela de quarentena (fatia D): só devolve o canal
 ///     ao uso depois que o dono olhou o que aconteceu.
 /// </summary>
-public sealed partial class UnfreezeCloudChannel(
+public sealed class UnfreezeCloudChannel(
     ICloudAdminRepository repo,
-    ICurrentUserScope scope,
-    ILogger<UnfreezeCloudChannel> logger)
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid vaultId, Guid channelId, CancellationToken ct)
     {
@@ -63,14 +62,13 @@ public sealed partial class UnfreezeCloudChannel(
         if (channel is null || channel.VaultId != vaultId)
             return Result.Fail("Canal não encontrado.");
 
+        var reason = channel.FrozenReason;
         channel.Unfreeze();
         await repo.UpdateChannelAsync(channel, ct);
-        LogUnfrozen(channelId, scope.UserId);
+        await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "channel.unfreeze",
+            $"Canal {channel.Name} de {channel.PlayerUuid} (estava: {reason})", ct);
         return Result.Success();
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: canal {ChannelId} descongelado (por {UserId}).")]
-    private partial void LogUnfrozen(Guid channelId, Guid? userId);
 }
 
 /// <summary>
@@ -78,11 +76,11 @@ public sealed partial class UnfreezeCloudChannel(
 ///     aquele servidor ainda tenha no diário chegarão com época velha e irão para
 ///     a quarentena — por isso a tela avisa antes.
 /// </summary>
-public sealed partial class ForceReleaseCloudLease(
+public sealed class ForceReleaseCloudLease(
     ICloudAdminRepository repo,
     ICloudStorageRepository storage,
-    ICurrentUserScope scope,
-    ILogger<ForceReleaseCloudLease> logger)
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid vaultId, string playerUuid, CancellationToken ct)
     {
@@ -100,10 +98,8 @@ public sealed partial class ForceReleaseCloudLease(
         if (!await storage.SaveLeaseAsync(lease, read, ct))
             return Result.Fail("O lease mudou agora mesmo; atualize a tela e tente de novo.");
 
-        LogForced(vaultId, player!, scope.UserId);
+        await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "lease.force_release",
+            $"Jogador {player}, época {lease.Epoch}", ct);
         return Result.Success();
     }
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: lease de {Player} na nuvem {VaultId} liberado à força (por {UserId}).")]
-    private partial void LogForced(Guid vaultId, string player, Guid? userId);
 }

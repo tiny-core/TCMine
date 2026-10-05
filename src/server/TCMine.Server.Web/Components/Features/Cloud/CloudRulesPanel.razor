@@ -1,0 +1,99 @@
+@using TCMine.Server.Domain.Cloud
+
+<MudText Typo="Typo.subtitle1" Class="mb-1">Regras de item</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    O mais específico vence (item, depois tag, depois mod, depois o modo da nuvem); no mesmo nível, bloquear vence.
+    Os servidores recebem a política nova em até um heartbeat.
+</MudText>
+
+<MudGrid Spacing="2" Class="mb-2" Style="max-width:900px;">
+    <MudItem xs="12" sm="2">
+        <MudSelect T="CloudRuleScope" @bind-Value="_scope" Label="Alvo" Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem Value="CloudRuleScope.Item">Item</MudSelectItem>
+            <MudSelectItem Value="CloudRuleScope.Tag">Tag</MudSelectItem>
+            <MudSelectItem Value="CloudRuleScope.Mod">Mod</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="4">
+        <MudTextField @bind-Value="_pattern" Label="@PatternHint" Variant="Variant.Outlined" Margin="Margin.Dense"/>
+    </MudItem>
+    <MudItem xs="12" sm="2">
+        <MudSelect T="CloudRuleAction" @bind-Value="_action" Label="Ação" Variant="Variant.Outlined" Margin="Margin.Dense">
+            <MudSelectItem Value="CloudRuleAction.Block">Bloquear</MudSelectItem>
+            <MudSelectItem Value="CloudRuleAction.Allow">Permitir</MudSelectItem>
+        </MudSelect>
+    </MudItem>
+    <MudItem xs="12" sm="3">
+        <MudTextField @bind-Value="_note" Label="Nota (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="256"/>
+    </MudItem>
+    <MudItem xs="12" sm="1" Class="d-flex align-center">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync"
+                   Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_pattern))">Criar</MudButton>
+    </MudItem>
+</MudGrid>
+
+@if (_rules is not null && _rules.Count > 0)
+{
+    <MudTable Items="_rules" Dense="true" Hover="true" Class="mb-6">
+        <HeaderContent>
+            <MudTh>Alvo</MudTh>
+            <MudTh>Padrão</MudTh>
+            <MudTh>Ação</MudTh>
+            <MudTh>Nota</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd>@Label(context.Scope)</MudTd>
+            <MudTd Style="font-family:monospace;">@(context.Scope == CloudRuleScope.Tag ? "#" : "")@context.Pattern</MudTd>
+            <MudTd>
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                         Color="@(context.Action == CloudRuleAction.Block ? Color.Error : Color.Success)">
+                    @(context.Action == CloudRuleAction.Block ? "Bloquear" : "Permitir")
+                </MudChip>
+            </MudTd>
+            <MudTd><MudText Typo="Typo.caption">@context.Note</MudText></MudTd>
+            <MudTd Style="text-align:right;">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                               OnClick="@(() => RemoveAsync(context))" Disabled="_isBusy"/>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+else if (_rules is not null)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary mb-6">Nenhuma regra.</MudText>
+}
+
+<MudText Typo="Typo.subtitle1" Class="mb-1">Itens suspeitos</MudText>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
+    Itens que os servidores recusaram por parecerem guardar o conteúdo no mundo (mochilas, discos de outros mods).
+    Permitir só se você conferiu que o item leva o conteúdo junto.
+</MudText>
+@if (_suspects is null)
+{
+    <MudProgressLinear Indeterminate="true"/>
+}
+else if (_suspects.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhum item na fila.</MudText>
+}
+else
+{
+    <MudTable Items="_suspects" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Item</MudTh>
+            <MudTh>Sinal</MudTh>
+            <MudTh>Tentativas</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd Style="font-family:monospace;">@context.ItemId</MudTd>
+            <MudTd><MudText Typo="Typo.caption">@context.Evidence</MudText></MudTd>
+            <MudTd>@context.Attempts</MudTd>
+            <MudTd Style="text-align:right;">
+                <MudButton Size="Size.Small" Color="Color.Success" OnClick="@(() => ResolveAsync(context, true))" Disabled="_isBusy">Permitir</MudButton>
+                <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => ResolveAsync(context, false))" Disabled="_isBusy">Bloquear</MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}

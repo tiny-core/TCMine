@@ -16,7 +16,7 @@ public sealed class ListCloudVaults(ICloudAdminRepository repo, ICurrentUserScop
 }
 
 /// <summary>Cria uma nuvem do usuário atual (ele vira o dono).</summary>
-public sealed class CreateCloudVault(ICloudAdminRepository repo, ICurrentUserScope scope)
+public sealed class CreateCloudVault(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
 {
     public async Task<Result<Guid>> HandleAsync(string name, CancellationToken ct)
     {
@@ -29,6 +29,7 @@ public sealed class CreateCloudVault(ICloudAdminRepository repo, ICurrentUserSco
 
         var vault = new CloudVault { Name = trimmed, OwnerId = scope.OwnerId };
         await repo.AddVaultAsync(vault, ct);
+        await CloudAudit.WriteAsync(governance, vault.Id, scope.UserId, "vault.create", trimmed, ct);
         return Result<Guid>.Success(vault.Id);
     }
 }
@@ -55,7 +56,7 @@ public sealed class GetCloudVault(ICloudAdminRepository repo, ICurrentUserScope 
 ///     validados JUNTOS pela entidade (<see cref="CloudVault.UpdateLimits" />):
 ///     um valor fora de faixa recusa o formulário inteiro.
 /// </summary>
-public sealed class UpdateCloudVault(ICloudAdminRepository repo, ICurrentUserScope scope)
+public sealed class UpdateCloudVault(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid vaultId, CloudVaultSettings settings, CancellationToken ct)
     {
@@ -83,6 +84,10 @@ public sealed class UpdateCloudVault(ICloudAdminRepository repo, ICurrentUserSco
         vault.SetPolicyMode(settings.PolicyMode);
         vault.SetEnabled(settings.IsEnabled);
         await repo.UpdateVaultAsync(vault, ct);
+        await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "vault.update",
+            $"{name}; {(settings.IsEnabled ? "ligada" : "somente leitura")}; {settings.PolicyMode}; TTL {settings.LeaseTtlMinutes} min; "
+            + $"item {settings.MaxItemBytes} B; {settings.MaxChannelsPerPlayer} canais; {settings.MaxTypesPerChannel} tipos; "
+            + $"{settings.MaxTotalPerChannel} itens", ct);
         return Result.Success();
     }
 }

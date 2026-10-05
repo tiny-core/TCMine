@@ -133,7 +133,7 @@ incidentes, em dúvida) no menu.
 | **B. API do mod** ✅ | `/api/cloud/v1`: filtro da chave (`CloudServerAuthFilter` → `AuthenticateCloudServer`), `hello`, `leases/acquire`, `leases/heartbeat`, `batches`, `leases/release`, `reports/doubtful`; limite por chave (`CloudPolicy`), corpo ≤ 2 MB; extensão dos leases no arranque (`InterruptedWorkRecovery`); `IssueCloudServerKey` (só dono) | `CloudBatchDecisionTests`, `CloudServerKeyTests`, `CloudApiContractTests` (13 cenários de ponta a ponta) |
 | **C. Painel básico** ✅ | `/admin/cloud` (lista, criar) e `/admin/cloud/{id}` com abas Servidores (ligar/desligar, gerar/revogar chave — mostrada uma vez), Jogadores (busca, canais, totais, lease; itens do canal; descongelar; liberar lease à força) e Configurações (nome, ligada, modo, limites); item "Nuvem de itens" no menu | `CloudPanelUseCasesTests` (permissões), `CloudAdminRepositoryTests` (agregações no SQLite), `CloudPanelPagesTests` (render das telas) |
 | **D1. Protocolo de governança** ✅ | regras no `hello` e em `POST /policy` (o heartbeat devolve `PolicyVersion`); `reports/suspects` grava a fila; `reports/doubtful` grava com `ReportId` (reenvio não duplica); `hello` detecta mundo que voltou no tempo (só com o MESMO mundo da conexão anterior) e abre incidente → somente leitura | `CloudApiContractTests` (+4) |
-| **D2. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
+| **D2. Painel de segurança** ✅ | abas Regras (+ fila de suspeitos), Quarentena (aplicar/descartar), Em dúvida (devolver/dispensar), Incidentes (prévia + estornar/aceitar), Auditoria (decisões + ledger), com contagem de pendências; toda ação do painel grava `cloud_admin_audit`; backup a quente roda `tccloud checkpoint` entre o flush e a cópia | `CloudGovernanceFlowTests` (6 cenários), `WorldBackupTests` (ordem do checkpoint), `CloudPanelPagesTests` |
 | **E. Orquestração** ✅ | `ProvisionServerCloudKey` no início de `StartGameServer`: chave nova (revoga a anterior) gravada em `tccloud-server.json` na pasta da instância; sem nuvem ou sem URL, o arquivo é apagado; falha aqui não impede o servidor de subir. `Server:CloudUrl` opcional (padrão: `PublicUrl`). Painel: a chave deixa de ser gerada à mão | `ProvisionServerCloudKeyTests`, `CloudServerFilesTests` |
 | Depois | `CloudVaultMembership`, ver canais no launcher (somente leitura, via hub) | — |
 
@@ -189,3 +189,15 @@ incidentes, em dúvida) no menu.
   servidores sem nuvem. Quem garante é o mod, que recusa a nuvem em modo offline.
 - **Gerar chave à mão saiu do painel**: uma chave manual seria trocada no próximo start e derrubaria o
   servidor em execução. Ficou só "Revogar" (emergência).
+
+## 11. Desvios em relação ao plano (fatias D1/D2)
+
+- **Sem leitura do `checkpoint.json` dentro do zip no restore**: o `hello` do servidor restaurado já detecta
+  o rollback (mesmo mundo, checkpoint atrás). Um caminho só, que também cobre cópia manual de mundo.
+- **Aplicar quarentena ignora congelamento, cota e saldo esperado** (é exatamente o que o dono está
+  decidindo); saldo negativo, canal e item desconhecidos continuam barrando.
+- **Devolver operação em dúvida exige que o TCMine conheça o item**: um crédito que nunca chegou pode não
+  ter mandado a definição do item; nesse caso o painel explica e só dá para dispensar.
+- **Ajuste manual de saldo (`AdjustBalance`) ficou de fora**: as três decisões cobrem os casos previstos e
+  um campo livre de "somar N itens" é a porta mais fácil para criar itens do nada. Fica para quando houver
+  um caso real.

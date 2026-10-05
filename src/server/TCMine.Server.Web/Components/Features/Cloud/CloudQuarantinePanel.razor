@@ -1,0 +1,51 @@
+@using TCMine.Server.Application.Abstractions
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    Lotes que um servidor mandou e o TCMine recusou (época velha, saldo negativo, divergência...). Os canais tocados
+    ficaram congelados. <b>Aplicar</b> grava o lote como ele veio, contra os saldos de agora; <b>Descartar</b> o
+    ignora. Na dúvida, descarte: aplicar um lote duplicado cria itens.
+</MudAlert>
+<MudSwitch @bind-Value="_showResolved" @bind-Value:after="LoadAsync" Label="Mostrar resolvidos" Color="Color.Primary" Class="mb-2"/>
+
+@if (_items is null)
+{
+    <MudProgressLinear Indeterminate="true"/>
+}
+else if (_items.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Nada na quarentena.</MudText>
+}
+else
+{
+    <MudTable Items="_items" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Quando</MudTh>
+            <MudTh>Jogador</MudTh>
+            <MudTh>Servidor</MudTh>
+            <MudTh>Lote</MudTh>
+            <MudTh>Motivo</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption">@context.Quarantine.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText></MudTd>
+            <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.Batch.PlayerUuid</MudText></MudTd>
+            <MudTd><MudText Typo="Typo.caption">@ServerNames.GetValueOrDefault(context.Batch.ServerId, "servidor removido")</MudText></MudTd>
+            <MudTd>@context.Batch.Epoch/@context.Batch.Seq</MudTd>
+            <MudTd>
+                <MudText Typo="Typo.body2">@context.Quarantine.Reason</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.Quarantine.Detail</MudText>
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.Quarantine.IsOpen)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Warning" OnClick="@(() => ResolveAsync(context, true))" Disabled="_isBusy">Aplicar</MudButton>
+                    <MudButton Size="Size.Small" OnClick="@(() => ResolveAsync(context, false))" Disabled="_isBusy">Descartar</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">@(context.Quarantine.Resolution == TCMine.Server.Domain.Cloud.CloudQuarantineResolution.Applied ? "Aplicado" : "Descartado")</MudText>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}

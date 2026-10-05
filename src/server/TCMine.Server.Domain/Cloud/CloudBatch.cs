@@ -32,6 +32,15 @@ public sealed class CloudBatch : Entity
         Touch();
     }
 
+    /// <summary>Estornado por um incidente de rollback: o mundo voltou para antes dele.</summary>
+    public void MarkReverted()
+    {
+        if (Status != CloudBatchStatus.Applied)
+            throw new InvalidOperationException("Só lote aplicado é estornado.");
+        Status = CloudBatchStatus.Reverted;
+        Touch();
+    }
+
     public void MarkResolved(CloudBatchStatus status)
     {
         if (Status != CloudBatchStatus.Quarantined)

@@ -1,0 +1,64 @@
+@using TCMine.Server.Web.Components.Features.Modpacks
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.History" Text="@($"Mundo voltou no tempo — {ServerName}")"/>
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body2" Class="mb-3">@Incident.Detail</MudText>
+        @if (_lines is null)
+        {
+            <MudProgressLinear Indeterminate="true"/>
+        }
+        else if (_lines.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                Nada a estornar (os lotes posteriores não mexeram em saldo). Estornar só fecha o incidente.
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.subtitle2" Class="mb-1">Prévia do estorno</MudText>
+            @if (_lines.Any(l => l.Shortfall > 0))
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                    Parte dos itens já saiu da nuvem por outro servidor e não dá para estornar inteiro (coluna "Não volta").
+                    Esses itens ficaram duplicados pelo rollback.
+                </MudAlert>
+            }
+            <MudTable Items="_lines" Dense="true" Height="360px" FixedHeader="true">
+                <HeaderContent>
+                    <MudTh>Jogador</MudTh>
+                    <MudTh>Item</MudTh>
+                    <MudTh Style="text-align:right;">Na nuvem</MudTh>
+                    <MudTh Style="text-align:right;">Estorno</MudTh>
+                    <MudTh Style="text-align:right;">Fica</MudTh>
+                    <MudTh Style="text-align:right;">Não volta</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.PlayerUuid</MudText></MudTd>
+                    <MudTd>
+                        <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ItemId</MudText>
+                    </MudTd>
+                    <MudTd Style="text-align:right;">@context.Current.ToString("N0")</MudTd>
+                    <MudTd Style="text-align:right;">@context.Delta.ToString("+#,0;-#,0;0")</MudTd>
+                    <MudTd Style="text-align:right;">@context.After.ToString("N0")</MudTd>
+                    <MudTd Style="text-align:right;">@(context.Shortfall > 0 ? context.Shortfall.ToString("N0") : "")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+        @if (IsBusy)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2"/>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Fechar</MudButton>
+        <MudButton OnClick="AcceptAsync" Disabled="@(IsBusy || _lines is null)">Aceitar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RevertAsync" Disabled="@(IsBusy || _lines is null)">
+            Estornar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
