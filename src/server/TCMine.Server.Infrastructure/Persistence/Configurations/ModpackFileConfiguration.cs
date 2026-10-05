@@ -29,6 +29,11 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
                 // URL de CDN com assinatura passa de 512 com facilidade.
         builder.Property(f => f.IconUrl).HasMaxLength(1024);
 
+        // Cresce com o mod (um modpack-lib pode exigir dezenas): sem limite.
+        // Property() pelado NÃO desfaz os 512 da convenção — ver
+        // ColumnLengthConventionTests.
+        builder.Property(f => f.RequiredDependencies).Metadata.SetMaxLength(null);
+
         // Mesmo caminho duas vezes na mesma versão seria ambíguo na hora de
         // materializar a instância.
         builder.HasIndex(f => new { f.ModpackVersionId, f.Path }).IsUnique();
@@ -36,5 +41,9 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
         // Usado para descobrir quais blobs continuam em uso antes de
         // apagar algum.
         builder.HasIndex(f => f.Sha256);
+
+        // A ingestão pergunta "já temos ESTE arquivo da origem?" antes de ir à
+        // rede, uma vez por mod do pack — centenas de consultas numa importação.
+        builder.HasIndex(f => new { f.Origin, f.OriginReference });
     }
 }

@@ -357,6 +357,19 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return fileHashes.Concat(iconHashes).ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
+    public async Task<ModpackFile?> FindIngestedFileAsync(
+        ModFileOrigin origin, string originReference, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Ordem por Id (GUID v7 = cronológico): o SQLite não ordena DateTimeOffset.
+        return await db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => f.Origin == origin && f.OriginReference == originReference)
+            .OrderByDescending(f => f.Id)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)
     {
         if (files.Count is 0)

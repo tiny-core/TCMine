@@ -1026,6 +1026,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(1056)
                         .HasColumnType("character varying(1056)");
 
+                    b.Property<string>("RequiredDependencies")
+                        .HasColumnType("text");
+
                     b.Property<string>("Sha256")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1049,6 +1052,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
 
                     b.HasIndex("ModpackVersionId", "Path")
                         .IsUnique();
+
+                    b.HasIndex("Origin", "OriginReference");
 
                     b.ToTable("modpack_files", (string)null);
                 });

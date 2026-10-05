@@ -28,18 +28,7 @@ public sealed class CloneVersion(IModpackRepository repository)
 
         foreach (var file in source.Files)
         {
-            clone.UpsertFile(new ModpackFile
-            {
-                ModpackVersionId = clone.Id,
-                ProjectSlug = file.ProjectSlug,
-                Path = file.Path,
-                Sha256 = file.Sha256,
-                SizeBytes = file.SizeBytes,
-                Side = file.Side,
-                Optional = file.Optional,
-                Origin = file.Origin,
-                OriginReference = file.OriginReference
-            });
+            clone.UpsertFile(file.CopyTo(clone.Id));
         }
 
         await repository.AddVersionAsync(clone, ct);
