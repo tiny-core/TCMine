@@ -323,6 +323,12 @@ public sealed record ContainerInspect
 {
     [JsonPropertyName("Id")] public string Id { get; init; } = "";
     [JsonPropertyName("State")] public ContainerState State { get; init; } = new();
+    [JsonPropertyName("Config")] public ContainerConfig Config { get; init; } = new();
+}
+
+public sealed record ContainerConfig
+{
+    [JsonPropertyName("Labels")] public Dictionary<string, string>? Labels { get; init; }
 }
 
 public sealed record ContainerState
