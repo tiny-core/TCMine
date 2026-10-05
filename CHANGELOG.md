@@ -56,6 +56,10 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de Armazenamento no visual novo**: `PageHeader` em vez de
+  cabeçalho manual, painéis com a classe `tc-panel`, e a barra de ocupação
+  do content store retintada para os tokens `--tc-*` (estava em
+  `--mud-palette-*`, único resquício nessa tela).
 - **Tela de Usuários no visual novo**, com a tabela dentro do mesmo painel
   de borda fina das demais listas. Os chips de papel do diálogo "Ver
   vínculos" ("Membro"/"Moderador"/"Admin"/"Dono"/"Editor") foram para
