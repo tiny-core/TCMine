@@ -65,6 +65,17 @@ public static class DependencyInjection
         services.AddScoped<ReleaseCloudLease>();
         services.AddScoped<ReportCloudDoubtful>();
         services.AddScoped<ExtendCloudLeasesAfterOutage>();
+        services.AddScoped<ListCloudVaults>();
+        services.AddScoped<CreateCloudVault>();
+        services.AddScoped<GetCloudVault>();
+        services.AddScoped<UpdateCloudVault>();
+        services.AddScoped<ListCloudVaultServers>();
+        services.AddScoped<SetServerCloudVault>();
+        services.AddScoped<RevokeCloudServerKey>();
+        services.AddScoped<ListCloudPlayers>();
+        services.AddScoped<GetCloudChannelBalances>();
+        services.AddScoped<UnfreezeCloudChannel>();
+        services.AddScoped<ForceReleaseCloudLease>();
 
         services.AddScoped<CreateGameServer>();
         services.AddScoped<UpdateGameServer>();

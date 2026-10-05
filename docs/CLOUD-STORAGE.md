@@ -131,7 +131,7 @@ incidentes, em dúvida) no menu.
 | **A1. Domínio + persistência do protocolo** ✅ | `CloudVault`, `CloudServerCredential`, `CloudChannel`, `CloudItemType`, `CloudBalance`, `CloudLease` (regras de época/seq no domínio), `CloudBatch`, `CloudLedgerEntry`, `CloudQuarantine`, `GameServer.CloudVaultId`; migration `AddCloudStorage` nos dois providers | `CloudLeaseTests`, `CloudEntitiesTests`, `CloudPersistenceTests` (índice único do lote, concorrência do lease, bigint, bytes) |
 | **A2. Domínio do painel** | `CloudItemRule`, `CloudSuspectItem`, `CloudRollbackIncident`, `CloudDoubtfulOperation`, `CloudAdminAuditEntry` (entra junto da fase D, que as usa) | idem |
 | **B. API do mod** ✅ | `/api/cloud/v1`: filtro da chave (`CloudServerAuthFilter` → `AuthenticateCloudServer`), `hello`, `leases/acquire`, `leases/heartbeat`, `batches`, `leases/release`, `reports/doubtful`; limite por chave (`CloudPolicy`), corpo ≤ 2 MB; extensão dos leases no arranque (`InterruptedWorkRecovery`); `IssueCloudServerKey` (só dono) | `CloudBatchDecisionTests`, `CloudServerKeyTests`, `CloudApiContractTests` (13 cenários de ponta a ponta) |
-| **C. Painel básico** | nuvens, servidores, chaves, jogadores/saldos, leases | `DependencyInjectionTests`, smoke das rotas |
+| **C. Painel básico** ✅ | `/admin/cloud` (lista, criar) e `/admin/cloud/{id}` com abas Servidores (ligar/desligar, gerar/revogar chave — mostrada uma vez), Jogadores (busca, canais, totais, lease; itens do canal; descongelar; liberar lease à força) e Configurações (nome, ligada, modo, limites); item "Nuvem de itens" no menu | `CloudPanelUseCasesTests` (permissões), `CloudAdminRepositoryTests` (agregações no SQLite), `CloudPanelPagesTests` (render das telas) |
 | **D. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
 | **E. Orquestração** | `CloudVaultId` no `GameServer`, injeção de variáveis de ambiente, `ONLINE_MODE` | teste do materializador/orquestrador com fake |
 | Depois | `CloudVaultMembership`, ver canais no launcher (somente leitura, via hub) | — |
@@ -161,3 +161,16 @@ incidentes, em dúvida) no menu.
   (por ora só registrado no log) e gravação das operações em dúvida (por ora só log `Warning`).
 - **Conflito ≠ erro:** só `DbUpdateConcurrencyException` e violação de índice único viram 409 ("reenvie").
   Qualquer outra falha de gravação sobe como 500 — tratá-la como conflito faria o mod reenviar para sempre.
+
+## 9. Desvios em relação ao plano (fatia C)
+
+- **Descongelar canal e liberar lease à força entraram já na C** (estavam na D): sem eles, um lote em
+  quarentena ou um servidor morto deixariam o jogador preso até a D existir. A revisão da quarentena
+  continua na D.
+- **Auditoria das ações do painel por log** (`[LoggerMessage]` com o id do usuário) até a tabela
+  `cloud_admin_audit` chegar com a A2.
+- **Trocar ou desligar a nuvem de um servidor revoga a chave dele**: a chave vale para uma nuvem só.
+- **Canal padrão = o mais antigo pela data de criação** (com o Id de desempate). O GUID v7 do .NET não é
+  ordenado dentro do mesmo milissegundo; o teste pegou isso.
+- **A chave é copiada à mão** para o servidor de jogo (`TCMINE_CLOUD_URL`/`TCMINE_CLOUD_KEY`, a URL é a do
+  próprio painel) até a fatia E injetá-la no container.

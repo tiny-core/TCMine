@@ -1,0 +1,35 @@
+@page "/admin/cloud/{VaultId:guid}"
+@using TCMine.Server.Web.Components.Features.Cloud
+
+<PageTitle>@(_vault?.Name ?? "Nuvem") — TCMine</PageTitle>
+
+@if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">@_error</MudAlert>
+}
+else if (_vault is null)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px"/>
+}
+else
+{
+    <PageHeader Title="@_vault.Name"
+                Subtitle="@(_vault.IsEnabled ? "Ligada" : "Somente leitura: nada entra nem sai dos canais.")"
+                Icon="@Icons.Material.Filled.Cloud">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" Href="/admin/cloud">
+            Nuvens
+        </MudButton>
+    </PageHeader>
+
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
+        <MudTabPanel Text="Servidores" Icon="@Icons.Material.Filled.Dns">
+            <CloudServersPanel VaultId="VaultId" ServersChanged="ReloadServersAsync"/>
+        </MudTabPanel>
+        <MudTabPanel Text="Jogadores" Icon="@Icons.Material.Filled.People">
+            <CloudPlayersPanel VaultId="VaultId" ServerNames="_serverNames"/>
+        </MudTabPanel>
+        <MudTabPanel Text="Configurações" Icon="@Icons.Material.Filled.Tune">
+            <CloudVaultSettingsPanel Vault="_vault" Saved="LoadAsync"/>
+        </MudTabPanel>
+    </MudTabs>
+}

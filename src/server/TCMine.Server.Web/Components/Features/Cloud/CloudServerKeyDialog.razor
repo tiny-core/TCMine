@@ -1,0 +1,64 @@
+@using TCMine.Server.Web.Components.Features.Modpacks
+@inherits DialogComponentBase
+
+@* Chave do servidor para a nuvem. Como o convite: aparece UMA vez — o banco
+   guarda só o hash. Gerar de novo revoga a anterior. *@
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Key" Text="Chave da nuvem"/>
+    </TitleContent>
+    <DialogContent>
+        @if (_key is null)
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2">
+                    Gera a chave com que <b>@ServerName</b> fala com a nuvem. Se já existir uma, ela para de valer
+                    na hora — o servidor perde o acesso até receber a nova.
+                </MudText>
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    A chave aparece uma única vez, agora.
+                </MudAlert>
+                @if (IsBusy)
+                {
+                    <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+                }
+            </MudStack>
+        }
+        else
+        {
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2">
+                    Coloque estas variáveis de ambiente no servidor de jogo e reinicie-o:
+                </MudText>
+                <MudPaper Class="pa-3" Outlined="true">
+                    <MudText Typo="Typo.body2" Style="font-family:monospace; word-break:break-all;">
+                        TCMINE_CLOUD_URL=@BaseUrl<br/>
+                        TCMINE_CLOUD_KEY=@_key
+                    </MudText>
+                </MudPaper>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                           StartIcon="@Icons.Material.Filled.ContentCopy" OnClick="CopyAsync">
+                    Copiar chave
+                </MudButton>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    Nunca coloque a chave no modpack nem em arquivo de config que vá para os jogadores: quem tem a
+                    chave grava nos itens de todos os jogadores desta nuvem.
+                </MudAlert>
+            </MudStack>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (_key is null)
+        {
+            <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GenerateAsync" Disabled="IsBusy">
+                Gerar chave
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Variant="Variant.Filled" OnClick="Close">Fechar</MudButton>
+        }
+    </DialogActions>
+</MudDialog>

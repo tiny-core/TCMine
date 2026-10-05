@@ -1,0 +1,29 @@
+@using TCMine.Server.Web.Components.Features.Modpacks
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Cloud" Text="Nova nuvem"/>
+    </TitleContent>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2">
+                Os servidores ligados a uma nuvem compartilham os canais dos jogadores. Separe em nuvens diferentes
+                os packs que não devem trocar itens entre si (ex.: um pack fácil e um difícil).
+            </MudText>
+            <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" MaxLength="64"
+                          Immediate="true" AutoFocus="true"/>
+            @if (IsBusy)
+            {
+                <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync"
+                   Disabled="@(IsBusy || string.IsNullOrWhiteSpace(_name))">
+            Criar
+        </MudButton>
+    </DialogActions>
+</MudDialog>

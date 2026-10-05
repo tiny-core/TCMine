@@ -50,8 +50,10 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
         var channels = await db.CloudChannels.AsNoTracking()
             .Where(c => c.VaultId == vaultId && c.PlayerUuid == playerUuid)
             .ToListAsync(ct);
-        // Ordem estável por Id (GUID v7: o mais antigo primeiro, que é o padrão do mod).
-        return [.. channels.OrderBy(c => c.Id)];
+        // O mais antigo primeiro: é o canal padrão do mod. Pela data de criação, em
+        // memória (o SQLite não ordena DateTimeOffset), com o Id só de desempate —
+        // o GUID v7 do .NET NÃO é ordenado dentro do mesmo milissegundo.
+        return [.. channels.OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)];
     }
 
     public async Task AddChannelAsync(CloudChannel channel, CancellationToken ct)

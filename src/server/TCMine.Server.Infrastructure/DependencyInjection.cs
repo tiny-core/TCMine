@@ -105,6 +105,7 @@ public static class DependencyInjection
         services.AddScoped<IAccessRequestRepository, AccessRequestRepository>();
         services.AddScoped<ICloudCredentialRepository, CloudCredentialRepository>();
         services.AddScoped<ICloudStorageRepository, CloudStorageRepository>();
+        services.AddScoped<ICloudAdminRepository, CloudAdminRepository>();
         services.AddScoped<IModpackMembershipRepository, ModpackMembershipRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
 
