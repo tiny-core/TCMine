@@ -1,4 +1,4 @@
-@using TCMine.Server.Web.Configuration
+﻿@using TCMine.Server.Web.Configuration
 @using TCMine.Server.Web.Endpoints
 @* Menu de navegação lateral. Extraído do MainLayout para isolar a estrutura de
    navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
@@ -27,6 +27,10 @@
 
     <MudNavLink Href="/admin/access-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAddAlt">
         Pedidos de acesso
+    </MudNavLink>
+
+    <MudNavLink Href="/admin/cloud" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Cloud">
+        Nuvem de itens
     </MudNavLink>
 
     @* Gerenciar quem é admin é poder sobre a instalação inteira — só quem já

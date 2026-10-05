@@ -1,0 +1,52 @@
+@using TCMine.Server.Web.Components.Features.Modpacks
+@inherits DialogComponentBase
+
+<MudDialog>
+    <TitleContent>
+        <DialogTitle Icon="@Icons.Material.Filled.Inventory" Text="@($"{Channel.Name} — {PlayerName}")"/>
+    </TitleContent>
+    <DialogContent>
+        @if (Channel.Frozen)
+        {
+            <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-3">
+                Canal congelado: @Channel.FrozenReason. Nada entra nem sai até descongelar. Descongele só depois de
+                entender o que aconteceu — a revisão de quarentena chega numa próxima versão do painel.
+            </MudAlert>
+        }
+        @if (_items is null)
+        {
+            <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+        }
+        else if (_items.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">Canal vazio.</MudText>
+        }
+        else
+        {
+            <MudTable Items="_items" Dense="true" Hover="true" Height="420px" FixedHeader="true">
+                <HeaderContent>
+                    <MudTh>Item</MudTh>
+                    <MudTh>Mod</MudTh>
+                    <MudTh Style="text-align:right;">Quantidade</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Item">
+                        <MudText Typo="Typo.body2">@context.DisplayName</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ItemId</MudText>
+                    </MudTd>
+                    <MudTd DataLabel="Mod">@context.ModId</MudTd>
+                    <MudTd DataLabel="Quantidade" Style="text-align:right;">@context.Amount.ToString("N0")</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </DialogContent>
+    <DialogActions>
+        @if (Channel.Frozen)
+        {
+            <MudButton Color="Color.Warning" StartIcon="@Icons.Material.Filled.WbSunny" OnClick="UnfreezeAsync" Disabled="IsBusy">
+                Descongelar
+            </MudButton>
+        }
+        <MudButton Variant="Variant.Filled" OnClick="Cancel">Fechar</MudButton>
+    </DialogActions>
+</MudDialog>

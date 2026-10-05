@@ -1,0 +1,84 @@
+@using TCMine.Server.Application.Abstractions
+
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
+    <MudTextField @bind-Value="_search" Placeholder="Buscar por nome ou UUID" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="false"
+                  OnKeyDown="@(e => e.Key == "Enter" ? LoadAsync() : Task.CompletedTask)" Style="max-width:360px;"/>
+    <MudButton Variant="Variant.Outlined" OnClick="LoadAsync" Disabled="_isBusy">Buscar</MudButton>
+    @if (_isBusy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+</MudStack>
+
+@if (_players is null)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px"/>
+}
+else if (_players.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        Nenhum jogador@(string.IsNullOrWhiteSpace(_search) ? " usou esta nuvem ainda" : " encontrado").
+    </MudText>
+}
+else
+{
+    <MudTable Items="_players" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Jogador</MudTh>
+            <MudTh>Canais</MudTh>
+            <MudTh>Lease</MudTh>
+            <MudTh Style="text-align:right;">Ações</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Jogador">
+                <MudText Typo="Typo.body2">@(context.DisplayName ?? "(sem conta no TCMine)")</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-family:monospace;">@context.PlayerUuid</MudText>
+            </MudTd>
+            <MudTd DataLabel="Canais">
+                @foreach (var channel in context.Channels)
+                {
+                    <MudTooltip Text="@(channel.Frozen ? $"Congelado: {channel.FrozenReason}" : "Ver itens")">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                 Color="@(channel.Frozen ? Color.Error : Color.Default)"
+                                 Icon="@(channel.Frozen ? Icons.Material.Filled.AcUnit : null)"
+                                 OnClick="@(() => OpenChannelAsync(context, channel))">
+                            @channel.Name · @channel.ItemTypes tipos · @channel.TotalItems.ToString("N0") itens
+                        </MudChip>
+                    </MudTooltip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Lease">
+                @if (context.HolderServerId is { } holder)
+                {
+                    <MudText Typo="Typo.caption">
+                        @(ServerNames.GetValueOrDefault(holder, "servidor removido")) · época @context.Epoch
+                    </MudText>
+                    @if (context.LeaseExpiresAt is { } expires)
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">expira @expires.ToLocalTime().ToString("dd/MM HH:mm")</MudText>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">livre</MudText>
+                }
+            </MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.HolderServerId is not null)
+                {
+                    <MudTooltip Text="Liberar o lease à força">
+                        <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Size="Size.Small" Color="Color.Warning"
+                                       OnClick="@(() => ForceReleaseAsync(context))" Disabled="_isBusy"/>
+                    </MudTooltip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+    @if (_players.Count >= ListLimit)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
+            Mostrando os primeiros @ListLimit. Use a busca para achar um jogador.
+        </MudText>
+    }
+}

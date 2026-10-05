@@ -1,0 +1,51 @@
+@page "/admin/cloud"
+@using TCMine.Server.Application.Abstractions
+
+<PageTitle>Nuvem de itens — TCMine</PageTitle>
+
+<PageHeader Title="Nuvem de itens"
+            Subtitle="Itens que os jogadores guardam num servidor e reencontram em outro servidor seu (mod TC Cloud Storage)."
+            Icon="@Icons.Material.Filled.Cloud">
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add"
+               OnClick="CreateAsync">
+        Nova nuvem
+    </MudButton>
+</PageHeader>
+
+@if (!_loaded)
+{
+    <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="200px"/>
+}
+else if (_vaults.Count == 0)
+{
+    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+        Nenhuma nuvem ainda. Crie uma e ligue a ela os servidores que devem compartilhar os itens dos jogadores.
+    </MudAlert>
+}
+else
+{
+    <MudTable Items="_vaults" Dense="true" Hover="true" OnRowClick="@((TableRowClickEventArgs<CloudVaultSummary> e) => Open(e.Item!))"
+              T="CloudVaultSummary" Style="cursor:pointer;">
+        <HeaderContent>
+            <MudTh>Nome</MudTh>
+            <MudTh>Servidores</MudTh>
+            <MudTh>Jogadores</MudTh>
+            <MudTh>Situação</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Nome">@context.Name</MudTd>
+            <MudTd DataLabel="Servidores">@context.Servers</MudTd>
+            <MudTd DataLabel="Jogadores">@context.Players</MudTd>
+            <MudTd DataLabel="Situação">
+                @if (context.IsEnabled)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">Ligada</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">Somente leitura</MudChip>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
