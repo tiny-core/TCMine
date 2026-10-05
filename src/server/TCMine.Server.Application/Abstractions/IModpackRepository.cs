@@ -80,6 +80,14 @@ public interface IModpackRepository
     Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct);
 
     /// <summary>
+    ///     Um arquivo já ingerido, em QUALQUER versão de QUALQUER modpack, que veio
+    ///     desta release na origem (o id do arquivo no CurseForge / da versão no
+    ///     Modrinth, que é único em cada origem). O mais recente, quando há vários.
+    ///     É o primeiro degrau da ingestão — banco, depois disco, só então rede.
+    /// </summary>
+    Task<ModpackFile?> FindIngestedFileAsync(ModFileOrigin origin, string originReference, CancellationToken ct);
+
+    /// <summary>
     ///     Grava só a versão (estado, timestamps) e suas pendências, deixando os
     ///     arquivos em paz. Par de <see cref="AddFilesAsync" />: quem já gravou os
     ///     arquivos pontualmente não pode pagar por um UPDATE em cada um deles no

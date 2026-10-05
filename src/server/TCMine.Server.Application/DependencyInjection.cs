@@ -117,6 +117,11 @@ public static class DependencyInjection
         services.AddScoped<AuthenticateMicrosoftUser>();
         services.AddScoped<AuthenticateMinecraftUser>();
         services.AddScoped<LinkMinecraftAccount>();
+
+        // Singleton: o código emitido no arranque precisa ser o mesmo que o
+        // resgate confere, em qualquer requisição.
+        services.AddSingleton<AdminClaimCode>();
+        services.AddScoped<ClaimInstanceAdmin>();
         services.AddScoped<CreateInvite>();
         services.AddScoped<ListServerAccess>();
         services.AddScoped<ListAccessibleServers>();
@@ -132,10 +137,6 @@ public static class DependencyInjection
         services.AddScoped<RemoveMember>();
         services.AddScoped<ChangeMemberRole>();
         services.AddScoped<UpdateSettings>();
-        services.AddScoped<SendTestEmail>();
-        services.AddScoped<StartMailServer>();
-        services.AddScoped<StopMailServer>();
-        services.AddScoped<GetMailServerView>();
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<CompleteFromServerPack>();
         services.AddScoped<BackfillServerPacks>();

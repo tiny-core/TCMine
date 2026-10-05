@@ -49,7 +49,7 @@ public sealed class InstallationSettings : Entity
     ///     cola a chave do CurseForge na mesma tela. Estando em arquivo, o
     ///     sintoma era: o jogador pareia, ouve "avise o administrador", e o
     ///     administrador precisa entrar no container, editar JSON e reiniciar.
-    ///     Ao contrário dos outros dois campos sensíveis desta classe, NÃO é
+    ///     Ao contrário da chave do CurseForge, NÃO é
     ///     segredo e não é cifrado: o fluxo do Minecraft usa public client com
     ///     PKCE, o id viaja no handshake para qualquer launcher que pergunte, e
     ///     por isso volta normalmente para a tela.
@@ -57,27 +57,8 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public string? AzureClientId { get; set; }
 
-    // ---------- E-mail (recuperação de senha, convites) ----------
-
-    public string? SmtpHost { get; set; }
-    public int SmtpPort { get; set; } = 587;
-    public string? SmtpUser { get; set; }
-
-    /// <summary>Senha do SMTP, cifrada em repouso. Mesma regra da chave do CurseForge.</summary>
-    public string? SmtpPasswordEncrypted { get; set; }
-
-    /// <summary>Remetente das mensagens, ex.: "TCMine &lt;nao-responda@exemplo.com&gt;".</summary>
-    public string? SmtpFrom { get; set; }
-
-    public bool SmtpUseTls { get; set; } = true;
-
-    /// <summary>
-    ///     Domínio do servidor de e-mail gerenciado pelo painel. Nulo quando a
-    ///     instalação usa SMTP de terceiro — que é o caminho normal, e não uma
-    ///     configuração incompleta.
-    /// </summary>
-    public string? MailServerDomain { get; set; }
-
-    /// <summary>Há SMTP suficiente para tentar enviar?</summary>
-    public bool HasSmtp => !string.IsNullOrWhiteSpace(SmtpHost) && !string.IsNullOrWhiteSpace(SmtpFrom);
+    // Não há mais e-mail: o SMTP e o servidor de e-mail próprio serviam à
+    // recuperação de senha, que deixou de existir quando o login passou a ser
+    // só pela Microsoft. Um subsistema sem consumidor só pesava (segredo
+    // cifrado, container com a porta 587, uma aba inteira de configuração).
 }

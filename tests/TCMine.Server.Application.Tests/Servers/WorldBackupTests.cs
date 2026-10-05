@@ -483,7 +483,6 @@ public sealed class WorldBackupTests
 
         public Task SaveAsync(InstallationSettings settings, CancellationToken ct) => Task.CompletedTask;
         public Task<string?> GetCurseForgeApiKeyAsync(CancellationToken ct) => Task.FromResult<string?>(null);
-        public Task<string?> GetSmtpPasswordAsync(CancellationToken ct) => Task.FromResult<string?>(null);
     }
 
     private sealed class FakeStore : IWorldBackupStore

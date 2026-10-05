@@ -1,0 +1,24 @@
+@page "/admin/claim"
+@attribute [Authorize]
+@attribute [ExcludeFromInteractiveRouting]
+@layout EmptyLayout
+
+<PageTitle>Reaver a administração — TCMine</PageTitle>
+
+<AuthShell Title="Reaver a administração"
+           Subtitle="Nenhum administrador desta instalação consegue entrar pela Microsoft. Informe o código que o servidor escreveu no log ao arrancar (docker compose logs) para tornar esta conta a administradora — a conta de admin antiga, se houver uma só, é unida a ela, com os modpacks e servidores."
+           Error="@Error">
+    <form method="post" action="/auth/claim-admin">
+        <AntiforgeryToken/>
+        <MudStack Spacing="4">
+            <MudTextField T="string" name="code" Label="Código de resgate"
+                          Variant="Variant.Outlined" Required="true"
+                          Placeholder="XXXX-XXXX-XXXX-XXXX"
+                          HelperText="Vale uma vez. Um novo arranque do servidor emite outro."/>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled"
+                       Color="Color.Primary" Size="Size.Large" FullWidth="true">
+                Tornar-me administrador
+            </MudButton>
+        </MudStack>
+    </form>
+</AuthShell>

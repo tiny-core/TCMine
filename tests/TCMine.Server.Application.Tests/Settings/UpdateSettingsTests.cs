@@ -15,17 +15,12 @@ public sealed class UpdateSettingsTests
     [Fact]
     public async Task Campo_de_segredo_vazio_mantem_o_valor_atual()
     {
-        var repo = new FakeSettings(new InstallationSettings
-        {
-            CurseForgeApiKeyEncrypted = "chave-antiga",
-            SmtpPasswordEncrypted = "senha-antiga"
-        });
+        var repo = new FakeSettings(new InstallationSettings { CurseForgeApiKeyEncrypted = "chave-antiga" });
 
         await new UpdateSettings(repo).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
 
         Assert.Equal("chave-antiga", repo.Salvo!.CurseForgeApiKeyEncrypted);
-        Assert.Equal("senha-antiga", repo.Salvo.SmtpPasswordEncrypted);
     }
 
     [Fact]
@@ -58,17 +53,6 @@ public sealed class UpdateSettingsTests
         // Abaixo de 512 MB o servidor de Minecraft nem sobe.
         var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()))
             .HandleAsync(new UpdateSettingsCommand { DefaultMemoryMb = 256 }, CancellationToken.None);
-
-        Assert.False(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task Recusa_porta_de_smtp_invalida()
-    {
-        var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()))
-            .HandleAsync(
-                new UpdateSettingsCommand { DefaultMemoryMb = 4096, SmtpPort = 70000 },
-                CancellationToken.None);
 
         Assert.False(result.Succeeded);
     }
@@ -137,8 +121,5 @@ public sealed class UpdateSettingsTests
 
         public Task<string?> GetCurseForgeApiKeyAsync(CancellationToken ct) =>
             Task.FromResult(settings.CurseForgeApiKeyEncrypted);
-
-        public Task<string?> GetSmtpPasswordAsync(CancellationToken ct) =>
-            Task.FromResult(settings.SmtpPasswordEncrypted);
     }
 }

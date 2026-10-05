@@ -6,6 +6,7 @@ namespace TCMine.Server.Infrastructure.Ingestion.Modrinth;
 // os tipos por engano.
 [JsonSourceGenerationOptions(PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(IReadOnlyList<ModrinthVersion>))]
+[JsonSerializable(typeof(ModrinthVersion))]
 [JsonSerializable(typeof(ModrinthProject))]
 [JsonSerializable(typeof(ModrinthPackIndex))]
 [JsonSerializable(typeof(ModrinthPackVersion))]

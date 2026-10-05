@@ -12,6 +12,8 @@ internal sealed record ModrinthVersion
 {
     [JsonPropertyName("id")] public required string Id { get; init; }
 
+    [JsonPropertyName("project_id")] public string? ProjectId { get; init; }
+
     [JsonPropertyName("version_number")] public required string VersionNumber { get; init; }
 
     [JsonPropertyName("game_versions")] public required IReadOnlyList<string> GameVersions { get; init; }
@@ -21,6 +23,12 @@ internal sealed record ModrinthVersion
     [JsonPropertyName("files")] public required IReadOnlyList<ModrinthFile> Files { get; init; }
 
     [JsonPropertyName("dependencies")] public IReadOnlyList<ModrinthDependency> Dependencies { get; init; } = [];
+
+    /// <summary>"release" | "beta" | "alpha".</summary>
+    [JsonPropertyName("version_type")]
+    public string? VersionType { get; init; }
+
+    [JsonPropertyName("date_published")] public DateTimeOffset DatePublished { get; init; }
 }
 
 internal sealed record ModrinthFile

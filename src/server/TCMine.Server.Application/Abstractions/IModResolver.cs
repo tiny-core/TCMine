@@ -63,7 +63,15 @@ public abstract record ModResolution
         ///     Pasta da instância onde este arquivo vive. Nem tudo o que vem num
         ///     modpack é mod: um shaderpack em mods/ derruba o jogo no arranque.
         /// </summary>
-        string Folder = "mods") : ModResolution;
+        string Folder = "mods",
+
+        /// <summary>
+        ///     Id canônico do projeto na origem, quando ela o informa. O pedido
+        ///     pode ter chegado por outro nome (o slug do Modrinth), e a
+        ///     identidade do mod no TCMine é UMA só — senão o mesmo mod, pedido
+        ///     pelo slug e depois pelo id, viraria dois .jar em mods/.
+        /// </summary>
+        string? ProjectId = null) : ModResolution;
 
     /// <summary>
     ///     O autor marcou allowModDistribution = false.
