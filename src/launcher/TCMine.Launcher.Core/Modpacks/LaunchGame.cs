@@ -22,9 +22,21 @@ public sealed class LaunchGame(
     IGameLauncher launcher,
     GameSession game)
 {
+    public Task<GameLaunchResult> HandleAsync(
+        InstalledInstance instance,
+        LauncherConfig config,
+        IProgress<GameLaunchProgress>? progress,
+        CancellationToken ct) =>
+        HandleAsync(instance, config, server: null, progress, ct);
+
+    /// <summary>
+    ///     Igual, mas o jogo abre já a entrar em <paramref name="server" /> em vez
+    ///     do menu principal.
+    /// </summary>
     public async Task<GameLaunchResult> HandleAsync(
         InstalledInstance instance,
         LauncherConfig config,
+        ServerAddress? server,
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
@@ -92,7 +104,8 @@ public sealed class LaunchGame(
                 PlayerName = quem.Profile!.Name,
                 PlayerUuid = quem.Profile.Uuid,
                 AccessToken = quem.AccessToken,
-                MemoryMb = manifest.MemoryMb
+                MemoryMb = manifest.MemoryMb,
+                Server = server
             },
             progress,
             ct);

@@ -557,6 +557,17 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   anterior sem o número subir.
   Publicar à mão (`release-launcher.ps1`) continua possível, mas o pacote não
   leva `server.json`.
+- **Downloads em paralelo** (`InstallModpackVersion.ParallelDownloads` = 6),
+  abaixo do teto de 8 por cliente do servidor (`RateLimitPolicies`), para
+  sobrar folga a ícones e Java. A fila é deduplicada por hash: o mesmo
+  conteúdo em dois caminhos gravaria o mesmo `.tmp` do store ao mesmo tempo.
+  Fakes de teste que a instalação toca têm de ser seguros entre threads.
+- **Entrar num servidor** é `JoinServer`: a versão é pinada no SERVIDOR, então
+  a instância é alinhada antes de abrir — servidor à frente atualiza (via
+  `UpdateInstance`, com backup), servidor atrás RECUSA (§7.0), e sem como
+  comparar os números (`ModpackVersionOrder`, SemVer) também recusa. O endereço
+  vai ao CmlLib como `ServerIp`/`ServerPort`, que gera `--quickPlayMultiplayer`
+  ou `--server` conforme a versão do jogo.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 

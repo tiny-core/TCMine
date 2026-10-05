@@ -20,12 +20,28 @@
 
                     @if (server.AccessState is ServerAccessState.Granted)
                     {
-                        @* Selecionável: entrar num servidor é copiar este
-                           endereço para o jogo, e um texto que não se
-                           consegue marcar obriga a digitá-lo à mão. *@
+                        @* Selecionável: quem quiser adicioná-lo à mão no jogo
+                           copia daqui, sem ter de o digitar. *@
                         <MudText Typo="Typo.caption" Class="mud-text-secondary tc-side-address">
                             @server.ConnectAddress
                         </MudText>
+
+                        @* Desligado com o motivo à vista, nunca escondido: um
+                           servidor parado continua na lista, e o jogador tem de
+                           saber porque não dá para entrar agora. *@
+                        <MudTooltip Text="@WhyCannotJoin(server)" Disabled="@(WhyCannotJoin(server) is null)">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                       Class="mt-1"
+                                       StartIcon="@Icons.Material.Filled.Login"
+                                       Disabled="@(WhyCannotJoin(server) is not null)"
+                                       OnClick="@(() => OnJoin.InvokeAsync(server))">
+                                @if (Joining == server.Id)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                }
+                                Entrar
+                            </MudButton>
+                        </MudTooltip>
                     }
                     else if (EstaPendente(server))
                     {

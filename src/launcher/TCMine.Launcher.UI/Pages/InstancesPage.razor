@@ -10,7 +10,7 @@
     {
         <MudButton Variant="Variant.Text"
                    StartIcon="@Icons.Material.Filled.CleaningServices"
-                   Disabled="_busy"
+                   Disabled="@(_busy || Lock.IsLocked)"
                    OnClick="CleanupJavaAsync">
             Libertar @HumanSize.Bytes(_reclaimable) de Java
         </MudButton>
@@ -32,7 +32,7 @@
        a instalação tenha começado no catálogo e o jogador tenha navegado para
        cá no meio dela — antes esse progresso só existia na tela onde nasceu. *@
     <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
-        <MudText Typo="Typo.body2" Class="mb-2">@BusyLabel(Operation.Progress)</MudText>
+        <MudText Typo="Typo.body2" Class="mb-2">@Operation.Progress?.Label</MudText>
         <MudProgressLinear Color="Color.Primary" Indeterminate="true"/>
     </MudPaper>
 }
@@ -75,7 +75,7 @@ else
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.Upgrade"
-                                   Disabled="@(_busy || Operation.IsRunning)"
+                                   Disabled="@(_busy || Lock.IsLocked)"
                                    OnClick="@(() => UpdateAsync(instancia, novidade))">
                             Atualizar para v@(novidade.Version)
                         </MudButton>
@@ -92,7 +92,7 @@ else
                     {
                         <MudButton Variant="Variant.Outlined" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.SportsEsports"
-                                   Disabled="_busy"
+                                   Disabled="@(_busy || Lock.IsLocked)"
                                    OnClick="@(() => ActivateAsync(instancia))">
                             Jogar esta
                         </MudButton>
@@ -114,7 +114,7 @@ else
                                      AdornmentText="MB"
                                      Placeholder="padrão"
                                      Style="width:9rem;"
-                                     Disabled="_busy"/>
+                                     Disabled="@(_busy || Lock.IsLocked)"/>
 
                     <MudTooltip Text="Abrir a pasta da instância">
                         <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
@@ -124,7 +124,7 @@ else
                     <MudTooltip Text="Remover a instância e o mundo dela">
                         <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                        Color="Color.Error"
-                                       Disabled="_busy"
+                                       Disabled="@(_busy || Lock.IsLocked)"
                                        OnClick="@(() => RemoveAsync(instancia))"/>
                     </MudTooltip>
                 </MudStack>

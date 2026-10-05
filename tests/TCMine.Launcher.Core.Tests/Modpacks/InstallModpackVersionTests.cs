@@ -211,6 +211,42 @@ public class InstallModpackVersionTests
     }
 
     [Fact]
+    public async Task Downloads_correm_em_paralelo_ate_o_limite()
+    {
+        // Em série, um pack com milhares de arquivos pagava a latência de cada
+        // pedido um atrás do outro — lento até em rede local.
+        var pack = Modpack();
+        var files = Enumerable.Range(0, 20).Select(i => Arquivo($"mods/m{i}.jar", $"h{i:00}")).ToArray();
+
+        var scenario = new Cenario(pack, Versao(pack.Id, files))
+        {
+            Downloader = new FakeBlobDownloader { Delay = TimeSpan.FromMilliseconds(30) }
+        };
+
+        var result = await scenario.Instalar();
+
+        result.Succeeded.ShouldBeTrue(result.Error);
+        scenario.Content.Added.Count.ShouldBe(20);
+        scenario.Downloader.MaxConcurrent.ShouldBeGreaterThan(1);
+        scenario.Downloader.MaxConcurrent.ShouldBeLessThanOrEqualTo(InstallModpackVersion.ParallelDownloads);
+    }
+
+    [Fact]
+    public async Task Mesmo_conteudo_em_dois_caminhos_baixa_uma_vez()
+    {
+        // Em paralelo, as duas cópias gravariam o mesmo temporário do store.
+        var pack = Modpack();
+        var version = Versao(pack.Id, Arquivo("config/a.toml", "aa"), Arquivo("config/b.toml", "aa"));
+
+        var scenario = new Cenario(pack, version);
+
+        await scenario.Instalar();
+
+        scenario.Downloader.Requested.ShouldBe(["aa"]);
+        scenario.Content.Materialized.Count.ShouldBe(2);
+    }
+
+    [Fact]
     public async Task O_progresso_termina_em_Done()
     {
         var pack = Modpack();
@@ -252,7 +288,7 @@ public class InstallModpackVersionTests
 
         public FakeContentStore Content { get; } = new();
 
-        public FakeBlobDownloader Downloader { get; } = new();
+        public FakeBlobDownloader Downloader { get; init; } = new();
 
         public FakeInstanceStore Instances { get; } = new();
 

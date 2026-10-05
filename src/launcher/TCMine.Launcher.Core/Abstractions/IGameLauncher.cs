@@ -1,4 +1,5 @@
 using TCMine.Contracts.Modpacks;
+using TCMine.Launcher.Core.Modpacks;
 
 namespace TCMine.Launcher.Core.Abstractions;
 
@@ -57,6 +58,13 @@ public sealed record GameLaunchRequest
     public string? AccessToken { get; init; }
 
     public int? MemoryMb { get; init; }
+
+    /// <summary>
+    ///     Servidor em que o jogo entra ao abrir, ou nulo para o menu principal.
+    ///     Sem token (modo offline) o servidor recusa a entrada: é o Minecraft que
+    ///     exige prova de conta, e o jogo mostra o motivo.
+    /// </summary>
+    public ServerAddress? Server { get; init; }
 }
 
 public sealed record GameLaunchProgress(string Phase, double? Fraction = null);

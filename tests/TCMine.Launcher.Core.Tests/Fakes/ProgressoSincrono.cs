@@ -11,7 +11,14 @@ namespace TCMine.Launcher.Core.Tests.Fakes;
 /// </summary>
 public sealed class ProgressoSincrono<T> : IProgress<T>
 {
+    private readonly Lock _gate = new();
+
     public List<T> Relatado { get; } = [];
 
-    public void Report(T value) => Relatado.Add(value);
+    // Com trava: os downloads paralelos relatam de várias threads ao mesmo tempo.
+    public void Report(T value)
+    {
+        lock (_gate)
+            Relatado.Add(value);
+    }
 }

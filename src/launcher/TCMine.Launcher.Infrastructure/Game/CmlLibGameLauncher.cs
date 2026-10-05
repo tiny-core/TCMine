@@ -51,6 +51,16 @@ public sealed partial class CmlLibGameLauncher(
                 MaximumRamMb = request.MemoryMb ?? 4096
             };
 
+            // O CmlLib escolhe a forma pela versão: --quickPlayMultiplayer no
+            // Minecraft moderno, --server/--port nos antigos.
+            if (request.Server is { } server)
+            {
+                options.ServerIp = server.Host;
+
+                if (server.Port is { } port)
+                    options.ServerPort = port;
+            }
+
             var process = await launcher.InstallAndBuildProcessAsync(
                 version,
                 options,

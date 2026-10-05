@@ -1,5 +1,6 @@
 using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Core.Sync;
@@ -226,6 +227,153 @@ public class LaunchGameTests
         await Build(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
 
         autenticador.Tentativas.ShouldBe(2);
+    }
+
+    // ---------- entrar num servidor ----------
+
+    [Fact]
+    public async Task Entrar_na_mesma_versao_abre_direto_no_servidor()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var join = Join(motor, out var installer);
+
+        var result = await join.HandleAsync(instance, Servidor(instance.Manifest), Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
+        installer.Chamadas.ShouldBe(0);
+        result.Updated.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Servidor_a_frente_atualiza_a_instancia_e_entra()
+    {
+        var instance = Instalada();
+        var nova = Versao(instance.Manifest.ModpackId, "1.1.0");
+        var motor = new MotorFalso();
+        var join = Join(motor, out var installer, nova);
+
+        var result = await join.HandleAsync(
+            instance, Servidor(instance.Manifest) with { ModpackVersionId = nova.Id }, Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+
+        // A MESMA instância, para o mundo ir junto — nunca uma nova ao lado.
+        installer.Alvo.ShouldBe(instance.Key);
+        installer.Versao.ShouldBe(nova.Id);
+        result.Updated!.Manifest.Version.ShouldBe("1.1.0");
+        motor.Recebido!.Server.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Servidor_atras_recusa_sem_tocar_na_instancia()
+    {
+        var instance = Instalada();
+        var antiga = Versao(instance.Manifest.ModpackId, "0.9.0");
+        var motor = new MotorFalso();
+        var join = Join(motor, out var installer, antiga);
+
+        var result = await join.HandleAsync(
+            instance, Servidor(instance.Manifest) with { ModpackVersionId = antiga.Id }, Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeFalse();
+        result.Launch.Message!.ShouldContain("v0.9.0");
+        installer.Chamadas.ShouldBe(0);
+        motor.Recebido.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Sem_acesso_nao_abre_o_jogo()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var join = Join(motor, out _);
+
+        var result = await join.HandleAsync(
+            instance,
+            Servidor(instance.Manifest) with { AccessState = ServerAccessState.None, ConnectAddress = null },
+            Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeFalse();
+        motor.Recebido.ShouldBeNull();
+    }
+
+    private static JoinServer Join(MotorFalso motor, out InstaladorFalso installer, params ModpackVersionDto[] versions)
+    {
+        var connection = new FakeServerConnection();
+        foreach (var v in versions)
+            connection.Versions[v.Id] = v;
+
+        var instalador = new InstaladorFalso(versions);
+        installer = instalador;
+
+        return new JoinServer(
+            connection,
+            new UpdateInstance(instalador, new SemMundo()),
+            Build(motor: motor));
+    }
+
+    private static GameServerDto Servidor(InstanceManifest manifest) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Name = "Survival",
+        ModpackId = manifest.ModpackId,
+        ModpackVersionId = manifest.ModpackVersionId,
+        ConnectAddress = "mc.exemplo:25570",
+        Status = GameServerStatus.Running,
+        Role = ServerRoleDto.Member,
+        AccessState = ServerAccessState.Granted
+    };
+
+    private static ModpackVersionDto Versao(Guid modpackId, string version) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        ModpackId = modpackId,
+        Version = version,
+        LoaderVersion = "21.1.0",
+        State = ModpackVersionState.Ready,
+        PublishedAt = DateTimeOffset.UtcNow,
+        RecommendedMemoryMb = 4096,
+        Files = []
+    };
+
+    private sealed class SemMundo : IWorldBackup
+    {
+        public bool HasWorld(InstanceKey key) => false;
+
+        public Task<string> CreateAsync(InstanceKey key, CancellationToken ct) => Task.FromResult("");
+    }
+
+    /// <summary>Instala gravando o número da versão pedida no manifesto, como o real.</summary>
+    private sealed class InstaladorFalso(IReadOnlyList<ModpackVersionDto> versions) : IInstanceInstaller
+    {
+        public int Chamadas { get; private set; }
+
+        public InstanceKey? Alvo { get; private set; }
+
+        public Guid? Versao { get; private set; }
+
+        public Task<InstallResult> HandleAsync(
+            Uri serverUrl,
+            ModpackDto modpack,
+            Guid versionId,
+            InstanceKey? target,
+            IProgress<InstallProgress>? progress,
+            CancellationToken ct)
+        {
+            Chamadas++;
+            Alvo = target;
+            Versao = versionId;
+
+            var manifest = Manifesto() with
+            {
+                ModpackVersionId = versionId,
+                Version = versions.First(v => v.Id == versionId).Version
+            };
+
+            return Task.FromResult(InstallResult.Success(target!.Value, manifest));
+        }
     }
 
     // ---------- apoio ----------

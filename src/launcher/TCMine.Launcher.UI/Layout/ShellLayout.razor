@@ -52,6 +52,26 @@
                     </MudAlert>
                 }
 
+                @* Em todas as telas, e não só na de jogar: as ações ficam
+                   desligadas em qualquer uma enquanto o jogo corre (ver
+                   ActionLock), e um botão cinzento sem o porquê à vista parece
+                   defeito. O "Fechar o jogo" vem junto para não obrigar a voltar
+                   à tela de jogar quando o jogo pendurou. *@
+                @if (Game.IsRunning)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4"
+                              Icon="@Icons.Material.Filled.SportsEsports">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <span>O jogo está aberto. As ações do launcher voltam quando ele fechar.</span>
+                            <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.StopCircle"
+                                       OnClick="@(() => Game.Kill())">
+                                Fechar o jogo
+                            </MudButton>
+                        </MudStack>
+                    </MudAlert>
+                }
+
                 @Body
             }
         </main>
