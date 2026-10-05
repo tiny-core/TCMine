@@ -154,7 +154,7 @@ página pública não digita nada. O número do launcher vive em
 `src/launcher/VERSION`, e a release recusa sair se o launcher mudou sem ele
 subir — ver [docs/RELEASE.md](docs/RELEASE.md#o-launcher).
 
-O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
+O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md). O que vem a seguir está no [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licença
 
