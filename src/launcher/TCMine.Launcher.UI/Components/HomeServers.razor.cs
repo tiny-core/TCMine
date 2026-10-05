@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Modpacks;
 
 namespace TCMine.Launcher.UI.Components;
 
@@ -40,13 +41,46 @@ public partial class HomeServers : ComponentBase
     /// <summary>O servidor que está a ser aberto, para o spinner ficar na linha certa.</summary>
     [Parameter] public Guid? Joining { get; set; }
 
+    /// <summary>
+    ///     Versão instalada da instância ativa, para decidir "Entrar" ou
+    ///     "Atualizar e entrar" sem esperar o clique — e para recusar de
+    ///     antemão o servidor que está para trás (JoinServer recusaria do
+    ///     mesmo jeito, mas só depois do clique).
+    /// </summary>
+    [Parameter] public string? ActiveVersion { get; set; }
+
     [Inject] private IServerConnection Connection { get; set; } = default!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    private string? WhyCannotJoin(GameServerDto server) =>
-        JoinBlockedReason
-        ?? (server.Status is GameServerStatus.Running ? null : "O servidor não está no ar agora.");
+    /// <summary>
+    ///     Negativo se o servidor está atrás, positivo se está na frente, nulo
+    ///     se não dá para comparar (versão apagada, ou alguma das duas não é
+    ///     SemVer).
+    /// </summary>
+    private int? OrderVersusActive(GameServerDto server) =>
+        server.ModpackVersionLabel is { } label && ActiveVersion is { } active
+            ? ModpackVersionOrder.Compare(label, active)
+            : null;
+
+    private bool NeedsUpdate(GameServerDto server) => OrderVersusActive(server) > 0;
+
+    private string? WhyCannotJoin(GameServerDto server)
+    {
+        if (JoinBlockedReason is not null)
+            return JoinBlockedReason;
+
+        if (server.Status is not GameServerStatus.Running)
+            return "O servidor não está no ar agora.";
+
+        // Descer de versão por cima de uma instância partiria o mundo (mods
+        // que somem levam os blocos e itens que registraram) — a mesma regra
+        // do JoinServer, só que aqui dita o botão ANTES do clique.
+        if (OrderVersusActive(server) < 0)
+            return "Este servidor está numa versão anterior à da sua instância instalada.";
+
+        return null;
+    }
 
     /// <summary>
     ///     Pendente de verdade (o servidor já respondeu "Pending") OU acabou de

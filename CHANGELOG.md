@@ -56,6 +56,17 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de jogar do launcher, com "Atualizar e entrar" e lotação.** O
+  cartão da instância ativa ganhou o fundo em gradiente dos tokens
+  `--tc-*` (antes em `--mud-palette-*`). Cada servidor da lista mostra
+  jogadores online/máximo (não é dado sensível como o endereço, que
+  continua só para quem tem acesso), e o botão passa a dizer "Atualizar e
+  entrar" quando a versão do servidor está na frente da instância
+  instalada — comparação por SemVer (`ModpackVersionOrder`), feita no
+  cliente a partir de um campo novo e opcional no contrato
+  (`GameServerDto.ModpackVersionLabel`, resolvido no hub por modpack, sem
+  consulta por servidor). Servidor atrás da instância aparece desligado
+  com o motivo, antes do clique — `JoinServer` já recusava, só que depois.
 - **Aba de mods e cabeçalho de versão no visual novo.** O seletor de versão
   mostra o selo de estado (rascunho/resolvendo/publicado/arquivado) em vez do
   nome do enum, e o stepper do ciclo de vida segue a mesma paleta das outras

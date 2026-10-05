@@ -15,6 +15,14 @@ public sealed record GameServerDto
     public required Guid ModpackVersionId { get; init; }
 
     /// <summary>
+    ///     SemVer da versão pinada (ex.: "1.4.0"), para o launcher decidir
+    ///     "Entrar" ou "Atualizar e entrar" sem precisar perguntar de novo.
+    ///     Nulo só se a versão foi apagada embaixo do servidor — campo
+    ///     opcional novo no contrato, não quebra quem já conecta (CLAUDE.md §7.1).
+    /// </summary>
+    public string? ModpackVersionLabel { get; init; }
+
+    /// <summary>
     ///     Endereço para o servers.dat. Pode incluir porta.
     ///     Nulo quando <see cref="AccessState" /> não é <see cref="ServerAccessState.Granted" />
     ///     — um servidor com whitelist aparece na lista para qualquer jogador

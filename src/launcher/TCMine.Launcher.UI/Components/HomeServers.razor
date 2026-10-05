@@ -18,6 +18,13 @@
                         <MudText Typo="Typo.body2" Class="tc-side-name">@server.Name</MudText>
                     </MudStack>
 
+                    @* Lotação: não é dado sensível como o endereço (que só sai
+                       com acesso concedido), então aparece para qualquer um —
+                       é o mesmo número que a página pública já mostra. *@
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        @server.OnlinePlayers / @server.MaxPlayers jogadores
+                    </MudText>
+
                     @if (server.AccessState is ServerAccessState.Granted)
                     {
                         @* Selecionável: quem quiser adicioná-lo à mão no jogo
@@ -32,14 +39,16 @@
                         <MudTooltip Text="@WhyCannotJoin(server)" Disabled="@(WhyCannotJoin(server) is null)">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                        Class="mt-1"
-                                       StartIcon="@Icons.Material.Filled.Login"
+                                       StartIcon="@(NeedsUpdate(server)
+                                                      ? Icons.Material.Filled.SystemUpdateAlt
+                                                      : Icons.Material.Filled.Login)"
                                        Disabled="@(WhyCannotJoin(server) is not null)"
                                        OnClick="@(() => OnJoin.InvokeAsync(server))">
                                 @if (Joining == server.Id)
                                 {
                                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                                 }
-                                Entrar
+                                @(NeedsUpdate(server) ? "Atualizar e entrar" : "Entrar")
                             </MudButton>
                         </MudTooltip>
                     }

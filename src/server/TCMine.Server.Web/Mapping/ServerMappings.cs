@@ -13,7 +13,8 @@ namespace TCMine.Server.Web.Mapping;
 /// </summary>
 public static class ServerMappings
 {
-    public static GameServerDto ToDto(this AccessibleServer accessible, IPlayerCountSource players)
+    public static GameServerDto ToDto(
+        this AccessibleServer accessible, IPlayerCountSource players, IReadOnlyDictionary<Guid, string> versionLabels)
     {
         var server = accessible.Server;
 
@@ -23,6 +24,7 @@ public static class ServerMappings
             Name = server.Name,
             ModpackId = server.ModpackId,
             ModpackVersionId = server.ModpackVersionId,
+            ModpackVersionLabel = versionLabels.GetValueOrDefault(server.ModpackVersionId),
 
             // Só sai com o acesso concedido — ver a nota em GameServerDto.
             ConnectAddress = accessible.AccessState is ServerAccessState.Granted ? server.ConnectAddress : null,
