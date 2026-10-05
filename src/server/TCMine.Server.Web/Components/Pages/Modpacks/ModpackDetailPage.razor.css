@@ -4,7 +4,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 9px 0;
-  border-bottom: 1px solid var(--mud-palette-divider);
+  border-bottom: 1px solid var(--tc-border);
   font-size: 14px;
 }
 
@@ -13,5 +13,5 @@
 }
 
 .tc-kv > span {
-  color: var(--mud-palette-text-secondary);
+  color: var(--tc-text-secondary);
 }
