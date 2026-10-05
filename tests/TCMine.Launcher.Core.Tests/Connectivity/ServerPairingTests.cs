@@ -27,6 +27,48 @@ public class ServerPairingTests
     }
 
     [Fact]
+    public async Task Instalador_com_endereco_embutido_pareia_sozinho_no_primeiro_uso()
+    {
+        // O servidor empacotou o launcher com o próprio endereço: o jogador
+        // instala e não digita nada.
+        var config = new ConfigFalso(null);
+        var handshake = new HandshakeFalso(Ok());
+        var pairing = new ServerPairing(handshake, config, new EnderecoEmbutido("https://servidor.exemplo"));
+
+        var estado = await pairing.ResumeAsync(Ct);
+
+        estado.IsOnline.ShouldBeTrue();
+        handshake.Chamado.ShouldBe(new Uri("https://servidor.exemplo/"));
+        config.Gravado.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Endereco_embutido_passa_pelas_mesmas_regras_do_digitado()
+    {
+        // Embutido não é confiável por ser embutido: HTTP puro levaria o
+        // id_token da Microsoft em claro, venha o endereço de onde vier.
+        var handshake = new HandshakeFalso(Ok());
+        var pairing = new ServerPairing(handshake, new ConfigFalso(null), new EnderecoEmbutido("http://servidor.exemplo"));
+
+        var estado = await pairing.ResumeAsync(Ct);
+
+        estado.IsPaired.ShouldBeFalse();
+        handshake.Chamado.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Configuracao_gravada_ganha_do_endereco_embutido()
+    {
+        var handshake = new HandshakeFalso(Ok());
+        var pairing = new ServerPairing(
+            handshake, new ConfigFalso(Config("https://outro.exemplo/")), new EnderecoEmbutido("https://servidor.exemplo"));
+
+        await pairing.ResumeAsync(Ct);
+
+        handshake.Chamado.ShouldBe(new Uri("https://outro.exemplo/"));
+    }
+
+    [Fact]
     public async Task Configuracao_valida_e_servidor_no_ar_devolve_pareado()
     {
         var config = new ConfigFalso(Config("https://servidor.exemplo/"));
@@ -262,6 +304,11 @@ public class ServerPairingTests
             return Task.FromResult(
                 result ?? new HandshakeResult(HandshakeOutcome.Unreachable, null, "sem resposta"));
         }
+    }
+
+    private sealed class EnderecoEmbutido(string? url) : IBundledServerAddress
+    {
+        public string? Get() => url;
     }
 
     private sealed class ConfigFalso(LauncherConfig? inicial) : ILauncherConfigProvider

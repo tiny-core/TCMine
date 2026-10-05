@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+      Herda o Directory.Build.props da raiz: o MSBuild para no PRIMEIRO que
+      encontra subindo a árvore, então sem este Import os projetos do launcher
+      perderiam nullable, analisadores e metadados.
+    -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+      A versão do launcher mora em src/launcher/VERSION, e é a ÚNICA fonte dela:
+      a IDE, o scripts/release-launcher.ps1, o Dockerfile (que embute o launcher
+      na imagem do servidor) e o workflow de release leem o mesmo arquivo. Antes
+      ela vinha por parâmetro do script, e dois lugares com o mesmo número acabam
+      a discordar.
+      Quem passa -p:Version na linha de comando ainda ganha (propriedade global),
+      o que só deveria acontecer em teste.
+    -->
+  <PropertyGroup>
+    <TCMineLauncherVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</TCMineLauncherVersion>
+    <Version>$(TCMineLauncherVersion)</Version>
+    <InformationalVersion>$(TCMineLauncherVersion)</InformationalVersion>
+  </PropertyGroup>
+
+</Project>

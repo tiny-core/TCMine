@@ -172,6 +172,27 @@ snapshot_col="$(largura modpack_versions UpstreamSnapshotJson)"
 
 afirmar "UpstreamSnapshotJson é ilimitado (${snapshot_col:-?})"   bash -c '[ "$1" = "ilimitado" ]' _ "$snapshot_col"
 
+# O launcher que vem na imagem é empacotado no ARRANQUE, com o endereço desta
+# instalação embutido (LauncherBundlePublisher). Em segundo plano e levando de
+# 15 a 30 s, então espera-se por ele. O canal sai do protocolo.
+CANAL="win-x64-p$(sed -n 's/.*Current = \([0-9]*\);.*/\1/p' src/shared/TCMine.Contracts/Protocol.cs)"
+FEED="${BASE}/updates/launcher/${CANAL}"
+
+afirmar "o launcher embutido é publicado no feed (${CANAL})" \
+  bash -c "for _ in \$(seq 1 90); do curl -fsS '${FEED}/releases.${CANAL}.json' >/dev/null 2>&1 && exit 0; sleep 2; done; exit 1"
+
+afirmar "o instalador do launcher é servido" \
+  curl -fsS -r 0-0 -o /dev/null "${FEED}/TCMine.Launcher-${CANAL}-Setup.exe"
+
+# O endereço que o jogador não vai precisar digitar: o carimbo da publicação
+# registra o que foi embutido no server.json do pacote.
+afirmar "o launcher leva o endereço desta instalação" \
+  bash -c "docker exec '$APP' cat '/dados/updates/launcher/${CANAL}/.tcmine-bundle' | grep -q 'http://localhost:8080'"
+
+# A versão que a página pública oferece é a do src/launcher/VERSION do commit.
+afirmar "a versão publicada é a de src/launcher/VERSION" \
+  bash -c "curl -fsS '${FEED}/releases.${CANAL}.json' | grep -q '\"Version\":\"$(tr -d '[:space:]' < src/launcher/VERSION)\"'"
+
 echo
 if [ "$falhas" -eq 0 ]; then
   verde "SMOKE OK"
