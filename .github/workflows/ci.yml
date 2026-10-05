@@ -54,16 +54,16 @@ jobs:
           --health-retries 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
 
       # Cache dos pacotes por Directory.Packages.props: com Central Package
       # Management, é esse arquivo que decide o conjunto restaurado, então ele é
       # a chave certa.
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
@@ -115,11 +115,11 @@ jobs:
     # pré-renderiza no servidor mesmo com o script quebrado. Tudo que quebrou em
     # produção até aqui passava no build e no `dotnet run`.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v7
         with:
           context: .
           # load, e não push: a imagem fica no daemon local para o passo
