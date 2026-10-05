@@ -66,7 +66,7 @@ public sealed class LauncherBundleTests : IDisposable
 
         latest.ShouldNotBeNull();
         latest.Version.ShouldBe("1.0.0");
-        latest.DownloadUrl.ShouldBe($"/updates/launcher/{Channel}/TCMine.Launcher-{Channel}-Setup.exe");
+        latest.DownloadUrl.ShouldBe($"/updates/launcher/{Channel}/TCMine.Launcher-{Channel}-Setup.exe?v=1.0.0");
     }
 
     [Fact]
