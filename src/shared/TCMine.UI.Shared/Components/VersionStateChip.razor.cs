@@ -31,13 +31,15 @@ public partial class VersionStateChip : ComponentBase
         _ => Icons.Material.Filled.HelpOutline
     };
 
+    // Minúsculas: regra do TCMine Design System para chip ("chips em
+    // minúsculas", docs/ROADMAP.md).
     private string Label => State switch
     {
-        ModpackVersionState.Draft => "Rascunho",
-        ModpackVersionState.Resolving => "Processando",
-        ModpackVersionState.Ready => "Publicado",
-        ModpackVersionState.Failed => "Falhou",
-        ModpackVersionState.Archived => "Arquivado",
-        _ => "Desconhecido"
+        ModpackVersionState.Draft => "rascunho",
+        ModpackVersionState.Resolving => "processando",
+        ModpackVersionState.Ready => "publicado",
+        ModpackVersionState.Failed => "falhou",
+        ModpackVersionState.Archived => "arquivado",
+        _ => "desconhecido"
     };
 }

@@ -4,14 +4,8 @@
 
 <PageTitle>Servidores — TCMine</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <div>
-        <MudText Typo="Typo.h5">Servidores</MudText>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-            Todas as instâncias, de todos os modpacks.
-        </MudText>
-    </div>
-    <MudSpacer/>
+<PageHeader Title="Servidores" Subtitle="Todas as instâncias, de todos os modpacks."
+            Icon="@Icons.Material.Filled.Dns">
     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
              Color="Color.Success" Icon="@Icons.Material.Filled.PlayCircle">
         @_running rodando
@@ -19,7 +13,7 @@
     <MudTooltip Text="Recarregar e sincronizar com o Docker">
         <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="LoadAsync" Disabled="_isLoading"/>
     </MudTooltip>
-</MudStack>
+</PageHeader>
 
 @if (_isLoading)
 {
@@ -33,7 +27,7 @@ else if (_rows.Count == 0)
 }
 else
 {
-    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudPaper Outlined="true" Class="tc-panel pa-4 tc-fade-in">
         <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
             <MudTextField @bind-Value="_search" Placeholder="Buscar servidor ou modpack…" Immediate="true"
                           Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"

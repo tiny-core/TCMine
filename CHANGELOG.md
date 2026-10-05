@@ -56,6 +56,14 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de Servidores (painel) no visual novo.** Cabeçalho padrão
+  (`PageHeader`, como a Visão geral já usa) em vez de um `MudStack` manual
+  próprio; painel com borda fina. Os selos de status de servidor e de
+  versão (`ServerStatusChip`, `VersionStateChip`) passam a minúsculas
+  ("online", "rascunho"…) — eram os dois únicos componentes compartilhados
+  que ainda escapavam da regra "chips em minúsculas", e a correção vale
+  para toda tela que os usa (também a aba Servidores do modpack e a tela
+  de jogar do launcher).
 - **Tela de jogar do launcher, com "Atualizar e entrar" e lotação.** O
   cartão da instância ativa ganhou o fundo em gradiente dos tokens
   `--tc-*` (antes em `--mud-palette-*`). Cada servidor da lista mostra
