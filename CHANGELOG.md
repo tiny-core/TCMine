@@ -56,6 +56,12 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Nuvem de itens no visual novo.** A lista de nuvens (`/admin/cloud`) ganhou
+  o painel de borda fina e o estado vazio com `EmptyState` (era um
+  `MudAlert` solto, sem o botão de criar à mão). Chips capitalizados que
+  escaparam da regra ("Ligada"/"Ligado"/"Em outra nuvem"/"Bloquear"/
+  "Permitir", entre a lista de nuvens e os painéis de servidores e regras)
+  foram para minúsculas.
 - **Tela de Mods (inventário) no visual novo**, com o mesmo `PageHeader` e
   painel de borda fina das demais. O selo de origem (Modrinth/CurseForge/
   envio manual) ganhou um componente próprio, `OriginChip` — era um switch

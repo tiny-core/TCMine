@@ -48,7 +48,7 @@
             <MudTd>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@(context.Action == CloudRuleAction.Block ? Color.Error : Color.Success)">
-                    @(context.Action == CloudRuleAction.Block ? "Bloquear" : "Permitir")
+                    @(context.Action == CloudRuleAction.Block ? "bloquear" : "permitir")
                 </MudChip>
             </MudTd>
             <MudTd><MudText Typo="Typo.caption">@context.Note</MudText></MudTd>
