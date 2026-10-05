@@ -3,19 +3,13 @@
 
 <PageTitle>Armazenamento — TCMine</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <div>
-        <MudText Typo="Typo.h5">Armazenamento</MudText>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-            O que ocupa disco e o que dá para recuperar.
-        </MudText>
-    </div>
-    <MudSpacer/>
+<PageHeader Title="Armazenamento" Subtitle="O que ocupa disco e o que dá para recuperar."
+            Icon="@Icons.Material.Filled.Storage">
     <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Search"
                OnClick="ScanAsync" Disabled="_isScanning">
         @(_report is null ? "Varrer" : "Varrer de novo")
     </MudButton>
-</MudStack>
+</PageHeader>
 
 @if (_isScanning)
 {
@@ -44,7 +38,7 @@ else
 
     @* Uma barra vale mais que quatro números soltos: mostra a proporção entre
        o que está em uso e o que é lixo, que é a pergunta real. *@
-    <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+    <MudPaper Outlined="true" Class="tc-panel pa-4 mb-4 tc-fade-in">
         <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap" Spacing="4">
             <div>
                 <MudText Typo="Typo.h5">@HumanSize.Bytes(report.TotalBytes)</MudText>
@@ -87,7 +81,7 @@ else
         @* Backups vivem fora do content store e a varredura não os enxerga.
            Mostrá-los aqui evita o painel dizer que está tudo tranquilo
            enquanto gigabytes de .zip se acumulam. *@
-        <MudPaper Class="pa-4 mb-4" Elevation="0" Outlined="true">
+        <MudPaper Outlined="true" Class="tc-panel pa-4 mb-4 tc-fade-in">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3" Wrap="Wrap.Wrap">
                 <MudIcon Icon="@Icons.Material.Filled.Backup" Color="Color.Info"/>
                 <div style="flex:1; min-width:200px;">
@@ -137,7 +131,7 @@ else
     }
     else
     {
-        <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+        <MudPaper Outlined="true" Class="tc-panel pa-4 tc-fade-in">
             <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap" Spacing="2">
                 <MudText Typo="Typo.subtitle2">Arquivos sem dono</MudText>
                 <MudSpacer/>
