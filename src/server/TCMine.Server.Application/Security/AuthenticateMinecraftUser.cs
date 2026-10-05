@@ -36,14 +36,23 @@ public sealed class AuthenticateMinecraftUser(
 
                 // Sem MicrosoftObjectId de propósito: o launcher manda só o
                 // token do Minecraft, nunca o token Microsoft que traria o oid.
-                // Se esta mesma pessoa um dia entrar no painel pela Microsoft,
-                // nasce uma conta à parte — vincular as duas é trabalho futuro,
-                // não deste caso de uso.
+                // Se esta mesma pessoa já tem (ou um dia tiver) conta no painel
+                // pela Microsoft, o login de lá resolve o Minecraft e FUNDE esta
+                // conta na dele (AuthenticateMicrosoftUser/LinkMinecraftAccount).
                 LastSeenAt = DateTimeOffset.UtcNow
             };
 
-            await users.AddAsync(user, ct);
-            return Result<User>.Success(user);
+            if (await users.TryAddAsync(user, ct))
+                return Result<User>.Success(user);
+
+            // Outra requisição criou esta mesma conta entre a busca e a
+            // gravação — o launcher faz isso no primeiro arranque, quando o
+            // login silencioso e o da tela correm juntos. O índice único
+            // segurou a segunda linha; aqui adotamos a que venceu, em vez de
+            // devolver erro a quem só estava entrando.
+            user = await users.GetByMinecraftUuidAsync(profile.Uuid, ct);
+            if (user is null)
+                return Result<User>.Fail("Não foi possível registrar a conta. Tente de novo.");
         }
 
         // O nome de jogador pode ser trocado a cada 30 dias. Reconhecemos a

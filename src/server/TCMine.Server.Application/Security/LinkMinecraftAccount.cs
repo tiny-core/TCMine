@@ -30,7 +30,17 @@ public sealed class LinkMinecraftAccount(
         // launcher dele entre as duas, nunca sabendo qual é "a" conta.
         var owner = await users.GetByMinecraftUuidAsync(profile.Uuid, ct);
         if (owner is not null && owner.Id != userId)
-            return Result.Fail("Esta conta Minecraft já está vinculada a outro usuário.");
+        {
+            // Conta que só existe porque a pessoa entrou pelo launcher ANTES de
+            // vincular o Minecraft aqui: é ela mesma, em duplicata. Provar a
+            // posse do jogo agora (o token acima) é a mesma prova que criou a
+            // outra — então funde, em vez de prender o jogador numa conta que
+            // ele não consegue mais usar no painel.
+            if (owner.MicrosoftObjectId is not null)
+                return Result.Fail("Esta conta Minecraft já está vinculada a outro usuário.");
+
+            await users.MergeAsync(userId, owner.Id, ct);
+        }
 
         var user = await users.GetByIdAsync(userId, ct);
         if (user is null)
