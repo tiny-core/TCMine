@@ -3,14 +3,157 @@
 Todas as mudanças relevantes do **TCMine Server** e, a partir da 0.4.0, também
 do **TCMine Launcher** — os dois são lançados por tags próprias
 (`server-v*`, `launcher-v*`), mas partilham repositório e protocolo. As versões
-seguem
-[SemVer](https://semver.org/lang/pt-BR/); enquanto estivermos em `0.x`, a API e
-o formato dos dados ainda podem mudar entre versões menores.
+seguem [SemVer](https://semver.org/lang/pt-BR/). A partir da **1.0.0**, o que
+está em [Compromisso de estabilidade](README.md#compromisso-de-estabilidade) só
+muda de forma incompatível numa versão MAIOR.
 
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
-## [Não lançado]
+## [1.0.0] — 2026-10-05
+
+A primeira versão estável. Fecha os defeitos que faziam o servidor de jogo
+subir na versão errada e o mesmo jogador virar duas contas, e passa a tratar
+a ingestão de mods com o que já está em casa antes de ir à rede.
+
+### Adicionado
+
+- **Escolher a versão na importação.** Ao importar um modpack, a lista de
+  releases aparece com a estável mais recente marcada; ao adicionar mods pela
+  busca, cada mod marcado ganha um seletor com as releases compatíveis com o
+  Minecraft e o loader do pack.
+
+- **Ingestão "banco → disco → rede".** Antes de consultar o Modrinth ou o
+  CurseForge, o TCMine verifica se aquela release já foi ingerida (em qualquer
+  modpack) e se os bytes estão no disco. Importar um segundo pack que partilha
+  metade dos mods com o primeiro deixa de baixar e de gastar cota de API com
+  essa metade. A importação também passou a recusar um pack já importado
+  **antes** de baixar o zip.
+
+- **Aviso de atualização no painel.** O admin da instalação vê quando sai uma
+  versão estável nova do TCMine Server, com o link das notas e o comando para
+  atualizar. A consulta vai às releases `server-v*` do GitHub, com cache de seis
+  horas; `Updates__Enabled=false` desliga.
+
+- **Reaver a administração** (`/admin/claim`). Se nenhum administrador consegue
+  entrar pela Microsoft — o caso de quem só tinha conta de e-mail e senha antes
+  da 0.5.0 —, o servidor escreve no log, ao arrancar, um código de uso único.
+  Quem opera a máquina entra com a Microsoft, informa o código e vira o
+  administrador; havendo uma única conta de admin antiga, ela é unida à nova,
+  com modpacks, servidores e acessos.
+
+### Removido
+
+- **E-mail.** O SMTP, o servidor de e-mail próprio (container
+  `tcmine-mail`) e a aba *E-mail* das Configurações serviam à recuperação de
+  senha, que deixou de existir com o login só pela Microsoft (0.5.0). As
+  colunas saem do banco na migration `RemoveEmail`.
+
+- O workflow `release-launcher.yml`, que ainda disparava em tags `launcher-v*`
+  embora o launcher seja publicado à mão (ver
+  [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher)).
+
+### Corrigido
+
+- **O servidor de jogo não subia na versão do modpack.** O container era criado
+  uma vez e reaproveitado para sempre: trocar a versão do servidor (ou a
+  memória) não chegava ao jogo, nem os mods eram rematerializados. Agora o
+  container é recriado sempre que a configuração muda — o mundo vive na pasta
+  montada e não se perde. Em Fabric e Quilt, a build do loader ia numa variável
+  que a imagem ignora, e o servidor subia com o loader mais recente.
+
+- **A versão fixada de um mod podia virar a mais recente.** Quando a release
+  pedida não aparecia na primeira página da origem (50 arquivos no CurseForge),
+  o TCMine instalava a mais nova sem avisar. Releases fixadas agora são buscadas
+  pelo id. O mesmo valia para releases antigas de um pack no CurseForge.
+
+- **Jogador duplicado.** Dois logins simultâneos no primeiro arranque do
+  launcher podiam terminar em erro; e quem entrou no painel antes de ter o
+  Minecraft vinculado ganhava uma segunda conta ao entrar pelo launcher. A
+  corrida agora adota a conta vencedora, e a duplicata é fundida na conta do
+  painel no próximo login dela (ou ao vincular o Minecraft), mantendo todos os
+  acessos.
+
+- **Mod do Modrinth em dobro.** A busca gravava o mod pelo slug, e o pack
+  importado e as dependências pelo id do projeto: o mesmo mod pelos dois
+  caminhos virava dois `.jar` em `mods/`. A identidade agora é sempre o id, e a
+  próxima atualização de um mod gravado pelo slug substitui a linha antiga.
+
+- **A publicação da imagem ficava vermelha quando a release era criada pela
+  tela do GitHub.** A imagem saía (foi o que aconteceu na 0.4.0 e na 0.5.0), mas
+  o último passo tentava criar uma release que já existia. Agora ele só acerta
+  as marcas da release existente.
+
+- Clonar uma versão ou criar uma a partir de outra perdia o ícone dos mods.
+
+### Manutenção
+
+- .NET 10.0.12 (servicing) e as actions do GitHub nas versões que rodam em
+  Node 24 — as anteriores rodavam em Node 20, descontinuado nos runners.
+
+### Atualizar
+
+Nada a fazer no banco: as migrations novas (`AddModpackFileDependencies`,
+`RemoveEmail`) aplicam-se no arranque. O protocolo do launcher **não** mudou
+(continua 2): não é preciso publicar launcher novo.
+
+Os containers dos servidores de jogo existentes são **recriados no próximo
+start** — é a primeira vez que levam a impressão digital da configuração. O
+mundo fica: ele vive na pasta da instância, não no container.
+
+Se o servidor de e-mail próprio estava ligado, o container `tcmine-mail` fica
+órfão: remova-o com `docker rm -f tcmine-mail` (e, se quiser, a pasta
+`{TCMINE_ROOT}/instances/mail`, onde ele guardava o estado).
+
+Quem vem de uma instalação com contas de e-mail e senha e não consegue mais
+administrar: procure no log do arranque a linha com o código de resgate
+(`docker compose logs tcmine | grep /admin/claim`), abra `/admin/claim` e
+informe-o.
+
+## [0.5.0] — 2026-10-05
+
+### Adicionado
+
+- **Login só pela Microsoft.** Acabou o par e-mail/senha: o primeiro acesso
+  (`/admin/setup`) pede o client ID do Entra ID e quem entra primeiro vira o
+  administrador da instalação. O painel e o launcher passam a ser a mesma conta
+  — antes o servidor recém-criado do admin não aparecia no launcher dele, porque
+  eram duas contas sem relação.
+
+- **Pedidos de acesso.** O launcher mostra também os servidores com whitelist em
+  que o jogador ainda não entrou, com o endereço escondido e um botão "Pedir
+  acesso"; o admin aprova ou recusa na página *Pedidos de acesso*. Servidor
+  **sem** whitelist aparece para qualquer jogador autenticado, sem convite.
+
+- **Convites pelo launcher.** O jogador resgata o código que recebeu direto na
+  tela inicial.
+
+- **Página de Usuários** (só para o admin da instalação): buscar contas,
+  promover ou rebaixar administradores (sem nunca ficar sem nenhum) e ver os
+  acessos de cada um.
+
+- **Nuvem de itens (TC Cloud Storage)**, para o mod `tccloud`: cofres por dono,
+  API para os servidores de jogo com chave renovada a cada start, ledger
+  append-only, quarentena, detecção de mundo que voltou no tempo e painel de
+  governança. O plano e as decisões estão em
+  [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md).
+
+### Corrigido
+
+- A primeira versão de um modpack é sugerida como `1.0.0-alpha` (era
+  `1.0.1-alpha`, um número sem nada antes dele), e criar uma versão sem herdar
+  mods explica que só o rascunho novo nasce vazio.
+- A tela de novo servidor mostrava a build do loader no lugar da versão do
+  Minecraft.
+- O processo do launcher podia ficar vivo depois de fechar a janela.
+
+### Atualizar
+
+As contas de e-mail e senha deixam de existir: entra-se pela Microsoft. Uma
+conta antiga só é reconhecida se tinha um Minecraft vinculado; sem isso, o
+caminho de volta à administração chegou na 1.0.0 (`/admin/claim`).
+
+## [0.4.0] — 2026-09-28
 
 A versão em que o launcher deixou de ser promessa. O laço fecha: parear, entrar
 com a conta Microsoft, instalar um modpack e **abrir o jogo**.
@@ -62,96 +205,11 @@ com a conta Microsoft, instalar um modpack e **abrir o jogo**.
   `appsettings` — o administrador tinha de editar JSON dentro do container e
   reiniciar. `Server:AzureClientId` sobrevive como semente.
 
-- **Login só pela Microsoft.** Acabou o par e-mail/senha: o primeiro acesso
-  (`/admin/setup`) pede o client ID do Entra ID e quem entra primeiro vira o
-  administrador da instalação. O painel e o launcher passam a ser a mesma conta
-  — antes o servidor recém-criado do admin não aparecia no launcher dele, porque
-  eram duas contas sem relação.
+- **Modpacks com dono e editores**, como os servidores já tinham.
 
-- **Pedidos de acesso.** O launcher mostra também os servidores com whitelist em
-  que o jogador ainda não entrou, com o endereço escondido e um botão "Pedir
-  acesso"; o admin aprova ou recusa na página *Pedidos de acesso*. Servidor
-  **sem** whitelist aparece para qualquer jogador autenticado, sem convite.
-
-- **Convites pelo launcher.** O jogador resgata o código que recebeu direto na
-  tela inicial.
-
-- **Página de Usuários** (só para o admin da instalação): buscar contas,
-  promover ou rebaixar administradores (sem nunca ficar sem nenhum) e ver os
-  acessos de cada um.
-
-- **Nuvem de itens (TC Cloud Storage)**, para o mod `tccloud`: cofres por dono,
-  API para os servidores de jogo com chave renovada a cada start, ledger
-  append-only, quarentena, detecção de mundo que voltou no tempo e painel de
-  governança. O plano e as decisões estão em
-  [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md).
-
-- **Escolher a versão na importação.** Ao importar um modpack, a lista de
-  releases aparece com a estável mais recente marcada; ao adicionar mods pela
-  busca, cada mod marcado ganha um seletor com as releases compatíveis com o
-  Minecraft e o loader do pack.
-
-- **Ingestão "banco → disco → rede".** Antes de consultar o Modrinth ou o
-  CurseForge, o TCMine verifica se aquela release já foi ingerida (em qualquer
-  modpack) e se os bytes estão no disco. Importar um segundo pack que partilha
-  metade dos mods com o primeiro deixa de baixar e de gastar cota de API com
-  essa metade. A importação também passou a recusar um pack já importado
-  **antes** de baixar o zip.
-
-- **Aviso de atualização no painel.** O admin da instalação vê quando sai uma
-  versão estável nova do TCMine Server, com o link das notas e o comando para
-  atualizar. A consulta vai às releases `server-v*` do GitHub, com cache de seis
-  horas; `Updates__Enabled=false` desliga.
-
-- **Reaver a administração** (`/admin/claim`). Se nenhum administrador consegue
-  entrar pela Microsoft — o caso de quem só tinha conta de e-mail e senha —, o
-  servidor escreve no log, ao arrancar, um código de uso único. Quem opera a
-  máquina entra com a Microsoft, informa o código e vira o administrador; havendo
-  uma única conta de admin antiga, ela é unida à nova, com modpacks, servidores e
-  acessos.
-
-### Removido
-
-- **E-mail.** O SMTP, o servidor de e-mail próprio (container
-  `tcmine-mail`) e a aba *E-mail* das Configurações serviam à recuperação de
-  senha, que deixou de existir com o login só pela Microsoft. As colunas saem do
-  banco na migration `RemoveEmail`.
-
-- O workflow `release-launcher.yml`, que ainda disparava em tags `launcher-v*`
-  embora o launcher seja publicado à mão (ver
-  [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher)).
+- **Página pública de catálogo** para quem visita sem login.
 
 ### Corrigido
-
-- **A publicação da imagem ficava vermelha quando a release era criada pela
-  tela do GitHub.** A imagem saía, mas o último passo tentava criar uma release
-  que já existia. Agora ele só acerta as marcas da release existente.
-
-- **Mod do Modrinth em dobro.** A busca gravava o mod pelo slug, e o pack
-  importado e as dependências pelo id do projeto: o mesmo mod pelos dois
-  caminhos virava dois `.jar` em `mods/`. A identidade agora é sempre o id, e a
-  próxima atualização de um mod gravado pelo slug substitui a linha antiga.
-
-- **O servidor de jogo não subia na versão do modpack.** O container era criado
-  uma vez e reaproveitado para sempre: trocar a versão do servidor (ou a
-  memória) não chegava ao jogo, nem os mods eram rematerializados. Agora o
-  container é recriado sempre que a configuração muda — o mundo vive na pasta
-  montada e não se perde. Em Fabric e Quilt, a build do loader ia numa variável
-  que a imagem ignora, e o servidor subia com o loader mais recente.
-
-- **A versão fixada de um mod podia virar a mais recente.** Quando a release
-  pedida não aparecia na primeira página da origem (50 arquivos no CurseForge),
-  o TCMine instalava a mais nova sem avisar. Releases fixadas agora são buscadas
-  pelo id. O mesmo valia para releases antigas de um pack no CurseForge.
-
-- **Jogador duplicado.** Dois logins simultâneos no primeiro arranque do
-  launcher podiam terminar em erro; e quem entrou no painel antes de ter o
-  Minecraft vinculado ganhava uma segunda conta ao entrar pelo launcher. A
-  corrida agora adota a conta vencedora, e a duplicata é fundida na conta do
-  painel no próximo login dela (ou ao vincular o Minecraft), mantendo todos os
-  acessos.
-
-- Clonar uma versão ou criar uma a partir de outra perdia o ícone dos mods.
 
 - A retenção de backups de mundo do **painel** nunca era gravada: o caso de uso
   punha o valor na entidade e o repositório descartava-o, então ela voltava a
@@ -163,21 +221,6 @@ O **protocolo subiu para 2**, e o mínimo aceite subiu junto: um launcher de
 protocolo 1 é recusado no handshake e mandado atualizar. Como o canal do Velopack
 deriva do protocolo, **publique o launcher antes de subir o servidor** — senão o
 jogador recebe uma instrução que não tem como cumprir.
-
-Nada a fazer no banco: as migrations novas aplicam-se no arranque, como as
-outras. Os containers dos servidores de jogo existentes são **recriados no
-próximo start** (o mundo fica, ele vive na pasta da instância) — é a primeira
-vez que levam a impressão digital da configuração.
-
-**Quem tinha conta de e-mail e senha no painel** entra agora pela Microsoft. A
-conta antiga é reconhecida se tinha um Minecraft vinculado. Sem isso nasce uma
-conta nova, sem papel de admin: procure no log do arranque a linha com o código
-de resgate (`docker compose logs tcmine | grep /admin/claim`), abra
-`/admin/claim` e informe-o.
-
-Se o servidor de e-mail próprio estava ligado, o container `tcmine-mail` fica
-órfão: remova-o com `docker rm -f tcmine-mail` (e, se quiser, a pasta
-`{TCMINE_ROOT}/instances/mail`, onde ele guardava o estado).
 
 ## [0.3.0] — 2026-08-23
 
