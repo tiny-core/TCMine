@@ -218,6 +218,9 @@ builder.Services.AddHostedService<DockerReachability>();
 // Microsoft): emite o código de resgate no log.
 builder.Services.AddHostedService<AdminClaimBootstrap>();
 
+// O launcher embutido na imagem vai para o feed, com o endereço desta instalação.
+builder.Services.AddHostedService<LauncherBundlePublisher>();
+
 var app = builder.Build();
 
 // Aplica migrations pendentes no arranque.

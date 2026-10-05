@@ -69,10 +69,9 @@ jobs:
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
           restore-keys: nuget-${{ runner.os }}-
 
-      # TCMine.Server.slnx, não TCMine.slnx: o launcher saiu do CI (§0/§12 do
-      # CLAUDE.md) — build e testes dele passaram a ser trabalho da IDE. A
-      # solução completa, com a pasta /Launcher/, continua existindo para quem
-      # abre o projeto localmente.
+      # TCMine.Server.slnx, não TCMine.slnx: os TESTES do launcher são trabalho
+      # da IDE, no Windows (§8 do CLAUDE.md). O binário dele, esse sim, é
+      # compilado aqui — pelo Dockerfile, no job da imagem, que o leva dentro.
       - name: Restaurar
         run: dotnet restore TCMine.Server.slnx
 
@@ -115,7 +114,16 @@ jobs:
     # pré-renderiza no servidor mesmo com o script quebrado. Tudo que quebrou em
     # produção até aqui passava no build e no `dotnet run`.
     steps:
+      # Histórico e tags para a guarda da versão do launcher, logo abaixo.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Só AVISA: o número pode subir em qualquer commit até a release, e é o
+      # release-server.yml que recusa publicar sem ele. Aqui o aviso aparece no
+      # PR enquanto ainda é barato lembrar.
+      - name: Versão do launcher acompanhou as mudanças dele
+        run: bash ./scripts/check-launcher-version.sh --warn
 
       - uses: docker/setup-buildx-action@v4
 

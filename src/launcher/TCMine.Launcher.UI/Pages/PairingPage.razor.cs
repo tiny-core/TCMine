@@ -21,6 +21,13 @@ public partial class PairingPage : ComponentBase
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
+    /// <summary>
+    ///     Chega-se aqui com um endereço embutido quando o pareamento automático
+    ///     do arranque falhou (servidor fora do ar, por exemplo): o jogador só
+    ///     confirma, em vez de ter de descobrir o endereço de novo.
+    /// </summary>
+    protected override void OnInitialized() => _address = Pairing.SuggestedAddress ?? "";
+
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
         // Enter num formulário de um campo só é o que qualquer um espera. Sem

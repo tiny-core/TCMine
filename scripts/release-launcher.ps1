@@ -8,9 +8,9 @@
     sentido na máquina onde ele vai rodar. Isto é esse mesmo processo, para
     rodar daqui — do terminal do Rider, por exemplo.
 
-.PARAMETER Version
-    A versão a publicar, ex.: 0.2.0. Vira Version/InformationalVersion do
-    assembly e a versão do pacote do Velopack.
+    A versão NÃO é parâmetro: vem de src/launcher/VERSION, a mesma que a
+    imagem do servidor embute. Para lançar uma versão nova, suba o número
+    nesse arquivo e comite — é o que o workflow de release do servidor confere.
 
 .PARAMETER SkipTests
     Pula a suíte antes de publicar. Um launcher publicado é tão imutável
@@ -19,11 +19,10 @@
     não para o caminho normal.
 
 .EXAMPLE
-    ./scripts/release-launcher.ps1 -Version 0.2.0
+    ./scripts/release-launcher.ps1
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)][string]$Version,
     [switch]$SkipTests
 )
 
@@ -33,6 +32,9 @@ $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
 $SdkVersion = (Get-Content "$Root\global.json" | ConvertFrom-Json).sdk.version
+
+$Version = (Get-Content "$Root\src\launcher\VERSION" -Raw).Trim()
+if (-not $Version) { throw "src\launcher\VERSION está vazio." }
 
 # O dotnet do PATH pode resolver para o SDK errado quando o exigido pelo
 # global.json só está instalado em %USERPROFILE%\.dotnet (comum quando o
@@ -96,8 +98,6 @@ dotnet publish "$Root\src\launcher\TCMine.Launcher.App" `
     -c Release `
     -r win-x64 `
     --self-contained true `
-    -p:Version=$Version `
-    -p:InformationalVersion=$Version `
     -o $publishDir
 
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish falhou." }
@@ -130,6 +130,7 @@ vpk pack `
     --mainExe TCMine.Launcher.App.exe `
     --packTitle "TCMine Launcher" `
     --channel $channel `
+    --runtime win-x64 `
     --outputDir $releasesDir
 
 if ($LASTEXITCODE -ne 0) { throw "vpk pack falhou." }

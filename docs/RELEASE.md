@@ -6,8 +6,8 @@ O repositório abriga dois produtos, então a tag diz de qual se trata:
 |---|---|
 | `server-v0.2.0` | Constrói a imagem e publica no Docker Hub (`release-server.yml`) |
 
-O launcher não tem workflow: publicá-lo é um passo manual, feito na sua
-máquina Windows — ver [Lançar o launcher](#lançar-o-launcher) abaixo.
+O launcher não tem tag própria: ele vai **dentro da imagem do servidor** e é
+publicado no feed quando o container sobe — ver [O launcher](#o-launcher).
 
 ## Configurar uma vez
 
@@ -95,88 +95,75 @@ O workflow aceita disparo manual (**Actions → Publicar imagem do servidor → 
 workflow**). Nesse caso a imagem sai como `0.0.0-manual` e não recebe `latest`,
 para um teste não virar a versão que os outros baixam.
 
-## Lançar o launcher
+## O launcher
 
-Não há workflow: o launcher é Windows (WPF + WebView2) e compilar/empacotar só
-faz sentido na sua própria máquina — é por isso que ele saiu do GitHub Actions
-(nem o `ci.yml` verifica mais o launcher a cada push; isso agora é trabalho da
-IDE, rodando `TCMine.slnx` e a suíte de testes localmente antes de publicar).
+O launcher viaja **dentro da imagem do servidor**. O `Dockerfile` compila o WPF
+(win-x64, self-contained — compila no Linux, só não roda) e leva junto o `vpk`
+na mesma versão do pacote `Velopack`. Quando o container sobe, o servidor
+empacota o launcher em `${TCMINE_ROOT}/updates/launcher/{canal}/` com um
+`server.json` contendo o `Server:PublicUrl` dele. Resultado:
 
-```powershell
-./scripts/release-launcher.ps1 -Version 0.2.0
-```
+- quem baixa o `Setup.exe` pela página pública instala um launcher que **já
+  sabe o endereço** e pareia sozinho no primeiro uso — o jogador não digita
+  nada (o endereço passa pelas mesmas regras do digitado: HTTPS, handshake);
+- quem já tem o launcher recebe a atualização na abertura seguinte;
+- subir uma imagem nova é publicar o launcher dela. Não há passo separado
+  para esquecer.
 
-Rode do terminal — inclusive o embutido no Rider. O script:
+O empacotamento leva alguns segundos e só acontece quando muda a versão ou o
+endereço: um arranque igual ao anterior não faz nada (a marca fica em
+`.tcmine-bundle`, na pasta do canal). Trocar o `PublicUrl` reempacota a mesma
+versão — o instalador velho apontaria para o endereço velho.
 
-1. Confere se o SDK do `global.json` resolve (e corrige o `PATH` sozinho se ele
-   só existir em `%USERPROFILE%\.dotnet`, em vez de morrer com "SDK not found").
-2. Roda `TCMine.Launcher.Core.Tests` e `TCMine.Launcher.Architecture.Tests` —
-   só o que o launcher toca, não a suíte inteira do servidor.
-3. Publica self-contained para win-x64. Self-contained porque o jogador não
-   deve instalar runtime nenhum, e o Velopack substitui a pasta inteira a cada
-   update — meio caminho dependente do runtime seria mais uma coisa para dar
-   errado na máquina de outra pessoa.
-4. Instala/atualiza o `vpk` global na MESMA versão do pacote `Velopack`
-   referenciado pelo launcher (`Directory.Packages.props`) — um `vpk`
-   desalinhado pode empacotar num formato que a biblioteca embutida não
-   entende, e o sintoma só aparece no autoupdate de quem já instalou.
-5. Empacota com o Velopack em `releases/launcher/`.
+### A versão: `src/launcher/VERSION`
 
-O canal deriva do **protocolo**, não da versão do produto — hoje `win-x64-p2`,
-lido de `Protocol.Current` em `src/shared/TCMine.Contracts/Protocol.cs`. É o
-que permite publicar launcher 1.6, 1.7 e 1.8 sem release nenhuma do servidor;
-o script lê o número de lá em vez de repeti-lo, porque dois lugares discordando
-publicam no canal errado, entregando uma atualização que o servidor nunca vai
-oferecer.
+Um arquivo, uma linha (`1.0.0`). É lido pelo MSBuild
+(`src/launcher/Directory.Build.props` → `Version` dos assemblies), pelo
+`Dockerfile`, pelo `release-launcher.ps1` e pela guarda da release. Ninguém
+passa a versão por parâmetro.
 
-Use `-SkipTests` só para reexecuções rápidas sobre código já testado — não é o
-caminho normal. E abra o launcher publicado pelo menos uma vez antes de
-distribuir: um launcher publicado é tão imutável quanto uma imagem, porque
-alguém pode já ter instalado no minuto seguinte.
+**Mudou o launcher, suba o número.** O Velopack só oferece atualização a quem
+tem versão MENOR: um launcher alterado com o mesmo número chega a quem instala
+de novo e nunca a quem já o tem. Por isso o `release-server.yml` **falha** se,
+desde a tag `server-v*` anterior, algo mudou em `src/launcher/`, `src/shared/`,
+`Directory.Packages.props` ou `Directory.Build.props` e o `VERSION` não subiu
+(`scripts/check-launcher-version.sh`). No CI de cada PR a mesma conferência só
+**avisa** — o número pode subir em qualquer commit até a release.
 
-### Configurar como Run Configuration no Rider
+Os testes do launcher continuam sendo trabalho da IDE, no Windows
+(`TCMine.slnx`): o CI compila o binário, mas não abre janela nenhuma.
 
-`Run` → `Edit Configurations…` → `+` → `Shell Script` → aponte **Script path**
-para `scripts/release-launcher.ps1`, **Interpreter path** para `powershell.exe`,
-em **Interpreter options** ponha `-ExecutionPolicy Bypass` e em **Script
-options** passe `-Version 0.2.0` (troque a versão a cada release). Fica salvo
-em `.idea/`, que é local e não versionado — cada máquina configura a própria.
+### Publicar à mão (opcional)
 
-O `-ExecutionPolicy Bypass` é necessário porque a política padrão do Windows
-recusa rodar `.ps1` sem estar assinado. É por invocação, não altera nada no
-sistema — a alternativa seria `Set-ExecutionPolicy -Scope CurrentUser
-RemoteSigned` uma vez só (afeta só o seu usuário), mas isso exige decidir mexer
-numa configuração do Windows, e a Run Configuration resolve sem isso.
-
-Pelo terminal (fora do Rider) é o mesmo parâmetro:
+`scripts/release-launcher.ps1` continua existindo para testar um pacote na sua
+máquina, ou para pôr no ar um launcher sem lançar imagem:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\release-launcher.ps1 -Version 0.2.0
+powershell -ExecutionPolicy Bypass -File .\scripts\release-launcher.ps1
 ```
 
-### Pôr a release no ar
-
-Copie o conteúdo de `releases/launcher/` para o servidor — de propósito à mão,
-e não por um pipeline: a máquina onde você empacota não deveria ter credencial
+Ele lê a versão do `VERSION`, roda `Launcher.Core.Tests` e
+`Launcher.Architecture.Tests`, publica self-contained e empacota em
+`releases/launcher/`. Copiar isso para `${TCMINE_ROOT}/updates/launcher/{canal}/`
+é de propósito à mão: a máquina onde você empacota não deveria ter credencial
 de escrita na que serve jogadores.
 
-```
-${TCMINE_ROOT}/updates/launcher/win-x64-p2/
-```
+Um pacote manual com versão **maior** que a da imagem é respeitado — o
+arranque não o sobrescreve (`NewerAlreadyPublished` no log). Mas ele não leva
+`server.json`: o instalador dele pede o endereço na primeira abertura. Quando a
+imagem seguinte trouxer versão igual ou maior, o feed volta a ser dela.
 
-É a pasta que `/updates/launcher/{canal}/` serve, derivada de `Storage:RootPath`.
-Os launchers instalados encontram a novidade na abertura seguinte.
+Para desligar o empacotamento no arranque (feed mantido só à mão):
+`LauncherUpdates__PublishBundled=false`. `Server__FreezeLauncherUpdates=true`
+também o suspende, como já suspendia o resto do feed.
 
-### O primeiro instalador
-
-O feed serve **atualizações**, não a primeira instalação. O `*-Setup.exe` da
-release é o que se entrega a quem ainda não tem o launcher — por download no
-site, no Discord, onde fizer sentido.
+O canal deriva do **protocolo**, não da versão do produto — hoje `win-x64-p2`,
+lido de `Protocol.Current` em `src/shared/TCMine.Contracts/Protocol.cs`.
 
 ### Quando o protocolo sobe
 
 Subir `Protocol.Current` muda o canal, e um launcher no canal antigo **deixa de
-ser aceite no handshake** (o mínimo sobe junto). Ele recebe "atualize", mas o
-canal antigo já não recebe releases — então publique a versão nova ANTES de
-subir o servidor, ou os jogadores ficam com uma instrução que não têm como
-cumprir.
+ser aceite no handshake** (o mínimo sobe junto). O feed dele não recebe mais
+nada — um canal novo não é atualização do anterior —, então quem estava nele
+reinstala pelo `Setup.exe` da página pública, que a imagem nova já publicou no
+canal novo. Avise os jogadores antes de subir.

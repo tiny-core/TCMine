@@ -148,13 +148,11 @@ O servidor sai por tag:
 git tag server-v0.4.0 && git push origin server-v0.4.0     # imagem no Docker Hub
 ```
 
-O launcher é publicado **à mão**, na sua máquina Windows (`dotnet publish` +
-`vpk pack`), e os ficheiros são copiados para a pasta de atualizações do
-servidor — ver [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher).
-
-**Ordem importa quando o protocolo sobe**: o launcher primeiro. Um launcher no
-canal antigo é recusado no handshake e mandado atualizar, e o canal novo só tem
-release depois que você a publica. Ver [docs/RELEASE.md](docs/RELEASE.md).
+O launcher vai **dentro da imagem**: ao subir, o servidor o publica na pasta de
+atualizações com o próprio endereço embutido, e o jogador que instala pela
+página pública não digita nada. O número do launcher vive em
+`src/launcher/VERSION`, e a release recusa sair se o launcher mudou sem ele
+subir — ver [docs/RELEASE.md](docs/RELEASE.md#o-launcher).
 
 O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md).
 
