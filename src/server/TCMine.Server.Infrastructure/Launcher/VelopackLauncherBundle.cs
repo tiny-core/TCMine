@@ -42,12 +42,26 @@ public sealed partial class VelopackLauncherBundle(
         var action = LauncherBundlePlan.Decide(
             version, url, VelopackFeed.LatestVersion(channelDir, Channel), LauncherBundleStamp.Read(channelDir));
 
+        if (action is LauncherBundleAction.Skip)
+            return LauncherBundleOutcome.UpToDate;
+        if (action is LauncherBundleAction.KeepNewer)
+            return LauncherBundleOutcome.NewerAlreadyPublished;
+
+        // Conferido ANTES do vpk, que só descobre no último passo — depois de
+        // um minuto empacotando — e sai com 255 e um stack trace. O caso real:
+        // um launcher publicado à mão, copiado para o feed como root, que o
+        // usuário do container não consegue sobrescrever.
+        if (VelopackFeed.FindUnwritable(channelDir) is { } locked)
+        {
+            throw new InvalidOperationException(
+                $"Sem permissão de escrita em '{locked}'. O container roda como o usuário "
+                + $"{Environment.UserName} e não consegue sobrescrever o feed — provavelmente "
+                + "arquivos copiados à mão como root. Na máquina host: "
+                + "sudo chown -R 1654:1654 ${TCMINE_ROOT}/updates e reinicie o container.");
+        }
+
         switch (action)
         {
-            case LauncherBundleAction.Skip:
-                return LauncherBundleOutcome.UpToDate;
-            case LauncherBundleAction.KeepNewer:
-                return LauncherBundleOutcome.NewerAlreadyPublished;
             case LauncherBundleAction.Rebuild:
                 // O vpk recusa a mesma versão duas vezes. Com o endereço mudado,
                 // o canal é refeito; quem já tem esta versão não perde nada.
@@ -149,9 +163,21 @@ public sealed partial class VelopackLauncherBundle(
         var output = await stdout + await stderr;
         if (process.ExitCode != 0)
         {
-            throw new InvalidOperationException(
-                $"vpk saiu com {process.ExitCode}: {string.Join('\n', output.Split('\n').TakeLast(10))}");
+            throw new InvalidOperationException($"vpk saiu com {process.ExitCode}: {VpkErrorSummary(output)}");
         }
+    }
+
+    /// <summary>
+    ///     As linhas de erro do vpk (<c>[hh:mm:ss FTL]</c> / <c>ERR</c>). O fim da
+    ///     saída é o stack trace dele, que diz ONDE falhou e nunca POR QUÊ —
+    ///     foi só isso que chegou ao log na primeira falha em produção.
+    /// </summary>
+    public static string VpkErrorSummary(string output)
+    {
+        var lines = output.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var errors = lines.Where(l => l.Contains(" FTL]", StringComparison.Ordinal)
+                                      || l.Contains(" ERR]", StringComparison.Ordinal)).ToArray();
+        return string.Join('\n', errors.Length > 0 ? errors : lines.TakeLast(10));
     }
 
     private static void CopyDirectory(string source, string target)

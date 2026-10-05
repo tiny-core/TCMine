@@ -11,6 +11,17 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [1.0.1] — 2026-10-05
+
+### Corrigido
+
+- **O launcher embutido não era publicado quando o feed tinha arquivos de uma
+  publicação manual copiados como root.** O `vpk` só descobria no último passo
+  e o log mostrava apenas o stack trace dele (`vpk saiu com 255`). Agora a
+  permissão é conferida antes, e o erro diz qual arquivo e o comando que
+  resolve (`sudo chown -R 1654:1654 ${TCMINE_ROOT}/updates`); qualquer outra
+  falha do `vpk` chega ao log pela linha de erro dele, não pelo stack trace.
+
 ## [1.0.0] — 2026-10-05
 
 A primeira versão estável. Fecha os defeitos que faziam o servidor de jogo
