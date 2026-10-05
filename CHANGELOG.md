@@ -98,7 +98,30 @@ com a conta Microsoft, instalar um modpack e **abrir o jogo**.
   essa metade. A importação também passou a recusar um pack já importado
   **antes** de baixar o zip.
 
+- **Reaver a administração** (`/admin/claim`). Se nenhum administrador consegue
+  entrar pela Microsoft — o caso de quem só tinha conta de e-mail e senha —, o
+  servidor escreve no log, ao arrancar, um código de uso único. Quem opera a
+  máquina entra com a Microsoft, informa o código e vira o administrador; havendo
+  uma única conta de admin antiga, ela é unida à nova, com modpacks, servidores e
+  acessos.
+
+### Removido
+
+- **E-mail.** O SMTP, o servidor de e-mail próprio (container
+  `tcmine-mail`) e a aba *E-mail* das Configurações serviam à recuperação de
+  senha, que deixou de existir com o login só pela Microsoft. As colunas saem do
+  banco na migration `RemoveEmail`.
+
+- O workflow `release-launcher.yml`, que ainda disparava em tags `launcher-v*`
+  embora o launcher seja publicado à mão (ver
+  [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher)).
+
 ### Corrigido
+
+- **Mod do Modrinth em dobro.** A busca gravava o mod pelo slug, e o pack
+  importado e as dependências pelo id do projeto: o mesmo mod pelos dois
+  caminhos virava dois `.jar` em `mods/`. A identidade agora é sempre o id, e a
+  próxima atualização de um mod gravado pelo slug substitui a linha antiga.
 
 - **O servidor de jogo não subia na versão do modpack.** O container era criado
   uma vez e reaproveitado para sempre: trocar a versão do servidor (ou a
@@ -138,11 +161,14 @@ próximo start** (o mundo fica, ele vive na pasta da instância) — é a primei
 vez que levam a impressão digital da configuração.
 
 **Quem tinha conta de e-mail e senha no painel** entra agora pela Microsoft. A
-conta antiga só é reconhecida se tinha um Minecraft vinculado (o login da
-Microsoft resolve o jogo e a adota). Sem isso nasce uma conta NOVA — e, como a
-instalação já tem usuários, ela não vira administradora. Nesse caso, depois do
-primeiro login, marque `IsInstanceAdmin` nessa conta direto no banco (tabela
-`users`); dali em diante a página *Usuários* faz o resto.
+conta antiga é reconhecida se tinha um Minecraft vinculado. Sem isso nasce uma
+conta nova, sem papel de admin: procure no log do arranque a linha com o código
+de resgate (`docker compose logs tcmine | grep /admin/claim`), abra
+`/admin/claim` e informe-o.
+
+Se o servidor de e-mail próprio estava ligado, o container `tcmine-mail` fica
+órfão: remova-o com `docker rm -f tcmine-mail` (e, se quiser, a pasta
+`{TCMINE_ROOT}/instances/mail`, onde ele guardava o estado).
 
 ## [0.3.0] — 2026-08-23
 

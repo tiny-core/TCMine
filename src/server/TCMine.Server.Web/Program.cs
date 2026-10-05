@@ -128,10 +128,10 @@ builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 // ---------- Proteção de dados ----------
 // Chaves persistidas em disco: sem isto elas são regeradas a cada arranque, o
 // que derrubaria toda sessão e tornaria ilegível o que foi cifrado antes (a
-// chave da API do CurseForge, a senha de SMTP).
+// chave da API do CurseForge).
 // O caminho é configurável porque em container /app é efêmero: recriar o
 // container apagaria as chaves, derrubando toda sessão e tornando ilegível o
-// que foi cifrado com elas — a chave do CurseForge e a senha do SMTP.
+// que foi cifrado com elas — a chave do CurseForge.
 builder.Services
     .AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(StoragePaths.KeysPath(
@@ -213,6 +213,10 @@ builder.Services.AddHostedService<InterruptedWorkRecovery>();
 // Antes de tudo o mais: sem Docker nenhum servidor de jogo sobe, e é melhor
 // dizê-lo no arranque do que deixar o admin descobrir no primeiro clique.
 builder.Services.AddHostedService<DockerReachability>();
+
+// Instalação sem nenhum admin capaz de entrar (contas de antes do login só pela
+// Microsoft): emite o código de resgate no log.
+builder.Services.AddHostedService<AdminClaimBootstrap>();
 
 var app = builder.Build();
 

@@ -20,9 +20,6 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         if (command.WorldBackupKeepCount is < 0)
             return Result.Fail("A retenção de backups não pode ser negativa.");
 
-        if (command.SmtpPort is < 1 or > 65535)
-            return Result.Fail("Porta de SMTP inválida.");
-
         // Um id malformado só se manifestaria na máquina do jogador, como uma
         // falha de login sem explicação: o handshake entrega o lixo, o MSAL
         // tenta montar a autoridade com ele e desiste. Recusar aqui move o erro
@@ -45,27 +42,16 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         settings.DefaultMemoryMb = command.DefaultMemoryMb;
         settings.WorldBackupKeepCount = command.WorldBackupKeepCount;
 
-        settings.SmtpHost = Trimmed(command.SmtpHost);
-        settings.SmtpPort = command.SmtpPort;
-        settings.SmtpUser = Trimmed(command.SmtpUser);
-        settings.SmtpFrom = Trimmed(command.SmtpFrom);
-        settings.SmtpUseTls = command.SmtpUseTls;
-
-        // Não segue a regra "vazio = manter" dos segredos abaixo: este valor é
+        // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
         // deliberado do admin — não um campo que ele não teve como preencher.
         settings.AzureClientId = azureClientId;
 
-        // Os segredos vão em claro para o repositório, que cifra ao gravar.
+        // O segredo vai em claro para o repositório, que cifra ao gravar.
         if (command.ClearCurseForgeApiKey)
             settings.CurseForgeApiKeyEncrypted = null;
         else if (!string.IsNullOrWhiteSpace(command.CurseForgeApiKey))
             settings.CurseForgeApiKeyEncrypted = command.CurseForgeApiKey.Trim();
-
-        if (command.ClearSmtpPassword)
-            settings.SmtpPasswordEncrypted = null;
-        else if (!string.IsNullOrWhiteSpace(command.SmtpPassword))
-            settings.SmtpPasswordEncrypted = command.SmtpPassword;
 
         await repository.SaveAsync(settings, ct);
         return Result.Success();
@@ -94,15 +80,4 @@ public sealed record UpdateSettingsCommand
     public string? CurseForgeApiKey { get; init; }
 
     public bool ClearCurseForgeApiKey { get; init; }
-
-    public string? SmtpHost { get; init; }
-    public int SmtpPort { get; init; } = 587;
-    public string? SmtpUser { get; init; }
-
-    /// <summary>Nova senha. Vazio = manter a atual.</summary>
-    public string? SmtpPassword { get; init; }
-
-    public bool ClearSmtpPassword { get; init; }
-    public string? SmtpFrom { get; init; }
-    public bool SmtpUseTls { get; init; } = true;
 }

@@ -262,12 +262,8 @@ no roteador).
 
 ## Se for hospedar em casa
 
-Duas limitações que não são do TCMine e mordem sempre:
+Uma limitação que não é do TCMine e morde sempre:
 
-- **A porta 25 de saída** é bloqueada por praticamente todo provedor
-  residencial, então o servidor de e-mail próprio **não entrega nada** a partir
-  de casa. Hoje o e-mail não carrega nenhum fluxo (o login é pela Microsoft, sem
-  recuperação de senha); se for usá-lo, configure um SMTP externo na aba E-mail.
 - **IP residencial muda.** Configure DDNS, ou os jogadores perdem o endereço na
   próxima renovação.
 
@@ -301,7 +297,7 @@ A partir da 0.1.8 o próprio arranque avisa: procure no log a linha
 
 O container recebe `/var/run/docker.sock`. Isso lhe dá o poder de criar
 containers — e, por consequência, **controle total desta máquina**. É o que
-permite orquestrar os servidores de jogo e o servidor de e-mail, e é a razão de
+permite orquestrar os servidores de jogo, e é a razão de
 o painel exigir autenticação e de o proxy ser obrigatório. Não exponha esta
 porta diretamente na internet.
 
@@ -323,5 +319,5 @@ O que importa está sob `TCMINE_ROOT`:
 - `data/tcmine.db` — o catálogo (ou o volume do Postgres, se for o caso)
 - `data/blobs` — os arquivos dos modpacks, endereçados por hash
 - `data/keys` — chaves de proteção de dados. **Perder isto derruba as sessões e
-  torna ilegíveis os segredos gravados** (chave do CurseForge, senha do SMTP).
+  torna ilegíveis os segredos gravados** (chave do CurseForge).
 - `instances/` — os mundos dos servidores

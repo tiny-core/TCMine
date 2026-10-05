@@ -1417,32 +1417,6 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
-                    b.Property<string>("MailServerDomain")
-                        .HasMaxLength(253)
-                        .HasColumnType("character varying(253)");
-
-                    b.Property<string>("SmtpFrom")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("SmtpHost")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<string>("SmtpPasswordEncrypted")
-                        .HasMaxLength(1024)
-                        .HasColumnType("character varying(1024)");
-
-                    b.Property<int>("SmtpPort")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("SmtpUseTls")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("SmtpUser")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
