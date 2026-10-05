@@ -179,8 +179,9 @@ incidentes, em dúvida) no menu.
 ## 10. Desvios em relação ao plano (fatia E)
 
 - **Arquivo em vez de variável de ambiente** (decisão do autor, 2026-10-05). As variáveis de um container
-  são fixadas na criação e o TCMine não recria containers: ligar a nuvem num servidor existente ou trocar a
-  chave exigiria derrubá-lo. O arquivo `tccloud-server.json` (`{"url": ..., "key": ...}`) é reescrito a
+  são fixadas na criação: ligar a nuvem num servidor existente ou trocar a chave exigiria recriá-lo. (Desde
+  então o TCMine recria o container quando a spec muda — ver CLAUDE.md §6 —, e o argumento ficou mais forte:
+  a chave nova a cada start, numa variável, recriaria o container a CADA arranque.) O arquivo `tccloud-server.json` (`{"url": ..., "key": ...}`) é reescrito a
   cada start, com permissão só do dono, fora de `config/` (vem do modpack) e fora do mundo (vai para os
   backups). O mod lê as variáveis de ambiente primeiro (servidores fora do TCMine) e o arquivo depois.
 - **Chave nova a cada start**: o banco só guarda o hash, então reaproveitar a chave exigiria guardá-la em
