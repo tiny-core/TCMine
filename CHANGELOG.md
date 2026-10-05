@@ -56,6 +56,13 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Visão geral e Overrides do modpack no visual novo.** Últimas duas abas
+  do workspace de um modpack ainda em `--mud-palette-*`: a linha
+  chave/valor de "Detalhes da versão" e os dois painéis da Visão geral
+  (linha do tempo de versões, detalhes) foram para `--tc-*` e ganharam
+  borda fina (`tc-panel`, no lugar de `Elevation="2"`); a árvore de
+  overrides também. Com isto fecha o item "Terminar a reformulação
+  visual" do roadmap.
 - **Console no visual novo, com a referência de comandos em painel lateral.**
   O fundo do log passa a ser o tom "afundado" do design system
   (`--tc-bg-sunken`), e todas as cores do console (eco do comando, resposta,

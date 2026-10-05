@@ -14,19 +14,7 @@ no CHANGELOG.
 - No servidor: `docker compose pull && docker compose up -d`. Se houver CDN ou
   proxy na frente, limpar o cache de `/updates/launcher/*` uma vez.
 
-## 2. Terminar a reformulação visual
-
-Referências: o protótipo aprovado (artifact "TCMine — proposta de redesenho")
-e o **TCMine Design System** (paleta pedra vulcânica, regras de texto e de
-interação). Tema, menu, visão geral e página pública já estão no código.
-
-- **Visão geral e Overrides do modpack**: as duas abas do workspace de um
-  modpack que ainda não passaram pela reforma (`ModpackDetailPage`,
-  `ModpackOverridesPage` — CSS ainda em `--mud-palette-*`). Não eram
-  citadas à parte no texto original deste item, mas são telas distintas
-  pela mesma régua das demais. Uma tela por PR.
-
-## 3. Dados que o painel ainda não registra
+## 2. Dados que o painel ainda não registra
 
 O protótipo mostra três coisas que hoje não existem; a visão geral as deixou
 de fora para não exibir números inventados.
@@ -38,7 +26,7 @@ de fora para não exibir números inventados.
 - **Número de mods e tamanho por modpack na página pública**: o
   `PublicModpackView` não carrega; `GetVersionStatsAsync` já agrega por versão.
 
-## 4. Melhorias apontadas e não feitas
+## 3. Melhorias apontadas e não feitas
 
 - **Fonte Inter**: o CSP do painel (`font-src 'self'`) impede o Google Fonts, e
   os binários não estão no repositório. Para usá-la, colocar os `.woff2` no
