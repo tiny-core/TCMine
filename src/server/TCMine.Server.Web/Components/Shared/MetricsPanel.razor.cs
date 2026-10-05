@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
+using TCMine.UI.Shared.Theming;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Background;
@@ -17,6 +18,15 @@ public partial class MetricsPanel : ComponentBase, IDisposable
     private List<MetricPoint> _serverPoints = [];
     private List<ChartSeries<double>> _serverSeries = [];
     private List<GameServer> _servers = [];
+
+    /// <summary>
+    ///     As séries na cor da marca: laranja (CPU) e jade (memória). A paleta
+    ///     padrão do MudChart abre com azul, que o design system não usa.
+    /// </summary>
+    private static readonly LineChartOptions ChartOptions = new()
+    {
+        ChartPalette = [TcColors.Semantic.BrandPrimary, TcColors.Semantic.BrandAccent]
+    };
 
     [Inject] private MetricsHistory History { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;

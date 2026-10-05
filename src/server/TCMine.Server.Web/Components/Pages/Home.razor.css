@@ -1,0 +1,170 @@
+/* Visão geral. Valores do design system via --tc-*; a grade cai para uma
+   coluna em telas estreitas, sem rolagem horizontal. */
+.tc-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+::deep .tc-kpi {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.tc-kpi-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--tc-text-secondary);
+    font-size: 13px;
+}
+
+.tc-kpi-value {
+    font-size: 26px;
+    line-height: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.tc-kpi-value small {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--tc-text-secondary);
+}
+
+.tc-kpi-caption,
+.tc-caption {
+    font-size: 12px;
+    color: var(--tc-text-secondary);
+}
+
+.tc-text-danger {
+    color: var(--tc-status-error);
+}
+
+.tc-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 4px;
+}
+
+::deep .tc-panel {
+    overflow: hidden;
+}
+
+.tc-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+}
+
+.tc-server-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    padding: 12px 16px;
+    border-top: 1px solid var(--tc-border);
+}
+
+.tc-server-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.tc-strong {
+    font-weight: 600;
+}
+
+.tc-span-2 {
+    grid-column: span 2;
+}
+
+.tc-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--tc-text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.tc-server-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Cristal de estado: losango com brilho. Muda de forma de brilho e não só de
+   cor, para quem não distingue as cores. */
+.tc-crystal {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    transform: rotate(45deg);
+    flex: none;
+}
+
+.tc-crystal-on {
+    background: var(--tc-status-success);
+    box-shadow: var(--tc-glow-success);
+}
+
+.tc-crystal-bad {
+    background: var(--tc-status-error);
+    box-shadow: var(--tc-glow-danger);
+}
+
+.tc-crystal-wait {
+    background: var(--tc-status-warning);
+    animation: tc-pulse 1.6s infinite;
+}
+
+.tc-crystal-off {
+    background: var(--tc-border-strong);
+}
+
+@keyframes tc-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .45; }
+}
+
+.tc-attention {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 12px 16px;
+    border-top: 1px solid var(--tc-border);
+}
+
+.tc-attention-body {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 960px) {
+    .tc-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tc-cols {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .tc-server-row {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .tc-crystal-wait {
+        animation: none;
+    }
+}
