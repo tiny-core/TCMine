@@ -12,6 +12,10 @@ else if (_servers.Count == 0)
 }
 else
 {
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+        A chave de cada servidor é gerada pelo TCMine e renovada a cada início do servidor; ninguém precisa
+        copiá-la. Ligar ou desligar a nuvem vale a partir do próximo início.
+    </MudText>
     @if (_isBusy)
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
@@ -51,16 +55,12 @@ else
                 }
                 else if (context.AttachedHere)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Warning">Sem chave: o servidor ainda não fala com a nuvem</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Warning">Sem chave: inicie (ou reinicie) o servidor</MudText>
                 }
             </MudTd>
             <MudTd Style="text-align:right;">
                 @if (context.AttachedHere)
                 {
-                    <MudTooltip Text="Gerar chave">
-                        <MudIconButton Icon="@Icons.Material.Filled.Key" Size="Size.Small"
-                                       OnClick="@(() => IssueKeyAsync(context))" Disabled="_isBusy"/>
-                    </MudTooltip>
                     @if (context.Key is not null)
                     {
                         <MudTooltip Text="Revogar chave">

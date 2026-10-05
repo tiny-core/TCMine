@@ -35,7 +35,7 @@ disco ("débito cedo, crédito tarde"). Isso torna crash, rollback e restauraç�
 Mudanças em entidades existentes:
 - `GameServer.CloudVaultId?` (nulo = nuvem desligada). A regra de domínio
   `AttachToVault(vault)` exige `vault.OwnerId == OwnerId`.
-- O orquestrador (`EnsureCreatedAsync`) injeta `TCMINE_CLOUD_URL`/`TCMINE_CLOUD_KEY` quando há
+- (Plano original, substituído na fatia E — ver §10) O orquestrador (`EnsureCreatedAsync`) injeta `TCMINE_CLOUD_URL`/`TCMINE_CLOUD_KEY` quando há
   credencial ativa e força `ONLINE_MODE=true`.
 
 Tabelas: `cloud_vaults`, `cloud_server_credentials`, `cloud_channels`, `cloud_item_types`,
@@ -133,7 +133,7 @@ incidentes, em dúvida) no menu.
 | **B. API do mod** ✅ | `/api/cloud/v1`: filtro da chave (`CloudServerAuthFilter` → `AuthenticateCloudServer`), `hello`, `leases/acquire`, `leases/heartbeat`, `batches`, `leases/release`, `reports/doubtful`; limite por chave (`CloudPolicy`), corpo ≤ 2 MB; extensão dos leases no arranque (`InterruptedWorkRecovery`); `IssueCloudServerKey` (só dono) | `CloudBatchDecisionTests`, `CloudServerKeyTests`, `CloudApiContractTests` (13 cenários de ponta a ponta) |
 | **C. Painel básico** ✅ | `/admin/cloud` (lista, criar) e `/admin/cloud/{id}` com abas Servidores (ligar/desligar, gerar/revogar chave — mostrada uma vez), Jogadores (busca, canais, totais, lease; itens do canal; descongelar; liberar lease à força) e Configurações (nome, ligada, modo, limites); item "Nuvem de itens" no menu | `CloudPanelUseCasesTests` (permissões), `CloudAdminRepositoryTests` (agregações no SQLite), `CloudPanelPagesTests` (render das telas) |
 | **D. Painel de segurança** | regras, suspeitos, quarentena, incidentes, auditoria, integração com o restore | testes do estorno (com e sem negativo) e do fluxo de restauração |
-| **E. Orquestração** | `CloudVaultId` no `GameServer`, injeção de variáveis de ambiente, `ONLINE_MODE` | teste do materializador/orquestrador com fake |
+| **E. Orquestração** ✅ | `ProvisionServerCloudKey` no início de `StartGameServer`: chave nova (revoga a anterior) gravada em `tccloud-server.json` na pasta da instância; sem nuvem ou sem URL, o arquivo é apagado; falha aqui não impede o servidor de subir. `Server:CloudUrl` opcional (padrão: `PublicUrl`). Painel: a chave deixa de ser gerada à mão | `ProvisionServerCloudKeyTests`, `CloudServerFilesTests` |
 | Depois | `CloudVaultMembership`, ver canais no launcher (somente leitura, via hub) | — |
 
 ## 7. Decisões e alternativas descartadas
@@ -174,3 +174,17 @@ incidentes, em dúvida) no menu.
   ordenado dentro do mesmo milissegundo; o teste pegou isso.
 - **A chave é copiada à mão** para o servidor de jogo (`TCMINE_CLOUD_URL`/`TCMINE_CLOUD_KEY`, a URL é a do
   próprio painel) até a fatia E injetá-la no container.
+
+## 10. Desvios em relação ao plano (fatia E)
+
+- **Arquivo em vez de variável de ambiente** (decisão do autor, 2026-10-05). As variáveis de um container
+  são fixadas na criação e o TCMine não recria containers: ligar a nuvem num servidor existente ou trocar a
+  chave exigiria derrubá-lo. O arquivo `tccloud-server.json` (`{"url": ..., "key": ...}`) é reescrito a
+  cada start, com permissão só do dono, fora de `config/` (vem do modpack) e fora do mundo (vai para os
+  backups). O mod lê as variáveis de ambiente primeiro (servidores fora do TCMine) e o arquivo depois.
+- **Chave nova a cada start**: o banco só guarda o hash, então reaproveitar a chave exigiria guardá-la em
+  claro. Efeito colateral bom: uma chave vazada morre no próximo reinício.
+- **`ONLINE_MODE` não é forçado pelo TCMine**: a imagem itzg já usa `true` por padrão e forçar mudaria
+  servidores sem nuvem. Quem garante é o mod, que recusa a nuvem em modo offline.
+- **Gerar chave à mão saiu do painel**: uma chave manual seria trocada no próximo start e derrubaria o
+  servidor em execução. Ficou só "Revogar" (emergência).

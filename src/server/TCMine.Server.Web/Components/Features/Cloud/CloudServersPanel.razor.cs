@@ -43,7 +43,7 @@ public partial class CloudServersPanel : ComponentBase
                 $"{server.Name} está em outra nuvem. Os jogadores dele passam a usar os canais desta, e a chave atual deixa de valer."))
             return;
         await RunAsync(() => SetVaultUseCase.HandleAsync(server.ServerId, VaultId, CancellationToken.None),
-            $"{server.Name} ligado à nuvem. Gere a chave para ele começar a usar.");
+            $"{server.Name} ligado à nuvem. Reinicie o servidor para ele começar a usar.");
     }
 
     private async Task DetachAsync(CloudVaultServerView server)
@@ -57,21 +57,10 @@ public partial class CloudServersPanel : ComponentBase
 
     private async Task RevokeAsync(CloudVaultServerView server)
     {
-        if (!await ConfirmAsync("Revogar chave", $"{server.Name} perde o acesso à nuvem até receber uma chave nova."))
+        if (!await ConfirmAsync("Revogar chave",
+                $"{server.Name} perde o acesso à nuvem agora. Uma chave nova é gerada no próximo início do servidor."))
             return;
         await RunAsync(() => RevokeUseCase.HandleAsync(server.ServerId, CancellationToken.None), "Chave revogada.");
-    }
-
-    private async Task IssueKeyAsync(CloudVaultServerView server)
-    {
-        var parameters = new DialogParameters<CloudServerKeyDialog>
-        {
-            { x => x.ServerId, server.ServerId },
-            { x => x.ServerName, server.Name }
-        };
-        var dialog = await DialogService.ShowAsync<CloudServerKeyDialog>("Chave da nuvem", parameters);
-        await dialog.Result;
-        await LoadAsync();
     }
 
     private async Task<bool> ConfirmAsync(string title, string message) =>
