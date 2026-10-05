@@ -124,6 +124,14 @@ jobs:
       # Depois de publicar, e não antes: uma release anunciando uma imagem que
       # a build não chegou a produzir manda todo mundo a um `docker pull` que
       # falha.
+      #
+      # IDEMPOTENTE, e é isso que importa aqui: a tag pode nascer de dois jeitos.
+      # Por `git push` da tag, e então ninguém criou a release ainda; ou pela
+      # tela de Releases do GitHub ("Publish release" cria a tag), e então a
+      # release JÁ existe quando este job chega aqui. Criar de novo devolve
+      # "HTTP 422: Release.tag_name already exists" e pintava de vermelho uma
+      # publicação que tinha dado certo — a imagem já estava no Docker Hub.
+      # Existindo, só se acertam as marcas; título e notas escritos à mão ficam.
       - name: Publicar a release no GitHub
         if: github.ref_type == 'tag'
         env:
@@ -133,13 +141,22 @@ jobs:
           set -euo pipefail
 
           # Pré-lançamento fica marcado como tal, para o GitHub não apresentá-lo
-          # como a versão atual a quem chega pelo "latest release".
+          # como a versão atual a quem chega pelo "latest release" — que é
+          # também o que o painel consulta para avisar de atualização.
           case "${VERSAO}" in
             *-*) marca="--prerelease" ;;
             *)   marca="--latest" ;;
           esac
 
-          # As notas saem dos commits desde a tag anterior. Ficam editáveis
-          # depois — o que não pode é a release não existir porque alguém
-          # esqueceu de criá-la à mão.
-          gh release create "${GITHUB_REF_NAME}"             --title "TCMine Server ${VERSAO}"             --generate-notes             ${marca}
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "Release ${GITHUB_REF_NAME} já existe (criada pela tela de Releases); só acerto as marcas."
+            gh release edit "${GITHUB_REF_NAME}" --draft=false ${marca}
+          else
+            # As notas saem dos commits desde a tag anterior. Ficam editáveis
+            # depois — o que não pode é a release não existir porque alguém
+            # esqueceu de criá-la à mão.
+            gh release create "${GITHUB_REF_NAME}" \
+              --title "TCMine Server ${VERSAO}" \
+              --generate-notes \
+              ${marca}
+          fi
