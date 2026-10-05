@@ -233,8 +233,24 @@ prático aqui, já que a nossa usa `frame-ancestors 'none'`.
 
 ## 7. Primeiro acesso
 
-Abra `https://seu-dominio/admin/setup` e crie a conta de administrador. A tela só
-existe enquanto não houver nenhum usuário.
+Não há conta de e-mail e senha: o painel entra pela **conta Microsoft**, e o
+launcher pelo perfil Minecraft da mesma pessoa — as duas viram uma conta só.
+
+1. Registre um app no Entra ID (*portal.azure.com → Microsoft Entra ID → Registros
+   de aplicativo → Novo registro*), **somente contas Microsoft pessoais**.
+2. Na plataforma **Web**, registre `https://seu-dominio/auth/microsoft/callback`
+   (é o login do painel). Na plataforma **cliente público / nativo**, os dois URIs
+   do launcher: `http://localhost` e
+   `ms-appx-web://microsoft.aad.brokerplugin/{client-id}`. A tela de
+   Configurações mostra os três prontos para copiar.
+3. Abra `https://seu-dominio/admin/setup`, cole o client ID e entre com a
+   Microsoft. **A primeira conta vira a administradora da instalação.** A tela só
+   existe enquanto não houver nenhum usuário; depois, o client ID se troca em
+   Configurações.
+
+O `TCMINE_AZURE_CLIENT_ID` do `.env` continua valendo como semente: com ele
+preenchido, o `/admin/login` já oferece "Entrar com a Microsoft" e o passo 3 se
+reduz a entrar.
 
 ## Portas dos servidores de jogo
 
@@ -250,8 +266,8 @@ Duas limitações que não são do TCMine e mordem sempre:
 
 - **A porta 25 de saída** é bloqueada por praticamente todo provedor
   residencial, então o servidor de e-mail próprio **não entrega nada** a partir
-  de casa. Para a recuperação de senha funcionar, configure um SMTP externo na
-  aba E-mail.
+  de casa. Hoje o e-mail não carrega nenhum fluxo (o login é pela Microsoft, sem
+  recuperação de senha); se for usá-lo, configure um SMTP externo na aba E-mail.
 - **IP residencial muda.** Configure DDNS, ou os jogadores perdem o endereço na
   próxima renovação.
 

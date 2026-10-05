@@ -58,14 +58,14 @@ Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  
 ```
 
 - **`TCMine.Server.Domain`** — entidades, regras de negócio, máquinas de estado. Zero dependência de framework. Pastas:
-  `Modpacks`, `Servers`, `Blobs`,
-  `Identity`, `Common`.
+  `Modpacks`, `Servers`, `Blobs`, `Identity`, `Cloud`, `Settings`, `Common`.
 - **`TCMine.Contracts`** (shared) — DTOs e enums compartilhados entre servidor e launcher. É a camada mais "de dentro"
   que os dois lados enxergam. **Enums como
   `ModLoader`, `FileSide`, `ModpackVersionState` vivem aqui** (não no Domain), porque o launcher também os usa.
 - **`TCMine.Server.Application`** — casos de uso + **portas** (interfaces em
   `Abstractions/`) que a Infrastructure implementa. Pastas: `Modpacks`,
-  `Servers`, `Abstractions`, `Security`, `Common`. **Nunca referencia Infrastructure.**
+  `Servers`, `Cloud`, `Public`, `Settings`, `Storage`, `Abstractions`, `Security`, `Common`. **Nunca referencia
+  Infrastructure.**
 - **`TCMine.Server.Infrastructure`** — implementações das portas: EF Core (`Persistence`), blob store (`Storage`),
   Docker (`Docker`), materialização de instâncias (`Instances`), ingestão/resolvers (`Ingestion`), catálogo de versões
   (`Versions`).
@@ -75,6 +75,9 @@ Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  
   Consome casos de uso via DI.
 - **`TCMine.UI.Shared`** (shared RCL) — tema MudBlazor, design tokens, chips e componentes reutilizáveis entre server e
   launcher.
+- **`TCMine.MinecraftAuth`** (shared) — a cadeia Xbox Live → XSTS → Minecraft Services
+  (`MinecraftTokenExchange`). HTTPS puro, sem Windows nem MSAL: o launcher a usa depois do MSAL, e o servidor
+  depois do seu próprio Authorization Code + PKCE (login do painel). Uma implementação só para os dois lados.
 
 ### Regra de ouro do registro no DI
 
@@ -170,6 +173,21 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   Overrides usam slug sintético
   `override:{path}`.
 
+### 4.8 Ingestão: BANCO → DISCO → REDE
+
+- Antes de perguntar qualquer coisa ao Modrinth/CurseForge, a ingestão procura a **release** no banco
+  (`IModpackRepository.FindIngestedFileAsync(origin, originReference)` — o id do arquivo/versão é único em cada
+  origem, e vale entre modpacks) e confere se o blob está no disco (`IBlobStore.ExistsAsync`). Achou os dois:
+  reusa, **sem chamada de API e sem download**. Só então a rede.
+- Isso só é possível com a release **fixada** (`FileId`: pack importado, versão escolhida pelo admin). Sem ela, "a
+  mais recente compatível" é a origem quem sabe — a consulta de metadados acontece, mas o degrau do disco ainda
+  evita baixar os bytes.
+- `ModpackFile.RequiredDependencies` (ids separados por vírgula; `null` = desconhecido) é o que deixa reusar sem
+  perder as bibliotecas do mod. Linha sem o campo (anterior a ele) faz UMA consulta à origem e regrava.
+- **Release fixada se resolve PELO ID**, nunca procurando-a na lista das compatíveis: essa lista é paginada (50 no
+  CurseForge), e o código antigo trocava em silêncio pela mais recente quando não a achava.
+- Copiar um arquivo para outra versão é `ModpackFile.CopyTo(versionId)` — as cópias à mão já tinham divergido.
+
 ---
 
 ## 5. Modelo de domínio (essencial)
@@ -193,8 +211,9 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
     - Métodos: `MarkResolving`, `MarkReady`, `MarkFailed`, `ReturnToDraft`,
       `Archive`, `Restore`, `UpsertFile`. **Regra: uma Draft por vez por modpack.**
 - **`ModpackFile`** — `Path`, `Sha256`, `SizeBytes`, `Side` (`Both`/`ClientOnly`/
-  `ServerOnly`), `Origin`, `ProjectSlug`, `OriginReference` (o **version id** do Modrinth — usado para detectar
-  atualizações comparando com a versão mais recente, sem baixar).
+  `ServerOnly`), `Origin`, `ProjectSlug`, `OriginReference` (o **version id** do Modrinth / **file id** do
+  CurseForge — usado para detectar atualizações sem baixar, e como chave do reaproveitamento da §4.8),
+  `RequiredDependencies`, `IconUrl`.
 
 ### GameServer (instância de jogo)
 
@@ -206,12 +225,35 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - Só pode ser criado apontando para versão **`Ready` e de canal release** (não alpha). Alpha = `Version` com sufixo `-`
   (pré-release SemVer, `IsPreRelease`).
 
+### Identidade (contas)
+
+- **Não há login local.** O painel entra pela Microsoft (`AuthenticateMicrosoftUser`, Authorization Code + PKCE
+  feito pelo servidor); o launcher, pelo token do Minecraft (`AuthenticateMinecraftUser`). A primeira conta da
+  instalação vira `IsInstanceAdmin`. O `/admin/setup` só pede o client id do Entra ID e existe enquanto não há
+  usuário.
+- **Uma pessoa, uma conta.** Chaves naturais: `MicrosoftObjectId` e `MinecraftUuid` (índices únicos). Três
+  caminhos fecham a duplicata:
+    - corrida no primeiro login do launcher → `IUserRepository.TryAddAsync` deixa o **índice** decidir, e quem
+      perde adota a linha vencedora (um SELECT antes não basta: os dois veem "ninguém");
+    - launcher primeiro, painel depois → o login da Microsoft resolve o Minecraft e **adota** a conta do launcher;
+    - painel primeiro (sem Minecraft), launcher depois → no próximo login do painel (ou em "vincular Minecraft") a
+      conta só-do-launcher é **fundida** (`MergeAsync`: acessos re-apontados, papel maior vence, absorvida apagada).
+      Conta com OUTRA Microsoft nunca é fundida — aí são pessoas diferentes, e quem decide é o admin.
+
 ---
 
 ## 6. Orquestração de servidores (Docker)
 
 - **`IServerOrchestrator`**: `EnsureCreatedAsync`, `StartAsync`, `StopAsync`,
   `GetStatusAsync`, `RemoveAsync`. Implementado por `DockerServerOrchestrator`.
+- **O jogo que o container roda vem do MODPACK** (`TYPE` = loader, `VERSION` = Minecraft) e da versão fixada no
+  servidor (build do loader). `ItzgEnv.GameVariables` é o único lugar que monta isso, com teste: a variável da
+  build **não** é `{TYPE}_VERSION` para todos (Fabric/Quilt usam `*_LOADER_VERSION`), e o itzg ignora em silêncio
+  um nome errado e usa o mais recente. `VERSION` em branco é recusado — o itzg o leria como LATEST.
+- **O ambiente de um container é congelado no create.** Por isso ele leva o label `tcmine.spec` (impressão digital
+  da spec, sem o segredo RCON) e o `EnsureCreatedAsync` o **recria** quando a spec diverge (versão, loader, memória,
+  porta). Rodando, nunca se mexe. A pasta é rematerializada a cada start — é assim que trocar a versão do
+  servidor chega ao jogo. Reusar o container sempre era o bug "o servidor sobe sempre na versão errada".
 - **O container é a fonte da verdade do status, não a coluna.** A coluna `Status`
   é cache; sincronize com `GetStatusAsync` (que inspeciona o Docker) ao carregar, e reconcilie no arranque. Um container
   `unless-stopped` sobrevive a reinícios do TCMine — não há "attach", só reconsulta pelo `ContainerId`.
@@ -595,6 +637,17 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   cada tipo novo que atravessa o hub. Método de hub devolve `ToArray()`, e
   contrato novo ganha teste no socket REAL — os testes que falam JSON não veem.
 
+- **O ambiente de um container Docker é congelado no create.** O orquestrador reusava qualquer container
+  existente, então trocar a versão do servidor nunca chegava ao jogo — nem as variáveis, nem os mods. Hoje a spec
+  vai num label (`tcmine.spec`) e diverge → recria (§6).
+- **Nome de variável do itzg errado não dá erro**: `FABRIC_VERSION` é ignorado e o loader mais recente entra no
+  lugar. O certo é `FABRIC_LOADER_VERSION`/`QUILT_LOADER_VERSION`. `ItzgEnvTests` trava os nomes.
+- **"Procure o fixado na lista; se não achar, use o primeiro" é bug, não fallback.** Os resolvers faziam isso com
+  a release fixada, e a lista era paginada: pack importado instalava versões que o autor nunca publicou junto.
+  Release fixada se busca pelo id; não existe → pendência, nunca substituição silenciosa.
+- **Checar "já existe?" ANTES do trabalho caro.** A importação baixava o zip do pack (centenas de MB) e só então
+  perguntava ao banco se ele já tinha sido importado.
+
 ---
 
 ## 9. Testes
@@ -604,7 +657,15 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   mesma instância para as mudanças ficarem visíveis). Evite mocks quando um fake é mais claro.
 - **Integração com EF** → `Infrastructure.Tests` com **SQLite in-memory**
   (`SqliteTestFactory`: uma conexão viva + `EnsureCreated`, factory servindo contextos sobre ela).
-- **Regras de camada** → `Architecture.Tests` (NetArchTest). Não quebre a direção das dependências.
+- **Regras de camada** → `Architecture.Tests` (NetArchTest). Não quebre a direção das dependências. Ele também
+  exige que todo tipo de `Application/Modpacks` e `Application/Servers` consulte o `ICurrentUserScope` — um
+  record ANINHADO novo (ex.: `ModpackIngestionService/IngestedFile`) entra na lista de exceções do
+  `ModpackAuthorizationRules`, senão o teste o confunde com um caso de uso sem autorização.
+- **Suítes**: do servidor — `Architecture`, `Server.Application`, `Server.Infrastructure`, `Server.Web`,
+  `MinecraftAuth` (rodam em Linux e no CI); do launcher — `Launcher.Architecture`, `Launcher.Core` (rodam na IDE,
+  no Windows, como o resto do launcher).
+- **HTTP de origem (Modrinth/CurseForge)** se testa com um `HttpMessageHandler` que responde por caminho (ver
+  `PinnedReleaseResolutionTests`) — nunca contra a API real.
 - **Limites de coluna** → `PostgresColumnLimitsTests`, contra um PostgreSQL de
   verdade. O SQLite **não aplica** `varchar(n)`: aceita qualquer texto e ignora o
   limite declarado. Foi assim que uma coluna curta demais passou pela suíte
@@ -642,15 +703,19 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 > do `BASH_SOURCE`.
 
 ```bash
-# Build / testes
-dotnet build
-dotnet test                     # roda as 4 suítes
+# Build / testes (NUNCA `dotnet test` — ver §8 e §12)
+./scripts/tc build
+./scripts/tc test               # todas as suítes de tests/, só falhas + placar
+./scripts/tc test '*Itzg*'      # filtro por classe (ou por método, se tiver _)
 
-# Migrations (uma por provider)
-dotnet ef migrations add <Nome> \
-  --project src/server/TCMine.Server.Infrastructure.Sqlite \
-  --startup-project src/server/TCMine.Server.Infrastructure.Sqlite \
-  --context TcMineDbContext
+# Migrations — SEMPRE as duas, com o mesmo nome: um provider sem a migration
+# do outro dá um schema diferente em dev e em prod.
+for p in Sqlite Postgres; do
+  dotnet ef migrations add <Nome> \
+    --project src/server/TCMine.Server.Infrastructure.$p \
+    --startup-project src/server/TCMine.Server.Infrastructure.$p \
+    --context TcMineDbContext
+done
 
 # Aplicar na base da app (de dentro da pasta do Web)
 cd src/server/TCMine.Server.Web
