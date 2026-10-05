@@ -18,6 +18,9 @@ public sealed class DockerServerOrchestrator(
 {
     private const string Image = "itzg/minecraft-server:latest";
 
+    /// <summary>Label com a impressão digital da spec (ver <see cref="ItzgEnv.Fingerprint" />).</summary>
+    private const string SpecLabel = "tcmine.spec";
+
     public async Task<string> EnsureCreatedAsync(Guid gameServerId, CancellationToken ct)
     {
         var server = await servers.GetByIdAsync(gameServerId, ct)
@@ -32,29 +35,60 @@ public sealed class DockerServerOrchestrator(
 
         var containerName = $"tcmine-{gameServerId}";
 
-        // 1. Se temos um ContainerId e ele ainda existe, reusa.
+        // Porta do jogo: extrai do ConnectAddress se tiver ":porta", senão 25565.
+        var hostPort = ExtractPort(server.ConnectAddress);
+        var instancePath = materializer.GetInstancePath(gameServerId);
+
+        // O que decide QUE jogo roda vem do modpack (Minecraft e loader, fixos)
+        // e da versão fixada no servidor (build do loader).
+        var gameEnv = ItzgEnv.GameVariables(modpack.MinecraftVersion, modpack.Loader, version.LoaderVersion);
+        IReadOnlyList<string> settings =
+        [
+            .. gameEnv,
+            $"MEMORY={server.MemoryMb}M",
+            $"MAX_PLAYERS={server.MaxPlayers}"
+        ];
+
+        // A senha do RCON fica FORA da impressão digital: ela não muda, e um
+        // label é legível por qualquer um com acesso ao Docker.
+        var fingerprint = ItzgEnv.Fingerprint(Image, settings, [$"port={hostPort}", $"bind={instancePath}"]);
+
+        // 1. Se temos um ContainerId e ele ainda existe, decide entre reusar e
+        //    recriar. Reusar SEMPRE era o defeito: o ambiente de um container é
+        //    fixado no create, então trocar a versão do servidor (ou a memória)
+        //    não chegava ao jogo — ele continuava com o TYPE/VERSION do dia em
+        //    que o container nasceu, e a pasta nem era rematerializada.
         if (server.ContainerId is not null)
         {
             var existing = await docker.InspectContainerAsync(server.ContainerId, ct);
-            if (existing is not null)
+
+            // Rodando: não se mexe. Reescrever mods ou recriar o container
+            // debaixo de quem está jogando derrubaria a sessão.
+            if (existing is { State.Running: true })
                 return existing.Id;
 
+            if (existing is not null
+                && existing.Config.Labels?.GetValueOrDefault(SpecLabel) == fingerprint)
+            {
+                // Mesma spec: só traz a pasta para a versão fixada (o
+                // materializador é idempotente e preserva o mundo).
+                await materializer.MaterializeAsync(gameServerId, version, ct);
+                return existing.Id;
+            }
+
             // Apontava para um container que já não existe (apagado à mão, por
-            // ex.). Limpa a referência morta antes de seguir.
+            // ex.) ou cuja spec envelheceu. Cai para a recriação abaixo.
             server.ContainerId = null;
         }
 
         // 2. Pode existir um container com o nosso nome de uma tentativa anterior
-        //    (recria após crash, ContainerId dessincronizado). Remove-o para o
-        //    create não colidir por nome.
+        //    (recria após crash, ContainerId dessincronizado, spec antiga).
+        //    Remove-o para o create não colidir por nome. O mundo vive na pasta
+        //    montada, não no container — recriar não perde nada.
         await docker.RemoveContainerByNameAsync(containerName, ct);
 
         // Escreve mods/overrides na pasta da instância (mundo preservado).
         await materializer.MaterializeAsync(gameServerId, version, ct);
-        var instancePath = materializer.GetInstancePath(gameServerId);
-
-        // Porta do jogo: extrai do ConnectAddress se tiver ":porta", senão 25565.
-        var hostPort = ExtractPort(server.ConnectAddress);
 
         // A Engine API não puxa no create — garantimos a imagem primeiro.
         // Idempotente: se já está local, o pull retorna rápido.
@@ -66,11 +100,7 @@ public sealed class DockerServerOrchestrator(
             Env =
             [
                 "EULA=TRUE",
-                $"TYPE={ItzgEnv.ToServerType(modpack.Loader)}",
-                $"VERSION={modpack.MinecraftVersion}",
-                $"{ItzgEnv.ToServerType(modpack.Loader)}_VERSION={version.LoaderVersion}",
-                $"MEMORY={server.MemoryMb}M",
-                $"MAX_PLAYERS={server.MaxPlayers}",
+                .. settings,
                 "ENABLE_RCON=TRUE",
                 $"RCON_PASSWORD={server.RconSecret}",
                 // itzg não deve gerir mods — nós já materializamos a pasta.
@@ -84,7 +114,11 @@ public sealed class DockerServerOrchestrator(
                 .. UsuarioDoProcesso()
             ],
             ExposedPorts = new Dictionary<string, object> { ["25565/tcp"] = new() },
-            Labels = new Dictionary<string, string> { ["tcmine.server"] = gameServerId.ToString() },
+            Labels = new Dictionary<string, string>
+            {
+                ["tcmine.server"] = gameServerId.ToString(),
+                [SpecLabel] = fingerprint
+            },
             HostConfig = new HostConfig
             {
                 Binds = [$"{instancePath}:/data"],
