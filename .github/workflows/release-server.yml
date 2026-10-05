@@ -36,7 +36,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Descobrir a versão e as tags da imagem
         id: versao
@@ -80,9 +80,9 @@ jobs:
       # Não roda os testes aqui: o ci.yml já os roda a cada push na master, e
       # uma tag só se cria em cima de um commit que já passou por lá. Rodá-los
       # de novo seria pagar o mesmo custo duas vezes pelo mesmo veredito.
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -92,7 +92,7 @@ jobs:
       # os testes não cobrem o que só quebra na imagem: já saiu release com o
       # runtime do Blazor respondendo 404, sem nada ficar vermelho.
       - name: Construir
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           load: true
@@ -112,7 +112,7 @@ jobs:
       # Reaproveita as camadas do passo anterior: publica exatamente o que
       # acabou de passar na fumaça, sem reconstruir.
       - name: Publicar
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true

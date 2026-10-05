@@ -5,9 +5,8 @@ repositório.
 
 **TCMine Server** — painel web que cria e publica modpacks, ingere mods do
 Modrinth e do CurseForge, e orquestra os servidores de jogo como containers
-Docker. Funcional e publicado como imagem, ainda em `0.x`: o conjunto de
-funcionalidades está inteiro, mas a instalação em cenários variados continua
-revelando arestas. O `1.0.0` fica reservado para quando isso parar de acontecer.
+Docker. Estável desde a **1.0.0**, publicado como imagem no Docker Hub — ver o
+[compromisso de estabilidade](#compromisso-de-estabilidade).
 
 **TCMine Launcher** — cliente desktop (Windows) que instala, atualiza e **abre**
 as instâncias do jogador. O laço está fechado: parear com o servidor, entrar com
@@ -122,6 +121,24 @@ SignalR, Docker Engine API.
 
 Detalhes de arquitetura e as decisões já tomadas estão em
 [CLAUDE.md](CLAUDE.md).
+
+## Compromisso de estabilidade
+
+A partir da 1.0.0, o que segue só muda de forma incompatível numa versão MAIOR
+(2.0.0), e sempre com instrução de atualização no [CHANGELOG.md](CHANGELOG.md):
+
+- **O protocolo do launcher** (`Protocol.Current`, hoje 2): os métodos do hub, a
+  aridade deles e os endpoints `/api/v1/*`. Um launcher publicado continua a
+  falar com qualquer servidor 1.x.
+- **A API da nuvem de itens** (`/api/cloud/v1`) que o mod `tccloud` usa.
+- **A configuração**: as chaves de `appsettings`/variáveis de ambiente
+  documentadas em [docs/DEPLOY.md](docs/DEPLOY.md) e o layout da pasta de dados
+  (`TCMINE_ROOT`).
+- **O banco**: atualizar dentro da 1.x é só trocar a imagem — as migrations
+  aplicam-se no arranque, sempre para a frente.
+
+Fora do compromisso: o HTML do painel, os nomes internos de classes e tabelas
+(o banco é do TCMine, não uma API) e qualquer coisa marcada como experimental.
 
 ## Lançar uma versão
 
