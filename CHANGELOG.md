@@ -56,6 +56,10 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de Usuários no visual novo**, com a tabela dentro do mesmo painel
+  de borda fina das demais listas. Os chips de papel do diálogo "Ver
+  vínculos" ("Membro"/"Moderador"/"Admin"/"Dono"/"Editor") foram para
+  minúsculas.
 - **Nuvem de itens no visual novo.** A lista de nuvens (`/admin/cloud`) ganhou
   o painel de borda fina e o estado vazio com `EmptyState` (era um
   `MudAlert` solto, sem o botão de criar à mão). Chips capitalizados que

@@ -51,18 +51,20 @@ public partial class UserMembershipsDialog : ComponentBase
         [
             .. vinculosModpack.Select(m => (
                 todosModpacks.FirstOrDefault(p => p.Id == m.ModpackId)?.Name ?? "(modpack removido)",
-                m.Role == ModpackRole.Owner ? "Dono" : "Editor"))
+                m.Role == ModpackRole.Owner ? "dono" : "editor"))
         ];
 
         _loading = false;
     }
 
+    // Minúsculas: é o texto de um chip, e a regra do design system é
+    // "chips em minúsculas".
     private static string Rotulo(ServerRole role) => role switch
     {
-        ServerRole.Member => "Membro",
-        ServerRole.Moderator => "Moderador",
-        ServerRole.Admin => "Admin",
-        _ => "Dono"
+        ServerRole.Member => "membro",
+        ServerRole.Moderator => "moderador",
+        ServerRole.Admin => "admin",
+        _ => "dono"
     };
 
     private void Close() => Dialog.Close();

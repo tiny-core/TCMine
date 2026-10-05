@@ -24,41 +24,43 @@ else if (!_canManage)
 }
 else
 {
-    <MudTextField T="string" @bind-Value="_search" Immediate="true" Label="Buscar por nome"
-                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                  Class="mb-4" Style="max-width:360px;"/>
+    <MudPaper Outlined="true" Class="tc-panel pa-4 tc-fade-in">
+        <MudTextField T="string" @bind-Value="_search" Immediate="true" Label="Buscar por nome"
+                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mb-3" Style="max-width:360px;"/>
 
-    <MudTable Items="_filtrados" Dense="true" Hover="true" RowsPerPage="20">
-        <HeaderContent>
-            <MudTh>Nome</MudTh>
-            <MudTh>Tipo de conta</MudTh>
-            <MudTh>Admin da instalação</MudTh>
-            <MudTh>Visto por último</MudTh>
-            <MudTh Style="text-align:right;">Ações</MudTh>
-        </HeaderContent>
-        <RowTemplate>
-            <MudTd DataLabel="Nome">@context.DisplayName</MudTd>
-            <MudTd DataLabel="Tipo de conta">
-                <MudText Typo="Typo.caption">@TipoDeConta(context)</MudText>
-            </MudTd>
-            <MudTd DataLabel="Admin da instalação">
-                <MudSwitch T="bool" Value="context.IsInstanceAdmin" Color="Color.Primary"
-                           Disabled="_isBusy"
-                           ValueChanged="@(ligado => ToggleAdminAsync(context, ligado))"/>
-            </MudTd>
-            <MudTd DataLabel="Visto por último">
-                <MudText Typo="Typo.caption">
-                    @(context.LastSeenAt is { } visto
-                        ? visto.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
-                        : "nunca entrou")
-                </MudText>
-            </MudTd>
-            <MudTd Style="text-align:right;">
-                <MudTooltip Text="Ver vínculos">
-                    <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small"
-                                   OnClick="@(() => ShowMembershipsAsync(context))"/>
-                </MudTooltip>
-            </MudTd>
-        </RowTemplate>
-    </MudTable>
+        <MudTable Items="_filtrados" Dense="true" Hover="true" Elevation="0" RowsPerPage="20">
+            <HeaderContent>
+                <MudTh>Nome</MudTh>
+                <MudTh>Tipo de conta</MudTh>
+                <MudTh>Admin da instalação</MudTh>
+                <MudTh>Visto por último</MudTh>
+                <MudTh Style="text-align:right;">Ações</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nome">@context.DisplayName</MudTd>
+                <MudTd DataLabel="Tipo de conta">
+                    <MudText Typo="Typo.caption">@TipoDeConta(context)</MudText>
+                </MudTd>
+                <MudTd DataLabel="Admin da instalação">
+                    <MudSwitch T="bool" Value="context.IsInstanceAdmin" Color="Color.Primary"
+                               Disabled="_isBusy"
+                               ValueChanged="@(ligado => ToggleAdminAsync(context, ligado))"/>
+                </MudTd>
+                <MudTd DataLabel="Visto por último">
+                    <MudText Typo="Typo.caption">
+                        @(context.LastSeenAt is { } visto
+                            ? visto.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            : "nunca entrou")
+                    </MudText>
+                </MudTd>
+                <MudTd Style="text-align:right;">
+                    <MudTooltip Text="Ver vínculos">
+                        <MudIconButton Icon="@Icons.Material.Filled.AccountTree" Size="Size.Small"
+                                       OnClick="@(() => ShowMembershipsAsync(context))"/>
+                    </MudTooltip>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
 }
