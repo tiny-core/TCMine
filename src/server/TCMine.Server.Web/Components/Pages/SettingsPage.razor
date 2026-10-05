@@ -24,7 +24,7 @@
 }
 else
 {
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
+    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
 
         <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
             <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
@@ -72,14 +72,14 @@ else
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.CheckCircle">
-                        Chave configurada
+                        chave configurada
                     </MudChip>
                 }
                 else
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.RemoveCircleOutline">
-                        Sem chave
+                        sem chave
                     </MudChip>
                 }
             </MudStack>
@@ -114,21 +114,21 @@ else
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.CheckCircle">
-                        Login configurado
+                        login configurado
                     </MudChip>
                 }
                 else if (_hasAzureClientIdFromFile)
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.Description">
-                        Configurado por arquivo
+                        configurado por arquivo
                     </MudChip>
                 }
                 else
                 {
                     <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
                              Icon="@Icons.Material.Filled.ErrorOutline">
-                        Jogadores não conseguem entrar
+                        jogadores não conseguem entrar
                     </MudChip>
                 }
             </MudStack>
