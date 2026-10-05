@@ -56,6 +56,14 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Console no visual novo, com a referência de comandos em painel lateral.**
+  O fundo do log passa a ser o tom "afundado" do design system
+  (`--tc-bg-sunken`), e todas as cores do console (eco do comando, resposta,
+  erro, hover da lista de comandos) saem de `--mud-palette-*` para
+  `--tc-*`. A referência de comandos, que antes abria abaixo do campo e
+  empurrava o console para cima, agora abre ao lado — uma coluna de 360px
+  que vira coluna única embaixo do console em telas estreitas (< 900px),
+  como o resto do painel já faz nesses casos.
 - **Diálogos: últimos chips capitalizados em minúsculas.** Varredura pelo
   painel inteiro atrás do que a regra "chips em minúsculas" ainda não
   tinha alcançado: o chip "Dono" do painel de membros de servidor e do
