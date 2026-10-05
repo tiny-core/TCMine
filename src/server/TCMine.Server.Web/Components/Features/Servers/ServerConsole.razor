@@ -5,7 +5,7 @@
    Só existe enquanto o servidor está no ar: seguir o log de um container parado
    devolveria o histórico e ficaria pendurado sem nunca receber nada. *@
 
-<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+<MudPaper Outlined="true" Class="tc-panel pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2" Wrap="Wrap.Wrap" Spacing="2">
         <MudIcon Icon="@Icons.Material.Filled.Terminal" Color="Color.Primary"/>
         <MudText Typo="Typo.subtitle2">Console</MudText>
@@ -37,66 +37,71 @@
     }
     else
     {
-        <div class="tc-console" id="@_consoleId">
-            @foreach (var entry in _lines)
-            {
-                <div class="tc-console-line @EntryClass(entry.Kind)">@entry.Text</div>
-            }
-
-            @if (_lines.Count == 0)
-            {
-                <div class="tc-console-line" style="opacity:.6;">Aguardando saída do servidor…</div>
-            }
-        </div>
-
-        @* Só para quem pode mandar comando: o servidor recusaria de qualquer
-           forma, mas uma caixa que só responde "não permitido" é um convite a
-           tentar. *@
-        @if (CanSend)
-        {
-            <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Class="mt-3">
-                <MudTextField T="string" @ref="_inputField"
-                              Value="_input" ValueChanged="OnInputChanged" Immediate="true"
-                              OnKeyDown="OnInputKeyDown"
-                              Placeholder="Digite um comando — ex.: say Olá a todos"
-                              HelperText="@InputHelper"
-                              Variant="Variant.Outlined" Margin="Margin.Dense"
-                              Adornment="Adornment.Start" AdornmentText="›"
-                              Disabled="_sending" Class="tc-console-input"
-                              Style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;"/>
-
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.Send"
-                           Disabled="@(_sending || string.IsNullOrWhiteSpace(_input))"
-                           OnClick="SendAsync" Class="mt-1">
-                    @if (_sending)
+        @* Lado a lado com a referência quando ela está aberta — painel
+           lateral, não um empurrando o outro para baixo. Fechada, o console
+           ocupa a largura inteira sozinho (ver tc-console-layout). *@
+        <div class="@(_showReference ? "tc-console-layout" : "")">
+            <div class="tc-console-main">
+                <div class="tc-console" id="@_consoleId">
+                    @foreach (var entry in _lines)
                     {
-                        <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        <div class="tc-console-line @EntryClass(entry.Kind)">@entry.Text</div>
                     }
-                    Enviar
-                </MudButton>
 
-                <MudTooltip Text="Lista de comandos do Minecraft, com a sintaxe de cada um">
-                    <MudButton Variant="@(_showReference ? Variant.Filled : Variant.Outlined)"
-                               StartIcon="@Icons.Material.Filled.MenuBook"
-                               OnClick="@(() => _showReference = !_showReference)" Class="mt-1">
-                        Comandos
-                    </MudButton>
-                </MudTooltip>
-            </MudStack>
+                    @if (_lines.Count == 0)
+                    {
+                        <div class="tc-console-line" style="opacity:.6;">Aguardando saída do servidor…</div>
+                    }
+                </div>
 
-            @if (_showReference)
-            {
-                <MudPaper Class="pa-3 mt-3" Elevation="0" Outlined="true">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2" Wrap="Wrap.Wrap">
-                        <MudTextField T="string" @bind-Value="_filter" Immediate="true"
-                                      Placeholder="Filtrar por nome ou descrição"
-                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
-                                      Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width:360px;"/>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            Clique num comando para colocá-lo na caixa. Mods podem acrescentar outros — o console aceita todos.
-                        </MudText>
+                @* Só para quem pode mandar comando: o servidor recusaria de
+                   qualquer forma, mas uma caixa que só responde "não
+                   permitido" é um convite a tentar. *@
+                @if (CanSend)
+                {
+                    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="2" Class="mt-3">
+                        <MudTextField T="string" @ref="_inputField"
+                                      Value="_input" ValueChanged="OnInputChanged" Immediate="true"
+                                      OnKeyDown="OnInputKeyDown"
+                                      Placeholder="Digite um comando — ex.: say Olá a todos"
+                                      HelperText="@InputHelper"
+                                      Variant="Variant.Outlined" Margin="Margin.Dense"
+                                      Adornment="Adornment.Start" AdornmentText="›"
+                                      Disabled="_sending" Class="tc-console-input"
+                                      Style="font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;"/>
+
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Send"
+                                   Disabled="@(_sending || string.IsNullOrWhiteSpace(_input))"
+                                   OnClick="SendAsync" Class="mt-1">
+                            @if (_sending)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                            }
+                            Enviar
+                        </MudButton>
+
+                        <MudTooltip Text="Lista de comandos do Minecraft, com a sintaxe de cada um">
+                            <MudButton Variant="@(_showReference ? Variant.Filled : Variant.Outlined)"
+                                       StartIcon="@Icons.Material.Filled.MenuBook"
+                                       OnClick="@(() => _showReference = !_showReference)" Class="mt-1">
+                                Comandos
+                            </MudButton>
+                        </MudTooltip>
                     </MudStack>
+                }
+            </div>
+
+            @if (CanSend && _showReference)
+            {
+                <div class="tc-console-side">
+                    <MudTextField T="string" @bind-Value="_filter" Immediate="true"
+                                  Placeholder="Filtrar por nome ou descrição"
+                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" FullWidth="true"/>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                        Clique num comando para colocá-lo na caixa. Mods podem acrescentar outros — o console aceita todos.
+                    </MudText>
 
                     @foreach (var group in ReferenceGroups)
                     {
@@ -121,8 +126,8 @@
                     {
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhum comando com esse nome.</MudText>
                     }
-                </MudPaper>
+                </div>
             }
-        }
+        </div>
     }
 </MudPaper>
