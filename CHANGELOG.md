@@ -62,7 +62,64 @@ com a conta Microsoft, instalar um modpack e **abrir o jogo**.
   `appsettings` — o administrador tinha de editar JSON dentro do container e
   reiniciar. `Server:AzureClientId` sobrevive como semente.
 
+- **Login só pela Microsoft.** Acabou o par e-mail/senha: o primeiro acesso
+  (`/admin/setup`) pede o client ID do Entra ID e quem entra primeiro vira o
+  administrador da instalação. O painel e o launcher passam a ser a mesma conta
+  — antes o servidor recém-criado do admin não aparecia no launcher dele, porque
+  eram duas contas sem relação.
+
+- **Pedidos de acesso.** O launcher mostra também os servidores com whitelist em
+  que o jogador ainda não entrou, com o endereço escondido e um botão "Pedir
+  acesso"; o admin aprova ou recusa na página *Pedidos de acesso*. Servidor
+  **sem** whitelist aparece para qualquer jogador autenticado, sem convite.
+
+- **Convites pelo launcher.** O jogador resgata o código que recebeu direto na
+  tela inicial.
+
+- **Página de Usuários** (só para o admin da instalação): buscar contas,
+  promover ou rebaixar administradores (sem nunca ficar sem nenhum) e ver os
+  acessos de cada um.
+
+- **Nuvem de itens (TC Cloud Storage)**, para o mod `tccloud`: cofres por dono,
+  API para os servidores de jogo com chave renovada a cada start, ledger
+  append-only, quarentena, detecção de mundo que voltou no tempo e painel de
+  governança. O plano e as decisões estão em
+  [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md).
+
+- **Escolher a versão na importação.** Ao importar um modpack, a lista de
+  releases aparece com a estável mais recente marcada; ao adicionar mods pela
+  busca, cada mod marcado ganha um seletor com as releases compatíveis com o
+  Minecraft e o loader do pack.
+
+- **Ingestão "banco → disco → rede".** Antes de consultar o Modrinth ou o
+  CurseForge, o TCMine verifica se aquela release já foi ingerida (em qualquer
+  modpack) e se os bytes estão no disco. Importar um segundo pack que partilha
+  metade dos mods com o primeiro deixa de baixar e de gastar cota de API com
+  essa metade. A importação também passou a recusar um pack já importado
+  **antes** de baixar o zip.
+
 ### Corrigido
+
+- **O servidor de jogo não subia na versão do modpack.** O container era criado
+  uma vez e reaproveitado para sempre: trocar a versão do servidor (ou a
+  memória) não chegava ao jogo, nem os mods eram rematerializados. Agora o
+  container é recriado sempre que a configuração muda — o mundo vive na pasta
+  montada e não se perde. Em Fabric e Quilt, a build do loader ia numa variável
+  que a imagem ignora, e o servidor subia com o loader mais recente.
+
+- **A versão fixada de um mod podia virar a mais recente.** Quando a release
+  pedida não aparecia na primeira página da origem (50 arquivos no CurseForge),
+  o TCMine instalava a mais nova sem avisar. Releases fixadas agora são buscadas
+  pelo id. O mesmo valia para releases antigas de um pack no CurseForge.
+
+- **Jogador duplicado.** Dois logins simultâneos no primeiro arranque do
+  launcher podiam terminar em erro; e quem entrou no painel antes de ter o
+  Minecraft vinculado ganhava uma segunda conta ao entrar pelo launcher. A
+  corrida agora adota a conta vencedora, e a duplicata é fundida na conta do
+  painel no próximo login dela (ou ao vincular o Minecraft), mantendo todos os
+  acessos.
+
+- Clonar uma versão ou criar uma a partir de outra perdia o ícone dos mods.
 
 - A retenção de backups de mundo do **painel** nunca era gravada: o caso de uso
   punha o valor na entidade e o repositório descartava-o, então ela voltava a
@@ -75,7 +132,17 @@ protocolo 1 é recusado no handshake e mandado atualizar. Como o canal do Velopa
 deriva do protocolo, **publique o launcher antes de subir o servidor** — senão o
 jogador recebe uma instrução que não tem como cumprir.
 
-Nada a fazer no banco: a migration nova aplica-se no arranque, como as outras.
+Nada a fazer no banco: as migrations novas aplicam-se no arranque, como as
+outras. Os containers dos servidores de jogo existentes são **recriados no
+próximo start** (o mundo fica, ele vive na pasta da instância) — é a primeira
+vez que levam a impressão digital da configuração.
+
+**Quem tinha conta de e-mail e senha no painel** entra agora pela Microsoft. A
+conta antiga só é reconhecida se tinha um Minecraft vinculado (o login da
+Microsoft resolve o jogo e a adota). Sem isso nasce uma conta NOVA — e, como a
+instalação já tem usuários, ela não vira administradora. Nesse caso, depois do
+primeiro login, marque `IsInstanceAdmin` nessa conta direto no banco (tabela
+`users`); dali em diante a página *Usuários* faz o resto.
 
 ## [0.3.0] — 2026-08-23
 
