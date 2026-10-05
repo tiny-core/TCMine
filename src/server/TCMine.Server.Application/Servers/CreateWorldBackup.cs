@@ -3,6 +3,7 @@ using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;
@@ -26,6 +27,7 @@ public sealed partial class CreateWorldBackup(
     IModpackRepository modpacks,
     ISettingsRepository settings,
     IJobProgressReporter progress,
+    IActivityLogRepository activity,
     ICurrentUserScope scope,
     ILogger<CreateWorldBackup> logger)
 {
@@ -107,6 +109,15 @@ public sealed partial class CreateWorldBackup(
 
             await servers.AddBackupAsync(backup, ct);
             await PruneAsync(serverId, ct);
+
+            await activity.AddAsync(new ActivityEvent
+            {
+                Kind = ActivityEventKind.WorldBackupCreated,
+                Message = reason is WorldBackupReason.Manual
+                    ? $"Backup do mundo de {server.Name} criado."
+                    : $"Backup automático do mundo de {server.Name} antes de trocar a versão.",
+                Href = $"/admin/servers"
+            }, ct);
 
             progress.Complete(jobId);
             return Result<Guid>.Success(backup.Id);

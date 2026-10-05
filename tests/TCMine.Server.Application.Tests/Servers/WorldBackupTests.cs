@@ -421,7 +421,7 @@ public sealed class WorldBackupTests
         ServerRoleDto? papel = ServerRoleDto.Owner) =>
         new(repo ?? new FakeServers(server), new FakeOrchestrator(status), rcon ?? new FakeRcon(), store,
             new FakeModpacks(VersaoComNumero("1.0.0", VersaoAtualId)),
-            new FakeSettings(manter), new FakeJobProgress(), new FakeUserScope(papel),
+            new FakeSettings(manter), new FakeJobProgress(), new FakeActivityLog(), new FakeUserScope(papel),
             NullLogger<CreateWorldBackup>.Instance);
 
     private static ChangeServerVersion NewChange(
@@ -432,7 +432,8 @@ public sealed class WorldBackupTests
 
         var backup = new CreateWorldBackup(
             repo, orchestrator, new FakeRcon(), store, modpacks,
-            new FakeSettings(), new FakeJobProgress(), new FakeUserScope(), NullLogger<CreateWorldBackup>.Instance);
+            new FakeSettings(), new FakeJobProgress(), new FakeActivityLog(), new FakeUserScope(),
+            NullLogger<CreateWorldBackup>.Instance);
         return new ChangeServerVersion(repo, modpacks, orchestrator, backup, new FakeUserScope());
     }
 

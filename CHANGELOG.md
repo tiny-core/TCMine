@@ -39,6 +39,21 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
   motivo no botão e um aviso em todas as telas, que também oferece fechar o
   jogo.
 
+- **Atividade recente na Visão geral.** Novo painel mostra login no painel
+  (só o da Microsoft — o do launcher reautentica a cada abertura e inundaria
+  o feed), versão publicada, servidor caído e backup de mundo criado, do
+  mais recente para o mais antigo. Guardado num registro próprio
+  (`activity_events`) que nunca derruba quem gravou: uma falha ao escrever
+  o log fica só num aviso.
+- **Pico de jogadores do dia** na Visão geral, ao lado da contagem atual.
+  `PlayerCountCache` passa a guardar também o maior valor visto hoje (UTC)
+  por servidor — continua em memória, como o resto do cache, mas o pico não
+  some quando o servidor para: só quando o dia vira.
+- **Número de mods e tamanho na página pública.** Cada card de modpack
+  mostra quantos mods e quantos bytes a versão publicada mais recente tem —
+  antes só Minecraft, loader e servidores. Sem versão publicada, os dois
+  ficam de fora (não um zero inventado).
+
 ### Mudado
 
 - **Visual novo: "pedra vulcânica".** Painel, página pública e launcher passam

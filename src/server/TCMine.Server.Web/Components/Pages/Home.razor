@@ -26,7 +26,13 @@ else
             @* Traço quando nenhum servidor no ar foi amostrado: zero afirmaria
                que estão vazios, e não se sabe. *@
             <span class="tc-kpi-value">@(PlayersOnline?.ToString() ?? "—")</span>
-            <span class="tc-kpi-caption">em @RunningServers.Count @(RunningServers.Count == 1 ? "servidor no ar" : "servidores no ar")</span>
+            <span class="tc-kpi-caption">
+                em @RunningServers.Count @(RunningServers.Count == 1 ? "servidor no ar" : "servidores no ar")
+                @if (PeakToday is { } pico)
+                {
+                    <text> · pico de @pico hoje</text>
+                }
+            </span>
         </MudPaper>
 
         <MudPaper Outlined="true" Class="tc-kpi">
@@ -127,34 +133,68 @@ else
             }
         </MudPaper>
 
-        <MudPaper Outlined="true" Class="tc-panel">
-            <div class="tc-panel-head">
-                <MudText Typo="Typo.h6">Precisa da sua atenção</MudText>
-            </div>
-
-            @if (_attention.Count == 0)
-            {
-                <div class="tc-attention">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"/>
-                    <div class="tc-attention-body">
-                        <div>Nada pendente.</div>
-                        <div class="tc-caption">Pedidos de acesso, quedas e versões com falha aparecem aqui.</div>
-                    </div>
+        <MudStack Spacing="4">
+            <MudPaper Outlined="true" Class="tc-panel">
+                <div class="tc-panel-head">
+                    <MudText Typo="Typo.h6">Precisa da sua atenção</MudText>
                 </div>
-            }
 
-            @foreach (var item in _attention)
-            {
-                <div class="tc-attention">
-                    <MudIcon Icon="@item.Icon" Color="@(item.Danger ? Color.Error : Color.Warning)"/>
-                    <div class="tc-attention-body">
-                        <div>@item.Title</div>
-                        <div class="tc-caption">@item.Detail</div>
+                @if (_attention.Count == 0)
+                {
+                    <div class="tc-attention">
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"/>
+                        <div class="tc-attention-body">
+                            <div>Nada pendente.</div>
+                            <div class="tc-caption">Pedidos de acesso, quedas e versões com falha aparecem aqui.</div>
+                        </div>
                     </div>
-                    <MudButton Href="@item.Href" Variant="Variant.Outlined" Size="Size.Small">@item.Action</MudButton>
+                }
+
+                @foreach (var item in _attention)
+                {
+                    <div class="tc-attention">
+                        <MudIcon Icon="@item.Icon" Color="@(item.Danger ? Color.Error : Color.Warning)"/>
+                        <div class="tc-attention-body">
+                            <div>@item.Title</div>
+                            <div class="tc-caption">@item.Detail</div>
+                        </div>
+                        <MudButton Href="@item.Href" Variant="Variant.Outlined" Size="Size.Small">@item.Action</MudButton>
+                    </div>
+                }
+            </MudPaper>
+
+            <MudPaper Outlined="true" Class="tc-panel">
+                <div class="tc-panel-head">
+                    <MudText Typo="Typo.h6">Atividade recente</MudText>
                 </div>
-            }
-        </MudPaper>
+
+                @if (_recentActivity.Count == 0)
+                {
+                    <div class="tc-attention">
+                        <MudIcon Icon="@Icons.Material.Filled.History" Color="Color.Default"/>
+                        <div class="tc-attention-body">
+                            <div>Nada ainda.</div>
+                            <div class="tc-caption">Login no painel, versão publicada, servidor caído e backup aparecem aqui.</div>
+                        </div>
+                    </div>
+                }
+
+                @foreach (var entry in _recentActivity)
+                {
+                    <div class="tc-attention">
+                        <MudIcon Icon="@ActivityIcon(entry.Kind)" Color="@ActivityColor(entry.Kind)"/>
+                        <div class="tc-attention-body">
+                            <div>@entry.Message</div>
+                            <div class="tc-caption">@RelativeTime.From(entry.CreatedAt)</div>
+                        </div>
+                        @if (entry.Href is { Length: > 0 } href)
+                        {
+                            <MudButton Href="@href" Variant="Variant.Text" Size="Size.Small">Ver</MudButton>
+                        }
+                    </div>
+                }
+            </MudPaper>
+        </MudStack>
     </div>
 
     <div class="my-4">

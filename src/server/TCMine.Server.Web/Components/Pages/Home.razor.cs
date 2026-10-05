@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Background;
@@ -23,6 +24,7 @@ public partial class Home : ComponentBase
     private List<PackRow> _packs = [];
     private Dictionary<Guid, string> _versionNumbers = [];
     private List<AttentionItem> _attention = [];
+    private IReadOnlyList<ActivityEvent> _recentActivity = [];
     private DiskUsage? _disk;
 
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
@@ -30,6 +32,7 @@ public partial class Home : ComponentBase
     [Inject] private IPlayerCountSource Players { get; set; } = default!;
     [Inject] private MetricsHistory Metrics { get; set; } = default!;
     [Inject] private ListAccessRequests AccessRequests { get; set; } = default!;
+    [Inject] private IActivityLogRepository Activity { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
     /// <summary>Volta do /auth/microsoft/callback depois de vincular o Minecraft.</summary>
@@ -53,6 +56,20 @@ public partial class Home : ComponentBase
         {
             var counts = RunningServers.Select(s => Players.TryGet(s.Id)).Where(c => c is not null).ToList();
             return counts.Count is 0 ? null : counts.Sum();
+        }
+    }
+
+    /// <summary>
+    ///     Soma dos picos de hoje, por TODOS os servidores (não só os no ar — um
+    ///     servidor que já parou hoje continua contando para o pico do dia).
+    ///     Nulo quando nenhum teve amostra hoje.
+    /// </summary>
+    private int? PeakToday
+    {
+        get
+        {
+            var peaks = _servers.Select(s => Players.PeakToday(s.Id)).Where(p => p is not null).ToList();
+            return peaks.Count is 0 ? null : peaks.Sum();
         }
     }
 
@@ -82,6 +99,8 @@ public partial class Home : ComponentBase
 
         var pending = await AccessRequests.HandleAsync(CancellationToken.None);
         _attention = BuildAttention(pending.Count, CrashedServers, _packs, _disk);
+
+        _recentActivity = await Activity.ListRecentAsync(8, CancellationToken.None);
 
         _isLoading = false;
 
@@ -165,6 +184,23 @@ public partial class Home : ComponentBase
         GameServerStatus.Stopping => "Parando…",
         GameServerStatus.Updating => "Atualizando…",
         _ => "Parado."
+    };
+
+    private static string ActivityIcon(ActivityEventKind kind) => kind switch
+    {
+        ActivityEventKind.UserLoggedIn => Icons.Material.Filled.Login,
+        ActivityEventKind.VersionPublished => Icons.Material.Filled.Publish,
+        ActivityEventKind.ServerCrashed => Icons.Material.Filled.ErrorOutline,
+        ActivityEventKind.WorldBackupCreated => Icons.Material.Filled.Backup,
+        _ => Icons.Material.Filled.Circle
+    };
+
+    private static Color ActivityColor(ActivityEventKind kind) => kind switch
+    {
+        ActivityEventKind.VersionPublished => Color.Success,
+        ActivityEventKind.ServerCrashed => Color.Error,
+        ActivityEventKind.WorldBackupCreated => Color.Info,
+        _ => Color.Default
     };
 
     private static string StateLabel(ModpackVersionState state) => state switch

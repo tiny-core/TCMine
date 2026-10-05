@@ -99,6 +99,8 @@ public static class DependencyInjection
 
         services.AddScoped<INewsRepository, NewsRepository>();
 
+        services.AddScoped<IActivityLogRepository, ActivityLogRepository>();
+
         services.AddScoped<IServerRepository, ServerRepository>();
 
         services.AddScoped<IUserRepository, UserRepository>();

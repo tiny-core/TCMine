@@ -18,7 +18,7 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeUserScope());
+        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
@@ -34,7 +34,7 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = null };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeUserScope());
+        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
 
         var result = await useCase.HandleAsync(Guid.CreateVersion7(), CancellationToken.None);
 
@@ -50,7 +50,7 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeUserScope());
+        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 

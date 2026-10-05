@@ -14,19 +14,7 @@ no CHANGELOG.
 - No servidor: `docker compose pull && docker compose up -d`. Se houver CDN ou
   proxy na frente, limpar o cache de `/updates/launcher/*` uma vez.
 
-## 2. Dados que o painel ainda não registra
-
-O protótipo mostra três coisas que hoje não existem; a visão geral as deixou
-de fora para não exibir números inventados.
-
-- **Atividade recente** (quem entrou, versão publicada, servidor caiu, backup):
-  precisa de um registro de eventos no Domain/Application e de quem o
-  alimente (orquestrador, publicação, contagem de jogadores).
-- **Pico de jogadores do dia**: o `PlayerCountCache` só guarda o valor atual.
-- **Número de mods e tamanho por modpack na página pública**: o
-  `PublicModpackView` não carrega; `GetVersionStatsAsync` já agrega por versão.
-
-## 3. Melhorias apontadas e não feitas
+## 2. Melhorias apontadas e não feitas
 
 - **Fonte Inter**: o CSP do painel (`font-src 'self'`) impede o Google Fonts, e
   os binários não estão no repositório. Para usá-la, colocar os `.woff2` no
