@@ -50,6 +50,7 @@ public sealed partial class SetServerCloudVault(
     ICloudAdminRepository repo,
     IServerRepository servers,
     ICloudCredentialRepository credentials,
+    ICloudServerFiles files,
     ICurrentUserScope scope,
     TimeProvider clock,
     ILogger<SetServerCloudVault> logger)
@@ -85,29 +86,27 @@ public sealed partial class SetServerCloudVault(
             server.DetachFromCloudVault();
         }
 
-        await RevokeKeysAsync(serverId, ct);
+        // A chave e o arquivo saem já; a chave nova (da nuvem nova) vem no
+        // próximo start do servidor (ProvisionServerCloudKey).
+        await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
+        await files.DeleteAsync(serverId, ct);
         await servers.UpdateAsync(server, ct);
         LogChanged(serverId, vaultId, scope.UserId);
         return Result.Success();
-    }
-
-    private async Task RevokeKeysAsync(Guid serverId, CancellationToken ct)
-    {
-        var now = clock.GetUtcNow();
-        foreach (var key in await credentials.ListActiveByServerAsync(serverId, ct))
-        {
-            key.Revoke(now);
-            await credentials.UpdateAsync(key, ct);
-        }
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Nuvem: servidor {ServerId} passou para a nuvem {VaultId} (por {UserId}).")]
     private partial void LogChanged(Guid serverId, Guid? vaultId, Guid? userId);
 }
 
-/// <summary>Revoga a chave do servidor: a próxima requisição dele à nuvem recebe 401.</summary>
+/// <summary>
+///     Emergência: revoga a chave do servidor e apaga o arquivo dela. A próxima
+///     requisição dele à nuvem recebe 401; a nuvem volta no próximo start (chave
+///     nova), a não ser que o servidor seja desligado da nuvem.
+/// </summary>
 public sealed partial class RevokeCloudServerKey(
     ICloudCredentialRepository credentials,
+    ICloudServerFiles files,
     ICurrentUserScope scope,
     TimeProvider clock,
     ILogger<RevokeCloudServerKey> logger)
@@ -118,13 +117,8 @@ public sealed partial class RevokeCloudServerKey(
         if (!auth.Succeeded)
             return auth;
 
-        var now = clock.GetUtcNow();
-        foreach (var key in await credentials.ListActiveByServerAsync(serverId, ct))
-        {
-            key.Revoke(now);
-            await credentials.UpdateAsync(key, ct);
-        }
-
+        await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
+        await files.DeleteAsync(serverId, ct);
         LogRevoked(serverId, scope.UserId);
         return Result.Success();
     }

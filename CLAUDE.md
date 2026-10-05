@@ -735,10 +735,13 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
 - **Isolamento por dono:** `CloudVault` tem `OwnerId`; um `GameServer` só liga a uma nuvem do
   MESMO dono. Toda consulta da API do mod deriva o `CloudVaultId` da CHAVE do servidor, nunca de
   um campo do corpo. Instance admin vê tudo no painel; a API do mod nunca.
-- **Chave do servidor = segredo como o `RconSecret`:** gerada pelo TCMine, injetada como variável
-  de ambiente (`TCMINE_CLOUD_KEY`) no container itzg, guardada só como hash SHA-256. Nunca em DTO,
-  log ou tela (a tela mostra só o prefixo). Rotacionar = gerar nova + recriar container.
-- **Só servidores orquestrados pelo TCMine** e com `ONLINE_MODE=true` recebem chave.
+- **Chave do servidor = segredo como o `RconSecret`:** gerada pelo TCMine a CADA start do servidor
+  (`ProvisionServerCloudKey`, a anterior é revogada), gravada em `tccloud-server.json` na raiz da
+  pasta da instância (`/data` no container) e guardada no banco só como hash SHA-256. Nunca em DTO,
+  log ou tela (a tela mostra só o prefixo). Arquivo e não variável de ambiente: o TCMine não recria
+  containers, e as variáveis só mudam recriando.
+- **Só servidores orquestrados pelo TCMine** recebem chave. URL: `Server:CloudUrl` ou, sem ela,
+  `Server:PublicUrl`. O `online-mode` é conferido pelo mod (recusa a nuvem em modo offline).
 - **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA
   transação do ledger. Correção do admin = nova linha no ledger (Source=Admin, motivo obrigatório),
   nunca UPDATE direto em saldo.

@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
@@ -48,7 +48,7 @@ public sealed class ServerLifecycleTests
         var repo = new FakeServerRepo(server);
         var orchestrator = new FakeOrchestrator { Status = GameServerStatus.Running };
 
-        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress(), new FakeUserScope(), new FakeWhitelistSync(), NullLogger<StartGameServer>.Instance)
+        var result = await new StartGameServer(orchestrator, repo, new FakeJobProgress(), new FakeUserScope(), new FakeWhitelistSync(), FakeCloud.Provisioner(new FakeServerRepo(server)), NullLogger<StartGameServer>.Instance)
             
 .HandleAsync(server.Id, CancellationToken.None);
 
@@ -123,7 +123,7 @@ public sealed class ServerLifecycleTests
             
 .HandleAsync(server.Id, CancellationToken.None);
 
-        var iniciar = await new StartGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope, new FakeWhitelistSync(), NullLogger<StartGameServer>.Instance)
+        var iniciar = await new StartGameServer(orchestrator, new FakeServerRepo(server), new FakeJobProgress(), scope, new FakeWhitelistSync(), FakeCloud.Provisioner(new FakeServerRepo(server)), NullLogger<StartGameServer>.Instance)
             
 .HandleAsync(server.Id, CancellationToken.None);
 
@@ -144,7 +144,7 @@ public sealed class ServerLifecycleTests
 
         var semAcesso = await new StartGameServer(
                 new FakeOrchestrator(), new FakeServerRepo(server), new FakeJobProgress(),
-                new FakeUserScope(ServerRoleDto.Member), new FakeWhitelistSync(), NullLogger<StartGameServer>.Instance)
+                new FakeUserScope(ServerRoleDto.Member), new FakeWhitelistSync(), FakeCloud.Provisioner(new FakeServerRepo(server)), NullLogger<StartGameServer>.Instance)
             
 .HandleAsync(server.Id, CancellationToken.None);
 

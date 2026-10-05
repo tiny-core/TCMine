@@ -1,5 +1,6 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 ﻿using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
 
@@ -11,12 +12,16 @@ public sealed partial class StartGameServer(
     IJobProgressReporter progress,
     ICurrentUserScope scope,
     IServerWhitelistSync whitelist,
+    ProvisionServerCloudKey cloudKey,
     ILogger<StartGameServer> logger)
 {
     private readonly ILogger<StartGameServer> _logger = logger;
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao iniciar o servidor {ServerId}.")]
     private partial void LogFalha(Exception ex, Guid serverId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: não consegui preparar a chave do servidor {ServerId}; ele sobe sem nuvem.")]
+    private partial void LogFalhaNuvem(Exception ex, Guid serverId);
 
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
@@ -39,6 +44,18 @@ public sealed partial class StartGameServer(
             // O primeiro start de um modpack grande é longo: materializa a pasta
             // (hardlink de centenas de jars) e pode ter de puxar a imagem do
             // itzg. Sem dizer isso, parece que o botão não funcionou.
+            // Antes do start: o mod lê o arquivo da chave no arranque. Falhar aqui
+            // não pode impedir o jogo de subir — sem arquivo, só a nuvem fica
+            // desligada nesse servidor.
+            try
+            {
+                await cloudKey.HandleAsync(serverId, ct);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                LogFalhaNuvem(ex, serverId);
+            }
+
             Report("Preparando a instância e o container…");
             // EnsureCreated (dentro do Start) materializa a pasta, cria o
             // container e persiste o ContainerId. É idempotente.

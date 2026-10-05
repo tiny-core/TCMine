@@ -20,6 +20,14 @@ public sealed class ServerOptions
     public Uri? PublicUrl { get; set; }
 
     /// <summary>
+    ///     Endereço desta instalação visto de DENTRO dos containers de jogo, para a
+    ///     nuvem de itens (mod tccloud). Opcional: sem ele vale o PublicUrl. Útil
+    ///     quando o endereço público não é alcançável de dentro do Docker (NAT
+    ///     sem hairpin) — ex.: <c>http://tcmine:8080</c> numa rede Docker comum.
+    /// </summary>
+    public Uri? CloudUrl { get; set; }
+
+    /// <summary>
     ///     Client ID da app Azure usada no login com a Microsoft. Público por
     ///     natureza — o fluxo do Minecraft usa public client com PKCE.
     ///     SEMENTE, não fonte da verdade: quem manda é o valor gravado pela tela

@@ -57,7 +57,7 @@ public static class DependencyInjection
         // relógio. TryAdd para um teste poder registrar o relógio falso antes.
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<AuthenticateCloudServer>();
-        services.AddScoped<IssueCloudServerKey>();
+        services.AddScoped<ProvisionServerCloudKey>();
         services.AddScoped<CloudHello>();
         services.AddScoped<AcquireCloudLease>();
         services.AddScoped<HeartbeatCloudLeases>();

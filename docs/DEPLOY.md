@@ -138,6 +138,9 @@ services:
     environment:
       ASPNETCORE_URLS: http://+:8080
       Server__PublicUrl: https://tcmine.exemplo.com
+      # Opcional, nuvem de itens (mod tccloud): endereço do TCMine visto de DENTRO
+      # dos containers de jogo, quando o PublicUrl não é alcançável de lá.
+      # Server__CloudUrl: http://tcmine:8080
       Server__Name: TCMine
       Storage__RootPath: /opt/tcmine
       Database__Provider: Sqlite

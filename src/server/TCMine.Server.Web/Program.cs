@@ -33,6 +33,7 @@ builder.Host.UseSerilog((context, config) => config
 
 // ---------- Configuração ----------
 builder.Services.AddTcMineServerOptions(builder.Configuration, builder.Environment);
+builder.Services.AddSingleton<ICloudEndpointSource, CloudEndpointSource>();
 
 // Uma raiz só (Storage:RootPath) preenche os caminhos que ninguém declarou.
 // Antes de tudo o mais porque as options de blob e de instância são ligadas à

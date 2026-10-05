@@ -138,7 +138,8 @@ public sealed class CloudPanelUseCasesTests
 
     private static SetServerCloudVault SetVault(FakeCloudAdminRepository repo, FakeCloudCredentialRepository chaves,
         GameServer servidor, FakeUserScope scope) =>
-        new(repo, new UmServidor(servidor), chaves, scope, TimeProvider.System, NullLogger<SetServerCloudVault>.Instance);
+        new(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(), scope, TimeProvider.System,
+            NullLogger<SetServerCloudVault>.Instance);
 
     private static GameServer Servidor(Guid dono) => new()
     {

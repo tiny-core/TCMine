@@ -1,4 +1,4 @@
-namespace TCMine.Server.Web.Configuration;
+﻿namespace TCMine.Server.Web.Configuration;
 
 /// <summary>
 ///     Validação da configuração no arranque.
@@ -37,6 +37,11 @@ public static class OptionsValidation
                      || (o.PublicUrl.IsAbsoluteUri && o.PublicUrl.Scheme is "http" or "https"),
                 "Server:PublicUrl precisa ser uma URL absoluta http/https — o jogador alcança "
                 + "este endereço de fora, não é o IP interno do container.")
+            .Validate(
+                o => o.CloudUrl is null
+                     || (o.CloudUrl.IsAbsoluteUri && o.CloudUrl.Scheme is "http" or "https"),
+                "Server:CloudUrl precisa ser uma URL absoluta http/https — é o endereço que os "
+                + "servidores de jogo usam para falar com a nuvem de itens.")
             .Validate(
                 // Já foi obrigatório aqui, e deixou de ser quando o valor passou a
                 // morar na tela de configurações: exigi-lo no arranque impediria
