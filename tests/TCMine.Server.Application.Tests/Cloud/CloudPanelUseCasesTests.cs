@@ -46,7 +46,7 @@ public sealed class CloudPanelUseCasesTests
     {
         var repo = new FakeCloudAdminRepository();
         var eu = new FakeUserScope();
-        var useCase = new CreateCloudVault(repo, eu);
+        var useCase = new CreateCloudVault(repo, new FakeCloudGovernance(), eu);
 
         (await useCase.HandleAsync("   ", Ct)).Succeeded.ShouldBeFalse();
         (await useCase.HandleAsync("  Survival  ", Ct)).Succeeded.ShouldBeTrue();
@@ -63,7 +63,7 @@ public sealed class CloudPanelUseCasesTests
         var nuvem = new CloudVault { Name = "N", OwnerId = eu.OwnerId };
         repo.Vaults.Add(nuvem);
 
-        var result = await new UpdateCloudVault(repo, eu).HandleAsync(nuvem.Id,
+        var result = await new UpdateCloudVault(repo, new FakeCloudGovernance(), eu).HandleAsync(nuvem.Id,
             new CloudVaultSettings("Outro nome", true, CloudPolicyMode.Blocklist, 0, 8192, 5, 100, 1000), Ct);
 
         result.Succeeded.ShouldBeFalse();
@@ -98,7 +98,11 @@ public sealed class CloudPanelUseCasesTests
         chaves.Credentials.Add(new CloudServerCredential
             { GameServerId = servidor.Id, VaultId = nuvem.Id, KeyPrefix = "abcdefghijkm", KeyHash = "h" });
 
-        (await SetVault(repo, chaves, servidor, eu).HandleAsync(servidor.Id, null, Ct)).Succeeded.ShouldBeTrue();
+        var governanca = new FakeCloudGovernance();
+        var setVault = new SetServerCloudVault(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(),
+            governanca, eu, TimeProvider.System);
+        (await setVault.HandleAsync(servidor.Id, null, Ct)).Succeeded.ShouldBeTrue();
+        governanca.Audit.Single().Action.ShouldBe("server.detach");
 
         servidor.CloudVaultId.ShouldBeNull();
         chaves.Credentials.Single().IsActive.ShouldBeFalse();
@@ -131,15 +135,15 @@ public sealed class CloudPanelUseCasesTests
         repo.Channels.Add(canalAlheio);
 
         (await new GetCloudChannelBalances(repo, eu).HandleAsync(minha.Id, canalAlheio.Id, Ct)).Succeeded.ShouldBeFalse();
-        (await new UnfreezeCloudChannel(repo, eu, NullLogger<UnfreezeCloudChannel>.Instance)
+        (await new UnfreezeCloudChannel(repo, new FakeCloudGovernance(), eu)
             .HandleAsync(minha.Id, canalAlheio.Id, Ct)).Succeeded.ShouldBeFalse();
         canalAlheio.IsFrozen.ShouldBeTrue();
     }
 
     private static SetServerCloudVault SetVault(FakeCloudAdminRepository repo, FakeCloudCredentialRepository chaves,
         GameServer servidor, FakeUserScope scope) =>
-        new(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(), scope, TimeProvider.System,
-            NullLogger<SetServerCloudVault>.Instance);
+        new(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(), new FakeCloudGovernance(), scope,
+            TimeProvider.System);
 
     private static GameServer Servidor(Guid dono) => new()
     {

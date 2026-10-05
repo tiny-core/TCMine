@@ -753,8 +753,13 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   incrementa `Version`. `DbUpdateConcurrencyException` → o mod reenvia.
 - **O TCMine nunca decodifica item.** Guarda `EncodedItem` (blob opaco) + `ItemId` + nome de
   exibição que o servidor de jogo mandou.
-- **Restaurar backup de mundo com nuvem ligada abre um `CloudRollbackIncident`** (prévia de
-  estorno) ANTES de religar o servidor. Estorno = linhas compensatórias no ledger.
+- **Mundo que voltou no tempo abre um `CloudRollbackIncident` no `hello`** (checkpoint atrás de lotes
+  já aplicados, MESMO mundo da conexão anterior) e deixa a nuvem em somente leitura naquele servidor.
+  Cobre restaurar backup pelo painel e cópia manual. Estorno = linhas compensatórias no ledger
+  (origem `Revert`), parando em zero e registrando o que não voltou.
+- **Decisão do painel que mexe em saldo** (aplicar quarentena, devolver operação em dúvida, estornar)
+  só com o lease LIVRE (`CloudLeaseGuard`) e via `CommitAdminAsync`, que aumenta a versão do lease:
+  um acquire concorrente perde a corrida e pega os saldos novos.
 - **Backup a quente com nuvem ligada:** depois do `save-all flush`, rodar `tccloud checkpoint` pelo
   RCON ANTES de copiar — senão o zip sai com o diário do mod atrasado em relação aos chunks.
 - **"Operações em dúvida" nunca são devolvidas automaticamente.** Depois de um crash o mod não sabe

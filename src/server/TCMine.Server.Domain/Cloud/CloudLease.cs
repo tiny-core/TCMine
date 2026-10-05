@@ -131,6 +131,13 @@ public sealed class CloudLease : Entity
         }
     }
 
+    /// <summary>
+    ///     O painel mexeu nos saldos deste jogador (quarentena aplicada, devolução,
+    ///     estorno). Só aumenta a versão: um acquire que leu o lease antes perde a
+    ///     corrida e é refeito, já vendo os saldos novos.
+    /// </summary>
+    public void MarkAdminChange() => Changed();
+
     private void Changed()
     {
         Version++;

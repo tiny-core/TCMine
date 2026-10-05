@@ -64,6 +64,10 @@ public interface ICloudGovernanceRepository
     Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct);
     Task UpdateQuarantineAsync(CloudQuarantine quarantine, CloudBatch batch, CancellationToken ct);
 
+    /// <summary>Id do item e nome, para telas que só têm o id do tipo de item.</summary>
+    Task<IReadOnlyDictionary<Guid, (string ItemId, string DisplayName)>> ItemNamesAsync(IReadOnlyCollection<Guid> ids,
+        CancellationToken ct);
+
     // Auditoria
     Task AddAuditAsync(CloudAdminAuditEntry entry, CancellationToken ct);
     Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct);

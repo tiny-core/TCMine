@@ -35,7 +35,13 @@ public static class CloudBatchDecision
     public sealed record Rejected(CloudQuarantineReason Reason, string Detail, IReadOnlyCollection<Guid> Channels)
         : Outcome;
 
-    public static Outcome Decide(CloudBatchRequest batch, State state)
+    /// <param name="ownerApproval">
+    ///     O dono está aplicando um lote da quarentena: canal congelado, cota e
+    ///     saldo esperado pelo mod não barram (são exatamente o que ele está
+    ///     decidindo passar por cima). Saldo negativo, canal e item desconhecidos
+    ///     continuam barrando — esses não têm como ser aplicados.
+    /// </param>
+    public static Outcome Decide(CloudBatchRequest batch, State state, bool ownerApproval = false)
     {
         var touched = batch.Ops.Select(o => o.ChannelId).Distinct().ToArray();
 
@@ -63,7 +69,7 @@ public static class CloudBatchDecision
         {
             if (!state.Channels.TryGetValue(op.ChannelId, out var channel))
                 return Reject(CloudQuarantineReason.UnknownChannel, $"Canal {op.ChannelId} não é deste jogador.", touched);
-            if (channel.IsFrozen)
+            if (channel.IsFrozen && !ownerApproval)
                 return Reject(CloudQuarantineReason.FrozenChannel, $"Canal {channel.Name} está congelado.", touched);
 
             var known = state.ItemIds.ContainsKey(op.Fingerprint);
@@ -82,6 +88,9 @@ public static class CloudBatchDecision
                     $"Saldo de {op.Fingerprint} ficaria {after} no canal {channel.Name}.", touched);
             changes.Add(new Change(op.ChannelId, op.Fingerprint, op.Delta, after));
         }
+
+        if (ownerApproval)
+            return new Accepted(changes, newItems.Values.ToList());
 
         var quotaProblem = CheckQuota(changes, state);
         if (quotaProblem is not null)

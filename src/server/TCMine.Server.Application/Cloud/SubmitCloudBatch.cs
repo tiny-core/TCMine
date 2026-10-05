@@ -65,14 +65,7 @@ public sealed partial class SubmitCloudBatch(
         }
 
         var accepted = (CloudBatchDecision.Accepted)outcome;
-        var newItems = accepted.NewItems.Select(d => new CloudItemType
-        {
-            Fingerprint = d.Fingerprint,
-            ItemId = d.ItemId,
-            ModId = d.ItemId[..d.ItemId.IndexOf(':')],
-            DisplayName = d.DisplayName,
-            Encoded = Convert.FromBase64String(d.Encoded)
-        }).ToList();
+        var newItems = accepted.NewItems.Select(CloudItemTypes.FromDto).ToList();
         var itemIds = new Dictionary<string, Guid>(state.ItemIds, StringComparer.Ordinal);
         foreach (var item in newItems)
             itemIds[item.Fingerprint] = item.Id;

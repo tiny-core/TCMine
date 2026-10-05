@@ -223,6 +223,17 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task<IReadOnlyDictionary<Guid, (string ItemId, string DisplayName)>> ItemNamesAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return (await db.CloudItemTypes.AsNoTracking()
+                .Where(i => ids.Contains(i.Id))
+                .Select(i => new { i.Id, i.ItemId, i.DisplayName })
+                .ToListAsync(ct))
+            .ToDictionary(i => i.Id, i => (i.ItemId, i.DisplayName));
+    }
+
     // ---------------------------------------------------------------- auditoria
 
     public async Task AddAuditAsync(CloudAdminAuditEntry entry, CancellationToken ct)

@@ -1,0 +1,43 @@
+@using TCMine.Server.Domain.Cloud
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    O mundo de um servidor voltou no tempo (backup restaurado ou cópia antiga). A nuvem fica em somente leitura
+    nele até você decidir. <b>Estornar</b> (recomendado) desfaz na nuvem o que o servidor fez depois do ponto do
+    mundo; <b>Aceitar</b> mantém os saldos — os itens desse intervalo ficam no mundo E na nuvem.
+</MudAlert>
+<MudSwitch @bind-Value="_showResolved" @bind-Value:after="LoadAsync" Label="Mostrar resolvidos" Color="Color.Primary" Class="mb-2"/>
+
+@if (_items is null)
+{
+    <MudProgressLinear Indeterminate="true"/>
+}
+else if (_items.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhum incidente.</MudText>
+}
+else
+{
+    <MudTable Items="_items" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Quando</MudTh>
+            <MudTh>Servidor</MudTh>
+            <MudTh>O que foi visto</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText></MudTd>
+            <MudTd>@ServerNames.GetValueOrDefault(context.ServerId, "servidor removido")</MudTd>
+            <MudTd><MudText Typo="Typo.caption">@context.Detail</MudText></MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.IsOpen)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenAsync(context))">Decidir</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">@(context.Status == CloudIncidentStatus.Reverted ? "Estornado" : "Aceito")</MudText>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}

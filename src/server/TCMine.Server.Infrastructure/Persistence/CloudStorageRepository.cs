@@ -152,6 +152,68 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
         return await TrySaveAsync(db, ct);
     }
 
+    public async Task<bool> CommitAdminAsync(CloudAdminCommit commit, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        foreach (var (lease, read) in commit.Leases)
+        {
+            if (read is null)
+                db.CloudLeases.Add(lease);
+            else
+                AttachLease(db, lease, read.Value);
+        }
+        db.CloudItemTypes.AddRange(commit.NewItemTypes);
+        foreach (var entity in commit.AlsoUpdate)
+            db.Update(entity);
+
+        var channelIds = commit.Changes.Select(c => c.ChannelId).Distinct().ToArray();
+        var itemIds = commit.Changes.Select(c => c.ItemTypeId).Distinct().ToArray();
+        var existing = await db.CloudBalances
+            .Where(b => channelIds.Contains(b.ChannelId) && itemIds.Contains(b.ItemTypeId))
+            .ToDictionaryAsync(b => (b.ChannelId, b.ItemTypeId), ct);
+        foreach (var change in commit.Changes)
+        {
+            if (!existing.TryGetValue((change.ChannelId, change.ItemTypeId), out var balance))
+            {
+                balance = new CloudBalance { ChannelId = change.ChannelId, ItemTypeId = change.ItemTypeId };
+                db.CloudBalances.Add(balance);
+                existing[(change.ChannelId, change.ItemTypeId)] = balance;
+            }
+            if (balance.Apply(change.Delta) != change.BalanceAfter)
+                throw new InvalidOperationException($"Saldo do canal {change.ChannelId} mudou durante a decisão do painel.");
+            db.CloudLedger.Add(new CloudLedgerEntry
+            {
+                ChannelId = change.ChannelId,
+                ItemTypeId = change.ItemTypeId,
+                Delta = change.Delta,
+                BalanceAfter = change.BalanceAfter,
+                Source = commit.Source,
+                BatchId = change.BatchId,
+                ActorUserId = commit.ActorUserId,
+                Reason = commit.Reason.Length > 512 ? commit.Reason[..512] : commit.Reason
+            });
+        }
+
+        return await TrySaveAsync(db, ct);
+    }
+
+    public async Task<IReadOnlyList<CloudBatch>> ListAppliedBatchesAsync(Guid vaultId, Guid serverId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.CloudBatches.AsNoTracking()
+            .Where(b => b.VaultId == vaultId && b.ServerId == serverId && b.Status == CloudBatchStatus.Applied)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<CloudLedgerEntry>> ListLedgerByBatchesAsync(IReadOnlyCollection<Guid> batchIds,
+        CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.CloudLedger.AsNoTracking()
+            .Where(e => e.BatchId != null && batchIds.Contains(e.BatchId.Value))
+            .ToListAsync(ct);
+    }
+
     public async Task CommitQuarantineAsync(CloudBatch batch, CloudQuarantine quarantine,
         IReadOnlyCollection<Guid> channelsToFreeze, CancellationToken ct)
     {

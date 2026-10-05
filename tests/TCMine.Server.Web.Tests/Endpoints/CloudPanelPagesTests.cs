@@ -30,6 +30,8 @@ public sealed class CloudPanelPagesTests
         pagina.ShouldContain("Nuvem do Survival");
         pagina.ShouldContain("Servidores");
         pagina.ShouldContain("Jogadores");
+        pagina.ShouldContain("Quarentena");
+        pagina.ShouldContain("Incidentes");
     }
 
     [Fact]

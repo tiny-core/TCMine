@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging.Abstractions;
+﻿using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
@@ -34,6 +34,22 @@ public sealed class WorldBackupTests
         Assert.Equal(["save-off", "save-all flush", "save-on"], rcon.Comandos);
         Assert.True(store.Criou);
         Assert.True(repo.Adicionado!.TakenHot);
+    }
+
+    [Fact]
+    public async Task Backup_a_quente_de_servidor_na_nuvem_grava_o_checkpoint_antes_de_copiar()
+    {
+        // O mod guarda os créditos recentes até um save confirmado: sem o
+        // checkpoint entre o flush e a cópia, o zip sai com a nuvem atrasada.
+        var server = Servidor();
+        server.AttachToCloudVault(new TCMine.Server.Domain.Cloud.CloudVault { Name = "N", OwnerId = server.OwnerId });
+        var rcon = new FakeRcon();
+
+        var result = await NewBackup(server, new FakeStore(), GameServerStatus.Running, rcon: rcon)
+            .HandleAsync(server.Id, null, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(["save-off", "save-all flush", "tccloud checkpoint", "save-on"], rcon.Comandos);
     }
 
     [Fact]
@@ -405,7 +421,8 @@ public sealed class WorldBackupTests
         ServerRoleDto? papel = ServerRoleDto.Owner) =>
         new(repo ?? new FakeServers(server), new FakeOrchestrator(status), rcon ?? new FakeRcon(), store,
             new FakeModpacks(VersaoComNumero("1.0.0", VersaoAtualId)),
-            new FakeSettings(manter), new FakeJobProgress(), new FakeUserScope(papel));
+            new FakeSettings(manter), new FakeJobProgress(), new FakeUserScope(papel),
+            NullLogger<CreateWorldBackup>.Instance);
 
     private static ChangeServerVersion NewChange(
         FakeServers repo, FakeStore store, ModpackVersion target, GameServerStatus status)
@@ -415,7 +432,7 @@ public sealed class WorldBackupTests
 
         var backup = new CreateWorldBackup(
             repo, orchestrator, new FakeRcon(), store, modpacks,
-            new FakeSettings(), new FakeJobProgress(), new FakeUserScope());
+            new FakeSettings(), new FakeJobProgress(), new FakeUserScope(), NullLogger<CreateWorldBackup>.Instance);
         return new ChangeServerVersion(repo, modpacks, orchestrator, backup, new FakeUserScope());
     }
 

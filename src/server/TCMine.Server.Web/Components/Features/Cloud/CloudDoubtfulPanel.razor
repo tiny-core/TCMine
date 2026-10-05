@@ -1,0 +1,56 @@
+@using TCMine.Server.Domain.Cloud
+
+<MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+    Operações que podem ter se perdido quando um servidor caiu: o mod não sabe se o mundo gravou o item.
+    Antes de <b>Devolver</b>, confira no jogo se o jogador ficou sem os itens — devolver quando ele ainda os tem
+    duplica. <b>Dispensar</b> não muda nada.
+</MudAlert>
+<MudSwitch @bind-Value="_showResolved" @bind-Value:after="LoadAsync" Label="Mostrar resolvidas" Color="Color.Primary" Class="mb-2"/>
+
+@if (_items is null)
+{
+    <MudProgressLinear Indeterminate="true"/>
+}
+else if (_items.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">Nenhuma operação em dúvida.</MudText>
+}
+else
+{
+    <MudTable Items="_items" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>Quando</MudTh>
+            <MudTh>Servidor</MudTh>
+            <MudTh>Jogador</MudTh>
+            <MudTh>O que pode ter se perdido</MudTh>
+            <MudTh>Item</MudTh>
+            <MudTh>Qtd.</MudTh>
+            <MudTh/>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd><MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText></MudTd>
+            <MudTd><MudText Typo="Typo.caption">@ServerNames.GetValueOrDefault(context.ServerId, "servidor removido")</MudText></MudTd>
+            <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.PlayerUuid</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">
+                    @(context.Kind == CloudDoubtfulKind.PendingCredit
+                        ? "Guardou na nuvem, mas o crédito não chegou"
+                        : "Tirou da nuvem, mas o mundo talvez não gravou")
+                </MudText>
+            </MudTd>
+            <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.Fingerprint[..12]…</MudText></MudTd>
+            <MudTd>@context.Amount</MudTd>
+            <MudTd Style="text-align:right;">
+                @if (context.IsOpen)
+                {
+                    <MudButton Size="Size.Small" Color="Color.Warning" OnClick="@(() => ResolveAsync(context, true))" Disabled="_isBusy">Devolver</MudButton>
+                    <MudButton Size="Size.Small" OnClick="@(() => ResolveAsync(context, false))" Disabled="_isBusy">Dispensar</MudButton>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption">@(context.Status == CloudDoubtfulStatus.Refunded ? "Devolvido" : "Dispensado")</MudText>
+                }
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+}
