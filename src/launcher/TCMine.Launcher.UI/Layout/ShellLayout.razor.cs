@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Layout;
@@ -14,9 +15,14 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
+    [Inject] private ActionLock Lock { get; set; } = default!;
+
+    [Inject] private GameSession Game { get; set; } = default!;
+
     public void Dispose()
     {
         Shell.Changed -= OnShellChanged;
+        Lock.Changed -= OnShellChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -31,6 +37,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     protected override async Task OnInitializedAsync()
     {
         Shell.Changed += OnShellChanged;
+        Lock.Changed += OnShellChanged;
         Shell.BeginCheck();
 
         try

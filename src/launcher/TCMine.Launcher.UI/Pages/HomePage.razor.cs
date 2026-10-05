@@ -44,10 +44,13 @@ public partial class HomePage : ComponentBase, IDisposable
     private const string WhyCannotPlay = "Pareie com um servidor para poder jogar.";
 
     private string? JoinBlockedReason =>
-        Game.IsRunning ? "O jogo já está aberto."
-        : _launching ? "Abrindo o jogo…"
-        : CanPlay ? null
-        : WhyCannotPlay;
+        Lock.Reason
+        ?? (_launching ? "Abrindo o jogo…"
+            : CanPlay ? null
+            : WhyCannotPlay);
+
+    /// <summary>Jogo aberto ou instalação em curso (ver <see cref="ActionLock" />).</summary>
+    [Inject] private ActionLock Lock { get; set; } = default!;
 
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
@@ -74,6 +77,7 @@ public partial class HomePage : ComponentBase, IDisposable
     public void Dispose()
     {
         Game.Changed -= OnGameChanged;
+        Lock.Changed -= OnGameChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -82,6 +86,7 @@ public partial class HomePage : ComponentBase, IDisposable
         // O jogo pode já estar a correr: o jogador abriu, foi ver os modpacks e
         // voltou. A tela tem de o encontrar assim, e não em branco.
         Game.Changed += OnGameChanged;
+        Lock.Changed += OnGameChanged;
 
         try
         {

@@ -45,6 +45,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
 
     [Inject] private InstallOperationState Operation { get; set; } = default!;
 
+    /// <summary>Jogo aberto ou instalação em curso: as ações daqui ficam desligadas.</summary>
+    [Inject] private ActionLock Lock { get; set; } = default!;
+
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     [Inject] private IDesktopShell Desktop { get; set; } = default!;
@@ -56,12 +59,14 @@ public partial class InstancesPage : ComponentBase, IDisposable
     public void Dispose()
     {
         Operation.Changed -= OnOperationChanged;
+        Lock.Changed -= OnOperationChanged;
         GC.SuppressFinalize(this);
     }
 
     protected override Task OnInitializedAsync()
     {
         Operation.Changed += OnOperationChanged;
+        Lock.Changed += OnOperationChanged;
         return LoadAsync();
     }
 
@@ -110,6 +115,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
     /// </summary>
     private async Task SetMemoryAsync(InstalledInstance instance, int? megabytes)
     {
+        if (Lock.IsLocked)
+            return;
+
         var result = await Memory.HandleAsync(instance, megabytes, CancellationToken.None);
 
         if (!result.Succeeded)
@@ -131,6 +139,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
     /// </summary>
     private async Task CleanupJavaAsync()
     {
+        if (Lock.IsLocked)
+            return;
+
         _busy = true;
 
         try
@@ -164,7 +175,7 @@ public partial class InstancesPage : ComponentBase, IDisposable
     /// </summary>
     private async Task UpdateAsync(InstalledInstance instance, ModpackVersionDto newer)
     {
-        if (Shell.Pairing?.Config is not { } config || _busy || Operation.IsRunning)
+        if (Shell.Pairing?.Config is not { } config || _busy || Lock.IsLocked)
             return;
 
         var temMundo = Worlds.HasWorld(instance.Key);
@@ -240,6 +251,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
     /// </summary>
     private async Task ActivateAsync(InstalledInstance instance)
     {
+        if (Lock.IsLocked)
+            return;
+
         _busy = true;
 
         try
@@ -262,6 +276,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
     /// </summary>
     private async Task RemoveAsync(InstalledInstance instance)
     {
+        if (Lock.IsLocked)
+            return;
+
         var confirmado = await Dialogs.ShowMessageBoxAsync(new MessageBoxOptions
         {
             Title = "Remover instância",
