@@ -386,8 +386,8 @@ public sealed partial class ModpackIngestionService(
         // identidade do arquivo lá — se ele bate, os bytes são os mesmos e
         // buscá-los serviria só para descartá-los depois de hashear.
         if (version.Files.Any(f =>
-                string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
-                && f.OriginReference == resolved.VersionId))
+                f.OriginReference == resolved.VersionId
+                && (SameSlug(f, item.ProjectId) || SameSlug(f, resolved.ProjectId))))
         {
             return null;
         }
@@ -411,7 +411,7 @@ public sealed partial class ModpackIngestionService(
             return await AttachAsync(version, item, new IngestedFile(
                 path, known.Sha256, known.SizeBytes,
                 resolved.Side ?? localInfo?.DeclaredSide ?? known.Side,
-                resolved.VersionId, resolved.IconUrl ?? known.IconUrl, deps), unsaved, ct);
+                resolved.VersionId, resolved.IconUrl ?? known.IconUrl, deps, resolved.ProjectId), unsaved, ct);
         }
 
         try
@@ -445,7 +445,7 @@ public sealed partial class ModpackIngestionService(
             return await AttachAsync(version, item, new IngestedFile(
                 path, sha256, stored.Length,
                 resolved.Side ?? jarInfo?.DeclaredSide ?? item.Side,
-                resolved.VersionId, resolved.IconUrl, deps), unsaved, ct);
+                resolved.VersionId, resolved.IconUrl, deps, resolved.ProjectId), unsaved, ct);
         }
         catch (HttpRequestException ex)
         {
@@ -467,24 +467,30 @@ public sealed partial class ModpackIngestionService(
         List<ModpackFile> unsaved,
         CancellationToken ct)
     {
+        // A identidade é o id CANÔNICO que a origem devolveu; o nome do pedido
+        // (o slug, em mods adicionados antes pela busca do Modrinth) vira só um
+        // apelido que ainda casa com a linha antiga — e é substituído por ela.
+        var identity = ingested.CanonicalProjectId ?? item.ProjectId;
+        var alias = string.Equals(identity, item.ProjectId, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : item.ProjectId;
+        bool SameMod(ModpackFile f) => SameSlug(f, identity) || SameSlug(f, alias);
+
         // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
         // remover e re-adicionar a mesma linha numa re-ingestão.
-        if (version.Files.Any(f =>
-                string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
-                && f.Sha256 == ingested.Sha256))
+        if (version.Files.Any(f => SameMod(f) && f.Sha256 == ingested.Sha256))
             return null;
 
         // Conflito raro: outro mod já ocupa este caminho. Dois arquivos no
         // mesmo path não podem coexistir na instância.
         if (version.Files.Any(f =>
-                f.Path.Equals(ingested.Path, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)))
+                f.Path.Equals(ingested.Path, StringComparison.OrdinalIgnoreCase) && !SameMod(f)))
             return ResolveOutcome.Fail($"{Path.GetFileName(ingested.Path)} (conflito de caminho com outro mod)");
 
         var file = new ModpackFile
         {
             ModpackVersionId = version.Id,
-            ProjectSlug = item.ProjectId, // identidade estável do mod
+            ProjectSlug = identity, // identidade estável do mod
             Path = ingested.Path,
             Sha256 = ingested.Sha256,
             SizeBytes = ingested.SizeBytes,
@@ -501,13 +507,16 @@ public sealed partial class ModpackIngestionService(
         // devolve o ID do arquivo trocado para apagarmos a linha antiga —
         // o UpdateVersionAsync final (Update num grafo destacado) não apaga
         // filhos removidos da coleção sozinho.
-        var replacedId = version.UpsertFile(file);
+        var replacedId = version.UpsertFile(file, alias);
         if (replacedId is { } oldId)
             await repository.RemoveFileAsync(version.Id, oldId, ct);
 
         unsaved.Add(file);
         return null;
     }
+
+    private static bool SameSlug(ModpackFile file, string? projectId) =>
+        projectId is { Length: > 0 } && string.Equals(file.ProjectSlug, projectId, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     ///     Só as REQUERIDAS entram na fila. Embedded já vem dentro do jar;
@@ -583,7 +592,8 @@ public sealed partial class ModpackIngestionService(
         FileSide Side,
         string OriginReference,
         string? IconUrl,
-        IReadOnlyList<string> Dependencies);
+        IReadOnlyList<string> Dependencies,
+        string? CanonicalProjectId = null);
 
     /// <summary>Contadores do progresso, mutáveis entre o laço e o relatório.</summary>
     private sealed class Counters

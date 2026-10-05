@@ -46,7 +46,7 @@ public sealed record ModSearchQuery(
 ///     marcar responde a pergunta; esconder inventa outra.
 /// </summary>
 public sealed record ModSearchResult(
-    string ProjectId, // usamos o slug como identidade estável (vira ProjectSlug)
+    string ProjectId, // id do projeto na origem: identidade estável (vira ProjectSlug)
     string Title,
     string Description,
     string? IconUrl,

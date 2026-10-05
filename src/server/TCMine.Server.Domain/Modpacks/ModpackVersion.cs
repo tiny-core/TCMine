@@ -323,7 +323,13 @@ public sealed class ModpackVersion : Entity
         PendingMods.FirstOrDefault(p =>
             string.Equals(p.ProjectSlug, projectSlug, StringComparison.OrdinalIgnoreCase));
 
-    public Guid? UpsertFile(ModpackFile file)
+    /// <param name="previousSlug">
+    ///     Outro nome pelo qual o MESMO mod pode estar gravado (o slug do
+    ///     Modrinth, antes de a identidade passar a ser o id do projeto). Casando
+    ///     por ele também, a atualização substitui a linha antiga em vez de
+    ///     deixar dois .jar do mesmo mod.
+    /// </param>
+    public Guid? UpsertFile(ModpackFile file, string? previousSlug = null)
     {
         if (State is not (ModpackVersionState.Draft or ModpackVersionState.Resolving))
             throw new InvalidOperationException($"Nao e possivel alterar arquivos a partir de {State}.");
@@ -333,7 +339,11 @@ public sealed class ModpackVersion : Entity
         if (file.ProjectSlug is { Length: > 0 } slug)
         {
             var existing = Files.FirstOrDefault(f =>
-                string.Equals(f.ProjectSlug, slug, StringComparison.OrdinalIgnoreCase));
+                               string.Equals(f.ProjectSlug, slug, StringComparison.OrdinalIgnoreCase))
+                           ?? (previousSlug is { Length: > 0 }
+                               ? Files.FirstOrDefault(f =>
+                                   string.Equals(f.ProjectSlug, previousSlug, StringComparison.OrdinalIgnoreCase))
+                               : null);
 
             if (existing is not null)
             {
