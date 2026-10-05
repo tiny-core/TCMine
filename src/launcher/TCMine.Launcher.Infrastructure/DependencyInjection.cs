@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddSingleton(new LauncherPaths(rootDirectory));
 
         services.AddSingleton<ILauncherConfigProvider, FileLauncherConfigProvider>();
+        services.AddSingleton<IBundledServerAddress, BundledServerAddress>();
 
         services.AddHttpClient<IHandshakeClient, HandshakeClient>(client =>
             {

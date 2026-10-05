@@ -13,6 +13,7 @@ using TCMine.Server.Infrastructure.Storage;
 using TCMine.Server.Infrastructure.Versions;
 using TCMine.MinecraftAuth;
 using TCMine.Server.Infrastructure.Updates;
+using TCMine.Server.Infrastructure.Launcher;
 
 namespace TCMine.Server.Infrastructure;
 
@@ -183,6 +184,10 @@ public static class DependencyInjection
         // Sem estado próprio — só lê um arquivo a cada chamada — mas singleton
         // como os demais adaptadores sem estado por requisição.
         services.AddSingleton<ILauncherReleaseSource, FileSystemLauncherReleaseSource>();
+
+        // O launcher que vem na imagem, publicado no feed no arranque.
+        services.Configure<LauncherBundleOptions>(configuration.GetSection("LauncherUpdates"));
+        services.AddSingleton<ILauncherBundle, VelopackLauncherBundle>();
 
         return services;
     }

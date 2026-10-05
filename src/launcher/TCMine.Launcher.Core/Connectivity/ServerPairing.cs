@@ -8,8 +8,18 @@ namespace TCMine.Launcher.Core.Connectivity;
 ///     É o primeiro caso de uso que roda, antes de qualquer tela útil: sem
 ///     servidor não há catálogo, não há login e não há o que jogar.
 /// </summary>
-public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigProvider config)
+public sealed class ServerPairing(
+    IHandshakeClient handshake,
+    ILauncherConfigProvider config,
+    IBundledServerAddress? bundled = null)
 {
+    /// <summary>
+    ///     O endereço que veio no instalador, para a tela de pareamento já abrir
+    ///     preenchida quando o pareamento automático não deu (servidor fora do
+    ///     ar no primeiro arranque, por exemplo).
+    /// </summary>
+    public string? SuggestedAddress => bundled?.Get();
+
     /// <summary>
     ///     Retoma o pareamento gravado, se houver, e confirma que o servidor
     ///     ainda fala a nossa língua.
@@ -19,7 +29,15 @@ public sealed class ServerPairing(IHandshakeClient handshake, ILauncherConfigPro
         var saved = await config.TryLoadAsync(ct);
 
         if (saved is null)
-            return PairingState.NotPaired();
+        {
+            // Instalador baixado de um servidor TCMine: ele já disse quem é.
+            // Pareia sozinho, pelas mesmas regras do endereço digitado; se não
+            // der, o estado devolvido manda para a tela de pareamento, que abre
+            // com o endereço preenchido.
+            return SuggestedAddress is { Length: > 0 } address
+                ? await PairAsync(address, ct)
+                : PairingState.NotPaired();
+        }
 
         var result = await handshake.PerformAsync(saved.ServerUrl, ct);
 
