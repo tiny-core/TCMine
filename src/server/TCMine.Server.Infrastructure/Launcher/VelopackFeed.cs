@@ -91,4 +91,38 @@ public static class VelopackFeed
     private sealed record AssetEntry(
         [property: JsonPropertyName("RelativeFileName")] string? RelativeFileName,
         [property: JsonPropertyName("Type")] string? Type);
+
+    /// <summary>
+    ///     O primeiro caminho do canal em que este processo não consegue
+    ///     escrever (a própria pasta ou um arquivo dela), ou <c>null</c>. O vpk
+    ///     sobrescreve o instalador e os índices, e apaga o canal ao refazê-lo.
+    /// </summary>
+    public static string? FindUnwritable(string channelDir)
+    {
+        var probe = Path.Combine(channelDir, $".tcmine-probe-{Guid.NewGuid():N}");
+        try
+        {
+            File.WriteAllBytes(probe, []);
+            File.Delete(probe);
+        }
+        catch (Exception e) when (e is UnauthorizedAccessException or IOException)
+        {
+            return channelDir;
+        }
+
+        foreach (var file in Directory.EnumerateFiles(channelDir))
+        {
+            try
+            {
+                // Abrir para escrita sem truncar: confere a permissão sem tocar no conteúdo.
+                using var _ = File.OpenHandle(file, FileMode.Open, FileAccess.Write);
+            }
+            catch (Exception e) when (e is UnauthorizedAccessException or IOException)
+            {
+                return file;
+            }
+        }
+
+        return null;
+    }
 }

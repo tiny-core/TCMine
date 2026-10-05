@@ -19,6 +19,8 @@ public sealed class LauncherBundleTests : IDisposable
     private const string Channel = "win-x64-p2";
     private readonly string _root = Directory.CreateTempSubdirectory("tcmine-feed-").FullName;
 
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     public void Dispose() => Directory.Delete(_root, recursive: true);
 
     [Theory]
@@ -64,7 +66,7 @@ public sealed class LauncherBundleTests : IDisposable
 
         latest.ShouldNotBeNull();
         latest.Version.ShouldBe("1.0.0");
-        latest.DownloadUrl.ShouldBe($"/updates/launcher/{Channel}/TCMine.Launcher-{Channel}-Setup.exe");
+        latest.DownloadUrl.ShouldBe($"/updates/launcher/{Channel}/TCMine.Launcher-{Channel}-Setup.exe?v=1.0.0");
     }
 
     [Fact]
@@ -106,6 +108,50 @@ public sealed class LauncherBundleTests : IDisposable
         // Endereço novo, mesma versão: o canal é refeito.
         (await bundle.PublishAsync(new Uri("https://novo.exemplo/"), ct)).ShouldBe(LauncherBundleOutcome.Published);
         LauncherBundleStamp.Read(dir)!.ServerUrl.ShouldBe("https://novo.exemplo/");
+    }
+
+    [Fact]
+    public void Erro_do_vpk_chega_ao_log_e_nao_o_stack_trace()
+    {
+        // Saída real (encurtada) da primeira falha em produção: as últimas linhas
+        // são o stack trace, e era só isso que o log mostrava.
+        const string output = """
+            [14:02:16 INF] Starting: Post-process steps
+            [14:02:17 FTL] Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
+            System.UnauthorizedAccessException: Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
+               at Velopack.Packaging.PackageBuilder`2.RunCoreAsync(T options) in ./vpk/Velopack.Packaging/PackageBuilder.cs:line 113
+               at Velopack.Core.Abstractions.ValidatedCommand`1.Run(TOpt options) in ./vpk/Velopack.Core/Abstractions/ValidatedCommand.cs:line 18
+            """;
+
+        VelopackLauncherBundle.VpkErrorSummary(output)
+            .ShouldBe("[14:02:17 FTL] Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.");
+    }
+
+    [Fact]
+    public async Task Feed_que_o_container_nao_consegue_escrever_falha_antes_do_vpk()
+    {
+        if (OperatingSystem.IsWindows())
+            Assert.Skip("Permissão Unix.");
+
+        var bundle = Directory.CreateDirectory(Path.Combine(_root, "bundle")).FullName;
+        Directory.CreateDirectory(Path.Combine(bundle, "app"));
+        await File.WriteAllTextAsync(Path.Combine(bundle, "VERSION"), "1.0.0", Ct);
+
+        // O instalador de uma publicação manual, copiado como root.
+        var channelDir = Directory.CreateDirectory(Path.Combine(_root, Channel)).FullName;
+        var installer = Path.Combine(channelDir, $"TCMine.Launcher-{Channel}-Setup.exe");
+        await File.WriteAllTextAsync(installer, "x", Ct);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(installer, UnixFileMode.UserRead);
+        Assert.SkipUnless(VelopackFeed.FindUnwritable(channelDir) is not null,
+            "Rodando como root: a permissão não se aplica.");
+
+        // Sem vpk no pacote: se a conferência não viesse antes, o erro seria "vpk não encontrado".
+        var error = await Should.ThrowAsync<InvalidOperationException>(
+            () => Bundle(bundle).PublishAsync(new Uri("https://jogo/"), Ct));
+
+        error.Message.ShouldContain(installer);
+        error.Message.ShouldContain("chown");
     }
 
     private VelopackLauncherBundle Bundle(string bundlePath) =>
