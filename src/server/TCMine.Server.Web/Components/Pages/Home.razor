@@ -1,88 +1,219 @@
 @page "/admin"
+@using TCMine.Contracts.Servers
 
-<PageTitle>Painel — TCMine</PageTitle>
+<PageTitle>Visão geral — TCMine</PageTitle>
 
-<PageHeader Title="Painel"
-            Subtitle="Visão geral do seu servidor TCMine."
-            Icon="@Icons.Material.Filled.Dashboard"/>
+<PageHeader Title="Visão geral"
+            Subtitle="O que está no ar agora e o que espera por você."
+            Icon="@Icons.Material.Filled.SpaceDashboard">
+    <MudButton Href="/admin/modpacks" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.UploadFile">
+        Importar modpack
+    </MudButton>
+    <MudButton Href="/admin/modpacks" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add">
+        Novo modpack
+    </MudButton>
+</PageHeader>
 
 @if (_isLoading)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+    <LoadingCards Count="4"/>
 }
 else
 {
-    <MudGrid Class="tc-fade-in">
-        <StatCard Icon="@Icons.Material.Filled.Inventory2" Label="Modpacks"
-                  Value="@_modpacks.Count.ToString()"/>
-        <StatCard Icon="@Icons.Material.Filled.Dns" Label="Servidores"
-                  Value="@_servers.Count.ToString()"/>
-        <StatCard Icon="@Icons.Material.Filled.PlayCircle" Label="Rodando"
-                  Value="@RunningServers.ToString()" IconColor="Color.Success"/>
-        <StatCard Icon="@Icons.Material.Filled.Hub" Label="Protocolo"
-                  Value="@ProtocolVersion.ToString()" IconColor="Color.Info"/>
-    </MudGrid>
+    <section class="tc-kpis tc-fade-in" aria-label="Indicadores">
+        <MudPaper Outlined="true" Class="tc-kpi">
+            <span class="tc-kpi-label"><MudIcon Icon="@Icons.Material.Filled.SportsEsports" Size="Size.Small"/>Jogadores online</span>
+            @* Traço quando nenhum servidor no ar foi amostrado: zero afirmaria
+               que estão vazios, e não se sabe. *@
+            <span class="tc-kpi-value">@(PlayersOnline?.ToString() ?? "—")</span>
+            <span class="tc-kpi-caption">em @RunningServers.Count @(RunningServers.Count == 1 ? "servidor no ar" : "servidores no ar")</span>
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="tc-kpi">
+            <span class="tc-kpi-label"><MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small"/>Servidores</span>
+            <span class="tc-kpi-value">@RunningServers.Count <small>de @_servers.Count no ar</small></span>
+            <span class="tc-kpi-caption">
+                @if (CrashedServers.Count > 0)
+                {
+                    <span class="tc-text-danger">@CrashedServers.Count caiu</span>
+                }
+                else
+                {
+                    <span>nenhum caído</span>
+                }
+            </span>
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="tc-kpi">
+            <span class="tc-kpi-label"><MudIcon Icon="@Icons.Material.Filled.Inventory2" Size="Size.Small"/>Modpacks</span>
+            <span class="tc-kpi-value">@_packs.Count</span>
+            <span class="tc-kpi-caption">@_packs.Count(p => p.Published is not null) publicados · @_packs.Count(p => p.Draft is not null) com rascunho</span>
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="tc-kpi">
+            <span class="tc-kpi-label"><MudIcon Icon="@Icons.Material.Filled.Storage" Size="Size.Small"/>Disco</span>
+            @if (_disk is { } disk)
+            {
+                <span class="tc-kpi-value">@disk.UsedPercent.ToString("0")<small>%</small></span>
+                <MudProgressLinear Value="@disk.UsedPercent" Rounded="true" Size="Size.Small"
+                                   Color="@(disk.UsedPercent >= 85 ? Color.Error : Color.Primary)"/>
+                <span class="tc-kpi-caption">@HumanSize.Bytes(disk.UsedBytes) de @HumanSize.Bytes(disk.TotalBytes)</span>
+            }
+            else
+            {
+                <span class="tc-kpi-value">—</span>
+                <span class="tc-kpi-caption">aguardando a primeira medição</span>
+            }
+        </MudPaper>
+    </section>
+
+    <div class="tc-cols">
+        <MudPaper Outlined="true" Class="tc-panel">
+            <div class="tc-panel-head">
+                <MudText Typo="Typo.h6">Servidores</MudText>
+                <MudButton Href="/admin/servers" Variant="Variant.Text" Size="Size.Small" EndIcon="@Icons.Material.Filled.ArrowForward">
+                    Ver todos
+                </MudButton>
+            </div>
+
+            @if (_servers.Count == 0)
+            {
+                <EmptyState Icon="@Icons.Material.Filled.Dns"
+                            Title="Nenhum servidor ainda."
+                            Description="Crie um a partir de uma versão publicada de um modpack."/>
+            }
+
+            @foreach (var server in _servers)
+            {
+                var metric = LastMetric(server.Id);
+                var players = Players.TryGet(server.Id);
+
+                <div class="tc-server-row">
+                    <div class="tc-server-name">
+                        <span class="tc-crystal @CrystalClass(server.Status)" aria-hidden="true"></span>
+                        <div>
+                            <div class="tc-strong">@server.Name</div>
+                            <div class="tc-caption">@PackName(server.ModpackId) · v@(VersionNumber(server.ModpackVersionId))</div>
+                        </div>
+                    </div>
+
+                    @if (server.Status is GameServerStatus.Running && metric is not null)
+                    {
+                        <div class="tc-meter">
+                            <span>CPU @metric.CpuPercent.ToString("0")%</span>
+                            <MudProgressLinear Value="@Math.Min(100, metric.CpuPercent)" Size="Size.Small" Rounded="true" Color="Color.Primary"/>
+                        </div>
+                        <div class="tc-meter">
+                            <span>RAM @HumanSize.Bytes(metric.MemoryUsedBytes) de @HumanSize.Bytes(metric.MemoryLimitBytes)</span>
+                            <MudProgressLinear Value="@MemoryPercent(metric)" Size="Size.Small" Rounded="true" Color="Color.Primary"/>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="tc-caption tc-span-2">@StatusHint(server.Status)</div>
+                    }
+
+                    <div class="tc-server-actions">
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
+                                 Color="@(server.Status is GameServerStatus.Running ? Color.Success : Color.Default)">
+                            @(players?.ToString() ?? "—") / @server.MaxPlayers
+                        </MudChip>
+                        <MudButton Href="@ServerHref(server)" Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Terminal">
+                            Abrir
+                        </MudButton>
+                    </div>
+                </div>
+            }
+        </MudPaper>
+
+        <MudPaper Outlined="true" Class="tc-panel">
+            <div class="tc-panel-head">
+                <MudText Typo="Typo.h6">Precisa da sua atenção</MudText>
+            </div>
+
+            @if (_attention.Count == 0)
+            {
+                <div class="tc-attention">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success"/>
+                    <div class="tc-attention-body">
+                        <div>Nada pendente.</div>
+                        <div class="tc-caption">Pedidos de acesso, quedas e versões com falha aparecem aqui.</div>
+                    </div>
+                </div>
+            }
+
+            @foreach (var item in _attention)
+            {
+                <div class="tc-attention">
+                    <MudIcon Icon="@item.Icon" Color="@(item.Danger ? Color.Error : Color.Warning)"/>
+                    <div class="tc-attention-body">
+                        <div>@item.Title</div>
+                        <div class="tc-caption">@item.Detail</div>
+                    </div>
+                    <MudButton Href="@item.Href" Variant="Variant.Outlined" Size="Size.Small">@item.Action</MudButton>
+                </div>
+            }
+        </MudPaper>
+    </div>
 
     <div class="my-4">
         <MetricsPanel/>
     </div>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-8 mb-3">
-        <MudText Typo="Typo.h6">Modpacks recentes</MudText>
-        <MudSpacer/>
-        <MudButton Href="/admin/modpacks" Variant="Variant.Text" Color="Color.Primary"
-                   EndIcon="@Icons.Material.Filled.ArrowForward">
-            Ver todos
-        </MudButton>
-    </MudStack>
-
-    @if (_modpacks.Count == 0)
-    {
-        <EmptyState Icon="@Icons.Material.Filled.Inventory2"
-                    Title="Nenhum modpack ainda."
-                    Description="Crie o primeiro para começar a distribuir aos jogadores.">
-            <MudButton Href="/admin/modpacks" Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.Add">
-                Ir para Modpacks
+    <MudPaper Outlined="true" Class="tc-panel">
+        <div class="tc-panel-head">
+            <MudText Typo="Typo.h6">Modpacks</MudText>
+            <MudButton Href="/admin/modpacks" Variant="Variant.Text" Size="Size.Small" EndIcon="@Icons.Material.Filled.ArrowForward">
+                Ver todos
             </MudButton>
-        </EmptyState>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var pack in _modpacks.Take(3))
-            {
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Class="tc-card d-flex flex-column" Elevation="2">
-                        <MudCardContent Class="flex-grow-1">
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
-                                <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Rounded="true">
-                                    @if (pack.IconUrl is not null)
-                                    {
-                                        <MudImage Src="@pack.IconUrl.ToString()"/>
-                                    }
-                                    else
-                                    {
-                                        @(pack.Name.Length > 0 ? pack.Name[..1].ToUpperInvariant() : "?")
-                                    }
-                                </MudAvatar>
-                                <div>
-                                    <MudText Typo="Typo.h6">@pack.Name</MudText>
-                                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                        MC @pack.MinecraftVersion · @pack.Loader
-                                    </MudText>
-                                </div>
-                            </MudStack>
-                        </MudCardContent>
-                        <MudCardActions>
-                            <MudButton Href="@($"/admin/modpacks/{pack.Id}")" Variant="Variant.Text"
-                                       Color="Color.Primary" StartIcon="@Icons.Material.Filled.OpenInNew">
-                                Abrir
-                            </MudButton>
-                        </MudCardActions>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
+        </div>
+
+        @if (_packs.Count == 0)
+        {
+            <EmptyState Icon="@Icons.Material.Filled.Inventory2"
+                        Title="Nenhum modpack ainda."
+                        Description="Crie o primeiro para começar a distribuir aos jogadores.">
+                <MudButton Href="/admin/modpacks" Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.Add">
+                    Ir para Modpacks
+                </MudButton>
+            </EmptyState>
+        }
+        else
+        {
+            <MudSimpleTable Dense="false" Hover="true" Elevation="0" Class="tc-table">
+                <thead>
+                <tr>
+                    <th>Modpack</th>
+                    <th>Minecraft</th>
+                    <th>Versão publicada</th>
+                    <th>Estado</th>
+                    <th>Servidores</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var pack in _packs)
+                {
+                    <tr>
+                        <td><a href="@($"/admin/modpacks/{pack.Modpack.Id}")" class="tc-strong">@pack.Modpack.Name</a></td>
+                        <td>@pack.Modpack.MinecraftVersion · @pack.Modpack.Loader</td>
+                        <td>@(pack.Published is { } v ? $"v{v.Version}" : "—")</td>
+                        <td>
+                            @if (pack.Published is not null)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">publicado</MudChip>
+                            }
+                            @if (pack.Draft is { } draft)
+                            {
+                                <MudChip T="string" Size="Size.Small" Variant="Variant.Text">v@(draft.Version) @StateLabel(draft.State)</MudChip>
+                            }
+                        </td>
+                        <td>@_servers.Count(s => s.ModpackId == pack.Modpack.Id)</td>
+                    </tr>
+                }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
 }

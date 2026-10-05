@@ -6,7 +6,6 @@ namespace TCMine.Server.Web.Components.Layout;
 public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
 {
     private bool _drawerOpen = true;
-    private bool _isDarkMode = true;
     private IJSObjectReference? _module;
 
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
@@ -37,20 +36,6 @@ public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
 
         _module = await JsRuntime.InvokeAsync<IJSObjectReference>(
             "import", "./Components/Layout/MainLayout.razor.js");
-
-        // localStorage só existe no cliente; lê a preferência salva no primeiro
-        // render. Sem valor salvo, mantém o padrão (dark). Como a navegação com
-        // forceLoad recria o circuito, é aqui que a escolha do usuário sobrevive.
-        var stored = await JsRuntime.InvokeAsync<string?>("localStorage.getItem", "tc-dark-mode");
-        if (stored is "true" or "false")
-        {
-            var dark = stored == "true";
-            if (dark != _isDarkMode)
-            {
-                _isDarkMode = dark;
-                StateHasChanged();
-            }
-        }
     }
 
     private async Task LogoutAsync()
@@ -59,9 +44,4 @@ public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
             await _module.InvokeVoidAsync("submitForm", "tc-logout-form");
     }
 
-    private async Task ToggleDarkMode()
-    {
-        _isDarkMode = !_isDarkMode;
-        await JsRuntime.InvokeVoidAsync("localStorage.setItem", "tc-dark-mode", _isDarkMode ? "true" : "false");
-    }
 }
