@@ -228,27 +228,6 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
             Snackbar.Add(result.Error!, Severity.Error);
     }
 
-    private static string OriginIcon(ModFileOrigin origin)
-    {
-        return origin switch
-        {
-            ModFileOrigin.Modrinth or ModFileOrigin.CurseForge => Icons.Material.Filled.Cloud,
-            ModFileOrigin.ManualUpload => Icons.Material.Filled.Upload,
-            ModFileOrigin.Override => Icons.Material.Filled.Folder,
-            _ => Icons.Material.Filled.HelpOutline
-        };
-    }
-
-    private static Color OriginColor(ModFileOrigin origin)
-    {
-        return origin switch
-        {
-            ModFileOrigin.Modrinth => Color.Success,
-            ModFileOrigin.CurseForge => Color.Warning,
-            _ => Color.Default
-        };
-    }
-
     private async Task OpenCheckUpdates()
     {
         var parameters = new DialogParameters

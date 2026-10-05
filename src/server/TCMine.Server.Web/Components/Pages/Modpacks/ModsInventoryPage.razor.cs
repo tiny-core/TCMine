@@ -61,11 +61,4 @@ public partial class ModsInventoryPage : ComponentBase
         _onlyOrphans = value;
         return _table.ReloadServerData();
     }
-
-    private static Color OriginColor(ModFileOrigin origin) => origin switch
-    {
-        ModFileOrigin.Modrinth => Color.Success,
-        ModFileOrigin.CurseForge => Color.Warning,
-        _ => Color.Default
-    };
 }

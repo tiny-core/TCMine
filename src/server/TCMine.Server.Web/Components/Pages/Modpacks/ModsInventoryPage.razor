@@ -4,23 +4,17 @@
 
 <PageTitle>Mods — TCMine</PageTitle>
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-    <div>
-        <MudText Typo="Typo.h5">Mods</MudText>
-        <MudText Typo="Typo.body2" Class="mud-text-secondary">
-            Todo mod do catálogo, com os modpacks a que pertence.
-        </MudText>
-    </div>
-    <MudSpacer/>
+<PageHeader Title="Mods" Subtitle="Todo mod do catálogo, com os modpacks a que pertence."
+            Icon="@Icons.Material.Filled.Extension">
     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Icon="@Icons.Material.Filled.Extension">
         @_total mods
     </MudChip>
     <MudTooltip Text="Recarregar">
         <MudIconButton Icon="@Icons.Material.Filled.Refresh" OnClick="OnFilterChanged"/>
     </MudTooltip>
-</MudStack>
+</PageHeader>
 
-<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+<MudPaper Outlined="true" Class="tc-panel pa-4 tc-fade-in">
     <MudStack Row="true" Spacing="3" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Class="mb-3">
         <MudTextField T="string" Value="_search" ValueChanged="OnSearchChanged"
                       Placeholder="Buscar mod…" DebounceInterval="400"
@@ -82,9 +76,7 @@
                 </MudStack>
             </MudTd>
             <MudTd DataLabel="Origem">
-                <MudChip T="string" Size="Size.Small" Variant="Variant.Text" Color="@OriginColor(context.Origin)">
-                    @context.Origin
-                </MudChip>
+                <OriginChip Origin="context.Origin" ProjectSlug="context.ProjectSlug"/>
             </MudTd>
             <MudTd DataLabel="Modpacks">
                 @if (context.Modpacks.Count == 0)

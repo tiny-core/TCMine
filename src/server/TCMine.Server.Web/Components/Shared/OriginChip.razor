@@ -1,0 +1,14 @@
+@* Selo de origem de um arquivo: ícone, cor e rótulo num lugar só. Eram dois
+   switches idênticos (ModpackModsPage e ModsInventoryPage) que divergiriam
+   no primeiro ajuste de cor — e nenhum dos dois traduzia "ManualUpload" para
+   português, então o selo mostrava o nome bruto do enum.
+   O selo leva à página do projeto quando ela existe (ver UpstreamLinks);
+   override e upload manual não têm — o slug deles é sintético — e aí fica
+   sem link em vez de levar a um 404. *@
+@using TCMine.Server.Domain.Modpacks
+
+<MudChip T="string" Size="Size.Small"
+         Icon="@OriginChip.IconFor(Origin)" Color="@OriginChip.ColorFor(Origin)"
+         Variant="Variant.Text" Href="@Page" Target="@(Page is null ? null : "_blank")">
+    @OriginChip.LabelFor(Origin)
+</MudChip>
