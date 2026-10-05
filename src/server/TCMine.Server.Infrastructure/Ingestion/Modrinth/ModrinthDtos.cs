@@ -12,6 +12,8 @@ internal sealed record ModrinthVersion
 {
     [JsonPropertyName("id")] public required string Id { get; init; }
 
+    [JsonPropertyName("project_id")] public string? ProjectId { get; init; }
+
     [JsonPropertyName("version_number")] public required string VersionNumber { get; init; }
 
     [JsonPropertyName("game_versions")] public required IReadOnlyList<string> GameVersions { get; init; }

@@ -10,7 +10,7 @@ namespace TCMine.Server.Infrastructure.Ingestion.Modrinth;
 
 /// <summary>
 ///     Busca no endpoint /v2/search do Modrinth, filtrando por tipo (mod), versão
-///     do Minecraft e loader do pack. Devolve o slug como identidade estável.
+///     do Minecraft e loader do pack. Devolve o id do projeto como identidade estável.
 /// </summary>
 public sealed partial class ModrinthModSearch(
     HttpClient http,
@@ -49,7 +49,11 @@ public sealed partial class ModrinthModSearch(
             [
                 .. response.Hits
                     .Select(h => new ModSearchResult(
-                        h.Slug ?? h.ProjectId,
+                        // O id, não o slug: é a identidade que o pack importado
+                        // e as dependências usam. Com o slug, o mesmo mod vindo
+                        // pelos dois caminhos virava dois .jar em mods/ — e o
+                        // slug ainda pode ser renomeado pelo autor.
+                        h.ProjectId,
                         h.Title,
                         h.Description,
                         h.IconUrl,

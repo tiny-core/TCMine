@@ -111,7 +111,8 @@ public sealed partial class ModrinthModResolver(
                 new Uri(file.Url),
                 dependencies,
                 project?.IconUrl,
-                SideOf(project));
+                SideOf(project),
+                ProjectId: version.ProjectId);
         }
         catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.NotFound)
         {
