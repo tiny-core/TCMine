@@ -9,9 +9,8 @@ namespace TCMine.UI.Shared.Theming;
 ///     fundos suaves de status (StatusSuccessBg e companhia), por exemplo.
 ///     Mantê-los num .css escrito à mão criaria duas fontes de verdade que
 ///     divergem no primeiro ajuste de cor.
-///     A varredura pega Light e Dark: como as duas classes declaram os mesmos
-///     membros, cada constante vira um par de valores sob o mesmo nome de
-///     variável, e o seletor de tema escolhe qual vale.
+///     Um tema só (escuro): as constantes da marca e as do Dark viram
+///     variáveis em :root.
 /// </summary>
 public static class TokenCssBuilder
 {
@@ -20,7 +19,6 @@ public static class TokenCssBuilder
 
     public static string Build()
     {
-        var claro = ReadTokens(typeof(TcColors.Semantic.Light));
         var escuro = ReadTokens(typeof(TcColors.Semantic.Dark));
         var marca = ReadTokens(typeof(TcColors.Semantic));
 
@@ -28,17 +26,10 @@ public static class TokenCssBuilder
 
         css.AppendLine("/* Gerado por TokenCssBuilder a partir de TcColors. Não editar. */");
 
-        // :root recebe o tema claro e as cores de marca. É o estado padrão,
-        // e vale mesmo se o CSS de tema escuro não carregar.
+        // Um tema só, então tudo em :root: vale no painel e no launcher sem
+        // depender da classe que o MudBlazor põe no body.
         css.AppendLine(":root {");
         AppendVariables(css, marca);
-        AppendVariables(css, claro);
-        css.AppendLine("}");
-
-        // O MudBlazor coloca esta classe no body quando o modo escuro está
-        // ativo. O seletor [data-theme] fica como alternativa para o
-        // launcher, caso ele não use o layout do Mud.
-        css.AppendLine(".mud-theme-dark, [data-theme=\"dark\"] {");
         AppendVariables(css, escuro);
         css.AppendLine("}");
 

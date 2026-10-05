@@ -28,6 +28,21 @@ public sealed class SendServerCommand(
         command.Length is > 0 and <= 32
         && command.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
+    /// <summary>
+    ///     Uma linha como o admin a digita no console do painel: comando e
+    ///     argumentos separados por espaço. A barra inicial é aceita e removida —
+    ///     é o hábito de quem digita no chat do jogo, e pelo RCON ela não vai.
+    /// </summary>
+    public Task<Result<string>> HandleLineAsync(Guid serverId, string line, CancellationToken ct)
+    {
+        var parts = line.Trim().TrimStart('/')
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return parts.Length is 0
+            ? Task.FromResult(Result<string>.Fail("Digite um comando."))
+            : HandleAsync(serverId, parts[0], parts[1..], ct);
+    }
+
     public async Task<Result<string>> HandleAsync(
         Guid serverId,
         string command,
@@ -48,6 +63,12 @@ public sealed class SendServerCommand(
         // pista para quem está sondando o sistema.
         if (!ConsoleCommandPolicy.IsAllowed(papel, command))
             return Result<string>.Fail("Comando não permitido para o seu nível de acesso.");
+
+        // O container roda com restart unless-stopped: um "stop" pelo console
+        // encerra o Java e o Docker o liga de novo sozinho, enquanto o painel
+        // acha que o parou. Parar é pelo botão, que para o container de fato.
+        if (string.Equals(command, "stop", StringComparison.OrdinalIgnoreCase))
+            return Result<string>.Fail("Use o botão Parar do painel: pelo console o servidor reinicia sozinho.");
 
         // Caractere de controle num argumento não tem uso legítimo — nome de
         // jogador e mensagem de chat não têm quebra de linha. O rcon-cli recebe

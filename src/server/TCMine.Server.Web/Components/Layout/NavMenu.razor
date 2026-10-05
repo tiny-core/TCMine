@@ -4,33 +4,37 @@
    navegação — novas seções entram aqui sem tocar no layout. O MudNavLink já
    destaca o item ativo pela rota. *@
 
-<MudNavMenu>
-    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary px-4 pt-3 pb-1">
-        Geral
-    </MudText>
-
-    <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
-        Painel
+<MudNavMenu Class="tc-nav">
+    <MudNavLink Href="/admin" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.SpaceDashboard">
+        Visão geral
     </MudNavLink>
 
-    <MudNavLink Href="/admin/servers" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Dns">
-        Servidores
-    </MudNavLink>
-
-    <MudNavLink Href="/admin/mods" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Extension">
-        Mods
-    </MudNavLink>
+    @* Agrupado pelo que o admin está a fazer, e não pela ordem em que as telas
+       nasceram: o que se distribui, onde se joga, quem entra, e a casa. *@
+    <div class="tc-nav-group">Conteúdo</div>
 
     <MudNavLink Href="/admin/modpacks" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Inventory2">
         Modpacks
     </MudNavLink>
 
-    <MudNavLink Href="/admin/access-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAddAlt">
-        Pedidos de acesso
+    <MudNavLink Href="/admin/mods" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Extension">
+        Inventário de mods
+    </MudNavLink>
+
+    <div class="tc-nav-group">Jogo</div>
+
+    <MudNavLink Href="/admin/servers" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Dns">
+        Servidores
     </MudNavLink>
 
     <MudNavLink Href="/admin/cloud" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Cloud">
         Nuvem de itens
+    </MudNavLink>
+
+    <div class="tc-nav-group">Pessoas</div>
+
+    <MudNavLink Href="/admin/access-requests" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PersonAddAlt">
+        Pedidos de acesso
     </MudNavLink>
 
     @* Gerenciar quem é admin é poder sobre a instalação inteira — só quem já
@@ -48,9 +52,7 @@
         </Authorized>
     </AuthorizeView>
 
-    <MudText Typo="Typo.subtitle2" Class="mud-text-secondary px-4 pt-4 pb-1">
-        Sistema
-    </MudText>
+    <div class="tc-nav-group">Sistema</div>
 
     <MudNavLink Href="/admin/storage" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Storage">
         Armazenamento

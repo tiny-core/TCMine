@@ -70,6 +70,140 @@ html, body {
   margin-top: 16px;
 }
 
+/* --------------------------------------------------------------------------
+   Linguagem do TCMine Design System ("pedra vulcânica"). Os valores vêm das
+   variáveis --tc-* que o TokenCssBuilder gera de TcColors — nenhum hex aqui.
+   O laranja é LUZ: borda acesa, foco, estado ativo; nunca fundo grande.
+   -------------------------------------------------------------------------- */
+body {
+  background: var(--tc-bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Números de métrica e tabela em largura fixa: colunas que não dançam. */
+.mud-table, .tc-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Cartões e papéis: hairline + raio 10 + sombra preta discreta. A borda é a
+   estrutura; a sombra é secundária. */
+.mud-paper-outlined,
+.mud-card {
+  border: 1px solid var(--tc-border);
+  border-radius: 10px;
+}
+
+.mud-card,
+.mud-paper:not(.mud-paper-outlined):not(.mud-appbar):not(.mud-drawer):not(.mud-popover):not(.mud-dialog) {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .45);
+}
+
+.tc-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .55);
+}
+
+/* Ação primária acende; o hover troca cor, não posição. */
+.mud-button-filled.mud-button-filled-primary {
+  box-shadow: var(--tc-glow-primary);
+}
+
+.mud-button-filled.mud-button-filled-primary:hover {
+  background-color: var(--tc-primary-hover);
+}
+
+/* Foco sempre visível, em laranja translúcido. */
+.mud-button-root:focus-visible,
+.mud-nav-link:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--tc-focus-ring);
+}
+
+/* Moldura: o topo recua com uma hairline em vez de sombra. */
+.tc-appbar {
+  border-bottom: 1px solid var(--tc-border);
+}
+
+.tc-brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: inline-grid;
+  place-items: center;
+  background: var(--tc-surface-raised);
+  color: var(--tc-brand-primary);
+  box-shadow: var(--tc-glow-primary);
+}
+
+.mud-drawer {
+  border-right: 1px solid var(--tc-border);
+}
+
+/* Menu lateral: grupos em micro caixa alta; o item ativo ganha fundo tintado
+   e uma barra de 2px à esquerda. */
+.tc-nav {
+  padding: 8px;
+}
+
+.tc-nav-group {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tc-text-secondary);
+  padding: 16px 12px 6px;
+}
+
+.tc-nav .mud-nav-link {
+  border-radius: 8px;
+  min-height: 38px;
+  font-size: 13px;
+}
+
+.tc-nav .mud-nav-link.active {
+  background: var(--tc-surface-selected);
+  color: var(--tc-text-primary);
+  box-shadow: inset 2px 0 0 var(--tc-brand-primary);
+}
+
+.tc-nav .mud-nav-link.active .mud-nav-link-icon {
+  color: var(--tc-brand-primary);
+}
+
+/* Conteúdo com respiro de página e largura máxima de leitura. */
+.tc-page {
+  max-width: 1440px;
+}
+
+/* Cabeçalho de tabela: micro caixa alta, como nas seções do menu. */
+.mud-table-head .mud-table-cell,
+.mud-simple-table thead th {
+  font-size: 11px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--tc-text-secondary);
+  font-weight: 600;
+}
+
+/* Rolagem discreta, na cor da pedra. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--tc-bg-sunken); }
+::-webkit-scrollbar-thumb {
+  background: var(--tc-border);
+  border-radius: 999px;
+  border: 2px solid var(--tc-bg-sunken);
+}
+
+/* O FocusOnNavigate foca o <h1> a cada navegação, para o leitor de tela
+   anunciar a página nova. O foco fica; só o contorno do navegador sai — num
+   título que não é clicável ele parecia um defeito. */
+h1:focus {
+  outline: none;
+}
+
+::selection {
+  background: var(--tc-primary-soft);
+}
+
 /* Acessibilidade: quem pede menos movimento não recebe as animações. */
 @media (prefers-reduced-motion: reduce) {
   .tc-fade-in {

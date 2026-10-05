@@ -17,6 +17,15 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 
 ### Adicionado
 
+- **Comandos pelo console do painel.** O dono e os admins do servidor (e
+  moderadores, dentro da lista permitida) mandam comandos pelo RCON direto da
+  tela do servidor: Enter envia, ↑ e ↓ percorrem o histórico, e a sintaxe do
+  comando aparece enquanto se digita. O botão *Comandos* abre uma referência
+  pesquisável dos comandos do Minecraft (jogadores, moderação, mundo, itens,
+  servidor), com os perigosos marcados; um clique coloca o comando na caixa. O
+  `stop` pelo console é recusado: com o restart automático do container o
+  servidor voltaria sozinho — parar é pelo botão Parar.
+
 - **Entrar no servidor com um clique.** A lista de servidores da tela de jogar
   ganhou o botão *Entrar*: abre o Minecraft já conectando ao servidor
   (`--quickPlayMultiplayer`). Se o servidor estiver numa versão do modpack mais
@@ -29,6 +38,24 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
   a RAM, limpar Java e sair da conta ficam desligados até o jogo fechar — com o
   motivo no botão e um aviso em todas as telas, que também oferece fechar o
   jogo.
+
+### Mudado
+
+- **Visual novo: "pedra vulcânica".** Painel, página pública e launcher passam
+  a seguir o TCMine Design System — fundo de pedra escura, laranja só como luz
+  (ação primária, foco, estado), sem azul. **Só tema escuro**: o alternador de
+  tema do painel saiu. Botões em minúsculas ("Novo modpack"), cartões com
+  borda fina, foco sempre visível.
+- **Menu do painel agrupado** em Conteúdo, Jogo, Pessoas e Sistema, com link
+  para a página pública no topo.
+- **Visão geral reformulada.** Jogadores online, servidores no ar, modpacks e
+  disco no topo; cada servidor com CPU, RAM e jogadores; um quadro "Precisa da
+  sua atenção" (servidor que caiu, disco quase cheio, pedidos de acesso,
+  versão que falhou); tabela dos modpacks com a versão publicada e o
+  rascunho. Só números medidos — onde não há medida, um traço.
+- **Página pública reformulada.** Download do launcher em destaque, "Como
+  jogar" em três passos, cartões de modpacks e servidores (lotação, sem
+  endereço) e uma chamada final; funciona na largura de um celular.
 
 ### Corrigido
 
