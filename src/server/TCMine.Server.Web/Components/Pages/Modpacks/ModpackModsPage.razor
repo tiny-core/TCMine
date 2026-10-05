@@ -121,7 +121,7 @@ else
                                 }
                                 else
                                 {
-                                    <MudIcon Icon="@OriginIcon(context.Item.Origin)" Size="Size.Small"/>
+                                    <MudIcon Icon="@OriginChip.IconFor(context.Item.Origin)" Size="Size.Small"/>
                                 }
                             </MudAvatar>
                         </CellTemplate>
@@ -156,40 +156,19 @@ else
                             else
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text">
-                                    @context.Item.Side
+                                    @FileSideLabels.Label(context.Item.Side)
                                 </MudChip>
                             }
                         </CellTemplate>
                     </TemplateColumn>
 
-                    @* O selo leva à página do projeto quando ela existe. É a
-                       pergunta que se faz olhando a grade — "que mod é este?" —
-                       e antes exigia procurar o nome do arquivo na origem à mão.
-                       Override e upload manual não têm página: o slug deles é
-                       sintético, e aí o selo fica sem link em vez de levar a um
-                       404. *@
+                    @* O selo leva à página do projeto quando ela existe — ver
+                       OriginChip. É a pergunta que se faz olhando a grade
+                       ("que mod é este?"), e antes exigia procurar o nome do
+                       arquivo na origem à mão. *@
                     <TemplateColumn Title="Origem">
                         <CellTemplate>
-                            @if (UpstreamLinks.ProjectPage(context.Item.Origin, context.Item.ProjectSlug)
-                                 is { } pagina)
-                            {
-                                <MudChip T="string" Size="Size.Small"
-                                         Icon="@OriginIcon(context.Item.Origin)"
-                                         Color="@OriginColor(context.Item.Origin)"
-                                         Variant="Variant.Text"
-                                         Href="@pagina" Target="_blank">
-                                    @context.Item.Origin
-                                </MudChip>
-                            }
-                            else
-                            {
-                                <MudChip T="string" Size="Size.Small"
-                                         Icon="@OriginIcon(context.Item.Origin)"
-                                         Color="@OriginColor(context.Item.Origin)"
-                                         Variant="Variant.Text">
-                                    @context.Item.Origin
-                                </MudChip>
-                            }
+                            <OriginChip Origin="context.Item.Origin" ProjectSlug="context.Item.ProjectSlug"/>
                         </CellTemplate>
                     </TemplateColumn>
 

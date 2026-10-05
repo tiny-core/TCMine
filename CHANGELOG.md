@@ -56,6 +56,14 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de Mods (inventário) no visual novo**, com o mesmo `PageHeader` e
+  painel de borda fina das demais. O selo de origem (Modrinth/CurseForge/
+  envio manual) ganhou um componente próprio, `OriginChip` — era um switch
+  de ícone/cor repetido entre esta tela e a aba de mods da versão, e nenhum
+  dos dois traduzia "ManualUpload" ("upload manual" saía cru, em inglês,
+  sem espaço). A célula "Lado" da aba de mods tinha o mesmo problema fora
+  do rascunho ("Both"/"ClientOnly") — corrigido junto, num `FileSideLabels`
+  compartilhado com o aviso de pendências que já existia.
 - **Tela de Servidores (painel) no visual novo.** Cabeçalho padrão
   (`PageHeader`, como a Visão geral já usa) em vez de um `MudStack` manual
   próprio; painel com borda fina. Os selos de status de servidor e de
