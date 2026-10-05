@@ -146,7 +146,12 @@ Ele lê a versão do `VERSION`, roda `Launcher.Core.Tests` e
 `Launcher.Architecture.Tests`, publica self-contained e empacota em
 `releases/launcher/`. Copiar isso para `${TCMINE_ROOT}/updates/launcher/{canal}/`
 é de propósito à mão: a máquina onde você empacota não deveria ter credencial
-de escrita na que serve jogadores.
+de escrita na que serve jogadores. Depois de copiar, devolva a pasta ao usuário
+do container — senão a próxima imagem não consegue publicar por cima:
+
+```bash
+sudo chown -R 1654:1654 ${TCMINE_ROOT}/updates
+```
 
 Um pacote manual com versão **maior** que a da imagem é respeitado — o
 arranque não o sobrescreve (`NewerAlreadyPublished` no log). Mas ele não leva

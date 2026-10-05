@@ -38,6 +38,9 @@ public sealed class FileSystemLauncherReleaseSource(IConfiguration configuration
             return Task.FromResult<LauncherReleaseInfo?>(null);
 
         return Task.FromResult<LauncherReleaseInfo?>(
-            new LauncherReleaseInfo(version, $"/updates/launcher/{channel}/{installer}"));
+            // ?v= na URL: o nome do instalador não muda entre versões, e um
+            // cache no caminho que ignore o no-cache do feed ainda entregaria o
+            // antigo. Com a versão no endereço, cada release é uma URL nova.
+            new LauncherReleaseInfo(version, $"/updates/launcher/{channel}/{installer}?v={Uri.EscapeDataString(version)}"));
     }
 }
