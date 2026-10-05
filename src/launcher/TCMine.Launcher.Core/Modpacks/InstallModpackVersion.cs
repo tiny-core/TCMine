@@ -147,27 +147,52 @@ public sealed class InstallModpackVersion(
         }
     }
 
+    /// <summary>
+    ///     Downloads simultâneos. Em série, um pack como o ATM10 (centenas de mods e
+    ///     milhares de configs pequenos) pagava a latência de cada pedido um atrás
+    ///     do outro, e a rede ficava ociosa entre eles — lento mesmo em rede local.
+    ///     Seis e não mais: o servidor aceita oito transferências por cliente
+    ///     (<c>RateLimitPolicies.BlobConcurrency</c>), e ficar abaixo deixa folga
+    ///     para outra tela do launcher (ícones, Java) não cair na fila.
+    /// </summary>
+    public const int ParallelDownloads = 6;
+
     private async Task DownloadAsync(
         Uri serverUrl, SyncPlan plano, IProgress<InstallProgress>? progress, CancellationToken ct)
     {
         if (plano.ToDownload.Count is 0)
             return;
 
+        // Um hash por download: o mesmo conteúdo em dois caminhos (configs
+        // idênticos, arquivos vazios) entra duas vezes no plano, e em paralelo as
+        // duas cópias gravariam o mesmo temporário do store ao mesmo tempo.
+        // Os maiores primeiro, para um jar de centenas de megabytes não ser o
+        // último a começar e deixar o fim do download com uma conexão só.
+        var fila = plano.ToDownload
+            .DistinctBy(f => f.Sha256, StringComparer.OrdinalIgnoreCase)
+            .OrderByDescending(f => f.SizeBytes)
+            .ToArray();
+
         long baixados = 0;
-        var total = plano.BytesToDownload;
+        var total = fila.Sum(f => f.SizeBytes);
 
-        foreach (var file in plano.ToDownload)
-        {
-            progress?.Report(InstallProgress.Downloading(baixados, total, file.Path));
+        progress?.Report(InstallProgress.Downloading(0, total, null));
 
-            await using var source = await downloader.OpenAsync(serverUrl, file.Sha256, ct);
+        await Parallel.ForEachAsync(
+            fila,
+            new ParallelOptions { MaxDegreeOfParallelism = ParallelDownloads, CancellationToken = ct },
+            async (file, token) =>
+            {
+                await using (var source = await downloader.OpenAsync(serverUrl, file.Sha256, token))
+                {
+                    // O store recalcula o hash enquanto grava e rejeita se não
+                    // bater: o arquivo pode ter chegado corrompido ou adulterado.
+                    await content.AddAsync(file.Sha256, source, token);
+                }
 
-            // O store recalcula o hash enquanto grava e rejeita se não bater: o
-            // arquivo pode ter chegado corrompido ou adulterado no caminho.
-            await content.AddAsync(file.Sha256, source, ct);
-
-            baixados += file.SizeBytes;
-        }
+                var feitos = Interlocked.Add(ref baixados, file.SizeBytes);
+                progress?.Report(InstallProgress.Downloading(feitos, total, file.Path));
+            });
 
         progress?.Report(InstallProgress.Downloading(total, total, null));
     }
@@ -232,6 +257,21 @@ public sealed record InstallProgress(
 
     public static InstallProgress Materializing(int done, int total, string? file) =>
         new(InstallPhase.Materializing, FilesDone: done, FilesTotal: total, CurrentFile: file);
+
+    /// <summary>
+    ///     O texto da fase — nulo em Done, que vira a mensagem de sucesso de quem
+    ///     chamou. No Core porque a tela de instâncias e o "Entrar" do servidor
+    ///     mostram a mesma instalação, e dois textos para a mesma fase divergem.
+    /// </summary>
+    public string? Label => Phase switch
+    {
+        InstallPhase.BackingUp => "Copiando o mundo…",
+        InstallPhase.Downloading => "Baixando arquivos…",
+        InstallPhase.Materializing => "Instalando…",
+        InstallPhase.Cleaning => "Limpando o que sobrou…",
+        InstallPhase.Done => null,
+        _ => "Preparando…"
+    };
 
     /// <summary>Fração de 0 a 1, ou nulo quando não há como saber.</summary>
     public double? Fraction => Phase switch

@@ -28,9 +28,25 @@ public partial class HomeServers : ComponentBase
     /// </summary>
     [Parameter] [EditorRequired] public EventCallback OnRedeemInvite { get; set; }
 
+    /// <summary>
+    ///     Abrir o jogo já dentro do servidor. É da tela: é ela que sabe a
+    ///     instância ativa e mostra o andamento da abertura.
+    /// </summary>
+    [Parameter] [EditorRequired] public EventCallback<GameServerDto> OnJoin { get; set; }
+
+    /// <summary>Por que nenhum servidor pode ser aberto agora (jogo aberto, sem pareamento), ou nulo.</summary>
+    [Parameter] public string? JoinBlockedReason { get; set; }
+
+    /// <summary>O servidor que está a ser aberto, para o spinner ficar na linha certa.</summary>
+    [Parameter] public Guid? Joining { get; set; }
+
     [Inject] private IServerConnection Connection { get; set; } = default!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+
+    private string? WhyCannotJoin(GameServerDto server) =>
+        JoinBlockedReason
+        ?? (server.Status is GameServerStatus.Running ? null : "O servidor não está no ar agora.");
 
     /// <summary>
     ///     Pendente de verdade (o servidor já respondeu "Pending") OU acabou de

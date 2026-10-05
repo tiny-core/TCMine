@@ -61,4 +61,18 @@ public sealed record InstanceManifest
 
     /// <summary>Tem o suficiente para abrir o jogo sem consultar o servidor.</summary>
     public bool CanLaunch => !string.IsNullOrWhiteSpace(MinecraftVersion) && Loader is not null;
+
+    /// <summary>
+    ///     O pack, como o instalador o pede, a partir do que esta instância já
+    ///     gravou. Atualizar não precisa do catálogo: ir buscá-lo seria uma ida à
+    ///     rede a mais num caminho que já tem várias.
+    /// </summary>
+    public ModpackDto ToModpack() => new()
+    {
+        Id = ModpackId,
+        Slug = "",
+        Name = ModpackName,
+        MinecraftVersion = MinecraftVersion ?? "",
+        Loader = Loader ?? ModLoader.Vanilla
+    };
 }
