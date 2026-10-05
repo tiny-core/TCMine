@@ -1,4 +1,5 @@
 using System.Globalization;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Modpacks;
 
@@ -56,6 +57,42 @@ public sealed class CurseForgeModSearch(CurseForgeApiClient api) : IModSearch
         {
             // Busca é interativa: devolver vazio deixa o admin tentar de novo,
             // enquanto uma exceção derrubaria o diálogo.
+            return [];
+        }
+    }
+
+    public async Task<IReadOnlyList<UpstreamRelease>> ListVersionsAsync(
+        string projectId, string minecraftVersion, ModLoader loader, CancellationToken ct)
+    {
+        if (!int.TryParse(projectId, out var modId))
+            return [];
+
+        // Mesmo filtro que a ingestão usa ao resolver.
+        var url = $"/v1/mods/{modId}/files?pageSize=50"
+                  + $"&gameVersion={Uri.EscapeDataString(minecraftVersion)}";
+        var loaderType = CurseForgeApiClient.ToLoaderType(loader);
+        if (loaderType is not 0)
+            url += $"&modLoaderType={loaderType}";
+
+        try
+        {
+            var response = await api.GetAsync(
+                url, CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeFile, ct);
+
+            return response?.Data is not { } files
+                ? []
+                : files
+                    .OrderByDescending(f => f.FileDate)
+                    .Select(f => new UpstreamRelease(
+                        f.Id.ToString(CultureInfo.InvariantCulture),
+                        f.FileName ?? f.Id.ToString(CultureInfo.InvariantCulture),
+                        f.FileDate,
+                        f.ReleaseType == 1,
+                        CurseForgeApiClient.MinecraftVersionsOf(f.GameVersions)))
+                    .ToArray();
+        }
+        catch (HttpRequestException)
+        {
             return [];
         }
     }

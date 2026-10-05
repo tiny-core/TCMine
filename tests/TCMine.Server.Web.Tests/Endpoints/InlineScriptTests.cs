@@ -50,9 +50,8 @@ public sealed class InlineScriptTests(PainelAutenticado painel) : IClassFixture<
 ///     Uma aplicação de pé, com admin logado, compartilhada pelas rotas.
 ///     Subir uma por rota custava sete arranques com migrations — e o cálculo
 ///     não muda de rota para rota.
-///     Os dois orquestradores são substituídos porque falam com o DOCKER: a tela
-///     de configurações consulta o estado do servidor de e-mail ao renderizar, e
-///     a de servidores sincroniza o status dos containers. No CI isso pendurou o
+///     O orquestrador é substituído porque fala com o DOCKER: a tela de
+///     servidores sincroniza o status dos containers ao renderizar. No CI isso pendurou o
 ///     pedido até o teste ser cancelado — uma falha que não tem nada a ver com o
 ///     que este teste afirma. É exatamente para isto que a fábrica expõe o
 ///     ponto de troca de serviços.
@@ -68,7 +67,6 @@ public sealed class PainelAutenticado : IAsyncLifetime
         {
             Servicos = services =>
             {
-                services.AddSingleton<IMailServerOrchestrator>(new MailParado());
                 services.AddSingleton<IServerOrchestrator>(new ContainersParados());
             }
         };
@@ -87,21 +85,6 @@ public sealed class PainelAutenticado : IAsyncLifetime
         _client.Dispose();
         _factory.Dispose();
         return ValueTask.CompletedTask;
-    }
-
-    private sealed class MailParado : IMailServerOrchestrator
-    {
-        public Task<MailServerState> GetStateAsync(CancellationToken ct) =>
-            Task.FromResult(MailServerState.NotCreated);
-
-        public Task StartAsync(string domain, CancellationToken ct) => Task.CompletedTask;
-        public Task StopAsync(CancellationToken ct) => Task.CompletedTask;
-        public Task RemoveAsync(CancellationToken ct) => Task.CompletedTask;
-        public Task<string?> GetDkimRecordAsync(string domain, CancellationToken ct) =>
-            Task.FromResult<string?>(null);
-
-        public Task EnsureSenderAccountAsync(string address, string password, CancellationToken ct) =>
-            Task.CompletedTask;
     }
 
     private sealed class ContainersParados : IServerOrchestrator

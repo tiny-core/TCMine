@@ -125,6 +125,37 @@
                                 }
                             </MudStack>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">@r.Description</MudText>
+
+                            @* Versão só para os marcados: listar releases de vinte
+                               resultados seriam vinte consultas à origem por busca.
+                               O clique no seletor não pode subir até o card, senão
+                               escolher a versão desmarcaria o mod. *@
+                            @if (_selected.Contains(r.ProjectId))
+                            {
+                                <div class="mt-2" style="max-width:420px;" @onclick:stopPropagation="true">
+                                    @if (_loadingVersions.Contains(r.ProjectId))
+                                    {
+                                        <MudProgressLinear Indeterminate="true" Color="Color.Primary" Size="Size.Small"/>
+                                    }
+                                    else
+                                    {
+                                        <MudSelect T="string" Value="@ChosenVersion(r.ProjectId)"
+                                                   ValueChanged="@(v => _chosenVersion[r.ProjectId] = v)"
+                                                   Label="Versão" Dense="true" Margin="Margin.Dense"
+                                                   Variant="Variant.Outlined">
+                                            <MudSelectItem T="string" Value="@LatestCompatible">
+                                                Mais recente compatível
+                                            </MudSelectItem>
+                                            @foreach (var v in VersionsOf(r.ProjectId))
+                                            {
+                                                <MudSelectItem T="string" Value="@v.FileId">
+                                                    @VersionLabel(v)
+                                                </MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    }
+                                </div>
+                            }
                         </div>
                     </MudStack>
                 </MudPaper>

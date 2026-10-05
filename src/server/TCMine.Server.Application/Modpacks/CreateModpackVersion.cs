@@ -58,18 +58,7 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
                 {
                     foreach (var f in source.Files)
                     {
-                        version.UpsertFile(new ModpackFile
-                        {
-                            ModpackVersionId = version.Id,
-                            Path = f.Path,
-                            Sha256 = f.Sha256, // mesmo blob — content-addressed, não copia bytes
-                            SizeBytes = f.SizeBytes,
-                            Side = f.Side,
-                            Optional = f.Optional,
-                            Origin = f.Origin,
-                            OriginReference = f.OriginReference,
-                            ProjectSlug = f.ProjectSlug
-                        });
+                        version.UpsertFile(f.CopyTo(version.Id));
                     }
                 }
             }

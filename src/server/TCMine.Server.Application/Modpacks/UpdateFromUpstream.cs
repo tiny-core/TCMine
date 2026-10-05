@@ -161,19 +161,7 @@ public sealed class UpdateFromUpstream(
             if (file.Origin is ModFileOrigin.Override && droppedPaths.Contains(file.Path))
                 continue;
 
-            draft.UpsertFile(new ModpackFile
-            {
-                ModpackVersionId = draft.Id,
-                ProjectSlug = file.ProjectSlug,
-                Path = file.Path,
-                Sha256 = file.Sha256,
-                SizeBytes = file.SizeBytes,
-                Side = file.Side,
-                Optional = file.Optional,
-                Origin = file.Origin,
-                OriginReference = file.OriginReference,
-                IconUrl = file.IconUrl
-            });
+            draft.UpsertFile(file.CopyTo(draft.Id));
         }
 
         // Overrides seguem a mesma regra de três vias dos mods.

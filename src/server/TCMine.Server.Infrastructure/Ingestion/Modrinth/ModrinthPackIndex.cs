@@ -77,6 +77,7 @@ internal sealed record ModrinthPackVersion
     public string? VersionType { get; init; }
 
     [JsonPropertyName("date_published")] public DateTimeOffset DatePublished { get; init; }
+    [JsonPropertyName("game_versions")] public IReadOnlyList<string> GameVersions { get; init; } = [];
     [JsonPropertyName("files")] public IReadOnlyList<ModrinthPackVersionFile> Files { get; init; } = [];
 }
 

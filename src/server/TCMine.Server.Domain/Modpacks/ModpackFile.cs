@@ -64,6 +64,43 @@ public sealed class ModpackFile : Entity
     public string? OriginReference { get; set; }
 
     /// <summary>
+    ///     Ids, na origem, das dependências REQUERIDAS deste arquivo, separados
+    ///     por vírgula. Vazio = não exige nada; nulo = não sabemos (arquivo de
+    ///     antes deste campo, upload manual, override).
+    ///     Existe para a ingestão poder REUSAR um arquivo que já está no banco e
+    ///     no disco sem perguntar nada à origem: sem isto, reusar um mod pulava
+    ///     as dependências dele, e o pack subia faltando a biblioteca.
+    /// </summary>
+    public string? RequiredDependencies { get; set; }
+
+    /// <summary>As dependências como lista, ou nulo quando não se sabe.</summary>
+    public IReadOnlyList<string>? RequiredDependencyIds() =>
+        RequiredDependencies?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    public static string JoinDependencies(IEnumerable<string> ids) => string.Join(',', ids);
+
+    /// <summary>
+    ///     O mesmo arquivo noutra versão. Copia o ponteiro, nunca os bytes (o blob
+    ///     é content-addressed). Um lugar só: as três cópias à mão que existiam
+    ///     (clonar, nova versão a partir de outra, atualização do upstream)
+    ///     já tinham divergido — duas perdiam o ícone.
+    /// </summary>
+    public ModpackFile CopyTo(Guid versionId) => new()
+    {
+        ModpackVersionId = versionId,
+        ProjectSlug = ProjectSlug,
+        Path = Path,
+        Sha256 = Sha256,
+        SizeBytes = SizeBytes,
+        Side = Side,
+        Optional = Optional,
+        Origin = Origin,
+        OriginReference = OriginReference,
+        IconUrl = IconUrl,
+        RequiredDependencies = RequiredDependencies
+    };
+
+    /// <summary>
     ///     URL do ícone do mod na origem (ex.: Modrinth), quando houver. Puramente
     ///     cosmético — exibido na grade de mods do painel. Nunca vai ao launcher.
     /// </summary>

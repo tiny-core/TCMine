@@ -233,8 +233,24 @@ prático aqui, já que a nossa usa `frame-ancestors 'none'`.
 
 ## 7. Primeiro acesso
 
-Abra `https://seu-dominio/admin/setup` e crie a conta de administrador. A tela só
-existe enquanto não houver nenhum usuário.
+Não há conta de e-mail e senha: o painel entra pela **conta Microsoft**, e o
+launcher pelo perfil Minecraft da mesma pessoa — as duas viram uma conta só.
+
+1. Registre um app no Entra ID (*portal.azure.com → Microsoft Entra ID → Registros
+   de aplicativo → Novo registro*), **somente contas Microsoft pessoais**.
+2. Na plataforma **Web**, registre `https://seu-dominio/auth/microsoft/callback`
+   (é o login do painel). Na plataforma **cliente público / nativo**, os dois URIs
+   do launcher: `http://localhost` e
+   `ms-appx-web://microsoft.aad.brokerplugin/{client-id}`. A tela de
+   Configurações mostra os três prontos para copiar.
+3. Abra `https://seu-dominio/admin/setup`, cole o client ID e entre com a
+   Microsoft. **A primeira conta vira a administradora da instalação.** A tela só
+   existe enquanto não houver nenhum usuário; depois, o client ID se troca em
+   Configurações.
+
+O `TCMINE_AZURE_CLIENT_ID` do `.env` continua valendo como semente: com ele
+preenchido, o `/admin/login` já oferece "Entrar com a Microsoft" e o passo 3 se
+reduz a entrar.
 
 ## Portas dos servidores de jogo
 
@@ -246,12 +262,8 @@ no roteador).
 
 ## Se for hospedar em casa
 
-Duas limitações que não são do TCMine e mordem sempre:
+Uma limitação que não é do TCMine e morde sempre:
 
-- **A porta 25 de saída** é bloqueada por praticamente todo provedor
-  residencial, então o servidor de e-mail próprio **não entrega nada** a partir
-  de casa. Para a recuperação de senha funcionar, configure um SMTP externo na
-  aba E-mail.
 - **IP residencial muda.** Configure DDNS, ou os jogadores perdem o endereço na
   próxima renovação.
 
@@ -285,7 +297,7 @@ A partir da 0.1.8 o próprio arranque avisa: procure no log a linha
 
 O container recebe `/var/run/docker.sock`. Isso lhe dá o poder de criar
 containers — e, por consequência, **controle total desta máquina**. É o que
-permite orquestrar os servidores de jogo e o servidor de e-mail, e é a razão de
+permite orquestrar os servidores de jogo, e é a razão de
 o painel exigir autenticação e de o proxy ser obrigatório. Não exponha esta
 porta diretamente na internet.
 
@@ -307,5 +319,5 @@ O que importa está sob `TCMINE_ROOT`:
 - `data/tcmine.db` — o catálogo (ou o volume do Postgres, se for o caso)
 - `data/blobs` — os arquivos dos modpacks, endereçados por hash
 - `data/keys` — chaves de proteção de dados. **Perder isto derruba as sessões e
-  torna ilegíveis os segredos gravados** (chave do CurseForge, senha do SMTP).
+  torna ilegíveis os segredos gravados** (chave do CurseForge).
 - `instances/` — os mundos dos servidores

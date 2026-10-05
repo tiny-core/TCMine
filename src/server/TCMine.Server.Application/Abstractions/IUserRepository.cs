@@ -20,6 +20,25 @@ public interface IUserRepository
 
     Task AddAsync(User user, CancellationToken ct);
 
+    /// <summary>
+    ///     Insere, ou devolve false quando outra requisição gravou a MESMA
+    ///     identidade (UUID do Minecraft ou oid da Microsoft) primeiro. O índice
+    ///     único é quem decide, não um SELECT antes: o launcher pode disparar dois
+    ///     logins ao mesmo tempo no primeiro arranque, e os dois enxergariam
+    ///     "ninguém ainda". Quem recebe false relê e adota a conta vencedora.
+    /// </summary>
+    Task<bool> TryAddAsync(User user, CancellationToken ct);
+
+    /// <summary>
+    ///     Funde a conta <paramref name="absorbedId" /> em <paramref name="keepId" />:
+    ///     acessos (servidores, modpacks), pedidos e convites passam a apontar
+    ///     para a conta mantida, e a absorvida é apagada. Numa transação só —
+    ///     metade de uma fusão deixaria acessos apontando para um usuário que
+    ///     não existe. Num vínculo repetido (as duas contas no mesmo servidor)
+    ///     fica o papel MAIOR.
+    /// </summary>
+    Task MergeAsync(Guid keepId, Guid absorbedId, CancellationToken ct);
+
     Task UpdateAsync(User user, CancellationToken ct);
 
     /// <summary>

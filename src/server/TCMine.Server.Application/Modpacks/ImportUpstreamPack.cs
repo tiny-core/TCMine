@@ -64,16 +64,18 @@ public sealed partial class ImportUpstreamPack(
             return Result<Guid>.Fail($"A origem {origin} não está configurada.");
         }
 
+        // Um pack por origem: reimportar criaria dois modpacks disputando a mesma
+        // procedência, e a detecção de atualização não saberia qual atualizar.
+        // Perguntado ao BANCO antes de baixar: o zip de um pack grande passa de
+        // centenas de megabytes, e baixá-lo só para recusar era desperdício puro.
+        if (await repository.ExistsFromUpstreamAsync(origin, projectId, ct))
+            return Result<Guid>.Fail("Este pack já foi importado. Use 'Verificar atualizações' na versão existente.");
+
         Step("Baixando e lendo o pack…", 0, 0);
 
         var pack = await source.FetchAsync(projectId, fileId, ct);
         if (pack is null)
             return Result<Guid>.Fail("Não foi possível ler o pack na origem. Ele pode não permitir download por terceiros.");
-
-        // Um pack por origem: reimportar criaria dois modpacks disputando a mesma
-        // procedência, e a detecção de atualização não saberia qual atualizar.
-        if (await repository.ExistsFromUpstreamAsync(origin, projectId, ct))
-            return Result<Guid>.Fail("Este pack já foi importado. Use 'Verificar atualizações' na versão existente.");
 
         var slug = await UniqueSlugAsync(Slugify(pack.Name), ct);
 

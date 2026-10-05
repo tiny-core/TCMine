@@ -141,12 +141,6 @@ public static class DependencyInjection
 
         services.AddScoped<IMinecraftTokenExchange, MinecraftTokenExchangeAdapter>();
 
-        // O SmtpEmailSender consulta a configuração a cada envio e cai no
-        // LoggingEmailSender quando não há SMTP — por isso o de log continua
-        // registrado como classe concreta, e não como a porta.
-        services.AddSingleton<LoggingEmailSender>();
-        services.AddScoped<IEmailSender, SmtpEmailSender>();
-
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();
         services.AddSingleton<DockerApiClient>();
@@ -159,7 +153,6 @@ public static class DependencyInjection
         services.AddScoped<IBlobJanitor, FileSystemBlobJanitor>();
         services.AddScoped<IWorldBackupStore, FileSystemWorldBackupStore>();
         services.AddScoped<IRconClient, DockerRconClient>();
-        services.AddScoped<IMailServerOrchestrator, DockerMailServerOrchestrator>();
         services.AddSingleton<IModJarInspector, ZipModJarInspector>();
 
         services.AddMemoryCache();

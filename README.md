@@ -41,13 +41,21 @@ final, e o launcher faz o disco convergir para ele.
   mod despublicado nem cota de API esgotada quebram quem já está jogando.
 - **Importação e atualização** de packs do Modrinth e do CurseForge, com merge de
   três vias — o que o autor mudou entra sozinho, o que você customizou é
-  preservado, e só os conflitos reais são perguntados.
-- **Servidores de jogo** como containers `itzg/minecraft-server`, com console ao
-  vivo, comandos por RCON e métricas.
+  preservado, e só os conflitos reais são perguntados. Você escolhe a versão do
+  pack (e de cada mod) na hora de importar.
+- **Ingestão banco → disco → rede**: um mod que qualquer modpack já trouxe é
+  reaproveitado sem consultar a origem nem baixar de novo.
+- **Servidores de jogo** como containers `itzg/minecraft-server`, rodando a
+  versão do Minecraft e o loader do modpack, com console ao vivo, comandos por
+  RCON e métricas.
 - **Backups de mundo**, inclusive a quente: com o servidor no ar, o autosave é
   pausado, o mundo vai para o disco, a cópia é feita e o autosave religa.
-- **Convites e papéis por servidor**, com login de jogador pelo perfil Minecraft
-  verificado.
+- **Uma conta por pessoa, pela Microsoft**: o painel entra pela Microsoft, o
+  launcher pelo perfil Minecraft verificado, e as duas são a mesma conta.
+- **Convites, pedidos de acesso e papéis por servidor**; servidores sem
+  whitelist aparecem para qualquer jogador autenticado.
+- **Nuvem de itens** para o mod `tccloud` — ver
+  [docs/CLOUD-STORAGE.md](docs/CLOUD-STORAGE.md).
 - **Storage endereçado por conteúdo** (SHA-256), com deduplicação automática.
 
 ## Rodar
@@ -61,7 +69,10 @@ cp .env.example .env      # ajuste TCMINE_ROOT, DOCKER_GID e TCMINE_PUBLIC_URL
 docker compose up -d
 ```
 
-Depois abra `https://seu-dominio/admin/setup` para criar a conta de administrador.
+Depois abra `https://seu-dominio/admin/setup`, informe o client ID do app que você
+registrou no Entra ID e entre com a sua conta Microsoft: a primeira conta vira a
+administradora da instalação. O passo a passo do registro está em
+[docs/DEPLOY.md](docs/DEPLOY.md).
 
 Dois requisitos que não dá para pular, e cujo sintoma não aponta a causa:
 
@@ -114,15 +125,15 @@ Detalhes de arquitetura e as decisões já tomadas estão em
 
 ## Lançar uma versão
 
-Tags com prefixo separam os dois produtos:
+O servidor sai por tag:
 
 ```bash
-git tag server-v0.4.0   && git push origin server-v0.4.0     # imagem no Docker Hub
-git tag launcher-v0.1.0 && git push origin launcher-v0.1.0   # instalador + feed
+git tag server-v0.4.0 && git push origin server-v0.4.0     # imagem no Docker Hub
 ```
 
-Os dois rodam os testes antes de publicar. O do launcher roda em Windows — o
-Linux compila o host WPF, mas publicar um executável exige a plataforma.
+O launcher é publicado **à mão**, na sua máquina Windows (`dotnet publish` +
+`vpk pack`), e os ficheiros são copiados para a pasta de atualizações do
+servidor — ver [docs/RELEASE.md](docs/RELEASE.md#lançar-o-launcher).
 
 **Ordem importa quando o protocolo sobe**: o launcher primeiro. Um launcher no
 canal antigo é recusado no handshake e mandado atualizar, e o canal novo só tem

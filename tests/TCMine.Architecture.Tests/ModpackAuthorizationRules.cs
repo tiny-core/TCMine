@@ -73,6 +73,7 @@ public class ModpackAuthorizationRules
         // solto — NetArchTest enumera até os aninhados privados.
         "AddManualFileCommand", "CreateModpackCommand", "CreateModpackVersionCommand",
         "ModIngestionItem", "ModpackIngestionService/Counters", "ModpackIngestionService/ResolveOutcome",
+        "ModpackIngestionService/IngestedFile",
         "ModUpdateInfo", "OverrideContent", "OverrideUndoService/UndoEntry", "QueueIngestionCommand",
         "ServerPackFillResult", "UpstreamConflictKind", "UpstreamMergePlan", "UpstreamModChange",
         "UpstreamModConflict", "UpstreamOverridePlan", "UpstreamSnapshot", "UpstreamUpdateResult",

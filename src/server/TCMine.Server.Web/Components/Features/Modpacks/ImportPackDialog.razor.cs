@@ -15,6 +15,14 @@ public partial class ImportPackDialog
     private bool _searched;
     private UpstreamPackSummary? _selected;
 
+    /// <summary>Releases do pack selecionado, da mais nova para a mais velha.</summary>
+    private IReadOnlyList<UpstreamRelease> _releases = [];
+
+    private bool _loadingReleases;
+
+    /// <summary>Release escolhida; nula = deixa a origem decidir (a mais recente).</summary>
+    private string? _releaseId;
+
     /// <summary>Origens prontas para uso — o Modrinth sempre está, o CurseForge só com chave.</summary>
     private List<IUpstreamPackSource> _available = [];
 
@@ -51,7 +59,58 @@ public partial class ImportPackDialog
         // Resultado de uma origem não vale para a outra.
         _results = [];
         _searched = false;
+        ClearSelection();
+    }
+
+    private void ClearSelection()
+    {
         _selected = null;
+        _releases = [];
+        _releaseId = null;
+    }
+
+    private static string ReleaseLabel(UpstreamRelease r)
+    {
+        var label = $"{r.Label} · {r.PublishedAt:dd/MM/yyyy}";
+        if (r.MinecraftVersions is { Length: > 0 } mc)
+            label += $" · MC {mc}";
+        return r.IsStable ? label : label + " · beta/alpha";
+    }
+
+    /// <summary>
+    ///     Seleciona o pack e lista as releases dele. A pré-seleção é a mais
+    ///     recente ESTÁVEL — a mesma regra que a importação sem escolha usa —, e
+    ///     não simplesmente a primeira da lista, que pode ser uma alpha.
+    /// </summary>
+    private async Task SelectAsync(UpstreamPackSummary pack)
+    {
+        if (_source is null || _selected?.ProjectId == pack.ProjectId)
+            return;
+
+        _selected = pack;
+        _releases = [];
+        _releaseId = null;
+        _loadingReleases = true;
+        try
+        {
+            var releases = await _source.ListReleasesAsync(pack.ProjectId, CancellationToken.None);
+
+            // Outro pack pode ter sido clicado enquanto este carregava.
+            if (_selected?.ProjectId != pack.ProjectId)
+                return;
+
+            _releases = releases;
+            _releaseId = (releases.FirstOrDefault(r => r.IsStable) ?? (releases.Count > 0 ? releases[0] : null))?.FileId;
+        }
+        catch (HttpRequestException)
+        {
+            // Sem lista, importa-se a mais recente — o mesmo de antes do seletor.
+            _releases = [];
+        }
+        finally
+        {
+            _loadingReleases = false;
+        }
     }
 
     private async Task OnKeyUp(KeyboardEventArgs e)
@@ -70,7 +129,7 @@ public partial class ImportPackDialog
         {
             _results = await _source.SearchPacksAsync(_query.Trim(), 20, CancellationToken.None);
             _searched = true;
-            _selected = null;
+            ClearSelection();
         }
         finally
         {
@@ -86,6 +145,7 @@ public partial class ImportPackDialog
         var origin = _source.Origin;
         var projectId = _selected.ProjectId;
         var name = _selected.Name;
+        var fileId = _releaseId;
 
         // A importação inteira vai para a fila: baixar o zip de um pack grande e
         // gravar milhares de overrides leva minutos, e prender o diálogo até o
@@ -101,7 +161,7 @@ public partial class ImportPackDialog
             }
 
             // fileId null = release mais recente do pack.
-            var result = await Scheduler.ScheduleAsync(origin, projectId, null, name, CancellationToken.None);
+            var result = await Scheduler.ScheduleAsync(origin, projectId, fileId, name, CancellationToken.None);
 
             if (!result.Succeeded)
             {

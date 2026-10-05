@@ -1021,6 +1021,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(1056)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RequiredDependencies")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Sha256")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1044,6 +1047,8 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.HasIndex("ModpackVersionId", "Path")
                         .IsUnique();
+
+                    b.HasIndex("Origin", "OriginReference");
 
                     b.ToTable("modpack_files", (string)null);
                 });
@@ -1405,32 +1410,6 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<string>("DefaultMinecraftVersion")
                         .HasMaxLength(32)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("MailServerDomain")
-                        .HasMaxLength(253)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpFrom")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpHost")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpPasswordEncrypted")
-                        .HasMaxLength(1024)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SmtpPort")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("SmtpUseTls")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SmtpUser")
-                        .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")

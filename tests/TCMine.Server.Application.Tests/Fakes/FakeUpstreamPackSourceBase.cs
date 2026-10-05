@@ -20,6 +20,9 @@ public abstract class FakeUpstreamPackSourceBase : IUpstreamPackSource
     public virtual Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     /// <summary>Nome de arquivo por id de release. Vazio salvo se o teste encher.</summary>
     public Dictionary<string, string> FileNames { get; } = new(StringComparer.Ordinal);
 

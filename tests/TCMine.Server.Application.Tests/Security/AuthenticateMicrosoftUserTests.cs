@@ -79,6 +79,39 @@ public sealed class AuthenticateMicrosoftUserTests
     }
 
     [Fact]
+    public async Task Conta_do_painel_sem_minecraft_absorve_a_duplicata_do_launcher()
+    {
+        // Ordem inversa da adoção: o painel veio primeiro, sem Minecraft, e o
+        // launcher criou depois uma segunda conta só com o UUID. No próximo
+        // login do painel o Minecraft é resolvido e as duas viram uma.
+        var painel = new User { MicrosoftObjectId = "oid-ana", DisplayName = "Ana" };
+        var doLauncher = new User { DisplayName = "ana", MinecraftUuid = "uuid-ana" };
+        var users = new FakeUsers(painel, doLauncher);
+        var caso = Build(users, oid: "oid-ana", minecraftUuid: "uuid-ana");
+
+        var result = await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
+
+        result.Value.ShouldBeSameAs(painel);
+        painel.MinecraftUuid.ShouldBe("uuid-ana");
+        users.Fusoes.ShouldBe([(painel.Id, doLauncher.Id)]);
+        users.Adicionado.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Minecraft_de_outra_conta_microsoft_nao_e_fundido()
+    {
+        var painel = new User { MicrosoftObjectId = "oid-ana", DisplayName = "Ana" };
+        var outra = new User { MicrosoftObjectId = "oid-bia", DisplayName = "Bia", MinecraftUuid = "uuid-x" };
+        var users = new FakeUsers(painel, outra);
+        var caso = Build(users, oid: "oid-ana", minecraftUuid: "uuid-x");
+
+        await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
+
+        users.Fusoes.ShouldBeEmpty();
+        painel.MinecraftUuid.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Sem_minecraft_a_conta_nasce_mesmo_assim()
     {
         // O jogo é oportunista para quem entra pelo painel — diferente do
