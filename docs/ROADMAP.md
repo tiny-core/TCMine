@@ -20,14 +20,15 @@ Referências: o protótipo aprovado (artifact "TCMine — proposta de redesenho"
 e o **TCMine Design System** (paleta pedra vulcânica, regras de texto e de
 interação). Tema, menu, visão geral e página pública já estão no código.
 
-- **Demais telas do painel**: configurações, diálogos.
-  Aplicar a mesma linguagem (cartões com borda fina, rótulos micro, chips
-  em minúsculas, estado sempre visível). Uma tela por PR. (Servidores,
-  inventário de mods, nuvem, usuários e armazenamento já feitas. A nuvem só
-  cobriu a lista — `CloudVaultsPage` — e os chips capitalizados que
-  apareceram nos painéis; os demais painéis de uma nuvem específica —
-  servidores, jogadores, regras, quarentena, em dúvida, incidentes,
-  auditoria, configurações — não foram revisados tela a tela.)
+- **Demais telas do painel**: diálogos (os que restam fora dos já tocados
+  nas fatias anteriores). Aplicar a mesma linguagem (cartões com borda
+  fina, rótulos micro, chips em minúsculas, estado sempre visível).
+  (Servidores, inventário de mods, nuvem, usuários, armazenamento e
+  configurações já feitas. A nuvem só cobriu a lista — `CloudVaultsPage` —
+  e os chips capitalizados que apareceram nos painéis; os demais painéis
+  de uma nuvem específica — servidores, jogadores, regras, quarentena, em
+  dúvida, incidentes, auditoria, configurações — não foram revisados tela
+  a tela.)
 - **Console**: levar o console para a linguagem nova (fundo afundado, eco do
   comando, referência de comandos num painel lateral).
 

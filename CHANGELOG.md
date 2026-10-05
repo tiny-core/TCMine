@@ -56,6 +56,11 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Tela de Configurações no visual novo** (já usava `PageHeader` e
+  `MudTabs`; faltava só nivelar): chips de status de integração ("Chave
+  configurada"/"Login configurado"/"Jogadores não conseguem entrar"…) para
+  minúsculas, e a elevação das abas igualada à da aba de uma nuvem (0, não
+  2) — eram as duas únicas telas com `MudTabs` e tinham sombras diferentes.
 - **Tela de Armazenamento no visual novo**: `PageHeader` em vez de
   cabeçalho manual, painéis com a classe `tc-panel`, e a barra de ocupação
   do content store retintada para os tokens `--tc-*` (estava em
