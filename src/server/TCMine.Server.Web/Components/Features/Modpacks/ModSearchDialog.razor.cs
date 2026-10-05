@@ -15,6 +15,20 @@ public partial class ModSearchDialog
 
     private readonly HashSet<string> _selected = [];
 
+    /// <summary>
+    ///     Valor do seletor que significa "deixa a origem escolher". Vazio, e não
+    ///     nulo: o MudSelect trata nulo como "nada selecionado".
+    /// </summary>
+    private const string LatestCompatible = "";
+
+    /// <summary>Versão escolhida por mod marcado (FileId na origem).</summary>
+    private readonly Dictionary<string, string> _chosenVersion = [];
+
+    /// <summary>Releases já consultadas, por mod — marcar e desmarcar não reconsulta.</summary>
+    private readonly Dictionary<string, IReadOnlyList<UpstreamRelease>> _versions = [];
+
+    private readonly HashSet<string> _loadingVersions = [];
+
     private bool _isSearching;
     private ModFileOrigin _origin = ModFileOrigin.Modrinth;
 
@@ -60,6 +74,8 @@ public partial class ModSearchDialog
         // Resultados de uma origem não valem para outra: limpa e refaz a busca.
         _origin = origin;
         _selected.Clear();
+        _chosenVersion.Clear();
+        _versions.Clear();
         _results = [];
         _searched = false;
 
@@ -126,7 +142,35 @@ public partial class ModSearchDialog
         }
     }
 
-    private void Toggle(string projectId, bool selected)
+    private string ChosenVersion(string projectId) =>
+        _chosenVersion.GetValueOrDefault(projectId, LatestCompatible);
+
+    private IReadOnlyList<UpstreamRelease> VersionsOf(string projectId) =>
+        _versions.GetValueOrDefault(projectId) ?? [];
+
+    private static string VersionLabel(UpstreamRelease v) =>
+        $"{v.Label} · {v.PublishedAt:dd/MM/yyyy}" + (v.IsStable ? "" : " · beta/alpha");
+
+    /// <summary>Consulta as releases compatíveis de um mod, uma vez por mod.</summary>
+    private async Task LoadVersionsAsync(string projectId)
+    {
+        if (_versions.ContainsKey(projectId) || !_loadingVersions.Add(projectId))
+            return;
+
+        try
+        {
+            var search = Searches.FirstOrDefault(s => s.Origin == _origin);
+            _versions[projectId] = search is null
+                ? []
+                : await search.ListVersionsAsync(projectId, MinecraftVersion, Loader, CancellationToken.None);
+        }
+        finally
+        {
+            _loadingVersions.Remove(projectId);
+        }
+    }
+
+    private async Task Toggle(string projectId, bool selected)
     {
         // O card inteiro é clicável, então a guarda precisa estar aqui e não só
         // no checkbox desabilitado: marcar um incompatível só adiaria a recusa
@@ -134,10 +178,14 @@ public partial class ModSearchDialog
         if (selected && _results.Any(r => r.ProjectId == projectId && !r.Compatible))
             return;
 
-        if (selected)
-            _selected.Add(projectId);
-        else
+        if (!selected)
+        {
             _selected.Remove(projectId);
+            return;
+        }
+
+        _selected.Add(projectId);
+        await LoadVersionsAsync(projectId);
     }
 
     private Task Add()
@@ -145,10 +193,15 @@ public partial class ModSearchDialog
         // O ProjectId da busca vira ProjectSlug do arquivo — identidade
         // estável do mod (slug no Modrinth, id numérico no CurseForge).
         // Lado Both por padrão; a grade permite ajustar depois.
-        // FileId null = versão mais recente compatível.
+        // FileId null = versão mais recente compatível; com versão escolhida, a
+        // ingestão fixa exatamente ela (e a procura primeiro no banco/disco).
         var items = _results
             .Where(r => _selected.Contains(r.ProjectId))
-            .Select(r => new ModIngestionItem(_origin, r.ProjectId, null, FileSide.Both))
+            .Select(r => new ModIngestionItem(
+                _origin,
+                r.ProjectId,
+                ChosenVersion(r.ProjectId) is { Length: > 0 } fileId ? fileId : null,
+                FileSide.Both))
             .ToList();
 
         // Passa pelo QueueIngestion (via IngestionScheduler), não pela fila

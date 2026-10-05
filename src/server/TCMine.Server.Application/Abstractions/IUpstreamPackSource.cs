@@ -23,6 +23,12 @@ public interface IUpstreamPackSource
     /// </summary>
     Task<UpstreamPack?> FetchAsync(string projectId, string? fileId, CancellationToken ct);
 
+    /// <summary>
+    ///     Todas as releases do pack, da mais nova para a mais velha — o que o
+    ///     admin escolhe na importação. Só metadados: nada é baixado.
+    /// </summary>
+    Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct);
+
     /// <summary>Id da release mais recente, para detectar atualização sem baixar o pack.</summary>
     Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct);
 
@@ -83,8 +89,17 @@ public sealed record UpstreamPackSummary(
     string? IconUrl,
     string? Author);
 
-/// <summary>Uma release do pack na origem.</summary>
-public sealed record UpstreamRelease(string FileId, string Label, DateTimeOffset PublishedAt);
+/// <summary>
+///     Uma release na origem (de um pack ou de um mod). <paramref name="IsStable" />
+///     falso = beta/alpha, que o seletor mostra mas não pré-seleciona.
+///     <paramref name="MinecraftVersions" /> é texto de exibição, quando a origem diz.
+/// </summary>
+public sealed record UpstreamRelease(
+    string FileId,
+    string Label,
+    DateTimeOffset PublishedAt,
+    bool IsStable = true,
+    string? MinecraftVersions = null);
 
 /// <summary>
 ///     Pack lido da origem: o que precisa virar Modpack + ModpackVersion aqui.

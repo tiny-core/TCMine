@@ -61,6 +61,28 @@ public sealed partial class CurseForgePackSource(
         ];
     }
 
+    public async Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct)
+    {
+        if (!int.TryParse(projectId, out var modId))
+            return [];
+
+        var response = await api.GetAsync(
+            $"/v1/mods/{modId}/files?pageSize=50",
+            CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeFile, ct);
+
+        return response?.Data is not { } files
+            ? []
+            : files
+                .OrderByDescending(f => f.FileDate)
+                .Select(f => new UpstreamRelease(
+                    f.Id.ToString(CultureInfo.InvariantCulture),
+                    f.FileName ?? f.Id.ToString(CultureInfo.InvariantCulture),
+                    f.FileDate,
+                    f.ReleaseType == 1,
+                    CurseForgeApiClient.MinecraftVersionsOf(f.GameVersions)))
+                .ToArray();
+    }
+
     public async Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct)
     {
         if (!int.TryParse(projectId, out var modId))
@@ -284,6 +306,16 @@ public sealed partial class CurseForgePackSource(
 
     private async Task<CurseForgeFile?> FindPackFileAsync(int modId, string? fileId, CancellationToken ct)
     {
+        // Release escolhida pelo admin: direto pelo id. Procurá-la na primeira
+        // página da lista não achava releases antigas.
+        if (fileId is not null && int.TryParse(fileId, out var pinned))
+        {
+            var single = await api.GetAsync(
+                $"/v1/mods/{modId}/files/{pinned}",
+                CurseForgeJsonContext.Default.CurseForgeResponseCurseForgeFile, ct);
+            return single?.Data;
+        }
+
         var response = await api.GetAsync(
             $"/v1/mods/{modId}/files?pageSize=50",
             CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeFile, ct);
@@ -291,9 +323,6 @@ public sealed partial class CurseForgePackSource(
         var files = response?.Data;
         if (files is null || files.Count is 0)
             return null;
-
-        if (fileId is not null && int.TryParse(fileId, out var wanted))
-            return files.FirstOrDefault(f => f.Id == wanted);
 
         return files.Where(f => f.ReleaseType == 1).MaxBy(f => f.FileDate) ?? files.MaxBy(f => f.FileDate);
     }

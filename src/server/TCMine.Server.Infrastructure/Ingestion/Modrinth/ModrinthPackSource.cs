@@ -65,6 +65,32 @@ public sealed partial class ModrinthPackSource(
         }
     }
 
+    public async Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct)
+    {
+        try
+        {
+            var versions = await http.GetFromJsonAsync(
+                $"/v2/project/{Uri.EscapeDataString(projectId)}/version",
+                ModrinthJsonContext.Default.IReadOnlyListModrinthPackVersion, ct);
+
+            return versions is null
+                ? []
+                : versions
+                    .Select(v => new UpstreamRelease(
+                        v.Id,
+                        v.VersionNumber ?? v.Name ?? v.Id,
+                        v.DatePublished,
+                        v.VersionType is null or "release",
+                        v.GameVersions.Count > 0 ? string.Join(", ", v.GameVersions) : null))
+                    .ToArray();
+        }
+        catch (HttpRequestException ex)
+        {
+            LogFetchError(ex, projectId);
+            return [];
+        }
+    }
+
     public async Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct)
     {
         var version = await LatestVersionAsync(projectId, ct);

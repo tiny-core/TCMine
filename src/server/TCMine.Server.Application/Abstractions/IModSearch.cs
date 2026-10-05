@@ -18,6 +18,16 @@ public interface IModSearch
     ValueTask<bool> IsAvailableAsync(CancellationToken ct);
 
     Task<IReadOnlyList<ModSearchResult>> SearchAsync(ModSearchQuery query, CancellationToken ct);
+
+    /// <summary>
+    ///     As releases de um mod que servem à versão do Minecraft e ao loader do
+    ///     pack, da mais nova para a mais velha. É o que deixa o admin fixar uma
+    ///     versão em vez de levar sempre "a mais recente": o id escolhido vira o
+    ///     FileId da ingestão. Lista vazia = nenhuma compatível (ou a origem não
+    ///     respondeu) — a busca é interativa e não lança.
+    /// </summary>
+    Task<IReadOnlyList<UpstreamRelease>> ListVersionsAsync(
+        string projectId, string minecraftVersion, ModLoader loader, CancellationToken ct);
 }
 
 public sealed record ModSearchQuery(

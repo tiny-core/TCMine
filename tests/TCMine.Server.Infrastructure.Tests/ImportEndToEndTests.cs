@@ -205,6 +205,9 @@ public sealed class ImportEndToEndTests
         public Task<UpstreamRelease?> GetLatestReleaseAsync(string projectId, CancellationToken ct) =>
             Task.FromResult<UpstreamRelease?>(null);
 
+        public Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<UpstreamRelease>>([]);
+
         public Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
             IReadOnlyList<string> fileIds, CancellationToken ct) =>
             Task.FromResult<IReadOnlyDictionary<string, string>>(

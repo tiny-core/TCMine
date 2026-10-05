@@ -50,10 +50,8 @@ public sealed partial class CurseForgeModResolver(
                     content.Pasta);
             }
 
-            // FileId específico quando pedido; senão o mais recente compatível.
-            var file = request.FileId is not null && int.TryParse(request.FileId, out var wantedId)
-                ? files.FirstOrDefault(f => f.Id == wantedId) ?? files[0]
-                : files[0];
+            // Com FileId, a lista É a release fixada; sem, a mais recente compatível.
+            var file = files[0];
 
             // Confere o arquivo escolhido em vez de confiar no filtro da query.
             // O gameVersions do CurseForge mistura versão do MC com loader e
@@ -140,6 +138,20 @@ public sealed partial class CurseForgeModResolver(
         int modId, ModRequest request, (bool EhMod, string Pasta, FileSide? Lado) content,
         CancellationToken ct)
     {
+        // Release FIXADA: busca exatamente ela. A lista filtrada vem paginada
+        // (50 por página), e procurar ali uma release mais antiga falhava — o
+        // código então levava a mais recente em silêncio, e o pack importado
+        // subia com versões que o autor nunca testou. As conferências de versão
+        // do jogo e de redistribuição continuam valendo sobre ela.
+        if (request.FileId is { Length: > 0 } fileId && int.TryParse(fileId, out var pinnedId))
+        {
+            var pinned = await api.GetAsync(
+                $"/v1/mods/{modId}/files/{pinnedId}",
+                CurseForgeJsonContext.Default.CurseForgeResponseCurseForgeFile, ct);
+
+            return pinned?.Data is { } file ? [file] : null;
+        }
+
         var url = $"/v1/mods/{modId}/files"
                   + $"?gameVersion={Uri.EscapeDataString(request.MinecraftVersion)}";
 
