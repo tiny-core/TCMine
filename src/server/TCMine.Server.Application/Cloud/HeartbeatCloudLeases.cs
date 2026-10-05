@@ -44,6 +44,6 @@ public sealed class HeartbeatCloudLeases(
                 await storage.SaveLeaseAsync(lease, read, ct);
         }
 
-        return CloudCallResult<CloudHeartbeatReply>.Ok(new CloudHeartbeatReply(lost));
+        return CloudCallResult<CloudHeartbeatReply>.Ok(new CloudHeartbeatReply(lost, vault.PolicyVersion));
     }
 }

@@ -27,10 +27,17 @@ public sealed record CloudHelloRequest(int Protocol, string? ModVersion, CloudCh
 
 public sealed record CloudQuotaDto(int MaxTypes, long MaxTotal);
 
+/// <summary>Regra de item como o mod aplica: escopo "Item"/"Tag"/"Mod", ação "Allow"/"Block".</summary>
+public sealed record CloudRuleDto(string Scope, string Pattern, string Action);
+
+/// <summary>Política de itens da nuvem (modo, versão e regras).</summary>
+public sealed record CloudPolicyReply(string PolicyMode, long PolicyVersion, IReadOnlyList<CloudRuleDto> Rules);
+
 public sealed record CloudHelloReply(
     int Protocol,
     string PolicyMode,
     long PolicyVersion,
+    IReadOnlyList<CloudRuleDto> Rules,
     CloudQuotaDto Quota,
     int MaxItemBytes,
     int MaxChannelsPerPlayer,
@@ -58,8 +65,11 @@ public sealed record CloudHeldLeaseDto(string PlayerUuid, long Epoch);
 
 public sealed record CloudHeartbeatRequest(IReadOnlyList<CloudHeldLeaseDto> Leases);
 
-/// <summary><c>Lost</c>: jogadores cujo lease este servidor já não segura (o mod trava o canal).</summary>
-public sealed record CloudHeartbeatReply(IReadOnlyList<string> Lost);
+/// <summary>
+///     <c>Lost</c>: jogadores cujo lease este servidor já não segura (o mod trava o canal).
+///     <c>PolicyVersion</c>: se diferente da que o mod tem, ele busca a política nova em /policy.
+/// </summary>
+public sealed record CloudHeartbeatReply(IReadOnlyList<string> Lost, long PolicyVersion);
 
 public sealed record CloudOpDto(Guid ChannelId, string Fingerprint, long Delta);
 
@@ -82,4 +92,9 @@ public sealed record CloudReleaseReply(bool Released);
 
 public sealed record CloudDoubtfulDto(string PlayerUuid, Guid ChannelId, string Fingerprint, string Kind, long Amount);
 
-public sealed record CloudDoubtfulRequest(IReadOnlyList<CloudDoubtfulDto> Operations);
+/// <summary><c>ReportId</c>: id do relatório gerado pelo mod; reenviar o mesmo não duplica a fila.</summary>
+public sealed record CloudDoubtfulRequest(string ReportId, IReadOnlyList<CloudDoubtfulDto> Operations);
+
+public sealed record CloudSuspectDto(string ItemId, string Evidence, long Attempts);
+
+public sealed record CloudSuspectsRequest(IReadOnlyList<CloudSuspectDto> Items);

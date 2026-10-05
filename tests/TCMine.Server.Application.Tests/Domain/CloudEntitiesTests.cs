@@ -75,6 +75,19 @@ public sealed class CloudEntitiesTests
             q.Resolve(CloudQuarantineResolution.Applied, Guid.CreateVersion7(), DateTimeOffset.UtcNow));
     }
 
+    [Theory]
+    [InlineData(CloudRuleScope.Item, "Minecraft:Diamond", "minecraft:diamond")]
+    [InlineData(CloudRuleScope.Tag, "#c:shulker_boxes", "c:shulker_boxes")]
+    [InlineData(CloudRuleScope.Mod, " RefinedStorage ", "refinedstorage")]
+    [InlineData(CloudRuleScope.Mod, "minecraft:dirt", null)]
+    [InlineData(CloudRuleScope.Item, "semnamespace", null)]
+    [InlineData(CloudRuleScope.Item, "mod:", null)]
+    [InlineData(CloudRuleScope.Tag, "com espaco:x", null)]
+    public void Padrao_da_regra_e_normalizado_por_escopo(CloudRuleScope scope, string bruto, string? esperado)
+    {
+        CloudItemRule.NormalizePattern(scope, bruto).ShouldBe(esperado);
+    }
+
     private static GameServer NovoServidor(Guid dono) => new()
     {
         Name = "S", ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),

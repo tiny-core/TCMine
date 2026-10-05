@@ -70,12 +70,23 @@ public static class CloudEndpoints
                 : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudRelease");
 
-        api.MapPost("/reports/doubtful", ([FromBody] CloudDoubtfulRequest? request, ReportCloudDoubtful useCase,
-                HttpContext http) =>
-            request?.Operations is null
+        api.MapPost("/policy", async (GetCloudPolicy useCase, HttpContext http, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), ct)))
+            .WithName("CloudPolicy");
+
+        api.MapPost("/reports/doubtful", async ([FromBody] CloudDoubtfulRequest? request, ReportCloudDoubtful useCase,
+                HttpContext http, CancellationToken ct) =>
+            request?.Operations is null || request.ReportId is null
                 ? BadBody()
-                : ToHttp(useCase.Handle(CloudServerAuthFilter.ContextOf(http), request)))
+                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudDoubtful");
+
+        api.MapPost("/reports/suspects", async ([FromBody] CloudSuspectsRequest? request, ReportCloudSuspects useCase,
+                HttpContext http, CancellationToken ct) =>
+            request?.Items is null
+                ? BadBody()
+                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+            .WithName("CloudSuspects");
 
         return app;
     }
