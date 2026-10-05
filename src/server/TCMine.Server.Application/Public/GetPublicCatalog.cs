@@ -51,7 +51,6 @@ public sealed class GetPublicCatalog(
                 server.Id,
                 server.Name,
                 modpackNames.GetValueOrDefault(server.ModpackId, "?"),
-                server.ConnectAddress,
                 server.Status,
 
                 // Só pergunta a contagem de quem está de pé: um servidor parado
@@ -76,11 +75,17 @@ public sealed record PublicModpackView(
     ModLoader Loader,
     string? OwnerDisplayName);
 
+/// <summary>
+///     Um servidor como QUALQUER visitante o vê. Sem o endereço, de propósito:
+///     ele só sai para quem tem acesso aprovado (ver <c>GameServerDto.ConnectAddress</c>),
+///     e a página pública o mostrava a todos — o que tirava o sentido de pedir
+///     acesso e expunha o IP da máquina do jogo. Fora do modelo, e não só fora
+///     do HTML: o que não sai daqui não vaza por nenhuma tela futura.
+/// </summary>
 public sealed record PublicServerView(
     Guid Id,
     string Name,
     string ModpackName,
-    string ConnectAddress,
     GameServerStatus Status,
     int? OnlinePlayers,
     int MaxPlayers);

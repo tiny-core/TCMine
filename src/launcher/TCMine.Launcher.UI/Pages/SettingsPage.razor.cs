@@ -5,9 +5,15 @@ using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
 
-public partial class SettingsPage : ComponentBase
+public partial class SettingsPage : ComponentBase, IDisposable
 {
     private bool _signingOut;
+
+    /// <summary>
+    ///     Sair com o jogo aberto deixaria o jogo a correr com uma sessão que já
+    ///     não existe; o botão espera o jogo fechar.
+    /// </summary>
+    [Inject] private ActionLock Lock { get; set; } = default!;
 
     [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
 
@@ -17,9 +23,19 @@ public partial class SettingsPage : ComponentBase
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
+    protected override void OnInitialized() => Lock.Changed += OnLockChanged;
+
+    public void Dispose()
+    {
+        Lock.Changed -= OnLockChanged;
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnLockChanged() => InvokeAsync(StateHasChanged);
+
     private async Task SignOutAsync()
     {
-        if (Shell.Pairing?.Config is not { } config)
+        if (Shell.Pairing?.Config is not { } config || Lock.IsLocked)
             return;
 
         _signingOut = true;

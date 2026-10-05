@@ -6,6 +6,8 @@ namespace TCMine.Launcher.Core.Tests.Fakes;
 /// <summary>Content store falso, em memória.</summary>
 public sealed class FakeContentStore : IContentStore
 {
+    private readonly Lock _gate = new();
+
     /// <summary>Hashes já presentes antes da instalação.</summary>
     public HashSet<string> Hashes { get; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -23,8 +25,12 @@ public sealed class FakeContentStore : IContentStore
         using var leitor = new StreamReader(content, Encoding.UTF8);
         await leitor.ReadToEndAsync(ct);
 
-        Hashes.Add(sha256);
-        Added.Add(sha256);
+        // Com trava: a instalação grava downloads paralelos ao mesmo tempo.
+        lock (_gate)
+        {
+            Hashes.Add(sha256);
+            Added.Add(sha256);
+        }
     }
 
     public Task<IReadOnlySet<string>> ListHashesAsync(CancellationToken ct) =>

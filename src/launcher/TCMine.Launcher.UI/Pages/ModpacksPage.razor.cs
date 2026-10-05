@@ -35,6 +35,9 @@ public partial class ModpacksPage : ComponentBase, IDisposable
 
     [Inject] private InstallOperationState Operation { get; set; } = default!;
 
+    /// <summary>Jogo aberto ou instalação em curso: as ações daqui ficam desligadas.</summary>
+    [Inject] private ActionLock Lock { get; set; } = default!;
+
     [Inject] private IDialogService Dialogs { get; set; } = default!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
@@ -42,6 +45,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     public void Dispose()
     {
         Operation.Changed -= OnOperationChanged;
+        Lock.Changed -= OnOperationChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -51,6 +55,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
         // o load não é perdida, e reabrir a tela no meio de uma em curso mostra
         // a barra de novo — é para isto que o estado saiu do campo local.
         Operation.Changed += OnOperationChanged;
+        Lock.Changed += OnOperationChanged;
 
         await LoadAsync();
         await RefreshInstalledAsync();
@@ -109,7 +114,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     /// </summary>
     private async Task InstallSpecificAsync(ModpackDto modpack)
     {
-        if (Operation.IsRunning)
+        if (Lock.IsLocked)
             return;
 
         var parameters = new DialogParameters<VersionPickerDialog>
@@ -131,7 +136,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
 
     private async Task InstallAsync(ModpackDto modpack, Guid? versionId)
     {
-        if (Shell.Pairing?.Config is not { } config || Operation.IsRunning)
+        if (Shell.Pairing?.Config is not { } config || Lock.IsLocked)
             return;
 
         Operation.Begin(modpack.Id);

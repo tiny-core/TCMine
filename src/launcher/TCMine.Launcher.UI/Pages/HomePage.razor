@@ -77,7 +77,7 @@ else
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                                    Class="tc-play"
                                    StartIcon="@Icons.Material.Filled.PlayArrow"
-                                   Disabled="@(_launching || !CanPlay)"
+                                   Disabled="@(_launching || !CanPlay || Lock.IsLocked)"
                                    OnClick="PlayAsync">
                             @if (_launching)
                             {
@@ -165,7 +165,9 @@ else
             @* Servidores e novidades vêm do catálogo. Sem rede a coluna some
                inteira em vez de mostrar caixas vazias: o que importa nesta tela
                está no disco e continua à esquerda. *@
-            <HomeServers Servers="_servers" OnRedeemInvite="RedeemInviteAsync"/>
+            <HomeServers Servers="_servers" OnRedeemInvite="RedeemInviteAsync"
+                         OnJoin="JoinAsync" Joining="_joining"
+                         JoinBlockedReason="@JoinBlockedReason"/>
             <HomeNews Posts="_news"/>
         </aside>
     </div>

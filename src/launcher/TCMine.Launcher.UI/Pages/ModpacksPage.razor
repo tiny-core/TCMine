@@ -116,7 +116,7 @@ else if (_catalog is not null)
                                            StartIcon="@Icons.Material.Filled.Download"
                                            FullWidth="true"
                                            Class="mt-4"
-                                           Disabled="@Operation.IsRunning"
+                                           Disabled="@Lock.IsLocked"
                                            OnClick="@(() => InstallAsync(entrada.Modpack))">
                                     Instalar
                                 </MudButton>
@@ -133,7 +133,7 @@ else if (_catalog is not null)
                                        Size="Size.Small"
                                        FullWidth="true"
                                        Class="mt-1"
-                                       Disabled="@Operation.IsRunning"
+                                       Disabled="@Lock.IsLocked"
                                        OnClick="@(() => InstallSpecificAsync(entrada.Modpack))">
                                 Escolher versão
                             </MudButton>

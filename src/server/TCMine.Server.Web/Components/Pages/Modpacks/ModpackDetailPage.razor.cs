@@ -98,9 +98,23 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         GC.SuppressFinalize(this);
     }
 
-    protected override async Task OnInitializedAsync()
+    private Guid _loaded;
+
+    protected override void OnInitialized() => Jobs.Changed += OnJobChanged;
+
+    /// <summary>
+    ///     Recarrega quando a ROTA muda, e não só na primeira vez. Navegar desta
+    ///     página para a mesma página com outro id (trocar a versão no seletor,
+    ///     criar uma versão nova, ir a outro modpack) REAPROVEITA o componente: o
+    ///     OnInitialized não roda de novo, e a tela ficava com os dados da
+    ///     anterior — o botão de procurar mods sumia numa versão nova até recarregar.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
     {
-        Jobs.Changed += OnJobChanged;
+        if (_loaded == ModpackId)
+            return;
+
+        _loaded = ModpackId;
         await LoadAsync();
     }
 

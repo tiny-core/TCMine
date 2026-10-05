@@ -17,6 +17,7 @@ public static class DependencyInjection
         // estado tem de sobreviver à navegação entre páginas.
         services.AddSingleton<LauncherShellState>();
         services.AddSingleton<InstallOperationState>();
+        services.AddSingleton<ActionLock>();
         services.AddScoped<PostPairingRoute>();
 
         services.AddMudServices();
