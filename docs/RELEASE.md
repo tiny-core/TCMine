@@ -89,12 +89,6 @@ faz sentido na sua própria máquina — é por isso que ele saiu do GitHub Acti
 (nem o `ci.yml` verifica mais o launcher a cada push; isso agora é trabalho da
 IDE, rodando `TCMine.slnx` e a suíte de testes localmente antes de publicar).
 
-> **Atenção:** o `.github/workflows/release-launcher.yml` ainda está no
-> repositório — sobra do refactor que tirou o launcher do Actions, restaurado
-> duas vezes por commits acidentais e nunca removido de vez. Ele **dispara em
-> qualquer tag `launcher-v*`**. Enquanto ele existir, não crie tags com esse
-> prefixo: o caminho documentado aqui é o manual.
-
 ```powershell
 ./scripts/release-launcher.ps1 -Version 0.2.0
 ```

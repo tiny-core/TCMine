@@ -1412,32 +1412,6 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("MailServerDomain")
-                        .HasMaxLength(253)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpFrom")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpHost")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("SmtpPasswordEncrypted")
-                        .HasMaxLength(1024)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("SmtpPort")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool>("SmtpUseTls")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SmtpUser")
-                        .HasMaxLength(256)
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 

@@ -42,8 +42,8 @@ public static class StoragePaths
         }
 
         // Chaves de proteção de dados. Sem elas persistidas, toda sessão cai a
-        // cada arranque e o que foi cifrado antes (chave do CurseForge, senha de
-        // SMTP) deixa de ser legível.
+        // cada arranque e o que foi cifrado antes (chave do CurseForge) deixa de
+        // ser legível.
         pastas.Add(KeysPath(configuration, environment));
 
         foreach (var folder in pastas)

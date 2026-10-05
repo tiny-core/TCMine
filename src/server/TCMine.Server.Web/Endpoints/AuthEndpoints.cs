@@ -189,6 +189,29 @@ public static class AuthEndpoints
             return Results.LocalRedirect("/admin/login");
         });
 
+        // Resgate da administração com o código do log (ver ClaimInstanceAdmin).
+        // Exige sessão — o código promove QUEM está logado — e passa pelo mesmo
+        // limite de taxa do login: é uma credencial a adivinhar como outra.
+        app.MapPost("/auth/claim-admin", async (
+                [FromForm] string code,
+                HttpContext http,
+                ClaimInstanceAdmin claim,
+                CancellationToken ct) =>
+            {
+                var userId = Guid.Parse(http.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+                var result = await claim.HandleAsync(userId, code, ct);
+
+                if (!result.Succeeded)
+                    return Results.Redirect(BuildUrl("/admin/claim", result.Error!, null));
+
+                // A sessão carrega IsInstanceAdmin como claim: sem reemitir o
+                // cookie, o painel continuaria a tratá-lo como jogador comum.
+                await SignInAsync(http, result.Value!);
+                return Results.LocalRedirect(SafeReturnUrl(null));
+            })
+            .RequireAuthorization()
+            .RequireRateLimiting(RateLimitPolicies.AuthPolicy);
+
         // Fora do grupo: sair exige sessão, e limitar quem já está autenticado
         // só atrapalharia.
         app.MapPost("/auth/logout", async (HttpContext http) =>

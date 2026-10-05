@@ -167,8 +167,10 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 ### 4.7 Identidade de mod (`ProjectSlug`)
 
-- `ModpackFile.ProjectSlug` é a **identidade estável** do mod (project_id do Modrinth), independente da versão do
-  arquivo. É por ele que `UpsertFile`
+- `ModpackFile.ProjectSlug` é a **identidade estável** do mod (project_id do Modrinth — NUNCA o slug, que o autor
+  pode renomear —, mod id do CurseForge), independente da versão do arquivo. A busca grava o id; a ingestão adota
+  o id canônico que a origem devolve (`ModResolution.Resolved.ProjectId`) e passa o nome pedido como apelido ao
+  `UpsertFile(file, previousSlug)`, que assim substitui linhas antigas gravadas pelo slug. É por ele que `UpsertFile`
   **substitui** (não acumula) quando um mod é atualizado — dois `.jar` do mesmo mod na pasta `mods/` crashariam o jogo.
   Overrides usam slug sintético
   `override:{path}`.
@@ -239,6 +241,13 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
     - painel primeiro (sem Minecraft), launcher depois → no próximo login do painel (ou em "vincular Minecraft") a
       conta só-do-launcher é **fundida** (`MergeAsync`: acessos re-apontados, papel maior vence, absorvida apagada).
       Conta com OUTRA Microsoft nunca é fundida — aí são pessoas diferentes, e quem decide é o admin.
+- **Sem admin que consiga entrar** (contas de e-mail e senha de antes): `AdminClaimBootstrap` emite no arranque
+  um código de uso único, SÓ no log (`AdminClaimCode`, em memória, guarda o hash), e `/admin/claim` →
+  `ClaimInstanceAdmin` promove quem está logado e o informa. Um único admin antigo é fundido na conta nova. A
+  prova é o log porque a página de login é pública: "o primeiro que entrar vira admin" entregaria a instalação
+  a qualquer conta Microsoft. Depois do resgate a sessão é **reemitida** — `IsInstanceAdmin` vive na claim.
+- **Não há e-mail.** SMTP e servidor de e-mail próprio foram removidos com a recuperação de senha; não
+  reintroduza sem um fluxo que o use (o `User` nem tem endereço).
 
 ---
 

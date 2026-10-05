@@ -28,10 +28,6 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         typeof(ListServerAccess),
         typeof(ListAccessibleServers),
         typeof(SendServerCommand),
-        typeof(SendTestEmail),
-        typeof(StartMailServer),
-        typeof(StopMailServer),
-        typeof(GetMailServerView),
         typeof(CompleteFromServerPack),
 
         // Resolvido pelo InterruptedWorkRecovery no arranque, dentro do próprio
@@ -41,13 +37,11 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         typeof(ChangeFileSide),
         typeof(IServerWhitelistSync),
 
-        // Portas, e não casos de uso: o IEmailSender é resolvido pela tela de
-        // Configurações e as três seguintes pelo MetricsCollector, dentro do
+        // Portas, e não casos de uso: as três seguintes são resolvidas pelo
+        // MetricsCollector, dentro do
         // próprio escopo a cada coleta. Um registro faltando ali não impede a
         // app de subir — só faz a coleta falhar em silêncio de quinze em quinze
         // segundos.
-        typeof(IEmailSender),
-        typeof(IMailServerOrchestrator),
         typeof(IPlayerCountSource),
         typeof(IRconClient),
         typeof(IServerHubNotifier),

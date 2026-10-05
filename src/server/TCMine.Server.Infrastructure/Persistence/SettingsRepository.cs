@@ -9,8 +9,8 @@ namespace TCMine.Server.Infrastructure.Persistence;
 /// <summary>
 ///     Configuração da instalação, com os segredos cifrados em repouso.
 ///     Usa a Data Protection do ASP.NET (chaves gerenciadas pela plataforma), em
-///     vez de criptografia própria: se o banco vazar sozinho, a chave da API e a
-///     senha de SMTP não vão junto em claro.
+///     vez de criptografia própria: se o banco vazar sozinho, a chave da API
+///     não vai junto em claro.
 /// </summary>
 public sealed class SettingsRepository : ISettingsRepository
 {
@@ -41,7 +41,6 @@ public sealed class SettingsRepository : ISettingsRepository
 
         // Devolve em claro para quem for usar; a UI decide o que exibir.
         settings.CurseForgeApiKeyEncrypted = Unprotect(settings.CurseForgeApiKeyEncrypted);
-        settings.SmtpPasswordEncrypted = Unprotect(settings.SmtpPasswordEncrypted);
         return settings;
     }
 
@@ -57,15 +56,8 @@ public sealed class SettingsRepository : ISettingsRepository
         }
 
         stored.DefaultMinecraftVersion = settings.DefaultMinecraftVersion;
-        stored.MailServerDomain = settings.MailServerDomain;
         stored.DefaultLoader = settings.DefaultLoader;
         stored.DefaultMemoryMb = settings.DefaultMemoryMb;
-
-        stored.SmtpHost = settings.SmtpHost;
-        stored.SmtpPort = settings.SmtpPort;
-        stored.SmtpUser = settings.SmtpUser;
-        stored.SmtpFrom = settings.SmtpFrom;
-        stored.SmtpUseTls = settings.SmtpUseTls;
 
         stored.AzureClientId = settings.AzureClientId;
 
@@ -76,7 +68,6 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.WorldBackupKeepCount = settings.WorldBackupKeepCount;
 
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);
-        stored.SmtpPasswordEncrypted = Protect(settings.SmtpPasswordEncrypted);
 
         await db.SaveChangesAsync(ct);
     }
@@ -85,12 +76,6 @@ public sealed class SettingsRepository : ISettingsRepository
     {
         var settings = await GetAsync(ct);
         return settings.CurseForgeApiKeyEncrypted;
-    }
-
-    public async Task<string?> GetSmtpPasswordAsync(CancellationToken ct)
-    {
-        var settings = await GetAsync(ct);
-        return settings.SmtpPasswordEncrypted;
     }
 
     private string? Protect(string? plaintext) =>
