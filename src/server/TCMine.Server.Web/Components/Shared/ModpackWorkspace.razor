@@ -31,17 +31,22 @@
 
     @if ((ShowVersionSelector && Modpack.Versions.Count > 0) || SelectedVersion is not null)
     {
-        <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudPaper Outlined="true" Class="tc-panel pa-4 mb-4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4" Wrap="Wrap.Wrap">
                 @if (ShowVersionSelector && Modpack.Versions.Count > 0)
                 {
                     <MudSelect T="Guid" Value="SelectedVersionId"
                                ValueChanged="OnVersionChanged"
                                Label="Versão" Variant="Variant.Outlined"
-                               Dense="true" Style="max-width: 200px;">
+                               Dense="true" Style="max-width: 220px;">
                         @foreach (var v in Modpack.Versions)
                         {
-                            <MudSelectItem Value="v.Id">@v.Version (@v.State)</MudSelectItem>
+                            <MudSelectItem Value="v.Id">
+                                <MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+                                    <span>@v.Version</span>
+                                    <VersionStateChip State="v.State"/>
+                                </MudStack>
+                            </MudSelectItem>
                         }
                     </MudSelect>
                 }
@@ -57,6 +62,15 @@
                             </div>
                         }
                     </div>
+
+                    @* Fora da Visão geral, que já tem seu próprio cartão de
+                       "próximo passo" com estas duas ações. *@
+                    @if (Active != ModpackTab.Overview)
+                    {
+                        <MudSpacer/>
+                        <VersionQuickActions Modpack="Modpack" SelectedVersion="SelectedVersion"
+                                              Changed="VersionMutated"/>
+                    }
                 }
             </MudStack>
         </MudPaper>

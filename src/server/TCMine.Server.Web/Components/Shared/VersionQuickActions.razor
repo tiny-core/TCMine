@@ -1,0 +1,31 @@
+@* "Nova versão" e "Publicar" sempre à mão, em qualquer aba por versão — não só
+   na Visão geral. Ficam dentro do ModpackWorkspace (não em cada página) para
+   não repetir, em cinco abas, a mesma preparação de diálogo e a mesma
+   confirmação (texto que nomeia os mods pendentes): isso mora no
+   VersionLifecycleActions, e este componente só liga o botão a ele. *@
+@using TCMine.Contracts.Modpacks
+@using TCMine.Server.Domain.Modpacks
+
+<MudStack Row="true" Spacing="2" AlignItems="AlignItems.Center">
+    <MudButton Variant="Variant.Outlined" Size="Size.Small"
+               StartIcon="@Icons.Material.Filled.Add"
+               Disabled="_busy"
+               OnClick="CreateVersionAsync">
+        Nova versão
+    </MudButton>
+
+    @if (SelectedVersion is { State: ModpackVersionState.Draft })
+    {
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Size="Size.Small"
+                   StartIcon="@Icons.Material.Filled.Publish"
+                   Disabled="_busy"
+                   OnClick="PublishAsync">
+            Publicar
+        </MudButton>
+    }
+
+    @if (_busy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+</MudStack>

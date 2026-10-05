@@ -33,9 +33,16 @@ public partial class ModpackWorkspace : ComponentBase
     [Parameter]
     public EventCallback<Guid> SelectedVersionIdChanged { get; set; }
 
-    /// <summary>Ações à direita do cabeçalho (ex.: "Nova versão").</summary>
+    /// <summary>Ações à direita do cabeçalho (ex.: "Buscar mods").</summary>
     [Parameter]
     public RenderFragment? HeaderActions { get; set; }
+
+    /// <summary>
+    ///     Disparado quando as ações rápidas (<see cref="VersionQuickActions" />)
+    ///     criam ou publicam uma versão — quem hospeda recarrega os próprios dados.
+    /// </summary>
+    [Parameter]
+    public EventCallback VersionMutated { get; set; }
 
     [Parameter] public RenderFragment? ChildContent { get; set; }
 

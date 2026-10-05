@@ -20,11 +20,6 @@ Referências: o protótipo aprovado (artifact "TCMine — proposta de redesenho"
 e o **TCMine Design System** (paleta pedra vulcânica, regras de texto e de
 interação). Tema, menu, visão geral e página pública já estão no código.
 
-- **Aba de mods da versão** (`ModpackModsPage` e o cabeçalho de versão
-  compartilhado pelas abas): ciclo da versão (rascunho → resolvendo →
-  publicada) visível, "Nova versão" e "Publicar" sempre à mão, "Procurar mods"
-  fixo na barra da grade, indicação de "tudo salvo", pendências num aviso no
-  topo.
 - **Launcher — tela de jogar** (`HomePage`, `HomeServers`): cartão da
   instância com o botão Jogar grande, servidores com "Entrar"/"Atualizar e
   entrar" e lotação, aviso de jogo aberto já existe (`ActionLock`).

@@ -13,6 +13,7 @@ using TCMine.Server.Infrastructure;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components;
+using TCMine.Server.Web.Components.Features.Modpacks;
 using TCMine.Server.Web.Components.Features.Servers;
 using TCMine.Server.Web.Configuration;
 using TCMine.Server.Web.Diagnostics;
@@ -174,6 +175,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<UserPrincipalHolder>();
 builder.Services.AddScoped<ICurrentUserScope, HttpContextUserScope>();
 builder.Services.AddScoped<ServerActions>();
+builder.Services.AddScoped<VersionLifecycleActions>();
 
 builder.Services.AddTcMineApplication();
 

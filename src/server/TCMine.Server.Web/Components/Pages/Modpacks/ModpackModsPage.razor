@@ -24,28 +24,19 @@ else
 {
     <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Mods"
                       SelectedVersionId="VersionId" SelectedVersion="_version"
-                      SelectedVersionIdChanged="OnVersionChanged">
-        <HeaderActions>
-            @if (_version.State is ModpackVersionState.Draft)
-            {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                           StartIcon="@Icons.Material.Filled.CloudDownload" OnClick="OpenIngest">
-                    Buscar no Modrinth
-                </MudButton>
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Filled.Upload" OnClick="OpenManualUpload">
-                    Enviar arquivo
-                </MudButton>
-            }
-            else if (_version.State is ModpackVersionState.Ready)
-            {
-                <MudButton Variant="Variant.Outlined"
-                           StartIcon="@Icons.Material.Filled.SystemUpdateAlt" OnClick="OpenCheckUpdates">
-                    Verificar atualizações
-                </MudButton>
-            }
-        </HeaderActions>
+                      SelectedVersionIdChanged="OnVersionChanged"
+                      VersionMutated="LoadAsync">
         <ChildContent>
+            @* Só depois de resolver — durante a ingestão cada mod tem uma
+               pendência Queued, e o aviso listaria o pack inteiro como
+               "aguardando upload manual" enquanto ele só está baixando. *@
+            @if (_version.State is not ModpackVersionState.Resolving && _version.HasManualUploads)
+            {
+                <PendingModsPanel Pending="_version.ManualUploads"
+                                  CanUpload="@(_version.State is ModpackVersionState.Draft)"
+                                  OnUpload="UploadForPending"/>
+            }
+
             @if (IsIngesting)
             {
                 <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
@@ -58,19 +49,6 @@ else
                 </MudText>
             }
 
-            <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-                <MudSpacer/>
-                <MudTextField T="string" Value="_searchString" ValueChanged="OnSearchChanged"
-                              DebounceInterval="400"
-                              Placeholder="Filtrar mods..."
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search"
-                              IconSize="Size.Small"
-                              Margin="Margin.Dense"
-                              Variant="Variant.Outlined"
-                              Style="max-width: 280px;"/>
-            </MudStack>
-
             @* ServerData: a grade pede uma página por vez. Uma versão importada
                tem centenas de mods, e materializá-los todos no circuito era o que
                fazia a aba demorar a abrir. *@
@@ -82,6 +60,57 @@ else
                          SortMode="SortMode.None"
                          RowsPerPage="25"
                          Elevation="1">
+                @* Fixa aqui, e não no cabeçalho da página, porque é daqui que a
+                   grade é alimentada — rolar a lista de mods não deve afastar a
+                   ação de quem está olhando justamente ela. *@
+                <ToolBarContent>
+                    @if (_version.State is ModpackVersionState.Draft)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Search" OnClick="OpenIngest">
+                            Procurar mods
+                        </MudButton>
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.Upload" OnClick="OpenManualUpload">
+                            Enviar arquivo
+                        </MudButton>
+
+                        @* Tudo aqui salva célula a célula (ChangeSide); isto diz
+                           que não há nada preso num clique perdido. *@
+                        <span class="tc-save-state">
+                            @if (_savingSide != Guid.Empty)
+                            {
+                                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                                <span>Salvando…</span>
+                            }
+                            else
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.CloudDone" Size="Size.Small" Color="Color.Success"/>
+                                <span>Tudo salvo</span>
+                            }
+                        </span>
+                    }
+                    else if (_version.State is ModpackVersionState.Ready)
+                    {
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small"
+                                   StartIcon="@Icons.Material.Filled.SystemUpdateAlt" OnClick="OpenCheckUpdates">
+                            Verificar atualizações
+                        </MudButton>
+                    }
+
+                    <MudSpacer/>
+
+                    <MudTextField T="string" Value="_searchString" ValueChanged="OnSearchChanged"
+                                  DebounceInterval="400"
+                                  Placeholder="Filtrar mods..."
+                                  Adornment="Adornment.Start"
+                                  AdornmentIcon="@Icons.Material.Filled.Search"
+                                  IconSize="Size.Small"
+                                  Margin="Margin.Dense"
+                                  Variant="Variant.Outlined"
+                                  Style="max-width: 280px;"/>
+                </ToolBarContent>
+
                 <Columns>
                     <TemplateColumn Title="" Sortable="false">
                         <CellTemplate>
@@ -186,7 +215,7 @@ else
 
                 <NoRecordsContent>
                     <MudText Class="mud-text-secondary pa-4" >
-                        Nenhum mod nesta versão. Use "Buscar no Modrinth" para começar.
+                        Nenhum mod nesta versão. Use "Procurar mods" para começar.
                     </MudText>
                 </NoRecordsContent>
             </MudDataGrid>

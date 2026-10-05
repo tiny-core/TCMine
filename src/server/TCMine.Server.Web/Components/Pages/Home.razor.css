@@ -35,14 +35,11 @@
     color: var(--tc-text-secondary);
 }
 
-.tc-kpi-caption,
-.tc-caption {
+/* .tc-caption e .tc-text-danger agora são globais (tcmine.css) — mais de uma
+   tela usa; aqui só o que é específico desta grade. */
+.tc-kpi-caption {
     font-size: 12px;
     color: var(--tc-text-secondary);
-}
-
-.tc-text-danger {
-    color: var(--tc-status-error);
 }
 
 .tc-cols {
@@ -50,17 +47,6 @@
     grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
     gap: 16px;
     margin-bottom: 4px;
-}
-
-::deep .tc-panel {
-    overflow: hidden;
-}
-
-.tc-panel-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 16px;
 }
 
 .tc-server-row {
@@ -77,10 +63,6 @@
     align-items: center;
     gap: 12px;
     min-width: 0;
-}
-
-.tc-strong {
-    font-weight: 600;
 }
 
 .tc-span-2 {
@@ -102,39 +84,7 @@
     gap: 8px;
 }
 
-/* Cristal de estado: losango com brilho. Muda de forma de brilho e não só de
-   cor, para quem não distingue as cores. */
-.tc-crystal {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
-    transform: rotate(45deg);
-    flex: none;
-}
-
-.tc-crystal-on {
-    background: var(--tc-status-success);
-    box-shadow: var(--tc-glow-success);
-}
-
-.tc-crystal-bad {
-    background: var(--tc-status-error);
-    box-shadow: var(--tc-glow-danger);
-}
-
-.tc-crystal-wait {
-    background: var(--tc-status-warning);
-    animation: tc-pulse 1.6s infinite;
-}
-
-.tc-crystal-off {
-    background: var(--tc-border-strong);
-}
-
-@keyframes tc-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .45; }
-}
+/* .tc-crystal* e @keyframes tc-pulse agora são globais (tcmine.css). */
 
 .tc-attention {
     display: flex;
@@ -160,11 +110,5 @@
 
     .tc-server-row {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .tc-crystal-wait {
-        animation: none;
     }
 }
