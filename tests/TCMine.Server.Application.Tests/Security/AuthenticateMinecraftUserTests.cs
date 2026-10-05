@@ -28,6 +28,23 @@ public sealed class AuthenticateMinecraftUserTests
     }
 
     [Fact]
+    public async Task Dois_logins_simultaneos_do_mesmo_jogador_nao_criam_duas_contas()
+    {
+        // O launcher dispara o login silencioso e o da tela juntos no primeiro
+        // arranque: os dois veem "ninguém ainda". O índice único segura a
+        // segunda linha, e o caso de uso adota a que venceu em vez de falhar.
+        var vencedor = new User { DisplayName = "ana", MinecraftUuid = "abc123" };
+        var users = new FakeUsers { Concorrente = vencedor };
+        var caso = new AuthenticateMinecraftUser(users, new FakeProfiles("ana", "abc123"));
+
+        var result = await caso.HandleAsync("token-bom", TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeTrue();
+        result.Value.ShouldBeSameAs(vencedor);
+        users.Adicionado.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Conta_criada_pelo_launcher_nao_tem_identidade_microsoft()
     {
         var users = new FakeUsers();

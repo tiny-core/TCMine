@@ -39,6 +39,13 @@ public sealed partial class AuthenticateMicrosoftUser(
 
         if (user is not null)
         {
+            // Conta do painel ainda sem Minecraft: tenta vincular agora. Sem
+            // isto, quem entrou no painel primeiro (e a Mojang não respondeu, ou
+            // o jogo foi comprado depois) ganhava uma SEGUNDA conta no primeiro
+            // login pelo launcher — e as duas nunca mais se encontravam.
+            if (user.MinecraftUuid is null)
+                await AdoptMinecraftAsync(user, microsoft.AccessToken, ct);
+
             user.DisplayName = microsoft.DisplayName;
             user.LastSeenAt = now;
             await users.UpdateAsync(user, ct);
@@ -80,8 +87,39 @@ public sealed partial class AuthenticateMicrosoftUser(
             LastSeenAt = now
         };
 
-        await users.AddAsync(user, ct);
-        return Result<User>.Success(user);
+        if (await users.TryAddAsync(user, ct))
+            return Result<User>.Success(user);
+
+        // Corrida com outro login da mesma conta: adota a linha que venceu.
+        var winner = await users.GetByMicrosoftObjectIdAsync(microsoft.ObjectId, ct);
+        return winner is not null
+            ? Result<User>.Success(winner)
+            : Result<User>.Fail("Não foi possível registrar a conta. Tente de novo.");
+    }
+
+    /// <summary>
+    ///     Vincula o Minecraft a uma conta do painel que ainda não o tinha. Se o
+    ///     launcher já criou uma conta para esse jogador (só com o UUID, sem
+    ///     Microsoft), ela é a MESMA pessoa e é fundida nesta. Uma conta que tem
+    ///     outra Microsoft fica intocada: aí são pessoas diferentes disputando o
+    ///     jogo, e quem resolve é o admin, não um login.
+    /// </summary>
+    private async Task AdoptMinecraftAsync(User user, string microsoftAccessToken, CancellationToken ct)
+    {
+        var minecraftUuid = await TryResolveMinecraftUuidAsync(microsoftAccessToken, ct);
+        if (minecraftUuid is null)
+            return;
+
+        var other = await users.GetByMinecraftUuidAsync(minecraftUuid, ct);
+        if (other is not null && other.Id != user.Id)
+        {
+            if (other.MicrosoftObjectId is not null)
+                return;
+
+            await users.MergeAsync(user.Id, other.Id, ct);
+        }
+
+        user.MinecraftUuid = minecraftUuid;
     }
 
     /// <summary>

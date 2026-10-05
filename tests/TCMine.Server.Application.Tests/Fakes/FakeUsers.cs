@@ -35,6 +35,36 @@ internal sealed class FakeUsers(params User[] seed) : IUserRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    ///     Simula o outro login que gravou a mesma conta primeiro: quando
+    ///     preenchido, o próximo TryAddAsync perde a corrida para este usuário.
+    /// </summary>
+    public User? Concorrente { get; set; }
+
+    /// <summary>Fusões pedidas, como (mantida, absorvida).</summary>
+    public List<(Guid Keep, Guid Absorbed)> Fusoes { get; } = [];
+
+    public Task<bool> TryAddAsync(User user, CancellationToken ct)
+    {
+        if (Concorrente is { } vencedor)
+        {
+            _users.Add(vencedor);
+            Concorrente = null;
+            return Task.FromResult(false);
+        }
+
+        Adicionado = user;
+        _users.Add(user);
+        return Task.FromResult(true);
+    }
+
+    public Task MergeAsync(Guid keepId, Guid absorbedId, CancellationToken ct)
+    {
+        Fusoes.Add((keepId, absorbedId));
+        _users.RemoveAll(u => u.Id == absorbedId);
+        return Task.CompletedTask;
+    }
+
     public Task UpdateAsync(User user, CancellationToken ct)
     {
         Atualizado = true;

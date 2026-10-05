@@ -42,6 +42,24 @@ public sealed class LinkMinecraftAccountTests
     }
 
     [Fact]
+    public async Task Conta_so_do_launcher_com_o_mesmo_minecraft_e_fundida()
+    {
+        // A mesma pessoa entrou pelo launcher antes de vincular aqui: a conta
+        // de lá não tem Microsoft. Recusar deixaria o jogador com duas contas
+        // para sempre; a posse do jogo acabou de ser provada, então funde.
+        var doLauncher = new User { DisplayName = "ana", MinecraftUuid = "uuid-ana" };
+        var painel = new User { MicrosoftObjectId = "oid-ana", DisplayName = "Ana" };
+        var users = new FakeUsers(doLauncher, painel);
+        var caso = new LinkMinecraftAccount(new FakeExchange("mc-token"), new FakeProfiles("uuid-ana"), users);
+
+        var result = await caso.HandleAsync(painel.Id, "ms-token", Ct);
+
+        result.Succeeded.ShouldBeTrue();
+        painel.MinecraftUuid.ShouldBe("uuid-ana");
+        users.Fusoes.ShouldBe([(painel.Id, doLauncher.Id)]);
+    }
+
+    [Fact]
     public async Task Recusa_quando_a_conta_microsoft_nao_tem_o_jogo()
     {
         var user = new User { MicrosoftObjectId = "oid", DisplayName = "Ana" };
