@@ -36,7 +36,17 @@ jobs:
       contents: write
 
     steps:
+      # Histórico inteiro e as tags: a guarda abaixo compara com a release anterior.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # O launcher vai dentro desta imagem e é publicado no feed a cada arranque.
+      # Se o código dele mudou desde a release anterior e src/launcher/VERSION
+      # não subiu, os jogadores que já o têm nunca recebem a atualização — o
+      # Velopack só oferece versão MAIOR. Falha aqui, antes de qualquer build.
+      - name: Versão do launcher acompanhou as mudanças dele
+        run: bash ./scripts/check-launcher-version.sh
 
       - name: Descobrir a versão e as tags da imagem
         id: versao
