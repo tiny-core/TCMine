@@ -30,6 +30,22 @@ public sealed class GetPublicCatalog(
         {
             var owner = await memberships.GetOwnerAsync(modpack.Id, ct);
 
+            // Número de mods e tamanho são da versão PUBLICADA mais recente —
+            // nunca de um rascunho, que pode estar vazio ou pela metade e não é
+            // o que um visitante vai instalar. Sem versão publicada, os dois
+            // ficam nulos: zero afirmaria um pack vazio que só não foi medido.
+            var versions = await modpacks.ListVersionSummariesAsync(modpack.Id, ct);
+            var published = versions
+                .Where(v => v.State is ModpackVersionState.Ready)
+                .MaxBy(v => v.Id); // GUID v7 = mais recente primeiro
+
+            ModpackVersionStats? stats = null;
+            if (published is not null)
+            {
+                var statsByVersion = await modpacks.GetVersionStatsAsync(modpack.Id, ct);
+                stats = statsByVersion.GetValueOrDefault(published.Id);
+            }
+
             modpackViews.Add(new PublicModpackView(
                 modpack.Id,
                 modpack.Slug,
@@ -41,7 +57,9 @@ public sealed class GetPublicCatalog(
                 modpack.IconBlobSha256 is { } sha ? new Uri($"/api/v1/blobs/{sha}", UriKind.Relative) : null,
                 modpack.MinecraftVersion,
                 modpack.Loader,
-                owner?.DisplayName));
+                owner?.DisplayName,
+                stats?.ModCount,
+                stats?.TotalSizeBytes));
         }
 
         var modpackNames = allModpacks.ToDictionary(m => m.Id, m => m.Name);
@@ -73,7 +91,9 @@ public sealed record PublicModpackView(
     Uri? IconUrl,
     string MinecraftVersion,
     ModLoader Loader,
-    string? OwnerDisplayName);
+    string? OwnerDisplayName,
+    int? ModCount,
+    long? TotalSizeBytes);
 
 /// <summary>
 ///     Um servidor como QUALQUER visitante o vê. Sem o endereço, de propósito:

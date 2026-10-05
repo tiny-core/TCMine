@@ -148,6 +148,7 @@ public sealed class AuthenticateMicrosoftUserTests
             new FakeExchange(minecraftToken),
             new FakeProfiles(minecraftUuid is null ? null : new MinecraftProfile(minecraftUuid, nome)),
             users,
+            new FakeActivityLog(),
             NullLogger<AuthenticateMicrosoftUser>.Instance);
 
     private sealed class FakeOAuth(string oid, string nome, string? falha) : IMicrosoftOAuthClient

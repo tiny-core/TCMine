@@ -692,6 +692,14 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   Release fixada se busca pelo id; não existe → pendência, nunca substituição silenciosa.
 - **Checar "já existe?" ANTES do trabalho caro.** A importação baixava o zip do pack (centenas de MB) e só então
   perguntava ao banco se ele já tinha sido importado.
+- **Entidade nova sem migration não falha só nela — derruba o banco inteiro.** O EF Core desta versão lança
+  `PendingModelChangesWarning` como exceção ao rodar `Migrate()` quando o modelo diverge da última migration, mesmo
+  que a divergência seja só uma tabela nova. O arranque do `TCMine.Server.Web` engole essa exceção de propósito
+  (banco fora do ar não pode derrubar o processo — é o que separa `/health` de `/health/ready`), então o sintoma não
+  é "falta a tabela nova": é **nenhuma tabela existe**, porque a migration inteira nunca rodou. Toda entidade nova
+  (`DbSet` + `IEntityTypeConfiguration`) exige as duas migrations (§10) ANTES de rodar `tc test` — sem elas, dezenas
+  de testes de `Server.Web.Tests` falham com "no such table: modpacks" e a causa real fica escondida atrás do
+  catch do arranque.
 
 ---
 

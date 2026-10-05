@@ -16,4 +16,12 @@ public interface IPlayerCountSource
     ///     traço nesse caso — zero seria afirmar que está vazio.
     /// </summary>
     int? TryGet(Guid gameServerId);
+
+    /// <summary>
+    ///     Maior contagem já vista hoje (UTC) para este servidor, mesmo que ele
+    ///     já tenha parado — o pico de ontem não aparece nem some de repente à
+    ///     meia-noite, ele só deixa de valer. Nulo quando não houve amostra
+    ///     nenhuma hoje.
+    /// </summary>
+    int? PeakToday(Guid gameServerId);
 }

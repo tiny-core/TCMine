@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Domain.Blobs;
 using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
@@ -26,6 +27,8 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<Blob> Blobs => Set<Blob>();
 
     public DbSet<News> News => Set<News>();
+
+    public DbSet<ActivityEvent> ActivityEvents => Set<ActivityEvent>();
 
     public DbSet<InstallationSettings> InstallationSettings => Set<InstallationSettings>();
 

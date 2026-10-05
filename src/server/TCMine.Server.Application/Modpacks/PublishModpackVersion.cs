@@ -1,6 +1,7 @@
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
+using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Application.Modpacks;
 
@@ -11,6 +12,7 @@ public sealed class PublishModpackVersion(
     IModpackRepository repository,
     IServerHubNotifier notifier,
     OverrideUndoService undo,
+    IActivityLogRepository activity,
     ICurrentUserScope scope)
 {
     /// <summary>
@@ -57,6 +59,13 @@ public sealed class PublishModpackVersion(
 
         // ...depois do UpdateVersionAsync + notifier, no ramo de sucesso:
         undo.Clear(versionId);
+
+        await activity.AddAsync(new ActivityEvent
+        {
+            Kind = ActivityEventKind.VersionPublished,
+            Message = $"Versão {version.Version} publicada.",
+            Href = $"/admin/modpacks/{version.ModpackId}"
+        }, ct);
 
         return Result.Success();
     }

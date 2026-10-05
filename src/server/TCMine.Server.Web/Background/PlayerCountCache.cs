@@ -14,8 +14,24 @@ public sealed class PlayerCountCache : IPlayerCountSource
 {
     private readonly ConcurrentDictionary<Guid, int> _contagens = new();
 
+    /// <summary>
+    ///     Pico do dia (UTC) por servidor. Mesmo tratamento do resto desta
+    ///     classe: em memória, reinício zera — e aqui isso é honesto duas
+    ///     vezes, porque o pico de ANTES de ontem já não importaria mesmo.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, (DateOnly Dia, int Pico)> _picos = new();
+
     public int? TryGet(Guid gameServerId) =>
         _contagens.TryGetValue(gameServerId, out var valor) ? valor : null;
+
+    public int? PeakToday(Guid gameServerId)
+    {
+        if (!_picos.TryGetValue(gameServerId, out var entrada))
+            return null;
+
+        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        return entrada.Dia == hoje ? entrada.Pico : null;
+    }
 
     /// <summary>
     ///     Grava e diz se mudou. O retorno existe para o coletor só empurrar
@@ -35,12 +51,20 @@ public sealed class PlayerCountCache : IPlayerCountSource
                 return online;
             });
 
+        var hoje = DateOnly.FromDateTime(DateTime.UtcNow);
+        _picos.AddOrUpdate(
+            gameServerId,
+            (hoje, online),
+            (_, atual) => atual.Dia == hoje ? (hoje, Math.Max(atual.Pico, online)) : (hoje, online));
+
         return mudou;
     }
 
     /// <summary>
     ///     Servidor parado ou contagem ilegível: volta a "não sei". Deixar o
     ///     último valor exibiria "5 jogadores" num servidor desligado.
+    ///     O PICO do dia não some aqui de propósito: o servidor ter parado não
+    ///     desfaz quantos jogadores ele teve hoje.
     /// </summary>
     public void Forget(Guid gameServerId) => _contagens.TryRemove(gameServerId, out _);
 }

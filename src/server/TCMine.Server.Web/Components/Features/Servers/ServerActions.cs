@@ -2,6 +2,7 @@ using MudBlazor;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Components.Features.Servers;
@@ -18,6 +19,7 @@ public sealed class ServerActions(
     StartGameServer startUseCase,
     StopGameServer stopUseCase,
     DeleteGameServer deleteUseCase,
+    IActivityLogRepository activity,
     ISnackbar snackbar)
 {
     /// <summary>
@@ -36,6 +38,21 @@ public sealed class ServerActions(
 
             server.Status = real;
             await repository.UpdateAsync(server, ct);
+
+            // Só na TRANSIÇÃO: o guard acima (real == server.Status) já evita
+            // repetir isto a cada sincronização enquanto o servidor continua
+            // caído. Não há poller contínuo — isto roda quando alguém abre a
+            // tela de Servidores (ver §6 do CLAUDE.md), então "caiu" aqui
+            // significa "percebemos que caiu", não o instante exato da queda.
+            if (real is GameServerStatus.Crashed)
+            {
+                await activity.AddAsync(new ActivityEvent
+                {
+                    Kind = ActivityEventKind.ServerCrashed,
+                    Message = $"{server.Name} caiu.",
+                    Href = "/admin/servers"
+                }, ct);
+            }
         }
     }
 

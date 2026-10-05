@@ -127,6 +127,16 @@
                             <div class="tc-chips">
                                 <span class="tc-chip">Minecraft @modpack.MinecraftVersion</span>
                                 <span class="tc-chip">@LoaderLabel(modpack.Loader)</span>
+                                @* Da versão publicada mais recente; nulo (sem chip) quando
+                                   ainda não existe uma — um zero aqui diria "pack vazio". *@
+                                @if (modpack.ModCount is { } mods)
+                                {
+                                    <span class="tc-chip">@mods @(mods == 1 ? "mod" : "mods")</span>
+                                }
+                                @if (modpack.TotalSizeBytes is { } bytes)
+                                {
+                                    <span class="tc-chip">@HumanSize.Bytes(bytes)</span>
+                                }
                                 @if (ServersOf(modpack.Name) is > 0 and var count)
                                 {
                                     <span class="tc-chip tc-chip-on">@count @(count == 1 ? "servidor" : "servidores")</span>

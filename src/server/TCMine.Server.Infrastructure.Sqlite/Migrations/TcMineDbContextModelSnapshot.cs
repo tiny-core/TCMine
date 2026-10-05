@@ -15,7 +15,7 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
             modelBuilder.Entity("TCMine.Server.Domain.Blobs.Blob", b =>
                 {
@@ -718,6 +718,37 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasIndex("OwnerId");
 
                     b.ToTable("cloud_vaults", (string)null);
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Common.ActivityEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Href")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("activity_events", (string)null);
                 });
 
             modelBuilder.Entity("TCMine.Server.Domain.Identity.Invite", b =>
