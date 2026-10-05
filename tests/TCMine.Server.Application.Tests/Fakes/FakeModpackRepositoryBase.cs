@@ -73,6 +73,12 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    // Nulo por padrão: "nada ingerido ainda" é o mundo dos testes que não falam
+    // de reaproveitamento, e eles continuam indo à origem como sempre.
+    public virtual Task<ModpackFile?> FindIngestedFileAsync(
+        ModFileOrigin origin, string originReference, CancellationToken ct) =>
+        Task.FromResult<ModpackFile?>(null);
+
     public virtual Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct) =>
         throw new NotImplementedException();
 

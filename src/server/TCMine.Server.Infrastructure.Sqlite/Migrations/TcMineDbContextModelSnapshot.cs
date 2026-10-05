@@ -1021,6 +1021,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(1056)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("RequiredDependencies")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Sha256")
                         .IsRequired()
                         .HasMaxLength(64)
@@ -1044,6 +1047,8 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.HasIndex("ModpackVersionId", "Path")
                         .IsUnique();
+
+                    b.HasIndex("Origin", "OriginReference");
 
                     b.ToTable("modpack_files", (string)null);
                 });

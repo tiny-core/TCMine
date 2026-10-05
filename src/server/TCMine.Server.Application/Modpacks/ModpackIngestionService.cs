@@ -237,6 +237,19 @@ public sealed partial class ModpackIngestionService(
         var minecraftVersion = modpack.MinecraftVersion;
         var loader = modpack.Loader;
 
+        // Ordem da ingestão: BANCO → DISCO → REDE. Com a release fixada (pack
+        // importado, versão escolhida pelo admin) dá para saber, sem perguntar
+        // nada à origem, se este arquivo já passou por aqui — em qualquer
+        // modpack. Se o banco o conhece e os bytes estão no blob store, a origem
+        // nem é consultada: reimportar um pack, ou importar um segundo pack que
+        // partilha metade dos mods, deixa de custar gigabytes e minutos de API.
+        if (item.FileId is { Length: > 0 } fileId)
+        {
+            var reused = await TryReuseIngestedAsync(version, item, fileId, unsaved, ct);
+            if (reused is not null)
+                return reused;
+        }
+
         // Escolhe o resolver pela origem pedida. Se o CurseForge foi pedido, mas
         // está sem API key, ele se declara indisponível e caímos no erro.
         IModResolver? resolver = null;
@@ -263,17 +276,7 @@ public sealed partial class ModpackIngestionService(
             case ModResolution.Resolved resolved:
             {
                 var outcome = await DownloadAndAttachAsync(version, item, resolved, unsaved, ct);
-                if (outcome is not null)
-                    return outcome;
-
-                // Só as REQUERIDAS entram na fila. Embedded já vem dentro do jar;
-                // optional é escolha do usuário; incompatible nunca se puxa.
-                var required = resolved.Dependencies
-                    .Where(d => d.Kind is ModDependencyKind.Required)
-                    .Select(d => d.ProjectId)
-                    .ToList();
-
-                return ResolveOutcome.Ok(required);
+                return outcome ?? ResolveOutcome.Ok(RequiredOf(resolved));
             }
 
             case ModResolution.DistributionDenied denied:
@@ -322,6 +325,51 @@ public sealed partial class ModpackIngestionService(
     }
 
     /// <summary>
+    ///     Os dois primeiros degraus (banco e disco) para um item de release
+    ///     conhecida. Devolve null quando não dá para reusar e a origem tem de
+    ///     ser consultada.
+    /// </summary>
+    private async Task<ResolveOutcome?> TryReuseIngestedAsync(
+        ModpackVersion version,
+        ModIngestionItem item,
+        string fileId,
+        List<ModpackFile> unsaved,
+        CancellationToken ct)
+    {
+        var known = await repository.FindIngestedFileAsync(item.Origin, fileId, ct);
+
+        // Sem as dependências gravadas (arquivo de antes do campo existir), reusar
+        // pularia as bibliotecas do mod. Uma ida à origem resolve isso de vez: o
+        // download continua evitado pelo degrau do disco em DownloadAndAttachAsync,
+        // e a linha nova já sai com as dependências para a próxima.
+        if (known?.RequiredDependencyIds() is not { } deps)
+            return null;
+
+        // O banco conhece o arquivo, mas o blob pode ter sumido (disco trocado,
+        // limpeza manual). Aí o degrau certo é a rede, não um ponteiro morto.
+        if (!await blobStore.ExistsAsync(known.Sha256, ct))
+            return null;
+
+        var folder = Path.GetDirectoryName(known.Path)?.Replace('\\', '/') ?? "mods";
+        var fileName = Path.GetFileName(known.Path);
+
+        // A conferência de loader é local (lê o jar do blob store), e o arquivo
+        // pode ter vindo de outro modpack, com outra build de loader fixada.
+        await using (var stored = await blobStore.OpenAsync(known.Sha256, ct))
+        {
+            var (incompativel, _) =
+                await InspectJarAsync(item, fileName, folder, stored, version.LoaderVersion, ct);
+            if (incompativel is not null)
+                return incompativel;
+        }
+
+        var failure = await AttachAsync(version, item, new IngestedFile(
+            known.Path, known.Sha256, known.SizeBytes, known.Side, fileId, known.IconUrl, deps), unsaved, ct);
+
+        return failure ?? ResolveOutcome.Ok(deps);
+    }
+
+    /// <summary>
     ///     Baixa, confere e anexa. Devolve null em sucesso, ou o desfecho que
     ///     interrompeu (falha ou pendência).
     /// </summary>
@@ -332,20 +380,38 @@ public sealed partial class ModpackIngestionService(
         List<ModpackFile> unsaved,
         CancellationToken ct)
     {
-        // Já temos exatamente ESTE arquivo? Então não há o que baixar.
+        // Já temos exatamente ESTE arquivo nesta versão? Então não há o que baixar.
         //
         // O OriginReference guarda o id da release fixada na origem, que é a
         // identidade do arquivo lá — se ele bate, os bytes são os mesmos e
-        // buscá-los serviria só para descartá-los depois de hashear. A checagem
-        // por SHA-256 mais abaixo continua valendo (ela pega o caso de um id
-        // diferente com conteúdo igual), mas só depois do download; esta corta
-        // antes. Numa reimportação de um pack grande é a diferença entre baixar
-        // um gigabyte e meio e não baixar nada.
+        // buscá-los serviria só para descartá-los depois de hashear.
         if (version.Files.Any(f =>
                 string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
                 && f.OriginReference == resolved.VersionId))
         {
             return null;
+        }
+
+        var deps = RequiredOf(resolved);
+        var path = $"{resolved.Folder}/{resolved.FileName}";
+
+        // Degrau do DISCO: a origem disse qual release é (o "mais recente"
+        // compatível só ela sabe), mas os bytes podem já estar aqui, ingeridos
+        // por outro modpack. Mesmo id na origem = mesmo conteúdo; baixar de novo
+        // só serviria para descobrir o hash que já temos.
+        if (await repository.FindIngestedFileAsync(item.Origin, resolved.VersionId, ct) is { } known
+            && await blobStore.ExistsAsync(known.Sha256, ct))
+        {
+            await using var local = await blobStore.OpenAsync(known.Sha256, ct);
+            var (localIncompat, localInfo) =
+                await InspectJarAsync(item, resolved.FileName, resolved.Folder, local, version.LoaderVersion, ct);
+            if (localIncompat is not null)
+                return localIncompat;
+
+            return await AttachAsync(version, item, new IngestedFile(
+                path, known.Sha256, known.SizeBytes,
+                resolved.Side ?? localInfo?.DeclaredSide ?? known.Side,
+                resolved.VersionId, resolved.IconUrl ?? known.IconUrl, deps), unsaved, ct);
         }
 
         try
@@ -365,63 +431,21 @@ public sealed partial class ModpackIngestionService(
             // do jar. Como ele já passou por aqui, conferir sai de graça, e é a
             // diferença entre um aviso no painel e um crash no arranque.
             var (incompativel, jarInfo) =
-                await InspectJarAsync(item, resolved, stored, version.LoaderVersion, ct);
+                await InspectJarAsync(item, resolved.FileName, resolved.Folder, stored, version.LoaderVersion, ct);
 
             if (incompativel is not null)
                 return incompativel;
 
-            stored.Position = 0;
-
-            // A pasta vem da resolução, não fixa: um pack traz shaderpacks e
-            // resource packs junto com os mods, e um .zip de shader dentro de
-            // mods/ derruba o jogo no arranque.
-            var path = $"{resolved.Folder}/{resolved.FileName}";
-
-            // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
-            // remover e re-adicionar a mesma linha numa re-ingestão.
-            if (version.Files.Any(f =>
-                    string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
-                    && f.Sha256 == sha256))
-                return null;
-
-            // Conflito raro: outro mod já ocupa este caminho. Dois arquivos no
-            // mesmo path não podem coexistir na instância.
-            if (version.Files.Any(f =>
-                    f.Path.Equals(path, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)))
-                return ResolveOutcome.Fail($"{resolved.FileName} (conflito de caminho com outro mod)");
-
-            var file = new ModpackFile
-            {
-                ModpackVersionId = version.Id,
-                ProjectSlug = item.ProjectId, // identidade estável do mod
-                Path = path,
-                Sha256 = sha256,
-                SizeBytes = stored.Length,
-                // Ordem de confiança do lado: a origem primeiro (o Modrinth
-                // declara), depois o próprio JAR (o Fabric padroniza
-                // "environment"), e só então o que a ingestão pediu — que para
-                // um pack CurseForge é sempre "os dois", porque o manifest não
-                // diz nada. O NeoForge não declara lado em lugar nenhum, e aí
-                // sobra o server pack do autor ou o admin.
-                Side = resolved.Side ?? jarInfo?.DeclaredSide ?? item.Side,
-                Optional = item.Optional,
-                Origin = item.Origin,
-                OriginReference = resolved.VersionId, // id da versão fixada (base do check de updates)
-                IconUrl = resolved.IconUrl // cosmético: exibido na grade de mods
-            };
-
-            // Mesmo mod em outra versão do .jar (jei-1.2.0 → jei-1.5)? Substitui,
-            // nunca acumula dois arquivos do mesmo mod em mods/. O UpsertFile
-            // devolve o ID do arquivo trocado para apagarmos a linha antiga —
-            // o UpdateVersionAsync final (Update num grafo destacado) não apaga
-            // filhos removidos da coleção sozinho.
-            var replacedId = version.UpsertFile(file);
-            if (replacedId is { } oldId)
-                await repository.RemoveFileAsync(version.Id, oldId, ct);
-
-            unsaved.Add(file);
-            return null;
+            // Ordem de confiança do lado: a origem primeiro (o Modrinth
+            // declara), depois o próprio JAR (o Fabric padroniza
+            // "environment"), e só então o que a ingestão pediu — que para
+            // um pack CurseForge é sempre "os dois", porque o manifest não
+            // diz nada. O NeoForge não declara lado em lugar nenhum, e aí
+            // sobra o server pack do autor ou o admin.
+            return await AttachAsync(version, item, new IngestedFile(
+                path, sha256, stored.Length,
+                resolved.Side ?? jarInfo?.DeclaredSide ?? item.Side,
+                resolved.VersionId, resolved.IconUrl, deps), unsaved, ct);
         }
         catch (HttpRequestException ex)
         {
@@ -429,6 +453,68 @@ public sealed partial class ModpackIngestionService(
             return ResolveOutcome.Fail($"{resolved.FileName} (falha no download)");
         }
     }
+
+    /// <summary>
+    ///     Anexa à versão um arquivo cujos bytes já estão no blob store — venha
+    ///     ele de um download agora ou de uma ingestão anterior. Um lugar só para
+    ///     as regras de "um .jar por mod" e de conflito de caminho, que valem
+    ///     igual para os dois. Devolve null em sucesso.
+    /// </summary>
+    private async Task<ResolveOutcome?> AttachAsync(
+        ModpackVersion version,
+        ModIngestionItem item,
+        IngestedFile ingested,
+        List<ModpackFile> unsaved,
+        CancellationToken ct)
+    {
+        // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
+        // remover e re-adicionar a mesma linha numa re-ingestão.
+        if (version.Files.Any(f =>
+                string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)
+                && f.Sha256 == ingested.Sha256))
+            return null;
+
+        // Conflito raro: outro mod já ocupa este caminho. Dois arquivos no
+        // mesmo path não podem coexistir na instância.
+        if (version.Files.Any(f =>
+                f.Path.Equals(ingested.Path, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(f.ProjectSlug, item.ProjectId, StringComparison.OrdinalIgnoreCase)))
+            return ResolveOutcome.Fail($"{Path.GetFileName(ingested.Path)} (conflito de caminho com outro mod)");
+
+        var file = new ModpackFile
+        {
+            ModpackVersionId = version.Id,
+            ProjectSlug = item.ProjectId, // identidade estável do mod
+            Path = ingested.Path,
+            Sha256 = ingested.Sha256,
+            SizeBytes = ingested.SizeBytes,
+            Side = ingested.Side,
+            Optional = item.Optional,
+            Origin = item.Origin,
+            OriginReference = ingested.OriginReference, // id da versão fixada (base do check de updates)
+            IconUrl = ingested.IconUrl, // cosmético: exibido na grade de mods
+            RequiredDependencies = ModpackFile.JoinDependencies(ingested.Dependencies)
+        };
+
+        // Mesmo mod em outra versão do .jar (jei-1.2.0 → jei-1.5)? Substitui,
+        // nunca acumula dois arquivos do mesmo mod em mods/. O UpsertFile
+        // devolve o ID do arquivo trocado para apagarmos a linha antiga —
+        // o UpdateVersionAsync final (Update num grafo destacado) não apaga
+        // filhos removidos da coleção sozinho.
+        var replacedId = version.UpsertFile(file);
+        if (replacedId is { } oldId)
+            await repository.RemoveFileAsync(version.Id, oldId, ct);
+
+        unsaved.Add(file);
+        return null;
+    }
+
+    /// <summary>
+    ///     Só as REQUERIDAS entram na fila. Embedded já vem dentro do jar;
+    ///     optional é escolha do usuário; incompatible nunca se puxa.
+    /// </summary>
+    private static IReadOnlyList<string> RequiredOf(ModResolution.Resolved resolved) =>
+        [.. resolved.Dependencies.Where(d => d.Kind is ModDependencyKind.Required).Select(d => d.ProjectId)];
 
     /// <summary>
     ///     Confere a versão do loader exigida pelo jar contra a fixada na versão.
@@ -444,7 +530,8 @@ public sealed partial class ModpackIngestionService(
     /// </summary>
     private async Task<(ResolveOutcome? Incompativel, ModJarInfo? Info)> InspectJarAsync(
         ModIngestionItem item,
-        ModResolution.Resolved resolved,
+        string fileName,
+        string folder,
         Stream jar,
         string loaderVersion,
         CancellationToken ct)
@@ -456,19 +543,19 @@ public sealed partial class ModpackIngestionService(
         if (LoaderVersionRange.IsSatisfied(exigido, loaderVersion))
             return (null, info);
 
-        LogLoaderMismatch(resolved.FileName, exigido, loaderVersion);
+        LogLoaderMismatch(fileName, exigido, loaderVersion);
 
         return (ResolveOutcome.Postpone(new PendingMod
         {
             ModpackVersionId = Guid.Empty, // preenchido pelo UpsertPending
             ProjectSlug = item.ProjectId,
-            DisplayName = resolved.FileName,
+            DisplayName = fileName,
             Origin = item.Origin,
             FileId = item.FileId,
             Side = item.Side,
             Reason = PendingModReason.NoCompatibleFile,
             Detail = $"Exige loader {exigido}; esta versão usa {loaderVersion}.",
-            Folder = resolved.Folder
+            Folder = folder
         }), info);
     }
 
@@ -487,6 +574,16 @@ public sealed partial class ModpackIngestionService(
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "{FileName} exige loader {Required}, mas a versão usa {Actual}.")]
     private partial void LogLoaderMismatch(string fileName, string required, string actual);
+
+    /// <summary>Um arquivo com os bytes já no blob store, pronto para entrar na versão.</summary>
+    private sealed record IngestedFile(
+        string Path,
+        string Sha256,
+        long SizeBytes,
+        FileSide Side,
+        string OriginReference,
+        string? IconUrl,
+        IReadOnlyList<string> Dependencies);
 
     /// <summary>Contadores do progresso, mutáveis entre o laço e o relatório.</summary>
     private sealed class Counters
