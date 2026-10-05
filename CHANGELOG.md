@@ -56,6 +56,18 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 - **Página pública reformulada.** Download do launcher em destaque, "Como
   jogar" em três passos, cartões de modpacks e servidores (lotação, sem
   endereço) e uma chamada final; funciona na largura de um celular.
+- **Aba de mods e cabeçalho de versão no visual novo.** O seletor de versão
+  mostra o selo de estado (rascunho/resolvendo/publicado/arquivado) em vez do
+  nome do enum, e o stepper do ciclo de vida segue a mesma paleta das outras
+  telas. "Procurar mods" (antes "Buscar no Modrinth" — a busca já cobre o
+  CurseForge também) e "Enviar arquivo" migraram para a barra da própria
+  grade, ao lado do filtro; um indicador "Tudo salvo"/"Salvando…" acompanha a
+  troca de lado por célula. Mods pendentes de upload manual aparecem num
+  aviso no topo da aba (reaproveitando o painel que já existia na Visão
+  geral). "Nova versão" e "Publicar" passam a ficar à mão em qualquer aba por
+  versão (Mods, Recursos, Overrides), não só na Visão geral — a lógica de
+  confirmação e publicação foi extraída para `VersionLifecycleActions`,
+  compartilhada entre as duas.
 
 ### Corrigido
 

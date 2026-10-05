@@ -119,6 +119,75 @@ a:focus-visible {
   box-shadow: var(--tc-focus-ring);
 }
 
+/* Painel e textos auxiliares: primitivas de layout usadas por mais de uma
+   tela (Visão geral, workspace de modpack, e as que vierem). Global — CSS
+   isolado (.razor.css) escopa por componente, e um ".tc-panel" definido só
+   numa tela não pinta a mesma classe na outra; aqui penetra sem precisar de
+   "::deep". */
+.tc-panel {
+  overflow: hidden;
+}
+
+.tc-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.tc-caption {
+  font-size: 12px;
+  color: var(--tc-text-secondary);
+}
+
+.tc-strong {
+  font-weight: 600;
+}
+
+.tc-text-danger {
+  color: var(--tc-status-error);
+}
+
+/* Cristal de estado: losango com brilho. Muda de forma de brilho e não só de
+   cor, para quem não distingue as cores. */
+.tc-crystal {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  flex: none;
+}
+
+.tc-crystal-on {
+  background: var(--tc-status-success);
+  box-shadow: var(--tc-glow-success);
+}
+
+.tc-crystal-bad {
+  background: var(--tc-status-error);
+  box-shadow: var(--tc-glow-danger);
+}
+
+.tc-crystal-wait {
+  background: var(--tc-status-warning);
+  animation: tc-pulse 1.6s infinite;
+}
+
+.tc-crystal-off {
+  background: var(--tc-border-strong);
+}
+
+@keyframes tc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-crystal-wait {
+    animation: none;
+  }
+}
+
 /* Moldura: o topo recua com uma hairline em vez de sombra. */
 .tc-appbar {
   border-bottom: 1px solid var(--tc-border);

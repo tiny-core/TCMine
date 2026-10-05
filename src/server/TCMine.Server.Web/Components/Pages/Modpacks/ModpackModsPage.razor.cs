@@ -192,6 +192,21 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
             await LoadAsync();
     }
 
+    /// <summary>Envio pré-preenchido a partir de uma pendência (ver PendingModsPanel).</summary>
+    private async Task UploadForPending(PendingMod pending)
+    {
+        var parameters = new DialogParameters
+        {
+            ["VersionId"] = VersionId,
+            ["ProjectSlug"] = pending.ProjectSlug,
+            ["PendingName"] = pending.DisplayName
+        };
+
+        var dialog = await DialogService.ShowAsync<ManualUploadDialog>("Enviar arquivo", parameters);
+        if (await dialog.Result is { Canceled: false })
+            await LoadAsync();
+    }
+
     private async Task RemoveFile(ModpackFile file)
     {
         var confirm = await DialogService.ShowMessageBoxAsync(

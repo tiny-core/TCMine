@@ -47,8 +47,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     /// </summary>
     private int? _expectedModCount;
 
-    [Inject] private ISettingsRepository Settings { get; set; } = default!;
-    [Inject] private PublishModpackVersion PublishUseCase { get; set; } = default!;
+    [Inject] private VersionLifecycleActions VersionActions { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
     [Inject] private ArchiveModpackVersion ArchiveUseCase { get; set; } = default!;
@@ -226,26 +225,10 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
     private async Task OpenCreateVersion()
     {
-        var latest = _modpack?.Versions.OrderByDescending(v => v.Id).FirstOrDefault();
+        if (_modpack is null)
+            return;
 
-        // A versão anterior manda mais que o padrão da instalação: se este pack
-        // já rodou com 8 GB, repetir 4 GB do padrão seria um passo atrás. O
-        // padrão só entra quando não há de quem herdar.
-        var settings = await Settings.GetAsync(CancellationToken.None);
-        var memoriaPadrao = latest?.RecommendedMemoryMb ?? settings.DefaultMemoryMb;
-
-        var parameters = new DialogParameters
-        {
-            ["ModpackId"] = ModpackId,
-            ["DefaultVersion"] = latest?.Version,
-            ["MinecraftVersion"] = _modpack?.MinecraftVersion,
-            ["Loader"] = _modpack?.Loader,
-            ["DefaultLoaderVersion"] = latest?.LoaderVersion,
-            ["DefaultMemoryMb"] = memoriaPadrao
-        };
-
-        var dialog = await DialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);
-        if (await dialog.Result is { Canceled: false })
+        if (await VersionActions.OpenCreateVersionAsync(_modpack, CancellationToken.None))
             await LoadAsync();
     }
 
@@ -277,37 +260,11 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         if (_selectedVersion is null)
             return;
 
-        // Com pendências o texto muda: publicar assim entrega um pack a que
-        // faltam mods, e o admin precisa ver isso antes de decidir.
-        var pending = _selectedVersion.PendingMods;
-        var message = pending.Count > 0
-            ? $"A versão {_selectedVersion.Version} tem {pending.Count} mod(s) que não vieram: "
-              + $"{string.Join(", ", pending.Take(5).Select(p => p.DisplayName))}"
-              + (pending.Count > 5 ? "…" : "")
-              + ". Quem instalar não terá esses mods. Publicar assim mesmo?"
-            : $"Publicar a versão {_selectedVersion.Version}? A partir daqui ela fica imutável — "
-              + "para mudanças, cria uma nova versão.";
-
-        var confirm = await DialogService.ShowMessageBoxAsync(
-            pending.Count > 0 ? "Publicar com mods faltando" : "Publicar versão",
-            message,
-            pending.Count > 0 ? "Publicar mesmo assim" : "Publicar",
-            cancelText: "Cancelar");
-        if (confirm is not true)
-            return;
-
         _isPublishing = true;
         try
         {
-            var result = await PublishUseCase.HandleAsync(
-                _selectedVersion.Id, CancellationToken.None, acceptPending: pending.Count > 0);
-            if (result.Succeeded)
-            {
-                Snackbar.Add("Versão publicada.", Severity.Success);
+            if (await VersionActions.PublishWithConfirmAsync(_selectedVersion, CancellationToken.None))
                 await LoadAsync();
-            }
-            else
-                Snackbar.Add(result.Error!, Severity.Error);
         }
         finally
         {

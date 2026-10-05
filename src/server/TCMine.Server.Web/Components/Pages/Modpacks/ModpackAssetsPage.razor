@@ -24,7 +24,8 @@ else
 {
     <ModpackWorkspace Modpack="_modpack" Active="ModpackTab.Assets"
                       SelectedVersionId="VersionId" SelectedVersion="_version"
-                      SelectedVersionIdChanged="OnVersionChanged">
+                      SelectedVersionIdChanged="OnVersionChanged"
+                      VersionMutated="LoadAsync">
         <HeaderActions>
             @if (_version.State is ModpackVersionState.Draft)
             {
