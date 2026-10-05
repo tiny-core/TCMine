@@ -17,6 +17,15 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
 
 ### Adicionado
 
+- **Comandos pelo console do painel.** O dono e os admins do servidor (e
+  moderadores, dentro da lista permitida) mandam comandos pelo RCON direto da
+  tela do servidor: Enter envia, ↑ e ↓ percorrem o histórico, e a sintaxe do
+  comando aparece enquanto se digita. O botão *Comandos* abre uma referência
+  pesquisável dos comandos do Minecraft (jogadores, moderação, mundo, itens,
+  servidor), com os perigosos marcados; um clique coloca o comando na caixa. O
+  `stop` pelo console é recusado: com o restart automático do container o
+  servidor voltaria sozinho — parar é pelo botão Parar.
+
 - **Entrar no servidor com um clique.** A lista de servidores da tela de jogar
   ganhou o botão *Entrar*: abre o Minecraft já conectando ao servidor
   (`--quickPlayMultiplayer`). Se o servidor estiver numa versão do modpack mais

@@ -127,6 +127,42 @@ public sealed class SendServerCommandTests
         result.Succeeded.ShouldBeFalse();
     }
 
+    [Fact]
+    public async Task Linha_digitada_vira_comando_e_argumentos_sem_a_barra()
+    {
+        var rcon = new FakeRcon();
+
+        var result = await Caso(rcon, ServerRoleDto.Owner)
+            .HandleLineAsync(ServidorId, "  /say   Olá   pessoal ", TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeTrue(result.Error);
+        rcon.Executados.ShouldBe(["say Olá pessoal"]);
+    }
+
+    [Fact]
+    public async Task Stop_pelo_console_e_recusado_ate_para_o_dono()
+    {
+        // Com restart unless-stopped o Docker religaria o servidor sozinho, e o
+        // painel ficaria achando que ele foi parado.
+        var rcon = new FakeRcon();
+
+        var result = await Caso(rcon, ServerRoleDto.Owner)
+            .HandleLineAsync(ServidorId, "stop", TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeFalse();
+        result.Error!.ShouldContain("Parar");
+        rcon.Executados.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Linha_vazia_pede_um_comando()
+    {
+        var result = await Caso(new FakeRcon(), ServerRoleDto.Owner)
+            .HandleLineAsync(ServidorId, "  / ", TestContext.Current.CancellationToken);
+
+        result.Succeeded.ShouldBeFalse();
+    }
+
     private static SendServerCommand Caso(
         FakeRcon rcon,
         ServerRoleDto? papel,

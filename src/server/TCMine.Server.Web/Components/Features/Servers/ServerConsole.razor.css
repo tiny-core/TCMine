@@ -20,3 +20,49 @@
     word-break: break-word;
     color: var(--mud-palette-text-primary);
 }
+
+/* O que o admin mandou e o que o servidor respondeu, para não se perderem
+   no meio do log: o eco do comando em destaque, a resposta recuada, o erro
+   na cor de erro. */
+.tc-console-command {
+    color: var(--mud-palette-primary);
+    font-weight: 600;
+}
+
+.tc-console-reply {
+    padding-left: 1.2em;
+    color: var(--mud-palette-text-secondary);
+}
+
+.tc-console-error {
+    padding-left: 1.2em;
+    color: var(--mud-palette-error);
+}
+
+.tc-command-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-wrap: wrap;
+}
+
+.tc-command-row:hover,
+.tc-command-row:focus-visible {
+    background-color: var(--mud-palette-action-default-hover);
+}
+
+.tc-command-syntax {
+    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+    font-size: .8rem;
+    color: var(--mud-palette-primary);
+    min-width: 280px;
+}
+
+.tc-command-desc {
+    flex: 1;
+    font-size: .85rem;
+    color: var(--mud-palette-text-secondary);
+}

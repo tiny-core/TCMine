@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using TCMine.Contracts.Hubs;
+using MudBlazor;
+using Microsoft.AspNetCore.Components.Web;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Security;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Hubs;
 
@@ -35,7 +39,20 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
     private readonly string _subscriptionId = $"admin-console-{Guid.CreateVersion7():N}";
 
     private readonly Lock _gate = new();
-    private readonly Queue<string> _lines = new();
+    private readonly Queue<ConsoleEntry> _lines = new();
+
+    /// <summary>Os comandos desta sessão, do mais antigo ao mais novo, para ↑/↓.</summary>
+    private readonly List<string> _history = [];
+
+    private const int MaxHistory = 50;
+
+    private int _historyIndex;
+    private string _input = "";
+    private string _filter = "";
+    private bool _sending;
+    private bool _showReference;
+    private ServerRoleDto? _role;
+    private MudTextField<string>? _inputField;
 
     private bool _autoScroll = true;
     private IJSObjectReference? _module;
@@ -48,6 +65,31 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
     [Inject] private ConsoleBroadcaster Broadcaster { get; set; } = default!;
     [Inject] private ICurrentUserScope Scope { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+    [Inject] private SendServerCommand SendCommand { get; set; } = default!;
+
+    /// <summary>Moderador para cima: a mesma régua do caso de uso, que confere de novo a cada envio.</summary>
+    private bool CanSend => _role is { } role && role >= ServerRoleDto.Moderator;
+
+    /// <summary>A sintaxe do comando que está a ser digitado, se ele estiver no catálogo.</summary>
+    private string? InputHelper =>
+        MinecraftCommands.Find(_input.Trim().TrimStart('/').Split(' ', 2)[0]) is { } cmd
+            ? cmd.Syntax
+            : "Enter envia · ↑ e ↓ percorrem os comandos já enviados";
+
+    /// <summary>
+    ///     O catálogo filtrado e, para moderador, só o que ele pode mandar —
+    ///     mostrar o resto seria oferecer o que o servidor vai recusar.
+    /// </summary>
+    private IEnumerable<IGrouping<MinecraftCommandCategory, MinecraftCommand>> ReferenceGroups =>
+        MinecraftCommands.All
+            .Where(c => _role is { } role && ConsoleCommandPolicy.IsAllowed(role, c.Name))
+            .Where(c => string.IsNullOrWhiteSpace(_filter)
+                        || c.Name.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase)
+                        || c.Description.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase))
+            .GroupBy(c => c.Category);
+
+    protected override async Task OnInitializedAsync() =>
+        _role = await Scope.GetRoleAsync(Server.Id, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {
@@ -125,13 +167,121 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
             // O painel exibe só o texto; o canal é usado pelo bombeamento para
             // o launcher, que precisa distinguir o log da partida do estouro
             // da JVM.
-            _lines.Enqueue(line.Text);
-            while (_lines.Count > MaxLines)
-                _lines.Dequeue();
-
+            Append(line.Text, ConsoleEntryKind.Log);
             _pending = true;
         }
     }
+
+    /// <summary>Chamar com o <c>_gate</c> tomado.</summary>
+    private void Append(string text, ConsoleEntryKind kind)
+    {
+        _lines.Enqueue(new ConsoleEntry(text, kind));
+        while (_lines.Count > MaxLines)
+            _lines.Dequeue();
+    }
+
+    /// <summary>
+    ///     Manda a linha pelo mesmo caso de uso do launcher: papel, allowlist e
+    ///     forma são conferidos lá, não aqui. O eco e a resposta entram no
+    ///     próprio console, junto do log, porque é ali que o admin está a olhar.
+    /// </summary>
+    private async Task SendAsync()
+    {
+        var line = _input.Trim();
+        if (line.Length is 0 || _sending)
+            return;
+
+        _sending = true;
+
+        if (_history.Count is 0 || _history[^1] != line)
+        {
+            _history.Add(line);
+            if (_history.Count > MaxHistory)
+                _history.RemoveAt(0);
+        }
+
+        _historyIndex = _history.Count;
+
+        lock (_gate)
+            Append($"> {line}", ConsoleEntryKind.Command);
+
+        try
+        {
+            var result = await SendCommand.HandleLineAsync(Server.Id, line, CancellationToken.None);
+
+            lock (_gate)
+            {
+                if (!result.Succeeded)
+                    Append(result.Error!, ConsoleEntryKind.Error);
+                else if (string.IsNullOrWhiteSpace(result.Value))
+                    Append("(sem resposta)", ConsoleEntryKind.Reply);
+                else
+                {
+                    foreach (var reply in result.Value.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                        Append(reply.TrimEnd('\r'), ConsoleEntryKind.Reply);
+                }
+            }
+
+            if (result.Succeeded)
+                _input = "";
+        }
+        finally
+        {
+            _sending = false;
+        }
+
+        StateHasChanged();
+        await ScrollToBottomAsync();
+
+        if (_inputField is not null)
+            await _inputField.FocusAsync();
+    }
+
+    private void OnInputChanged(string value) => _input = value ?? "";
+
+    private async Task OnInputKeyDown(KeyboardEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case "Enter":
+                await SendAsync();
+                break;
+            case "ArrowUp" when _history.Count > 0:
+                _historyIndex = Math.Max(0, _historyIndex - 1);
+                _input = _history[_historyIndex];
+                break;
+            case "ArrowDown" when _history.Count > 0:
+                _historyIndex = Math.Min(_history.Count, _historyIndex + 1);
+                _input = _historyIndex < _history.Count ? _history[_historyIndex] : "";
+                break;
+        }
+    }
+
+    /// <summary>Coloca o comando na caixa, pronto para os argumentos, e devolve o foco a ela.</summary>
+    private async Task UseCommandAsync(MinecraftCommand command)
+    {
+        _input = command.Name + " ";
+
+        if (_inputField is not null)
+            await _inputField.FocusAsync();
+    }
+
+    private static string EntryClass(ConsoleEntryKind kind) => kind switch
+    {
+        ConsoleEntryKind.Command => "tc-console-command",
+        ConsoleEntryKind.Reply => "tc-console-reply",
+        ConsoleEntryKind.Error => "tc-console-error",
+        _ => ""
+    };
+
+    private static string CategoryLabel(MinecraftCommandCategory category) => category switch
+    {
+        MinecraftCommandCategory.Players => "Jogadores",
+        MinecraftCommandCategory.Moderation => "Moderação",
+        MinecraftCommandCategory.World => "Mundo",
+        MinecraftCommandCategory.ItemsAndEffects => "Itens e efeitos",
+        _ => "Servidor"
+    };
 
     private async Task StopAsync()
     {
@@ -171,3 +321,14 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
         }
     }
 }
+
+/// <summary>De onde veio a linha do console: do log do jogo ou da conversa do admin com ele.</summary>
+public enum ConsoleEntryKind
+{
+    Log,
+    Command,
+    Reply,
+    Error
+}
+
+public readonly record struct ConsoleEntry(string Text, ConsoleEntryKind Kind);
