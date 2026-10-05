@@ -143,8 +143,31 @@ public sealed class MainHub(
         // endereço de servidores alheios a quem só olhasse a mensagem do hub.
         var servers = await accessibleServers.HandleAsync(Context.ConnectionAborted);
 
+        var versionLabels = await VersionLabelsAsync(servers, Context.ConnectionAborted);
+
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
-        return servers.Select(s => s.ToDto(players)).ToArray();
+        return servers.Select(s => s.ToDto(players, versionLabels)).ToArray();
+    }
+
+    /// <summary>
+    ///     Resolve o SemVer de cada versão pinada, agrupando por modpack — a
+    ///     lista de servidores de uma instalação é pequena, e isso evita uma
+    ///     consulta por servidor (GameServer não tem navegação para
+    ///     ModpackVersion: são agregados separados).
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> VersionLabelsAsync(
+        IReadOnlyList<AccessibleServer> servers, CancellationToken ct)
+    {
+        var labels = new Dictionary<Guid, string>();
+
+        foreach (var modpackId in servers.Select(s => s.Server.ModpackId).Distinct())
+        {
+            var versions = await modpacks.ListVersionSummariesAsync(modpackId, ct);
+            foreach (var version in versions)
+                labels[version.Id] = version.Version;
+        }
+
+        return labels;
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

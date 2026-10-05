@@ -167,7 +167,8 @@ else
                está no disco e continua à esquerda. *@
             <HomeServers Servers="_servers" OnRedeemInvite="RedeemInviteAsync"
                          OnJoin="JoinAsync" Joining="_joining"
-                         JoinBlockedReason="@JoinBlockedReason"/>
+                         JoinBlockedReason="@JoinBlockedReason"
+                         ActiveVersion="@_active.Manifest.Version"/>
             <HomeNews Posts="_news"/>
         </aside>
     </div>

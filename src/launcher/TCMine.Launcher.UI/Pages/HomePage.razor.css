@@ -38,9 +38,9 @@
     padding: 1.75rem;
     border-radius: 12px;
     background: linear-gradient(135deg,
-        var(--mud-palette-surface) 0%,
-        var(--mud-palette-background-gray) 100%);
-    border: 1px solid var(--mud-palette-lines-default);
+        var(--tc-surface-raised) 0%,
+        var(--tc-bg-sunken) 100%);
+    border: 1px solid var(--tc-border);
 }
 
 .tc-hero-id {
