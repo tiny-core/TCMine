@@ -246,6 +246,10 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `ClaimInstanceAdmin` promove quem está logado e o informa. Um único admin antigo é fundido na conta nova. A
   prova é o log porque a página de login é pública: "o primeiro que entrar vira admin" entregaria a instalação
   a qualquer conta Microsoft. Depois do resgate a sessão é **reemitida** — `IsInstanceAdmin` vive na claim.
+- **Aviso de atualização do servidor**: `CheckServerUpdate` (só admin da instalação) compara `BuildInfo.Version` com
+  a estável mais nova `server-v*` do GitHub (`GitHubServerReleaseFeed`, cache de 6 h, inclusive do erro — a API
+  anônima dá 60/h). O banner consulta no `OnAfterRenderAsync`: a pré-renderização (e todo teste por GET) não sai
+  para a internet. O workflow de release é idempotente: a release pode já existir, criada pela tela do GitHub.
 - **Não há e-mail.** SMTP e servidor de e-mail próprio foram removidos com a recuperação de senha; não
   reintroduza sem um fluxo que o use (o `User` nem tem endereço).
 

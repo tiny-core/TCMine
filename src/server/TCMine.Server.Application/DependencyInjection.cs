@@ -7,6 +7,7 @@ using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Storage;
 using TCMine.Server.Application.Settings;
+using TCMine.Server.Application.Updates;
 
 namespace TCMine.Server.Application;
 
@@ -122,6 +123,7 @@ public static class DependencyInjection
         // resgate confere, em qualquer requisição.
         services.AddSingleton<AdminClaimCode>();
         services.AddScoped<ClaimInstanceAdmin>();
+        services.AddScoped<CheckServerUpdate>();
         services.AddScoped<CreateInvite>();
         services.AddScoped<ListServerAccess>();
         services.AddScoped<ListAccessibleServers>();

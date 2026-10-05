@@ -12,6 +12,7 @@ using TCMine.Server.Infrastructure.Security;
 using TCMine.Server.Infrastructure.Storage;
 using TCMine.Server.Infrastructure.Versions;
 using TCMine.MinecraftAuth;
+using TCMine.Server.Infrastructure.Updates;
 
 namespace TCMine.Server.Infrastructure;
 
@@ -140,6 +141,20 @@ public static class DependencyInjection
             .AddStandardResilienceHandler();
 
         services.AddScoped<IMinecraftTokenExchange, MinecraftTokenExchangeAdapter>();
+
+        // Aviso de versão nova do servidor no painel. Sem resiliência padrão de
+        // propósito: é consulta de cortesia, com cache; tentar de novo três
+        // vezes contra um GitHub fora do ar só atrasaria o painel.
+        services.Configure<UpdateOptions>(configuration.GetSection("Updates"));
+        services.AddHttpClient<IServerReleaseFeed, GitHubServerReleaseFeed>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.github.com");
+            client.Timeout = TimeSpan.FromSeconds(10);
+
+            // A API do GitHub recusa pedido sem User-Agent.
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine-Server");
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        });
 
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();
