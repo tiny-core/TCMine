@@ -29,8 +29,21 @@ public partial class ModpackNewsPage : ComponentBase
     [Inject] private IDialogService DialogService { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
 
-    protected override async Task OnInitializedAsync()
+    private Guid _loaded;
+
+    /// <summary>
+    ///     Recarrega quando a ROTA muda, e não só na primeira vez. Navegar desta
+    ///     página para a mesma página com outro id (trocar a versão no seletor,
+    ///     criar uma versão nova, ir a outro modpack) REAPROVEITA o componente: o
+    ///     OnInitialized não roda de novo, e a tela ficava com os dados da
+    ///     anterior — o botão de procurar mods sumia numa versão nova até recarregar.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
     {
+        if (_loaded == ModpackId)
+            return;
+
+        _loaded = ModpackId;
         _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
         await LoadPostsAsync();
         _isLoading = false;

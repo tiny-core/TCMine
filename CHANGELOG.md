@@ -25,6 +25,23 @@ Launcher **1.1.0** (vai na próxima imagem do servidor).
   versão quebra o mundo. Servidor parado ou jogo já aberto deixam o botão
   desligado, com o motivo.
 
+- **Ações travadas com o jogo aberto.** Instalar, atualizar, remover, trocar
+  a RAM, limpar Java e sair da conta ficam desligados até o jogo fechar — com o
+  motivo no botão e um aviso em todas as telas, que também oferece fechar o
+  jogo.
+
+### Corrigido
+
+- **O botão de procurar mods não aparecia numa versão nova** (nem ao trocar a
+  versão no seletor) até recarregar a página. Navegar para a mesma aba com
+  outro id reaproveita o componente, e os dados só eram carregados na primeira
+  vez; o mesmo acontecia nas abas de detalhe, novidades e servidores ao trocar
+  de modpack. Um teste agora exige que toda página com id na rota recarregue
+  quando ele muda.
+- **A página pública mostrava o endereço (IP) dos servidores** a qualquer
+  visitante. Ele só sai para quem tem acesso aprovado, e o modelo público nem
+  o carrega mais.
+
 ### Melhorado
 
 - **Downloads em paralelo.** O launcher baixava um arquivo de cada vez, e um

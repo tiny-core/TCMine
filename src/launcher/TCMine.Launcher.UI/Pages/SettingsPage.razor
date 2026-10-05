@@ -29,7 +29,7 @@
                 <MudButton Variant="Variant.Outlined"
                            Color="Color.Error"
                            StartIcon="@Icons.Material.Filled.Logout"
-                           Disabled="_signingOut"
+                           Disabled="@(_signingOut || Lock.IsLocked)"
                            OnClick="SignOutAsync">
                     Sair
                 </MudButton>

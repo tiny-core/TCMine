@@ -60,7 +60,23 @@ public partial class ModpackServersPage
         }
     }
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    private Guid _loaded;
+
+    /// <summary>
+    ///     Recarrega quando a ROTA muda, e não só na primeira vez. Navegar desta
+    ///     página para a mesma página com outro id (trocar a versão no seletor,
+    ///     criar uma versão nova, ir a outro modpack) REAPROVEITA o componente: o
+    ///     OnInitialized não roda de novo, e a tela ficava com os dados da
+    ///     anterior — o botão de procurar mods sumia numa versão nova até recarregar.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_loaded == ModpackId)
+            return;
+
+        _loaded = ModpackId;
+        await LoadAsync();
+    }
 
     private async Task LoadAsync()
     {

@@ -10,7 +10,7 @@
     {
         <MudButton Variant="Variant.Text"
                    StartIcon="@Icons.Material.Filled.CleaningServices"
-                   Disabled="_busy"
+                   Disabled="@(_busy || Lock.IsLocked)"
                    OnClick="CleanupJavaAsync">
             Libertar @HumanSize.Bytes(_reclaimable) de Java
         </MudButton>
@@ -75,7 +75,7 @@ else
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.Upgrade"
-                                   Disabled="@(_busy || Operation.IsRunning)"
+                                   Disabled="@(_busy || Lock.IsLocked)"
                                    OnClick="@(() => UpdateAsync(instancia, novidade))">
                             Atualizar para v@(novidade.Version)
                         </MudButton>
@@ -92,7 +92,7 @@ else
                     {
                         <MudButton Variant="Variant.Outlined" Size="Size.Small"
                                    StartIcon="@Icons.Material.Filled.SportsEsports"
-                                   Disabled="_busy"
+                                   Disabled="@(_busy || Lock.IsLocked)"
                                    OnClick="@(() => ActivateAsync(instancia))">
                             Jogar esta
                         </MudButton>
@@ -114,7 +114,7 @@ else
                                      AdornmentText="MB"
                                      Placeholder="padrão"
                                      Style="width:9rem;"
-                                     Disabled="_busy"/>
+                                     Disabled="@(_busy || Lock.IsLocked)"/>
 
                     <MudTooltip Text="Abrir a pasta da instância">
                         <MudIconButton Icon="@Icons.Material.Filled.FolderOpen"
@@ -124,7 +124,7 @@ else
                     <MudTooltip Text="Remover a instância e o mundo dela">
                         <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
                                        Color="Color.Error"
-                                       Disabled="_busy"
+                                       Disabled="@(_busy || Lock.IsLocked)"
                                        OnClick="@(() => RemoveAsync(instancia))"/>
                     </MudTooltip>
                 </MudStack>

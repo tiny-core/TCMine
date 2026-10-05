@@ -77,7 +77,7 @@ else
                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
                                    Class="tc-play"
                                    StartIcon="@Icons.Material.Filled.PlayArrow"
-                                   Disabled="@(_launching || !CanPlay)"
+                                   Disabled="@(_launching || !CanPlay || Lock.IsLocked)"
                                    OnClick="PlayAsync">
                             @if (_launching)
                             {
