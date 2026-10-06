@@ -28,7 +28,22 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
     <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- Ícone do executável — Explorer, barra de tarefas, Alt+Tab. -->
+    <ApplicationIcon>icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+        O ApplicationIcon acima só EMBUTE o ícone no .exe; não copia o arquivo
+        para a pasta de publish. O vpk precisa do arquivo físico ao lado do
+        executável para gerar o Setup.exe com o mesmo ícone (ver
+        VelopackLauncherBundle, flag "icon") — por isso entra também como Content.
+    -->
+    <Content Include="icon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Wpf"/>

@@ -25,18 +25,15 @@ public partial class TitleBar : ComponentBase, IDisposable
 
     public void Dispose()
     {
-        Chrome.StateChanged -= OnWindowStateChanged;
-        Shell.Changed -= OnWindowStateChanged;
+        Shell.Changed -= OnShellChanged;
         GC.SuppressFinalize(this);
     }
 
     protected override void OnInitialized()
     {
-        Chrome.StateChanged += OnWindowStateChanged;
-
-        // O nome do servidor só chega depois do handshake; sem ouvir a moldura,
+        // O nome do servidor só chega depois do handshake; sem ouvir o shell,
         // a barra de título ficaria com o nome genérico até a próxima navegação.
-        Shell.Changed += OnWindowStateChanged;
+        Shell.Changed += OnShellChanged;
     }
 
     /// <summary>
@@ -50,9 +47,5 @@ public partial class TitleBar : ComponentBase, IDisposable
             Chrome.BeginDrag();
     }
 
-    /// <summary>
-    ///     A janela pode ser maximizada por fora daqui (Win+seta, arrastar para o
-    ///     topo). Sem redesenhar, o ícone do botão ficaria descrito ao contrário.
-    /// </summary>
-    private void OnWindowStateChanged() => InvokeAsync(StateHasChanged);
+    private void OnShellChanged() => InvokeAsync(StateHasChanged);
 }

@@ -5,7 +5,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--mud-palette-background);
+  background: var(--tc-bg-page);
 }
 
 .tc-shell-body {

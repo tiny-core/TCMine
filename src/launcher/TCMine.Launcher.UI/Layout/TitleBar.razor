@@ -5,7 +5,7 @@
    passam por IWindowChrome — ver a porta para o porquê. *@
 
 <header class="tc-titlebar" @onmousedown="OnPointerDown">
-    <MudIcon Icon="@Icons.Material.Filled.Dns" Size="Size.Small" Color="Color.Primary"/>
+    <img class="tc-titlebar-mark" src="_content/TCMine.Launcher.UI/brand-mark.png" alt="" aria-hidden="true"/>
     <span class="tc-titlebar-title">@Title</span>
 
     @* stopPropagation para o clique num botão não virar arrasto da janela: o
@@ -17,13 +17,8 @@
                            Color="Color.Inherit" OnClick="Chrome.Minimize"
                            aria-label="Minimizar"/>
         </MudTooltip>
-        <MudTooltip Text="@(Chrome.IsMaximized ? "Restaurar" : "Maximizar")" Placement="Placement.Bottom">
-            <MudIconButton Icon="@(Chrome.IsMaximized
-                                     ? Icons.Material.Filled.FilterNone
-                                     : Icons.Material.Filled.CropSquare)"
-                           Size="Size.Small" Color="Color.Inherit" OnClick="Chrome.ToggleMaximize"
-                           aria-label="@(Chrome.IsMaximized ? "Restaurar" : "Maximizar")"/>
-        </MudTooltip>
+        @* Sem botão de maximizar: a janela não redimensiona (MainWindow.xaml,
+           ResizeMode=CanMinimize) — só minimizar e fechar. *@
         <MudTooltip Text="Fechar" Placement="Placement.Bottom">
             <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small"
                            Class="tc-titlebar-close" OnClick="Chrome.Close"

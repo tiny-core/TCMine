@@ -4,8 +4,9 @@
         xmlns:blazor="clr-namespace:Microsoft.AspNetCore.Components.WebView.Wpf;assembly=Microsoft.AspNetCore.Components.WebView.Wpf"
         xmlns:ui="clr-namespace:TCMine.Launcher.UI;assembly=TCMine.Launcher.UI"
         Title="TCMine Launcher"
+        Icon="icon.ico"
         Width="1180" Height="700"
-        MinWidth="1100" MinHeight="640"
+        ResizeMode="CanMinimize"
         WindowStartupLocation="CenterScreen"
         Background="#0B0B14">
 
@@ -18,19 +19,26 @@
         elementos WPF, e o conteúdo do WebView2 não é um). Em troca, arrastar
         passa a ser responsabilidade nossa — ver WpfWindowChrome.
 
-        ResizeBorderThickness continua: redimensionar pela borda e o snap às
-        laterais permanecem nativos, de graça.
+        ResizeMode=CanMinimize (em vez de CanResize): só minimizar e fechar,
+        sem redimensionar nem maximizar — pedido de produto, e também o que
+        tira a borda de redimensionar e o snap ao topo/laterais, que senão
+        continuariam funcionando por fora dos botões em HTML (Win+seta, arrastar
+        pro topo). ResizeBorderThickness perde o sentido com isto e saiu: não
+        há mais borda para redimensionar.
 
         E repare no que NÃO está aqui: WindowStyle="None". Essa é a receita
         pré-WindowChrome, e ela quebra o maximizar — a janela cresce 7px para
         cada lado além do monitor, e a barra de estado some atrás da barra de
         tarefas (comprovado: rect -7,-7 num ecrã de 3440x1440). Com o estilo
         padrão o Windows continua dono do enquadramento e o WindowChrome apenas
-        estende a área de cliente sobre a moldura, que é o que queríamos.
+        estende a área de cliente sobre a moldura, que é o que queríamos — e
+        aqui isso vale até mais, porque é o Windows quem recusa redimensionar e
+        maximizar: sem WindowChrome a decisão seria só cosmética (os botões
+        HTML sumiriam, mas Win+seta e arrastar pro topo continuariam valendo).
     -->
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="0"
-                      ResizeBorderThickness="6"
+                      ResizeBorderThickness="0"
                       CornerRadius="0"
                       GlassFrameThickness="0"
                       UseAeroCaptionButtons="False"/>

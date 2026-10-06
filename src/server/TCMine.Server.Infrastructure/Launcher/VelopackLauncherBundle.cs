@@ -121,19 +121,34 @@ public sealed partial class VelopackLauncherBundle(
             UseShellExecute = false
         };
 
-        foreach (var arg in (string[])
-                 [
-                     "[win]", "-x", "--skip-updates", "pack",
-                     "--packId", "TCMine.Launcher",
-                     "--packVersion", version,
-                     "--packDir", packDir,
-                     "--mainExe", "TCMine.Launcher.App.exe",
-                     "--packTitle", "TCMine Launcher",
-                     "--channel", Channel,
-                     "--runtime", "win-x64",
-                     "--noPortable",
-                     "--outputDir", outputDir
-                 ])
+        var args = new List<string>
+        {
+            "[win]", "-x", "--skip-updates", "pack",
+            "--packId", "TCMine.Launcher",
+            "--packVersion", version,
+            "--packDir", packDir,
+            "--mainExe", "TCMine.Launcher.App.exe",
+            "--packTitle", "TCMine Launcher",
+            "--channel", Channel,
+            "--runtime", "win-x64",
+            "--noPortable",
+            "--outputDir", outputDir
+        };
+
+        // icon.ico viaja dentro do packDir (csproj do launcher o copia pro
+        // publish — ver o comentário no .csproj) — o .exe já leva o mesmo
+        // ícone embutido via ApplicationIcon, mas o Setup.exe que o vpk gera
+        // é outro binário, e sem --icon explícito ele sai com o ícone
+        // genérico do Velopack. File.Exists é só rede de segurança para um
+        // bundle antigo, empacotado antes deste ícone existir.
+        var iconPath = Path.Combine(packDir, "icon.ico");
+        if (File.Exists(iconPath))
+        {
+            args.Add("--icon");
+            args.Add(iconPath);
+        }
+
+        foreach (var arg in args)
             psi.ArgumentList.Add(arg);
 
         // .../shared/Microsoft.NETCore.App/{versão}/ → três níveis acima é a raiz do .NET.
