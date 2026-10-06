@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Launcher.UI.Abstractions;
-using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
 
@@ -9,8 +8,6 @@ public partial class AboutPage : ComponentBase
     private const string RepositoryUrl = "https://github.com/tiny-core/TCMine";
 
     [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
-
-    [Inject] private LauncherShellState Shell { get; set; } = default!;
 
     [Inject] private IDesktopShell Desktop { get; set; } = default!;
 
