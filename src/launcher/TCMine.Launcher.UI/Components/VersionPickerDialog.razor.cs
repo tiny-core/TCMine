@@ -26,6 +26,9 @@ public partial class VersionPickerDialog : ComponentBase
 
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 
+    /// <summary>Só para o título do diálogo — a escolha em si é pelo Id.</summary>
+    [Parameter] public string? ModpackName { get; set; }
+
     /// <summary>
     ///     As versões que já estão no disco. Aparecem marcadas e desligadas:
     ///     instalar a mesma outra vez daria duas instâncias idênticas, que

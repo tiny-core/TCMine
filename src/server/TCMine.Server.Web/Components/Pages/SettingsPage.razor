@@ -24,6 +24,9 @@
 }
 else
 {
+    @* Coluna central, não a largura inteira de .tc-page: um MudTextField
+       esticado a 1440px fica tão largo que vira difícil de ler. *@
+    <div class="tc-centered-column" style="max-width:900px;">
     <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
 
         <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
@@ -33,12 +36,12 @@ else
             </MudText>
 
             <MudGrid>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="6">
                     <MudTextField @bind-Value="_defaultMcVersion" Label="Versão do Minecraft padrão"
                                   Variant="Variant.Outlined" Placeholder="ex.: 1.21.1"
                                   HelperText="Deixe vazio para não sugerir nenhuma."/>
                 </MudItem>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="6">
                     <MudSelect T="ModLoader" @bind-Value="_defaultLoader" Label="Loader padrão"
                                Variant="Variant.Outlined">
                         @foreach (var loader in Enum.GetValues<ModLoader>())
@@ -47,11 +50,11 @@ else
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="6">
                     <MudNumericField @bind-Value="_defaultMemoryMb" Label="RAM padrão (MB)"
                                      Variant="Variant.Outlined" Min="512" Step="512"/>
                 </MudItem>
-                <MudItem xs="12" md="4">
+                <MudItem xs="12" md="6">
                     <MudNumericField @bind-Value="_worldBackupKeepCount"
                                      Label="Backups automáticos a manter"
                                      HelperText="Por servidor. Zero = ilimitado. Backups manuais nunca expiram."
@@ -215,4 +218,5 @@ else
         </MudTabPanel>
 
     </MudTabs>
+    </div>
 }
