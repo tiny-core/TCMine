@@ -42,6 +42,12 @@
         </MudPaper>
     }
 
-    @* Aplicação, versão e endereço do servidor agora moram na tela Sobre
-       (/about) — não duplicados aqui. *@
+    @if (Shell.Pairing?.Config is { } config)
+    {
+        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Servidor</MudText>
+            <div class="tc-kv"><span>Nome</span><b>@Shell.ServerName</b></div>
+            <div class="tc-kv"><span>Endereço</span><b>@config.ServerUrl</b></div>
+        </MudPaper>
+    }
 </MudStack>

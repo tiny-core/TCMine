@@ -37,13 +37,4 @@
         </MudButton>
     </MudPaper>
 
-    @if (Shell.Pairing?.Config is { } config)
-    {
-        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
-            <MudText Typo="Typo.subtitle1" GutterBottom="true">Este pareamento</MudText>
-            <div class="tc-kv"><span>Servidor</span><b>@Shell.ServerName</b></div>
-            <div class="tc-kv"><span>Endereço</span><b>@config.ServerUrl</b></div>
-        </MudPaper>
-    }
-
 </MudStack>
