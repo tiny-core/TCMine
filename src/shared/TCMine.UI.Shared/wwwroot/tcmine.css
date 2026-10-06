@@ -248,6 +248,22 @@ a:focus-visible {
   box-shadow: var(--tc-glow-primary);
 }
 
+/* Ícone de título de diálogo: mesma ideia do tc-brand-mark, um degrau maior —
+   é o que DialogTitle usa, e por isso vale pros ~18 diálogos do painel de
+   uma vez. Global porque o MudDialogProvider renderiza fora da árvore de
+   qualquer componente (ver o comentário no topo do arquivo). */
+.tc-dialog-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  background: var(--tc-surface-raised);
+  color: var(--tc-brand-primary);
+  box-shadow: var(--tc-glow-primary);
+}
+
 .mud-drawer {
   border-right: 1px solid var(--tc-border);
 }
@@ -282,9 +298,20 @@ a:focus-visible {
   color: var(--tc-brand-primary);
 }
 
-/* Conteúdo com respiro de página e largura máxima de leitura. */
+/* Conteúdo com respiro de página e largura máxima de leitura — centralizado:
+   sem margin:auto, um monitor mais largo que 1440px deixava o conteúdo
+   grudado na esquerda (colado no drawer), com um vão vazio à direita. */
 .tc-page {
   max-width: 1440px;
+  margin-inline: auto;
+}
+
+/* Coluna central de largura legível, para telas que não precisam da largura
+   inteira de propósito (formulários como Configurações/Definições) — a
+   mesma ideia do tc-page acima, só que mais estreita. Compartilhada entre
+   painel e launcher: os dois têm tela de configurações. */
+.tc-centered-column {
+  margin-inline: auto;
 }
 
 /* Cabeçalho de tabela: micro caixa alta, como nas seções do menu. */

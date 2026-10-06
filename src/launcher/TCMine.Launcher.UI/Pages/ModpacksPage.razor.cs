@@ -120,6 +120,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
         var parameters = new DialogParameters<VersionPickerDialog>
         {
             { d => d.ModpackId, modpack.Id },
+            { d => d.ModpackName, modpack.Name },
             { d => d.InstalledVersionIds, _installedVersions }
         };
 
