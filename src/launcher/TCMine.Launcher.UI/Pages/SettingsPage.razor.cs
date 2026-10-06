@@ -15,8 +15,6 @@ public partial class SettingsPage : ComponentBase, IDisposable
     /// </summary>
     [Inject] private ActionLock Lock { get; set; } = default!;
 
-    [Inject] private LauncherAppInfo AppInfo { get; set; } = default!;
-
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
     [Inject] private SignIn Account { get; set; } = default!;

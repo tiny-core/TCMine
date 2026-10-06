@@ -42,39 +42,6 @@
         </MudPaper>
     }
 
-    <MudPaper Class="pa-6" Elevation="0" Outlined="true">
-        <MudText Typo="Typo.subtitle1" GutterBottom="true">Sobre</MudText>
-
-        <MudSimpleTable Dense="true" Hover="false" Elevation="0" Bordered="false" Striped="false">
-            <tbody>
-            <tr>
-                <td>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Aplicação</MudText>
-                </td>
-                <td>
-                    <MudText Typo="Typo.body2">@AppInfo.Title</MudText>
-                </td>
-            </tr>
-            <tr>
-                <td>
-                    <MudText Typo="Typo.body2" Class="mud-text-secondary">Versão</MudText>
-                </td>
-                <td>
-                    <MudText Typo="Typo.body2">@AppInfo.Version</MudText>
-                </td>
-            </tr>
-            @if (Shell.Pairing?.Config is { } config)
-            {
-                <tr>
-                    <td>
-                        <MudText Typo="Typo.body2" Class="mud-text-secondary">Servidor</MudText>
-                    </td>
-                    <td>
-                        <MudText Typo="Typo.body2">@config.ServerUrl</MudText>
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </MudSimpleTable>
-    </MudPaper>
+    @* Aplicação, versão e endereço do servidor agora moram na tela Sobre
+       (/about) — não duplicados aqui. *@
 </MudStack>
