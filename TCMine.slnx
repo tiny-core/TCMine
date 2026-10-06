@@ -1,65 +1,68 @@
 <Solution>
   <Folder Name="/Launcher/">
-    <Project Path="src/launcher/TCMine.Launcher.Core/TCMine.Launcher.Core.csproj"/>
-    <Project Path="src/launcher/TCMine.Launcher.Infrastructure/TCMine.Launcher.Infrastructure.csproj"/>
-    <Project Path="src/launcher/TCMine.Launcher.Infrastructure.Windows/TCMine.Launcher.Infrastructure.Windows.csproj"/>
-    <Project Path="src/launcher/TCMine.Launcher.UI/TCMine.Launcher.UI.csproj"/>
-    <Project Path="src/launcher/TCMine.Launcher.App/TCMine.Launcher.App.csproj"/>
+    <Project Path="src/launcher/TCMine.Launcher.Core/TCMine.Launcher.Core.csproj" />
+    <Project Path="src/launcher/TCMine.Launcher.Infrastructure/TCMine.Launcher.Infrastructure.csproj" />
+    <Project Path="src/launcher/TCMine.Launcher.Infrastructure.Windows/TCMine.Launcher.Infrastructure.Windows.csproj" />
+    <Project Path="src/launcher/TCMine.Launcher.UI/TCMine.Launcher.UI.csproj" />
+    <File Path="src/launcher/VERSION" />
+    <Project Path="src/launcher/TCMine.Launcher.App/TCMine.Launcher.App.csproj" />
   </Folder>
   <Folder Name="/Server/">
-    <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj"/>
-    <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj"/>
-    <Project Path="src/server/TCMine.Server.Infrastructure.Sqlite/TCMine.Server.Infrastructure.Sqlite.csproj"/>
-    <Project Path="src/server/TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj"/>
-    <Project Path="src/server/TCMine.Server.Infrastructure.Postgres/TCMine.Server.Infrastructure.Postgres.csproj"/>
-    <Project Path="src/server/TCMine.Server.Web/TCMine.Server.Web.csproj"/>
+    <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj" />
+    <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure.Sqlite/TCMine.Server.Infrastructure.Sqlite.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj" />
+    <Project Path="src/server/TCMine.Server.Infrastructure.Postgres/TCMine.Server.Infrastructure.Postgres.csproj" />
+    <Project Path="src/server/TCMine.Server.Web/TCMine.Server.Web.csproj" />
   </Folder>
   <Folder Name="/Shared/">
-    <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj"/>
-    <Project Path="src/shared/TCMine.MinecraftAuth/TCMine.MinecraftAuth.csproj"/>
-    <Project Path="src/shared/TCMine.UI.Shared/TCMine.UI.Shared.csproj"/>
+    <Project Path="src/shared/TCMine.Contracts/TCMine.Contracts.csproj" />
+    <Project Path="src/shared/TCMine.MinecraftAuth/TCMine.MinecraftAuth.csproj" />
+    <Project Path="src/shared/TCMine.UI.Shared/TCMine.UI.Shared.csproj" />
   </Folder>
   <Folder Name="/Tests/">
-    <File Path="tests/Directory.Build.props"/>
-    <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj"/>
-    <Project Path="tests/TCMine.Launcher.Architecture.Tests/TCMine.Launcher.Architecture.Tests.csproj"/>
-    <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj"/>
-    <Project Path="tests/TCMine.MinecraftAuth.Tests/TCMine.MinecraftAuth.Tests.csproj"/>
-    <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj"/>
-    <Project Path="tests/TCMine.Server.Infrastructure.Tests/TCMine.Server.Infrastructure.Tests.csproj"/>
-    <Project Path="tests/TCMine.Server.Web.Tests/TCMine.Server.Web.Tests.csproj"/>
+    <File Path="tests/Directory.Build.props" />
+    <Project Path="tests/TCMine.Architecture.Tests/TCMine.Architecture.Tests.csproj" />
+    <Project Path="tests/TCMine.Launcher.Architecture.Tests/TCMine.Launcher.Architecture.Tests.csproj" />
+    <Project Path="tests/TCMine.Launcher.Core.Tests/TCMine.Launcher.Core.Tests.csproj" />
+    <Project Path="tests/TCMine.MinecraftAuth.Tests/TCMine.MinecraftAuth.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Application.Tests/TCMine.Server.Application.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Infrastructure.Tests/TCMine.Server.Infrastructure.Tests.csproj" />
+    <Project Path="tests/TCMine.Server.Web.Tests/TCMine.Server.Web.Tests.csproj" />
   </Folder>
   <Folder Name="/_build/">
-    <File Path="scripts/release-launcher.ps1"/>
-    <File Path="build/add-migration.ps1"/>
-    <File Path="build/add-migration.sh"/>
+    <File Path="scripts/release-launcher.ps1" />
+    <File Path="build/add-migration.ps1" />
+    <File Path="build/add-migration.sh" />
   </Folder>
   <Folder Name="/_docker/">
-    <File Path=".dockerignore"/>
-    <File Path="docker-compose.yml"/>
-    <File Path="Dockerfile"/>
+    <File Path=".dockerignore" />
+    <File Path="docker-compose.yml" />
+    <File Path="Dockerfile" />
   </Folder>
   <Folder Name="/_docs/">
-    <File Path="CHANGELOG.md"/>
-    <File Path="docs/DEPLOY.md"/>
-    <File Path="docs/RELEASE.md"/>
-    <File Path="README.md"/>
+    <File Path="CHANGELOG.md" />
+    <File Path="docs/DEPLOY.md" />
+    <File Path="docs/RELEASE.md" />
+    <File Path="docs/ROADMAP.md" />
+    <File Path="README.md" />
+    <File Path="CLAUDE.md" />
   </Folder>
   <Folder Name="/_githubActions/">
-    <File Path=".github/workflows/ci.yml"/>
-    <File Path=".github/workflows/release-server.yml"/>
+    <File Path=".github/workflows/ci.yml" />
+    <File Path=".github/workflows/release-server.yml" />
   </Folder>
   <Folder Name="/_root/">
-    <File Path=".editorconfig"/>
-    <File Path=".gitignore"/>
-    <File Path="CLAUDE.md"/>
-    <File Path="Directory.Build.props"/>
-    <File Path="Directory.Packages.props"/>
-    <File Path="global.json"/>
-    <File Path="TCMine.Server.slnx"/>
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
+    <File Path="TCMine.Server.slnx" />
   </Folder>
   <Folder Name="/_scripts/">
-    <File Path="scripts/smoke-image.sh"/>
-    <File Path="scripts/tc"/>
+    <File Path="scripts/check-launcher-version.sh" />
+    <File Path="scripts/smoke-image.sh" />
+    <File Path="scripts/tc" />
   </Folder>
 </Solution>
