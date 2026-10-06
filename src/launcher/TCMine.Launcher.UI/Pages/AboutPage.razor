@@ -1,0 +1,49 @@
+@page "/about"
+
+<PageTitle>Sobre</PageTitle>
+
+<PageHeader Title="Sobre" Subtitle="O launcher, quem fez, e onde está o código."/>
+
+<MudStack Spacing="4" Class="tc-centered-column" Style="max-width:560px;">
+
+    <MudPaper Class="pa-6 tc-fade-in" Elevation="0" Outlined="true">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="4">
+            <img src="_content/TCMine.Launcher.UI/brand-mark.png" alt="" width="56" height="56"
+                 style="border-radius:14px;"/>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">@AppInfo.Title</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Versão @AppInfo.Version</MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudText Typo="Typo.body2" Class="mt-4">
+            Cliente do TCMine: instala e atualiza modpacks reconciliando o disco contra o
+            manifesto que o servidor publica, e abre o jogo já dentro do servidor certo.
+        </MudText>
+    </MudPaper>
+
+    <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Créditos</MudText>
+
+        <div class="tc-kv"><span>Criado por</span><b>Jocian Mendonça</b></div>
+        <div class="tc-kv"><span>Licença</span><b>GPL-3.0</b></div>
+
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Custom.Brands.GitHub"
+                   EndIcon="@Icons.Material.Filled.OpenInNew"
+                   Class="mt-4"
+                   OnClick="OpenRepositoryAsync">
+            Código no GitHub
+        </MudButton>
+    </MudPaper>
+
+    @if (Shell.Pairing?.Config is { } config)
+    {
+        <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+            <MudText Typo="Typo.subtitle1" GutterBottom="true">Este pareamento</MudText>
+            <div class="tc-kv"><span>Servidor</span><b>@Shell.ServerName</b></div>
+            <div class="tc-kv"><span>Endereço</span><b>@config.ServerUrl</b></div>
+        </MudPaper>
+    }
+
+</MudStack>

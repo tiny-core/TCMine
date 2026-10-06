@@ -306,6 +306,25 @@ a:focus-visible {
   margin-inline: auto;
 }
 
+/* Linha chave/valor ("Detalhes da versão" no painel, "Sobre" no launcher).
+   Compartilhada: os dois produtos mostram pares rótulo/valor em painel. */
+.tc-kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--tc-border);
+  font-size: 14px;
+}
+
+.tc-kv:last-child {
+  border-bottom: 0;
+}
+
+.tc-kv > span {
+  color: var(--tc-text-secondary);
+}
+
 /* Coluna central de largura legível, para telas que não precisam da largura
    inteira de propósito (formulários como Configurações/Definições) — a
    mesma ideia do tc-page acima, só que mais estreita. Compartilhada entre

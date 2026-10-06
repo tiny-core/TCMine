@@ -23,7 +23,8 @@ public partial class NavRail : ComponentBase, IDisposable
 
     private static readonly NavItem[] Secondary =
     [
-        new("Definições", Icons.Material.Filled.Settings, "/settings")
+        new("Definições", Icons.Material.Filled.Settings, "/settings"),
+        new("Sobre", Icons.Material.Filled.Info, "/about")
     ];
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;

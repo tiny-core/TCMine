@@ -21,4 +21,16 @@ internal sealed class WpfDesktopShell : IDesktopShell
         // um programa, e uma pasta não é executável.
         Process.Start(new ProcessStartInfo { FileName = path, UseShellExecute = true });
     }
+
+    public void OpenUrl(string url)
+    {
+        // Só http(s): um link na tela Sobre é sempre nosso, mas esta porta é
+        // genérica, e UseShellExecute com uma string arbitrária executaria
+        // qualquer coisa que o shell soubesse abrir — não só páginas.
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            || uri.Scheme is not ("http" or "https"))
+            return;
+
+        Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true });
+    }
 }
