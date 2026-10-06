@@ -18,12 +18,12 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--mud-palette-lines-default);
+  background: var(--tc-border);
   border-radius: 6px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--mud-palette-text-disabled);
+  background: var(--tc-text-muted);
 }
 
 ::-webkit-scrollbar-track {

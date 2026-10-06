@@ -5,10 +5,10 @@
   height: 34px;
   flex: 0 0 auto;
   padding: 0 16px;
-  background: var(--mud-palette-appbar-background);
-  border-top: 1px solid var(--mud-palette-lines-default);
+  background: var(--tc-bg-page);
+  border-top: 1px solid var(--tc-border);
   font-size: 11px;
-  color: var(--mud-palette-text-secondary);
+  color: var(--tc-text-secondary);
   user-select: none;
 }
 
@@ -18,7 +18,7 @@
 
 .tc-statusbar-version {
   font-family: "Cascadia Code", Consolas, monospace;
-  color: var(--mud-palette-text-disabled);
+  color: var(--tc-text-muted);
 }
 
 .tc-dot {
@@ -37,5 +37,5 @@
 }
 
 .tc-dot-offline {
-  background: var(--mud-palette-text-disabled);
+  background: var(--tc-text-muted);
 }

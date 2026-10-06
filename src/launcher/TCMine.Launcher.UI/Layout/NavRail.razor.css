@@ -5,8 +5,8 @@
   width: 64px;
   flex: 0 0 64px;
   padding: 8px 0 12px;
-  background: var(--mud-palette-drawer-background);
-  border-right: 1px solid var(--mud-palette-lines-default);
+  background: var(--tc-bg-sunken);
+  border-right: 1px solid var(--tc-border);
 }
 
 .tc-rail-group {
@@ -24,6 +24,6 @@
 }
 
 .tc-rail ::deep .tc-rail-btn-active {
-  border-left-color: var(--mud-palette-primary);
-  background: rgba(var(--mud-palette-primary-rgb), 0.12);
+  border-left-color: var(--tc-brand-primary);
+  background: var(--tc-surface-selected);
 }
