@@ -1,0 +1,25 @@
+<Project>
+
+  <!--
+      Herda o Directory.Build.props da raiz: o MSBuild para no PRIMEIRO que
+      encontra subindo a árvore, então sem este Import os projetos do servidor
+      perderiam nullable, analisadores e metadados.
+    -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
+
+  <!--
+      A versão do servidor mora em src/server/VERSION, e é a ÚNICA fonte dela:
+      a IDE, o Dockerfile e o workflow de publicação (release.yml) leem o mesmo
+      arquivo. Subir este número no master é o que publica a imagem — a tag
+      server-v* é criada pelo workflow DEPOIS de publicar, e não o contrário.
+      Mesmo desenho do launcher (src/launcher/Directory.Build.props).
+      Quem passa -p:Version na linha de comando ainda ganha (propriedade global),
+      o que só deveria acontecer em teste.
+    -->
+  <PropertyGroup>
+    <TCMineServerVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)VERSION').Trim())</TCMineServerVersion>
+    <Version>$(TCMineServerVersion)</Version>
+    <InformationalVersion>$(TCMineServerVersion)</InformationalVersion>
+  </PropertyGroup>
+
+</Project>

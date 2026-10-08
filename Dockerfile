@@ -8,11 +8,6 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Versão desta build. O handshake a devolve ao launcher, e sem ela toda imagem
-# publicada se anunciaria como 1.0.0 — o padrão do SDK quando nada é informado.
-# O workflow de release passa o número vindo da tag do git.
-ARG VERSION=0.0.0-dev
-
 # Manifestos primeiro, código depois: o restore só refaz quando uma dependência
 # muda, e não a cada linha editada. Sem isto toda build baixa o mundo de novo.
 # O global.json fica DE FORA de propósito. Ele existe para alinhar a versão do
@@ -47,9 +42,7 @@ COPY src/ src/
 # camada acima. O que ele refaz é a resolução COM o código presente, que é
 # justamente o que faltava.
 RUN dotnet publish src/server/TCMine.Server.Web/TCMine.Server.Web.csproj \
-    -c Release -o /app \
-    -p:Version=${VERSION} \
-    -p:InformationalVersion=${VERSION}
+    -c Release -o /app
 
 # O launcher do MESMO commit, compilado para Windows a partir do Linux.
 #

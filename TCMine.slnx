@@ -4,11 +4,14 @@
     <Project Path="src/launcher/TCMine.Launcher.Infrastructure/TCMine.Launcher.Infrastructure.csproj" />
     <Project Path="src/launcher/TCMine.Launcher.Infrastructure.Windows/TCMine.Launcher.Infrastructure.Windows.csproj" />
     <Project Path="src/launcher/TCMine.Launcher.UI/TCMine.Launcher.UI.csproj" />
+    <File Path="src/launcher/Directory.Build.props" />
     <File Path="src/launcher/VERSION" />
     <Project Path="src/launcher/TCMine.Launcher.App/TCMine.Launcher.App.csproj" />
   </Folder>
   <Folder Name="/Server/">
     <Project Path="src/server/TCMine.Server.Domain/TCMine.Server.Domain.csproj" />
+    <File Path="src/server/Directory.Build.props" />
+    <File Path="src/server/VERSION" />
     <Project Path="src/server/TCMine.Server.Application/TCMine.Server.Application.csproj" />
     <Project Path="src/server/TCMine.Server.Infrastructure.Sqlite/TCMine.Server.Infrastructure.Sqlite.csproj" />
     <Project Path="src/server/TCMine.Server.Infrastructure/TCMine.Server.Infrastructure.csproj" />
@@ -48,9 +51,8 @@
     <File Path="README.md" />
     <File Path="CLAUDE.md" />
   </Folder>
-  <Folder Name="/_githubActions/">
-    <File Path=".github/workflows/ci.yml" />
-    <File Path=".github/workflows/release-server.yml" />
+  <Folder Name="/_github/">
+    <File Path=".github/workflows/release.yml" />
   </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />

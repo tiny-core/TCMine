@@ -1,0 +1,248 @@
+# Publicação do TCMine Server. É o ÚNICO workflow do repositório.
+#
+# Não roda em commits comuns. Dispara quando src/server/VERSION muda no master:
+#
+#   1. lê a versão; se a tag server-v<versão> já existe, termina;
+#   2. build e testes — falhou, para aqui;
+#   3. constrói a imagem e roda a fumaça nela;
+#   4. envia ao Docker Hub;
+#   5. cria a tag e a release no GitHub.
+#
+# A tag é RESULTADO da publicação, e não gatilho: uma tag server-v* só existe
+# se a imagem daquela versão chegou ao Docker Hub.
+#
+# Disparo manual (Actions → Run workflow), em qualquer ramo:
+#   - publicar = false (padrão): só build e testes. É como se valida um ramo
+#     de trabalho, já que nada mais roda sozinho.
+#   - publicar = true, no master: o fluxo inteiro. Serve para repetir uma
+#     publicação que falhou após corrigida por um commit que não mexeu no
+#     VERSION (esse commit, sozinho, não dispara nada).
+#
+# Requer: variável DOCKERHUB_IMAGE (ex.: usuario/tcmine-server) e os segredos
+# DOCKERHUB_USERNAME e DOCKERHUB_TOKEN.
+
+name: Publicar servidor
+
+on:
+  push:
+    branches: [ "master" ]
+    paths: [ "src/server/VERSION" ]
+
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar a imagem (só no master). Desmarcado: apenas build e testes."
+        type: boolean
+        default: false
+
+# Duas publicações nunca ao mesmo tempo, e nenhuma é cancelada a meio: uma
+# imagem enviada pela metade com a tag por criar é o pior estado possível.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+
+jobs:
+  versao:
+    name: Versão
+    runs-on: ubuntu-latest
+
+    outputs:
+      versao: ${{ steps.ler.outputs.versao }}
+      publicar: ${{ steps.ler.outputs.publicar }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Ler a versão e decidir
+        id: ler
+        env:
+          PEDIU_PUBLICAR: ${{ github.event_name == 'push' || inputs.publicar }}
+        run: |
+          set -euo pipefail
+
+          versao="$(tr -d '[:space:]' < src/server/VERSION)"
+
+          # Recusa cedo um número mal formado: ele viraria tag do git e tag de
+          # imagem, e os dois aceitam lixo que depois ninguém consegue apagar.
+          if ! [[ "$versao" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "src/server/VERSION inválido: '${versao}'. Use 1.2.3 ou 1.2.3-beta.1." >&2
+            exit 1
+          fi
+
+          publicar=false
+
+          if [ "$PEDIU_PUBLICAR" = "true" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/master" ]; then
+              echo "Publicação só sai do master; aqui rodam apenas os testes."
+            # ls-remote e não git tag: o checkout raso não traz as tags.
+            elif git ls-remote --exit-code --tags origin "refs/tags/server-v${versao}" >/dev/null; then
+              echo "A tag server-v${versao} já existe: nada a publicar."
+            else
+              publicar=true
+            fi
+          fi
+
+          {
+            echo "versao=${versao}"
+            echo "publicar=${publicar}"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Versão ${versao} — publicar: ${publicar}"
+
+  testes:
+    name: Build e testes
+    needs: versao
+    # No push com a tag já existente não há o que validar: sai sem gastar nada.
+    if: needs.versao.outputs.publicar == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: tcmine
+          POSTGRES_PASSWORD: tcmine
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tcmine"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restaurar
+        run: dotnet restore TCMine.Server.slnx
+
+      - name: Build
+        run: dotnet build TCMine.Server.slnx --no-restore -c Release -p:ContinuousIntegrationBuild=true
+
+      - name: Testes
+        env:
+          TCMINE_TEST_POSTGRES: "Host=localhost;Port=5432;Username=tcmine;Password=tcmine;Database=postgres"
+        run: |
+          set -euo pipefail
+
+          for projeto in tests/*/; do
+            [ -f "${projeto}"*.csproj ] || continue
+            # O launcher é verificado na IDE: os testes dele pedem Windows.
+            case "$(basename "$projeto")" in
+              TCMine.Launcher.*) continue ;;
+            esac
+            echo "::group::$(basename "$projeto")"
+            dotnet run --project "$projeto" -c Release --no-build
+            echo "::endgroup::"
+          done
+
+  publicar:
+    name: Imagem, Docker Hub e tag
+    needs: [ versao, testes ]
+    if: needs.versao.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # criar a tag e a release
+
+    env:
+      VERSAO: ${{ needs.versao.outputs.versao }}
+
+    steps:
+      # Histórico inteiro e as tags: a conferência do launcher compara com a
+      # release anterior.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Versão do launcher acompanhou as mudanças dele
+        run: bash ./scripts/check-launcher-version.sh
+
+      - name: Tags da imagem
+        id: tags
+        env:
+          IMAGEM: ${{ vars.DOCKERHUB_IMAGE }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${IMAGEM}" ]; then
+            echo "Defina a variável DOCKERHUB_IMAGE (ex.: usuario/tcmine-server)." >&2
+            exit 1
+          fi
+
+          tags="${IMAGEM}:${VERSAO}"
+
+          # Pré-lançamento (1.2.0-beta.1) leva só a versão exata: quem usa
+          # :latest ou :1.2 não pode receber um beta sem pedir.
+          case "${VERSAO}" in
+            *-*) ;;
+            *)   tags="${tags},${IMAGEM}:${VERSAO%.*},${IMAGEM}:latest" ;;
+          esac
+
+          echo "tags=${tags}" >> "$GITHUB_OUTPUT"
+          echo "Tags: ${tags}"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Constrói e carrega no daemon local, sem enviar: a fumaça roda na
+      # imagem exata que vai ser publicada.
+      - name: Construir
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          tags: tcmine-server:candidata
+          cache-from: type=gha,scope=imagem-servidor
+          cache-to: type=gha,mode=max,scope=imagem-servidor
+
+      - name: Fumaça da imagem
+        run: bash ./scripts/smoke-image.sh tcmine-server:candidata
+
+      # Mesmo contexto e mesmo cache: não recompila, só envia as camadas.
+      - name: Enviar ao Docker Hub
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          cache-from: type=gha,scope=imagem-servidor
+
+      # Por último, e só agora: a tag afirma que a imagem existe. O gh cria a
+      # tag junto com a release, apontando para o commit que foi publicado.
+      - name: Criar a tag e a release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          case "${VERSAO}" in
+            *-*) marca="--prerelease" ;;
+            *)   marca="--latest" ;;
+          esac
+
+          gh release create "server-v${VERSAO}" \
+            --target "${GITHUB_SHA}" \
+            --title "TCMine Server ${VERSAO}" \
+            --generate-notes \
+            ${marca}
