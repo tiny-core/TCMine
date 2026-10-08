@@ -51,7 +51,7 @@ trap limpar EXIT
 if [ -z "$IMAGEM" ]; then
   IMAGEM="tcmine-server:${SUFIXO}"
   echo "Construindo ${IMAGEM}..."
-  docker build --quiet --build-arg VERSION=0.0.0-smoke -t "$IMAGEM" . >/dev/null
+  docker build --quiet -t "$IMAGEM" . >/dev/null
 fi
 
 echo "Imagem: ${IMAGEM}"
