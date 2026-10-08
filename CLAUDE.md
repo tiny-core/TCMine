@@ -11,21 +11,21 @@
 
 Você **não é um executor cego de pedidos**. Você é um engenheiro sênior parceiro neste projeto. Especificamente:
 
-- **Performance, limpeza e arquitetura vêm antes de "só funcionar".** Nunca entregue a primeira solução que passa;
+- **Desempenho, limpeza e arquitetura vêm antes de "só funcionar".** Nunca entregue a primeira solução que passa;
   entregue a **melhor** solução viável. Se há uma abordagem mais performática, mais limpa ou mais bem arquitetada,
   proponha-a — mesmo que dê mais trabalho.
 - **DRY é regra, não sugestão.** Antes de escrever código, verifique se a lógica já existe. Se for repetir algo, extraia
   para um método/serviço/abstração compartilhada. Duplicação silenciosa é dívida.
-- **Aponte decisões erradas.** Se eu pedir algo que viola a arquitetura, cria um bug latente, fere performance, ou
+- **Aponte decisões erradas.** Se eu pedir algo que viola a arquitetura, cria um bug latente, fere desempenho, ou
   contradiz uma decisão já tomada neste documento — **diga-me antes de implementar**, explique o porquê, e proponha a
   alternativa. Não implemente errado só porque foi pedido.
 - **Aponte decisões defasadas.** Se você notar código, padrão ou dependência que ficou obsoleto (uma API deprecada, um
   padrão que superamos, um TODO antigo que virou risco), sinalize e proponha a modernização.
 - **Sempre proponha melhorias.** Ao terminar uma tarefa, se enxergar um ponto adjacente que poderia ficar melhor,
   mencione-o (sem implementar sem eu pedir).
-- **Explique o "porquê", não só o "o quê".** Ao propor algo, justifique a decisão técnica. Eu quero entender o
+- **Explique o "por que", não só o "o quê".** Ao propor algo, justifique a decisão técnica. Eu quero entender o
   trade-off, não só receber código.
-- **Na dúvida de design, pergunte antes de codar.** Uma decisão de arquitetura errada custa refactor. Se há mais de um
+- **Na dúvida de design, pergunte antes de coder.** Uma decisão de arquitetura errada custa refactor. Se há mais de um
   caminho razoável, apresente as opções com sua recomendação e espere minha escolha.
 
 ---
@@ -35,13 +35,13 @@ Você **não é um executor cego de pedidos**. Você é um engenheiro sênior pa
 TCMine é um **ecossistema para distribuir e jogar modpacks de Minecraft**. Dois produtos, um repositório:
 
 - **TCMine Server** (`src/server/`) — painel administrativo web (Blazor Server + MudBlazor) rodando em Linux/Docker. O
-  admin cria modpacks, ingere mods do Modrinth ou CurseForge, gerencia overrides (configs), publica versões imutáveis, e
+  admin cria modpacks, ingere mods do Corinth ou CurseForge, gerência overrides (configs), publica versões imutáveis, e
   orquestra **servidores de jogo** como containers Docker (`itzg/minecraft-server`). Serve o catálogo/manifestos e os
   arquivos (jars) para o launcher.
 - **TCMine Launcher** (`src/launcher/`) — cliente desktop (WPF + BlazorWebView, ainda em construção) que instala e
   atualiza as instâncias do jogador, baixando do content store do servidor.
 
-O fluxo central: o servidor **publica manifestos completos** de cada versão; o launcher **reconcilia** o disco do
+O fluxo central: o servidor **pública manifestos completos** de cada versão; o launcher **reconcilia** o disco do
 jogador contra o manifesto (baixa o que falta, apaga o que sobrou). É um modelo **declarativo** — o manifesto descreve o
 estado final desejado, e o launcher faz o disco convergir para ele.
 
@@ -55,7 +55,7 @@ qualquer um deles de forma incompatível é versão MAIOR — **avise antes de p
 
 A dependência **sempre aponta para dentro**. Camadas de fora conhecem as de dentro, nunca o contrário. Isso é
 **verificado por testes** (NetArchTest, em
-`tests/TCMine.Architecture.Tests`) — se você inverter uma dependência, o build fica vermelho.
+`tests/TCMine.Architecture.Tests`) — se você inverter uma dependência, a build fica vermelho.
 
 ```
 Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  Infrastructure  ←  Web
@@ -77,10 +77,10 @@ Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  
   SQLite, prod usa PostgreSQL).
 - **`TCMine.Server.Web`** — Blazor Server. Páginas em `Components/Pages`, diálogos/componentes em `Components/Features`.
   Consome casos de uso via DI.
-- **`TCMine.UI.Shared`** (shared RCL) — tema MudBlazor, design tokens, chips e componentes reutilizáveis entre server e
+- **`TCMine.UI.Shared`** (shared RCL) — tema MudBlazor, design token, chips e componentes reutilizáveis entre server e
   launcher.
-- **`TCMine.MinecraftAuth`** (shared) — a cadeia Xbox Live → XSTS → Minecraft Services
-  (`MinecraftTokenExchange`). HTTPS puro, sem Windows nem MSAL: o launcher a usa depois do MSAL, e o servidor
+- **`TCMine.MinecraftAuth`** (shared) — a cadeia Xbox Live → XSTS → Minecraft Services (`MinecraftTokenExchange`). HTTPS
+  puro, sem Windows nem MSAL: o launcher a usa depois do MSAL, e o servidor
   depois do seu próprio Authorization Code + PKCE (login do painel). Uma implementação só para os dois lados.
 
 ### Regra de ouro do registro no DI
@@ -103,7 +103,7 @@ Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  
 - **SignalR** (comunicação em tempo real com o launcher/painel).
 - **Docker Engine API** (orquestração de containers — HTTP sobre socket Unix/named pipe, **sem** `Docker.DotNet`).
 - **Serilog** (logging), **Central Package Management** (`Directory.Packages.props`).
-- Testes: **xUnit v3**, **NSubstitute** (quando útil), **Shouldly**, **NetArchTest** (regras de camada).
+- Testes: **xUnit v3**, **NSubstitute** (quando útil), **Should*, **NetArchTest** (regras de camada).
 
 ---
 
@@ -120,11 +120,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Nomes de métodos de teste podem ficar em português** (é a exceção — e só os
   de TESTE; um helper de teste segue a regra geral).
 - A base já foi varrida uma vez para cumprir isto. Duas armadilhas de quem
-  repetir a operação: os `{Placeholder}` de um `[LoggerMessage]` vivem dentro de
-  uma string mas são **acoplados ao nome do parâmetro** — renomear um sem o
-  outro quebra a compilação com um erro que fala de template; e uma string
+  repetir a operação: os `{Placeholder}` de um `[LoggerMessage]` vivem em
+  uma string, mas são **acoplados ao nome do parâmetro** — renomear um sem o
+  outro quebra a compilação com um erro que fala de modelo; e uma string
   interpolada mistura português que fica com identificador que muda, na mesma
-  linha. Renomear com regex sobre o ficheiro inteiro estraga comentário e texto.
+  linha. Renomear com regex sobre o arquivo inteiro estraga comentário e texto.
 
 ### 4.2 Logging
 
@@ -153,7 +153,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Tabelas em snake_case** (`modpack_versions`, `game_servers`,
   `installation_settings`). **Colunas continuam em PascalCase** — não há
   `HasColumnName` em lugar nenhum e toda migration existente as gera assim. Este
-  documento dizia "colunas em snake_case" e estava errado; renomeá-las hoje seria
+  documento dizia "colunas em snake_case" e estava errado; rename-las hoje seria
   uma migration por tabela para ganhar nada. Siga o que o código faz.
 - **`IDbContextFactory<TcMineDbContext>`** com **um contexto curto por operação**
   no repositório (nunca um `DbContext` scoped compartilhado — no Blazor Server isso acumularia entidades e daria
@@ -171,7 +171,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 ### 4.7 Identidade de mod (`ProjectSlug`)
 
-- `ModpackFile.ProjectSlug` é a **identidade estável** do mod (project_id do Modrinth — NUNCA o slug, que o autor
+- `ModpackFile.ProjectSlug` é a **identidade estável** do mod (project_id do Corinth — NUNCA o slug, que o autor
   pode renomear —, mod id do CurseForge), independente da versão do arquivo. A busca grava o id; a ingestão adota
   o id canônico que a origem devolve (`ModResolution.Resolved.ProjectId`) e passa o nome pedido como apelido ao
   `UpsertFile(file, previousSlug)`, que assim substitui linhas antigas gravadas pelo slug. É por ele que `UpsertFile`
@@ -190,7 +190,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   evita baixar os bytes.
 - `ModpackFile.RequiredDependencies` (ids separados por vírgula; `null` = desconhecido) é o que deixa reusar sem
   perder as bibliotecas do mod. Linha sem o campo (anterior a ele) faz UMA consulta à origem e regrava.
-- **Release fixada se resolve PELO ID**, nunca procurando-a na lista das compatíveis: essa lista é paginada (50 no
+- **Release fixada se resolve PELO ID**, nunca a procurando na lista das compatíveis: essa lista é paginada (50 no
   CurseForge), e o código antigo trocava em silêncio pela mais recente quando não a achava.
 - Copiar um arquivo para outra versão é `ModpackFile.CopyTo(versionId)` — as cópias à mão já tinham divergido.
 
@@ -215,9 +215,9 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
     - `Ready`: publicado, imutável. `Archived`: aposentado (some de novas instalações, mas quem já fixou continua
       rodando).
     - Métodos: `MarkResolving`, `MarkReady`, `MarkFailed`, `ReturnToDraft`,
-      `Archive`, `Restore`, `UpsertFile`. **Regra: uma Draft por vez por modpack.**
+      `Archive`, `Restore`, `UpsertFile`. **Regra: um Draft por vez por modpack.**
 - **`ModpackFile`** — `Path`, `Sha256`, `SizeBytes`, `Side` (`Both`/`ClientOnly`/
-  `ServerOnly`), `Origin`, `ProjectSlug`, `OriginReference` (o **version id** do Modrinth / **file id** do
+  `ServerOnly`), `Origin`, `ProjectSlug`, `OriginReference` (o **version id** do Corinth / **file id** do
   CurseForge — usado para detectar atualizações sem baixar, e como chave do reaproveitamento da §4.8),
   `RequiredDependencies`, `IconUrl`.
 
@@ -253,7 +253,8 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Aviso de atualização do servidor**: `CheckServerUpdate` (só admin da instalação) compara `BuildInfo.Version` com
   a estável mais nova `server-v*` do GitHub (`GitHubServerReleaseFeed`, cache de 6 h, inclusive do erro — a API
   anônima dá 60/h). O banner consulta no `OnAfterRenderAsync`: a pré-renderização (e todo teste por GET) não sai
-  para a internet. O workflow de release é idempotente: a release pode já existir, criada pela tela do GitHub.
+  para a internet. A release `server-v*` é criada pelo `release.yml` Após a imagem chegar ao Docker Hub; não crie tags
+  `server-v*` à mão.
 - **Não há e-mail.** SMTP e servidor de e-mail próprio foram removidos com a recuperação de senha; não
   reintroduza sem um fluxo que o use (o `User` nem tem endereço).
 
@@ -280,7 +281,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `http://localhost` é fictícia. **Se ver `localhost:80` num erro, o ConnectCallback não está sendo usado.**
 - **`IInstanceMaterializer`**: escreve a pasta da instância (`{root}/{serverId}`)
   a partir de uma `ModpackVersion`. Monta como volume `/data` no container itzg.
-    - **`mods/` usa hardlink** do blob store (jars read-only, onde estão os bytes); **o resto copia** (configs podem ser
+    - **`mods/` usa hardlink** do blob store (jars read-only, onde estão os bytes); **o resto cópia** (configs podem ser
       reescritos em runtime; hardlink corromperia o blob compartilhado).
     - **Preserva `world/` e dados do jogador.** Usa manifesto local (`.tcmine-manifest.json`) para saber o que
       gerenciou; só remove o que ele mesmo escreveu. **Trocar versão reescreve mods sem apagar o mundo.**
@@ -289,7 +290,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   torna reversível. Backup e restauração **exigem servidor parado**: copiar o mundo com o jogo escrevendo produz
   um .zip íntegro que não abre. Snapshot é um `.zip` por vez em `{root}/backups/{serverId}`, fora da pasta da
   instância (que o materializador reescreve).
-- **Backup a quente**: com o servidor NO AR, o backup faz `save-off` → `save-all flush` → copia → `save-on`,
+- **Backup a quente**: com o servidor NO AR, o backup faz `save-off` → `save-all flush` → cópia → `save-on`,
   este último em `finally` **sempre**. Deixar o autosave desligado é pior que não ter backup: o servidor roda
   sem persistir e a próxima queda leva tudo. Se o `save-on` falhar, a exceção sobe — é a única falha do módulo
   que exige ação imediata. **Restaurar continua exigindo servidor parado** (os arquivos são substituídos, e
@@ -315,8 +316,8 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 ### 7.0 Instância, canal e atualização
 
-- **A instância tem identidade PRÓPRIA** (`InstanceKey`), e não é mais o par
-  (modpack, versão). A diferença decide duas coisas: atualizar mantendo o mundo
+- **A instância tem identidade PRÓPRIA** (`InstanceKey`), e não é mais o par (modpack, versão). A diferença decide duas
+  coisas: atualizar mantendo o mundo
   — mesma instância, versão nova — e ter duas instalações do mesmo pack, cada
   uma no seu mundo. Com a chave no par, todo update criava pasta nova e o mundo
   ficava para trás.
@@ -332,11 +333,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   blocos e itens que registaram.
 - **Backup antes, e a falha dele CANCELA a atualização.** É a ordem que torna a
   operação reversível, a mesma regra do servidor. Automático quando há mundo, e
-  não um checkbox: backup que depende de lembrar de marcar não existe no dia em
+  não uma checkbox: backup que depende de lembrar de marcar não existe no dia em
   que importa. O `.zip` vai para `{raiz}/backups/{instância}/`, fora da pasta que
   o instalador reescreve. A retenção guarda as **cinco** mais recentes por
   instância (`WorldBackupRetention`, no Core porque decidir o que se perde merece
-  teste): a mais nova nunca expira — a poda corre logo depois de criar a cópia
+  teste): a mais nova nunca expira — a poda corre logo após criar a cópia
   que a atualização exigiu — e `keep: 0` significa ILIMITADO, não "apague tudo".
 - **Canal** (`ReleaseChannel`) sai do NÚMERO da versão, por SemVer: o que tem
   hífen é alpha. Não é campo gravado — guardá-lo criaria um segundo lugar para a
@@ -345,7 +346,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   do domínio.
 - **Um canal não vê o outro**, e é isso que faz dele um canal. A verificação de
   atualização agrupa por **(modpack, canal)**. Uma instância alpha não se
-  duplica: cada cópia deixada para trás seria uma instalação presa numa alpha que
+  duplica: cada cópia deixada para trás séria uma instalação presa numa alpha que
   ninguém mais atualiza.
 
 ### 7.1 O casco do launcher (WPF hospedando Blazor)
@@ -358,8 +359,8 @@ TCMine.Launcher.UI    (RCL, net10.0)          ← TODAS as telas. Portável.
 TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/Invoke.
 ```
 
-- **Por que a RCL separada**: no dia de rodar em Linux, portar é escrever um host
-  novo — as páginas ficam intactas. `Launcher_UI_e_portavel` e
+- **Porque a RCL separada**: no dia de rodar em Linux, portar é escrever um host
+  novo — as páginas ficam intactas? `Launcher_UI_e_portavel` e
   `Launcher_UI_nao_conhece_a_infraestrutura` (NetArchTest) travam isso.
 - **O que a tela precisa do sistema entra por porta**: `IWindowChrome`
   (arrastar/minimizar/maximizar/fechar) e `LauncherAppInfo` (título e versão)
@@ -372,8 +373,8 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   launcher é sempre escuro (`data-theme="dark"` no `index.html`), sem alternador.
 - **CSS**: o que é global e vale para os dois produtos mora em
   `_content/TCMine.UI.Shared/tcmine.css`; o que é do casco, em
-  `_content/TCMine.Launcher.UI/launcher.css`; o resto é `.razor.css` isolado.
-  **Nada vem da rede** — o launcher tem de abrir sem internet.
+  `_content/TCMine.Launcher.UI/launcher.css`; o resto é `.razor.css` isolado. **Nada vem da rede** — o launcher tem de
+  abrir sem internet.
 - **Protocolo**: `Protocol.Current` está em **2**, e o mínimo também. Subiu
   quando o canal de versões acrescentou um parâmetro a dois métodos do hub — o
   SignalR resolve por nome E aridade, então um launcher de protocolo 1
@@ -384,12 +385,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `ResumeAsync` lê o `tcmine.json` e confirma o handshake; `PairAsync` valida o
   endereço digitado, faz o handshake e só então grava. Duas regras não são
   cosméticas: o endereço é recusado **antes** do handshake se não for HTTPS (ou
-  loopback), porque o id_token da Microsoft trafega nessa conexão; e uma falha de
+  loopback), porque o id_token da Microsoft tráfega nessa conexão; e uma falha de
   rede **não** desfaz o pareamento, senão o jogador redigita o endereço a cada
   oscilação de sinal. O `ShellLayout` faz o arranque uma vez por sessão e manda
   para `/pair` só quando não há configuração nenhuma.
 - **O instalador já traz o endereço** (`server.json` ao lado do `.exe`, lido por
-  `IBundledServerAddress`). Sem `tcmine.json`, o `ResumeAsync` tenta pareá-lo
+  `IBundledServerAddress`). Sem `tcmine.json`, o `ResumeAsync` tenta párea-lo
   pelo MESMO `PairAsync` do digitado — HTTPS, handshake, tudo. É sugestão, não
   configuração: o `tcmine.json` gravado sempre ganha (o jogador pode ter
   pareado com outro servidor), e se falhar a tela de pareamento abre com ele
@@ -400,18 +401,17 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   continuava a abrir o navegador com o id antigo — sintoma real, e sem nada na
   tela que apontasse para o `tcmine.json`. Um valor **em branco não substitui** o
   gravado: servidor sem login configurado é estado transitório, e adotá-lo daria
-  um ficheiro que o próprio launcher recusa a carregar depois.
+  um arquivo que o próprio launcher recusa a carregar depois.
 - **O client id do Azure vem do SERVIDOR, e mora na tela de configurações dele**
-  (`InstallationSettings.AzureClientId`), não em appsettings — registar a app no
+  (`InstallationSettings.AzureClientId`), não em appsettings — registar a aplicativo no
   Entra ID acontece depois do deploy. `Server:AzureClientId` sobrevive como
   semente: o handshake usa o do banco e cai no do arquivo quando aquele está
   vazio. Não é segredo (public client + PKCE), então não é cifrado e volta para a
   tela preenchido.
 - **Login**: `SignIn` (no Core) junta dois passos que só valem juntos — provar a
   conta à Microsoft (`IMinecraftAuthenticator`) e trocar essa prova por sessão no
-  servidor
-  (`ILauncherSessionApi` → `POST /api/v1/auth/minecraft`). O token do Minecraft
-  **não** é guardado: vale uma vez, e o que vale daí em diante é o cookie que o
+  servidor (`ILauncherSessionApi` → `POST /api/v1/auth/minecraft`). O token do Minecraft **não** é guardado: vale uma
+  vez, e o que vale daí em diante é o cookie que o
   servidor devolve — o mesmo do painel. Esse cookie vive num `CookieContainer`
   **singleton** partilhado pelos clientes HTTP; um pote por cliente faria o
   jogador entrar e ser anônimo no pedido seguinte.
@@ -429,15 +429,15 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 - **A autenticação tem dois degraus, e a fronteira não é onde parece.** Só o
   primeiro é do Windows: `IMicrosoftTokenProvider` (MSAL, em
   `Infrastructure.Windows`). A cadeia seguinte — Xbox Live → XSTS → Minecraft
-  Services — é HTTPS comum, vive em `MinecraftAuthenticator` na infraestrutura
-  **portável**, e é testada inteira com um `FakeHttpHandler`, sem app do Azure.
+  Services — é HTTPS comum, vive em `MinecraftAuthenticator` na infraestrutura **portável**, e é testada inteira com um
+  `FakeHttpHandler`, sem aplicativo do Azure.
   Enfiar tudo no projeto do Windows compilaria e faria o port para Linux
   reescrever o que não tem nada de Windows.
 - **O cache é do MSAL, e isso está decidido.** Guardar o refresh token à mão não
   fecha: um public client **não tem API** para reinjetar um refresh token vindo
-  de fora, então o login silencioso passa obrigatoriamente pelo cache dele
-  (`Extensions.Msal`, DPAPI no Windows). Havia um `ICredentialStore` prometendo o
-  contrário; foi apagado. Um ficheiro de cache **por client id** — partilhá-lo
+  de fora, então o login silencioso passa obrigatoriamente pelo cache dele (`Extensions.Msal`, DPAPI no Windows). Havia
+  um `ICredentialStore` prometendo o
+  contrário; foi apagado. Um arquivo de cache **por client id** — partilhá-lo
   faria sair de um servidor encerrar a sessão no outro.
 - **Navegador do sistema, nunca WebView embutida** (`WithUseEmbeddedWebView(false)`).
   É a diferença entre o jogador ver a barra de endereço da Microsoft e escrever a
@@ -447,10 +447,10 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 - **A tradução dos erros do MSAL mora no Core** (`MicrosoftSignInFailures`) e tem
   teste, porque é decisão de produto e não detalhe da biblioteca: fechar o
   navegador é `Cancelled` e a tela cala-se; credencial expirada vira
-  `NoStoredCredentials` no arranque; app mal registada nomeia o administrador,
+  `NoStoredCredentials` no arranque; aplicativo mal registada nomeia o administrador,
   senão o jogador tenta para sempre contra algo que nunca vai aceitar. O que
-  atravessa a fronteira é um código de erro, que é `string` — a regra proíbe
-  **depender** do pacote, não conhecer o vocabulário dele.
+  atravessa a fronteira é um código de erro, que é `string` — a regra proíbe **depender** do pacote, não conhecer o
+  vocabulário dele.
 - **Em Debug, `EnvironmentMinecraftAuthenticator` só assume o lugar quando
   `TCMINE_DEV_MINECRAFT_TOKEN` existe.** Registá-lo incondicionalmente esconderia
   o MSAL de quem o está a desenvolver — a build de Debug nunca abriria o
@@ -458,8 +458,8 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   a Mojang; o arquivo nem é compilado em release.
 - **Catálogo**: `IServerConnection` (porta) esconde o SignalR de tudo acima dela,
   e `SignalRServerConnection` guarda UMA conexão para a aplicação inteira — uma
-  por tela faria o servidor ver o mesmo jogador como vários. O canal é aberto
-  **sob demanda** pelo `LoadCatalog`, e não no login: ligar no login deixaria a
+  por tela faria o servidor ver o mesmo jogador como vários. O canal é aberto **sob demanda** pelo `LoadCatalog`, e não
+  no login: ligar no login deixaria a
   tela sem saída quando a conexão caísse depois, porque o botão de "tentar de
   novo" não teria o que religar. Sair fecha o canal (ver `SignIn.SignOutAsync`).
 - **`LauncherCatalogContractTests` sobe a aplicação num socket REAL (Kestrel em
@@ -483,7 +483,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   corromperia o blob COMPARTILHADO na primeira vez que o jogo o reescrevesse, e a
   corrupção viajaria para toda instância que usasse o mesmo arquivo. O hardlink em
   si é P/Invoke e vive em `TCMine.Launcher.Infrastructure.Windows`, atrás de
-  `IFileLinker`; sem ele o store copia, que é só mais disco.
+  `IFileLinker`; sem ele o store cópia, que é só mais disco.
 - **`TCMine.Launcher.Infrastructure.Windows`** é o único lugar de P/Invoke e do
   MSAL. `Launcher_Infrastructure_e_portavel` trava a fronteira, e ela não precisou
   mudar para o MSAL entrar: a infraestrutura portável não fala com ele, fala com
@@ -502,7 +502,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   do WAM. Foi medido no `project.assets.json`, não deduzido — e a analogia com o
   WebView2 é justamente o tipo de raciocínio que produz uma afirmação errada com
   cara de óbvia.
-- **Abrir o jogo é do CmlLib**, atrás de `IGameLauncher`, na infraestrutura
+- **Executar o jogo é do CmlLib**, atrás de `IGameLauncher`, na infraestrutura
   PORTÁVEL. A regra de camada deixou de o proibir ali e isso foi correção, não
   concessão: ele é multiplataforma, ao contrário do `Microsoft.Win32`, do
   `System.Windows` e do MSAL com broker — o próprio csproj sempre o listou aqui.
@@ -523,23 +523,22 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 - **Que Java usar vem da VERSÃO, não de palpite** (`IJavaRequirementSource` lê o
   `javaVersion` do JSON; disco primeiro, Mojang depois). O `JavaRequirement` é só
   o plano B — e já falhou: o Minecraft trocou "1.y.z" por "ano.release", o parse
-  recusou "26.2" e o fallback estava numa constante envelhecida. O jogo morria
+  recusou "26,2" e o fallback estava numa constante envelhecida. O jogo morria
   com "Could not create the Java Virtual Machine".
 - **A identidade do jogador vem do MINECRAFT, não do servidor TCMine**
   (`IPlayerProfileSource`). Vinha do nosso servidor por conveniência, e por isso
   tê-lo fora do ar impedia jogar com internet e Microsoft a responder. Sem rede,
   o último perfil guardado (nome e UUID, NUNCA token) abre em modo offline.
 - **O token do Minecraft é readquirido a cada abertura** por `TrySilentAsync`, e
-  a conta é verificada ANTES do Java: descobrir a sessão expirada depois de
+  a conta é verificada ANTES do Java: descobrir a sessão expirada após
   cinquenta megabytes seria fazer esperar para só então pedir login.
 - **Atualização do próprio launcher**: o servidor serve
   `/updates/launcher/{canal}/` a partir de `LauncherUpdates:RootPath` (derivado
-  de `Storage:RootPath`), e o launcher consome por Velopack. O canal vem do
+  de `Storage:RootPath`), e o launcher consomê por Velopack. O canal vem do
   PROTOCOLO, não da versão do produto. **Só funciona numa build empacotada pelo
   `vpk`**: a partir do código-fonte não há instalação para substituir e a
   biblioteca sai em silêncio — o que é o certo, senão ela reiniciar-se-ia no meio
-  de uma depuração.
-  **O launcher vai dentro da imagem do servidor.** O `Dockerfile` compila o WPF
+  de uma depuração. **O launcher vai dentro da imagem do servidor.** O `Dockerfile` compila o WPF
   (`EnableWindowsTargeting`: compila no Linux, não roda) e leva o `vpk` em
   `/usr/lib/tcmine/launcher` — fora de `/opt/tcmine`, onde o DEPLOY.md monta a
   raiz de dados e o volume a esconderia. No arranque, `LauncherBundlePublisher`
@@ -547,14 +546,15 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `PublicUrl`. A decisão é pura (`LauncherBundlePlan.Decide`, com teste): feed
   com versão MAIOR (pacote manual) é respeitado; mesma versão com outro
   endereço reempacota (o Velopack recusa a mesma versão duas vezes, então a
-  pasta é limpa); igual à marca `.tcmine-bundle` não faz nada.
-  **`src/launcher/VERSION` é a versão**, lida pelo MSBuild
+  pasta é limpa); igual à marca `.tcmine-bundle` não faz nada. **`src/launcher/VERSION` é a versão**, lida pelo MSBuild
   (`src/launcher/Directory.Build.props`), pelo Dockerfile e pelo
   `release-launcher.ps1`. Mudou o launcher, suba o número: o Velopack só
   oferece versão maior, e um launcher alterado com o mesmo número nunca chega a
-  quem já o tem. `scripts/check-launcher-version.sh` falha a release (e avisa no
-  CI) quando `src/launcher`, `src/shared` ou os props mudaram desde a tag
-  anterior sem o número subir.
+  quem já o tem. `scripts/check-launcher-version.sh` falha a release, no primeiro
+  passo, quando `src/launcher`, `src/shared` ou os props mudaram desde a tag
+  anterior sem o número subir. **`src/server/VERSION` é a versão do servidor**, pelo mesmo desenho
+  (`src/server/Directory.Build.props`). Subi-la no `master` é o que publica a
+  imagem (`release.yml`, o único workflow); nada roda em commits comuns.
   Publicar à mão (`release-launcher.ps1`) continua possível, mas o pacote não
   leva `server.json`.
 - **Downloads em paralelo** (`InstallModpackVersion.ParallelDownloads` = 6),
@@ -580,28 +580,30 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   teste de regressão para isso.
 - **`db.Update()` em grafo destacado não cascateia deleção de filhos removidos da coleção.** Ao substituir (ex.:
   `UpsertFile`), delete a linha antiga explicitamente via `RemoveFileAsync`.
-- **Migrations**: a base de design-time (`tcmine-design.db`) **não** é a base que a app abre (`data/tcmine.db`). Aplicar
+- **Migrations**: a base de design-time (`tcmine-design.db`) **não** é a base que o aplicativo abre (`data/tcmine.db`).
+  Aplicar
   migration numa não toca na outra. Rode
-  `dotnet ef database update` apontando para a base certa (ou use o auto-migrate em Development). Em dev, o `RootPath`
+  `dotnet ef database update` apontando para a base certa (ou use o automigrate em Development). Em dev, o `RootPath`
   de instâncias é resolvido para **absoluto** (`Path.GetFullPath`) porque o bind mount do Docker exige.
-- **Monaco + Blazor Web App**: a **enhanced navigation** desfaz o DOM que o Monaco monta e quebra o editor. Navegue para
+- **Monaco + Blazor Web Aplicativo**: a **enhanced navigation** desfaz o DOM que o Monaco monta e quebra o editor.
+  Navegue para
   a página do editor com
   `forceLoad: true` (ou `data-enhance-nav="false"` em links).
 - **MudBlazor 9.7**: para customizar linha de árvore, o par é `ItemTemplate` (no
   `MudTreeView`) → `BodyContent` (no `MudTreeViewItem`); o `Context` do
   `ItemTemplate` é `ITreeItemData<T>` (interface). O `MudTreeView` não reconstrói ao reatribuir `Items` — force com
   `@key` que muda a cada rebuild.
-- **Identidade dentro de um Hub vem de `Context.User`, nunca de `IHttpContextAccessor`.** O accessor responde
+- **Identidade em um Hub vem de `Context.User`, nunca de `IHttpContextAccessor`.** O accessor responde
   conforme o transporte: no WebSocket a requisição de upgrade continua viva e o contexto aparece; em long polling
   ela já terminou e o `HttpContext` foi reciclado, então o usuário some e toda checagem de papel vira "servidor não
   encontrado". Como o SignalR cai para long polling sozinho atrás de proxy, o bug atingiria só *alguns* jogadores.
   O principal é depositado no `UserPrincipalHolder` pelo `HubIdentityFilter`; `MainHubIdentidadeTests` trava os
   dois transportes.
 - **`dotnet test` não roda esta solução no SDK do .NET 10** (o caminho VSTest foi removido e o xUnit v3 usa o
-  Microsoft.Testing.Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
+  Microsoft. Testing. Platform). Use `scripts/tc test`, que executa o `.exe` de cada suíte por `dotnet run`.
 - **Método de Hub NUNCA devolve `[.. algo]` com alvo `IReadOnlyList<T>`.** A
-  expressão de coleção materializa o tipo interno sintetizado pelo compilador
-  (`<>z__ReadOnlyList`), e o MessagePack não o serializa: a chamada morre em
+  expressão de coleção materializa o tipo interno sintetizado pelo compilador (`<>z__ReadOnlyList`), e o MessagePack não
+  o serializa: a chamada morre em
   runtime **derrubando a conexão**, e o cliente recebe "Failed to serialize".
   Compila, passa nos testes que falam JSON, e quebra só no launcher — que é o
   único que usa MessagePack. `GetModpacksAsync` e `GetServersAsync` estavam
@@ -612,7 +614,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   a construção da classe e força a criação do `Default` ANTES de o gerador ter
   inicializado o campo de options dele — o contexto padrão nasce sem
   `TypeInfoResolver` e fica assim em cache. Resultado: **qualquer**
-  `TcMineJsonContext.Default.X` estoura com *"metadata … was not provided by
+  `TcMineJsonContext.Default.X` estoura com *"metadata… was not provided by
   TypeInfoResolver of type '<null>'"*, o que quebrava o handshake e a gravação do
   `tcmine.json` — o caminho inteiro do launcher. Compilava, e nenhum teste via,
   porque os dois lados usam o mesmo tipo. A correção é adiar (`Lazy<T>`).
@@ -630,20 +632,20 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   `IsHitTestVisibleInChrome` só vale para elementos WPF.
 - **O TFM do host precisa da versão do SDK do Windows** (`net10.0-windows10.0.19041.0`,
   não `net10.0-windows`). O controle WPF do WebView2 renderiza por composição e
-  chama as projeções WinRT; com o TFM seco o build passa e a janela morre no
+  chama as projeções WinRT; com o TFM seco a build passa e a janela morre no
   primeiro quadro com `FileNotFoundException: Microsoft.Windows.SDK.NET`.
-- **Os testes do launcher não fazem parte do CI**: `ci.yml` builda
+- **Os testes do launcher não fazem parte do workflow**: o `release.yml` builda
   `TCMine.Server.slnx`, que não lista nenhum projeto de `/src/launcher/`. O
-  binário, esse sim, é compilado no CI — pelo Dockerfile, no job da imagem, que
+  binário, esse, sim, é compilado lá — pelo Dockerfile, no job da imagem, que
   o leva dentro (§7.1). O `EnableWindowsTargeting` vai na linha de comando do
   `dotnet publish` do Dockerfile, e NÃO nos csproj: lá ele esconderia de quem
   abre no Linux que aquilo não roda. Build e testes do launcher (`TCMine.slnx`)
-  continuam trabalho da IDE, na sua máquina Windows, antes de commitar.
+  continuam trabalho da IDE, na sua máquina Windows, antes de commit.
 - **`[LibraryImport]`** exige `<AllowUnsafeBlocks>true</AllowUnsafeBlocks>` no csproj (o marshalling gerado usa
   `unsafe`). Fica contido na Infrastructure do servidor e no `Launcher.App`.
 - **O Xbox devolve `DisplayClaims.xui[].uhs` em minúsculas**, e são os dois
-  únicos campos assim numa resposta toda em PascalCase. O contexto source-gen
-  **não** é case-insensitive: sem `[JsonPropertyName]` neles, o user hash volta
+  únicos campos assim numa resposta toda em PascalCase. O contexto source-gen **não** é case-insensitive: sem
+  `[JsonPropertyName]` neles, o user hash volta
   nulo, o login morre no ÚLTIMO salto e o erro aponta para o Minecraft, que não
   tem nada com isso. Quem pegou foi o teste da cadeia, no primeiro arranque dele.
 - **No `Infrastructure.Windows`, `LogLevel` é ambíguo.** O MSAL declara o dele, e
@@ -653,7 +655,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   ambiguidade.
 - **Config gravada não se atualiza sozinha.** O `tcmine.json` congelava o client
   id do Azure no dia do pareamento (ver §7.1). A regra geral: tudo o que o
-  servidor descreve sobre si mesmo tem de ser reabsorvido no handshake seguinte,
+  servidor descreve sobre si tem de ser reabsorvido no handshake seguinte,
   senão uma correção no painel nunca alcança quem já pareou.
 - **`v@algo.Coisa` no Razor sai LITERAL.** É a heurística de endereço de e-mail:
   `letra@letra` não vira expressão, e não há erro de compilação a avisar. Use
@@ -694,8 +696,8 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   perguntava ao banco se ele já tinha sido importado.
 - **Entidade nova sem migration não falha só nela — derruba o banco inteiro.** O EF Core desta versão lança
   `PendingModelChangesWarning` como exceção ao rodar `Migrate()` quando o modelo diverge da última migration, mesmo
-  que a divergência seja só uma tabela nova. O arranque do `TCMine.Server.Web` engole essa exceção de propósito
-  (banco fora do ar não pode derrubar o processo — é o que separa `/health` de `/health/ready`), então o sintoma não
+  que a divergência seja só uma tabela nova. O arranque do `TCMine.Server.Web` engole essa exceção de propósito (banco
+  fora do ar não pode derrubar o processo — é o que separa `/health` de `/health/ready`), então o sintoma não
   é "falta a tabela nova": é **nenhuma tabela existe**, porque a migration inteira nunca rodou. Toda entidade nova
   (`DbSet` + `IEntityTypeConfiguration`) exige as duas migrations (§10) ANTES de rodar `tc test` — sem elas, dezenas
   de testes de `Server.Web.Tests` falham com "no such table: modpacks" e a causa real fica escondida atrás do
@@ -715,7 +717,8 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   record ANINHADO novo (ex.: `ModpackIngestionService/IngestedFile`) entra na lista de exceções do
   `ModpackAuthorizationRules`, senão o teste o confunde com um caso de uso sem autorização.
 - **Suítes**: do servidor — `Architecture`, `Server.Application`, `Server.Infrastructure`, `Server.Web`,
-  `MinecraftAuth` (rodam em Linux e no CI); do launcher — `Launcher.Architecture`, `Launcher.Core` (rodam na IDE,
+  `MinecraftAuth` (rodam em Linux e no `release.yml`); do launcher — `Launcher.Architecture`, `Launcher.Core` (rodam na
+  IDE,
   no Windows, como o resto do launcher).
 - **HTTP de origem (Modrinth/CurseForge)** se testa com um `HttpMessageHandler` que responde por caminho (ver
   `PinnedReleaseResolutionTests`) — nunca contra a API real.
@@ -732,7 +735,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   ./scripts/tc test '*PostgresColumnLimits*'
   ```
 
-  No CI a variável está definida e eles rodam sempre.
+  No `release.yml` a variável está definida e eles rodam sempre.
 - **Ao corrigir um bug, escreva o teste de regressão** que o trava. Foi assim que blindamos o `UpdateVersionAsync`.
 
 ---
@@ -741,7 +744,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 
 > **Sob WSL, o `dotnet` do PATH é o `dotnet.exe` do Windows.** Duas consequências
 > que custam tempo: caminhos absolutos de Linux não servem (use relativos à
-> raiz), e o `dotnet ef` falha com "A compatible .NET SDK was not found" porque o
+> raiz), e o `dotnet ef` falha com "A compatible.NET SDK was not found" porque o
 > msbuild filho resolve para o `C:\Program Files\dotnet`, que só tem o SDK 9. O
 > SDK 10 está na instalação do utilizador, então:
 >
@@ -793,28 +796,28 @@ TCMINE_DESIGN_CONNECTION="Data Source=data/tcmine.db" \
 
 ## 12. Economia de contexto (leia antes de verificar qualquer coisa)
 
-Uma sessão de agente gasta a maior parte do orçamento **relendo saída que não
+Uma sessão de agente gasta a maioria do orçamento **relendo saída que não
 mudou**: build verde, testes verdes, HTML de página. As regras abaixo existem
 para cortar isso.
 
 ### 12.1 Use `scripts/tc`, nunca `dotnet` cru
 
-| Em vez de | Use | Por quê |
-|---|---|---|
-| `dotnet build` | `./scripts/tc build` | devolve só erros/avisos + `BUILD OK` |
-| `dotnet test` | `./scripts/tc test` | devolve só falhas + placar |
-| ambos | `./scripts/tc check` | build + testes numa chamada |
-| abrir sqlite à mão | `./scripts/tc db state` | versões, arquivos e pendências em 5 linhas |
-| abrir o browser | `./scripts/tc smoke /rota` | o Blazor pré-renderiza no SSR: o texto da página vem no GET |
+| Em vez de          | Use                        | Por quê                                                     |
+|--------------------|----------------------------|-------------------------------------------------------------|
+| `dotnet build`     | `./scripts/tc build`       | devolve só erros/avisos + `BUILD OK`                        |
+| `dotnet test`      | `./scripts/tc test`        | devolve só falhas + placar                                  |
+| ambos              | `./scripts/tc check`       | build + testes numa chamada                                 |
+| abrir sqlite à mão | `./scripts/tc db state`    | versões, arquivos e pendências em 5 linhas                  |
+| abrir o browser    | `./scripts/tc smoke /rota` | o Blazor pré-renderiza no SSR: o texto da página vem no GET |
 
-`tc build` mata o `TCMine.Server.Web.exe` antes — era ele que fazia o build
+`tc build` mata o `TCMine.Server.Web.exe` antes — era ele que fazia a build
 falhar com um muro de MSB3026 — e **espera** o processo sair, porque `taskkill`
 volta assim que pede a morte, não quando os handles são liberados.
 
 Ele também compila com `--no-incremental`, e isso não é preciosismo: com os
 projetos atualizados o compilador nem roda, e **nenhum diagnóstico é reemitido**.
 Um erro de analisador aparecia uma vez e depois era perdoado para sempre, com o
-`tc` respondendo `BUILD OK` sobre código que o CI (checkout limpo) reprovaria.
+`tc` respondendo `BUILD OK` sobre código que o `release.yml` (checkout limpo) reprovaria.
 Custa cinco segundos.
 
 ### 12.2 Delegue a verificação ao subagente `verify`
@@ -823,13 +826,13 @@ Para confirmar que uma fatia ficou de pé, chame o agente `verify` em vez de
 rodar build/teste na conversa principal. A saída longa morre no contexto dele;
 volta só o veredito.
 
-### 12.3 Browser: último recurso
+### 12.3 Navegador: último recurso
 
 Dirigir a UI por `javascript_tool` é o caminho mais caro que existe — cada
 clique é uma ida-e-volta com resposta e raciocínio. Regras:
 
 - Prefira `tc smoke`. Ele já prova que a página renderizou e mostra o texto.
-- Se precisar mesmo do browser, **agrupe tudo numa chamada só**: navegar,
+- Se precisar mesmo do navegador, **agrupe tudo numa chamada só**: navegar,
   esperar, clicar e devolver as asserções num único `JSON.stringify`.
 - Nunca sonde em laço (`n0`, depois `n1`, depois `n2`). Um `await sleep()`
   dentro da mesma chamada custa zero contexto; uma segunda chamada custa tudo.
@@ -838,7 +841,7 @@ clique é uma ida-e-volta com resposta e raciocínio. Regras:
 
 - Não releia um arquivo inteiro para trocar três linhas: `Grep` com contexto
   localiza, `Edit` troca.
-- Não releia depois de editar para "conferir" — o `Edit` teria falhado.
+- Não releia após editar para "conferir" — o `Edit` teria falhado.
 - Mudou uma porta (`IModpackRepository`, `IBlobStore`, `IUpstreamPackSource`)?
   Os fakes de teste herdam de `tests/.../Fakes/Fake*Base.cs`. Acrescente o
   membro **só na base**; nenhum teste precisa mudar.
@@ -874,12 +877,12 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   exibição que o servidor de jogo mandou.
 - **Mundo que voltou no tempo abre um `CloudRollbackIncident` no `hello`** (checkpoint atrás de lotes
   já aplicados, MESMO mundo da conexão anterior) e deixa a nuvem em somente leitura naquele servidor.
-  Cobre restaurar backup pelo painel e cópia manual. Estorno = linhas compensatórias no ledger
-  (origem `Revert`), parando em zero e registrando o que não voltou.
+  Cobre restaurar backup pelo painel e cópia manual. Estorno = linhas compensatórias no ledger (origem `Revert`),
+  parando em zero e registrando o que não voltou.
 - **Decisão do painel que mexe em saldo** (aplicar quarentena, devolver operação em dúvida, estornar)
   só com o lease LIVRE (`CloudLeaseGuard`) e via `CommitAdminAsync`, que aumenta a versão do lease:
   um acquire concorrente perde a corrida e pega os saldos novos.
 - **Backup a quente com nuvem ligada:** depois do `save-all flush`, rodar `tccloud checkpoint` pelo
   RCON ANTES de copiar — senão o zip sai com o diário do mod atrasado em relação aos chunks.
-- **"Operações em dúvida" nunca são devolvidas automaticamente.** Depois de um crash o mod não sabe
+- **"Operações em dúvida" nunca são devolvidas automaticamente.** Após um crash o mod não sabe
   se o mundo gravou o item; devolver às cegas duplica. Só o dono decide, pelo painel.

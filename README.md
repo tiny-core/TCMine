@@ -12,7 +12,7 @@ Docker. Estável desde a **1.0.0**, publicado como imagem no Docker Hub — ver 
 as instâncias do jogador. O laço está fechado: parear com o servidor, entrar com
 a conta Microsoft, instalar um modpack, e jogar.
 
-O fluxo central: o servidor publica **manifestos completos** de cada versão, e o
+O fluxo central: o servidor pública **manifestos completos** de cada versão, e o
 launcher reconcilia o disco do jogador contra o manifesto — baixa o que falta,
 apaga o que sobrou. É um modelo declarativo: o manifesto descreve o estado
 final, e o launcher faz o disco convergir para ele.
@@ -25,8 +25,8 @@ final, e o launcher faz o disco convergir para ele.
 - **Instala e atualiza** reconciliando o disco contra o manifesto. Atualizar
   preserva o mundo, as configurações e a RAM escolhida — e tira uma cópia do
   mundo antes de mexer em qualquer coisa.
-- **Abre o jogo**, gerindo o Java que cada versão pede e instalando o loader
-  (NeoForge, Fabric, Quilt, Forge). Mostra o registro do jogo, então um crash
+- **Executa o jogo**, gerindo o Java que cada versão pede e instalando o loader (NeoForge, Fabric, Quilt, Forge). Mostra
+  o registro do jogo, então um crash
   deixa de ser "fechou sozinho".
 - **Canal alpha** separado: uma instância alpha acompanha pré-lançamentos e
   nunca salta para o canal estável.
@@ -37,7 +37,7 @@ final, e o launcher faz o disco convergir para ele.
 ## O que o servidor faz
 
 - **Modpacks** com versões imutáveis: uma versão publicada nunca muda, então nem
-  mod despublicado nem cota de API esgotada quebram quem já está jogando.
+  mod despublicado, nem cota de API esgotada quebram quem já está jogando.
 - **Importação e atualização** de packs do Modrinth e do CurseForge, com merge de
   três vias — o que o autor mudou entra sozinho, o que você customizou é
   preservado, e só os conflitos reais são perguntados. Você escolhe a versão do
@@ -68,7 +68,7 @@ cp .env.example .env      # ajuste TCMINE_ROOT, DOCKER_GID e TCMINE_PUBLIC_URL
 docker compose up -d
 ```
 
-Depois abra `https://seu-dominio/admin/setup`, informe o client ID do app que você
+Depois abra `https://seu-dominio/admin/setup`, informe o client ID do aplicativo que você
 registrou no Entra ID e entre com a sua conta Microsoft: a primeira conta vira a
 administradora da instalação. O passo a passo do registro está em
 [docs/DEPLOY.md](docs/DEPLOY.md).
@@ -101,8 +101,8 @@ VSTest, e o runner do xUnit v3 é o próprio executável de cada suíte.
 
 ## Arquitetura
 
-Clean Architecture, com a dependência sempre apontando para dentro — e isso é
-**verificado por testes** (NetArchTest): inverter uma dependência deixa o build
+Clean Architecture, com a dependência sempre apontando para dentro — e isso é **verificado por testes** (NetArchTest):
+inverter uma dependência deixa a build
 vermelho.
 
 ```
@@ -124,37 +124,34 @@ Detalhes de arquitetura e as decisões já tomadas estão em
 
 ## Compromisso de estabilidade
 
-A partir da 1.0.0, o que segue só muda de forma incompatível numa versão MAIOR
-(2.0.0), e sempre com instrução de atualização no [CHANGELOG.md](CHANGELOG.md):
+A partir da 1.0.0, o que segue só muda de forma incompatível numa versão MAIOR (2.0.0), e sempre com instrução de
+atualização no [CHANGELOG.md](CHANGELOG.md):
 
 - **O protocolo do launcher** (`Protocol.Current`, hoje 2): os métodos do hub, a
   aridade deles e os endpoints `/api/v1/*`. Um launcher publicado continua a
   falar com qualquer servidor 1.x.
 - **A API da nuvem de itens** (`/api/cloud/v1`) que o mod `tccloud` usa.
 - **A configuração**: as chaves de `appsettings`/variáveis de ambiente
-  documentadas em [docs/DEPLOY.md](docs/DEPLOY.md) e o layout da pasta de dados
-  (`TCMINE_ROOT`).
+  documentadas em [docs/DEPLOY.md](docs/DEPLOY.md) e o layout da pasta de dados (`TCMINE_ROOT`).
 - **O banco**: atualizar dentro da 1.x é só trocar a imagem — as migrations
   aplicam-se no arranque, sempre para a frente.
 
-Fora do compromisso: o HTML do painel, os nomes internos de classes e tabelas
-(o banco é do TCMine, não uma API) e qualquer coisa marcada como experimental.
+Fora do compromisso: o HTML do painel, os nomes internos de classes e tabelas (o banco é do TCMine, não uma API) e
+qualquer coisa marcada como experimental.
 
 ## Lançar uma versão
 
-O servidor sai por tag:
+O servidor sai quando `src/server/VERSION` sobe no `master`: o workflow roda os
+testes, publica a imagem no Docker Hub e só então cria a tag `server-v*` e a
+release. Commits comuns não disparam nada — ver [docs/RELEASE.md](docs/RELEASE.md).
 
-```bash
-git tag server-v0.4.0 && git push origin server-v0.4.0     # imagem no Docker Hub
-```
-
-O launcher vai **dentro da imagem**: ao subir, o servidor o publica na pasta de
+O launcher vai **dentro da imagem**: ao subir, o servidor a pública na pasta de
 atualizações com o próprio endereço embutido, e o jogador que instala pela
 página pública não digita nada. O número do launcher vive em
 `src/launcher/VERSION`, e a release recusa sair se o launcher mudou sem ele
 subir — ver [docs/RELEASE.md](docs/RELEASE.md#o-launcher).
 
-O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md). O que vem a seguir está no [docs/ROADMAP.md](docs/ROADMAP.md).
+O que mudou em cada versão está no [CHANGELOG.md](CHANGELOG.md). O que segue está no [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Licença
 

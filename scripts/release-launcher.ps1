@@ -74,7 +74,7 @@ Write-Host "Versão $Version, canal $channel"
 if (-not $SkipTests) {
     # Só as suítes do launcher: um release do launcher não toca em código do
     # servidor, e rodar as 600+ provas do servidor aqui seria pagar minutos
-    # por um veredito que o CI (ci.yml, a cada push) já deu.
+    # por um veredito que não é deste script: elas rodam no release.yml.
     Write-Host "==> Testes"
     foreach ($suite in "TCMine.Launcher.Core.Tests", "TCMine.Launcher.Architecture.Tests") {
         dotnet run --project "$Root\tests\$suite" -c Release

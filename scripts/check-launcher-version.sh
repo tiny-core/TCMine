@@ -10,7 +10,7 @@
 #
 # Uso:
 #   scripts/check-launcher-version.sh            # falha (exit 1) se esqueceu
-#   scripts/check-launcher-version.sh --warn     # só avisa (CI de PR/master)
+#   scripts/check-launcher-version.sh --warn     # só avisa (para conferir à mão)
 #
 # Exige o histórico e as tags (checkout com fetch-depth: 0).
 set -euo pipefail
@@ -27,9 +27,10 @@ VERSAO_ARQ="src/launcher/VERSION"
 # nenhum, e distinguir "só comentário" aqui seria apostar contra o compilador.
 CAMINHOS=(src/launcher src/shared Directory.Packages.props Directory.Build.props)
 
-# A release anterior é a tag server-v* mais próxima ANTES deste commit. Com
-# HEAD^ e não HEAD: no job de release o próprio HEAD já carrega a tag nova.
-anterior="$(git describe --tags --abbrev=0 --match 'server-v*' HEAD^ 2>/dev/null || true)"
+# A release anterior é a tag server-v* mais próxima deste commit. O release.yml
+# cria a tag DEPOIS de publicar, então na conferência o HEAD ainda não a
+# carrega. (Quando a tag era o gatilho, era preciso olhar a partir de HEAD^.)
+anterior="$(git describe --tags --abbrev=0 --match 'server-v*' HEAD 2>/dev/null || true)"
 if [ -z "$anterior" ]; then
   echo "Nenhuma release server-v* anterior: nada a comparar."
   exit 0

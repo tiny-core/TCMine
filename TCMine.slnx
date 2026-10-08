@@ -56,6 +56,8 @@
   </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />
+    <File Path=".env" />
+    <File Path=".env.example" />
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
