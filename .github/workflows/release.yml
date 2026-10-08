@@ -2,8 +2,9 @@
 #
 # Não roda em commits comuns. Dispara quando src/server/VERSION muda no master:
 #
-#   1. lê a versão; se a tag server-v<versão> já existe, termina;
-#   2. build e testes — falhou, para aqui;
+#   1. lê a versão; se a tag server-v<versão> já existe, termina; confere
+#      que a versão do launcher subiu se ele mudou;
+#   2. Build e testes — falhou, para aqui;
 #   3. constrói a imagem e roda a fumaça nela;
 #   4. envia ao Docker Hub;
 #   5. cria a tag e a release no GitHub.
@@ -56,7 +57,11 @@ jobs:
       publicar: ${{ steps.ler.outputs.publicar }}
 
     steps:
+      # Histórico inteiro e as tags: a conferência do launcher, abaixo, compara
+      # com a release anterior.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Ler a versão e decidir
         id: ler
@@ -93,6 +98,13 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
           echo "Versão ${versao} — publicar: ${publicar}"
+
+      # Aqui, e não no job da imagem: esquecer o número do launcher é o erro
+      # provável de uma publicação, e assim ele aparece em segundos em vez
+      # de depois de todos os testes.
+      - name: Versão do launcher acompanhou as mudanças dele
+        if: steps.ler.outputs.publicar == 'true'
+        run: bash ./scripts/check-launcher-version.sh
 
   testes:
     name: Build e testes
@@ -165,14 +177,7 @@ jobs:
       VERSAO: ${{ needs.versao.outputs.versao }}
 
     steps:
-      # Histórico inteiro e as tags: a conferência do launcher compara com a
-      # release anterior.
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Versão do launcher acompanhou as mudanças dele
-        run: bash ./scripts/check-launcher-version.sh
 
       - name: Tags da imagem
         id: tags
@@ -229,7 +234,7 @@ jobs:
           cache-from: type=gha,scope=imagem-servidor
 
       # Por último, e só agora: a tag afirma que a imagem existe. O gh cria a
-      # tag junto com a release, apontando para o commit que foi publicado.
+      # tag com a release, apontando para o commit que foi publicado.
       - name: Criar a tag e a release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

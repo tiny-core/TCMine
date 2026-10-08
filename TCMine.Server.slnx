@@ -1,6 +1,6 @@
 <Solution>
   <!--
-      Solução usada só pelo CI (ci.yml). O launcher não faz mais parte da
+      Solução usada pelo workflow de publicação (release.yml) e pelo scripts/tc. O launcher não faz mais parte da
       verificação automática — passou a ser exclusivo da IDE (§0/§12 do
       CLAUDE.md) — então este arquivo lista tudo MENOS a pasta /Launcher/ da
       TCMine.slnx. Quem abre o projeto na IDE continua usando TCMine.slnx, que

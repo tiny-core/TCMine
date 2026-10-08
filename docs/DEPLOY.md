@@ -17,7 +17,7 @@ curl -fsSL https://get.docker.com | sudo sh
 sudo systemctl enable --now docker
 ```
 
-O `enable` não é redundante: sem ele o Docker não volta depois de um reboot, e
+O `enable` não é redundante: sem ele o Docker não volta após um reboot, e
 o `restart: unless-stopped` do compose não tem quem o execute — a máquina
 reinicia por uma atualização de kernel e o painel simplesmente não volta.
 
@@ -45,25 +45,25 @@ cp .env.example .env
 
 Ajuste no `.env`:
 
-| Variável | O que é |
-|---|---|
-| `TCMINE_ROOT` | Pasta do passo 1. Montada no **mesmo caminho** dentro do container — ver a nota abaixo. Vira `Storage__RootPath`, de onde saem banco, blobs, instâncias e chaves. |
-| `DOCKER_GID` | GID do grupo dono do socket: `getent group docker \| cut -d: -f3` |
-| `TCMINE_PUBLIC_URL` | Endereço público, com https. Vai no `tcmine.json` e no feed do launcher — e **dentro do instalador do launcher**, que a imagem empacota ao subir: quem instala pela página pública não digita endereço. Sem ele o instalador sai sem endereço e o jogador digita. |
-| `LauncherUpdates__PublishBundled` | `false` desliga o empacotamento do launcher no arranque (feed mantido à mão — ver [RELEASE.md](RELEASE.md#o-launcher)). |
-| `TCMINE_AZURE_CLIENT_ID` | Client ID da app Azure do login com a Microsoft. |
-| `Updates__Enabled` | `false` desliga o aviso de versão nova no painel (ele consulta as releases do GitHub a cada seis horas). Útil em máquina sem saída para a internet. |
+| Variável                          | O que é                                                                                                                                                                                                                                                           |
+|-----------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `TCMINE_ROOT`                     | Pasta do passo 1. Montada no **mesmo caminho** dentro do container — ver a nota abaixo. Vira `Storage__RootPath`, de onde saem banco, blobs, instâncias e chaves.                                                                                                 |
+| `DOCKER_GID`                      | GID do grupo dono do socket: `getent group docker \| cut -d: -f3`                                                                                                                                                                                                 |
+| `TCMINE_PUBLIC_URL`               | Endereço público, com https. Vai no `tcmine.json` e no feed do launcher — e **dentro do instalador do launcher**, que a imagem empacota ao subir: quem instala pela página pública não digita endereço. Sem ele o instalador sai sem endereço e o jogador digita. |
+| `LauncherUpdates__PublishBundled` | `false` desliga o empacotamento do launcher no arranque (feed mantido à mão — ver [RELEASE.md](RELEASE.md#o-launcher)).                                                                                                                                           |
+| `TCMINE_AZURE_CLIENT_ID`          | Client ID da app Azure do login com a Microsoft.                                                                                                                                                                                                                  |
+| `Updates__Enabled`                | `false` desliga o aviso de versão nova no painel (ele consulta as releases do GitHub a cada seis horas). Útil em máquina sem saída para a internet.                                                                                                               |
 
 ### Uma raiz, quatro caminhos
 
 `Storage__RootPath` preenche sozinho o que não for declarado:
 
-| Derivado | Caminho |
-|---|---|
+| Derivado       | Caminho                 |
+|----------------|-------------------------|
 | Banco (SQLite) | `{raiz}/data/tcmine.db` |
-| Blobs | `{raiz}/data/blobs` |
-| Instâncias | `{raiz}/instances` |
-| Chaves | `{raiz}/data/keys` |
+| Blobs          | `{raiz}/data/blobs`     |
+| Instâncias     | `{raiz}/instances`      |
+| Chaves         | `{raiz}/data/keys`      |
 
 Para separar um deles — blobs num disco maior, por exemplo — declare a chave
 específica (`BlobStorage__RootPath`) e ela ganha da derivação.
@@ -76,7 +76,7 @@ servidor subiria sem mods e sem mundo, silenciosamente. O arranque recusa subir 
 também quando detecta que o bind mount trocou o nome da pasta no caminho — que é
 o que interfaces de NAS costumam fazer sozinhas.
 
-> **Se instalar por um painel de NAS, confira o YAML depois de salvar.** Alguns
+> **Se instalar por um painel de NAS, confira o YAML após salvar.** Alguns
 > reescrevem o volume para um caminho de apresentação (`/DATA/...`), e aí o
 > painel funciona enquanto todo servidor de jogo sobe vazio. O arranque detecta e
 > recusa; se a checagem errar no seu arranjo, desligue com
@@ -94,7 +94,7 @@ Para PostgreSQL em vez de SQLite:
 docker compose --profile postgres up -d
 ```
 
-e no `.env`:
+E no `.env`:
 
 ```
 TCMINE_DB_PROVIDER=Postgres
@@ -102,13 +102,13 @@ TCMINE_DB_PROVIDER=Postgres
 
 O banco aceita campos separados, que é o que se recomenda:
 
-| Variável | Padrão |
-|---|---|
-| `Database__Host` | — (obrigatório para Postgres) |
-| `Database__Port` | `5432` |
-| `Database__Name` | `tcmine` |
-| `Database__Username` | `tcmine` |
-| `Database__Password` | — |
+| Variável             | Padrão                        |
+|----------------------|-------------------------------|
+| `Database__Host`     | — (obrigatório para Postgres) |
+| `Database__Port`     | `5432`                        |
+| `Database__Name`     | `tcmine`                      |
+| `Database__Username` | `tcmine`                      |
+| `Database__Password` | —                             |
 
 Prefira os campos à connection string inteira: a senha é escapada pelo driver,
 e uma senha com `;` ou `=` quebra uma string montada à mão — com o erro
@@ -122,13 +122,13 @@ pool).
 ### Usar a imagem publicada em vez de construir
 
 O compose do repositório constrói a imagem. Em produção o normal é consumir a
-que o `release-server.yml` publicou: um `docker-compose.yml` com `image:` no
+que o `release.yml` publicou: um `docker-compose.yml` com `image:` no
 lugar de `build:`.
 
 ```yaml
 services:
   tcmine:
-    image: SEU_USUARIO/tcmine-server:latest
+    image: jocian/tcmine-server:latest
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
@@ -198,10 +198,10 @@ curl -H 'X-Forwarded-Proto: https' -o /dev/null -w '%{http_code}\n' http://local
 
 ### Atrás do Cloudflare
 
-Funciona, com um aviso: o **Bot Fight Mode** injeta um script inline em cada
+Funciona, com um aviso: o **Bot Fight Mode** injeta um roteiro inline em cada
 página HTML (`window.__CF$cv$params={r:'<cf-ray>'…}`), e a CSP do painel é
 `script-src 'self'` — sem `unsafe-inline`, sem nonce. O navegador bloqueia esse
-script e registra no console:
+roteiro e registra no console:
 
 ```
 Executing inline script violates the following Content Security Policy directive 'script-src self'
@@ -212,20 +212,19 @@ Cloudflare, não código do TCMine. Mas o erro fica no console e confunde na hor
 de diagnosticar outra coisa.
 
 Como reconhecer que é isso, e não um problema seu: o hash sugerido pelo
-navegador **muda a cada carregamento**. O script carrega o `CF-RAY` da resposta,
-que é diferente em toda requisição — por isso não adianta liberar o hash, e é
+navegador **muda a cada carregamento**. O roteiro carrega o `CF-RAY` da resposta,
+diferente em toda requisição — por isso não adianta liberar o hash, e é
 também a assinatura do sintoma. Para confirmar:
 
 ```bash
 curl -s https://seu-dominio/login | grep -o "__CF\$cv\$params[^,]*"
 ```
 
-Saída não vazia = é o Cloudflare. Nenhuma página do TCMine serve script inline
-(há teste que garante isso).
+Saída não vazia = é o Cloudflare. Nenhuma página do TCMine serve roteiro inline (há teste que garante isso).
 
 Para tirar o erro do console, desligue **Security → Bots → Bot Fight Mode** no
 painel do Cloudflare. Não mexa na CSP para acomodá-lo: liberar `unsafe-inline`
-abriria a porta de XSS que a política existe para fechar, por causa de um script
+abriria a porta de XSS que a política existe para fechar, devido a um roteiro
 que nem é da aplicação.
 
 O Cloudflare também acrescenta um segundo cabeçalho
@@ -238,7 +237,7 @@ prático aqui, já que a nossa usa `frame-ancestors 'none'`.
 Não há conta de e-mail e senha: o painel entra pela **conta Microsoft**, e o
 launcher pelo perfil Minecraft da mesma pessoa — as duas viram uma conta só.
 
-1. Registre um app no Entra ID (*portal.azure.com → Microsoft Entra ID → Registros
+1. Registre um aplicativo no Entra ID (*portal.azure.com → Microsoft Entra ID → Registros
    de aplicativo → Novo registro*), **somente contas Microsoft pessoais**.
 2. Na plataforma **Web**, registre `https://seu-dominio/auth/microsoft/callback`
    (é o login do painel). Na plataforma **cliente público / nativo**, os dois URIs
@@ -250,7 +249,7 @@ launcher pelo perfil Minecraft da mesma pessoa — as duas viram uma conta só.
    existe enquanto não houver nenhum usuário; depois, o client ID se troca em
    Configurações.
 
-O `TCMINE_AZURE_CLIENT_ID` do `.env` continua valendo como semente: com ele
+O `TCMINE_AZURE_CLIENT_ID` do `.env` contínua valendo como semente: com ele
 preenchido, o `/admin/login` já oferece "Entrar com a Microsoft" e o passo 3 se
 reduz a entrar.
 
@@ -276,8 +275,8 @@ do jogo continua a precisar de encaminhamento direto.
 
 ## Nenhum servidor de jogo inicia
 
-Quase sempre é o socket do Docker. O painel roda como um usuário sem privilégio
-(`1654`), e o socket pertence ao grupo `docker` com modo `660` — quem não está
+Quase sempre é o socket do Docker. O painel roda como um usuário sem privilégio (`1654`), e o socket pertence ao grupo
+`docker` com modo `660` — quem não está
 nesse grupo não o abre, e toda operação de container falha com *permission
 denied*.
 
@@ -289,7 +288,7 @@ docker exec <container-do-tcmine> id
 ```
 
 Se o GID do socket não aparecer nos grupos, acrescente-o ao `group_add` do
-container e recrie-o. O número varia por distribuição — 999 no Ubuntu, outro
+container e recrie-o. O número vária por distribuição — 999 no Ubuntu, outro
 valor noutras. Não chute: leia o `stat`.
 
 A partir da 0.1.8 o próprio arranque avisa: procure no log a linha
@@ -297,7 +296,7 @@ A partir da 0.1.8 o próprio arranque avisa: procure no log a linha
 
 ## O que o compose concede ao painel
 
-O container recebe `/var/run/docker.sock`. Isso lhe dá o poder de criar
+O container recebe `/var/run/docker.sock`. Isso lhe atribui o poder de criar
 containers — e, por consequência, **controle total desta máquina**. É o que
 permite orquestrar os servidores de jogo, e é a razão de
 o painel exigir autenticação e de o proxy ser obrigatório. Não exponha esta

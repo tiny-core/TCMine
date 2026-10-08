@@ -4,17 +4,17 @@ namespace TCMine.Server.Web.Configuration;
 
 /// <summary>
 ///     A versão desta build, para a interface mostrar.
-///     Vem do <c>InformationalVersion</c>, que o Dockerfile preenche a partir da
-///     tag do git. Saber em que versão a instalação está deixou de ser detalhe
+///     Vem do <c>InformationalVersion</c>, que o MSBuild preenche a partir de
+///     <c>src/server/VERSION</c> (ver <c>src/server/Directory.Build.props</c>). Saber em que versão a instalação está deixou de ser detalhe
 ///     no dia em que uma imagem nova foi publicada e o container continuou
 ///     rodando a antiga — pelo painel não havia como perceber.
 /// </summary>
 public static class BuildInfo
 {
     /// <summary>
-    ///     Ex.: "0.1.5". Em build local sai "dev", porque aí o número não
-    ///     significa nada: o padrão do SDK é 1.0.0 e mostrá-lo seria pior que
-    ///     não mostrar versão alguma.
+    ///     Ex.: "1.1.0". Só sai "dev" se a build perdeu o arquivo de versão: aí
+    ///     o SDK cai no padrão 1.0.0, e mostrá-lo seria pior que não mostrar
+    ///     versão alguma.
     /// </summary>
     public static string Version { get; } = Descobrir();
 
