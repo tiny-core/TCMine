@@ -26,8 +26,14 @@ kill_app() {
   # argumentos começados por barra e exige `//F`) e WSL (que não mangleia e
   # rejeita `//F`). Passando a linha inteira ao cmd, funciona nos dois — e o
   # taskkill falhando calado era pior: o build quebrava sem dizer por quê.
+  # As duas variáveis desligam a conversão de caminhos do Git Bash SÓ nesta
+  # chamada: sem elas o próprio "/c" vira "C:\", o cmd abre um prompt
+  # interativo invisível e o tc fica parado para sempre. No WSL elas não
+  # fazem nada. O </dev/null é a rede de segurança: se um dia o cmd abrir
+  # interativo de novo, ele lê fim de arquivo e sai em vez de travar.
   for app in $APPS; do
-    cmd.exe /c "taskkill /F /IM $app" >/dev/null 2>&1 || true
+    MSYS_NO_PATHCONV=1 MSYS2_ARG_CONV_EXCL='*' \
+      cmd.exe /c "taskkill /F /IM $app" </dev/null >/dev/null 2>&1 || true
   done
 
   # taskkill volta assim que PEDE a morte, não quando o processo sai. Compilar
