@@ -13,7 +13,33 @@ O texto completo de cada lançamento está na
 
 ## [Não lançado]
 
-Launcher **1.1.0** (vai na próxima imagem do servidor).
+## [1.1.1] — 2026-10-09
+
+Launcher **1.1.1**. Nenhuma mudança de comportamento: é a primeira versão
+publicada pelo fluxo novo e a que leva a instrumentação da linha de base da
+refatoração.
+
+### Manutenção
+
+- **A publicação sai do arquivo de versão.** A versão do servidor passa a morar
+  em `src/server/VERSION`, como a do launcher. Subir esse número no `master`
+  roda os testes, publica a imagem no Docker Hub e só então cria a tag
+  `server-v*`; commits comuns não disparam nada. Os workflows `ci.yml` e
+  `release-server.yml` saíram — ver [docs/RELEASE.md](docs/RELEASE.md).
+- **Medição temporária de desempenho** ([docs/BASELINE.md](docs/BASELINE.md)):
+  o servidor registra no log o tempo de abertura de três páginas do painel
+  (linhas "Abertura de página") e o launcher, três marcos do arranque (linhas
+  "Arranque:"). Uma linha de log por abertura, sem outro efeito; sai no fim da
+  refatoração.
+- O `scripts/tc` deixou de travar no Git Bash.
+
+### Atualizar
+
+Nada a fazer: não há migration nova e o protocolo do launcher **não** mudou.
+
+## [1.1.0] — 2026-10-06
+
+Launcher **1.1.0**.
 
 ### Adicionado
 
