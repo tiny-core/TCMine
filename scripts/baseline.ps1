@@ -21,11 +21,17 @@
 .EXAMPLE
     .\scripts\baseline.ps1 db
     Tamanho do banco de dev e linhas por tabela (exige Python, como o tc db).
+
+.EXAMPLE
+    .\scripts\baseline.ps1 report
+    Lê o log do launcher INSTALADO e entrega amostras e medianas do arranque,
+    mais as linhas de instalação/atualização de modpack. Este é o único comando
+    cujo resultado vai para o BASELINE.md. Use -Days 3 para os últimos 3 dias.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet("boot", "mem", "db")]
+    [ValidateSet("boot", "mem", "db", "report")]
     [string]$Command,
 
     [string]$Url = "http://localhost:5144",
@@ -33,7 +39,10 @@ param(
     # Release por padrão: Debug mede o código sem otimização e engana.
     [string]$Configuration = "Release",
 
-    [int]$Rounds = 3
+    [int]$Rounds = 3,
+
+    # report: quantos arquivos de log (um por dia) entram na conta.
+    [int]$Days = 1
 )
 
 $ErrorActionPreference = "Stop"
@@ -139,7 +148,76 @@ for count, table in rows:
     & $python.Source $script $database
 }
 
+function Get-Median {
+    param([double[]]$Values)
+
+    $sorted = @($Values | Sort-Object)
+    $count = $sorted.Count
+    if ($count -eq 0) { return 0 }
+
+    $middle = [int][math]::Floor($count / 2)
+    if ($count % 2 -eq 1) { return $sorted[$middle] }
+    return ($sorted[$middle - 1] + $sorted[$middle]) / 2
+}
+
+function Show-Report {
+    $logs = Join-Path $env:LOCALAPPDATA "TCMine\logs"
+    if (-not (Test-Path $logs)) { throw "Pasta de logs do launcher não encontrada em $logs" }
+
+    $files = @(Get-ChildItem -Path $logs -Filter "launcher-*.log" | Sort-Object Name | Select-Object -Last $Days)
+    if ($files.Count -eq 0) { throw "Nenhum launcher-*.log em $logs" }
+
+    # Ordenado: os marcos saem na ordem em que acontecem no arranque.
+    $marks = New-Object System.Collections.Specialized.OrderedDictionary
+    $installs = New-Object System.Collections.Generic.List[string]
+
+    foreach ($file in $files) {
+        # Get-Content e não File.ReadLines: o launcher aberto mantém o arquivo
+        # em escrita, e o Get-Content lê assim mesmo.
+        foreach ($line in (Get-Content -Path $file.FullName -Encoding UTF8)) {
+            # O "." no lugar das letras acentuadas: a medição não pode depender
+            # da codificação do console.
+            if ($line -match 'Arranque: "?(.+?)"? em (\d+) ms(?: \("?([^")]+)"?\))?') {
+                $name = $Matches[1]
+                # O desfecho (com sessão, login, offline...) separa caminhos de
+                # custo diferente, que não podem entrar na mesma mediana.
+                if ($Matches[3]) { $name = "$name ($($Matches[3]))" }
+
+                if (-not $marks.Contains($name)) {
+                    $marks.Add($name, (New-Object System.Collections.Generic.List[double]))
+                }
+                $marks[$name].Add([double]$Matches[2])
+            }
+            elseif ($line -match '\] (Instala.+o de modpack .+)$') {
+                $installs.Add($Matches[1])
+            }
+        }
+    }
+
+    Write-Host ("Arquivos: {0}" -f (($files | ForEach-Object { $_.Name }) -join ", "))
+
+    if ($marks.Count -eq 0) {
+        Write-Host "Nenhuma linha 'Arranque:' no período."
+    }
+
+    foreach ($name in $marks.Keys) {
+        $values = $marks[$name].ToArray()
+        Write-Host ("{0} ({1} aberturas)" -f $name, $values.Count)
+        Write-Host ("  {0}  -> mediana {1:N0} ms" -f ($values -join ", "), (Get-Median $values))
+    }
+
+    if ($installs.Count -gt 0) {
+        Write-Host ""
+        Write-Host ("Instalações e atualizações ({0})" -f $installs.Count)
+        foreach ($install in $installs) { Write-Host "  $install" }
+    }
+
+    Write-Host ""
+    Write-Host "A primeira abertura depois de ligar o PC é a medição 'a frio'; as seguintes são 'a quente'."
+}
+
 switch ($Command) {
+    "report" { Show-Report }
     "boot" { Measure-Boot }
     "mem"  { Measure-Memory }
     "db"   { Measure-Database }

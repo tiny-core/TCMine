@@ -8,6 +8,7 @@
 #   ./scripts/baseline.sh boot  <container> [url]   3 boots, tempo até /health/live
 #   ./scripts/baseline.sh mem   <container>         memória e CPU em repouso
 #   ./scripts/baseline.sh pages <container> [desde] linhas "Abertura de página" (padrão: 30m)
+#   ./scripts/baseline.sh report <container> [desde] amostras e MEDIANAS já calculadas (padrão: 24h)
 #   ./scripts/baseline.sh db-postgres <container-do-postgres> [usuário] [banco]
 #   ./scripts/baseline.sh db-sqlite   <caminho do tcmine.db>
 #
@@ -48,6 +49,47 @@ mem() {
 pages() {
   exigir "${1:-}" "o nome do container"
   docker logs --since "${2:-30m}" "$1" 2>&1 | grep "Abertura de p" || echo "nenhuma abertura no período"
+}
+
+# Lê as linhas de medição do log e entrega a tabela pronta: amostras em ordem
+# e mediana por página, mais os inícios de servidor de jogo. É o que vai para o
+# docs/BASELINE.md, sem copiar log nem fazer conta à mão.
+report() {
+  exigir "${1:-}" "o nome do container"
+  docker logs --since "${2:-24h}" "$1" 2>&1 | python3 -c "$(cat <<'PY'
+import re, statistics, sys
+
+text = sys.stdin.buffer.read().decode("utf-8", "replace")
+
+# O "." no lugar das letras acentuadas e do travessão: o log pode chegar em
+# outra codificação pelo terminal, e a medição não pode depender disso.
+pages = {}
+for name, load, render in re.findall(
+        r'Abertura de p.gina: "?(\w+)"? . carga (\d+) ms, renderiza..o (\d+) ms', text):
+    pages.setdefault(name, []).append((int(load), int(render)))
+
+starts = [(int(total), int(container)) for total, container in re.findall(
+    r'In.cio de servidor: \S+ . total (\d+) ms \(container (\d+) ms\)', text)]
+
+def linha(rotulo, valores):
+    amostras = ", ".join(str(v) for v in valores)
+    return "  %-13s %s  -> mediana %d ms" % (rotulo, amostras, statistics.median(valores))
+
+if not pages and not starts:
+    print("nenhuma medição no período")
+
+for name in sorted(pages):
+    amostras = pages[name]
+    print("%s (%d aberturas)" % (name, len(amostras)))
+    print(linha("carga", [a for a, _ in amostras]))
+    print(linha("renderização", [b for _, b in amostras]))
+
+if starts:
+    print("Início de servidor de jogo (%d)" % len(starts))
+    print(linha("total", [a for a, _ in starts]))
+    print(linha("container", [b for _, b in starts]))
+PY
+)"
 }
 
 db_postgres() {
@@ -100,7 +142,8 @@ case "${1:-}" in
   boot)        boot "${2:-}" "${3:-}" ;;
   mem)         mem "${2:-}" ;;
   pages)       pages "${2:-}" "${3:-}" ;;
+  report)      report "${2:-}" "${3:-}" ;;
   db-postgres) db_postgres "${2:-}" "${3:-}" "${4:-}" ;;
   db-sqlite)   db_sqlite "${2:-}" ;;
-  *)           sed -n '2,15p' "$0"; exit 1 ;;
+  *)           sed -n '2,16p' "$0"; exit 1 ;;
 esac

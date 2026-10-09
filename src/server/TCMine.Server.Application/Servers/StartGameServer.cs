@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 ﻿using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Common;
@@ -23,6 +24,15 @@ public sealed partial class StartGameServer(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: não consegui preparar a chave do servidor {ServerId}; ele sobe sem nuvem.")]
     private partial void LogFalhaNuvem(Exception ex, Guid serverId);
 
+    // TEMPORÁRIO — linha de base da refatoração (docs/BASELINE.md, S5). Sai no
+    // fim da fase 8. "container" é o orchestrator.StartAsync: materializar a
+    // pasta, criar e iniciar o container. NÃO inclui o Minecraft carregar os
+    // mods — Running aqui é "container no ar", e não "aceitando jogadores".
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Início de servidor: {ServerId} — total {TotalMs} ms (container {ContainerMs} ms).")]
+    private partial void LogStartTimings(Guid serverId, long totalMs, long containerMs);
+
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {
         var auth = await scope.RequireAsync(serverId, ServerAccessPolicy.CanControlPower, ct);
@@ -32,6 +42,8 @@ public sealed partial class StartGameServer(
         var server = await servers.GetByIdAsync(serverId, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
+
+        var startedAt = Stopwatch.GetTimestamp();
 
         void Report(string step)
         {
@@ -59,7 +71,9 @@ public sealed partial class StartGameServer(
             Report("Preparando a instância e o container…");
             // EnsureCreated (dentro do Start) materializa a pasta, cria o
             // container e persiste o ContainerId. É idempotente.
+            var containerStartedAt = Stopwatch.GetTimestamp();
             await orchestrator.StartAsync(serverId, ct);
+            var containerMs = (long)Stopwatch.GetElapsedTime(containerStartedAt).TotalMilliseconds;
 
             // Recarrega: o StartAsync gravou o ContainerId numa instância própria.
             // A nossa cópia 'server' está velha (ContainerId ainda null) — gravar
@@ -81,6 +95,10 @@ public sealed partial class StartGameServer(
             await whitelist.HandleAsync(serverId, ct);
 
             progress.Complete(jobId);
+
+            var totalMs = (long)Stopwatch.GetElapsedTime(startedAt).TotalMilliseconds;
+            LogStartTimings(serverId, totalMs, containerMs);
+
             return Result.Success();
         }
         catch (Exception ex)

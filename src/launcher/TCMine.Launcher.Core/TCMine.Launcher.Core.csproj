@@ -12,6 +12,8 @@
   <ItemGroup>
     <!-- Só as abstrações do contêiner, para o AddLauncherCore. Portável. -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+    <!-- Só as abstrações de log (ILogger e o gerador de LoggerMessage). Portável. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
   </ItemGroup>
 
   <ItemGroup>
