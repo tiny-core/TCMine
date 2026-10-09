@@ -21,5 +21,12 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         // GUID em texto tem 36 caracteres; a folga cobre um id entre chaves,
         // que é como o portal do Azure às vezes o entrega ao copiar.
         builder.Property(s => s.AzureClientId).HasMaxLength(64);
+
+        // Com padrão NO BANCO: a linha de configurações já existe nas
+        // instalações em uso, e sem isto a migration a deixaria com a faixa
+        // 0–0. O valor é o literal, e não a constante do domínio, porque
+        // migration antiga não pode mudar quando uma constante mudar.
+        builder.Property(s => s.GamePortRangeStart).HasDefaultValue(25565);
+        builder.Property(s => s.GamePortRangeEnd).HasDefaultValue(25599);
     }
 }

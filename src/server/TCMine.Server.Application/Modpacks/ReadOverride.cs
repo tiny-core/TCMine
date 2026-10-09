@@ -32,8 +32,10 @@ public sealed class ReadOverride(IModpackRepository repository, IBlobStore blobS
 
         // Grande demais: nem chega a abrir o blob.
         if (file.SizeBytes > MaxEditableBytes)
+        {
             return Result<OverrideContent>.Success(OverrideContent.NotEditable(file,
                 "Arquivo grande demais para editar."));
+        }
 
         // Meio mega no máximo, então carregar em memória é barato — e evita
         // decodificar por partes, que partiria um caractere UTF-8 ao meio.

@@ -59,8 +59,10 @@ public partial class UsersPage : ComponentBase
             var result = await SetAdminUseCase.HandleAsync(user.Id, ligado, CancellationToken.None);
 
             if (result.Succeeded)
+            {
                 Snackbar.Add($"{user.DisplayName}: {(ligado ? "promovido a" : "removido de")} admin.",
                     Severity.Success);
+            }
             else
                 Snackbar.Add(result.Error!, Severity.Error);
 

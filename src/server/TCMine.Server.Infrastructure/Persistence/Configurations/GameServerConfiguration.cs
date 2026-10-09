@@ -35,6 +35,10 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
             .IsRequired()
             .HasSentinel(string.Empty);
 
+        // Único: é o banco, e não só a validação, que garante que dois
+        // servidores nunca disputam a mesma porta do host.
+        builder.HasIndex(s => s.GamePort).IsUnique();
+
         builder.HasIndex(s => s.OwnerId);
         builder.HasIndex(s => s.ModpackVersionId);
         builder.HasIndex(s => s.ModpackId);

@@ -99,11 +99,17 @@ public sealed class SetServerCloudVault(
 
         // Registrado nas duas nuvens envolvidas: cada dono vê a sua história inteira.
         if (previous is { } from)
+        {
             await CloudAudit.WriteAsync(governance, from, scope.UserId, "server.detach", $"{server.Name} ({serverId})",
                 ct);
+        }
+
         if (vaultId is { } to)
+        {
             await CloudAudit.WriteAsync(governance, to, scope.UserId, "server.attach", $"{server.Name} ({serverId})",
                 ct);
+        }
+
         return Result.Success();
     }
 }
@@ -130,8 +136,11 @@ public sealed class RevokeCloudServerKey(
         await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
         if (await servers.GetByIdAsync(serverId, ct) is { CloudVaultId: { } vaultId } server)
+        {
             await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "server.revoke_key",
                 $"{server.Name} ({serverId})", ct);
+        }
+
         return Result.Success();
     }
 }

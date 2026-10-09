@@ -271,6 +271,19 @@ public sealed record DockerContainer
     [JsonPropertyName("Image")] public string Image { get; init; } = "";
     [JsonPropertyName("State")] public string State { get; init; } = "";
     [JsonPropertyName("Status")] public string Status { get; init; } = "";
+
+    /// <summary>Portas publicadas. Só vem preenchido para containers em execução.</summary>
+    [JsonPropertyName("Ports")]
+    public IReadOnlyList<DockerPort>? Ports { get; init; }
+}
+
+public sealed record DockerPort
+{
+    /// <summary>Porta no host; zero quando a porta é só exposta, sem publicação.</summary>
+    [JsonPropertyName("PublicPort")]
+    public int PublicPort { get; init; }
+
+    [JsonPropertyName("Type")] public string Type { get; init; } = "";
 }
 
 public sealed record CreateContainerRequest

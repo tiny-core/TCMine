@@ -1,6 +1,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Domain.Identity;
@@ -40,6 +41,44 @@ public sealed class ServerRulesTests
             _modpackId, "Servidor", "jogo:25565", 4096, 20, Guid.Empty, CancellationToken.None);
 
         Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Sem_porta_informada_o_servidor_recebe_a_alocada()
+    {
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "jogo", 4096, 20, Guid.Empty, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(FakePorts.Allocated, servers.Adicionado!.GamePort);
+    }
+
+    [Fact]
+    public async Task Porta_informada_e_livre_e_respeitada()
+    {
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "jogo", 4096, 20, Guid.Empty, CancellationToken.None, 25580);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(25580, servers.Adicionado!.GamePort);
+    }
+
+    [Fact]
+    public async Task Porta_informada_e_ocupada_nao_cria_o_servidor()
+    {
+        // Era o defeito: dois servidores na mesma porta, e o segundo só falhava
+        // ao iniciar, com um erro do Docker que não dizia qual era o outro.
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "jogo", 4096, 20, Guid.Empty, CancellationToken.None, FakePorts.Taken);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(servers.Adicionado);
     }
 
     [Fact]
@@ -88,12 +127,57 @@ public sealed class ServerRulesTests
         var servers = new FakeServers(server);
 
         var result =
-            await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator))
+            await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator),
+                    new FakePorts())
                 .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, true, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Servidor não encontrado.", result.Error);
     }
+
+    [Fact]
+    public async Task Editar_sem_informar_porta_mantem_a_que_o_servidor_tem()
+    {
+        var server = Servidor();
+        server.GamePort = 25590;
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "outro nome", "jogo", 4096, 20, true, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(25590, server.GamePort);
+    }
+
+    [Fact]
+    public async Task Editar_para_uma_porta_livre_troca_a_porta()
+    {
+        var server = Servidor();
+        server.GamePort = 25590;
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "Servidor", "jogo", 4096, 20, true, CancellationToken.None, 25591);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(25591, server.GamePort);
+    }
+
+    [Fact]
+    public async Task Editar_para_uma_porta_ocupada_e_recusado_e_nada_muda()
+    {
+        var server = Servidor();
+        server.GamePort = 25590;
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "nome novo", "jogo", 4096, 20, true, CancellationToken.None, FakePorts.Taken);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(25590, server.GamePort);
+        // A recusa vem antes de qualquer campo ser alterado.
+        Assert.Equal("Servidor", server.Name);
+    }
+
+    private static UpdateGameServer NewUpdate(GameServer server) =>
+        new(new FakeServers(server), new FakeWhitelistSync(), new FakeUserScope(), new FakePorts());
 
     [Fact]
     public async Task Apagar_servidor_exige_Owner_e_Admin_nao_basta()
@@ -157,7 +241,7 @@ public sealed class ServerRulesTests
     private static CreateGameServer NewCreate(
         ModpackVersion version, FakeServers? servers = null, FakeMemberships? memberships = null) =>
         new(servers ?? new FakeServers(), new FakeModpacks(version),
-            memberships ?? new FakeMemberships(), new FakeScope());
+            memberships ?? new FakeMemberships(), new FakeScope(), new FakePorts());
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)
     {
@@ -193,6 +277,19 @@ public sealed class ServerRulesTests
     };
 
     // ---- Fakes ----
+
+    /// <summary>Aloca sempre a 25570 e recusa a 25565, para os dois caminhos serem distinguíveis.</summary>
+    private sealed class FakePorts : IGamePortAllocator
+    {
+        public const int Allocated = 25570;
+        public const int Taken = 25565;
+
+        public Task<Result<int>> AllocateAsync(CancellationToken ct) =>
+            Task.FromResult(Result<int>.Success(Allocated));
+
+        public Task<Result> EnsureAvailableAsync(int port, Guid? exceptServerId, CancellationToken ct) =>
+            Task.FromResult(port == Taken ? Result.Fail("porta ocupada") : Result.Success());
+    }
 
     private sealed class FakeModpacks(ModpackVersion version) : FakeModpackRepositoryBase
     {

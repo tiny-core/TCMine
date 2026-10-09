@@ -185,8 +185,11 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             }
 
             if (balance.Apply(change.Delta) != change.BalanceAfter)
+            {
                 throw new InvalidOperationException(
                     $"Saldo do canal {change.ChannelId} mudou durante a decisão do painel.");
+            }
+
             db.CloudLedger.Add(new CloudLedgerEntry
             {
                 ChannelId = change.ChannelId,

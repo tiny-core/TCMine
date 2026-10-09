@@ -1282,6 +1282,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("GamePort")
+                        .HasColumnType("integer");
+
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("integer");
 
@@ -1324,6 +1327,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CloudVaultId");
+
+                    b.HasIndex("GamePort")
+                        .IsUnique();
 
                     b.HasIndex("ModpackId");
 
@@ -1411,6 +1417,16 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<string>("DefaultMinecraftVersion")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<int>("GamePortRangeEnd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(25599);
+
+                    b.Property<int>("GamePortRangeStart")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(25565);
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

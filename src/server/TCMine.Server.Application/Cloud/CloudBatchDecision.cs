@@ -45,8 +45,11 @@ public static class CloudBatchDecision
         foreach (var op in batch.Ops)
         {
             if (!state.Channels.TryGetValue(op.ChannelId, out var channel))
+            {
                 return Reject(CloudQuarantineReason.UnknownChannel, $"Canal {op.ChannelId} não é deste jogador.",
                     touched);
+            }
+
             if (channel.IsFrozen && !ownerApproval)
                 return Reject(CloudQuarantineReason.FrozenChannel, $"Canal {channel.Name} está congelado.", touched);
 

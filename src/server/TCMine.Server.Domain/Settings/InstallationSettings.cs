@@ -1,5 +1,6 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Common;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Domain.Settings;
 
@@ -30,6 +31,17 @@ public sealed class InstallationSettings : Entity
     ///     seguidos sem deixar dezenas de GB para trás.
     /// </summary>
     public int WorldBackupKeepCount { get; set; } = 5;
+
+    // ---------- Servidores de jogo ----------
+
+    /// <summary>
+    ///     Faixa de onde sai a porta de um servidor novo (inclusive nas duas
+    ///     pontas). Contínua de propósito: um único redirecionamento de faixa no
+    ///     roteador cobre os servidores de hoje e os que vierem.
+    /// </summary>
+    public int GamePortRangeStart { get; set; } = GamePortDefaults.First;
+
+    public int GamePortRangeEnd { get; set; } = GamePortDefaults.Last;
 
     // ---------- Integrações ----------
 

@@ -7,11 +7,12 @@ namespace TCMine.Server.Application.Servers;
 public sealed class UpdateGameServer(
     IServerRepository servers,
     IServerWhitelistSync whitelist,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    IGamePortAllocator ports)
 {
     public async Task<Result> HandleAsync(
         Guid id, string name, string connectAddress, int memoryMb, int maxPlayers,
-        bool whitelistEnabled, CancellationToken ct)
+        bool whitelistEnabled, CancellationToken ct, int gamePort = 0)
     {
         // Antes da validação do nome: responder "informe o nome" a quem nem
         // deveria enxergar este servidor já confirma que ele existe.
@@ -25,6 +26,18 @@ public sealed class UpdateGameServer(
         var server = await servers.GetByIdAsync(id, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
+
+        // Zero = não mexe na porta. Só confere quando ela MUDA: reconferir a
+        // própria porta a cada salvamento seria uma ida ao Docker por um ajuste
+        // de nome. A troca chega ao container no próximo start (a porta entra
+        // na impressão digital da spec), nunca debaixo de quem está jogando.
+        if (gamePort != 0 && gamePort != server.GamePort)
+        {
+            var available = await ports.EnsureAvailableAsync(gamePort, id, ct);
+            if (!available.Succeeded)
+                return available;
+            server.GamePort = gamePort;
+        }
 
         server.Name = name.Trim();
         server.ConnectAddress = connectAddress.Trim();

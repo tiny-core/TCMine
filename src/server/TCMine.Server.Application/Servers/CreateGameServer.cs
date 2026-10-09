@@ -11,11 +11,12 @@ public sealed class CreateGameServer(
     IServerRepository servers,
     IModpackRepository modpacks,
     IMembershipRepository memberships,
-    ICurrentUserScope userScope)
+    ICurrentUserScope userScope,
+    IGamePortAllocator ports)
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
-        Guid modpackVersionId, CancellationToken ct)
+        Guid modpackVersionId, CancellationToken ct, int gamePort = 0)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
@@ -39,6 +40,25 @@ public sealed class CreateGameServer(
         if (pinned is null)
             return Result<Guid>.Fail("Selecione uma versão publicada válida.");
 
+        // Zero = "escolha por mim": a primeira livre da faixa. Um número
+        // explícito vem do formulário e é conferido contra os outros servidores
+        // e contra o Docker antes de qualquer coisa ser gravada.
+        int port;
+        if (gamePort == 0)
+        {
+            var allocated = await ports.AllocateAsync(ct);
+            if (!allocated.Succeeded)
+                return Result<Guid>.Fail(allocated.Error!);
+            port = allocated.Value;
+        }
+        else
+        {
+            var available = await ports.EnsureAvailableAsync(gamePort, null, ct);
+            if (!available.Succeeded)
+                return Result<Guid>.Fail(available.Error!);
+            port = gamePort;
+        }
+
         var server = new GameServer
         {
             OwnerId = userScope.OwnerId,
@@ -46,6 +66,7 @@ public sealed class CreateGameServer(
             ModpackId = modpackId,
             ModpackVersionId = pinned.Id,
             ConnectAddress = connectAddress.Trim(),
+            GamePort = port,
             MemoryMb = memoryMb,
             MaxPlayers = maxPlayers,
             // Segredo RCON gerado aqui, no server. Nunca exibido nem logado.
