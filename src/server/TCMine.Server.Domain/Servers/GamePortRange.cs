@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace TCMine.Server.Domain.Servers;
 
 /// <summary>
@@ -33,5 +35,45 @@ public static class GamePortRange
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     A porta que um endereço de conexão aponta. Sem ":porta" o cliente do
+    ///     Minecraft usa a padrão, então é ela que vale.
+    /// </summary>
+    public static int AddressPort(string? address)
+    {
+        var (_, port) = Split(address);
+        return port ?? GamePortDefaults.First;
+    }
+
+    /// <summary>
+    ///     O mesmo endereço apontando para <paramref name="port" />. A porta padrão
+    ///     fica implícita ("play.exemplo.com"), como os jogadores a digitam.
+    ///     Endereço vazio continua vazio: sem host não há o que completar.
+    /// </summary>
+    public static string WithPort(string? address, int port)
+    {
+        var (host, _) = Split(address);
+        if (host.Length == 0)
+            return "";
+
+        return port == GamePortDefaults.First
+            ? host
+            : string.Create(CultureInfo.InvariantCulture, $"{host}:{port}");
+    }
+
+    // Só o que vem depois do ÚLTIMO ":" e é número conta como porta; qualquer
+    // outra coisa é parte do host e fica intacta.
+    private static (string Host, int? Port) Split(string? address)
+    {
+        var text = address?.Trim() ?? "";
+        var colon = text.LastIndexOf(':');
+
+        return colon >= 0
+               && int.TryParse(text.AsSpan(colon + 1), NumberStyles.None, CultureInfo.InvariantCulture, out var port)
+               && port > 0
+            ? (text[..colon], port)
+            : (text, null);
     }
 }

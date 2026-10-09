@@ -4,6 +4,7 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
+using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Components.Pages;
@@ -27,6 +28,8 @@ public partial class SettingsPage : ComponentBase
     private ModLoader _defaultLoader = ModLoader.NeoForge;
     private string _defaultMcVersion = "";
     private int _defaultMemoryMb = 4096;
+    private int _gamePortRangeEnd = GamePortDefaults.Last;
+    private int _gamePortRangeStart = GamePortDefaults.First;
 
     private bool _hasAzureClientIdFromFile;
 
@@ -75,6 +78,11 @@ public partial class SettingsPage : ComponentBase
         _defaultMemoryMb = settings.DefaultMemoryMb;
         _worldBackupKeepCount = settings.WorldBackupKeepCount;
 
+        // Normalizada: uma faixa inválida no banco aparece aqui como a padrão,
+        // que é a que o alocador está usando de fato.
+        (_gamePortRangeStart, _gamePortRangeEnd) =
+            GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
+
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);
 
@@ -99,6 +107,8 @@ public partial class SettingsPage : ComponentBase
                 DefaultLoader = _defaultLoader,
                 DefaultMemoryMb = _defaultMemoryMb,
                 WorldBackupKeepCount = _worldBackupKeepCount,
+                GamePortRangeStart = _gamePortRangeStart,
+                GamePortRangeEnd = _gamePortRangeEnd,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey

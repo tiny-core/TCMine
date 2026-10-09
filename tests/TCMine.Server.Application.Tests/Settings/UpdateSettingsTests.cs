@@ -104,6 +104,37 @@ public sealed class UpdateSettingsTests
         Assert.Equal("44444444-4444-4444-4444-444444444444", repo.Salvo!.AzureClientId);
     }
 
+    [Theory]
+    [InlineData(25600, 25565)] // invertida
+    [InlineData(80, 25599)] // porta privilegiada
+    [InlineData(25565, 70000)] // além do que existe
+    public async Task Recusa_faixa_de_portas_invalida(int start, int end)
+    {
+        // Sem a recusa, o alocador cairia na faixa padrão em silêncio e o admin
+        // veria na tela um número que não vale.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, GamePortRangeStart = start, GamePortRangeEnd = end },
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
+    [Fact]
+    public async Task Faixa_de_portas_valida_e_gravada()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, GamePortRangeStart = 30000, GamePortRangeEnd = 30010 },
+            CancellationToken.None);
+
+        Assert.Equal(30000, repo.Salvo!.GamePortRangeStart);
+        Assert.Equal(30010, repo.Salvo!.GamePortRangeEnd);
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeSettings(InstallationSettings settings) : ISettingsRepository

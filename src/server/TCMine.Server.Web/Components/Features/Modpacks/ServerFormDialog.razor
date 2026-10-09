@@ -1,4 +1,5 @@
-﻿@inherits DialogComponentBase
+﻿@using TCMine.Server.Domain.Servers
+@inherits DialogComponentBase
 
 <MudDialog>
     <TitleContent>
@@ -7,8 +8,29 @@
     <DialogContent>
         <MudTextField @bind-Value="_name" Label="Nome" Immediate="true" Class="mb-2"/>
         <MudTextField @bind-Value="_connectAddress" Label="Endereço de conexão"
-                      HelperText="Host:porta que os jogadores usam, ex.: play.meuserver.com:25565"
+                      HelperText="O que os jogadores digitam, ex.: play.meuserver.com ou play.meuserver.com:25566"
                       Immediate="true" Class="mb-2"/>
+
+        @* Value + ValueChanged em vez de @bind: trocar a porta precisa levar o
+           endereço junto, e isso só dá para fazer vendo o valor ANTIGO. *@
+        <MudNumericField T="int" Value="_gamePort" ValueChanged="OnGamePortChanged" Label="Porta"
+                         Min="GamePortRange.Min" Max="GamePortRange.Max" HideSpinButtons="true"
+                         HelperText="@(_isNew ? "Porta que o servidor publica nesta máquina. Sugerida a primeira livre." : "Porta que o servidor publica nesta máquina. Uma troca vale a partir do próximo início.")"
+                         Class="mb-2"/>
+
+        @if (_portSuggestionError is not null)
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                @_portSuggestionError
+            </MudAlert>
+        }
+        else if (AddressPointsElsewhere)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                O endereço aponta para a porta @GamePortRange.AddressPort(_connectAddress) e o servidor
+                publica a @_gamePort. Só funciona se o roteador redirecionar uma para a outra.
+            </MudAlert>
+        }
         <MudGrid>
             <MudItem xs="6">
                 <MudNumericField @bind-Value="_memoryMb" Label="Memória (MB)" Min="1024" Step="512"/>
