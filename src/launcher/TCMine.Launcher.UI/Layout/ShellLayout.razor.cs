@@ -44,6 +44,11 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
         Lock.Changed += OnShellChanged;
         Shell.BeginCheck();
 
+        // TEMPORÁRIO (linha de base): como o arranque terminou. Sem isto, uma
+        // abertura que para no login entra na mesma mediana de uma que
+        // autentica — e são caminhos com custos diferentes.
+        var outcome = "erro";
+
         try
         {
             var pairing = await Pairing.ResumeAsync(CancellationToken.None);
@@ -51,6 +56,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
             if (!pairing.IsPaired)
             {
+                outcome = "sem pareamento";
                 Navigation.NavigateTo("/pair");
                 return;
             }
@@ -63,9 +69,18 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             // Offline fica-se onde se está. O que precisa de rede aparece
             // desligado, com o motivo, em vez de levar a lado nenhum.
             if (!pairing.IsOnline)
+            {
+                outcome = "offline";
                 return;
+            }
 
             var destino = await PostPairing.ResolveAsync(pairing, CancellationToken.None);
+            outcome = destino switch
+            {
+                "/login" => "login",
+                null => "vai atualizar",
+                _ => "com sessão"
+            };
 
             // Só navega quando manda para o login: com sessão já válida, o
             // arranque não deve atropelar uma rota profunda que o jogador tenha
@@ -83,7 +98,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             // TEMPORÁRIO (linha de base, sai no fim da fase 8). No finally
             // porque é aqui que o arranque termina, com ou sem servidor.
             var usableMs = StartupClock.ElapsedMs;
-            LogStartupFinished(Logger, usableMs);
+            LogStartupFinished(Logger, usableMs, outcome);
         }
     }
 
@@ -91,6 +106,6 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     // Estático com ILogger explícito, como no LoggingErrorBoundary: o gerador
     // de [LoggerMessage] só acha campo, e um componente recebe por [Inject].
-    [LoggerMessage(Level = LogLevel.Information, Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms.")]
-    private static partial void LogStartupFinished(ILogger logger, long elapsedMs);
+    [LoggerMessage(Level = LogLevel.Information, Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms ({Outcome}).")]
+    private static partial void LogStartupFinished(ILogger logger, long elapsedMs, string outcome);
 }

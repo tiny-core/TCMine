@@ -1,3 +1,6 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Connectivity;
@@ -13,12 +16,31 @@ namespace TCMine.Launcher.Core.Modpacks;
 ///     "primeira vez", porque um diff contra uma instância vazia já é a
 ///     instalação completa.
 /// </summary>
-public sealed class InstallModpackVersion(
+public sealed partial class InstallModpackVersion(
     IServerConnection connection,
     IContentStore content,
     IBlobDownloader downloader,
-    IInstanceStore instances) : IInstanceInstaller
+    IInstanceStore instances,
+    ILogger<InstallModpackVersion>? logger = null) : IInstanceInstaller
 {
+    // TEMPORÁRIO — linha de base da refatoração (docs/BASELINE.md, L5 e L6).
+    // Sai no fim da fase 8. Opcional de propósito: os testes constroem este
+    // caso de uso à mão, e medição não é motivo para mexer neles.
+    private readonly ILogger _logger = logger ?? NullLogger<InstallModpackVersion>.Instance;
+
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Instalação de modpack ({Kind}): {Modpack} {Version} — total {TotalMs} ms; "
+                  + "plano {PlanMs} ms; download {DownloadMs} ms ({DownloadFiles} arquivos, {DownloadBytes} bytes); "
+                  + "aplicação {ApplyMs} ms ({ApplyFiles} arquivos); fecho {FinishMs} ms.")]
+    private partial void LogInstallTimings(
+        string kind, string modpack, string version, long totalMs,
+        long planMs, long downloadMs, int downloadFiles, long downloadBytes,
+        long applyMs, int applyFiles, long finishMs);
+
+    private static long ElapsedMs(long from, long to) =>
+        (long)Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
+
     // 2 acrescentou MinecraftVersion, Loader e LoaderVersion, sem os quais não
     // se abre o jogo offline. Schema 1 continua legível — só não dá para jogar
     // até reinstalar, e o caso de uso do launch explica isso.
@@ -75,6 +97,7 @@ public sealed class InstallModpackVersion(
         CancellationToken ct)
     {
         var key = target ?? InstanceKey.New();
+        var startedAt = Stopwatch.GetTimestamp();
 
         try
         {
@@ -96,8 +119,11 @@ public sealed class InstallModpackVersion(
 
             var plano = ManifestDiffer.Plan(key, manifest, arquivosLocais, noStore, includeOptional: false);
 
+            var plannedAt = Stopwatch.GetTimestamp();
             await DownloadAsync(serverUrl, plano, progress, ct);
+            var downloadedAt = Stopwatch.GetTimestamp();
             await MaterializarAsync(key, plano, progress, ct);
+            var appliedAt = Stopwatch.GetTimestamp();
 
             if (plano.ToDelete.Count > 0)
             {
@@ -132,6 +158,32 @@ public sealed class InstallModpackVersion(
             await instances.WriteManifestAsync(key, installed, ct);
 
             progress?.Report(InstallProgress.Done);
+
+            // Em variáveis locais antes do log: CA1873 cobra argumento barato.
+            var finishedAt = Stopwatch.GetTimestamp();
+            var kind = local is null ? "instalação" : "atualização";
+
+            // O download deduplica por hash (ver DownloadAsync); a contagem aqui
+            // segue a mesma regra, para o número bater com os pedidos feitos.
+            var unicos = plano.ToDownload
+                .DistinctBy(f => f.Sha256, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            var downloadFiles = unicos.Length;
+            var downloadBytes = unicos.Sum(f => f.SizeBytes);
+            var applyFiles = plano.ToMaterialize.Count;
+
+            var totalMs = ElapsedMs(startedAt, finishedAt);
+            var planMs = ElapsedMs(startedAt, plannedAt);
+            var downloadMs = ElapsedMs(plannedAt, downloadedAt);
+            var applyMs = ElapsedMs(downloadedAt, appliedAt);
+            var finishMs = ElapsedMs(appliedAt, finishedAt);
+            var modpackName = modpack.Name;
+            var version = manifest.Version;
+
+            LogInstallTimings(
+                kind, modpackName, version, totalMs,
+                planMs, downloadMs, downloadFiles, downloadBytes,
+                applyMs, applyFiles, finishMs);
 
             return InstallResult.Success(key, installed);
         }

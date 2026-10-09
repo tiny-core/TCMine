@@ -43,9 +43,17 @@ Tudo é medido do HOST, pelo nome do container — nada roda dentro dele.
 
 ```bash
 ./scripts/baseline.sh boot  tcmine-tcmine-1          # S1 — derruba o painel 3 vezes
-./scripts/baseline.sh pages tcmine-tcmine-1          # S2–S4 — depois de abrir as páginas pelo menu
+./scripts/baseline.sh report tcmine-tcmine-1         # S2–S5 — amostras e medianas, lidas do log
 ./scripts/baseline.sh mem   tcmine-tcmine-1          # S6
 ```
+
+O `report` não mede nada sozinho: ele lê do log o que o uso normal deixou.
+Abra as páginas pelo menu, inicie um servidor de jogo, e rode o comando no fim.
+
+**S5 mede o que o TCMine controla** — materializar a pasta, criar e iniciar o
+container (linha "Início de servidor"). `Running` é "container no ar", e não
+"Minecraft aceitando jogadores": a carga da JVM e dos mods de um ATM10 leva
+minutos depois disso e está fora do alcance desta refatoração.
 
 As páginas são abertas navegando pelo menu do painel (não por F5). Cada linha
 "Abertura de página" traz **carga** (consultas e montagem dos dados) e **renderização** (do fim da carga até o lote de
@@ -70,9 +78,13 @@ Os três marcos saem do log `%LOCALAPPDATA%\TCMine\logs\launcher-AAAAMMDD.log`,
 linhas "Arranque:", contados desde o início do processo:
 
 ```powershell
-Select-String -Path "$env:LOCALAPPDATA\TCMine\logs\launcher-*.log" -Pattern "Arranque:|Canal aberto" |
-  Select-Object -Last 12 | ForEach-Object { $_.Line }
+.\scripts\baseline.ps1 report          # log de hoje; -Days 3 para os últimos 3 dias
 ```
+
+O comando separa a "primeira tela utilizável" pelo desfecho do arranque (com
+sessão, login, offline…), porque são caminhos de custo diferente, e lista as
+linhas "Instalação de modpack" — uma por instalação ou atualização, com o tempo
+de cada fase (plano, download, aplicação, fecho).
 
 | #  | Medição                                                    | 1    | 2    | 3   | Mediana                                   | Meta |
 |----|------------------------------------------------------------|------|------|-----|-------------------------------------------|------|
@@ -102,7 +114,8 @@ até os cabeçalhos de cada
 resposta.
 
 O log não marca o clique nem o fim da aplicação dos arquivos, então 37 s é o
-piso, não o total — o total é por cronômetro, do clique até "Jogar".
+piso, não o total. A partir da 1.1.2 o total e o tempo de cada fase saem da
+linha "Instalação de modpack" do log, sem cronômetro.
 
 Conta que orienta a fase 8: 3 569 pedidos × 37 ms ÷ 6 em paralelo ≈ 22 s. Mais
 da metade do tempo de download é ida-e-volta por arquivo, não largura de banda.
@@ -150,7 +163,7 @@ Uma por medição que a refatoração pretende mexer; as outras só não podem p
 | S6 | 227 MiB                  | não piorar (≤ 250 MiB)      | —    |
 | L2 | 915 ms                   | não piorar                  | —    |
 | L3 | ~3,4 s                   | ≤ 1,5 s                     | 8    |
-| L5 | ≥ 37 s                   | _definir após o cronômetro_ | 8    |
+| L5 | ≥ 37 s                   | _definir com a linha de log da 1.1.2_ | 8    |
 | —  | 14 chaves / 2 servidores | 1 chave por servidor        | 5    |
 
 S1, S5 e L6 recebem meta quando forem medidos.
