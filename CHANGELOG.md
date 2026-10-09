@@ -13,6 +13,32 @@ O texto completo de cada lançamento está na
 
 ## [Não lançado]
 
+## [1.1.3] — 2026-10-09
+
+Launcher **1.1.3**.
+
+### Corrigido
+
+- **A lista de versões do Quilt vinha da meta do Fabric.** O painel oferecia
+  versões de loader que não existem no Quilt, e um servidor criado com uma delas
+  não subia. A fonte passa a ser a meta do próprio Quilt; como ela não marca o
+  que é estável, "só estáveis" distingue pelo sufixo da versão (`-beta.N`).
+
+### Manutenção
+
+- **A tabela `blobs` saiu.** Nunca foi lida nem escrita — o store de conteúdo é
+  o disco, e o nome do arquivo já é o hash. A migration `RemoveBlobsTable` só
+  remove a tabela vazia.
+- O estado de cada container deixou de ser impresso no log a cada
+  reconciliação (era um `Console.WriteLine`, sem nível); agora é uma linha de
+  nível Debug, e a falha de inspeção sai como aviso com a causa.
+- Código sem referência removido.
+
+### Atualizar
+
+A migration `RemoveBlobsTable` aplica-se no arranque. O protocolo do launcher
+**não** mudou.
+
 ## [1.1.2] — 2026-10-09
 
 Launcher **1.1.2**. Nenhuma mudança de comportamento.
