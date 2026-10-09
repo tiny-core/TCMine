@@ -60,9 +60,11 @@ public sealed partial class RestoreWorldBackup(
                 + "em outra. Restaurar assim pode quebrar o mundo — confirme se é isso mesmo que quer.");
         }
 
-        void Report(int done, int total) =>
+        void Report(int done, int total)
+        {
             progress.Report(jobId, new JobProgress(
                 $"Restaurando o mundo — {server.Name}", "Extraindo", done, total));
+        }
 
         try
         {

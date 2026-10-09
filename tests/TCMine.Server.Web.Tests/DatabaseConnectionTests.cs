@@ -16,7 +16,7 @@ public sealed class DatabaseConnectionTests
     [Fact]
     public void Campos_separados_viram_connection_string_do_postgres()
     {
-        var result = Construir(new()
+        var result = Construir(new Dictionary<string, string?>
         {
             ["Database:Provider"] = "Postgres",
             ["Database:Host"] = "postgres",
@@ -43,11 +43,9 @@ public sealed class DatabaseConnectionTests
     {
         // O motivo de existir o builder em vez de interpolar texto: um ";" na
         // senha encerraria o campo e o resto viraria outro parâmetro.
-        var result = Construir(new()
+        var result = Construir(new Dictionary<string, string?>
         {
-            ["Database:Provider"] = "Postgres",
-            ["Database:Host"] = "postgres",
-            ["Database:Password"] = senha
+            ["Database:Provider"] = "Postgres", ["Database:Host"] = "postgres", ["Database:Password"] = senha
         });
 
         new NpgsqlConnectionStringBuilder(result).Password.ShouldBe(senha);
@@ -58,7 +56,7 @@ public sealed class DatabaseConnectionTests
     {
         // Quem cola uma connection string inteira quer exatamente aquilo,
         // inclusive parâmetros que os campos não cobrem (SSL, timeout, pool).
-        Construir(new()
+        Construir(new Dictionary<string, string?>
         {
             ["Database:Provider"] = "Postgres",
             ["Database:ConnectionString"] = "Host=outro;Database=x",
@@ -71,16 +69,15 @@ public sealed class DatabaseConnectionTests
     {
         // Assumir "localhost" mandaria a aplicação bater no próprio container,
         // e o erro de conexão não diria que faltou configurar o host.
-        Construir(new() { ["Database:Provider"] = "Postgres" }).ShouldBeNull();
+        Construir(new Dictionary<string, string?> { ["Database:Provider"] = "Postgres" }).ShouldBeNull();
     }
 
     [Fact]
     public void Nome_e_usuario_tem_padrao()
     {
-        var lida = new NpgsqlConnectionStringBuilder(Construir(new()
+        var lida = new NpgsqlConnectionStringBuilder(Construir(new Dictionary<string, string?>
         {
-            ["Database:Provider"] = "Postgres",
-            ["Database:Host"] = "postgres"
+            ["Database:Provider"] = "Postgres", ["Database:Host"] = "postgres"
         }));
 
         lida.Database.ShouldBe("tcmine");
@@ -91,7 +88,7 @@ public sealed class DatabaseConnectionTests
     [Fact]
     public void Sqlite_deriva_do_caminho_da_raiz()
     {
-        Construir(new() { ["Database:Provider"] = "Sqlite" }, raiz: "/dados/tcmine")
+        Construir(new Dictionary<string, string?> { ["Database:Provider"] = "Sqlite" }, "/dados/tcmine")
             .ShouldBe("Data Source=/dados/tcmine/data/tcmine.db");
     }
 
@@ -101,7 +98,7 @@ public sealed class DatabaseConnectionTests
         // Regressão: a derivação pela raiz não olhava o provider e produzia um
         // "Data Source=..." mesmo para Postgres. O Npgsql recusaria com um erro
         // sobre a string, sem dizer que a configuração é que estava trocada.
-        Construir(new() { ["Database:Provider"] = "Postgres" }, raiz: "/dados/tcmine")
+        Construir(new Dictionary<string, string?> { ["Database:Provider"] = "Postgres" }, "/dados/tcmine")
             .ShouldBeNull();
     }
 

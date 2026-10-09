@@ -36,7 +36,8 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     [Inject] private InstallOperationState Operation { get; set; } = default!;
 
     /// <summary>Jogo aberto ou instalação em curso: as ações daqui ficam desligadas.</summary>
-    [Inject] private ActionLock Lock { get; set; } = default!;
+    [Inject]
+    private ActionLock Lock { get; set; } = default!;
 
     [Inject] private IDialogService Dialogs { get; set; } = default!;
 
@@ -151,10 +152,10 @@ public partial class ModpacksPage : ComponentBase, IDisposable
             // que é quem tem uma instância existente em mãos.
             var result = versionId is { } chosen
                 ? await Installer.HandleAsync(
-                    config.ServerUrl, modpack, chosen, target: null,
+                    config.ServerUrl, modpack, chosen, null,
                     progress, CancellationToken.None)
                 : await Installer.InstallLatestAsync(
-                    config.ServerUrl, modpack, target: null, ReleaseChannel.Release,
+                    config.ServerUrl, modpack, null, ReleaseChannel.Release,
                     progress, CancellationToken.None);
 
             if (result.Succeeded)
@@ -163,9 +164,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
                 await RefreshInstalledAsync();
             }
             else
-            {
                 Snackbar.Add(result.Error!, Severity.Error);
-            }
         }
         finally
         {

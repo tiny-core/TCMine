@@ -11,6 +11,12 @@ public sealed class CloudServerFilesTests : IDisposable
     private readonly string _root = Path.Combine(Path.GetTempPath(), $"tccloud-files-{Guid.CreateVersion7():N}");
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+            Directory.Delete(_root, true);
+    }
+
     [Fact]
     public async Task Grava_url_e_chave_e_apaga_sem_erro()
     {
@@ -33,12 +39,6 @@ public sealed class CloudServerFilesTests : IDisposable
         await files.DeleteAsync(servidor, Ct);
         File.Exists(caminho).ShouldBeFalse();
         await files.DeleteAsync(servidor, Ct); // idempotente
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(_root))
-            Directory.Delete(_root, recursive: true);
     }
 
     private sealed class PastaFixa(string root) : IInstanceMaterializer

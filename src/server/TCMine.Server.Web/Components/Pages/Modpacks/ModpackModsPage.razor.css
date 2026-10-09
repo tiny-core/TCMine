@@ -2,10 +2,10 @@
    toda edição assíncrona (aqui, o lado do arquivo) precisa de feedback visual,
    e isto é o que diz que não ficou nada preso num clique perdido. */
 .tc-save-state {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--tc-text-secondary);
-    padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tc-text-secondary);
+  padding: 0 8px;
 }

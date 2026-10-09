@@ -129,7 +129,7 @@ public static class MountCoherence
                + "Os dois lados precisam ser o MESMO caminho, porque quem resolve o caminho da "
                + "instância é o daemon do Docker, que enxerga o host — com eles diferentes, cada "
                + "servidor de jogo sobe com uma pasta vazia e nada acusa o erro. "
-               + $"Ajuste o bind mount para 'origem:origem' e aponte Instances:RootPath para lá. "
+               + "Ajuste o bind mount para 'origem:origem' e aponte Instances:RootPath para lá. "
                + $"Se este aviso estiver errado no seu arranjo, desligue com {SkipKey}=true.";
     }
 

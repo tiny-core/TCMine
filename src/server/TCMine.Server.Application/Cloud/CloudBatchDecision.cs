@@ -12,29 +12,6 @@ namespace TCMine.Server.Application.Cloud;
 /// </summary>
 public static class CloudBatchDecision
 {
-    /// <summary>Estado atual relevante para o lote.</summary>
-    /// <param name="Channels">canais do jogador nesta nuvem</param>
-    /// <param name="ItemIds">impressão digital → id, dos itens já existentes no banco</param>
-    /// <param name="Balances">saldo atual por (canal, impressão digital), para todos os canais do jogador</param>
-    public sealed record State(
-        IReadOnlyDictionary<Guid, CloudChannel> Channels,
-        IReadOnlyDictionary<string, Guid> ItemIds,
-        IReadOnlyDictionary<(Guid Channel, string Fingerprint), long> Balances,
-        int MaxTypesPerChannel,
-        long MaxTotalPerChannel,
-        int MaxItemBytes);
-
-    public sealed record Change(Guid ChannelId, string Fingerprint, long Delta, long After);
-
-    /// <summary>Resultado: <see cref="Accepted" /> ou <see cref="Rejected" /> (≈ união discriminada).</summary>
-    public abstract record Outcome;
-
-    /// <summary>Lote aceito: o que gravar. <c>NewItems</c> = definições de itens que o banco ainda não tem.</summary>
-    public sealed record Accepted(IReadOnlyList<Change> Changes, IReadOnlyList<CloudItemDto> NewItems) : Outcome;
-
-    public sealed record Rejected(CloudQuarantineReason Reason, string Detail, IReadOnlyCollection<Guid> Channels)
-        : Outcome;
-
     /// <param name="ownerApproval">
     ///     O dono está aplicando um lote da quarentena: canal congelado, cota e
     ///     saldo esperado pelo mod não barram (são exatamente o que ele está
@@ -46,7 +23,7 @@ public static class CloudBatchDecision
         var touched = batch.Ops.Select(o => o.ChannelId).Distinct().ToArray();
 
         if (batch.Ops.Count == 0 || batch.Ops.Count > CloudProtocol.MaxOpsPerBatch
-            || (batch.Definitions?.Count ?? 0) > CloudProtocol.MaxOpsPerBatch)
+                                 || (batch.Definitions?.Count ?? 0) > CloudProtocol.MaxOpsPerBatch)
             return Reject(CloudQuarantineReason.PayloadMismatch, "Lote vazio ou grande demais.", touched);
 
         if (batch.Ops.Any(o => o.Delta == 0)
@@ -68,7 +45,8 @@ public static class CloudBatchDecision
         foreach (var op in batch.Ops)
         {
             if (!state.Channels.TryGetValue(op.ChannelId, out var channel))
-                return Reject(CloudQuarantineReason.UnknownChannel, $"Canal {op.ChannelId} não é deste jogador.", touched);
+                return Reject(CloudQuarantineReason.UnknownChannel, $"Canal {op.ChannelId} não é deste jogador.",
+                    touched);
             if (channel.IsFrozen && !ownerApproval)
                 return Reject(CloudQuarantineReason.FrozenChannel, $"Canal {channel.Name} está congelado.", touched);
 
@@ -84,8 +62,11 @@ public static class CloudBatchDecision
             var before = state.Balances.GetValueOrDefault((op.ChannelId, op.Fingerprint));
             var after = before + op.Delta;
             if (after < 0)
+            {
                 return Reject(CloudQuarantineReason.NegativeBalance,
                     $"Saldo de {op.Fingerprint} ficaria {after} no canal {channel.Name}.", touched);
+            }
+
             changes.Add(new Change(op.ChannelId, op.Fingerprint, op.Delta, after));
         }
 
@@ -102,8 +83,10 @@ public static class CloudBatchDecision
         foreach (var c in changes)
         {
             if (!expected.TryGetValue((c.ChannelId, c.Fingerprint), out var amount) || amount != c.After)
+            {
                 return Reject(CloudQuarantineReason.Divergence,
                     $"Saldo esperado de {c.Fingerprint} não confere (TCMine: {c.After}).", touched);
+            }
         }
 
         return new Accepted(changes, newItems.Values.ToList());
@@ -126,6 +109,7 @@ public static class CloudBatchDecision
             if (total > state.MaxTotalPerChannel)
                 return $"Canal com {total} itens (limite {state.MaxTotalPerChannel}).";
         }
+
         return null;
     }
 
@@ -146,9 +130,33 @@ public static class CloudBatchDecision
         {
             return $"Bytes do item {fp} não são base64.";
         }
+
         return bytes.Length is 0 || bytes.Length > maxItemBytes ? $"Item {fp} com {bytes.Length} bytes." : null;
     }
 
     private static Rejected Reject(CloudQuarantineReason reason, string detail, IReadOnlyCollection<Guid> channels) =>
         new(reason, detail, channels);
+
+    /// <summary>Estado atual relevante para o lote.</summary>
+    /// <param name="Channels">canais do jogador nesta nuvem</param>
+    /// <param name="ItemIds">impressão digital → id, dos itens já existentes no banco</param>
+    /// <param name="Balances">saldo atual por (canal, impressão digital), para todos os canais do jogador</param>
+    public sealed record State(
+        IReadOnlyDictionary<Guid, CloudChannel> Channels,
+        IReadOnlyDictionary<string, Guid> ItemIds,
+        IReadOnlyDictionary<(Guid Channel, string Fingerprint), long> Balances,
+        int MaxTypesPerChannel,
+        long MaxTotalPerChannel,
+        int MaxItemBytes);
+
+    public sealed record Change(Guid ChannelId, string Fingerprint, long Delta, long After);
+
+    /// <summary>Resultado: <see cref="Accepted" /> ou <see cref="Rejected" /> (≈ união discriminada).</summary>
+    public abstract record Outcome;
+
+    /// <summary>Lote aceito: o que gravar. <c>NewItems</c> = definições de itens que o banco ainda não tem.</summary>
+    public sealed record Accepted(IReadOnlyList<Change> Changes, IReadOnlyList<CloudItemDto> NewItems) : Outcome;
+
+    public sealed record Rejected(CloudQuarantineReason Reason, string Detail, IReadOnlyCollection<Guid> Channels)
+        : Outcome;
 }

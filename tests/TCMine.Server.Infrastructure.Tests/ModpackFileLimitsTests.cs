@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Tests;

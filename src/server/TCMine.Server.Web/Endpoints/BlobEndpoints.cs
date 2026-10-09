@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Net.Http.Headers;
+﻿using Microsoft.Net.Http.Headers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Web.Configuration;
 

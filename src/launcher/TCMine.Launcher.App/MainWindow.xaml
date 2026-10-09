@@ -41,12 +41,12 @@
                       ResizeBorderThickness="0"
                       CornerRadius="0"
                       GlassFrameThickness="0"
-                      UseAeroCaptionButtons="False"/>
+                      UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
 
     <blazor:BlazorWebView x:Name="WebView" HostPage="wwwroot\index.html" Services="{DynamicResource services}">
         <blazor:BlazorWebView.RootComponents>
-            <blazor:RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}"/>
+            <blazor:RootComponent Selector="#app" ComponentType="{x:Type ui:Routes}" />
         </blazor:BlazorWebView.RootComponents>
     </blazor:BlazorWebView>
 

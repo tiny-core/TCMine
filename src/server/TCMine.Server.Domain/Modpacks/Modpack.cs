@@ -18,7 +18,6 @@ public sealed class Modpack : Entity, IOwnedEntity
 
     public required string MinecraftVersion { get; set; }
     public required ModLoader Loader { get; set; }
-    public Guid OwnerId { get; set; }
 
     // ---------- Origem externa (pack importado) ----------
 
@@ -37,4 +36,6 @@ public sealed class Modpack : Entity, IOwnedEntity
 
     /// <summary>Veio de um pack externo?</summary>
     public bool HasUpstream => UpstreamProvider is not null && UpstreamProjectId is not null;
+
+    public Guid OwnerId { get; set; }
 }

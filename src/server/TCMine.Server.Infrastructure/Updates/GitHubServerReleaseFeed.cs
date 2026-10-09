@@ -1,4 +1,5 @@
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -46,7 +47,7 @@ public sealed partial class GitHubServerReleaseFeed(
             latest = Pick(releases ?? []);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException
-                                       or System.Text.Json.JsonException
+                                       or JsonException
                                    && !ct.IsCancellationRequested)
         {
             LogFalha(ex, options.Value.Repository);
@@ -94,9 +95,13 @@ public sealed partial class GitHubServerReleaseFeed(
     private partial void LogFalha(Exception ex, string repository);
 
     internal sealed record GitHubRelease(
-        [property: JsonPropertyName("tag_name")] string? TagName,
-        [property: JsonPropertyName("html_url")] string? HtmlUrl,
+        [property: JsonPropertyName("tag_name")]
+        string? TagName,
+        [property: JsonPropertyName("html_url")]
+        string? HtmlUrl,
         [property: JsonPropertyName("draft")] bool Draft,
-        [property: JsonPropertyName("prerelease")] bool Prerelease,
-        [property: JsonPropertyName("published_at")] DateTimeOffset? PublishedAt);
+        [property: JsonPropertyName("prerelease")]
+        bool Prerelease,
+        [property: JsonPropertyName("published_at")]
+        DateTimeOffset? PublishedAt);
 }

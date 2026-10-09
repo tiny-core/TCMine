@@ -1,9 +1,8 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Domain.Modpacks;
-
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -14,9 +13,11 @@ public sealed class RetryModResolutionTests
     {
         // Metade do pack baixou antes da falha: o que já está no disco foi
         // conferido por hash e continua válido — rebaixar tudo seria desperdício.
-        var (repo, queue, version) = Cenario(baixados: ["1", "2"]);
+        var (repo, queue, version) = Cenario(["1", "2"]);
 
-        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
+        var result =
+            await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id,
+                CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Value);
@@ -28,9 +29,11 @@ public sealed class RetryModResolutionTests
     [Fact]
     public async Task Nao_enfileira_nada_quando_tudo_ja_estava_baixado()
     {
-        var (repo, queue, version) = Cenario(baixados: ["1", "2", "3", "4"]);
+        var (repo, queue, version) = Cenario(["1", "2", "3", "4"]);
 
-        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
+        var result =
+            await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id,
+                CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(0, result.Value);
@@ -40,11 +43,13 @@ public sealed class RetryModResolutionTests
     [Fact]
     public async Task Recusa_reparar_versao_publicada()
     {
-        var (repo, queue, version) = Cenario(baixados: ["1", "2", "3", "4"], falhou: false);
+        var (repo, queue, version) = Cenario(["1", "2", "3", "4"], false);
         version.MarkResolving();
         version.MarkReady();
 
-        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
+        var result =
+            await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id,
+                CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Empty(queue.Enfileirados);
@@ -53,7 +58,7 @@ public sealed class RetryModResolutionTests
     [Fact]
     public async Task Reenfileira_pendencias_mas_pula_as_de_redistribuicao_negada()
     {
-        var (repo, queue, version) = Cenario(baixados: ["1", "2", "3", "4"], falhou: false);
+        var (repo, queue, version) = Cenario(["1", "2", "3", "4"], false);
 
         version.UpsertPending(new PendingMod
         {
@@ -73,7 +78,9 @@ public sealed class RetryModResolutionTests
             Reason = PendingModReason.DistributionDenied
         });
 
-        var result = await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id, CancellationToken.None);
+        var result =
+            await new RetryModResolution(repo, new IngestionScheduler(repo, queue)).HandleAsync(version.Id,
+                CancellationToken.None);
 
         Assert.True(result.Succeeded);
 
@@ -155,6 +162,5 @@ public sealed class RetryModResolutionTests
             Task.FromResult<ModpackVersion?>(version);
 
         public override Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
-
     }
 }

@@ -16,7 +16,8 @@ public partial class EditVersionDialog
     [Parameter] public int? MemoryMb { get; set; }
 
     /// <summary>Do modpack, para o picker montar a lista certa.</summary>
-    [Parameter] public ModLoader Loader { get; set; }
+    [Parameter]
+    public ModLoader Loader { get; set; }
 
     [Parameter] public string MinecraftVersion { get; set; } = "";
 

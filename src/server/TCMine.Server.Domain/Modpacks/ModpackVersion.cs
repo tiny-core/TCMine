@@ -18,6 +18,25 @@ namespace TCMine.Server.Domain.Modpacks;
 /// </summary>
 public sealed class ModpackVersion : Entity
 {
+    /// <summary>
+    ///     Três é o suficiente para cobrir uma queda por causa externa (deploy no
+    ///     meio, rede caindo) sem insistir num job que é ele próprio o problema.
+    /// </summary>
+    public const int MaxRecoveryAttempts = 3;
+
+    // Backing fields expostos como IReadOnlyList: mutação só pelos métodos desta
+    // classe (UpsertFile/UpsertPending/ResolvePending), que checam o State antes
+    // de mexer. Um List<T> público deixaria qualquer chamador fazer
+    // Files.Add(...) direto numa versão Ready/Archived, furando a invariante de
+    // imutabilidade sem o compilador reclamar.
+    private readonly List<ModpackFile> _files = [];
+
+    /// <summary>
+    ///     Mods que a ingestão não trouxe e que esperam upload manual. Não
+    ///     impedem a versão de existir — impedem publicar sem o admin assumir.
+    /// </summary>
+    private readonly List<PendingMod> _pendingMods = [];
+
     public required Guid ModpackId { get; set; }
 
     /// <summary>
@@ -81,19 +100,7 @@ public sealed class ModpackVersion : Entity
     /// </summary>
     public string? UpstreamServerPackFileId { get; set; }
 
-    // Backing fields expostos como IReadOnlyList: mutação só pelos métodos desta
-    // classe (UpsertFile/UpsertPending/ResolvePending), que checam o State antes
-    // de mexer. Um List<T> público deixaria qualquer chamador fazer
-    // Files.Add(...) direto numa versão Ready/Archived, furando a invariante de
-    // imutabilidade sem o compilador reclamar.
-    private readonly List<ModpackFile> _files = [];
     public IReadOnlyList<ModpackFile> Files => _files;
-
-    /// <summary>
-    ///     Mods que a ingestão não trouxe e que esperam upload manual. Não
-    ///     impedem a versão de existir — impedem publicar sem o admin assumir.
-    /// </summary>
-    private readonly List<PendingMod> _pendingMods = [];
     public IReadOnlyList<PendingMod> PendingMods => _pendingMods;
 
     public bool HasPendingMods => PendingMods.Count > 0;
@@ -121,12 +128,6 @@ public sealed class ModpackVersion : Entity
     ///     recuperada e o admin decide.
     /// </summary>
     public int RecoveryAttempts { get; set; }
-
-    /// <summary>
-    ///     Três é o suficiente para cobrir uma queda por causa externa (deploy no
-    ///     meio, rede caindo) sem insistir num job que é ele próprio o problema.
-    /// </summary>
-    public const int MaxRecoveryAttempts = 3;
 
     /// <summary>Pendências que ainda esperam a fila, e não uma decisão do admin.</summary>
     public bool HasQueuedMods =>

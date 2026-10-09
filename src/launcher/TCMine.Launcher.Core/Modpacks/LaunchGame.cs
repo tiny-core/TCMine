@@ -27,7 +27,7 @@ public sealed class LaunchGame(
         LauncherConfig config,
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct) =>
-        HandleAsync(instance, config, server: null, progress, ct);
+        HandleAsync(instance, config, null, progress, ct);
 
     /// <summary>
     ///     Igual, mas o jogo abre já a entrar em <paramref name="server" /> em vez
@@ -169,7 +169,7 @@ public sealed class LaunchGame(
 
         // Sem conta: só resta o que ficou da última vez.
         if (await perfilGuardado.ReadAsync(ct) is { } guardado)
-            return new Identity(guardado, AccessToken: null);
+            return new Identity(guardado, null);
 
         return new Identity(Erro: account.Outcome is AuthOutcome.NoStoredCredentials
             ? "Entre com a sua conta Microsoft pelo menos uma vez para poder jogar."

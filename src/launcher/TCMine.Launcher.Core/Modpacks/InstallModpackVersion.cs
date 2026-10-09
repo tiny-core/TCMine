@@ -23,60 +23,25 @@ public sealed partial class InstallModpackVersion(
     IInstanceStore instances,
     ILogger<InstallModpackVersion>? logger = null) : IInstanceInstaller
 {
-    // TEMPORÁRIO — linha de base da refatoração (docs/BASELINE.md, L5 e L6).
-    // Sai no fim da fase 8. Opcional de propósito: os testes constroem este
-    // caso de uso à mão, e medição não é motivo para mexer neles.
-    private readonly ILogger _logger = logger ?? NullLogger<InstallModpackVersion>.Instance;
-
-    [LoggerMessage(
-        Level = LogLevel.Information,
-        Message = "Instalação de modpack ({Kind}): {Modpack} {Version} — total {TotalMs} ms; "
-                  + "plano {PlanMs} ms; download {DownloadMs} ms ({DownloadFiles} arquivos, {DownloadBytes} bytes); "
-                  + "aplicação {ApplyMs} ms ({ApplyFiles} arquivos); fecho {FinishMs} ms.")]
-    private partial void LogInstallTimings(
-        string kind, string modpack, string version, long totalMs,
-        long planMs, long downloadMs, int downloadFiles, long downloadBytes,
-        long applyMs, int applyFiles, long finishMs);
-
-    private static long ElapsedMs(long from, long to) =>
-        (long)Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
-
     // 2 acrescentou MinecraftVersion, Loader e LoaderVersion, sem os quais não
     // se abre o jogo offline. Schema 1 continua legível — só não dá para jogar
     // até reinstalar, e o caso de uso do launch explica isso.
     private const int ManifestSchema = 2;
 
     /// <summary>
-    ///     Instala a versão que o servidor considera a atual.
-    ///     Pega o id de uma consulta e o manifesto de outra, mesmo que a primeira
-    ///     já traga os arquivos: o que a lista de versões carrega é decisão do
-    ///     repositório do servidor, e uma otimização lá — deixar de incluir os
-    ///     arquivos na listagem — faria a instalação virar silenciosamente uma
-    ///     pasta vazia. A chamada extra acontece uma vez por instalação.
+    ///     Downloads simultâneos. Em série, um pack como o ATM10 (centenas de mods e
+    ///     milhares de configs pequenos) pagava a latência de cada pedido um atrás
+    ///     do outro, e a rede ficava ociosa entre eles — lento mesmo em rede local.
+    ///     Seis e não mais: o servidor aceita oito transferências por cliente
+    ///     (<c>RateLimitPolicies.BlobConcurrency</c>), e ficar abaixo deixa folga
+    ///     para outra tela do launcher (ícones, Java) não cair na fila.
     /// </summary>
-    public async Task<InstallResult> InstallLatestAsync(
-        Uri serverUrl,
-        ModpackDto modpack,
-        InstanceKey? target,
-        ReleaseChannel channel,
-        IProgress<InstallProgress>? progress,
-        CancellationToken ct)
-    {
-        var latest = await connection.GetLatestVersionAsync(modpack.Id, channel, ct);
+    public const int ParallelDownloads = 6;
 
-        if (latest is null)
-        {
-            // Resposta legítima: o administrador criou o pack e ainda não
-            // publicou naquele canal. Dizer qual canal importa — um pack pode ter
-            // estáveis e nenhuma alpha, e "não tem versão" sozinho mandaria
-            // procurar problema onde não há.
-            return InstallResult.Failure(channel is ReleaseChannel.Alpha
-                ? $"{modpack.Name} ainda não tem nenhuma versão alpha publicada."
-                : $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
-        }
-
-        return await HandleAsync(serverUrl, modpack, latest.Id, target, progress, ct);
-    }
+    // TEMPORÁRIO — linha de base da refatoração (docs/BASELINE.md, L5 e L6).
+    // Sai no fim da fase 8. Opcional de propósito: os testes constroem este
+    // caso de uso à mão, e medição não é motivo para mexer neles.
+    private readonly ILogger _logger = logger ?? NullLogger<InstallModpackVersion>.Instance;
 
     /// <summary>
     ///     Instala uma versão numa instância.
@@ -117,7 +82,7 @@ public sealed partial class InstallModpackVersion(
 
             var noStore = await content.ListHashesAsync(ct);
 
-            var plano = ManifestDiffer.Plan(key, manifest, arquivosLocais, noStore, includeOptional: false);
+            var plano = ManifestDiffer.Plan(key, manifest, arquivosLocais, noStore, false);
 
             var plannedAt = Stopwatch.GetTimestamp();
             await DownloadAsync(serverUrl, plano, progress, ct);
@@ -139,7 +104,6 @@ public sealed partial class InstallModpackVersion(
                 ModpackName = modpack.Name,
                 Version = manifest.Version,
                 InstalledAt = DateTimeOffset.UtcNow,
-
                 MinecraftVersion = modpack.MinecraftVersion,
                 Loader = modpack.Loader,
                 LoaderVersion = manifest.LoaderVersion,
@@ -151,7 +115,6 @@ public sealed partial class InstallModpackVersion(
                 ManagedFiles = manifest.Files
                     .Where(f => f.Side is not FileSide.ServerOnly && !f.Optional)
                     .ToDictionary(f => f.Path, f => f.Sha256),
-
                 MemoryMb = local?.MemoryMb ?? manifest.RecommendedMemoryMb
             };
 
@@ -199,15 +162,50 @@ public sealed partial class InstallModpackVersion(
         }
     }
 
+    [LoggerMessage(
+        Level = LogLevel.Information,
+        Message = "Instalação de modpack ({Kind}): {Modpack} {Version} — total {TotalMs} ms; "
+                  + "plano {PlanMs} ms; download {DownloadMs} ms ({DownloadFiles} arquivos, {DownloadBytes} bytes); "
+                  + "aplicação {ApplyMs} ms ({ApplyFiles} arquivos); fecho {FinishMs} ms.")]
+    private partial void LogInstallTimings(
+        string kind, string modpack, string version, long totalMs,
+        long planMs, long downloadMs, int downloadFiles, long downloadBytes,
+        long applyMs, int applyFiles, long finishMs);
+
+    private static long ElapsedMs(long from, long to) =>
+        (long)Stopwatch.GetElapsedTime(from, to).TotalMilliseconds;
+
     /// <summary>
-    ///     Downloads simultâneos. Em série, um pack como o ATM10 (centenas de mods e
-    ///     milhares de configs pequenos) pagava a latência de cada pedido um atrás
-    ///     do outro, e a rede ficava ociosa entre eles — lento mesmo em rede local.
-    ///     Seis e não mais: o servidor aceita oito transferências por cliente
-    ///     (<c>RateLimitPolicies.BlobConcurrency</c>), e ficar abaixo deixa folga
-    ///     para outra tela do launcher (ícones, Java) não cair na fila.
+    ///     Instala a versão que o servidor considera a atual.
+    ///     Pega o id de uma consulta e o manifesto de outra, mesmo que a primeira
+    ///     já traga os arquivos: o que a lista de versões carrega é decisão do
+    ///     repositório do servidor, e uma otimização lá — deixar de incluir os
+    ///     arquivos na listagem — faria a instalação virar silenciosamente uma
+    ///     pasta vazia. A chamada extra acontece uma vez por instalação.
     /// </summary>
-    public const int ParallelDownloads = 6;
+    public async Task<InstallResult> InstallLatestAsync(
+        Uri serverUrl,
+        ModpackDto modpack,
+        InstanceKey? target,
+        ReleaseChannel channel,
+        IProgress<InstallProgress>? progress,
+        CancellationToken ct)
+    {
+        var latest = await connection.GetLatestVersionAsync(modpack.Id, channel, ct);
+
+        if (latest is null)
+        {
+            // Resposta legítima: o administrador criou o pack e ainda não
+            // publicou naquele canal. Dizer qual canal importa — um pack pode ter
+            // estáveis e nenhuma alpha, e "não tem versão" sozinho mandaria
+            // procurar problema onde não há.
+            return InstallResult.Failure(channel is ReleaseChannel.Alpha
+                ? $"{modpack.Name} ainda não tem nenhuma versão alpha publicada."
+                : $"{modpack.Name} ainda não tem uma versão publicada para instalar.");
+        }
+
+        return await HandleAsync(serverUrl, modpack, latest.Id, target, progress, ct);
+    }
 
     private async Task DownloadAsync(
         Uri serverUrl, SyncPlan plano, IProgress<InstallProgress>? progress, CancellationToken ct)
@@ -236,11 +234,9 @@ public sealed partial class InstallModpackVersion(
             async (file, token) =>
             {
                 await using (var source = await downloader.OpenAsync(serverUrl, file.Sha256, token))
-                {
                     // O store recalcula o hash enquanto grava e rejeita se não
                     // bater: o arquivo pode ter chegado corrompido ou adulterado.
                     await content.AddAsync(file.Sha256, source, token);
-                }
 
                 var feitos = Interlocked.Add(ref baixados, file.SizeBytes);
                 progress?.Report(InstallProgress.Downloading(feitos, total, file.Path));
@@ -304,12 +300,6 @@ public sealed record InstallProgress(
     public static readonly InstallProgress Cleaning = new(InstallPhase.Cleaning);
     public static readonly InstallProgress Done = new(InstallPhase.Done);
 
-    public static InstallProgress Downloading(long done, long total, string? file) =>
-        new(InstallPhase.Downloading, done, total, CurrentFile: file);
-
-    public static InstallProgress Materializing(int done, int total, string? file) =>
-        new(InstallPhase.Materializing, FilesDone: done, FilesTotal: total, CurrentFile: file);
-
     /// <summary>
     ///     O texto da fase — nulo em Done, que vira a mensagem de sucesso de quem
     ///     chamou. No Core porque a tela de instâncias e o "Entrar" do servidor
@@ -333,6 +323,12 @@ public sealed record InstallProgress(
         InstallPhase.Done => 1,
         _ => null
     };
+
+    public static InstallProgress Downloading(long done, long total, string? file) =>
+        new(InstallPhase.Downloading, done, total, CurrentFile: file);
+
+    public static InstallProgress Materializing(int done, int total, string? file) =>
+        new(InstallPhase.Materializing, FilesDone: done, FilesTotal: total, CurrentFile: file);
 }
 
 public enum InstallPhase

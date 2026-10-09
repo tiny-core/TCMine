@@ -3,10 +3,9 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
-
-using TCMine.Server.Application.Tests.Fakes;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -159,18 +158,19 @@ public sealed class ImportUpstreamPackTests
 
         public override Task<UpstreamPack?> FetchAsync(string projectId, string? fileId, CancellationToken ct) =>
             Task.FromResult<UpstreamPack?>(pack);
-
     }
 
     private sealed class FakeBlobStore : FakeBlobStoreBase
     {
-        public override Task<string> PutAsync(Stream content, string? expectedSha256, string contentType, CancellationToken ct)
+        public override Task<string> PutAsync(Stream content, string? expectedSha256, string contentType,
+            CancellationToken ct)
         {
             // Hash fictício mas estável: o teste só precisa que exista um.
             return Task.FromResult(new string('b', 64));
         }
 
         public override Task<bool> ExistsAsync(string sha256, CancellationToken ct) => Task.FromResult(true);
+
         public override Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
             Task.FromResult<Uri?>(null);
 
@@ -224,8 +224,6 @@ public sealed class ImportUpstreamPackTests
         public Task<IReadOnlyList<ModpackMembership>> ListByUserAsync(Guid userId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackMembership>>([]);
 
-        public Task UpdateAsync(ModpackMembership membership, CancellationToken ct) => Task.CompletedTask;
-
         public Task RemoveAsync(Guid id, CancellationToken ct) => Task.CompletedTask;
     }
 
@@ -235,7 +233,8 @@ public sealed class ImportUpstreamPackTests
         public Modpack? Created { get; private set; }
         public ModpackVersion? AddedVersion { get; private set; }
 
-        public override Task<bool> ExistsFromUpstreamAsync(ModFileOrigin origin, string projectId, CancellationToken ct) =>
+        public override Task<bool>
+            ExistsFromUpstreamAsync(ModFileOrigin origin, string projectId, CancellationToken ct) =>
             Task.FromResult(JaImportado);
 
         public override Task<bool> SlugExistsAsync(string slug, CancellationToken ct) => Task.FromResult(false);
@@ -251,6 +250,5 @@ public sealed class ImportUpstreamPackTests
             AddedVersion = version;
             return Task.CompletedTask;
         }
-
     }
 }

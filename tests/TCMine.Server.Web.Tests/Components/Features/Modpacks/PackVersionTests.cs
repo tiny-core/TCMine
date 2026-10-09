@@ -12,16 +12,10 @@ namespace TCMine.Server.Web.Tests.Components.Features.Modpacks;
 public sealed class PackVersionTests
 {
     [Fact]
-    public void Sem_versao_anterior_sugere_1_0_0_alpha()
-    {
-        PackVersion.SuggestNext(null).ShouldBe("1.0.0-alpha");
-    }
+    public void Sem_versao_anterior_sugere_1_0_0_alpha() => PackVersion.SuggestNext(null).ShouldBe("1.0.0-alpha");
 
     [Fact]
-    public void Com_versao_anterior_incrementa_o_patch()
-    {
-        PackVersion.SuggestNext("1.2.3").ShouldBe("1.2.4-alpha");
-    }
+    public void Com_versao_anterior_incrementa_o_patch() => PackVersion.SuggestNext("1.2.3").ShouldBe("1.2.4-alpha");
 
     [Fact]
     public void Versao_anterior_release_tambem_sugere_alpha()

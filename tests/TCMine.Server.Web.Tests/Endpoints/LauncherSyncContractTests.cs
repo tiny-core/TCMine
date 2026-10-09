@@ -135,10 +135,7 @@ public sealed class LauncherSyncContractTests
             Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         version.UpsertFile(new ModpackFile
         {

@@ -152,13 +152,16 @@ else if (_catalog is not null)
     ///     distingue "baixando 400 MB" de "ligando 300 arquivos", e as duas fases
     ///     têm velocidades muito diferentes — sem o rótulo, a barra parece travar.
     /// </summary>
-    private static string PhaseLabel(InstallProgress? progresso) => progresso?.Phase switch
+    private static string PhaseLabel(InstallProgress? progresso)
     {
-        InstallPhase.Planning => "A comparar com o que já está no disco…",
-        InstallPhase.Downloading => $"A baixar {HumanSize.Bytes(progresso.BytesDone)} de {HumanSize.Bytes(progresso.BytesTotal)}",
-        InstallPhase.Materializing => $"A instalar {progresso.FilesDone} de {progresso.FilesTotal} arquivos",
-        InstallPhase.Cleaning => "A remover o que sobrou da versão anterior…",
-        InstallPhase.Done => "Pronto.",
-        _ => "A preparar…"
-    };
+        return progresso?.Phase switch
+        {
+            InstallPhase.Planning => "A comparar com o que já está no disco…",
+            InstallPhase.Downloading => $"A baixar {HumanSize.Bytes(progresso.BytesDone)} de {HumanSize.Bytes(progresso.BytesTotal)}",
+            InstallPhase.Materializing => $"A instalar {progresso.FilesDone} de {progresso.FilesTotal} arquivos",
+            InstallPhase.Cleaning => "A remover o que sobrou da versão anterior…",
+            InstallPhase.Done => "Pronto.",
+            _ => "A preparar…"
+        };
+    }
 }

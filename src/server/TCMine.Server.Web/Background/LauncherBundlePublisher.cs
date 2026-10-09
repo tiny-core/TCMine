@@ -48,7 +48,8 @@ public sealed partial class LauncherBundlePublisher(
     private partial void LogResultado(LauncherBundleOutcome outcome);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Launcher publicado SEM endereço embutido: defina Server:PublicUrl para o jogador não precisar digitá-lo.")]
+        Message =
+            "Launcher publicado SEM endereço embutido: defina Server:PublicUrl para o jogador não precisar digitá-lo.")]
     private partial void LogSemEndereco();
 
     [LoggerMessage(Level = LogLevel.Information,

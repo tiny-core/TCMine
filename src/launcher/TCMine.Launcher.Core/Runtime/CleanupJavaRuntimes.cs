@@ -21,7 +21,7 @@ public sealed class CleanupJavaRuntimes(
 {
     /// <summary>O que dá para libertar agora, sem apagar nada.</summary>
     public Task<IReadOnlyList<InstalledRuntime>> FindUnusedAsync(CancellationToken ct) =>
-        FindUnusedAsync(knownInstances: null, ct);
+        FindUnusedAsync(null, ct);
 
     /// <summary>
     ///     Mesma coisa, mas reaproveitando uma listagem de instâncias que quem
@@ -49,9 +49,12 @@ public sealed class CleanupJavaRuntimes(
     ///     Recusa-se com o jogo aberto: o processo em execução está a correr a
     ///     partir de uma destas pastas, e puxá-la debaixo dele mata a partida.
     /// </summary>
-    public Task<long> HandleAsync(CancellationToken ct) => HandleAsync(knownInstances: null, ct);
+    public Task<long> HandleAsync(CancellationToken ct) => HandleAsync(null, ct);
 
-    /// <summary>Mesma coisa, mas reaproveitando uma listagem já em mãos — ver <see cref="FindUnusedAsync(IReadOnlyList{InstalledInstance}?,CancellationToken)"/>.</summary>
+    /// <summary>
+    ///     Mesma coisa, mas reaproveitando uma listagem já em mãos — ver
+    ///     <see cref="FindUnusedAsync(IReadOnlyList{InstalledInstance}?,CancellationToken)" />.
+    /// </summary>
     public async Task<long> HandleAsync(IReadOnlyList<InstalledInstance>? knownInstances, CancellationToken ct)
     {
         if (session.IsRunning)

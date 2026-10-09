@@ -1,7 +1,6 @@
 @page "/admin/modpacks/{ModpackId:guid}"
 @using TCMine.Contracts.Modpacks
 @using TCMine.Server.Application.Abstractions
-@using TCMine.UI.Shared.Formatting
 @inject IModpackRepository Repository
 @inject IDialogService DialogService
 @inject NavigationManager Navigation
@@ -147,8 +146,8 @@ else
                                         <MudProgressLinear Color="Color.Info" Value="@p.Percent" Class="mb-1"/>
                                         <MudText Typo="Typo.caption">
                                             @p.Done de @p.Total mods@(p.Dependencies > 0
-                                                                        ? $" · +{p.Dependencies} dependências"
-                                                                        : "") — @p.Step
+                                                                            ? $" · +{p.Dependencies} dependências"
+                                                                            : "") — @p.Step
                                         </MudText>
                                     }
                                     else
@@ -182,6 +181,7 @@ else
                             {
                                 <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
                             }
+
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error"
                                        OnClick="DeleteVersion">Apagar
                             </MudButton>
@@ -233,7 +233,7 @@ else
                                       CanUpload="@(_selectedVersion.State is ModpackVersionState.Draft)"
                                       IsBusy="_isRetrying"
                                       CanUseServerPack="@(_selectedVersion.State is ModpackVersionState.Draft
-                                                          && _selectedVersion.UpstreamServerPackFileId is { Length: > 0 })"
+                                                        && _selectedVersion.UpstreamServerPackFileId is { Length: > 0 })"
                                       IsCompleting="_isCompleting"
                                       OnCompleteFromServerPack="CompleteFromServerPack"
                                       OnUpload="UploadForPending"
@@ -334,7 +334,8 @@ else
                                                          Variant="Variant.Filled">
                                                     @atualizacao.LatestLabel
                                                 </MudChip>
-                                                <MudTooltip Text="Traz a atualização do autor para um rascunho novo, preservando o que você mudou">
+                                                <MudTooltip
+                                                    Text="Traz a atualização do autor para um rascunho novo, preservando o que você mudou">
                                                     <MudIconButton Icon="@Icons.Material.Filled.SystemUpdateAlt"
                                                                    Size="Size.Small" Color="Color.Warning"
                                                                    OnClick="OpenUpstreamUpdate"/>

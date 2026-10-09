@@ -1,6 +1,5 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
-using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Servers;

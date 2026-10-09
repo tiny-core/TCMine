@@ -27,14 +27,16 @@ public partial class VersionPickerDialog : ComponentBase
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 
     /// <summary>Só para o título do diálogo — a escolha em si é pelo Id.</summary>
-    [Parameter] public string? ModpackName { get; set; }
+    [Parameter]
+    public string? ModpackName { get; set; }
 
     /// <summary>
     ///     As versões que já estão no disco. Aparecem marcadas e desligadas:
     ///     instalar a mesma outra vez daria duas instâncias idênticas, que
     ///     ocupam o dobro do disco e ficam indistinguíveis na lista.
     /// </summary>
-    [Parameter] public IReadOnlySet<Guid> InstalledVersionIds { get; set; } =
+    [Parameter]
+    public IReadOnlySet<Guid> InstalledVersionIds { get; set; } =
         new HashSet<Guid>();
 
     [Inject] private IServerConnection Connection { get; set; } = default!;

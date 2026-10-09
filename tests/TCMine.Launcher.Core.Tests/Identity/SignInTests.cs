@@ -122,13 +122,20 @@ public class SignInTests
         var api = new ApiFalsa(registro: () => ordem.Add("servidor"));
         var canal = new CanalQueRegistra(ordem);
         var autenticador = new AutenticadorFalso(
-            AuthResult.NoStoredCredentials(), registro: () => ordem.Add("local"));
+            AuthResult.NoStoredCredentials(), () => ordem.Add("local"));
 
         var estado = await new SignIn(autenticador, api, canal).SignOutAsync(Config, Ct);
 
         estado.Status.ShouldBe(SignInStatus.SignedOut);
         ordem.ShouldBe(["servidor", "canal", "local"]);
     }
+
+    // ---------- apoio ----------
+
+    private static LauncherSessionDto Sessao() => new()
+    {
+        UserId = Guid.CreateVersion7(), DisplayName = "ana", MinecraftUuid = "abc123"
+    };
 
     private sealed class CanalQueRegistra(List<string> ordem) : FakeServerConnection
     {
@@ -138,13 +145,6 @@ public class SignInTests
             return base.DisconnectAsync();
         }
     }
-
-    // ---------- apoio ----------
-
-    private static LauncherSessionDto Sessao() => new()
-    {
-        UserId = Guid.CreateVersion7(), DisplayName = "ana", MinecraftUuid = "abc123"
-    };
 
     private sealed class AutenticadorFalso(AuthResult result, Action? registro = null)
         : IMinecraftAuthenticator

@@ -18,8 +18,8 @@ namespace TCMine.Launcher.UI.Components;
 /// </summary>
 public partial class HomeServers : ComponentBase
 {
-    private readonly HashSet<Guid> _pedindo = [];
     private readonly HashSet<Guid> _pedidosFeitos = [];
+    private readonly HashSet<Guid> _pedindo = [];
 
     [Parameter] [EditorRequired] public IReadOnlyList<GameServerDto> Servers { get; set; } = [];
 
@@ -27,19 +27,25 @@ public partial class HomeServers : ComponentBase
     ///     Abrir o resgate de convite é decisão de quem usa o componente — ele
     ///     só mostra a lista que recebeu, não sabe diálogo nem catálogo.
     /// </summary>
-    [Parameter] [EditorRequired] public EventCallback OnRedeemInvite { get; set; }
+    [Parameter]
+    [EditorRequired]
+    public EventCallback OnRedeemInvite { get; set; }
 
     /// <summary>
     ///     Abrir o jogo já dentro do servidor. É da tela: é ela que sabe a
     ///     instância ativa e mostra o andamento da abertura.
     /// </summary>
-    [Parameter] [EditorRequired] public EventCallback<GameServerDto> OnJoin { get; set; }
+    [Parameter]
+    [EditorRequired]
+    public EventCallback<GameServerDto> OnJoin { get; set; }
 
     /// <summary>Por que nenhum servidor pode ser aberto agora (jogo aberto, sem pareamento), ou nulo.</summary>
-    [Parameter] public string? JoinBlockedReason { get; set; }
+    [Parameter]
+    public string? JoinBlockedReason { get; set; }
 
     /// <summary>O servidor que está a ser aberto, para o spinner ficar na linha certa.</summary>
-    [Parameter] public Guid? Joining { get; set; }
+    [Parameter]
+    public Guid? Joining { get; set; }
 
     /// <summary>
     ///     Versão instalada da instância ativa, para decidir "Entrar" ou
@@ -47,7 +53,8 @@ public partial class HomeServers : ComponentBase
     ///     antemão o servidor que está para trás (JoinServer recusaria do
     ///     mesmo jeito, mas só depois do clique).
     /// </summary>
-    [Parameter] public string? ActiveVersion { get; set; }
+    [Parameter]
+    public string? ActiveVersion { get; set; }
 
     [Inject] private IServerConnection Connection { get; set; } = default!;
 

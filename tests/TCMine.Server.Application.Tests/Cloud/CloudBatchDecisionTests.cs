@@ -33,14 +33,15 @@ public sealed class CloudBatchDecisionTests
         IEnumerable<CloudItemDto>? definicoes = null) =>
         new(new string('a', 32), 1, 1, ops.ToList(), esperado.ToList(), definicoes?.ToList());
 
-    private static CloudItemDto DefinicaoFerro() => new(Ferro, "minecraft:iron_ingot", "Ferro", Convert.ToBase64String([1, 2, 3]));
+    private static CloudItemDto DefinicaoFerro() =>
+        new(Ferro, "minecraft:iron_ingot", "Ferro", Convert.ToBase64String([1, 2, 3]));
 
     [Fact]
     public void Credito_e_debito_validos_sao_aceitos_com_o_saldo_final()
     {
         var lote = Lote(
-            [new(Canal.Id, Diamante, -4), new(Canal.Id, Ferro, 64)],
-            [new(Canal.Id, Diamante, 6), new(Canal.Id, Ferro, 64)],
+            [new CloudOpDto(Canal.Id, Diamante, -4), new CloudOpDto(Canal.Id, Ferro, 64)],
+            [new CloudExpectedDto(Canal.Id, Diamante, 6), new CloudExpectedDto(Canal.Id, Ferro, 64)],
             [DefinicaoFerro()]);
 
         var aceito = CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Accepted>();
@@ -52,7 +53,7 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Debito_alem_do_saldo_vai_para_quarentena()
     {
-        var lote = Lote([new(Canal.Id, Diamante, -11)], [new(Canal.Id, Diamante, -1)]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Diamante, -11)], [new CloudExpectedDto(Canal.Id, Diamante, -1)]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.NegativeBalance);
@@ -61,7 +62,7 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Saldo_esperado_diferente_e_divergencia()
     {
-        var lote = Lote([new(Canal.Id, Diamante, -1)], [new(Canal.Id, Diamante, 8)]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Diamante, -1)], [new CloudExpectedDto(Canal.Id, Diamante, 8)]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.Divergence);
@@ -70,7 +71,7 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Saldo_esperado_ausente_tambem_e_divergencia()
     {
-        var lote = Lote([new(Canal.Id, Diamante, -1)], []);
+        var lote = Lote([new CloudOpDto(Canal.Id, Diamante, -1)], []);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.Divergence);
@@ -80,7 +81,7 @@ public sealed class CloudBatchDecisionTests
     public void Canal_de_outro_jogador_e_recusado()
     {
         var alheio = Guid.CreateVersion7();
-        var lote = Lote([new(alheio, Diamante, 1)], [new(alheio, Diamante, 1)]);
+        var lote = Lote([new CloudOpDto(alheio, Diamante, 1)], [new CloudExpectedDto(alheio, Diamante, 1)]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.UnknownChannel);
@@ -91,7 +92,7 @@ public sealed class CloudBatchDecisionTests
     {
         var canal = NovoCanal();
         canal.Freeze("teste");
-        var lote = Lote([new(canal.Id, Diamante, 1)], [new(canal.Id, Diamante, 11)]);
+        var lote = Lote([new CloudOpDto(canal.Id, Diamante, 1)], [new CloudExpectedDto(canal.Id, Diamante, 11)]);
 
         CloudBatchDecision.Decide(lote, Estado(canal: canal)).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.FrozenChannel);
@@ -100,7 +101,7 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Item_desconhecido_sem_definicao_e_recusado()
     {
-        var lote = Lote([new(Canal.Id, Ferro, 5)], [new(Canal.Id, Ferro, 5)]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Ferro, 5)], [new CloudExpectedDto(Canal.Id, Ferro, 5)]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.UnknownItem);
@@ -110,7 +111,8 @@ public sealed class CloudBatchDecisionTests
     public void Item_desconhecido_nao_pode_sair()
     {
         // Saída de algo que o banco nunca viu entrar: só pode ser invenção.
-        var lote = Lote([new(Canal.Id, Ferro, -5)], [new(Canal.Id, Ferro, 0)], [DefinicaoFerro()]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Ferro, -5)], [new CloudExpectedDto(Canal.Id, Ferro, 0)],
+            [DefinicaoFerro()]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.UnknownItem);
@@ -123,7 +125,8 @@ public sealed class CloudBatchDecisionTests
     public void Definicao_invalida_e_recusada(string? fingerprint, string itemId, string encoded)
     {
         var fp = fingerprint ?? Ferro;
-        var lote = Lote([new(Canal.Id, fp, 1)], [new(Canal.Id, fp, 1)], [new(fp, itemId, "X", encoded)]);
+        var lote = Lote([new CloudOpDto(Canal.Id, fp, 1)], [new CloudExpectedDto(Canal.Id, fp, 1)],
+            [new CloudItemDto(fp, itemId, "X", encoded)]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.UnknownItem);
@@ -133,7 +136,7 @@ public sealed class CloudBatchDecisionTests
     public void Item_maior_que_o_limite_da_nuvem_e_recusado()
     {
         var grande = new CloudItemDto(Ferro, "minecraft:x", "X", Convert.ToBase64String(new byte[9000]));
-        var lote = Lote([new(Canal.Id, Ferro, 1)], [new(Canal.Id, Ferro, 1)], [grande]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Ferro, 1)], [new CloudExpectedDto(Canal.Id, Ferro, 1)], [grande]);
 
         CloudBatchDecision.Decide(lote, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.UnknownItem);
@@ -142,11 +145,12 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Cota_de_tipos_e_de_total()
     {
-        var umTipoNovo = Lote([new(Canal.Id, Ferro, 1)], [new(Canal.Id, Ferro, 1)], [DefinicaoFerro()]);
+        var umTipoNovo = Lote([new CloudOpDto(Canal.Id, Ferro, 1)], [new CloudExpectedDto(Canal.Id, Ferro, 1)],
+            [DefinicaoFerro()]);
         CloudBatchDecision.Decide(umTipoNovo, Estado(maxTipos: 1)).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.QuotaExceeded);
 
-        var muitos = Lote([new(Canal.Id, Diamante, 91)], [new(Canal.Id, Diamante, 101)]);
+        var muitos = Lote([new CloudOpDto(Canal.Id, Diamante, 91)], [new CloudExpectedDto(Canal.Id, Diamante, 101)]);
         CloudBatchDecision.Decide(muitos, Estado(maxTotal: 100)).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.QuotaExceeded);
     }
@@ -156,7 +160,7 @@ public sealed class CloudBatchDecisionTests
     {
         // A cota baixou depois que o jogador já tinha os itens: tirar tem de
         // continuar possível, senão o jogador fica preso acima do limite.
-        var lote = Lote([new(Canal.Id, Diamante, -1)], [new(Canal.Id, Diamante, 9)]);
+        var lote = Lote([new CloudOpDto(Canal.Id, Diamante, -1)], [new CloudExpectedDto(Canal.Id, Diamante, 9)]);
 
         CloudBatchDecision.Decide(lote, Estado(maxTotal: 5)).ShouldBeOfType<CloudBatchDecision.Accepted>();
     }
@@ -164,10 +168,11 @@ public sealed class CloudBatchDecisionTests
     [Fact]
     public void Operacao_zerada_ou_item_repetido_e_recusado()
     {
-        var zerada = Lote([new(Canal.Id, Diamante, 0)], [new(Canal.Id, Diamante, 10)]);
+        var zerada = Lote([new CloudOpDto(Canal.Id, Diamante, 0)], [new CloudExpectedDto(Canal.Id, Diamante, 10)]);
         CloudBatchDecision.Decide(zerada, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>();
 
-        var repetido = Lote([new(Canal.Id, Diamante, 1), new(Canal.Id, Diamante, 1)], [new(Canal.Id, Diamante, 12)]);
+        var repetido = Lote([new CloudOpDto(Canal.Id, Diamante, 1), new CloudOpDto(Canal.Id, Diamante, 1)],
+            [new CloudExpectedDto(Canal.Id, Diamante, 12)]);
         CloudBatchDecision.Decide(repetido, Estado()).ShouldBeOfType<CloudBatchDecision.Rejected>()
             .Reason.ShouldBe(CloudQuarantineReason.PayloadMismatch);
     }

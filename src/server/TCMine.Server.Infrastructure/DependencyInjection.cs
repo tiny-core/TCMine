@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TCMine.MinecraftAuth;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Public;
 using TCMine.Server.Infrastructure.Docker;
@@ -7,13 +8,12 @@ using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.CurseForge;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Instances;
+using TCMine.Server.Infrastructure.Launcher;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Security;
 using TCMine.Server.Infrastructure.Storage;
-using TCMine.Server.Infrastructure.Versions;
-using TCMine.MinecraftAuth;
 using TCMine.Server.Infrastructure.Updates;
-using TCMine.Server.Infrastructure.Launcher;
+using TCMine.Server.Infrastructure.Versions;
 
 namespace TCMine.Server.Infrastructure;
 
@@ -137,10 +137,7 @@ public static class DependencyInjection
         // Mesma cadeia Xbox Live → XSTS → Minecraft Services que o launcher usa
         // (TCMine.MinecraftAuth, compartilhado) — aqui, para o login opcional do
         // Minecraft no painel.
-        services.AddHttpClient<MinecraftTokenExchange>(client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(30);
-            })
+        services.AddHttpClient<MinecraftTokenExchange>(client => { client.Timeout = TimeSpan.FromSeconds(30); })
             .AddStandardResilienceHandler();
 
         services.AddScoped<IMinecraftTokenExchange, MinecraftTokenExchangeAdapter>();

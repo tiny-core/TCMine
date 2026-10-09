@@ -13,7 +13,7 @@ namespace TCMine.Launcher.Core.Modpacks;
 public sealed class ChooseInstance(IInstanceStore instances, IActiveInstanceStore active)
 {
     public Task<ActiveInstanceView> CurrentAsync(CancellationToken ct) =>
-        CurrentAsync(knownInstances: null, ct);
+        CurrentAsync(null, ct);
 
     /// <summary>
     ///     Mesma coisa, mas reaproveitando uma listagem de instâncias que quem

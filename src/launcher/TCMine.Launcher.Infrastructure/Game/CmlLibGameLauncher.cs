@@ -1,6 +1,7 @@
 using CmlLib.Core;
 using CmlLib.Core.Auth;
 using CmlLib.Core.Installer.Forge;
+using CmlLib.Core.Installers;
 using CmlLib.Core.ModLoaders.FabricMC;
 using CmlLib.Core.ModLoaders.QuiltMC;
 using CmlLib.Core.ProcessBuilder;
@@ -45,9 +46,7 @@ public sealed partial class CmlLibGameLauncher(
             {
                 Path = layout,
                 JavaPath = request.JavaPath,
-
                 Session = BuildSession(request),
-
                 MaximumRamMb = request.MemoryMb ?? 4096
             };
 
@@ -64,10 +63,10 @@ public sealed partial class CmlLibGameLauncher(
             var process = await launcher.InstallAndBuildProcessAsync(
                 version,
                 options,
-                new Progress<CmlLib.Core.Installers.InstallerProgressChangedEventArgs>(
-                    e => progress?.Report(new GameLaunchProgress($"Baixando: {e.Name}"))),
-                new Progress<CmlLib.Core.ByteProgress>(
-                    b => progress?.Report(new GameLaunchProgress("Baixando arquivos do jogo", b.ToRatio()))),
+                new Progress<InstallerProgressChangedEventArgs>(e =>
+                    progress?.Report(new GameLaunchProgress($"Baixando: {e.Name}"))),
+                new Progress<ByteProgress>(b =>
+                    progress?.Report(new GameLaunchProgress("Baixando arquivos do jogo", b.ToRatio()))),
                 ct);
 
             // Sem janela de consola e sem shell, e com os dois canais redirigidos:
@@ -120,12 +119,7 @@ public sealed partial class CmlLibGameLauncher(
             return offline;
         }
 
-        return new MSession
-        {
-            Username = request.PlayerName,
-            AccessToken = token,
-            UUID = request.PlayerUuid
-        };
+        return new MSession { Username = request.PlayerName, AccessToken = token, UUID = request.PlayerUuid };
     }
 
     /// <summary>

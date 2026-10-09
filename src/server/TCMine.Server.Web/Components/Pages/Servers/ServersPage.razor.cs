@@ -1,7 +1,7 @@
-using TCMine.Contracts.Modpacks;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;

@@ -35,6 +35,4 @@ public interface IContentStore
     ///     instâncias.
     /// </summary>
     Task MaterializeAsync(string sha256, string destinationPath, bool allowHardLink, CancellationToken ct);
-
-    Task<long> GetSizeOnDiskAsync(CancellationToken ct);
 }

@@ -50,8 +50,8 @@ public sealed class FileSystemContentStoreTests : IDisposable
         var (_, shaEsperado) = Conteudo("o que o manifesto prometeu");
         var outro = Encoding.UTF8.GetBytes("o que chegou de verdade");
 
-        await Should.ThrowAsync<InvalidOperationException>(
-            async () => await store.AddAsync(shaEsperado, new MemoryStream(outro), Ct));
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await store.AddAsync(shaEsperado, new MemoryStream(outro), Ct));
 
         (await store.ContainsAsync(shaEsperado, Ct)).ShouldBeFalse("nada pode ter sido guardado");
     }
@@ -64,8 +64,8 @@ public sealed class FileSystemContentStoreTests : IDisposable
         var store = Criar();
         var (_, sha) = Conteudo("prometido");
 
-        await Should.ThrowAsync<InvalidOperationException>(
-            async () => await store.AddAsync(sha, new MemoryStream("outro"u8.ToArray()), Ct));
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await store.AddAsync(sha, new MemoryStream("outro"u8.ToArray()), Ct));
 
         Directory.EnumerateFiles(_raiz, "*", SearchOption.AllDirectories).ShouldBeEmpty();
     }
@@ -92,7 +92,7 @@ public sealed class FileSystemContentStoreTests : IDisposable
 
         var target = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
 
-        await store.MaterializeAsync(sha, target, allowHardLink: false, Ct);
+        await store.MaterializeAsync(sha, target, false, Ct);
 
         (await File.ReadAllBytesAsync(target, Ct)).ShouldBe(content);
     }
@@ -110,7 +110,7 @@ public sealed class FileSystemContentStoreTests : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(target)!);
         await File.WriteAllTextAsync(target, "versão antiga bem mais longa", Ct);
 
-        await store.MaterializeAsync(sha, target, allowHardLink: false, Ct);
+        await store.MaterializeAsync(sha, target, false, Ct);
 
         (await File.ReadAllBytesAsync(target, Ct)).ShouldBe(content);
     }
@@ -136,7 +136,7 @@ public sealed class FileSystemContentStoreTests : IDisposable
 
         var target = Path.Combine(_raiz, "instancia", "mods", "jei.jar");
 
-        await store.MaterializeAsync(sha, target, allowHardLink: true, Ct);
+        await store.MaterializeAsync(sha, target, true, Ct);
 
         linker.Chamadas.ShouldHaveSingleItem();
     }

@@ -35,39 +35,41 @@ public static class CloudEndpoints
                 {
                     // 426 e não 400: o pedido está certo para outra versão. O mod
                     // mostra "atualize o mod", não "erro de comunicação".
-                    return Results.Problem($"Protocolo {request.Protocol} não suportado; o TCMine fala {CloudProtocol.Current}.",
+                    return Results.Problem(
+                        $"Protocolo {request.Protocol} não suportado; o TCMine fala {CloudProtocol.Current}.",
                         statusCode: StatusCodes.Status426UpgradeRequired);
                 }
+
                 return ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct));
             })
             .WithName("CloudHello");
 
         api.MapPost("/leases/acquire", async ([FromBody] CloudAcquireRequest? request, AcquireCloudLease useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.PlayerUuid is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.PlayerUuid is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudAcquire");
 
         api.MapPost("/leases/heartbeat", async ([FromBody] CloudHeartbeatRequest? request, HeartbeatCloudLeases useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.Leases is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.Leases is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudHeartbeat");
 
         api.MapPost("/batches", async ([FromBody] CloudBatchRequest? request, SubmitCloudBatch useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.PlayerUuid is null || request.Ops is null || request.Expected is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.PlayerUuid is null || request.Ops is null || request.Expected is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudBatch");
 
         api.MapPost("/leases/release", async ([FromBody] CloudReleaseRequest? request, ReleaseCloudLease useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.PlayerUuid is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.PlayerUuid is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudRelease");
 
         api.MapPost("/policy", async (GetCloudPolicy useCase, HttpContext http, CancellationToken ct) =>
@@ -75,17 +77,17 @@ public static class CloudEndpoints
             .WithName("CloudPolicy");
 
         api.MapPost("/reports/doubtful", async ([FromBody] CloudDoubtfulRequest? request, ReportCloudDoubtful useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.Operations is null || request.ReportId is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.Operations is null || request.ReportId is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudDoubtful");
 
         api.MapPost("/reports/suspects", async ([FromBody] CloudSuspectsRequest? request, ReportCloudSuspects useCase,
-                HttpContext http, CancellationToken ct) =>
-            request?.Items is null
-                ? BadBody()
-                : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
+                    HttpContext http, CancellationToken ct) =>
+                request?.Items is null
+                    ? BadBody()
+                    : ToHttp(await useCase.HandleAsync(CloudServerAuthFilter.ContextOf(http), request, ct)))
             .WithName("CloudSuspects");
 
         return app;

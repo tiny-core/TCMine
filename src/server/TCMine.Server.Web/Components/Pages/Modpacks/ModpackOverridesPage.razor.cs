@@ -31,8 +31,7 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     private bool _dirty;
 
     private string? _dragPath; // path a ser arrastado (definido no handle)
-    private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
-    private StandaloneCodeEditor _editor = default!;
+    private StandaloneCodeEditor _editor = null!;
     private bool _isLoading = true;
 
     /// <summary>Leitura do arquivo em curso — o clique numa árvore grande não é instantâneo.</summary>
@@ -71,20 +70,20 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public Guid VersionId { get; set; }
 
-    [Inject] private IModpackRepository Repository { get; set; } = default!;
-    [Inject] private ReadOverride ReadUseCase { get; set; } = default!;
-    [Inject] private SaveOverride SaveUseCase { get; set; } = default!;
-    [Inject] private DeleteOverride DeleteUseCase { get; set; } = default!;
-    [Inject] private ISnackbar Snackbar { get; set; } = default!;
-    [Inject] private IDialogService DialogService { get; set; } = default!;
-    [Inject] private MoveOverride MoveUseCase { get; set; } = default!;
+    [Inject] private IModpackRepository Repository { get; set; } = null!;
+    [Inject] private ReadOverride ReadUseCase { get; set; } = null!;
+    [Inject] private SaveOverride SaveUseCase { get; set; } = null!;
+    [Inject] private DeleteOverride DeleteUseCase { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private IDialogService DialogService { get; set; } = null!;
+    [Inject] private MoveOverride MoveUseCase { get; set; } = null!;
 
-    [Inject] private UndoOverrideMove UndoUseCase { get; set; } = default!;
-    [Inject] private OverrideUndoService UndoService { get; set; } = default!;
-    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
-    [Inject] private NavigationManager Navigation { get; set; } = default!;
+    [Inject] private UndoOverrideMove UndoUseCase { get; set; } = null!;
+    [Inject] private OverrideUndoService UndoService { get; set; } = null!;
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+    [Inject] private NavigationManager Navigation { get; set; } = null!;
 
-    [Inject] private PageLoadTimer LoadTimer { get; set; } = default!;
+    [Inject] private PageLoadTimer LoadTimer { get; set; } = null!;
 
     /// <summary>
     ///     Solta o módulo JS ao sair da página. O circuito do Blazor Server é
@@ -233,7 +232,7 @@ public partial class ModpackOverridesPage : IAsyncDisposable
 
             // As URLs saem do Assets porque os estáticos são servidos com hash
             // no nome: escrever o caminho cru no JS pegaria uma versão em cache
-            // depois de qualquer atualização.
+            // após qualquer atualização.
             // O cast para object é o que faz a lista chegar como UM argumento.
             // InvokeVoidAsync recebe params object[]: sem ele, o array VIRA a
             // lista de argumentos e o JS recebe três strings soltas, ficando com
@@ -440,24 +439,19 @@ public partial class ModpackOverridesPage : IAsyncDisposable
             }
         }
 
-        return folders.OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList();
+        return [.. folders.OrderBy(f => f, StringComparer.OrdinalIgnoreCase)];
     }
-
-    // Realça a linha só se for um alvo válido para o que está a ser arrastado.
-    private bool IsDropTarget(TreeItemData<string> item) =>
-        _dragPath is not null && _dropTarget == item.Value && item.Value != _dragPath;
 
     private async Task OnDrop(string? targetPath)
     {
         var from = _dragPath;
         _dragPath = null;
-        _dropTarget = null;
         // targetPath vem de ITreeItemData.Value, que é anulável; sem alvo válido
         // não há para onde mover.
         if (from is null || targetPath is null)
             return;
 
-        // Se o alvo é uma pasta, entra nela; se é ficheiro, vai para a pasta dele.
+        // Se o alvo é uma pasta, entra nela; se é arquivo, vai para a pasta dele.
         var isFolder = !(_version?.Files ?? []).Any(f =>
             f.Origin == ModFileOrigin.Override
             && f.Path.Equals(targetPath, StringComparison.OrdinalIgnoreCase));
@@ -497,7 +491,6 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     {
         var from = _dragPath;
         _dragPath = null;
-        _dropTarget = null;
         if (from is null || !from.Contains('/'))
             return; // já está na raiz
 

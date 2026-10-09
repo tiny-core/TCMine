@@ -1,7 +1,7 @@
 using System.Reflection;
 using NetArchTest.Rules;
+using TCMine.Server.Application;
 using TCMine.Server.Application.Abstractions;
-using ArchResult = NetArchTest.Rules.TestResult;
 
 namespace TCMine.Architecture.Tests;
 
@@ -22,7 +22,7 @@ public class AuthorizationRules
     private const string Namespace = "TCMine.Server.Application.Servers";
 
     private static readonly Assembly Application =
-        typeof(Server.Application.AssemblyMarker).Assembly;
+        typeof(AssemblyMarker).Assembly;
 
     /// <summary>
     ///     Casos de uso que ainda NÃO consultam o papel do usuário.
@@ -98,7 +98,7 @@ public class AuthorizationRules
         casosDeUso.GetTypes().ShouldNotBeEmpty(
             $"Nenhum tipo em {Namespace}: o namespace mudou e esta regra parou de olhar.");
 
-        ArchResult result = casosDeUso
+        var result = casosDeUso
             .Should()
             .HaveDependencyOn(typeof(ICurrentUserScope).FullName)
             .GetResult();

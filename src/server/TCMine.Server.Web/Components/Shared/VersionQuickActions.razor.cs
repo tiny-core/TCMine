@@ -13,7 +13,8 @@ public partial class VersionQuickActions : ComponentBase
     [Parameter] public ModpackVersion? SelectedVersion { get; set; }
 
     /// <summary>Disparado depois de criar ou publicar, para quem hospeda recarregar.</summary>
-    [Parameter] public EventCallback Changed { get; set; }
+    [Parameter]
+    public EventCallback Changed { get; set; }
 
     [Inject] private VersionLifecycleActions Actions { get; set; } = default!;
 

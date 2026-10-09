@@ -22,7 +22,7 @@ public class CleanupJavaRuntimesTests
     {
         var java = new FakeJavaLocator { Installed = { [21] = 100, [25] = 200 } };
 
-        var freed = await Build(java, declarado: 25, "26.2").HandleAsync(Ct);
+        var freed = await Build(java, 25, "26.2").HandleAsync(Ct);
 
         java.Removed.ShouldBe([21]);
         freed.ShouldBe(100);
@@ -33,7 +33,7 @@ public class CleanupJavaRuntimesTests
     {
         var java = new FakeJavaLocator { Installed = { [21] = 100 } };
 
-        await Build(java, declarado: 21, "1.21.1").HandleAsync(Ct);
+        await Build(java, 21, "1.21.1").HandleAsync(Ct);
 
         java.Removed.ShouldBeEmpty();
     }
@@ -48,7 +48,7 @@ public class CleanupJavaRuntimesTests
 
         session.Attach(Instalada("26.2"), new FakeGameProcess());
 
-        var freed = await Build(java, declarado: 25, "26.2", session).HandleAsync(Ct);
+        var freed = await Build(java, 25, "26.2", session).HandleAsync(Ct);
 
         java.Removed.ShouldBeEmpty();
         freed.ShouldBe(0);
@@ -74,7 +74,7 @@ public class CleanupJavaRuntimesTests
         // de divergirem é uma descarga, não uma falha.
         var java = new FakeJavaLocator { Installed = { [17] = 100, [25] = 200 } };
 
-        await Build(java, declarado: null, "26.2").HandleAsync(Ct);
+        await Build(java, null, "26.2").HandleAsync(Ct);
 
         java.Removed.ShouldBe([17]);
     }
@@ -85,7 +85,7 @@ public class CleanupJavaRuntimesTests
         // A tela mostra o número antes de perguntar; contar não pode agir.
         var java = new FakeJavaLocator { Installed = { [21] = 100, [25] = 200 } };
 
-        var unused = await Build(java, declarado: 25, "26.2").FindUnusedAsync(Ct);
+        var unused = await Build(java, 25, "26.2").FindUnusedAsync(Ct);
 
         unused.Select(r => r.MajorVersion).ShouldBe([21]);
         java.Removed.ShouldBeEmpty();
@@ -122,8 +122,8 @@ public class CleanupJavaRuntimesTests
                 MinecraftVersion = minecraft,
                 Loader = ModLoader.NeoForge
             },
-            SizeBytes: 0,
-            Path: "/instancias/pack");
+            0,
+            "/instancias/pack");
 
     private sealed class ExigenciaFalsa(int? declarado) : IJavaRequirementSource
     {

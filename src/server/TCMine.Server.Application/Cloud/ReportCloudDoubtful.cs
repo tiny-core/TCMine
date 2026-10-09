@@ -9,7 +9,9 @@ namespace TCMine.Server.Application.Cloud;
 ///     vão para a fila "Em dúvida" do painel. Nunca devolvidas sozinhas: só o
 ///     dono sabe se o mundo gravou o item.
 /// </summary>
-public sealed partial class ReportCloudDoubtful(ICloudGovernanceRepository governance, ILogger<ReportCloudDoubtful> logger)
+public sealed partial class ReportCloudDoubtful(
+    ICloudGovernanceRepository governance,
+    ILogger<ReportCloudDoubtful> logger)
 {
     public async Task<CloudCallResult<bool>> HandleAsync(CloudServerContext ctx, CloudDoubtfulRequest request,
         CancellationToken ct)
@@ -25,13 +27,19 @@ public sealed partial class ReportCloudDoubtful(ICloudGovernanceRepository gover
             var op = request.Operations[i];
             var player = CloudChannel.NormalizePlayerUuid(op.PlayerUuid);
             if (player is null || op.Amount <= 0 || op.Fingerprint is not { Length: CloudItemType.FingerprintLength }
-                || !Enum.TryParse<CloudDoubtfulKind>(op.Kind, ignoreCase: true, out var kind))
+                || !Enum.TryParse<CloudDoubtfulKind>(op.Kind, true, out var kind))
                 return CloudCallResult<bool>.Invalid($"Operação {i} inválida.");
 
             rows.Add(new CloudDoubtfulOperation
             {
-                VaultId = ctx.VaultId, ServerId = ctx.ServerId, ReportId = request.ReportId, Index = i,
-                PlayerUuid = player, ChannelId = op.ChannelId, Fingerprint = op.Fingerprint, Kind = kind,
+                VaultId = ctx.VaultId,
+                ServerId = ctx.ServerId,
+                ReportId = request.ReportId,
+                Index = i,
+                PlayerUuid = player,
+                ChannelId = op.ChannelId,
+                Fingerprint = op.Fingerprint,
+                Kind = kind,
                 Amount = op.Amount
             });
         }
@@ -42,7 +50,8 @@ public sealed partial class ReportCloudDoubtful(ICloudGovernanceRepository gover
         return CloudCallResult<bool>.Ok(true);
     }
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: o servidor {ServerId} reportou {Count} operação(ões) em dúvida após uma queda.")]
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Nuvem: o servidor {ServerId} reportou {Count} operação(ões) em dúvida após uma queda.")]
     private partial void LogReported(Guid serverId, int count);
 }
 

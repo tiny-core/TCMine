@@ -48,7 +48,7 @@ public interface IInviteRepository
     /// </summary>
     Task<Invite?> GetByCodeHashAsync(string codeHash, CancellationToken ct);
 
-    /// <summary>Convites de um servidor, mais recentes primeiro (ordem de Id).</summary>
+    /// <summary>Convites de um servidor, mais recentes primeiro (ordem de ID).</summary>
     Task<IReadOnlyList<Invite>> ListByServerAsync(Guid gameServerId, CancellationToken ct);
 
     Task UpdateAsync(Invite invite, CancellationToken ct);
@@ -59,8 +59,6 @@ public interface IMembershipRepository
     Task AddAsync(Membership membership, CancellationToken ct);
 
     Task<Membership?> GetAsync(Guid userId, Guid gameServerId, CancellationToken ct);
-
-    Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct);
 
     /// <summary>
     ///     Vínculos de um usuário, em todos os servidores. É o que responde "o

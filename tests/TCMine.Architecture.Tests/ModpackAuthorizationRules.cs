@@ -1,7 +1,7 @@
 using System.Reflection;
 using NetArchTest.Rules;
+using TCMine.Server.Application;
 using TCMine.Server.Application.Abstractions;
-using ArchResult = NetArchTest.Rules.TestResult;
 
 namespace TCMine.Architecture.Tests;
 
@@ -28,7 +28,7 @@ public class ModpackAuthorizationRules
     private const string Namespace = "TCMine.Server.Application.Modpacks";
 
     private static readonly Assembly Application =
-        typeof(Server.Application.AssemblyMarker).Assembly;
+        typeof(AssemblyMarker).Assembly;
 
     /// <summary>
     ///     Dívida declarada, não permissão. Ver o cabeçalho da classe.
@@ -122,7 +122,7 @@ public class ModpackAuthorizationRules
         casosDeUso.GetTypes().ShouldNotBeEmpty(
             $"Nenhum tipo em {Namespace}: o namespace mudou e esta regra parou de olhar.");
 
-        ArchResult result = casosDeUso
+        var result = casosDeUso
             .Should()
             .HaveDependencyOn(typeof(ICurrentUserScope).FullName)
             .GetResult();

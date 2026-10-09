@@ -13,56 +13,10 @@ public static class SecurityHeaders
     ///     Montada uma vez: é a mesma string em toda resposta, e concatenar isto a
     ///     cada requisição seria alocação pura.
     /// </summary>
-    private static readonly string ContentSecurityPolicy = string.Join("; ",
-    [
-        // Tudo o que não estiver explicitado abaixo só pode vir da própria origem.
-        "default-src 'self'",
-
-        // Todo script do painel é arquivo servido por nós, o que permite manter
-        // 'self' puro — sem nonce, sem hash, sem 'unsafe-inline'.
-        //
-        // Isso não é mais uma afirmação de boa fé: InlineScriptTests busca cada
-        // página e reprova se alguma servir <script> embutido. Antes era só um
-        // comentário, e um inline que aparecesse aqui passaria despercebido —
-        // a página renderiza, só o trecho bloqueado não roda, e o erro só surge
-        // no console de quem usa.
-        "script-src 'self'",
-
-        // 'unsafe-inline' aqui não é descuido: o MudBlazor posiciona popovers e
-        // diálogos escrevendo style="" no elemento, e o próprio Blazor injeta o
-        // <style> da UI de reconexão. Sem isto, metade dos menus abre no canto
-        // errado e o aviso de "reconectando" fica invisível.
-        "style-src 'self' 'unsafe-inline'",
-
-        // Ícone de mod vem do CDN de quem hospeda o mod (Modrinth, CurseForge), e
-        // quem escolhe o host é a API deles, não nós. Enumerar os domínios
-        // quebraria em silêncio no dia em que trocassem de CDN. Imagem é recurso
-        // passivo: o risco de aceitar qualquer https é baixo, e o de listar
-        // errado é uma tela cheia de ícone quebrado.
-        "img-src 'self' data: https:",
-
-        "font-src 'self' data:",
-
-        // Cobre o WebSocket do circuito Blazor e do hub: 'self' inclui ws/wss da
-        // mesma origem.
-        "connect-src 'self'",
-
-        // O editor de overrides (Monaco) cria seus workers a partir de blob:.
-        "worker-src 'self' blob:",
-
-        // Clickjacking: ninguém embute o painel num iframe. frame-ancestors é a
-        // versão moderna; o X-Frame-Options abaixo cobre navegador antigo.
-        "frame-ancestors 'none'",
-
-        // Fecha o <base> injetado por XSS, que reescreveria todo caminho relativo.
-        "base-uri 'self'",
-
-        // Formulário só posta para nós — corta o roubo de credencial por form
-        // reescrito para host externo.
-        "form-action 'self'",
-
-        "object-src 'none'"
-    ]);
+    private static readonly string ContentSecurityPolicy = string.Join("; ", "default-src 'self'", "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'", "img-src 'self' data: https:", "font-src 'self' data:",
+        "connect-src 'self'", "worker-src 'self' blob:", "frame-ancestors 'none'", "base-uri 'self'",
+        "form-action 'self'", "object-src 'none'");
 
     /// <summary>
     ///     Aplica os cabeçalhos a toda resposta.

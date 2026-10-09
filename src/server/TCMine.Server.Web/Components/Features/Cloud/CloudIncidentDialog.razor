@@ -1,4 +1,3 @@
-@using TCMine.Server.Web.Components.Features.Modpacks
 @inherits DialogComponentBase
 
 <MudDialog>
@@ -23,10 +22,12 @@
             @if (_lines.Any(l => l.Shortfall > 0))
             {
                 <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                    Parte dos itens já saiu da nuvem por outro servidor e não dá para estornar inteiro (coluna "Não volta").
+                    Parte dos itens já saiu da nuvem por outro servidor e não dá para estornar inteiro (coluna "Não
+                    volta").
                     Esses itens ficaram duplicados pelo rollback.
                 </MudAlert>
             }
+
             <MudTable Items="_lines" Dense="true" Height="360px" FixedHeader="true">
                 <HeaderContent>
                     <MudTh>Jogador</MudTh>
@@ -37,7 +38,9 @@
                     <MudTh Style="text-align:right;">Não volta</MudTh>
                 </HeaderContent>
                 <RowTemplate>
-                    <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.PlayerUuid</MudText></MudTd>
+                    <MudTd Style="font-family:monospace;">
+                        <MudText Typo="Typo.caption">@context.PlayerUuid</MudText>
+                    </MudTd>
                     <MudTd>
                         <MudText Typo="Typo.body2">@context.DisplayName</MudText>
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">@context.ItemId</MudText>
@@ -45,7 +48,8 @@
                     <MudTd Style="text-align:right;">@context.Current.ToString("N0")</MudTd>
                     <MudTd Style="text-align:right;">@context.Delta.ToString("+#,0;-#,0;0")</MudTd>
                     <MudTd Style="text-align:right;">@context.After.ToString("N0")</MudTd>
-                    <MudTd Style="text-align:right;">@(context.Shortfall > 0 ? context.Shortfall.ToString("N0") : "")</MudTd>
+                    <MudTd
+                        Style="text-align:right;">@(context.Shortfall > 0 ? context.Shortfall.ToString("N0") : "")</MudTd>
                 </RowTemplate>
             </MudTable>
         }
@@ -57,7 +61,8 @@
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="IsBusy">Fechar</MudButton>
         <MudButton OnClick="AcceptAsync" Disabled="@(IsBusy || _lines is null)">Aceitar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RevertAsync" Disabled="@(IsBusy || _lines is null)">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RevertAsync"
+                   Disabled="@(IsBusy || _lines is null)">
             Estornar
         </MudButton>
     </DialogActions>

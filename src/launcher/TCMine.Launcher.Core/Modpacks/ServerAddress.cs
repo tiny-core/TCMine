@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace TCMine.Launcher.Core.Modpacks;
 
 /// <summary>
@@ -49,5 +51,5 @@ public sealed record ServerAddress(string Host, int? Port)
     }
 
     private static bool TryPort(string text, out int port) =>
-        int.TryParse(text, System.Globalization.NumberStyles.None, null, out port) && port is > 0 and <= 65535;
+        int.TryParse(text, NumberStyles.None, null, out port) && port is > 0 and <= 65535;
 }

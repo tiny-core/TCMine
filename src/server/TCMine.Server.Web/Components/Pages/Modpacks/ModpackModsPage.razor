@@ -3,7 +3,6 @@
 @using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
 @using TCMine.Server.Domain.Modpacks
-@using TCMine.UI.Shared.Formatting
 @inject IModpackRepository Repository
 @inject RemoveModpackFile RemoveFileUseCase
 @inject IDialogService DialogService
@@ -85,7 +84,8 @@ else
                             }
                             else
                             {
-                                <MudIcon Icon="@Icons.Material.Filled.CloudDone" Size="Size.Small" Color="Color.Success"/>
+                                <MudIcon Icon="@Icons.Material.Filled.CloudDone" Size="Size.Small"
+                                         Color="Color.Success"/>
                                 <span>Tudo salvo</span>
                             }
                         </span>
@@ -193,7 +193,7 @@ else
                 </PagerContent>
 
                 <NoRecordsContent>
-                    <MudText Class="mud-text-secondary pa-4" >
+                    <MudText Class="mud-text-secondary pa-4">
                         Nenhum mod nesta versão. Use "Procurar mods" para começar.
                     </MudText>
                 </NoRecordsContent>

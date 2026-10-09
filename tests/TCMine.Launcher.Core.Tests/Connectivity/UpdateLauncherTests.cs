@@ -16,7 +16,7 @@ public class UpdateLauncherTests
     [Fact]
     public async Task Com_feed_e_sem_congelamento_atualiza()
     {
-        var updater = new UpdaterFalso(vaiAtualizar: true);
+        var updater = new UpdaterFalso(true);
 
         var reiniciou = await new UpdateLauncher(updater).HandleAsync(Resposta(), Ct);
 
@@ -30,7 +30,7 @@ public class UpdateLauncherTests
         // O congelamento existe para um evento em curso: ninguém atualiza no
         // meio da partida. Procurar e desistir depois daria o mesmo resultado
         // hoje e seria fácil de transformar num download desnecessário amanhã.
-        var updater = new UpdaterFalso(vaiAtualizar: true);
+        var updater = new UpdaterFalso(true);
 
         var reiniciou = await new UpdateLauncher(updater)
             .HandleAsync(Resposta() with { UpdatesFrozen = true }, Ct);
@@ -44,7 +44,7 @@ public class UpdateLauncherTests
     {
         // Servidor fora do ar. Ir buscar binários por uma URL guardada que já
         // ninguém confirmou é pior do que ficar na versão atual.
-        var updater = new UpdaterFalso(vaiAtualizar: true);
+        var updater = new UpdaterFalso(true);
 
         var reiniciou = await new UpdateLauncher(updater).HandleAsync(null, Ct);
 
@@ -55,7 +55,7 @@ public class UpdateLauncherTests
     [Fact]
     public async Task Nada_novo_no_feed_segue_a_vida()
     {
-        var reiniciou = await new UpdateLauncher(new UpdaterFalso(vaiAtualizar: false))
+        var reiniciou = await new UpdateLauncher(new UpdaterFalso(false))
             .HandleAsync(Resposta(), Ct);
 
         reiniciou.ShouldBeFalse();

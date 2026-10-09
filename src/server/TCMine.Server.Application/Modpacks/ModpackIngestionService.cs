@@ -96,9 +96,11 @@ public sealed partial class ModpackIngestionService(
         var contagem = new Counters();
         var title = $"Resolvendo {modpack.Name} {version.Version}";
 
-        void Report(string step) =>
-            progress.Report(versionId, new JobProgress(title, step, contagem.Done, total)
-                { Dependencies = contagem.Deps });
+        void Report(string step)
+        {
+            progress.Report(versionId,
+                new JobProgress(title, step, contagem.Done, total) { Dependencies = contagem.Deps });
+        }
 
         try
         {
@@ -388,9 +390,7 @@ public sealed partial class ModpackIngestionService(
         if (version.Files.Any(f =>
                 f.OriginReference == resolved.VersionId
                 && (SameSlug(f, item.ProjectId) || SameSlug(f, resolved.ProjectId))))
-        {
             return null;
-        }
 
         var deps = RequiredOf(resolved);
         var path = $"{resolved.Folder}/{resolved.FileName}";
@@ -474,7 +474,11 @@ public sealed partial class ModpackIngestionService(
         var alias = string.Equals(identity, item.ProjectId, StringComparison.OrdinalIgnoreCase)
             ? null
             : item.ProjectId;
-        bool SameMod(ModpackFile f) => SameSlug(f, identity) || SameSlug(f, alias);
+
+        bool SameMod(ModpackFile f)
+        {
+            return SameSlug(f, identity) || SameSlug(f, alias);
+        }
 
         // Mesmo mod, mesmo conteúdo já presente? Nada a fazer — evita
         // remover e re-adicionar a mesma linha numa re-ingestão.

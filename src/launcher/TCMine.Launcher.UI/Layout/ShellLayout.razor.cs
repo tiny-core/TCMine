@@ -106,6 +106,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     // Estático com ILogger explícito, como no LoggingErrorBoundary: o gerador
     // de [LoggerMessage] só acha campo, e um componente recebe por [Inject].
-    [LoggerMessage(Level = LogLevel.Information, Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms ({Outcome}).")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms ({Outcome}).")]
     private static partial void LogStartupFinished(ILogger logger, long elapsedMs, string outcome);
 }

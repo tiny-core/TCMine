@@ -21,9 +21,9 @@ public sealed class UpdateFromUpstreamTests
     public async Task Cria_rascunho_novo_sem_tocar_na_versao_atual()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "1.1.0", CancellationToken.None);
@@ -44,9 +44,9 @@ public sealed class UpdateFromUpstreamTests
     public async Task Mod_atualizado_nao_copia_o_jar_velho_e_vai_para_a_fila()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -65,9 +65,9 @@ public sealed class UpdateFromUpstreamTests
         // O caso que motivou o merge inteiro: o extra do admin sobrevive a uma
         // atualização de verdade (o autor subiu o jei).
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1"), ("meu-mod", "x1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1"), ("meu-mod", "x1")],
+            [("jei", "v2")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -78,9 +78,9 @@ public sealed class UpdateFromUpstreamTests
     public async Task Mod_removido_pelo_autor_nao_e_copiado()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1"), ("velho", "v1")],
-            nossosMods: [("jei", "v1"), ("velho", "v1")],
-            delesMods: [("jei", "v1")]);
+            [("jei", "v1"), ("velho", "v1")],
+            [("jei", "v1"), ("velho", "v1")],
+            [("jei", "v1")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -94,9 +94,9 @@ public sealed class UpdateFromUpstreamTests
         // Autor e admin trocaram o mesmo mod. Aplicar o do autor apagaria a
         // escolha do admin sem ele pedir.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v2")],
-            delesMods: [("jei", "v3")]);
+            [("jei", "v1")],
+            [("jei", "v2")],
+            [("jei", "v3")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -109,12 +109,12 @@ public sealed class UpdateFromUpstreamTests
     public async Task Config_que_o_admin_nao_tocou_recebe_a_versao_do_autor()
     {
         var scenario = Cenario(
-            baseMods: [],
-            nossosMods: [],
-            delesMods: [],
-            baseOverrides: [("config/a.toml", "original")],
-            nossosOverrides: [("config/a.toml", "original")], // intocado
-            delesOverrides: [("config/a.toml", "novo do autor")]);
+            [],
+            [],
+            [],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "original")], // intocado
+            [("config/a.toml", "novo do autor")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -130,12 +130,12 @@ public sealed class UpdateFromUpstreamTests
         // haver rascunho: se SÓ o config divergisse e ele fosse do admin, não
         // sobraria nada a aplicar.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")],
-            baseOverrides: [("config/a.toml", "original")],
-            nossosOverrides: [("config/a.toml", "editado por mim")],
-            delesOverrides: [("config/a.toml", "novo do autor")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "editado por mim")],
+            [("config/a.toml", "novo do autor")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -150,12 +150,12 @@ public sealed class UpdateFromUpstreamTests
         // ajustes de config era recusado com "nada mudou" — e pack grande faz
         // isso o tempo todo.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v1")],
-            baseOverrides: [("config/a.toml", "original")],
-            nossosOverrides: [("config/a.toml", "original")],
-            delesOverrides: [("config/a.toml", "ajustado pelo autor")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "ajustado pelo autor")]);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "1.1.0", CancellationToken.None);
@@ -170,12 +170,12 @@ public sealed class UpdateFromUpstreamTests
         // Sem isto, um pack que reorganiza a pasta config/ acumula lixo a cada
         // atualização — e o launcher instala esse lixo na máquina do jogador.
         var scenario = Cenario(
-            baseMods: [],
-            nossosMods: [],
-            delesMods: [],
-            baseOverrides: [("config/velho.toml", "original"), ("config/fica.toml", "x")],
-            nossosOverrides: [("config/velho.toml", "original"), ("config/fica.toml", "x")],
-            delesOverrides: [("config/fica.toml", "x")]);
+            [],
+            [],
+            [],
+            [("config/velho.toml", "original"), ("config/fica.toml", "x")],
+            [("config/velho.toml", "original"), ("config/fica.toml", "x")],
+            [("config/fica.toml", "x")]);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "1.1.0", CancellationToken.None);
@@ -193,12 +193,12 @@ public sealed class UpdateFromUpstreamTests
     {
         // Remover a customização do admin seria a única coisa pior que ignorá-la.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")],
-            baseOverrides: [("config/meu.toml", "original")],
-            nossosOverrides: [("config/meu.toml", "editado por mim")],
-            delesOverrides: []);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")],
+            [("config/meu.toml", "original")],
+            [("config/meu.toml", "editado por mim")],
+            []);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -211,12 +211,12 @@ public sealed class UpdateFromUpstreamTests
     public async Task Remocao_so_de_config_conta_como_mudanca()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v1")],
-            baseOverrides: [("config/velho.toml", "original")],
-            nossosOverrides: [("config/velho.toml", "original")],
-            delesOverrides: []);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("config/velho.toml", "original")],
+            [("config/velho.toml", "original")],
+            []);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "1.1.0", CancellationToken.None);
@@ -228,12 +228,12 @@ public sealed class UpdateFromUpstreamTests
     public async Task Config_novo_do_autor_entra()
     {
         var scenario = Cenario(
-            baseMods: [],
-            nossosMods: [],
-            delesMods: [],
-            baseOverrides: [],
-            nossosOverrides: [],
-            delesOverrides: [("config/novo.toml", "conteudo")]);
+            [],
+            [],
+            [],
+            [],
+            [],
+            [("config/novo.toml", "conteudo")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -246,9 +246,9 @@ public sealed class UpdateFromUpstreamTests
         // Sem isto, a atualização seguinte compararia contra a base velha e
         // acusaria como "mudança do admin" tudo o que o autor fez agora.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
@@ -264,9 +264,9 @@ public sealed class UpdateFromUpstreamTests
     public async Task DryRun_devolve_o_plano_sem_gravar_nada()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "", CancellationToken.None, true);
@@ -287,9 +287,9 @@ public sealed class UpdateFromUpstreamTests
         // Sem a base não há como distinguir "o autor mexeu" de "o admin mexeu",
         // e o merge viraria um "sobrescreve tudo" disfarçado.
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v2")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
 
         scenario.Atual.UpstreamSnapshotJson = null;
 
@@ -304,9 +304,9 @@ public sealed class UpdateFromUpstreamTests
     public async Task Recusa_quando_nada_mudou()
     {
         var scenario = Cenario(
-            baseMods: [("jei", "v1")],
-            nossosMods: [("jei", "v1")],
-            delesMods: [("jei", "v1")]);
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v1")]);
 
         var result = await scenario.UseCase.HandleAsync(
             scenario.Atual.Id, "1.1.0", CancellationToken.None);
@@ -401,13 +401,17 @@ public sealed class UpdateFromUpstreamTests
         var queue = new FakeQueue();
 
         var useCase = new UpdateFromUpstream(
-            [new FakeSource(pack)], repo, new FakeBlobStore(), new IngestionScheduler(repo, queue), new FakeJobProgress());
+            [new FakeSource(pack)], repo, new FakeBlobStore(), new IngestionScheduler(repo, queue),
+            new FakeJobProgress());
 
         return new Contexto(useCase, repo, queue, atual);
     }
 
     private sealed record Contexto(
-        UpdateFromUpstream UseCase, FakeRepo Repo, FakeQueue Queue, ModpackVersion Atual);
+        UpdateFromUpstream UseCase,
+        FakeRepo Repo,
+        FakeQueue Queue,
+        ModpackVersion Atual);
 
     // ---- Fakes ----
 

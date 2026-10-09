@@ -1,4 +1,5 @@
 using TCMine.Contracts.Modpacks;
+
 namespace TCMine.Server.Application.Abstractions;
 
 /// <summary>
@@ -32,4 +33,6 @@ public interface IModJarInspector
 ///     e aí o lado continua sendo do server pack ou do admin.
 /// </summary>
 public sealed record ModJarInfo(
-    string? ModId, string? RequiredLoaderRange, FileSide? DeclaredSide = null);
+    string? ModId,
+    string? RequiredLoaderRange,
+    FileSide? DeclaredSide = null);

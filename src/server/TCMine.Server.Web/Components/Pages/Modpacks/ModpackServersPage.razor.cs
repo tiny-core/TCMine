@@ -2,7 +2,6 @@
 using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Components.Features.Modpacks;
@@ -15,6 +14,8 @@ public partial class ModpackServersPage
     private readonly HashSet<Guid> _busy = [];
 
     private bool _isLoading = true;
+
+    private Guid _loaded;
     private Modpack? _modpack;
     private List<GameServer> _servers = [];
 
@@ -59,8 +60,6 @@ public partial class ModpackServersPage
             _busy.Remove(serverId);
         }
     }
-
-    private Guid _loaded;
 
     /// <summary>
     ///     Recarrega quando a ROTA muda, e não só na primeira vez. Navegar desta

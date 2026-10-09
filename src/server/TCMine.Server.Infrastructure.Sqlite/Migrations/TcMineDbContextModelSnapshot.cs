@@ -17,42 +17,6 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
 
-            modelBuilder.Entity("TCMine.Server.Domain.Blobs.Blob", b =>
-                {
-                    b.Property<string>("Sha256")
-                        .HasMaxLength(64)
-                        .HasColumnType("TEXT")
-                        .IsFixedLength();
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset?>("LastAccessedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Location")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("TEXT");
-
-                    b.Property<long>("SizeBytes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("StorageKey")
-                        .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Sha256");
-
-                    b.ToTable("blobs", (string)null);
-                });
-
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudAdminAuditEntry", b =>
                 {
                     b.Property<Guid>("Id")

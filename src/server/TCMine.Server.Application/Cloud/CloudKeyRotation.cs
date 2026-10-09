@@ -27,13 +27,11 @@ public static class CloudKeyRotation
     {
         await RevokeAllAsync(credentials, clock, serverId, ct);
         var (key, prefix, hash) = CloudServerKey.Generate();
-        await credentials.AddAsync(new CloudServerCredential
-        {
-            GameServerId = serverId,
-            VaultId = vaultId,
-            KeyPrefix = prefix,
-            KeyHash = hash
-        }, ct);
+        await credentials.AddAsync(
+            new CloudServerCredential
+            {
+                GameServerId = serverId, VaultId = vaultId, KeyPrefix = prefix, KeyHash = hash
+            }, ct);
         return key;
     }
 }

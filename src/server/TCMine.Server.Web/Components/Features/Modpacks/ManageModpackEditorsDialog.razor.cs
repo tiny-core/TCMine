@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using MudBlazor;
-using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Identity;
@@ -9,10 +8,10 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class ManageModpackEditorsDialog : DialogComponentBase
 {
-    private List<ModpackMemberView> _members = [];
     private List<User> _candidatos = [];
-    private Guid? _selecionado;
     private bool _loaded;
+    private List<ModpackMemberView> _members = [];
+    private Guid? _selecionado;
 
     [Parameter] [EditorRequired] public Guid ModpackId { get; set; }
 

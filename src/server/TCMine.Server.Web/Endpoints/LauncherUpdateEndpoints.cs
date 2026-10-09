@@ -1,6 +1,3 @@
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Net.Http.Headers;
-
 namespace TCMine.Server.Web.Endpoints;
 
 /// <summary>
@@ -86,9 +83,7 @@ public static class LauncherUpdateEndpoints
 
         if (!candidato.StartsWith(
                 baseCompleta + Path.DirectorySeparatorChar, StringComparison.Ordinal))
-        {
             return false;
-        }
 
         if (!File.Exists(candidato))
             return false;

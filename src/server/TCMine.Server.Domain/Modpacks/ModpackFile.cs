@@ -29,9 +29,6 @@ public sealed class ModpackFile : Entity
     /// </summary>
     public const int MaxProjectSlugLength = MaxPathLength + 32;
 
-    /// <summary>Slug sintético de um override, a partir do caminho.</summary>
-    public static string OverrideSlug(string path) => OverrideSlugPrefix + path;
-
     public required Guid ModpackVersionId { get; set; }
 
     /// <summary>
@@ -73,6 +70,15 @@ public sealed class ModpackFile : Entity
     /// </summary>
     public string? RequiredDependencies { get; set; }
 
+    /// <summary>
+    ///     URL do ícone do mod na origem (ex.: Modrinth), quando houver. Puramente
+    ///     cosmético — exibido na grade de mods do painel. Nunca vai ao launcher.
+    /// </summary>
+    public string? IconUrl { get; set; }
+
+    /// <summary>Slug sintético de um override, a partir do caminho.</summary>
+    public static string OverrideSlug(string path) => OverrideSlugPrefix + path;
+
     /// <summary>As dependências como lista, ou nulo quando não se sabe.</summary>
     public IReadOnlyList<string>? RequiredDependencyIds() =>
         RequiredDependencies?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -99,12 +105,6 @@ public sealed class ModpackFile : Entity
         IconUrl = IconUrl,
         RequiredDependencies = RequiredDependencies
     };
-
-    /// <summary>
-    ///     URL do ícone do mod na origem (ex.: Modrinth), quando houver. Puramente
-    ///     cosmético — exibido na grade de mods do painel. Nunca vai ao launcher.
-    /// </summary>
-    public string? IconUrl { get; set; }
 }
 
 public enum ModFileOrigin

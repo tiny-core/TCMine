@@ -1,8 +1,8 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
-using TCMine.Launcher.Core.Tests.Fakes;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Core.Sync;
+using TCMine.Launcher.Core.Tests.Fakes;
 
 namespace TCMine.Launcher.Core.Tests.Modpacks;
 
@@ -135,8 +135,7 @@ public class GameSessionTests
                 MinecraftVersion = "1.21.1",
                 Loader = ModLoader.NeoForge
             },
-            SizeBytes: 0,
-            Path: "/instancias/pack");
+            0,
+            "/instancias/pack");
     }
-
 }

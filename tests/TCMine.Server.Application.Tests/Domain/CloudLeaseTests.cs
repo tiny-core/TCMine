@@ -13,7 +13,8 @@ public sealed class CloudLeaseTests
     private static readonly Guid ServidorA = Guid.CreateVersion7();
     private static readonly Guid ServidorB = Guid.CreateVersion7();
 
-    private static CloudLease NovoLease() => new() { VaultId = Guid.CreateVersion7(), PlayerUuid = new string('a', 32) };
+    private static CloudLease NovoLease() =>
+        new() { VaultId = Guid.CreateVersion7(), PlayerUuid = new string('a', 32) };
 
     [Fact]
     public void Primeiro_acquire_comeca_na_epoca_1()
@@ -70,7 +71,7 @@ public sealed class CloudLeaseTests
         lease.TryAcquire(ServidorA, T0, Ttl);
         lease.TryAcquire(ServidorB, T0 + Ttl, Ttl);
 
-        lease.Check(ServidorA, epoch: 1, seq: 1).ShouldBe(CloudBatchCheck.StaleEpoch);
+        lease.Check(ServidorA, 1, 1).ShouldBe(CloudBatchCheck.StaleEpoch);
     }
 
     [Fact]
@@ -79,7 +80,7 @@ public sealed class CloudLeaseTests
         var lease = NovoLease();
         lease.TryAcquire(ServidorA, T0, Ttl);
 
-        lease.Check(ServidorB, epoch: 1, seq: 1).ShouldBe(CloudBatchCheck.NotHolder);
+        lease.Check(ServidorB, 1, 1).ShouldBe(CloudBatchCheck.NotHolder);
     }
 
     [Fact]
@@ -122,8 +123,8 @@ public sealed class CloudLeaseTests
         lease.TryAcquire(ServidorA, T0, Ttl);
         lease.Advance(1);
 
-        lease.Release(ServidorA, 1, lastSeq: 2).ShouldBeFalse("o lote 2 ainda não chegou");
-        lease.Release(ServidorA, 1, lastSeq: 1).ShouldBeTrue();
+        lease.Release(ServidorA, 1, 2).ShouldBeFalse("o lote 2 ainda não chegou");
+        lease.Release(ServidorA, 1, 1).ShouldBeTrue();
         lease.IsFree(T0).ShouldBeTrue();
     }
 
@@ -134,8 +135,8 @@ public sealed class CloudLeaseTests
         lease.TryAcquire(ServidorA, T0, Ttl);
         lease.TryAcquire(ServidorA, T0.AddMinutes(1), Ttl); // época 2
 
-        lease.Renew(ServidorA, epoch: 1, T0.AddMinutes(2), Ttl).ShouldBeFalse();
-        lease.Renew(ServidorA, epoch: 2, T0.AddMinutes(2), Ttl).ShouldBeTrue();
+        lease.Renew(ServidorA, 1, T0.AddMinutes(2), Ttl).ShouldBeFalse();
+        lease.Renew(ServidorA, 2, T0.AddMinutes(2), Ttl).ShouldBeTrue();
         lease.ExpiresAt.ShouldBe(T0.AddMinutes(2) + Ttl);
     }
 

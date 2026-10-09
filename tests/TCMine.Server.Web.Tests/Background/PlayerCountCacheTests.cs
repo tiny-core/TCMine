@@ -54,10 +54,7 @@ public sealed class PlayerCountCacheTests
     }
 
     [Fact]
-    public void Servidor_nunca_amostrado_responde_nao_sei()
-    {
-        new PlayerCountCache().TryGet(ServidorId).ShouldBeNull();
-    }
+    public void Servidor_nunca_amostrado_responde_nao_sei() => new PlayerCountCache().TryGet(ServidorId).ShouldBeNull();
 
     [Fact]
     public void Voltar_a_amostrar_depois_de_esquecer_conta_como_mudanca()

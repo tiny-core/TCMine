@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Infrastructure.Persistence;
-using TCMine.Server.Application.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Tests;
 
@@ -21,6 +21,9 @@ namespace TCMine.Server.Infrastructure.Tests;
 /// </summary>
 public sealed class PostgresColumnLimitsTests
 {
+    private const string MotivoDoSkip =
+        "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -119,10 +122,7 @@ public sealed class PostgresColumnLimitsTests
         db.Modpacks.Add(modpack);
         db.ModpackVersions.Add(new ModpackVersion
         {
-            ModpackId = modpack.Id,
-            Version = "1.0.0",
-            LoaderVersion = "21.1.100",
-            UpstreamSnapshotJson = snapshot
+            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100", UpstreamSnapshotJson = snapshot
         });
 
         await Should.NotThrowAsync(() => db.SaveChangesAsync(Ct));
@@ -149,10 +149,7 @@ public sealed class PostgresColumnLimitsTests
             Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         version.UpsertFile(ArquivoEm(version.Id, "mods/jei.jar", "jei"));
         version.UpsertFile(ArquivoEm(version.Id, "shaderpacks/complementary.zip", "shader"));
@@ -181,12 +178,6 @@ public sealed class PostgresColumnLimitsTests
         ProjectSlug = slug
     };
 
-    /// <summary>O repositório pede uma fábrica; aqui todas as chamadas vão ao mesmo banco.</summary>
-    private sealed class FabricaFixa(PostgresTestDatabase db) : IDbContextFactory<TcMineDbContext>
-    {
-        public TcMineDbContext CreateDbContext() => db.CreateContext();
-    }
-
     [Fact]
     public async Task As_migrations_aplicam_num_banco_vazio()
     {
@@ -202,10 +193,7 @@ public sealed class PostgresColumnLimitsTests
         (await db.Database.CanConnectAsync(Ct)).ShouldBeTrue();
     }
 
-    private const string MotivoDoSkip =
-        "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
-
-    private static async Task<Guid> SemearVersaoAsync(Persistence.TcMineDbContext db)
+    private static async Task<Guid> SemearVersaoAsync(TcMineDbContext db)
     {
         var modpack = new Modpack
         {
@@ -215,17 +203,18 @@ public sealed class PostgresColumnLimitsTests
             Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id,
-            Version = "1.0.0",
-            LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         db.Modpacks.Add(modpack);
         db.ModpackVersions.Add(version);
         await db.SaveChangesAsync(Ct);
 
         return version.Id;
+    }
+
+    /// <summary>O repositório pede uma fábrica; aqui todas as chamadas vão ao mesmo banco.</summary>
+    private sealed class FabricaFixa(PostgresTestDatabase db) : IDbContextFactory<TcMineDbContext>
+    {
+        public TcMineDbContext CreateDbContext() => db.CreateContext();
     }
 }

@@ -19,13 +19,13 @@ namespace TCMine.Server.Web.Components.Pages;
 /// </summary>
 public partial class Home : ComponentBase
 {
-    private bool _isLoading = true;
-    private IReadOnlyList<GameServer> _servers = [];
-    private List<PackRow> _packs = [];
-    private Dictionary<Guid, string> _versionNumbers = [];
+    private readonly List<PackRow> _packs = [];
+    private readonly Dictionary<Guid, string> _versionNumbers = [];
     private List<AttentionItem> _attention = [];
-    private IReadOnlyList<ActivityEvent> _recentActivity = [];
     private DiskUsage? _disk;
+    private bool _isLoading = true;
+    private IReadOnlyList<ActivityEvent> _recentActivity = [];
+    private IReadOnlyList<GameServer> _servers = [];
 
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private IServerRepository ServerRepository { get; set; } = default!;
@@ -124,7 +124,7 @@ public partial class Home : ComponentBase
             items.Add(new AttentionItem(
                 Icons.Material.Filled.ErrorOutline, $"{server.Name} caiu",
                 "Veja o console antes de reiniciar: o motivo costuma estar nas últimas linhas.",
-                ServerHref(server), "Abrir", Danger: true));
+                ServerHref(server), "Abrir", true));
         }
 
         if (disk is { UsedPercent: >= 85 })
@@ -132,7 +132,7 @@ public partial class Home : ComponentBase
             items.Add(new AttentionItem(
                 Icons.Material.Filled.Storage, $"Disco {disk.UsedPercent:0}% cheio",
                 "Servidor de jogo sem disco corrompe o mundo aberto. Libere espaço em Armazenamento.",
-                "/admin/storage", "Liberar", Danger: true));
+                "/admin/storage", "Liberar", true));
         }
 
         if (pendingRequests > 0)
@@ -214,7 +214,12 @@ public partial class Home : ComponentBase
     internal sealed record PackRow(Modpack Modpack, ModpackVersion? Published, ModpackVersion? Draft);
 
     internal sealed record AttentionItem(
-        string Icon, string Title, string Detail, string Href, string Action, bool Danger = false);
+        string Icon,
+        string Title,
+        string Detail,
+        string Href,
+        string Action,
+        bool Danger = false);
 
     internal sealed record DiskUsage(long UsedBytes, long TotalBytes)
     {

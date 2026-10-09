@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TCMine.Server.Domain.Blobs;
 using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Identity;
@@ -24,7 +23,6 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<GameServer> GameServers => Set<GameServer>();
     public DbSet<WorldBackup> WorldBackups => Set<WorldBackup>();
     public DbSet<AccessRequest> AccessRequests => Set<AccessRequest>();
-    public DbSet<Blob> Blobs => Set<Blob>();
 
     public DbSet<News> News => Set<News>();
 

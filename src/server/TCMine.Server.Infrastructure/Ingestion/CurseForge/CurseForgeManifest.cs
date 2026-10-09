@@ -23,8 +23,7 @@ internal sealed record CurseForgeManifestMinecraft
 {
     [JsonPropertyName("version")] public string? Version { get; init; }
 
-    [JsonPropertyName("modLoaders")]
-    public IReadOnlyList<CurseForgeManifestLoader> ModLoaders { get; init; } = [];
+    [JsonPropertyName("modLoaders")] public IReadOnlyList<CurseForgeManifestLoader> ModLoaders { get; init; } = [];
 }
 
 internal sealed record CurseForgeManifestLoader

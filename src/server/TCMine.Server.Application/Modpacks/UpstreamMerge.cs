@@ -57,7 +57,7 @@ public static class UpstreamMerge
 
                 // Os dois mexeram no mesmo mod: só o admin decide.
                 case (true, true) when ourFileId != baseFileId && theirFileId != baseFileId
-                                       && ourFileId != theirFileId:
+                                                               && ourFileId != theirFileId:
                     conflicts.Add(new UpstreamModConflict(
                         projectId, name, baseFileId, ourFileId, theirFileId,
                         UpstreamConflictKind.BothChanged));
@@ -93,9 +93,11 @@ public static class UpstreamMerge
                 remove.Add(new UpstreamModChange(projectId, name, ourFileId, null));
             else
                 // O admin tinha trocado a versão deste mod, e o autor o removeu.
+            {
                 conflicts.Add(new UpstreamModConflict(
                     projectId, name, baseFileId, ourFileId, null,
                     UpstreamConflictKind.ChangedHereRemovedThere));
+            }
         }
 
         // O que o admin acrescentou e nunca esteve no pack fica, sempre.

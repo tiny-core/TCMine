@@ -30,10 +30,10 @@ public static class LoaderVersionRange
         // Notação do Fabric: ">=0.15.0", ">0.15", "*", "1.2.x". Só o >= e o >
         // dizem algo verificável; o resto passa.
         if (texto.StartsWith(">=", StringComparison.Ordinal))
-            return AtLeast(atual, texto[2..], inclusive: true);
+            return AtLeast(atual, texto[2..], true);
 
         if (texto.StartsWith('>'))
-            return AtLeast(atual, texto[1..], inclusive: false);
+            return AtLeast(atual, texto[1..], false);
 
         // Notação Maven do Forge/NeoForge: "[21.1.80,)", "[1.0,2.0)", "(1.0,2.0]".
         if (texto.StartsWith('[') || texto.StartsWith('('))
@@ -59,7 +59,7 @@ public static class LoaderVersionRange
         var fechaInicio = texto[0] is '[';
         var fechaFim = texto[^1] is ']';
 
-        if (texto.Length < 3 || (texto[^1] is not (']' or ')')))
+        if (texto.Length < 3 || texto[^1] is not (']' or ')'))
             return true;
 
         var miolo = texto[1..^1];

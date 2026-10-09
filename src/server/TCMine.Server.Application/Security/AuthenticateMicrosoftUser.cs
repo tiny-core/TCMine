@@ -107,12 +107,13 @@ public sealed partial class AuthenticateMicrosoftUser(
     /// </summary>
     private async Task<Result<User>> SuccessAsync(User user, CancellationToken ct)
     {
-        await activity.AddAsync(new ActivityEvent
-        {
-            Kind = ActivityEventKind.UserLoggedIn,
-            Message = $"{user.DisplayName} entrou no painel.",
-            Href = "/admin/users"
-        }, ct);
+        await activity.AddAsync(
+            new ActivityEvent
+            {
+                Kind = ActivityEventKind.UserLoggedIn,
+                Message = $"{user.DisplayName} entrou no painel.",
+                Href = "/admin/users"
+            }, ct);
 
         return Result<User>.Success(user);
     }

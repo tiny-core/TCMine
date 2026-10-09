@@ -2,9 +2,8 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Domain.Modpacks;
-
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -313,7 +312,6 @@ public sealed class ModpackIngestionServiceTests
 
         public override Task<Uri?> TryGetDirectUrlAsync(string sha256, TimeSpan lifetime, CancellationToken ct) =>
             Task.FromResult<Uri?>(null);
-
     }
 
     private sealed class FakeModpackRepository : FakeModpackRepositoryBase
@@ -323,7 +321,11 @@ public sealed class ModpackIngestionServiceTests
         /// <summary>Quantas vezes a versão foi gravada — usado para travar a ordem save→aviso.</summary>
         public int SaveCount { get; private set; }
 
-        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
+        /// <summary>Lotes descarregados pela ingestão, na ordem.</summary>
+        public List<int> Lotes { get; } = [];
+
+        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+            Task.FromResult(Version);
 
         public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
         {
@@ -336,9 +338,6 @@ public sealed class ModpackIngestionServiceTests
             SaveCount++;
             return Task.CompletedTask;
         }
-
-        /// <summary>Lotes descarregados pela ingestão, na ordem.</summary>
-        public List<int> Lotes { get; } = [];
 
         public override Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct)
         {
@@ -356,6 +355,5 @@ public sealed class ModpackIngestionServiceTests
                 Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
             });
         }
-
     }
 }

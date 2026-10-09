@@ -58,9 +58,7 @@ public sealed class AddManualFile(
         // nada à mão.
         if (command.ProjectSlug is { Length: > 0 } slug
             && version.ResolvePending(slug) is { } pendingId)
-        {
             await repository.RemovePendingAsync(version.Id, pendingId, ct);
-        }
 
         // A versão veio destacada (AsNoTracking); update reanexa o grafo e o
         // arquivo novo entra junto.

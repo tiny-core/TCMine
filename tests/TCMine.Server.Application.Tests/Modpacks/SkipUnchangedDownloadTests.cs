@@ -21,7 +21,7 @@ public sealed class SkipUnchangedDownloadTests
     [Fact]
     public async Task Nao_baixa_de_novo_a_mesma_release()
     {
-        var version = ComArquivo(originReference: "999");
+        var version = ComArquivo("999");
         var downloader = new ContaDownloads();
 
         await Ingerir(version, downloader);
@@ -35,7 +35,7 @@ public sealed class SkipUnchangedDownloadTests
     {
         // A regressão que importa: atualizar um mod tem de continuar funcionando.
         // O arquivo gravado aponta para outra release, então o novo desce.
-        var version = ComArquivo(originReference: "111");
+        var version = ComArquivo("111");
         var downloader = new ContaDownloads();
 
         await Ingerir(version, downloader);

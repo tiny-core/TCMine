@@ -39,6 +39,21 @@ public sealed class CheckServerUpdate(IServerReleaseFeed feed, ICurrentUserScope
 public readonly record struct SemanticVersion(int Major, int Minor, int Patch, string? PreRelease)
     : IComparable<SemanticVersion>
 {
+    public int CompareTo(SemanticVersion other)
+    {
+        var byCore = (Major, Minor, Patch).CompareTo((other.Major, other.Minor, other.Patch));
+        if (byCore != 0)
+            return byCore;
+
+        return (PreRelease, other.PreRelease) switch
+        {
+            (null, null) => 0,
+            (null, _) => 1, // estável ganha do pré-lançamento de mesmo núcleo
+            (_, null) => -1,
+            _ => string.CompareOrdinal(PreRelease, other.PreRelease)
+        };
+    }
+
     public static bool TryParse(string? text, out SemanticVersion version)
     {
         version = default;
@@ -62,21 +77,6 @@ public readonly record struct SemanticVersion(int Major, int Minor, int Patch, s
 
         version = new SemanticVersion(major, minor, patch, string.IsNullOrEmpty(pre) ? null : pre);
         return true;
-    }
-
-    public int CompareTo(SemanticVersion other)
-    {
-        var byCore = (Major, Minor, Patch).CompareTo((other.Major, other.Minor, other.Patch));
-        if (byCore != 0)
-            return byCore;
-
-        return (PreRelease, other.PreRelease) switch
-        {
-            (null, null) => 0,
-            (null, _) => 1, // estável ganha do pré-lançamento de mesmo núcleo
-            (_, null) => -1,
-            _ => string.CompareOrdinal(PreRelease, other.PreRelease)
-        };
     }
 
     public static bool operator <(SemanticVersion left, SemanticVersion right) => left.CompareTo(right) < 0;

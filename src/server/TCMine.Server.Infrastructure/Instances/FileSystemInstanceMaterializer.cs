@@ -14,7 +14,7 @@ public sealed class FileSystemInstanceMaterializer(
     // aqui, então nunca são removidos numa re-materialização.
     private const string ManifestFileName = ".tcmine-manifest.json";
 
-    private readonly InstanceOptions _options = options.Value;
+    private const int MaxConcurrentPlacements = 8;
 
     // Resolve relativo→absoluto já aqui. O bind mount do Docker exige caminho
     // absoluto; e o CWD do processo pode não ser o que esperamos, então fixamos
@@ -66,9 +66,9 @@ public sealed class FileSystemInstanceMaterializer(
             var full = Path.Combine(instancePath, stale);
 
             // Mesma guarda do laço de escrita, e pela mesma razão: o manifesto é
-            // gravado DENTRO da instância, que é o /data montado no container.
+            // gravado DENTRO da instância, sendo o /data montado no container.
             // Um mod com execução de código lá dentro (console de Minecraft já é
-            // execução arbitrária, por design) podia injetar uma entrada tipo
+            // execução arbitrária, por design) podia injetar uma entrada, tipo
             // "../../outro-servidor/world/level.dat" — sem esta checagem, o
             // PROCESSO HOST apagaria fora do container na próxima republicação.
             GuardInside(instancePath, full);
@@ -101,8 +101,6 @@ public sealed class FileSystemInstanceMaterializer(
 
         await WriteManifestAsync(manifestPath, desired, ct);
     }
-
-    private const int MaxConcurrentPlacements = 8;
 
     // mods/ → hardlink (jars read-only, onde estão os bytes). Resto → cópia,
     // porque o servidor pode reescrevê-los e um hardlink corromperia o blob.

@@ -31,7 +31,7 @@ public class InstallModpackVersionTests
         var result = await scenario.Instalar();
 
         result.Succeeded.ShouldBeTrue(result.Error);
-        scenario.Downloader.Requested.ShouldBe(["aa", "bb"], ignoreOrder: true);
+        scenario.Downloader.Requested.ShouldBe(["aa", "bb"], true);
         scenario.Content.Materialized.Count.ShouldBe(2);
     }
 
@@ -161,7 +161,7 @@ public class InstallModpackVersionTests
 
         var stored = scenario.Instances.Manifests[key];
 
-        stored.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "mods/rei.jar"], ignoreOrder: true);
+        stored.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "mods/rei.jar"], true);
     }
 
     [Fact]
@@ -185,7 +185,7 @@ public class InstallModpackVersionTests
     public async Task Modpack_sem_versao_publicada_explica_em_vez_de_falhar()
     {
         var pack = Modpack();
-        var scenario = new Cenario(pack, version: null);
+        var scenario = new Cenario(pack, null);
 
         var result = await scenario.InstalarUltima();
 
@@ -263,6 +263,44 @@ public class InstallModpackVersionTests
         progress.Relatado.Select(p => p.Phase).ShouldContain(InstallPhase.Done);
     }
 
+    private static ModpackDto Modpack() => new()
+    {
+        Id = Guid.CreateVersion7(),
+        Slug = "pack",
+        Name = "Pack",
+        MinecraftVersion = "1.21.1",
+        Loader = ModLoader.NeoForge
+    };
+
+    private static ModpackVersionDto Versao(Guid modpackId, params ModpackFileDto[] files) => new()
+    {
+        Id = Guid.CreateVersion7(),
+        ModpackId = modpackId,
+        Version = "1.2.0",
+        LoaderVersion = "21.1.100",
+        State = ModpackVersionState.Ready,
+        PublishedAt = DateTimeOffset.UtcNow,
+        RecommendedMemoryMb = 4096,
+        Files = files
+    };
+
+    private static ModpackFileDto Arquivo(string path, string sha, FileSide side = FileSide.Both) => new()
+    {
+        Path = path, Sha256 = sha, SizeBytes = 10, Side = side
+    };
+
+    private static InstanceManifest Manifesto(
+        ModpackDto pack, ModpackVersionDto version, Dictionary<string, string> files) => new()
+    {
+        Schema = 1,
+        ModpackId = pack.Id,
+        ModpackVersionId = version.Id,
+        ModpackName = pack.Name,
+        Version = version.Version,
+        InstalledAt = DateTimeOffset.UtcNow,
+        ManagedFiles = files
+    };
+
     // ---------- apoio ----------
 
     private sealed class Cenario
@@ -306,44 +344,6 @@ public class InstallModpackVersionTests
             Instalador.HandleAsync(Servidor, Pack, Versao!.Id, alvo, progress, Ct);
 
         public Task<InstallResult> InstalarUltima() =>
-            Instalador.InstallLatestAsync(Servidor, Pack, target: null, ReleaseChannel.Release, null, Ct);
+            Instalador.InstallLatestAsync(Servidor, Pack, null, ReleaseChannel.Release, null, Ct);
     }
-
-    private static ModpackDto Modpack() => new()
-    {
-        Id = Guid.CreateVersion7(),
-        Slug = "pack",
-        Name = "Pack",
-        MinecraftVersion = "1.21.1",
-        Loader = ModLoader.NeoForge
-    };
-
-    private static ModpackVersionDto Versao(Guid modpackId, params ModpackFileDto[] files) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        ModpackId = modpackId,
-        Version = "1.2.0",
-        LoaderVersion = "21.1.100",
-        State = ModpackVersionState.Ready,
-        PublishedAt = DateTimeOffset.UtcNow,
-        RecommendedMemoryMb = 4096,
-        Files = files
-    };
-
-    private static ModpackFileDto Arquivo(string path, string sha, FileSide side = FileSide.Both) => new()
-    {
-        Path = path, Sha256 = sha, SizeBytes = 10, Side = side
-    };
-
-    private static InstanceManifest Manifesto(
-        ModpackDto pack, ModpackVersionDto version, Dictionary<string, string> files) => new()
-    {
-        Schema = 1,
-        ModpackId = pack.Id,
-        ModpackVersionId = version.Id,
-        ModpackName = pack.Name,
-        Version = version.Version,
-        InstalledAt = DateTimeOffset.UtcNow,
-        ManagedFiles = files
-    };
 }

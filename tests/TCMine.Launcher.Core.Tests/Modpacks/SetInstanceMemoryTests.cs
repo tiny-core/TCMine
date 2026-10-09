@@ -90,6 +90,6 @@ public class SetInstanceMemoryTests
                 Loader = ModLoader.NeoForge,
                 MemoryMb = memoria
             },
-            SizeBytes: 0,
-            Path: "/instancias/pack");
+            0,
+            "/instancias/pack");
 }

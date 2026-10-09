@@ -18,15 +18,6 @@ public sealed class AdminClaimCode
     private readonly Lock _gate = new();
     private byte[]? _hash;
 
-    public bool IsOpen
-    {
-        get
-        {
-            lock (_gate)
-                return _hash is not null;
-        }
-    }
-
     /// <summary>Emite um código novo, invalidando o anterior.</summary>
     public string Issue()
     {
@@ -69,7 +60,7 @@ public sealed class AdminClaimCode
 public sealed class ClaimInstanceAdmin(IUserRepository users, AdminClaimCode codes)
 {
     /// <summary>
-    ///     Há usuários, mas nenhum admin que consiga entrar (todo admin está sem
+    ///     Há usuários, mas nenhum admin que consiga entrar (o admin está sem
     ///     identidade Microsoft)? É a única situação em que o código é emitido.
     /// </summary>
     public async Task<bool> IsNeededAsync(CancellationToken ct)

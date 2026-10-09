@@ -81,19 +81,6 @@ public sealed class MainHub(
     }
 
     /// <summary>
-    ///     O que uma instalação nova pode fixar, da mais nova para a mais velha.
-    ///     Um canal não vê o outro, e é isso que o torna um canal: uma instância
-    ///     alpha que recebesse uma estável saltaria para trás sem o jogador pedir,
-    ///     e uma estável que recebesse uma alpha receberia código de teste.
-    /// </summary>
-    private static IEnumerable<ModpackVersion> Installable(
-        IEnumerable<ModpackVersion> versions,
-        ReleaseChannel channel) =>
-        versions
-            .Where(v => v.State is ModpackVersionState.Ready && v.Channel == channel)
-            .OrderByDescending(v => v.Id);
-
-    /// <summary>
     ///     O histórico instalável de um pack num canal, da mais nova para a mais
     ///     velha. Mesmo filtro do <see cref="GetLatestVersionAsync" />, e de
     ///     propósito: oferecer aqui o que o GetLatest esconde seria dar pela porta
@@ -125,13 +112,7 @@ public sealed class MainHub(
         return posts
             .Where(p => p.IsPublished)
             .OrderByDescending(p => p.Id)
-            .Select(p => new ModpackNewsDto
-            {
-                Id = p.Id,
-                Title = p.Title,
-                Body = p.Body,
-                PostedAt = p.CreatedAt
-            })
+            .Select(p => new ModpackNewsDto { Id = p.Id, Title = p.Title, Body = p.Body, PostedAt = p.CreatedAt })
             .ToArray();
     }
 
@@ -147,27 +128,6 @@ public sealed class MainHub(
 
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
         return servers.Select(s => s.ToDto(players, versionLabels)).ToArray();
-    }
-
-    /// <summary>
-    ///     Resolve o SemVer de cada versão pinada, agrupando por modpack — a
-    ///     lista de servidores de uma instalação é pequena, e isso evita uma
-    ///     consulta por servidor (GameServer não tem navegação para
-    ///     ModpackVersion: são agregados separados).
-    /// </summary>
-    private async Task<IReadOnlyDictionary<Guid, string>> VersionLabelsAsync(
-        IReadOnlyList<AccessibleServer> servers, CancellationToken ct)
-    {
-        var labels = new Dictionary<Guid, string>();
-
-        foreach (var modpackId in servers.Select(s => s.Server.ModpackId).Distinct())
-        {
-            var versions = await modpacks.ListVersionSummariesAsync(modpackId, ct);
-            foreach (var version in versions)
-                labels[version.Id] = version.Version;
-        }
-
-        return labels;
     }
 
     public async Task SubscribeServerAsync(Guid serverId)
@@ -197,18 +157,6 @@ public sealed class MainHub(
         broadcaster.Unsubscribe(Context.ConnectionId, serverId);
     }
 
-    /// <summary>
-    ///     Queda de conexão é o caso comum, não a exceção — o jogador fecha o
-    ///     launcher, o wi-fi cai, a máquina hiberna. Sem soltar aqui, o contador
-    ///     de ouvintes nunca voltaria a zero e o console seguiria sendo lido do
-    ///     Docker para ninguém, até o processo reiniciar.
-    /// </summary>
-    public override Task OnDisconnectedAsync(Exception? exception)
-    {
-        broadcaster.Disconnect(Context.ConnectionId);
-        return base.OnDisconnectedAsync(exception);
-    }
-
     public async Task<CommandResultDto> SendCommandAsync(
         Guid serverId,
         string command,
@@ -234,6 +182,52 @@ public sealed class MainHub(
 
         if (!result.Succeeded)
             throw new HubException(result.Error);
+    }
+
+    /// <summary>
+    ///     O que uma instalação nova pode fixar, da mais nova para a mais velha.
+    ///     Um canal não vê o outro, e é isso que o torna um canal: uma instância
+    ///     alpha que recebesse uma estável saltaria para trás sem o jogador pedir,
+    ///     e uma estável que recebesse uma alpha receberia código de teste.
+    /// </summary>
+    private static IEnumerable<ModpackVersion> Installable(
+        IEnumerable<ModpackVersion> versions,
+        ReleaseChannel channel) =>
+        versions
+            .Where(v => v.State is ModpackVersionState.Ready && v.Channel == channel)
+            .OrderByDescending(v => v.Id);
+
+    /// <summary>
+    ///     Resolve o SemVer de cada versão pinada, agrupando por modpack — a
+    ///     lista de servidores de uma instalação é pequena, e isso evita uma
+    ///     consulta por servidor (GameServer não tem navegação para
+    ///     ModpackVersion: são agregados separados).
+    /// </summary>
+    private async Task<IReadOnlyDictionary<Guid, string>> VersionLabelsAsync(
+        IReadOnlyList<AccessibleServer> servers, CancellationToken ct)
+    {
+        var labels = new Dictionary<Guid, string>();
+
+        foreach (var modpackId in servers.Select(s => s.Server.ModpackId).Distinct())
+        {
+            var versions = await modpacks.ListVersionSummariesAsync(modpackId, ct);
+            foreach (var version in versions)
+                labels[version.Id] = version.Version;
+        }
+
+        return labels;
+    }
+
+    /// <summary>
+    ///     Queda de conexão é o caso comum, não a exceção — o jogador fecha o
+    ///     launcher, o wi-fi cai, a máquina hiberna. Sem soltar aqui, o contador
+    ///     de ouvintes nunca voltaria a zero e o console seguiria sendo lido do
+    ///     Docker para ninguém, até o processo reiniciar.
+    /// </summary>
+    public override Task OnDisconnectedAsync(Exception? exception)
+    {
+        broadcaster.Disconnect(Context.ConnectionId);
+        return base.OnDisconnectedAsync(exception);
     }
 
     /// <summary>

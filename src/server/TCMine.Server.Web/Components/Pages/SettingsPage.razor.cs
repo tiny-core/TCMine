@@ -20,7 +20,22 @@ public partial class SettingsPage : ComponentBase
     /// <summary>O que veio de appsettings, só para explicar de onde sai o valor em uso.</summary>
     private string _azureClientIdFromFile = "";
 
+    private bool _clearCurseForgeKey;
+
+    // Novos valores digitados. Vazio = manter o que já está gravado.
+    private string _curseForgeKey = "";
+    private ModLoader _defaultLoader = ModLoader.NeoForge;
+    private string _defaultMcVersion = "";
+    private int _defaultMemoryMb = 4096;
+
     private bool _hasAzureClientIdFromFile;
+
+    /// <summary>Só sabemos se existe — o valor nunca volta para a tela.</summary>
+    private bool _hasCurseForgeKey;
+
+    private bool _isLoading = true;
+    private bool _isSaving;
+    private int _worldBackupKeepCount = 5;
 
     /// <summary>
     ///     O que mostrar no URI do broker enquanto ninguém digitou nada. Um
@@ -40,21 +55,6 @@ public partial class SettingsPage : ComponentBase
     ///     pelo caminho do callback.
     /// </summary>
     private string _microsoftCallbackUrl => $"{Navigation.BaseUri.TrimEnd('/')}/auth/microsoft/callback";
-
-    private bool _clearCurseForgeKey;
-
-    // Novos valores digitados. Vazio = manter o que já está gravado.
-    private string _curseForgeKey = "";
-    private ModLoader _defaultLoader = ModLoader.NeoForge;
-    private string _defaultMcVersion = "";
-    private int _defaultMemoryMb = 4096;
-    private int _worldBackupKeepCount = 5;
-
-    /// <summary>Só sabemos se existe — o valor nunca volta para a tela.</summary>
-    private bool _hasCurseForgeKey;
-
-    private bool _isLoading = true;
-    private bool _isSaving;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
     [Inject] private ISettingsRepository Repository { get; set; } = default!;

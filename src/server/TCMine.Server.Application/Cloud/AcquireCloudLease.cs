@@ -29,7 +29,7 @@ public sealed partial class AcquireCloudLease(
 
         var now = clock.GetUtcNow();
         var lease = await storage.GetLeaseAsync(ctx.VaultId, player, ct);
-        long? readVersion = lease?.Version;
+        var readVersion = lease?.Version;
         lease ??= new CloudLease { VaultId = ctx.VaultId, PlayerUuid = player };
 
         if (!lease.TryAcquire(ctx.ServerId, now, vault.LeaseTtl))
@@ -45,7 +45,10 @@ public sealed partial class AcquireCloudLease(
         var channels = await storage.ListChannelsAsync(ctx.VaultId, player, ct);
         if (channels.Count == 0)
         {
-            var created = new CloudChannel { VaultId = ctx.VaultId, PlayerUuid = player, Name = CloudChannel.DefaultName };
+            var created = new CloudChannel
+            {
+                VaultId = ctx.VaultId, PlayerUuid = player, Name = CloudChannel.DefaultName
+            };
             await storage.AddChannelAsync(created, ct);
             channels = [created];
         }
@@ -61,9 +64,11 @@ public sealed partial class AcquireCloudLease(
 
         LogGranted(player, ctx.ServerId, lease.Epoch);
         var readOnly = !vault.IsEnabled || channels.Any(c => c.IsFrozen);
-        return CloudCallResult<CloudAcquireReply>.Ok(new CloudAcquireReply("granted", lease.Epoch, readOnly, dtos, null));
+        return CloudCallResult<CloudAcquireReply>.Ok(
+            new CloudAcquireReply("granted", lease.Epoch, readOnly, dtos, null));
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Nuvem: lease de {Player} para o servidor {ServerId}, época {Epoch}.")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Nuvem: lease de {Player} para o servidor {ServerId}, época {Epoch}.")]
     private partial void LogGranted(string player, Guid serverId, long epoch);
 }

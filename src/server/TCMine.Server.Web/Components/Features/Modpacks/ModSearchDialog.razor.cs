@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
@@ -10,31 +8,24 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class ModSearchDialog
 {
-    /// <summary>Origens utilizáveis agora (CurseForge só aparece com API key).</summary>
-    private readonly List<ModFileOrigin> _available = [];
-
-    private readonly HashSet<string> _selected = [];
-
     /// <summary>
     ///     Valor do seletor que significa "deixa a origem escolher". Vazio, e não
     ///     nulo: o MudSelect trata nulo como "nada selecionado".
     /// </summary>
     private const string LatestCompatible = "";
 
+    /// <summary>Origens utilizáveis agora (CurseForge só aparece com API key).</summary>
+    private readonly List<ModFileOrigin> _available = [];
+
     /// <summary>Versão escolhida por mod marcado (FileId na origem).</summary>
     private readonly Dictionary<string, string> _chosenVersion = [];
 
-    /// <summary>Releases já consultadas, por mod — marcar e desmarcar não reconsulta.</summary>
-    private readonly Dictionary<string, IReadOnlyList<UpstreamRelease>> _versions = [];
-
     private readonly HashSet<string> _loadingVersions = [];
 
-    private bool _isSearching;
-    private ModFileOrigin _origin = ModFileOrigin.Modrinth;
+    private readonly HashSet<string> _selected = [];
 
-    private string _query = "";
-    private IReadOnlyList<ModSearchResult> _results = [];
-    private bool _searched;
+    /// <summary>Releases já consultadas, por mod — marcar e desmarcar não reconsulta.</summary>
+    private readonly Dictionary<string, IReadOnlyList<UpstreamRelease>> _versions = [];
 
     /// <summary>
     ///     Esconder os incompatíveis fica LIGADO por padrão: a lista útil é a de
@@ -45,6 +36,13 @@ public partial class ModSearchDialog
 
     private int _incompatibleCount;
 
+    private bool _isSearching;
+    private ModFileOrigin _origin = ModFileOrigin.Modrinth;
+
+    private string _query = "";
+    private IReadOnlyList<ModSearchResult> _results = [];
+    private bool _searched;
+
     private IReadOnlyList<ModSearchResult> Visiveis =>
         _hideIncompatible ? [.. _results.Where(r => r.Compatible)] : _results;
 
@@ -52,8 +50,8 @@ public partial class ModSearchDialog
     [Parameter] public string MinecraftVersion { get; set; } = "";
     [Parameter] public ModLoader Loader { get; set; }
 
-    [Inject] private IEnumerable<IModSearch> Searches { get; set; } = default!;
-    [Inject] private QueueIngestion QueueIngestionUseCase { get; set; } = default!;
+    [Inject] private IEnumerable<IModSearch> Searches { get; set; } = null!;
+    [Inject] private QueueIngestion QueueIngestionUseCase { get; set; } = null!;
 
     protected override async Task OnInitializedAsync()
     {
@@ -113,11 +111,6 @@ public partial class ModSearchDialog
             ? $"Este mod tem versões para {versions} — nenhuma para {MinecraftVersion} com {Loader}."
             : $"Sem release para Minecraft {MinecraftVersion} com {Loader}.";
 
-    private async Task OnKeyUp(KeyboardEventArgs e)
-    {
-        if (e.Key is "Enter")
-            await DoSearch();
-    }
 
     private async Task DoSearch()
     {
@@ -172,20 +165,21 @@ public partial class ModSearchDialog
 
     private async Task Toggle(string projectId, bool selected)
     {
-        // O card inteiro é clicável, então a guarda precisa estar aqui e não só
-        // no checkbox desabilitado: marcar um incompatível só adiaria a recusa
-        // para a ingestão, com o admin achando que deu certo.
-        if (selected && _results.Any(r => r.ProjectId == projectId && !r.Compatible))
-            return;
-
-        if (!selected)
+        switch (selected)
         {
-            _selected.Remove(projectId);
-            return;
+            // O card inteiro é clicável, então a guarda precisa estar aqui e não só
+            // no Checkbox desabilitado: marcar um incompatível só adiaria a recusa
+            // para a ingestão, com o admin achando que deu certo.
+            case true when _results.Any(r => r.ProjectId == projectId && !r.Compatible):
+                return;
+            case false:
+                _selected.Remove(projectId);
+                return;
+            default:
+                _selected.Add(projectId);
+                await LoadVersionsAsync(projectId);
+                break;
         }
-
-        _selected.Add(projectId);
-        await LoadVersionsAsync(projectId);
     }
 
     private Task Add()
@@ -209,7 +203,8 @@ public partial class ModSearchDialog
         // pedido sobreviver a uma queda do processo entre o clique e o worker
         // pegar o item.
         return SubmitAsync(
-            () => QueueIngestionUseCase.HandleAsync(new QueueIngestionCommand(VersionId, items), CancellationToken.None),
+            () => QueueIngestionUseCase.HandleAsync(new QueueIngestionCommand(VersionId, items),
+                CancellationToken.None),
             $"{items.Count} mod(s) na fila de importação.");
     }
 }

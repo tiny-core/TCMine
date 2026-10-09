@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Hubs;
@@ -132,13 +133,9 @@ public sealed class ConsoleBroadcasterTests
 
         public async IAsyncEnumerable<ConsoleLine> StreamLogsAsync(
             Guid gameServerId,
-            [System.Runtime.CompilerServices.EnumeratorCancellation]
-            CancellationToken ct)
+            [EnumeratorCancellation] CancellationToken ct)
         {
-            lock (_gate)
-            {
-                Aberturas++;
-            }
+            lock (_gate) Aberturas++;
 
             try
             {
@@ -148,14 +145,26 @@ public sealed class ConsoleBroadcasterTests
             }
             finally
             {
-                lock (_gate)
-                {
-                    Cancelados++;
-                }
+                lock (_gate) Cancelados++;
             }
 
             yield break;
         }
+
+        public Task<string> EnsureCreatedAsync(Guid gameServerId, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task StartAsync(Guid gameServerId, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task StopAsync(Guid gameServerId, TimeSpan timeout, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task<GameServerStatus> GetStatusAsync(Guid gameServerId, CancellationToken ct) =>
+            Task.FromResult(GameServerStatus.Running);
+
+        public Task RemoveAsync(Guid gameServerId, CancellationToken ct) =>
+            throw new NotImplementedException();
 
         public async Task AguardarAberturasAsync(int quantas) =>
             await AguardarAsync(() => Aberturas >= quantas);
@@ -180,20 +189,5 @@ public sealed class ConsoleBroadcasterTests
                 await Task.Delay(20);
             }
         }
-
-        public Task<string> EnsureCreatedAsync(Guid gameServerId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task StartAsync(Guid gameServerId, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task StopAsync(Guid gameServerId, TimeSpan timeout, CancellationToken ct) =>
-            throw new NotImplementedException();
-
-        public Task<GameServerStatus> GetStatusAsync(Guid gameServerId, CancellationToken ct) =>
-            Task.FromResult(GameServerStatus.Running);
-
-        public Task RemoveAsync(Guid gameServerId, CancellationToken ct) =>
-            throw new NotImplementedException();
     }
 }

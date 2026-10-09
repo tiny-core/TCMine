@@ -54,8 +54,10 @@ public sealed partial class CompleteFromServerPack(
         if (source is null)
             return Result<ServerPackFillResult>.Fail("A origem do pack não está configurada.");
 
-        void Passo(string texto, int feitos, int total) =>
+        void Passo(string texto, int feitos, int total)
+        {
             progress.Report(versionId, new JobProgress("Completando pelo server pack", texto, feitos, total));
+        }
 
         try
         {
@@ -87,9 +89,7 @@ public sealed partial class CompleteFromServerPack(
                 if (pendencia.FileId is not { Length: > 0 } fileId
                     || !names.TryGetValue(fileId, out var nomeDoArquivo)
                     || !pack.ModFileNames.Contains(nomeDoArquivo))
-                {
                     continue;
-                }
 
                 await using var content = pack.OpenMod(nomeDoArquivo);
 
@@ -173,11 +173,9 @@ public sealed partial class CompleteFromServerPack(
         {
             if (file.Side is not FileSide.Both
                 || !file.Path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
-            {
                 continue;
-            }
 
-            var name = file.Path[("mods/".Length)..];
+            var name = file.Path["mods/".Length..];
             if (doServidor.Contains(name))
                 continue;
 

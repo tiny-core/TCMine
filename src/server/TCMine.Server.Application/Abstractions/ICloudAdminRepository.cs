@@ -6,15 +6,29 @@ namespace TCMine.Server.Application.Abstractions;
 public sealed record CloudVaultSummary(Guid Id, string Name, Guid OwnerId, bool IsEnabled, int Servers, int Players);
 
 /// <summary>Chave ativa de um servidor: só o que não é segredo.</summary>
-public sealed record CloudServerKeyView(Guid ServerId, string Prefix, DateTimeOffset CreatedAt,
-    DateTimeOffset? LastSeenAt, string? ModVersion);
+public sealed record CloudServerKeyView(
+    Guid ServerId,
+    string Prefix,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastSeenAt,
+    string? ModVersion);
 
-public sealed record CloudChannelView(Guid Id, string Name, bool Frozen, string? FrozenReason, int ItemTypes,
+public sealed record CloudChannelView(
+    Guid Id,
+    string Name,
+    bool Frozen,
+    string? FrozenReason,
+    int ItemTypes,
     long TotalItems);
 
 /// <summary>Um jogador da nuvem: canais, totais e quem segura o lease agora.</summary>
-public sealed record CloudPlayerView(string PlayerUuid, string? DisplayName, IReadOnlyList<CloudChannelView> Channels,
-    Guid? HolderServerId, long Epoch, DateTimeOffset? LeaseExpiresAt);
+public sealed record CloudPlayerView(
+    string PlayerUuid,
+    string? DisplayName,
+    IReadOnlyList<CloudChannelView> Channels,
+    Guid? HolderServerId,
+    long Epoch,
+    DateTimeOffset? LeaseExpiresAt);
 
 public sealed record CloudBalanceView(string Fingerprint, string ItemId, string ModId, string DisplayName, long Amount);
 
@@ -30,14 +44,16 @@ public interface ICloudAdminRepository
     /// <summary>Nuvens com os totais; <paramref name="ownerId" /> nulo = todas (admin da instalação).</summary>
     Task<IReadOnlyList<CloudVaultSummary>> ListVaultsAsync(Guid? ownerId, CancellationToken ct);
 
-    Task<IReadOnlyList<CloudServerKeyView>> ListActiveKeysAsync(IReadOnlyCollection<Guid> serverIds, CancellationToken ct);
+    Task<IReadOnlyList<CloudServerKeyView>> ListActiveKeysAsync(IReadOnlyCollection<Guid> serverIds,
+        CancellationToken ct);
 
     /// <summary>
     ///     Jogadores da nuvem (agrupados pelos canais), com nome quando o UUID
     ///     bate com uma conta do TCMine. <paramref name="search" /> filtra por
     ///     nome ou UUID.
     /// </summary>
-    Task<IReadOnlyList<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, int limit, CancellationToken ct);
+    Task<IReadOnlyList<CloudPlayerView>>
+        ListPlayersAsync(Guid vaultId, string? search, int limit, CancellationToken ct);
 
     Task<IReadOnlyList<CloudBalanceView>> ListChannelBalancesAsync(Guid channelId, CancellationToken ct);
 

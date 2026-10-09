@@ -5,7 +5,7 @@
       encontra subindo a árvore, então sem este Import os projetos do launcher
       perderiam nullable, analisadores e metadados.
     -->
-  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
 
   <!--
       A versão do launcher mora em src/launcher/VERSION, e é a ÚNICA fonte dela:

@@ -1,6 +1,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Infrastructure.Persistence;
 
@@ -118,8 +119,8 @@ public sealed class ModpackRepositoryTests : IDisposable
         // detached "sem o arquivo" com uma versão nova, mesmo Id, que nunca
         // chegou a carregar Files.
         var semArquivos = NovaVersao(modpack.Id, "9.9-detached");
-        typeof(TCMine.Server.Domain.Common.Entity)
-            .GetProperty(nameof(TCMine.Server.Domain.Common.Entity.Id))!
+        typeof(Entity)
+            .GetProperty(nameof(Entity.Id))!
             .SetValue(semArquivos, version.Id);
 
         await repo.UpdateVersionAsync(semArquivos, CancellationToken.None);
@@ -196,7 +197,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         var modpack = await SeedModpackAsync(repo);
 
         // Uma versão publicada e depois arquivada, e outra ativa.
-        var arquivada = NovaVersao(modpack.Id, "1.0");
+        var arquivada = NovaVersao(modpack.Id);
         arquivada.UpsertFile(Arquivo(arquivada.Id, "mods/velho.jar", "velho"));
         arquivada.UpsertFile(Arquivo(arquivada.Id, "mods/jei.jar", "jei"));
         arquivada.MarkResolving();
@@ -352,7 +353,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         mods.Items.Select(f => f.Path).ShouldBe(["mods/jei.jar"]);
 
         recursos.Items.Select(f => f.Path)
-            .ShouldBe(["resourcepacks/faithful.zip", "shaderpacks/complementary.zip"], ignoreOrder: true);
+            .ShouldBe(["resourcepacks/faithful.zip", "shaderpacks/complementary.zip"], true);
     }
 
     private static PendingMod Pendencia(Guid versionId, string slug, PendingModReason reason) =>

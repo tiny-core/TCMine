@@ -52,10 +52,6 @@ internal sealed class FakeMemberships(params Membership[] seed) : IMembershipRep
         Task.FromResult(_memberships.FirstOrDefault(m =>
             m.UserId == userId && m.GameServerId == gameServerId));
 
-    public Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<Membership>>(
-            [.. _memberships.Where(m => m.GameServerId == gameServerId)]);
-
     public Task<IReadOnlyList<Membership>> ListByUserAsync(Guid userId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<Membership>>(
             [.. _memberships.Where(m => m.UserId == userId)]);
@@ -78,4 +74,8 @@ internal sealed class FakeMemberships(params Membership[] seed) : IMembershipRep
         _memberships.RemoveAll(m => m.Id == id);
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<Membership>>(
+            [.. _memberships.Where(m => m.GameServerId == gameServerId)]);
 }

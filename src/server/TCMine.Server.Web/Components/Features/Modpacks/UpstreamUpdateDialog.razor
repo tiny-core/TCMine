@@ -25,13 +25,17 @@
 
             <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
                 <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Add">@plan.Add.Count novos</MudChip>
+                         Icon="@Icons.Material.Filled.Add">@plan.Add.Count novos
+                </MudChip>
                 <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Upgrade">@plan.Update.Count atualizados</MudChip>
+                         Icon="@Icons.Material.Filled.Upgrade">@plan.Update.Count atualizados
+                </MudChip>
                 <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Remove">@plan.Remove.Count removidos</MudChip>
+                         Icon="@Icons.Material.Filled.Remove">@plan.Remove.Count removidos
+                </MudChip>
                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos</MudChip>
+                         Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos
+                </MudChip>
             </MudStack>
 
             @if (plan.Overrides.TotalChanges + plan.Overrides.Kept.Count > 0)
@@ -59,7 +63,8 @@
                     }
                     @if (plan.Overrides.Kept.Count > 0)
                     {
-                        <MudTooltip Text="O autor mudou ou removeu estes configs, mas você já os tinha editado — os seus ficam">
+                        <MudTooltip
+                            Text="O autor mudou ou removeu estes configs, mas você já os tinha editado — os seus ficam">
                             <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
                                      Icon="@Icons.Material.Filled.Lock">
                                 @plan.Overrides.Kept.Count configs seus, preservados

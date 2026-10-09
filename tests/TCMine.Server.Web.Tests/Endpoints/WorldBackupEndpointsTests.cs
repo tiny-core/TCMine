@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
-using TCMine.Contracts.Servers;
 using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Domain.Servers;
@@ -26,7 +26,7 @@ public class WorldBackupEndpointsTests
     {
         var store = new FakeBackupStore();
 
-        var result = await InvokeAsync(role: null, store: store);
+        var result = await InvokeAsync(null, store);
 
         result.ShouldBeOfType<NotFound>();
 
@@ -130,6 +130,7 @@ public class WorldBackupEndpointsTests
             AskedFor = gameServerId;
             return Task.FromResult(role);
         }
+
         public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<ModpackRoleDto?>(null);
     }

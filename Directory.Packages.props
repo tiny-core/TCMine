@@ -4,49 +4,49 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup Label="step_01">
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12"/>
   </ItemGroup>
   <ItemGroup Label="step_02">
-    <PackageVersion Include="NSubstitute" Version="6.2.0" />
+    <PackageVersion Include="NSubstitute" Version="6.2.0"/>
   </ItemGroup>
   <ItemGroup Label="step_03">
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
-    <PackageVersion Include="xunit.v3" Version="4.0.1" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
-    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
-    <PackageVersion Include="Shouldly" Version="4.3.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1"/>
+    <PackageVersion Include="xunit.v3" Version="4.0.1"/>
+    <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0"/>
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2"/>
+    <PackageVersion Include="Shouldly" Version="4.3.0"/>
     <!-- Sobe a app de verdade em memória: é o único jeito de testar o que só
          existe no pipeline (limite de taxa, health check, validação no arranque). -->
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12"/>
   </ItemGroup>
   <ItemGroup Label="step_04">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12"/>
   </ItemGroup>
   <ItemGroup Label="step_05">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12"/>
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>
   </ItemGroup>
   <ItemGroup Label="step_06">
-    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0"/>
   </ItemGroup>
   <ItemGroup Label="step_07">
-    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12" />
-    <PackageVersion Include="MudBlazor" Version="9.8.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.Web" Version="10.0.12"/>
+    <PackageVersion Include="MudBlazor" Version="9.8.0"/>
   </ItemGroup>
   <ItemGroup Label="step_08">
-    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="10.0.12"/>
   </ItemGroup>
   <ItemGroup Label="step_09">
-    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0"/>
   </ItemGroup>
   <ItemGroup Label="step_10">
-    <PackageVersion Include="BlazorMonaco" Version="3.5.0" />
+    <PackageVersion Include="BlazorMonaco" Version="3.5.0"/>
   </ItemGroup>
   <!--
     Pin transitivo de segurança: o EF Core Sqlite 10.0.10 ainda arrasta
@@ -56,15 +56,15 @@
     segura em toda a cadeia. Remover quando o EF passar a referenciar >=2.1.12.
   -->
   <ItemGroup Label="step_11">
-    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12" />
-    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12" />
+    <PackageVersion Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.core" Version="2.1.12"/>
+    <PackageVersion Include="SQLitePCLRaw.provider.e_sqlite3" Version="2.1.12"/>
   </ItemGroup>
   <!-- Autenticação: hash de senha (PBKDF2 vetado) e login federado Microsoft. -->
   <ItemGroup Label="step_12">
-    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="10.0.12"/>
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.12"/>
   </ItemGroup>
   <!--
     Casco do launcher. O WebView.Wpf é o que hospeda Blazor dentro da janela
@@ -73,8 +73,8 @@
     serviço em background que segura a conexão com o servidor.
   -->
   <ItemGroup Label="step_13">
-    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.100" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="10.0.100"/>
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12"/>
   </ItemGroup>
   <!--
     Login com a Microsoft, no launcher. Só o Infrastructure.Windows referencia
@@ -90,9 +90,9 @@
     As versões andam em lockstep com o MSAL; subir uma exige subir a outra.
   -->
   <ItemGroup Label="step_14">
-    <PackageVersion Include="Microsoft.Identity.Client" Version="4.89.0" />
-    <PackageVersion Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.89.0" />
-    <PackageVersion Include="Microsoft.Identity.Client.Broker" Version="4.89.0" />
+    <PackageVersion Include="Microsoft.Identity.Client" Version="4.89.0"/>
+    <PackageVersion Include="Microsoft.Identity.Client.Extensions.Msal" Version="4.89.0"/>
+    <PackageVersion Include="Microsoft.Identity.Client.Broker" Version="4.89.0"/>
   </ItemGroup>
   <!--
     Abrir o jogo. É o único lugar do produto onde não escrevemos o motor, e de
@@ -105,8 +105,8 @@
     esse o seguro que torna a dependência aceitável no caminho mais crítico.
   -->
   <ItemGroup Label="step_15">
-    <PackageVersion Include="CmlLib.Core" Version="4.0.6" />
-    <PackageVersion Include="CmlLib.Core.Installer.Forge" Version="1.1.1" />
+    <PackageVersion Include="CmlLib.Core" Version="4.0.6"/>
+    <PackageVersion Include="CmlLib.Core.Installer.Forge" Version="1.1.1"/>
   </ItemGroup>
   <!--
     Atualização do próprio launcher. O servidor serve o feed; isto consome-o.
@@ -117,7 +117,7 @@
     teste de verdade — o que se testa é a DECISÃO de atualizar, que vive no Core.
   -->
   <ItemGroup Label="step_16">
-    <PackageVersion Include="Velopack" Version="1.2.158" />
+    <PackageVersion Include="Velopack" Version="1.2.158"/>
   </ItemGroup>
   <!--
     Log persistido do launcher. Sem isto, uma exceção só aparecia com um
@@ -126,7 +126,7 @@
     logger, só com um sink de arquivo em vez do pipeline do ASP.NET Core.
   -->
   <ItemGroup Label="step_17">
-    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" />
-    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0"/>
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0"/>
   </ItemGroup>
 </Project>

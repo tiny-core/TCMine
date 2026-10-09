@@ -1,7 +1,7 @@
+using System.IO.Compression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Shouldly;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure.Launcher;
 using TCMine.Server.Infrastructure.Versions;
@@ -21,15 +21,15 @@ public sealed class LauncherBundleTests : IDisposable
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public void Dispose() => Directory.Delete(_root, recursive: true);
+    public void Dispose() => Directory.Delete(_root, true);
 
     [Theory]
-    [InlineData(null, null, LauncherBundleAction.Append)]                    // canal vazio
-    [InlineData("0.9.0", null, LauncherBundleAction.Append)]                 // versão nova
-    [InlineData("1.1.0", null, LauncherBundleAction.KeepNewer)]              // publicada à mão, maior
-    [InlineData("1.0.0", "https://a/", LauncherBundleAction.Skip)]           // nada mudou
-    [InlineData("1.0.0", "https://outro/", LauncherBundleAction.Rebuild)]    // endereço mudou
-    [InlineData("1.0.0", null, LauncherBundleAction.Rebuild)]                // mesma versão, publicada à mão
+    [InlineData(null, null, LauncherBundleAction.Append)] // canal vazio
+    [InlineData("0.9.0", null, LauncherBundleAction.Append)] // versão nova
+    [InlineData("1.1.0", null, LauncherBundleAction.KeepNewer)] // publicada à mão, maior
+    [InlineData("1.0.0", "https://a/", LauncherBundleAction.Skip)] // nada mudou
+    [InlineData("1.0.0", "https://outro/", LauncherBundleAction.Rebuild)] // endereço mudou
+    [InlineData("1.0.0", null, LauncherBundleAction.Rebuild)] // mesma versão, publicada à mão
     public void Decide_o_que_fazer_com_o_canal(string? published, string? stampUrl, LauncherBundleAction expected)
     {
         var stamp = stampUrl is null ? null : new LauncherBundleStamp("1.0.0", stampUrl);
@@ -45,16 +45,16 @@ public sealed class LauncherBundleTests : IDisposable
         var dir = Directory.CreateDirectory(Path.Combine(_root, Channel)).FullName;
         await File.WriteAllTextAsync(Path.Combine(dir, $"RELEASES-{Channel}"),
             $"ABC TCMine.Launcher-1.0.0-{Channel}-full.nupkg 10", TestContext.Current.CancellationToken);
-        await File.WriteAllTextAsync(Path.Combine(dir, $"releases.{Channel}.json"), $$"""
+        await File.WriteAllTextAsync(Path.Combine(dir, $"releases.{Channel}.json"), """
             {"Assets":[
               {"PackageId":"TCMine.Launcher","Version":"0.9.0","Type":"Full","FileName":"a.nupkg"},
               {"PackageId":"TCMine.Launcher","Version":"1.0.0","Type":"Delta","FileName":"b.nupkg"},
               {"PackageId":"TCMine.Launcher","Version":"1.0.0","Type":"Full","FileName":"c.nupkg"}]}
             """, TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(dir, $"assets.{Channel}.json"), $$"""
-            [{"RelativeFileName":"TCMine.Launcher-{{Channel}}-Setup.exe","Type":"Installer"},
-             {"RelativeFileName":"c.nupkg","Type":"Full"}]
-            """, TestContext.Current.CancellationToken);
+              [{"RelativeFileName":"TCMine.Launcher-{{Channel}}-Setup.exe","Type":"Installer"},
+               {"RelativeFileName":"c.nupkg","Type":"Full"}]
+              """, TestContext.Current.CancellationToken);
         await File.WriteAllTextAsync(Path.Combine(dir, $"TCMine.Launcher-{Channel}-Setup.exe"), "x",
             TestContext.Current.CancellationToken);
 
@@ -62,7 +62,8 @@ public sealed class LauncherBundleTests : IDisposable
             .AddInMemoryCollection(new Dictionary<string, string?> { ["LauncherUpdates:RootPath"] = _root })
             .Build();
 
-        var latest = await new FileSystemLauncherReleaseSource(config).GetLatestAsync(TestContext.Current.CancellationToken);
+        var latest =
+            await new FileSystemLauncherReleaseSource(config).GetLatestAsync(TestContext.Current.CancellationToken);
 
         latest.ShouldNotBeNull();
         latest.Version.ShouldBe("1.0.0");
@@ -100,7 +101,7 @@ public sealed class LauncherBundleTests : IDisposable
 
         // O server.json está DENTRO do pacote que o jogador instala.
         var nupkg = Directory.GetFiles(dir, "*-full.nupkg").ShouldHaveSingleItem();
-        using var zip = System.IO.Compression.ZipFile.OpenRead(nupkg);
+        using var zip = ZipFile.OpenRead(nupkg);
         var entry = zip.Entries.Single(e => e.Name == "server.json");
         using var reader = new StreamReader(entry.Open());
         (await reader.ReadToEndAsync(ct)).ShouldContain("https://jogo.exemplo/");
@@ -116,12 +117,12 @@ public sealed class LauncherBundleTests : IDisposable
         // Saída real (encurtada) da primeira falha em produção: as últimas linhas
         // são o stack trace, e era só isso que o log mostrava.
         const string output = """
-            [14:02:16 INF] Starting: Post-process steps
-            [14:02:17 FTL] Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
-            System.UnauthorizedAccessException: Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
-               at Velopack.Packaging.PackageBuilder`2.RunCoreAsync(T options) in ./vpk/Velopack.Packaging/PackageBuilder.cs:line 113
-               at Velopack.Core.Abstractions.ValidatedCommand`1.Run(TOpt options) in ./vpk/Velopack.Core/Abstractions/ValidatedCommand.cs:line 18
-            """;
+                              [14:02:16 INF] Starting: Post-process steps
+                              [14:02:17 FTL] Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
+                              System.UnauthorizedAccessException: Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.
+                                 at Velopack.Packaging.PackageBuilder`2.RunCoreAsync(T options) in ./vpk/Velopack.Packaging/PackageBuilder.cs:line 113
+                                 at Velopack.Core.Abstractions.ValidatedCommand`1.Run(TOpt options) in ./vpk/Velopack.Core/Abstractions/ValidatedCommand.cs:line 18
+                              """;
 
         VelopackLauncherBundle.VpkErrorSummary(output)
             .ShouldBe("[14:02:17 FTL] Access to the path '/feed/TCMine.Launcher-win-x64-p2-Setup.exe' is denied.");
@@ -147,8 +148,8 @@ public sealed class LauncherBundleTests : IDisposable
             "Rodando como root: a permissão não se aplica.");
 
         // Sem vpk no pacote: se a conferência não viesse antes, o erro seria "vpk não encontrado".
-        var error = await Should.ThrowAsync<InvalidOperationException>(
-            () => Bundle(bundle).PublishAsync(new Uri("https://jogo/"), Ct));
+        var error = await Should.ThrowAsync<InvalidOperationException>(() =>
+            Bundle(bundle).PublishAsync(new Uri("https://jogo/"), Ct));
 
         error.Message.ShouldContain(installer);
         error.Message.ShouldContain("chown");

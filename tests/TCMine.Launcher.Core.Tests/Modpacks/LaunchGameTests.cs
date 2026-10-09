@@ -47,7 +47,7 @@ public class LaunchGameTests
         var java = new FakeJavaLocator();
 
         await Build(java: java, javaDeclarado: 25).HandleAsync(
-            Instalada(minecraft: "26.2"), Config(), null, Ct);
+            Instalada("26.2"), Config(), null, Ct);
 
         java.Requested.ShouldBe(25);
     }
@@ -60,7 +60,7 @@ public class LaunchGameTests
         var java = new FakeJavaLocator();
 
         await Build(java: java).HandleAsync(
-            Instalada(minecraft: "1.20.4"), Config(), null, Ct);
+            Instalada("1.20.4"), Config(), null, Ct);
 
         java.Requested.ShouldBe(17);
     }
@@ -223,8 +223,8 @@ public class LaunchGameTests
 
         // Uma sessão nova por chamada: este teste é sobre o token, e reusar a
         // mesma faria o segundo arranque ser recusado pelo guard do jogo aberto.
-        await Build(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
-        await Build(autenticador: autenticador).HandleAsync(Instalada(), Config(), null, Ct);
+        await Build(autenticador).HandleAsync(Instalada(), Config(), null, Ct);
+        await Build(autenticador).HandleAsync(Instalada(), Config(), null, Ct);
 
         autenticador.Tentativas.ShouldBe(2);
     }
@@ -338,44 +338,6 @@ public class LaunchGameTests
         Files = []
     };
 
-    private sealed class SemMundo : IWorldBackup
-    {
-        public bool HasWorld(InstanceKey key) => false;
-
-        public Task<string> CreateAsync(InstanceKey key, CancellationToken ct) => Task.FromResult("");
-    }
-
-    /// <summary>Instala gravando o número da versão pedida no manifesto, como o real.</summary>
-    private sealed class InstaladorFalso(IReadOnlyList<ModpackVersionDto> versions) : IInstanceInstaller
-    {
-        public int Chamadas { get; private set; }
-
-        public InstanceKey? Alvo { get; private set; }
-
-        public Guid? Versao { get; private set; }
-
-        public Task<InstallResult> HandleAsync(
-            Uri serverUrl,
-            ModpackDto modpack,
-            Guid versionId,
-            InstanceKey? target,
-            IProgress<InstallProgress>? progress,
-            CancellationToken ct)
-        {
-            Chamadas++;
-            Alvo = target;
-            Versao = versionId;
-
-            var manifest = Manifesto() with
-            {
-                ModpackVersionId = versionId,
-                Version = versions.First(v => v.Id == versionId).Version
-            };
-
-            return Task.FromResult(InstallResult.Success(target!.Value, manifest));
-        }
-    }
-
     // ---------- apoio ----------
 
     private static LaunchGame Build(
@@ -419,8 +381,45 @@ public class LaunchGameTests
     private static InstalledInstance Instalada(InstanceManifest manifest) =>
         new(InstanceKey.New(),
             manifest,
-            SizeBytes: 0,
-            Path: "/instancias/teste");
+            0,
+            "/instancias/teste");
+
+    private sealed class SemMundo : IWorldBackup
+    {
+        public bool HasWorld(InstanceKey key) => false;
+
+        public Task<string> CreateAsync(InstanceKey key, CancellationToken ct) => Task.FromResult("");
+    }
+
+    /// <summary>Instala gravando o número da versão pedida no manifesto, como o real.</summary>
+    private sealed class InstaladorFalso(IReadOnlyList<ModpackVersionDto> versions) : IInstanceInstaller
+    {
+        public int Chamadas { get; private set; }
+
+        public InstanceKey? Alvo { get; private set; }
+
+        public Guid? Versao { get; private set; }
+
+        public Task<InstallResult> HandleAsync(
+            Uri serverUrl,
+            ModpackDto modpack,
+            Guid versionId,
+            InstanceKey? target,
+            IProgress<InstallProgress>? progress,
+            CancellationToken ct)
+        {
+            Chamadas++;
+            Alvo = target;
+            Versao = versionId;
+
+            var manifest = Manifesto() with
+            {
+                ModpackVersionId = versionId, Version = versions.First(v => v.Id == versionId).Version
+            };
+
+            return Task.FromResult(InstallResult.Success(target!.Value, manifest));
+        }
+    }
 
     private sealed class ContaFalsa(AuthResult result) : IMinecraftAuthenticator
     {

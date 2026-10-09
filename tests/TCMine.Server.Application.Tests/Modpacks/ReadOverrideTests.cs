@@ -1,10 +1,8 @@
 using System.Text;
 using TCMine.Contracts.Modpacks;
-using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Domain.Modpacks;
-
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -41,7 +39,7 @@ public sealed class ReadOverrideTests
     [Fact]
     public async Task Recusa_abrir_arquivo_grande_sem_sequer_ler_o_blob()
     {
-        var (useCase, store) = Build("kubejs/enorme.js", "// só texto"u8.ToArray(), tamanhoDeclarado: 5 * 1024 * 1024);
+        var (useCase, store) = Build("kubejs/enorme.js", "// só texto"u8.ToArray(), 5 * 1024 * 1024);
 
         var result = await useCase.HandleAsync(Guid.Empty, "kubejs/enorme.js", CancellationToken.None);
 

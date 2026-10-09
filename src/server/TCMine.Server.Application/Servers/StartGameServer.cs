@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-﻿using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Security;
@@ -21,7 +21,8 @@ public sealed partial class StartGameServer(
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao iniciar o servidor {ServerId}.")]
     private partial void LogFalha(Exception ex, Guid serverId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Nuvem: não consegui preparar a chave do servidor {ServerId}; ele sobe sem nuvem.")]
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Nuvem: não consegui preparar a chave do servidor {ServerId}; ele sobe sem nuvem.")]
     private partial void LogFalhaNuvem(Exception ex, Guid serverId);
 
     // TEMPORÁRIO — linha de base da refatoração (docs/BASELINE.md, S5). Sai no

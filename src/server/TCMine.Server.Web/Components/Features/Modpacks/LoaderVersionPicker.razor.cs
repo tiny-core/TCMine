@@ -13,7 +13,8 @@ public partial class LoaderVersionPicker : ComponentBase
     [Parameter] public EventCallback<string> ValueChanged { get; set; }
 
     /// <summary>Loader e versão do Minecraft do modpack — definem a lista.</summary>
-    [Parameter] public ModLoader Loader { get; set; }
+    [Parameter]
+    public ModLoader Loader { get; set; }
 
     [Parameter] public string MinecraftVersion { get; set; } = "";
 

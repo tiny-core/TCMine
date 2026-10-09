@@ -1,4 +1,3 @@
-using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
@@ -20,7 +19,7 @@ public sealed class RecoverInterruptedIngestionsTests
     [Fact]
     public async Task Versao_presa_em_resolving_volta_para_a_fila()
     {
-        var (repo, queue, version) = Cenario(naFila: ["3", "4"]);
+        var (repo, queue, version) = Cenario(["3", "4"]);
         version.MarkResolving();
 
         var retomadas = await Executar(repo, queue);
@@ -41,7 +40,7 @@ public sealed class RecoverInterruptedIngestionsTests
         // O processo caiu ANTES de o worker pegar o job: a versão nunca chegou a
         // Resolving. Sem cobrir este caso, um pedido feito segundos antes de um
         // deploy sumiria sem deixar vestígio.
-        var (repo, queue, version) = Cenario(naFila: ["3"]);
+        var (repo, queue, version) = Cenario(["3"]);
 
         var retomadas = await Executar(repo, queue);
 
@@ -53,7 +52,7 @@ public sealed class RecoverInterruptedIngestionsTests
     [Fact]
     public async Task Item_na_fila_preserva_origem_lado_e_release_fixada()
     {
-        var (repo, queue, version) = Cenario(naFila: ["3"]);
+        var (repo, queue, version) = Cenario(["3"]);
         version.PendingMods.Single().FileId = "333";
         version.PendingMods.Single().Side = FileSide.ServerOnly;
 
@@ -70,7 +69,7 @@ public sealed class RecoverInterruptedIngestionsTests
     [Fact]
     public async Task Depois_do_limite_a_versao_falha_em_vez_de_repetir()
     {
-        var (repo, queue, version) = Cenario(naFila: ["3"]);
+        var (repo, queue, version) = Cenario(["3"]);
         version.MarkResolving();
         version.RecoveryAttempts = ModpackVersion.MaxRecoveryAttempts;
 
@@ -87,7 +86,7 @@ public sealed class RecoverInterruptedIngestionsTests
     [Fact]
     public async Task Reparo_manual_devolve_a_cota_de_recuperacao()
     {
-        var (repo, queue, version) = Cenario(naFila: ["3"]);
+        var (repo, queue, version) = Cenario(["3"]);
         version.MarkResolving();
         version.RecoveryAttempts = ModpackVersion.MaxRecoveryAttempts;
         await Executar(repo, queue);
@@ -108,7 +107,7 @@ public sealed class RecoverInterruptedIngestionsTests
         // Tudo baixou e o processo caiu antes de fechar o estado. Marcar como
         // falha seria mentira — nada falhou —, e o admin perderia tempo
         // investigando um erro que não houve.
-        var (repo, queue, version) = Cenario(naFila: [], baixados: ["1", "2"]);
+        var (repo, queue, version) = Cenario([], ["1", "2"]);
         version.MarkResolving();
 
         var retomadas = await Executar(repo, queue);
@@ -122,7 +121,7 @@ public sealed class RecoverInterruptedIngestionsTests
     [Fact]
     public async Task Redistribuicao_negada_nao_volta_para_a_fila()
     {
-        var (repo, queue, version) = Cenario(naFila: ["3"]);
+        var (repo, queue, version) = Cenario(["3"]);
         version.UpsertPending(new PendingMod
         {
             ModpackVersionId = version.Id,
@@ -150,18 +149,10 @@ public sealed class RecoverInterruptedIngestionsTests
     {
         var modpack = new Modpack
         {
-            Name = "Pack",
-            Slug = "pack",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge
+            Name = "Pack", Slug = "pack", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id,
-            Version = "1.0.0",
-            LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         foreach (var projectId in baixados ?? [])
         {

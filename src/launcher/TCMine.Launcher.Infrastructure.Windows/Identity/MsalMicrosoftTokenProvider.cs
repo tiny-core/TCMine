@@ -4,7 +4,6 @@ using Microsoft.Identity.Client.Broker;
 using Microsoft.Identity.Client.Extensions.Msal;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Identity;
-
 // O MSAL também declara um LogLevel, e ele não tem nada que ver com o nosso: é o
 // do logger interno da biblioteca. Sem o alias, cada [LoggerMessage] abaixo fica
 // ambíguo e o gerador não produz método nenhum.
@@ -47,6 +46,13 @@ public sealed partial class MsalMicrosoftTokenProvider(
 
     private IPublicClientApplication? _app;
     private string? _clientIdDaApp;
+
+    /// <summary>
+    ///     Só o semáforo. A app do MSAL não é descartável e o cache persistido
+    ///     não tem nada aberto entre chamadas — o contentor descarta este
+    ///     singleton no fecho da aplicação, e é o suficiente.
+    /// </summary>
+    public void Dispose() => _porta.Dispose();
 
     public async Task<AuthResult> TrySilentAsync(string azureClientId, CancellationToken ct)
     {
@@ -228,13 +234,6 @@ public sealed partial class MsalMicrosoftTokenProvider(
             LogNoSecureStorage(ex);
         }
     }
-
-    /// <summary>
-    ///     Só o semáforo. A app do MSAL não é descartável e o cache persistido
-    ///     não tem nada aberto entre chamadas — o contentor descarta este
-    ///     singleton no fecho da aplicação, e é o suficiente.
-    /// </summary>
-    public void Dispose() => _porta.Dispose();
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Credencial da Microsoft precisa de interação; tratada como ausente.")]

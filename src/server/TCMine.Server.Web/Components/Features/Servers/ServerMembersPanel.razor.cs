@@ -57,8 +57,7 @@ public partial class ServerMembersPanel : ComponentBase
     {
         var parameters = new DialogParameters<InviteDialog>
         {
-            { x => x.ServerId, Server.Id },
-            { x => x.ServerName, Server.Name }
+            { x => x.ServerId, Server.Id }, { x => x.ServerName, Server.Name }
         };
 
         var dialog = await DialogService.ShowAsync<InviteDialog>("Convidar", parameters);

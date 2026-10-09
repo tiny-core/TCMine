@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -56,8 +57,8 @@ public class AdoptiumJavaLocatorTests : IDisposable
         // Aceitar bytes que não batem seria correr o que quer que tenha chegado.
         var handler = HandlerCom(MontarZip(), new string('a', 64));
 
-        await Should.ThrowAsync<InvalidOperationException>(
-            async () => await Build(handler).EnsureRuntimeAsync(21, null, Ct));
+        await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await Build(handler).EnsureRuntimeAsync(21, null, Ct));
 
         // Nem o .download temporário nem um JRE meio extraído sobrevivem: o
         // arranque seguinte tem de tentar de novo, não achar lixo pela frente.
@@ -103,10 +104,10 @@ public class AdoptiumJavaLocatorTests : IDisposable
         // Falhar aqui, dizendo sistema e arquitetura, poupa investigar um erro de
         // extração mais à frente que não teria nada a ver com a causa.
         var handler = new FakeHttpHandler();
-        handler.Responde(IndiceUrl(21), System.Net.HttpStatusCode.OK, Array.Empty<object>());
+        handler.Responde(IndiceUrl(21), HttpStatusCode.OK, Array.Empty<object>());
 
-        var error = await Should.ThrowAsync<InvalidOperationException>(
-            async () => await Build(handler).EnsureRuntimeAsync(21, null, Ct));
+        var error = await Should.ThrowAsync<InvalidOperationException>(async () =>
+            await Build(handler).EnsureRuntimeAsync(21, null, Ct));
 
         error.Message.ShouldContain("JRE 21");
     }
@@ -133,19 +134,23 @@ public class AdoptiumJavaLocatorTests : IDisposable
 
         // Nomes em minúscula de propósito: é assim que o Adoptium responde, e o
         // contexto source-gen do locator espera camelCase.
-        handler.Responde(IndiceUrl(21), System.Net.HttpStatusCode.OK, new[]
-        {
-            new
+        handler.Responde(IndiceUrl(21), HttpStatusCode.OK,
+            new[]
             {
-                binary = new
+                new
                 {
-                    package = new
+                    binary = new
                     {
-                        link = Download, checksum, name = "OpenJDK21U-jre.zip", size = (long)zip.Length
+                        package = new
+                        {
+                            link = Download,
+                            checksum,
+                            name = "OpenJDK21U-jre.zip",
+                            size = (long)zip.Length
+                        }
                     }
                 }
-            }
-        });
+            });
 
         return handler.RespondeBytes(Download, zip);
     }

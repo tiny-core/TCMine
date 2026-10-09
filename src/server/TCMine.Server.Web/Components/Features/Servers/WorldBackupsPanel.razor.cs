@@ -18,7 +18,8 @@ public partial class WorldBackupsPanel : ComponentBase, IDisposable
     [Parameter] [EditorRequired] public GameServer Server { get; set; } = default!;
 
     /// <summary>Avisa a tela de cima quando o mundo muda — o status pode ter mudado junto.</summary>
-    [Parameter] public EventCallback OnChanged { get; set; }
+    [Parameter]
+    public EventCallback OnChanged { get; set; }
 
     [Inject] private IServerRepository Repository { get; set; } = default!;
     [Inject] private CreateWorldBackup CreateUseCase { get; set; } = default!;

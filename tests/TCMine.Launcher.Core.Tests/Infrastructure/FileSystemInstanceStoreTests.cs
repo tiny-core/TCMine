@@ -26,10 +26,8 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task Sem_manifesto_a_instancia_e_desconhecida()
-    {
+    public async Task Sem_manifesto_a_instancia_e_desconhecida() =>
         (await Criar().ReadManifestAsync(_chave, Ct)).ShouldBeNull();
-    }
 
     [Fact]
     public async Task Grava_e_le_o_manifesto_de_volta()

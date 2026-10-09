@@ -1,22 +1,23 @@
 ﻿using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
-using TCMine.Server.Web.Components.Features.Modpacks;
 using TCMine.Server.Web.Background;
+using TCMine.Server.Web.Components.Features.Modpacks;
 using TCMine.Server.Web.Mapping;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpacksPage : ComponentBase, IDisposable
 {
+    /// <summary>Havia trabalho em curso no último aviso — detecta o "acabou".</summary>
+    private bool _hadJobs;
+
     private bool _isLoading = true;
-    private IReadOnlyList<ModpackDto> _modpacks = [];
 
     /// <summary>Quantos modpacks havia na última carga — detecta o pack novo.</summary>
     private int _lastCount;
 
-    /// <summary>Havia trabalho em curso no último aviso — detecta o "acabou".</summary>
-    private bool _hadJobs;
+    private IReadOnlyList<ModpackDto> _modpacks = [];
 
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
 

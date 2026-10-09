@@ -1,6 +1,5 @@
 @page "/admin/servers"
 @using TCMine.Contracts.Servers
-@using TCMine.Server.Domain.Servers
 
 <PageTitle>Servidores — TCMine</PageTitle>
 
@@ -66,7 +65,8 @@ else
                            de propósito. O que faltava era saber que ficou. *@
                         @if (context.NewerVersion is { } nova)
                         {
-                            <MudTooltip Text="@($"A versão {nova} já está publicada. Trocar a versão do servidor tira um backup do mundo antes.")">
+                            <MudTooltip
+                                Text="@($"A versão {nova} já está publicada. Trocar a versão do servidor tira um backup do mundo antes.")">
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                                          Color="Color.Info" Icon="@Icons.Material.Filled.Upgrade">
                                     @nova disponível

@@ -5,14 +5,12 @@ using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 
-using TCMine.Server.Application.Tests.Fakes;
-
 namespace TCMine.Server.Application.Tests.Modpacks;
 
 public class CreateModpackTests
 {
-    private readonly IModpackRepository _repo = Substitute.For<IModpackRepository>();
     private readonly IModpackMembershipRepository _memberships = Substitute.For<IModpackMembershipRepository>();
+    private readonly IModpackRepository _repo = Substitute.For<IModpackRepository>();
     private readonly ICurrentUserScope _scope = Substitute.For<ICurrentUserScope>();
 
     private CreateModpack CriarCasoDeUso()

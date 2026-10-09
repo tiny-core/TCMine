@@ -25,7 +25,7 @@ public sealed class CloudServerFiles(IInstanceMaterializer materializer) : IClou
         await File.WriteAllTextAsync(temp, json, ct);
         if (!OperatingSystem.IsWindows())
             File.SetUnixFileMode(temp, UnixFileMode.UserRead | UnixFileMode.UserWrite);
-        File.Move(temp, target, overwrite: true);
+        File.Move(temp, target, true);
     }
 
     public Task DeleteAsync(Guid gameServerId, CancellationToken ct)

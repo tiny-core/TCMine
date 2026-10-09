@@ -23,6 +23,28 @@ public class FakeServerConnection : IServerConnection
 
     public bool Disconnected { get; private set; }
 
+    /// <summary>Manifestos por id de versão, para o instalador.</summary>
+    public Dictionary<Guid, ModpackVersionDto> Versions { get; } = [];
+
+    /// <summary>Versão mais recente por (modpack, canal).</summary>
+    public Dictionary<(Guid, ReleaseChannel), ModpackVersionDto> Latest { get; } = [];
+
+    /// <summary>
+    ///     Que (modpack, canal) foram consultados, na ordem. Serve para provar
+    ///     que quem chama não pergunta a mesma coisa duas vezes — e que um canal
+    ///     nunca é consultado no lugar do outro.
+    /// </summary>
+    public List<(Guid Modpack, ReleaseChannel Channel)> LatestQueries { get; } = [];
+
+    /// <summary>Novidades por modpack.</summary>
+    public Dictionary<Guid, IReadOnlyList<ModpackNewsDto>> News { get; } = [];
+
+    /// <summary>Histórico por (modpack, canal), para o seletor de versão.</summary>
+    public Dictionary<(Guid, ReleaseChannel), IReadOnlyList<ModpackVersionSummaryDto>> Histories { get; } = [];
+
+    /// <summary>Servidores pedidos, na ordem — para provar que o id certo foi enviado.</summary>
+    public List<Guid> AccessRequested { get; } = [];
+
     public bool IsConnected { get; set; }
 
     public event Action? StateChanged;
@@ -48,29 +70,10 @@ public class FakeServerConnection : IServerConnection
     public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync(CancellationToken ct) =>
         Throws is null ? Task.FromResult(Modpacks) : Task.FromException<IReadOnlyList<ModpackDto>>(Throws);
 
-    /// <summary>Manifestos por id de versão, para o instalador.</summary>
-    public Dictionary<Guid, ModpackVersionDto> Versions { get; } = [];
-
-    /// <summary>Versão mais recente por (modpack, canal).</summary>
-    public Dictionary<(Guid, ReleaseChannel), ModpackVersionDto> Latest { get; } = [];
-
-    /// <summary>
-    ///     Que (modpack, canal) foram consultados, na ordem. Serve para provar
-    ///     que quem chama não pergunta a mesma coisa duas vezes — e que um canal
-    ///     nunca é consultado no lugar do outro.
-    /// </summary>
-    public List<(Guid Modpack, ReleaseChannel Channel)> LatestQueries { get; } = [];
-
-    /// <summary>Novidades por modpack.</summary>
-    public Dictionary<Guid, IReadOnlyList<ModpackNewsDto>> News { get; } = [];
-
     public Task<IReadOnlyList<ModpackNewsDto>> GetNewsAsync(Guid modpackId, CancellationToken ct) =>
         Throws is not null
             ? Task.FromException<IReadOnlyList<ModpackNewsDto>>(Throws)
             : Task.FromResult(News.GetValueOrDefault(modpackId, []));
-
-    /// <summary>Histórico por (modpack, canal), para o seletor de versão.</summary>
-    public Dictionary<(Guid, ReleaseChannel), IReadOnlyList<ModpackVersionSummaryDto>> Histories { get; } = [];
 
     public Task<IReadOnlyList<ModpackVersionSummaryDto>> GetVersionsAsync(
         Guid modpackId, ReleaseChannel channel, CancellationToken ct) =>
@@ -91,16 +94,14 @@ public class FakeServerConnection : IServerConnection
     }
 
     public Task<ModpackVersionDto> GetModpackVersionAsync(Guid versionId, CancellationToken ct) =>
-        Throws is not null ? Task.FromException<ModpackVersionDto>(Throws)
-        : Versions.TryGetValue(versionId, out var v)
-            ? Task.FromResult(v)
-            : Task.FromException<ModpackVersionDto>(new InvalidOperationException("Versão não encontrada."));
+        Throws is not null
+            ? Task.FromException<ModpackVersionDto>(Throws)
+            : Versions.TryGetValue(versionId, out var v)
+                ? Task.FromResult(v)
+                : Task.FromException<ModpackVersionDto>(new InvalidOperationException("Versão não encontrada."));
 
     public Task<IReadOnlyList<GameServerDto>> GetServersAsync(CancellationToken ct) =>
         Throws is null ? Task.FromResult(Servers) : Task.FromException<IReadOnlyList<GameServerDto>>(Throws);
-
-    /// <summary>Servidores pedidos, na ordem — para provar que o id certo foi enviado.</summary>
-    public List<Guid> AccessRequested { get; } = [];
 
     public Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct)
     {

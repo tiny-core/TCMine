@@ -28,5 +28,6 @@ public partial class CloudChannelDialog : DialogComponentBase
     }
 
     private Task UnfreezeAsync() =>
-        SubmitAsync(() => UnfreezeUseCase.HandleAsync(VaultId, Channel.Id, CancellationToken.None), "Canal descongelado.");
+        SubmitAsync(() => UnfreezeUseCase.HandleAsync(VaultId, Channel.Id, CancellationToken.None),
+            "Canal descongelado.");
 }

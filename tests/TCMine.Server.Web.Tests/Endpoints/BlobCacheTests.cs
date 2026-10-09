@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using TCMine.Server.Web.Tests.Infrastructure;
@@ -16,6 +17,19 @@ public sealed class BlobCacheTests : IDisposable
 {
     private readonly string _raiz = Path.Combine(
         Path.GetTempPath(), $"tcmine-blobs-{Guid.CreateVersion7():N}");
+
+    public void Dispose()
+    {
+        try
+        {
+            if (Directory.Exists(_raiz))
+                Directory.Delete(_raiz, true);
+        }
+        catch (IOException)
+        {
+            // Limpeza não reprova teste; o SO recolhe a pasta temporária.
+        }
+    }
 
     [Fact]
     public async Task Blob_existente_pode_ser_guardado_para_sempre()
@@ -59,7 +73,7 @@ public sealed class BlobCacheTests : IDisposable
         using var client = factory.CreateClient();
 
         var requisicao = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/blobs/{sha}");
-        requisicao.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(1000, 1999);
+        requisicao.Headers.Range = new RangeHeaderValue(1000, 1999);
 
         var response = await client.SendAsync(requisicao, TestContext.Current.CancellationToken);
 
@@ -97,18 +111,5 @@ public sealed class BlobCacheTests : IDisposable
         File.WriteAllBytes(path, content);
 
         return sha;
-    }
-
-    public void Dispose()
-    {
-        try
-        {
-            if (Directory.Exists(_raiz))
-                Directory.Delete(_raiz, recursive: true);
-        }
-        catch (IOException)
-        {
-            // Limpeza não reprova teste; o SO recolhe a pasta temporária.
-        }
     }
 }

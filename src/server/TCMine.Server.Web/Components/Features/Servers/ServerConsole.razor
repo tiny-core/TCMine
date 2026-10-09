@@ -1,5 +1,4 @@
 @using TCMine.Contracts.Servers
-
 @* Console do container ao vivo.
 
    Só existe enquanto o servidor está no ar: seguir o log de um container parado
@@ -100,12 +99,14 @@
                                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search"
                                   Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" FullWidth="true"/>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
-                        Clique num comando para colocá-lo na caixa. Mods podem acrescentar outros — o console aceita todos.
+                        Clique num comando para colocá-lo na caixa. Mods podem acrescentar outros — o console aceita
+                        todos.
                     </MudText>
 
                     @foreach (var group in ReferenceGroups)
                     {
-                        <MudText Typo="Typo.overline" Class="mud-text-secondary d-block mt-2">@CategoryLabel(group.Key)</MudText>
+                        <MudText Typo="Typo.overline"
+                                 Class="mud-text-secondary d-block mt-2">@CategoryLabel(group.Key)</MudText>
 
                         @foreach (var cmd in group)
                         {
@@ -116,7 +117,9 @@
                                 <span class="tc-command-desc">@cmd.Description</span>
                                 @if (cmd.Destructive)
                                 {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">cuidado</MudChip>
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text">
+                                        cuidado
+                                    </MudChip>
                                 }
                             </div>
                         }

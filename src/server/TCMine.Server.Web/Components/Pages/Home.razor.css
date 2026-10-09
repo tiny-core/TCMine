@@ -1,114 +1,114 @@
 /* Visão geral. Valores do design system via --tc-*; a grade cai para uma
    coluna em telas estreitas, sem rolagem horizontal. */
 .tc-kpis {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 16px;
-    margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
 }
 
 ::deep .tc-kpi {
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .tc-kpi-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--tc-text-secondary);
-    font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--tc-text-secondary);
+  font-size: 13px;
 }
 
 .tc-kpi-value {
-    font-size: 26px;
-    line-height: 30px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
+  font-size: 26px;
+  line-height: 30px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .tc-kpi-value small {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--tc-text-secondary);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tc-text-secondary);
 }
 
 /* .tc-caption e .tc-text-danger agora são globais (tcmine.css) — mais de uma
    tela usa; aqui só o que é específico desta grade. */
 .tc-kpi-caption {
-    font-size: 12px;
-    color: var(--tc-text-secondary);
+  font-size: 12px;
+  color: var(--tc-text-secondary);
 }
 
 .tc-cols {
-    display: grid;
-    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-    gap: 16px;
-    margin-bottom: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 16px;
+  margin-bottom: 4px;
 }
 
 .tc-server-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
-    gap: 16px;
-    align-items: center;
-    padding: 12px 16px;
-    border-top: 1px solid var(--tc-border);
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  border-top: 1px solid var(--tc-border);
 }
 
 .tc-server-name {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .tc-span-2 {
-    grid-column: span 2;
+  grid-column: span 2;
 }
 
 .tc-meter {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--tc-text-secondary);
-    font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--tc-text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
 .tc-server-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* .tc-crystal* e @keyframes tc-pulse agora são globais (tcmine.css). */
 
 .tc-attention {
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    padding: 12px 16px;
-    border-top: 1px solid var(--tc-border);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  border-top: 1px solid var(--tc-border);
 }
 
 .tc-attention-body {
-    flex: 1;
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 960px) {
-    .tc-kpis {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+  .tc-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-    .tc-cols {
-        grid-template-columns: minmax(0, 1fr);
-    }
+  .tc-cols {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-    .tc-server-row {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
+  .tc-server-row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
 }

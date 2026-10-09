@@ -73,14 +73,12 @@ internal sealed record XboxAuthResponse
 /// </summary>
 internal sealed record XboxDisplayClaims
 {
-    [JsonPropertyName("xui")]
-    public XboxUserClaim[]? Xui { get; init; }
+    [JsonPropertyName("xui")] public XboxUserClaim[]? Xui { get; init; }
 }
 
 internal sealed record XboxUserClaim
 {
-    [JsonPropertyName("uhs")]
-    public string? Uhs { get; init; }
+    [JsonPropertyName("uhs")] public string? Uhs { get; init; }
 }
 
 /// <summary>
@@ -95,12 +93,10 @@ internal sealed record XstsErrorResponse
 
 internal sealed record MinecraftLoginWithXboxRequest
 {
-    [JsonPropertyName("identityToken")]
-    public required string IdentityToken { get; init; }
+    [JsonPropertyName("identityToken")] public required string IdentityToken { get; init; }
 }
 
 internal sealed record MinecraftLoginWithXboxResponse
 {
-    [JsonPropertyName("access_token")]
-    public string? AccessToken { get; init; }
+    [JsonPropertyName("access_token")] public string? AccessToken { get; init; }
 }

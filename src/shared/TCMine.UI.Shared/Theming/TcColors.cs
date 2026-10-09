@@ -1,43 +1,12 @@
-﻿using System.Reflection;
+﻿namespace TCMine.UI.Shared.Theming;
 
-namespace TCMine.UI.Shared.Theming;
-
-public class TcColors
+public static class TcColors
 {
-    /// <summary>
-    ///     Varre recursivamente todas as classes internas e retorna um dicionário com chave/valor de todas as cores.
-    /// </summary>
-    public static Dictionary<string, string> GetAllTokens()
-    {
-        var tokens = new Dictionary<string, string>();
-        ExtractTokensRecursive(typeof(TcColors), "", tokens);
-        return tokens;
-    }
-
-    private static void ExtractTokensRecursive(Type type, string prefix, Dictionary<string, string> dictionary)
-    {
-        // Pega todas as constantes (const string) da classe atual
-        var fields = type.GetFields(BindingFlags.Public | BindingFlags.Static);
-        foreach (var field in fields)
-        {
-            if (field.FieldType != typeof(string) || !field.IsLiteral) continue;
-            var value = (string)field.GetValue(null)!;
-            // Concatena o prefixo hierárquico (ex: Semantic + Dark + BgPage = SemanticDarkBgPage)
-            var key = prefix + field.Name;
-            dictionary[key] = value;
-        }
-
-        // Percorre as classes aninhadas (Palette, Semantic, Orange, Dark, Light, etc.)
-        var nestedTypes = type.GetNestedTypes(BindingFlags.Public);
-        foreach (var nestedType in nestedTypes)
-            ExtractTokensRecursive(nestedType, prefix + nestedType.Name, dictionary);
-    }
-
     // --- 1. PALETTE: Onde residem os valores brutos (Primitivos) ---
     //
     // "Pedra vulcânica com luz de minério" — o TCMine Design System. O laranja
     // é LUZ, não tinta: borda acesa, progresso, estado; nunca fundo grande. Não
-    // há azul: o papel de "informação" é do laranja claro.
+    // há azul: o papel de "informação" é do laranja-claro.
     public static class Palette
     {
         /// <summary>Superfícies, do afundado ao contorno, e os dois tons de texto.</summary>

@@ -31,8 +31,6 @@ public static class RateLimitPolicies
     /// </summary>
     private const int CloudPermitLimit = 1200;
 
-    private static readonly TimeSpan CloudWindow = TimeSpan.FromMinutes(1);
-
     /// <summary>
     ///     Tentativas de autenticação por janela, por IP.
     ///     Dez é folgado para quem erra a senha e aperta de novo, e apertado o
@@ -40,8 +38,6 @@ public static class RateLimitPolicies
     ///     varrem dicionário nenhum.
     /// </summary>
     private const int AuthPermitLimit = 10;
-
-    private static readonly TimeSpan AuthWindow = TimeSpan.FromMinutes(5);
 
     /// <summary>
     ///     Downloads simultâneos por IP.
@@ -59,6 +55,10 @@ public static class RateLimitPolicies
     ///     atrasa a sincronização, rejeitar a quebraria.
     /// </summary>
     private const int BlobQueueLimit = 32;
+
+    private static readonly TimeSpan CloudWindow = TimeSpan.FromMinutes(1);
+
+    private static readonly TimeSpan AuthWindow = TimeSpan.FromMinutes(5);
 
     public static IServiceCollection AddTcMineRateLimiting(this IServiceCollection services)
     {
@@ -90,9 +90,7 @@ public static class RateLimitPolicies
                 RateLimitPartition.GetFixedWindowLimiter(CloudKey(http), _ =>
                     new FixedWindowRateLimiterOptions
                     {
-                        PermitLimit = CloudPermitLimit,
-                        Window = CloudWindow,
-                        QueueLimit = 0
+                        PermitLimit = CloudPermitLimit, Window = CloudWindow, QueueLimit = 0
                     }));
 
             options.OnRejected = OnRejectedAsync;
@@ -126,7 +124,7 @@ public static class RateLimitPolicies
         // launcher pedindo — ele espera um status, não um redirect para uma
         // tela de login que não existe para ele.
         var navegacaoDoPainel = HttpMethods.IsGet(http.Request.Method)
-                                 && http.Request.Path.StartsWithSegments("/auth/microsoft");
+                                && http.Request.Path.StartsWithSegments("/auth/microsoft");
 
         if (http.Request.HasFormContentType || navegacaoDoPainel)
         {

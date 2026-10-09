@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
@@ -16,14 +15,14 @@ public partial class InstancesPage : ComponentBase, IDisposable
 {
     private InstanceKey? _active;
     private bool _busy;
-
-    private IReadOnlyDictionary<InstanceKey, ModpackVersionDto> _updates =
-        new Dictionary<InstanceKey, ModpackVersionDto>();
+    private IReadOnlyList<InstalledInstance> _instances = [];
+    private bool _loading = true;
 
     /// <summary>Bytes em JREs que nenhuma instância pede. Zero esconde o botão.</summary>
     private long _reclaimable;
-    private IReadOnlyList<InstalledInstance> _instances = [];
-    private bool _loading = true;
+
+    private IReadOnlyDictionary<InstanceKey, ModpackVersionDto> _updates =
+        new Dictionary<InstanceKey, ModpackVersionDto>();
 
     [Inject] private ListInstances Instances { get; set; } = default!;
 
@@ -46,7 +45,8 @@ public partial class InstancesPage : ComponentBase, IDisposable
     [Inject] private InstallOperationState Operation { get; set; } = default!;
 
     /// <summary>Jogo aberto ou instalação em curso: as ações daqui ficam desligadas.</summary>
-    [Inject] private ActionLock Lock { get; set; } = default!;
+    [Inject]
+    private ActionLock Lock { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
@@ -223,9 +223,9 @@ public partial class InstancesPage : ComponentBase, IDisposable
             var result = choice is true
                 ? await Updater.HandleAsync(
                     config.ServerUrl, pack, newer.Id, instance,
-                    backupWorld: true, progress, CancellationToken.None)
+                    true, progress, CancellationToken.None)
                 : await Installer.HandleAsync(
-                    config.ServerUrl, pack, newer.Id, target: null,
+                    config.ServerUrl, pack, newer.Id, null,
                     progress, CancellationToken.None);
 
             Snackbar.Add(

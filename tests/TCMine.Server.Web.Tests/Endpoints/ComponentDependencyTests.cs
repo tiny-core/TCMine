@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Servers;
-using TCMine.Server.Application.Settings;
 using TCMine.Server.Web.Tests.Infrastructure;
 
 namespace TCMine.Server.Web.Tests.Endpoints;

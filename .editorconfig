@@ -161,6 +161,10 @@ dotnet_diagnostic.CA1000.severity = none
 # Migrations do EF Core são código GERADO — não editamos à mão. Desliga as
 # regras de estilo/qualidade que só se aplicam a código escrito por humanos.
 # ---------------------------------------------------------------------------
+
+
+dotnet_diagnostic.IDE0011.severity = none
+
 [**/Migrations/*.cs]
 dotnet_diagnostic.CA1861.severity = none
 generated_code = true

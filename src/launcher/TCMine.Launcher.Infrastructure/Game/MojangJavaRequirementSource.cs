@@ -22,6 +22,8 @@ public sealed partial class MojangJavaRequirementSource(
 
     private readonly ILogger<MojangJavaRequirementSource> _logger = logger;
 
+    private string VersionsDirectory => Path.Combine(paths.RootDirectory, "minecraft", "versions");
+
     public async Task<int?> GetRequiredJavaAsync(string minecraftVersion, CancellationToken ct)
     {
         try
@@ -34,8 +36,6 @@ public sealed partial class MojangJavaRequirementSource(
             return null;
         }
     }
-
-    private string VersionsDirectory => Path.Combine(paths.RootDirectory, "minecraft", "versions");
 
     private int? ReadFromDisk(string minecraftVersion)
     {

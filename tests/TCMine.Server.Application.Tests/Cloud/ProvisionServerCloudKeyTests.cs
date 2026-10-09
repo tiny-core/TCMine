@@ -58,7 +58,7 @@ public sealed class ProvisionServerCloudKeyTests
         var files = new FakeCloudServerFiles();
         var chaves = new FakeCloudCredentialRepository();
 
-        await FakeCloud.Provisioner(repo, files, chaves, url: null).HandleAsync(servidor.Id, Ct);
+        await FakeCloud.Provisioner(repo, files, chaves, null).HandleAsync(servidor.Id, Ct);
 
         files.Files.ShouldBeEmpty();
         chaves.Credentials.ShouldBeEmpty();
@@ -89,8 +89,12 @@ public sealed class ProvisionServerCloudKeyTests
 
     private static GameServer NovoServidor(Guid dono) => new()
     {
-        Name = "S", ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),
-        ConnectAddress = "localhost", RconSecret = "segredo", OwnerId = dono
+        Name = "S",
+        ModpackId = Guid.CreateVersion7(),
+        ModpackVersionId = Guid.CreateVersion7(),
+        ConnectAddress = "localhost",
+        RconSecret = "segredo",
+        OwnerId = dono
     };
 
     private sealed class UmServidor(GameServer servidor) : FakeServerRepositoryBase

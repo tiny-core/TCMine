@@ -1,6 +1,5 @@
-using TCMine.Server.Domain.Modpacks;
-using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Modpacks;
 
@@ -31,9 +30,7 @@ public sealed class BackfillServerPacks(
 
             if (modpack.UpstreamProvider is not { } provider
                 || modpack.UpstreamProjectId is not { Length: > 0 } projectId)
-            {
                 continue;
-            }
 
             var source = await OrigemAsync(provider, ct);
             if (source is null)
@@ -48,9 +45,7 @@ public sealed class BackfillServerPacks(
                 // Já sabemos, ou não há como saber: os dois casos saem daqui.
                 if (version.UpstreamServerPackFileId is { Length: > 0 }
                     || version.UpstreamFileId is not { Length: > 0 } fileId)
-                {
                     continue;
-                }
 
                 var serverPack = await source.GetServerPackAsync(projectId, fileId, ct);
                 if (serverPack is null)

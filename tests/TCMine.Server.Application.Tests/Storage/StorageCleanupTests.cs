@@ -21,7 +21,8 @@ public sealed class StorageCleanupTests
         var janitor = new FakeJanitor(Blob("aa", 100, Velho), Blob("bb", 50, Velho));
         var repo = new FakeRepo("aa");
 
-        var report = (await new ScanStorage(janitor, repo, new FakeJobProgress()).HandleAsync(CancellationToken.None)).Value!;
+        var report = (await new ScanStorage(janitor, repo, new FakeJobProgress()).HandleAsync(CancellationToken.None))
+            .Value!;
 
         var orfao = Assert.Single(report.Orphans);
         Assert.Equal(Hash("bb"), orfao.Sha256);
@@ -37,7 +38,8 @@ public sealed class StorageCleanupTests
         var janitor = new FakeJanitor(Blob("cc", 70, Novo));
         var repo = new FakeRepo();
 
-        var report = (await new ScanStorage(janitor, repo, new FakeJobProgress()).HandleAsync(CancellationToken.None)).Value!;
+        var report = (await new ScanStorage(janitor, repo, new FakeJobProgress()).HandleAsync(CancellationToken.None))
+            .Value!;
 
         Assert.Single(report.Orphans);
         Assert.Equal(0, report.ReclaimableBytes);

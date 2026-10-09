@@ -1,7 +1,7 @@
-using TCMine.Contracts.Modpacks;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 
 namespace TCMine.Server.Infrastructure.Ingestion;

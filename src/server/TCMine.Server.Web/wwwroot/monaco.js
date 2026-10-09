@@ -12,60 +12,60 @@
 let carregamento = null;
 
 export function ensure(urls) {
-    // Guarda contra o erro que já aconteceu: uma string no lugar da lista.
-    // Sem isto, o for..of itera os CARACTERES e o erro que aparece é um 404
-    // de um script de uma letra só — que não sugere nada a quem lê.
-    if (!Array.isArray(urls))
-        throw new Error('ensure() espera uma lista de URLs; recebeu ' + typeof urls);
+  // Guarda contra o erro que já aconteceu: uma string no lugar da lista.
+  // Sem isto, o for..of itera os CARACTERES e o erro que aparece é um 404
+  // de um script de uma letra só — que não sugere nada a quem lê.
+  if (!Array.isArray(urls))
+    throw new Error('ensure() espera uma lista de URLs; recebeu ' + typeof urls);
 
-    carregamento ??= carregar(urls);
-    return carregamento;
+  carregamento ??= carregar(urls);
+  return carregamento;
 }
 
 async function carregar(urls) {
-    // Em série, e não em paralelo: o editor.main depende do loader ter definido
-    // o AMD, e o jsInterop do BlazorMonaco depende dos dois.
-    for (const url of urls)
-        await injetar(url);
+  // Em série, e não em paralelo: o editor.main depende do loader ter definido
+  // o AMD, e o jsInterop do BlazorMonaco depende dos dois.
+  for (const url of urls)
+    await injetar(url);
 
-    await esperarMonaco();
+  await esperarMonaco();
 }
 
 function injetar(url) {
-    return new Promise((resolve, reject) => {
-        if (document.querySelector(`script[data-monaco="${CSS.escape(url)}"]`)) {
-            resolve();
-            return;
-        }
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[data-monaco="${CSS.escape(url)}"]`)) {
+      resolve();
+      return;
+    }
 
-        const script = document.createElement('script');
-        script.src = url;
-        script.dataset.monaco = url;
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error(`Não foi possível carregar ${url}`));
-        document.head.appendChild(script);
-    });
+    const script = document.createElement('script');
+    script.src = url;
+    script.dataset.monaco = url;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error(`Não foi possível carregar ${url}`));
+    document.head.appendChild(script);
+  });
 }
 
 // O onload do editor.main resolve quando o ARQUIVO chegou, não quando o Monaco
 // terminou de se registrar. Criar o editor antes disso falha com "monaco is not
 // defined", e de forma intermitente — depende da máquina do admin.
 function esperarMonaco() {
-    const limite = Date.now() + 20000;
+  const limite = Date.now() + 20000;
 
-    return new Promise((resolve, reject) => {
-        (function tentar() {
-            if (window.monaco?.editor) {
-                resolve();
-                return;
-            }
+  return new Promise((resolve, reject) => {
+    (function tentar() {
+      if (window.monaco?.editor) {
+        resolve();
+        return;
+      }
 
-            if (Date.now() > limite) {
-                reject(new Error('O editor não ficou pronto a tempo.'));
-                return;
-            }
+      if (Date.now() > limite) {
+        reject(new Error('O editor não ficou pronto a tempo.'));
+        return;
+      }
 
-            setTimeout(tentar, 25);
-        })();
-    });
+      setTimeout(tentar, 25);
+    })();
+  });
 }

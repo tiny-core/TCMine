@@ -87,8 +87,9 @@ public sealed class ServerRulesTests
         var server = Servidor();
         var servers = new FakeServers(server);
 
-        var result = await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator))
-            .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, true, CancellationToken.None);
+        var result =
+            await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator))
+                .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, true, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal("Servidor não encontrado.", result.Error);
@@ -124,7 +125,8 @@ public sealed class ServerRulesTests
         var orchestrator = new FakeOrchestrator();
         var materializer = new FakeMaterializer();
 
-        var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress(), new FakeUserScope())
+        var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress(),
+                new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -142,7 +144,8 @@ public sealed class ServerRulesTests
         var servers = new FakeServers(server);
         var orchestrator = new FakeOrchestrator { Explode = true };
 
-        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress(), new FakeUserScope())
+        var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress(),
+                new FakeUserScope())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -158,10 +161,7 @@ public sealed class ServerRulesTests
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)
     {
-        var version = new ModpackVersion
-        {
-            ModpackId = _modpackId, Version = numero, LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = _modpackId, Version = numero, LoaderVersion = "21.1.100" };
 
         if (estado is ModpackVersionState.Ready)
         {
@@ -198,7 +198,9 @@ public sealed class ServerRulesTests
     {
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
-        public override Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
+
+        public override Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId,
+            CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<ModpackVersion>>([version]);
 
         public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
@@ -228,7 +230,6 @@ public sealed class ServerRulesTests
             Removido = true;
             return Task.CompletedTask;
         }
-
     }
 
     private sealed class FakeOrchestrator : IServerOrchestrator
@@ -284,6 +285,7 @@ public sealed class ServerRulesTests
 
         public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
             Task.FromResult<ServerRoleDto?>(ServerRoleDto.Owner);
+
         public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<ModpackRoleDto?>(ModpackRoleDto.Owner);
     }

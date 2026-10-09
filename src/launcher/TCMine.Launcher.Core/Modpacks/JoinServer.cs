@@ -60,13 +60,14 @@ public sealed class JoinServer(IServerConnection connection, UpdateInstance upda
                 instance.Manifest.ToModpack(),
                 target.Id,
                 instance,
-                backupWorld: true,
+                true,
                 progress is null
                     ? null
                     : new SyncProgress<InstallProgress>(p =>
                     {
                         if (p.Label is { } label)
-                            progress.Report(new GameLaunchProgress($"Atualizando para v{target.Version}: {label}", p.Fraction));
+                            progress.Report(new GameLaunchProgress($"Atualizando para v{target.Version}: {label}",
+                                p.Fraction));
                     }),
                 ct);
 
@@ -118,5 +119,6 @@ public enum JoinStep
 /// </summary>
 public sealed record JoinServerResult(GameLaunchResult Launch, InstalledInstance? Updated = null)
 {
-    public static JoinServerResult Failed(string? message) => new(GameLaunchResult.Failed(message ?? "Falha desconhecida."));
+    public static JoinServerResult Failed(string? message) =>
+        new(GameLaunchResult.Failed(message ?? "Falha desconhecida."));
 }

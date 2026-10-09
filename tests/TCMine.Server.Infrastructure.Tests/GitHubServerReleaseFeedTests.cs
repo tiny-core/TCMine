@@ -3,7 +3,6 @@ using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Shouldly;
 using TCMine.Server.Infrastructure.Updates;
 
 namespace TCMine.Server.Infrastructure.Tests;
@@ -14,18 +13,18 @@ namespace TCMine.Server.Infrastructure.Tests;
 /// </summary>
 public sealed class GitHubServerReleaseFeedTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
-
     private const string Releases = """
-        [
-          {"tag_name":"launcher-v9.0.0","html_url":"https://github.com/t/r/releases/l9","draft":false,"prerelease":false},
-          {"tag_name":"server-v0.6.0-beta.1","html_url":"https://github.com/t/r/releases/b","draft":false,"prerelease":true},
-          {"tag_name":"server-v0.7.0","html_url":"https://github.com/t/r/releases/d","draft":true,"prerelease":false},
-          {"tag_name":"server-v0.5.0","html_url":"https://github.com/t/r/releases/5","draft":false,"prerelease":false},
-          {"tag_name":"server-v0.10.0","html_url":"https://github.com/t/r/releases/10","draft":false,"prerelease":false},
-          {"tag_name":"server-v0.9.0","html_url":"https://github.com/t/r/releases/9","draft":false,"prerelease":false}
-        ]
-        """;
+                                    [
+                                      {"tag_name":"launcher-v9.0.0","html_url":"https://github.com/t/r/releases/l9","draft":false,"prerelease":false},
+                                      {"tag_name":"server-v0.6.0-beta.1","html_url":"https://github.com/t/r/releases/b","draft":false,"prerelease":true},
+                                      {"tag_name":"server-v0.7.0","html_url":"https://github.com/t/r/releases/d","draft":true,"prerelease":false},
+                                      {"tag_name":"server-v0.5.0","html_url":"https://github.com/t/r/releases/5","draft":false,"prerelease":false},
+                                      {"tag_name":"server-v0.10.0","html_url":"https://github.com/t/r/releases/10","draft":false,"prerelease":false},
+                                      {"tag_name":"server-v0.9.0","html_url":"https://github.com/t/r/releases/9","draft":false,"prerelease":false}
+                                    ]
+                                    """;
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Escolhe_a_estavel_mais_nova_do_servidor()

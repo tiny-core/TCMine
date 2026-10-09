@@ -4,7 +4,10 @@ using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Cloud;
 
-public sealed class ListCloudRules(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudRules(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
     public async Task<Result<IReadOnlyList<CloudItemRule>>> HandleAsync(Guid vaultId, CancellationToken ct)
     {
@@ -19,9 +22,13 @@ public sealed class ListCloudRules(ICloudAdminRepository repo, ICloudGovernanceR
 ///     Cria uma regra de item e aumenta a versão da política: os servidores
 ///     buscam a política nova no próximo heartbeat.
 /// </summary>
-public sealed class AddCloudRule(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class AddCloudRule(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
-    public async Task<Result> HandleAsync(Guid vaultId, CloudRuleScope ruleScope, string pattern, CloudRuleAction action,
+    public async Task<Result> HandleAsync(Guid vaultId, CloudRuleScope ruleScope, string pattern,
+        CloudRuleAction action,
         string? note, CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
@@ -30,28 +37,38 @@ public sealed class AddCloudRule(ICloudAdminRepository repo, ICloudGovernanceRep
 
         var normalized = CloudItemRule.NormalizePattern(ruleScope, pattern);
         if (normalized is null)
+        {
             return Result.Fail(ruleScope == CloudRuleScope.Mod
                 ? "Mod: só o id do mod (ex.: refinedstorage)."
                 : "Use mod:nome (ex.: minecraft:shulker_box ou c:shulker_boxes para tag).");
+        }
 
-        var added = await governance.AddRuleAsync(new CloudItemRule
-        {
-            VaultId = vaultId, Scope = ruleScope, Pattern = normalized, Action = action,
-            Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()[..Math.Min(note.Trim().Length, 256)],
-            CreatedByUserId = scope.UserId
-        }, ct);
+        var added = await governance.AddRuleAsync(
+            new CloudItemRule
+            {
+                VaultId = vaultId,
+                Scope = ruleScope,
+                Pattern = normalized,
+                Action = action,
+                Note = string.IsNullOrWhiteSpace(note) ? null : note.Trim()[..Math.Min(note.Trim().Length, 256)],
+                CreatedByUserId = scope.UserId
+            }, ct);
         if (!added)
             return Result.Fail("Já existe uma regra para esse alvo; apague a antiga antes.");
 
         var vault = access.Value!;
         vault.BumpPolicyVersion();
         await repo.UpdateVaultAsync(vault, ct);
-        await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "rule.add", $"{action} {ruleScope} {normalized}", ct);
+        await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "rule.add", $"{action} {ruleScope} {normalized}",
+            ct);
         return Result.Success();
     }
 }
 
-public sealed class RemoveCloudRule(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class RemoveCloudRule(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
     public async Task<Result> HandleAsync(Guid vaultId, Guid ruleId, CancellationToken ct)
     {
@@ -73,9 +90,13 @@ public sealed class RemoveCloudRule(ICloudAdminRepository repo, ICloudGovernance
     }
 }
 
-public sealed class ListCloudSuspects(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudSuspects(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudSuspectItem>>> HandleAsync(Guid vaultId, bool pendingOnly, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<CloudSuspectItem>>> HandleAsync(Guid vaultId, bool pendingOnly,
+        CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded

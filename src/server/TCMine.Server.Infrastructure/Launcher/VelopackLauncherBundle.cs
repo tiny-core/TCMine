@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,7 +32,7 @@ public sealed partial class VelopackLauncherBundle(
         var versionFile = Path.Combine(o.BundlePath, "VERSION");
 
         if (!o.PublishBundled || string.IsNullOrWhiteSpace(o.RootPath)
-            || !Directory.Exists(app) || !File.Exists(versionFile))
+                              || !Directory.Exists(app) || !File.Exists(versionFile))
             return LauncherBundleOutcome.NoBundle;
 
         var version = (await File.ReadAllTextAsync(versionFile, ct)).Trim();
@@ -95,7 +96,7 @@ public sealed partial class VelopackLauncherBundle(
         {
             try
             {
-                Directory.Delete(staging, recursive: true);
+                Directory.Delete(staging, true);
             }
             catch (IOException)
             {
@@ -104,7 +105,8 @@ public sealed partial class VelopackLauncherBundle(
         }
     }
 
-    private static async Task RunVpkAsync(string bundlePath, string version, string packDir, string outputDir, CancellationToken ct)
+    private static async Task RunVpkAsync(string bundlePath, string version, string packDir, string outputDir,
+        CancellationToken ct)
     {
         // O vpk é uma ferramenta .NET instalada com --tool-path. O executável
         // dela escolhe sozinho o build do runtime certo (o pacote traz um por
@@ -116,23 +118,32 @@ public sealed partial class VelopackLauncherBundle(
 
         var psi = new ProcessStartInfo(vpk)
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false
+            RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false
         };
 
         var args = new List<string>
         {
-            "[win]", "-x", "--skip-updates", "pack",
-            "--packId", "TCMine.Launcher",
-            "--packVersion", version,
-            "--packDir", packDir,
-            "--mainExe", "TCMine.Launcher.App.exe",
-            "--packTitle", "TCMine Launcher",
-            "--channel", Channel,
-            "--runtime", "win-x64",
+            "[win]",
+            "-x",
+            "--skip-updates",
+            "pack",
+            "--packId",
+            "TCMine.Launcher",
+            "--packVersion",
+            version,
+            "--packDir",
+            packDir,
+            "--mainExe",
+            "TCMine.Launcher.App.exe",
+            "--packTitle",
+            "TCMine Launcher",
+            "--channel",
+            Channel,
+            "--runtime",
+            "win-x64",
             "--noPortable",
-            "--outputDir", outputDir
+            "--outputDir",
+            outputDir
         };
 
         // icon.ico viaja dentro do packDir (csproj do launcher o copia pro
@@ -153,9 +164,10 @@ public sealed partial class VelopackLauncherBundle(
 
         // .../shared/Microsoft.NETCore.App/{versão}/ → três níveis acima é a raiz do .NET.
         psi.Environment["DOTNET_ROOT"] = Path.GetFullPath(
-            Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
+            Path.Combine(RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
 
-        using var process = Process.Start(psi) ?? throw new InvalidOperationException("Não foi possível iniciar o vpk.");
+        using var process =
+            Process.Start(psi) ?? throw new InvalidOperationException("Não foi possível iniciar o vpk.");
 
         // Os dois pipes em PARALELO: drenar um de cada vez enche o buffer do
         // outro e pendura o processo sem erro nenhum (CLAUDE.md §7.1, NeoForge).
@@ -171,15 +183,13 @@ public sealed partial class VelopackLauncherBundle(
         }
         catch (OperationCanceledException)
         {
-            process.Kill(entireProcessTree: true);
+            process.Kill(true);
             throw;
         }
 
         var output = await stdout + await stderr;
         if (process.ExitCode != 0)
-        {
             throw new InvalidOperationException($"vpk saiu com {process.ExitCode}: {VpkErrorSummary(output)}");
-        }
     }
 
     /// <summary>

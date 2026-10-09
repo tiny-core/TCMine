@@ -137,10 +137,10 @@ public sealed class UpstreamMergeTests
     public void Config_removido_pelo_autor_sai_quando_o_admin_nao_tinha_mexido()
     {
         var plano = UpstreamMerge.Plan(
-            Base(mods: [], overrides: [("config/a.toml", "sha-original")]),
+            Base([], [("config/a.toml", "sha-original")]),
             Deles(),
             [Override("config/a.toml", "sha-original")],
-            theirOverrides: new Dictionary<string, string>());
+            new Dictionary<string, string>());
 
         Assert.Equal(["config/a.toml"], plano.Overrides.Removed);
         Assert.Empty(plano.Overrides.Kept);
@@ -150,10 +150,10 @@ public sealed class UpstreamMergeTests
     public void Config_removido_pelo_autor_fica_quando_o_admin_editou()
     {
         var plano = UpstreamMerge.Plan(
-            Base(mods: [], overrides: [("config/a.toml", "sha-original")]),
+            Base([], [("config/a.toml", "sha-original")]),
             Deles(),
             [Override("config/a.toml", "sha-editado")],
-            theirOverrides: new Dictionary<string, string>());
+            new Dictionary<string, string>());
 
         Assert.Empty(plano.Overrides.Removed);
         Assert.Equal(["config/a.toml"], plano.Overrides.Kept);
@@ -163,8 +163,7 @@ public sealed class UpstreamMergeTests
 
     private static UpstreamSnapshot Base(params (string Project, string File)[] mods) => new()
     {
-        Mods = mods.ToDictionary(m => m.Project, m => m.File),
-        Overrides = new Dictionary<string, string>()
+        Mods = mods.ToDictionary(m => m.Project, m => m.File), Overrides = new Dictionary<string, string>()
     };
 
     private static UpstreamSnapshot Base(

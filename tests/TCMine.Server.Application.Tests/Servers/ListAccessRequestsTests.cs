@@ -24,7 +24,10 @@ public sealed class ListAccessRequestsTests
 
         var lista = await new ListAccessRequests(
                 new FakeServers(meuServidor, alheio),
-                new FakeMemberships(new Membership { UserId = admin, GameServerId = meuServidor.Id, Role = ServerRole.Admin }),
+                new FakeMemberships(new Membership
+                {
+                    UserId = admin, GameServerId = meuServidor.Id, Role = ServerRole.Admin
+                }),
                 new FakeRequests(meuPedido, pedidoAlheio),
                 new FakeUserScope(null) { UserId = admin })
             .HandleAsync(TestContext.Current.CancellationToken);
@@ -43,7 +46,10 @@ public sealed class ListAccessRequestsTests
 
         var lista = await new ListAccessRequests(
                 new FakeServers(servidor),
-                new FakeMemberships(new Membership { UserId = moderador, GameServerId = servidor.Id, Role = ServerRole.Moderator }),
+                new FakeMemberships(new Membership
+                {
+                    UserId = moderador, GameServerId = servidor.Id, Role = ServerRole.Moderator
+                }),
                 new FakeRequests(Pedido(servidor.Id)),
                 new FakeUserScope(null) { UserId = moderador })
             .HandleAsync(TestContext.Current.CancellationToken);
@@ -93,7 +99,8 @@ public sealed class ListAccessRequestsTests
             [
                 .. seed
                     .Where(r => gameServerIds.Contains(r.GameServerId))
-                    .Select(r => new AccessRequestView(r.Id, r.UserId, "jogador", r.GameServerId, "servidor", r.CreatedAt))
+                    .Select(r =>
+                        new AccessRequestView(r.Id, r.UserId, "jogador", r.GameServerId, "servidor", r.CreatedAt))
             ]);
     }
 }

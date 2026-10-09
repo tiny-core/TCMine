@@ -1,11 +1,10 @@
 using TCMine.Contracts.Hubs;
-using TCMine.Contracts.Servers;
 using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Domain.Modpacks;
-
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -90,7 +89,8 @@ public sealed class PublishModpackVersionTests
         public ModpackVersion? Version { get; init; }
         public ModpackVersion? Saved { get; private set; }
 
-        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) => Task.FromResult(Version);
+        public override Task<ModpackVersion?> GetVersionAsync(Guid versionId, CancellationToken ct) =>
+            Task.FromResult(Version);
 
         public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
         {
@@ -106,11 +106,12 @@ public sealed class PublishModpackVersionTests
                 Slug = "test", Name = "Test", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
             });
         }
-
     }
 
     private sealed class FakeHubNotifier : IServerHubNotifier
     {
+        public int Calls { get; private set; }
+
         public Task NotifyConsoleLineAsync(Guid serverId, ConsoleLineDto line, CancellationToken ct) =>
             Task.CompletedTask;
 
@@ -120,8 +121,6 @@ public sealed class PublishModpackVersionTests
         public Task NotifyRoleChangedAsync(
             Guid serverId, Guid userId, ServerRoleDto? role, CancellationToken ct) =>
             Task.CompletedTask;
-
-        public int Calls { get; private set; }
 
         public Task NotifyModpackVersionPublishedAsync(Guid modpackId, Guid versionId, CancellationToken ct)
         {

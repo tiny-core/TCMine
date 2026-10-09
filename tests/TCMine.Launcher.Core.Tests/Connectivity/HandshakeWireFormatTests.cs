@@ -1,6 +1,5 @@
 using System.Text.Json;
 using TCMine.Contracts;
-using TCMine.Contracts.Handshake;
 using TCMine.Contracts.Serialization;
 
 namespace TCMine.Launcher.Core.Tests.Connectivity;

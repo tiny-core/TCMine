@@ -1,5 +1,4 @@
 @using TCMine.Server.Domain.Cloud
-
 <MudGrid Spacing="3" Style="max-width:900px;">
     <MudItem xs="12" sm="8">
         <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" MaxLength="64"/>
@@ -9,21 +8,26 @@
     </MudItem>
     <MudItem xs="12">
         <MudSelect T="CloudPolicyMode" @bind-Value="_mode" Label="Política de itens" Variant="Variant.Outlined">
-            <MudSelectItem Value="CloudPolicyMode.Blocklist">Lista negra — tudo entra, menos o que as regras bloqueiam</MudSelectItem>
-            <MudSelectItem Value="CloudPolicyMode.Allowlist">Lista branca — nada entra, menos o que as regras permitem</MudSelectItem>
+            <MudSelectItem Value="CloudPolicyMode.Blocklist">Lista negra — tudo entra, menos o que as regras bloqueiam
+            </MudSelectItem>
+            <MudSelectItem Value="CloudPolicyMode.Allowlist">Lista branca — nada entra, menos o que as regras permitem
+            </MudSelectItem>
         </MudSelect>
         <MudText Typo="Typo.caption" Class="mud-text-secondary">
             As regras por item, tag e mod ficam na aba Regras. Na lista branca, só entra o que tiver regra "Permitir".
         </MudText>
     </MudItem>
     <MudItem xs="12" sm="6">
-        <MudNumericField @bind-Value="_leaseTtl" Label="Minutos sem sinal até o lease vencer" Variant="Variant.Outlined" Min="1" Max="1440"/>
+        <MudNumericField @bind-Value="_leaseTtl" Label="Minutos sem sinal até o lease vencer" Variant="Variant.Outlined"
+                         Min="1" Max="1440"/>
     </MudItem>
     <MudItem xs="12" sm="6">
-        <MudNumericField @bind-Value="_maxItemBytes" Label="Tamanho máximo de um item (bytes)" Variant="Variant.Outlined" Min="512" Max="1048576"/>
+        <MudNumericField @bind-Value="_maxItemBytes" Label="Tamanho máximo de um item (bytes)"
+                         Variant="Variant.Outlined" Min="512" Max="1048576"/>
     </MudItem>
     <MudItem xs="12" sm="4">
-        <MudNumericField @bind-Value="_maxChannels" Label="Canais por jogador" Variant="Variant.Outlined" Min="1" Max="100"/>
+        <MudNumericField @bind-Value="_maxChannels" Label="Canais por jogador" Variant="Variant.Outlined" Min="1"
+                         Max="100"/>
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudNumericField @bind-Value="_maxTypes" Label="Tipos de item por canal" Variant="Variant.Outlined" Min="1"/>
@@ -32,7 +36,8 @@
         <MudNumericField @bind-Value="_maxTotal" Label="Itens por canal" Variant="Variant.Outlined" Min="1"/>
     </MudItem>
     <MudItem xs="12" Class="d-flex align-center gap-3">
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isBusy">Salvar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isBusy">Salvar
+        </MudButton>
         @if (_isBusy)
         {
             <MudProgressCircular Size="Size.Small" Indeterminate="true"/>

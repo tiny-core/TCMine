@@ -40,7 +40,9 @@ public sealed class FakeGameProcess : IGameProcess
         Terminar();
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+    }
 
     public void Escrever(string line) => _linhas.Writer.TryWrite(line);
 

@@ -48,7 +48,8 @@ public class ServerPairingTests
         // Embutido não é confiável por ser embutido: HTTP puro levaria o
         // id_token da Microsoft em claro, venha o endereço de onde vier.
         var handshake = new HandshakeFalso(Ok());
-        var pairing = new ServerPairing(handshake, new ConfigFalso(null), new EnderecoEmbutido("http://servidor.exemplo"));
+        var pairing = new ServerPairing(handshake, new ConfigFalso(null),
+            new EnderecoEmbutido("http://servidor.exemplo"));
 
         var estado = await pairing.ResumeAsync(Ct);
 
@@ -61,7 +62,8 @@ public class ServerPairingTests
     {
         var handshake = new HandshakeFalso(Ok());
         var pairing = new ServerPairing(
-            handshake, new ConfigFalso(Config("https://outro.exemplo/")), new EnderecoEmbutido("https://servidor.exemplo"));
+            handshake, new ConfigFalso(Config("https://outro.exemplo/")),
+            new EnderecoEmbutido("https://servidor.exemplo"));
 
         await pairing.ResumeAsync(Ct);
 
@@ -189,7 +191,7 @@ public class ServerPairingTests
         // "AzureClientId ausente" — e acharia que o launcher está quebrado.
         var handshake = new HandshakeFalso(new HandshakeResult(
             HandshakeOutcome.Ok,
-            Resposta(clientId: ""),
+            Resposta(""),
             null));
 
         var config = new ConfigFalso(null);
@@ -264,7 +266,7 @@ public class ServerPairingTests
         var config = new ConfigFalso(saved);
 
         var pairing = new ServerPairing(
-            new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Ok, Resposta(clientId: ""), null)),
+            new HandshakeFalso(new HandshakeResult(HandshakeOutcome.Ok, Resposta(""), null)),
             config);
 
         var estado = await pairing.ResumeAsync(Ct);

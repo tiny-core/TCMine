@@ -15,8 +15,8 @@ namespace TCMine.Server.Web.Components.Features.Account;
 public partial class UserMembershipsDialog : ComponentBase
 {
     private bool _loading = true;
-    private List<(string ServerName, string Role)> _servers = [];
     private List<(string ModpackName, string Role)> _modpacks = [];
+    private List<(string ServerName, string Role)> _servers = [];
 
     [CascadingParameter] private IMudDialogInstance Dialog { get; set; } = default!;
 

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace TCMine.UI.Shared.Formatting;
 
 /// <summary>
@@ -22,7 +24,7 @@ public static class RelativeTime
             { TotalMinutes: < 60 } => $"há {(int)delta.TotalMinutes} min",
             { TotalHours: < 24 } => $"há {(int)delta.TotalHours} h",
             { TotalDays: < 7 } => $"há {(int)delta.TotalDays} dia(s)",
-            _ => moment.ToLocalTime().ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)
+            _ => moment.ToLocalTime().ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
         };
     }
 }

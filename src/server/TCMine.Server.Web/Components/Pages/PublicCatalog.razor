@@ -1,7 +1,7 @@
 @page "/"
+@using TCMine.Contracts.Servers
 @attribute [AllowAnonymous]
 @layout EmptyLayout
-@using TCMine.Contracts.Servers
 
 <PageTitle>TCMine — Modpacks e Servidores</PageTitle>
 
@@ -51,9 +51,18 @@
                 @if (!_isLoading)
                 {
                     <dl class="tc-facts">
-                        <div><dt>@_catalog.Modpacks.Count</dt><dd>@(_catalog.Modpacks.Count == 1 ? "modpack" : "modpacks")</dd></div>
-                        <div><dt>@OnlineServerCount</dt><dd>@(OnlineServerCount == 1 ? "servidor no ar" : "servidores no ar")</dd></div>
-                        <div><dt>@TotalOnline</dt><dd>jogando agora</dd></div>
+                        <div>
+                            <dt>@_catalog.Modpacks.Count</dt>
+                            <dd>@(_catalog.Modpacks.Count == 1 ? "modpack" : "modpacks")</dd>
+                        </div>
+                        <div>
+                            <dt>@OnlineServerCount</dt>
+                            <dd>@(OnlineServerCount == 1 ? "servidor no ar" : "servidores no ar")</dd>
+                        </div>
+                        <div>
+                            <dt>@TotalOnline</dt>
+                            <dd>jogando agora</dd>
+                        </div>
                     </dl>
                 }
             </div>
@@ -139,7 +148,8 @@
                                 }
                                 @if (ServersOf(modpack.Name) is > 0 and var count)
                                 {
-                                    <span class="tc-chip tc-chip-on">@count @(count == 1 ? "servidor" : "servidores")</span>
+                                    <span
+                                        class="tc-chip tc-chip-on">@count @(count == 1 ? "servidor" : "servidores")</span>
                                 }
                             </div>
                         </article>
@@ -169,7 +179,8 @@
 
                         <article class="tc-card tc-server tc-fade-in">
                             <div class="tc-server-head">
-                                <span class="tc-crystal @(online ? "tc-crystal-on" : "tc-crystal-off")" aria-hidden="true"></span>
+                                <span class="tc-crystal @(online ? "tc-crystal-on" : "tc-crystal-off")"
+                                      aria-hidden="true"></span>
                                 <h3>@server.Name</h3>
                                 <span class="tc-chip @(online ? "tc-chip-on" : "")">@StatusLabel(server.Status)</span>
                             </div>

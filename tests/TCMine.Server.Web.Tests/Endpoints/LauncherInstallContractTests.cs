@@ -1,12 +1,11 @@
-using System.Security.Cryptography;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Core.Modpacks;
-using TCMine.Launcher.Core.Sync;
 using TCMine.Launcher.Infrastructure;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Modpacks;
@@ -51,7 +50,7 @@ public sealed class LauncherInstallContractTests : IDisposable
 
         await using var launcher = MontarLauncher();
 
-        var pairing = new TCMine.Contracts.LauncherConfig
+        var pairing = new LauncherConfig
         {
             Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
@@ -67,7 +66,7 @@ public sealed class LauncherInstallContractTests : IDisposable
         // O caminho completo: manifesto pelo hub, bytes por HTTP, hash conferido,
         // arquivos materializados.
         var result = await launcher.GetRequiredService<InstallModpackVersion>()
-            .InstallLatestAsync(server.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
+            .InstallLatestAsync(server.Address, pack, null, ReleaseChannel.Release, null, Ct);
 
         result.Succeeded.ShouldBeTrue(result.Error);
 
@@ -78,7 +77,7 @@ public sealed class LauncherInstallContractTests : IDisposable
 
         // E o manifesto local ficou gravado: é ele, e não uma varredura da pasta,
         // que o próximo update vai usar para saber o que pode apagar.
-        result.Instance!.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], ignoreOrder: true);
+        result.Instance!.ManagedFiles.Keys.ShouldBe(["mods/jei.jar", "config/jei.toml"], true);
         result.Instance.ManagedFiles["mods/jei.jar"].ShouldBe(sha);
     }
 
@@ -98,7 +97,7 @@ public sealed class LauncherInstallContractTests : IDisposable
 
         await using var launcher = MontarLauncher();
 
-        var pairing = new TCMine.Contracts.LauncherConfig
+        var pairing = new LauncherConfig
         {
             Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
@@ -109,7 +108,7 @@ public sealed class LauncherInstallContractTests : IDisposable
         var pack = catalogo.Entries.Single(e => e.Modpack.Id == modpackId).Modpack;
 
         var installer = launcher.GetRequiredService<InstallModpackVersion>();
-        var primeira = await installer.InstallLatestAsync(server.Address, pack, target: null, ReleaseChannel.Release, null, Ct);
+        var primeira = await installer.InstallLatestAsync(server.Address, pack, null, ReleaseChannel.Release, null, Ct);
 
         var instance = launcher.GetRequiredService<IInstanceStore>().PathFor(primeira.Key!.Value);
 
@@ -122,7 +121,8 @@ public sealed class LauncherInstallContractTests : IDisposable
         // A MESMA instância, que é o que "atualizar" passou a significar. Com
         // alvo nulo o instalador criaria uma instalação nova ao lado, e o mundo
         // ficaria intacto na antiga — o teste passaria a verificar o nada.
-        var segunda = await installer.InstallLatestAsync(server.Address, pack, primeira.Key, ReleaseChannel.Release, null, Ct);
+        var segunda =
+            await installer.InstallLatestAsync(server.Address, pack, primeira.Key, ReleaseChannel.Release, null, Ct);
 
         segunda.Succeeded.ShouldBeTrue(segunda.Error);
         File.Exists(mundo).ShouldBeTrue("o mundo do jogador não é gerenciado pelo launcher");
@@ -167,10 +167,7 @@ public sealed class LauncherInstallContractTests : IDisposable
             Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         version.UpsertFile(new ModpackFile
         {

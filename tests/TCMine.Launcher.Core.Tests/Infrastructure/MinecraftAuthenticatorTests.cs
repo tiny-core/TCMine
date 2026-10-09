@@ -103,17 +103,17 @@ public class MinecraftAuthenticatorTests
     private static FakeHttpHandler CadeiaFeliz() =>
         new FakeHttpHandler()
             .Responde(XboxLive, HttpStatusCode.OK, RespostaDoXboxLive())
-            .Responde(Xsts, HttpStatusCode.OK, new
-            {
-                Token = "token-do-xsts-final",
-                DisplayClaims = new { xui = new[] { new { uhs = "hash-do-xsts" } } }
-            })
+            .Responde(Xsts, HttpStatusCode.OK,
+                new
+                {
+                    Token = "token-do-xsts-final",
+                    DisplayClaims = new { xui = new[] { new { uhs = "hash-do-xsts" } } }
+                })
             .Responde(Minecraft, HttpStatusCode.OK, new { access_token = "token-do-minecraft" });
 
     private static object RespostaDoXboxLive() => new
     {
-        Token = "token-do-xbox",
-        DisplayClaims = new { xui = new[] { new { uhs = "hash-do-xbox-live" } } }
+        Token = "token-do-xbox", DisplayClaims = new { xui = new[] { new { uhs = "hash-do-xbox-live" } } }
     };
 
     private static MinecraftAuthenticator Build(FakeHttpHandler handler, AuthResult daMicrosoft) =>

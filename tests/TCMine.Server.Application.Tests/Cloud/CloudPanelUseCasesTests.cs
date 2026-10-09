@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Tests.Fakes;
@@ -25,7 +24,8 @@ public sealed class CloudPanelUseCasesTests
         repo.Vaults.Add(new CloudVault { Name = "Alheia", OwnerId = Guid.CreateVersion7() });
 
         (await new ListCloudVaults(repo, eu).HandleAsync(Ct)).Select(v => v.Name).ShouldBe(["Minha"]);
-        (await new ListCloudVaults(repo, new FakeUserScope { IsInstanceAdmin = true }).HandleAsync(Ct)).Count.ShouldBe(2);
+        (await new ListCloudVaults(repo, new FakeUserScope { IsInstanceAdmin = true }).HandleAsync(Ct)).Count
+            .ShouldBe(2);
     }
 
     [Fact]
@@ -79,7 +79,8 @@ public sealed class CloudPanelUseCasesTests
         var nuvem = new CloudVault { Name = "N", OwnerId = Guid.CreateVersion7() };
         repo.Vaults.Add(nuvem);
 
-        var result = await SetVault(repo, new FakeCloudCredentialRepository(), servidor, eu).HandleAsync(servidor.Id, nuvem.Id, Ct);
+        var result = await SetVault(repo, new FakeCloudCredentialRepository(), servidor, eu)
+            .HandleAsync(servidor.Id, nuvem.Id, Ct);
 
         result.Succeeded.ShouldBeFalse();
         servidor.CloudVaultId.ShouldBeNull();
@@ -96,7 +97,9 @@ public sealed class CloudPanelUseCasesTests
         servidor.AttachToCloudVault(nuvem);
         var chaves = new FakeCloudCredentialRepository();
         chaves.Credentials.Add(new CloudServerCredential
-            { GameServerId = servidor.Id, VaultId = nuvem.Id, KeyPrefix = "abcdefghijkm", KeyHash = "h" });
+        {
+            GameServerId = servidor.Id, VaultId = nuvem.Id, KeyPrefix = "abcdefghijkm", KeyHash = "h"
+        });
 
         var governanca = new FakeCloudGovernance();
         var setVault = new SetServerCloudVault(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(),
@@ -130,11 +133,13 @@ public sealed class CloudPanelUseCasesTests
         var eu = new FakeUserScope();
         var minha = new CloudVault { Name = "Minha", OwnerId = eu.OwnerId };
         repo.Vaults.Add(minha);
-        var canalAlheio = new CloudChannel { VaultId = Guid.CreateVersion7(), PlayerUuid = new string('a', 32), Name = "X" };
+        var canalAlheio =
+            new CloudChannel { VaultId = Guid.CreateVersion7(), PlayerUuid = new string('a', 32), Name = "X" };
         canalAlheio.Freeze("teste");
         repo.Channels.Add(canalAlheio);
 
-        (await new GetCloudChannelBalances(repo, eu).HandleAsync(minha.Id, canalAlheio.Id, Ct)).Succeeded.ShouldBeFalse();
+        (await new GetCloudChannelBalances(repo, eu).HandleAsync(minha.Id, canalAlheio.Id, Ct)).Succeeded
+            .ShouldBeFalse();
         (await new UnfreezeCloudChannel(repo, new FakeCloudGovernance(), eu)
             .HandleAsync(minha.Id, canalAlheio.Id, Ct)).Succeeded.ShouldBeFalse();
         canalAlheio.IsFrozen.ShouldBeTrue();
@@ -147,8 +152,12 @@ public sealed class CloudPanelUseCasesTests
 
     private static GameServer Servidor(Guid dono) => new()
     {
-        Name = "S", ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),
-        ConnectAddress = "localhost", RconSecret = "segredo", OwnerId = dono
+        Name = "S",
+        ModpackId = Guid.CreateVersion7(),
+        ModpackVersionId = Guid.CreateVersion7(),
+        ConnectAddress = "localhost",
+        RconSecret = "segredo",
+        OwnerId = dono
     };
 
     private sealed class UmServidor(GameServer servidor) : FakeServerRepositoryBase

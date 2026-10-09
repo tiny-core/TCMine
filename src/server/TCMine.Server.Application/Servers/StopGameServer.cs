@@ -12,14 +12,13 @@ public sealed partial class StopGameServer(
     ICurrentUserScope scope,
     ILogger<StopGameServer> logger)
 {
+    // Timeout generoso: o stop-server.sh do itzg salva o mundo antes de sair.
+    // Matar antes disso corrompe chunks — por isso 60s, não 10.
+    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(60);
     private readonly ILogger<StopGameServer> _logger = logger;
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao parar o servidor {ServerId}.")]
     private partial void LogFalha(Exception ex, Guid serverId);
-
-    // Timeout generoso: o stop-server.sh do itzg salva o mundo antes de sair.
-    // Matar antes disso corrompe chunks — por isso 60s, não 10.
-    private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(60);
 
     public async Task<Result> HandleAsync(Guid serverId, CancellationToken ct, Guid jobId = default)
     {

@@ -18,7 +18,8 @@ public sealed class CloudCredentialRepository(IDbContextFactory<TcMineDbContext>
         return await db.CloudServerCredentials.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<CloudServerCredential>> ListActiveByServerAsync(Guid gameServerId, CancellationToken ct)
+    public async Task<IReadOnlyList<CloudServerCredential>> ListActiveByServerAsync(Guid gameServerId,
+        CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.CloudServerCredentials.AsNoTracking()

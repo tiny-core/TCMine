@@ -15,6 +15,8 @@ namespace TCMine.Server.Application.Tests.Modpacks;
 /// </summary>
 public sealed class AddManualFileTests
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     [Theory]
     [InlineData("../fora.jar")]
     [InlineData("mods/../../fora.jar")]
@@ -94,8 +96,6 @@ public sealed class AddManualFileTests
 
         result.Succeeded.ShouldBeFalse();
     }
-
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     private static AddManualFileCommand Comando(Guid versionId, string path) =>
         new(versionId, path, new MemoryStream(Encoding.UTF8.GetBytes("conteudo")),

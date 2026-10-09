@@ -9,7 +9,8 @@ public partial class PendingModsPanel : ComponentBase
     [Parameter] [EditorRequired] public IReadOnlyList<PendingMod> Pending { get; set; } = [];
 
     /// <summary>Só faz sentido enviar arquivo enquanto a versão é rascunho.</summary>
-    [Parameter] public bool CanUpload { get; set; }
+    [Parameter]
+    public bool CanUpload { get; set; }
 
     [Parameter] public bool IsBusy { get; set; }
 
@@ -21,7 +22,8 @@ public partial class PendingModsPanel : ComponentBase
     ///     acrescentar arquivo a uma versão publicada é o que a imutabilidade
     ///     impede.
     /// </summary>
-    [Parameter] public bool CanUseServerPack { get; set; }
+    [Parameter]
+    public bool CanUseServerPack { get; set; }
 
     [Parameter] public bool IsCompleting { get; set; }
     [Parameter] public EventCallback OnCompleteFromServerPack { get; set; }

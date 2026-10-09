@@ -52,18 +52,12 @@ public sealed class MetricsHistory
         if (!_byServer.TryGetValue(serverId, out var series))
             return [];
 
-        lock (_gate)
-        {
-            return [.. series];
-        }
+        lock (_gate) return [.. series];
     }
 
     public IReadOnlyList<HostPoint> Host()
     {
-        lock (_gate)
-        {
-            return [.. _host];
-        }
+        lock (_gate) return [.. _host];
     }
 
     /// <summary>Some com a série de um servidor apagado — senão vaza para sempre.</summary>

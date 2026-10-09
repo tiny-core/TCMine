@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.Logging.Abstractions;
-using Shouldly;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
@@ -58,7 +57,10 @@ public sealed class PinnedReleaseResolutionTests
     {
         private readonly Dictionary<string, string> _porCaminho = new(StringComparer.Ordinal);
 
-        public string this[string path] { set => _porCaminho[path] = value; }
+        public string this[string path]
+        {
+            set => _porCaminho[path] = value;
+        }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
             Task.FromResult(_porCaminho.TryGetValue(request.RequestUri!.AbsolutePath, out var json)

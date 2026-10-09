@@ -41,9 +41,9 @@ public sealed class GameSession
     /// </summary>
     public int? LastExitCode { get; private set; }
 
-    public event Action? Changed;
-
     public IReadOnlyList<string> Log => [.. _log];
+
+    public event Action? Changed;
 
     /// <summary>
     ///     Toma conta do processo e começa a bombear o log.
@@ -75,10 +75,7 @@ public sealed class GameSession
     /// <summary>Mata o jogo. Para quando ele pendura e não há mais saída.</summary>
     public void Kill()
     {
-        lock (_porta)
-        {
-            _processo?.Kill();
-        }
+        lock (_porta) _processo?.Kill();
     }
 
     private async Task PumpAsync(IGameProcess process)

@@ -53,7 +53,8 @@ public sealed partial class ModrinthModResolver(
                     ModrinthJsonContext.Default.ModrinthVersion, ct);
 
                 if (pinned is null)
-                    return new ModResolution.NotFound($"A versão {fileId} de '{request.ProjectId}' não existe no Modrinth.");
+                    return new ModResolution.NotFound(
+                        $"A versão {fileId} de '{request.ProjectId}' não existe no Modrinth.");
 
                 version = pinned;
             }

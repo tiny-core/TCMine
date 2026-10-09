@@ -1,4 +1,3 @@
-using Shouldly;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Infrastructure.Instances;
 
@@ -38,10 +37,8 @@ public sealed class ItzgEnvTests
     }
 
     [Fact]
-    public void Minecraft_em_branco_e_recusado_em_vez_de_virar_latest()
-    {
+    public void Minecraft_em_branco_e_recusado_em_vez_de_virar_latest() =>
         Should.Throw<InvalidOperationException>(() => ItzgEnv.GameVariables("", ModLoader.Forge, "47.2.0"));
-    }
 
     [Fact]
     public void Impressao_digital_muda_com_a_versao_e_ignora_a_ordem()

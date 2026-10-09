@@ -15,9 +15,12 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     private MudDataGrid<ModpackFile> _grid = default!;
     private bool _isLoading = true;
 
+    private (Guid Modpack, Guid Version) _loaded;
+    private Modpack? _modpack;
+
     /// <summary>Arquivo cujo lado está a ser gravado — trava só a linha dele.</summary>
     private Guid _savingSide;
-    private Modpack? _modpack;
+
     private string _searchString = "";
     private ModpackVersion? _version;
 
@@ -26,6 +29,23 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
 
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
     [Inject] private ChangeFileSide ChangeSideUseCase { get; set; } = default!;
+
+    /// <summary>
+    ///     Ingestão em curso para ESTA versão, vinda do registro de progresso.
+    ///     Antes isto era uma sondagem que só parava depois de ver o estado
+    ///     "Resolvendo" — e com poucos mods a ingestão terminava antes do
+    ///     primeiro tique, então a barra girava os três minutos inteiros com o
+    ///     trabalho já feito.
+    /// </summary>
+    private JobProgress? Progress => Jobs.Get(VersionId);
+
+    private bool IsIngesting => Progress is not null;
+
+    public void Dispose()
+    {
+        Jobs.Changed -= OnJobChanged;
+        GC.SuppressFinalize(this);
+    }
 
     /// <summary>
     ///     Carrega só a página pedida, com a busca aplicada em SQL.
@@ -62,25 +82,6 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
         _searchString = value;
         return _grid.ReloadServerData();
     }
-
-    /// <summary>
-    ///     Ingestão em curso para ESTA versão, vinda do registro de progresso.
-    ///     Antes isto era uma sondagem que só parava depois de ver o estado
-    ///     "Resolvendo" — e com poucos mods a ingestão terminava antes do
-    ///     primeiro tique, então a barra girava os três minutos inteiros com o
-    ///     trabalho já feito.
-    /// </summary>
-    private JobProgress? Progress => Jobs.Get(VersionId);
-
-    private bool IsIngesting => Progress is not null;
-
-    public void Dispose()
-    {
-        Jobs.Changed -= OnJobChanged;
-        GC.SuppressFinalize(this);
-    }
-
-    private (Guid Modpack, Guid Version) _loaded;
 
     protected override void OnInitialized() => Jobs.Changed += OnJobChanged;
 
@@ -197,9 +198,7 @@ public partial class ModpackModsPage : ComponentBase, IDisposable
     {
         var parameters = new DialogParameters
         {
-            ["VersionId"] = VersionId,
-            ["ProjectSlug"] = pending.ProjectSlug,
-            ["PendingName"] = pending.DisplayName
+            ["VersionId"] = VersionId, ["ProjectSlug"] = pending.ProjectSlug, ["PendingName"] = pending.DisplayName
         };
 
         var dialog = await DialogService.ShowAsync<ManualUploadDialog>("Enviar arquivo", parameters);

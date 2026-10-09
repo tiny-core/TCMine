@@ -1,5 +1,5 @@
 using TCMine.Contracts.Modpacks;
-﻿using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Abstractions;

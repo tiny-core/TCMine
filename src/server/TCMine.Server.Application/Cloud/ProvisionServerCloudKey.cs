@@ -42,6 +42,7 @@ public sealed partial class ProvisionServerCloudKey(
     }
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Nuvem: servidor {ServerId} está ligado a uma nuvem, mas o TCMine não tem Server:PublicUrl nem Server:CloudUrl; a nuvem fica desligada nele.")]
+        Message =
+            "Nuvem: servidor {ServerId} está ligado a uma nuvem, mas o TCMine não tem Server:PublicUrl nem Server:CloudUrl; a nuvem fica desligada nele.")]
     private partial void LogNoUrl(Guid serverId);
 }

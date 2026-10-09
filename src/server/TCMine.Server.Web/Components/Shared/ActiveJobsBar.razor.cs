@@ -6,10 +6,10 @@ namespace TCMine.Server.Web.Components.Shared;
 
 public partial class ActiveJobsBar : ComponentBase, IDisposable
 {
-    private List<KeyValuePair<Guid, JobProgress>> _jobs = [];
-
     /// <summary>Trabalhos com cancelamento já pedido, para não pedir duas vezes.</summary>
     private readonly HashSet<Guid> _cancelling = [];
+
+    private List<KeyValuePair<Guid, JobProgress>> _jobs = [];
 
     [Inject] private JobProgressRegistry Registry { get; set; } = default!;
 

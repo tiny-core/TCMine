@@ -4,5 +4,5 @@
              DispatcherUnhandledException="OnDispatcherUnhandledException">
     <!-- Sem StartupUri: a janela é criada pelo contêiner em App.xaml.cs, para
          nascer já com as dependências resolvidas. -->
-    <Application.Resources/>
+    <Application.Resources />
 </Application>

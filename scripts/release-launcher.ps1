@@ -34,7 +34,10 @@ Set-Location $Root
 $SdkVersion = (Get-Content "$Root\global.json" | ConvertFrom-Json).sdk.version
 
 $Version = (Get-Content "$Root\src\launcher\VERSION" -Raw).Trim()
-if (-not $Version) { throw "src\launcher\VERSION está vazio." }
+if (-not $Version)
+{
+    throw "src\launcher\VERSION está vazio."
+}
 
 # O dotnet do PATH pode resolver para o SDK errado quando o exigido pelo
 # global.json só está instalado em %USERPROFILE%\.dotnet (comum quando o
@@ -48,15 +51,18 @@ if (-not $Version) { throw "src\launcher\VERSION está vazio." }
 # $LASTEXITCODE existir para o "if" de baixo decidir alguma coisa. Foi assim
 # que este bloco quebrava exatamente na primeira SDK ausente que deveria tratar.
 dotnet --version > $null
-if ($LASTEXITCODE -ne 0) {
-    if (Test-Path "$env:USERPROFILE\.dotnet") {
+if ($LASTEXITCODE -ne 0)
+{
+    if (Test-Path "$env:USERPROFILE\.dotnet")
+    {
         Write-Host "SDK $SdkVersion não resolvido no PATH padrão; usando $env:USERPROFILE\.dotnet"
         $env:DOTNET_ROOT = "$env:USERPROFILE\.dotnet"
         $env:PATH = "$env:USERPROFILE\.dotnet;$env:PATH"
         dotnet --version > $null
     }
 
-    if ($LASTEXITCODE -ne 0) {
+    if ($LASTEXITCODE -ne 0)
+    {
         throw "SDK $SdkVersion (do global.json) não encontrado. Instale-o ou ajuste o PATH."
     }
 }
@@ -65,18 +71,23 @@ if ($LASTEXITCODE -ne 0) {
 # lugares com o mesmo número acabam a discordar, e publicar no canal errado
 # entrega uma atualização que o servidor nunca vai oferecer.
 $protocolMatch = Select-String -Path "$Root\src\shared\TCMine.Contracts\Protocol.cs" -Pattern 'Current\s*=\s*(\d+)'
-if (-not $protocolMatch) { throw "Não consegui ler Protocol.Current em Protocol.cs." }
+if (-not $protocolMatch)
+{
+    throw "Não consegui ler Protocol.Current em Protocol.cs."
+}
 $protocol = $protocolMatch.Matches[0].Groups[1].Value
 $channel = "win-x64-p$protocol"
 
 Write-Host "Versão $Version, canal $channel"
 
-if (-not $SkipTests) {
+if (-not $SkipTests)
+{
     # Só as suítes do launcher: um release do launcher não toca em código do
     # servidor, e rodar as 600+ provas do servidor aqui seria pagar minutos
     # por um veredito que não é deste script: elas rodam no release.yml.
     Write-Host "==> Testes"
-    foreach ($suite in "TCMine.Launcher.Core.Tests", "TCMine.Launcher.Architecture.Tests") {
+    foreach ($suite in "TCMine.Launcher.Core.Tests", "TCMine.Launcher.Architecture.Tests")
+    {
         dotnet run --project "$Root\tests\$suite" -c Release
     }
 }
@@ -91,7 +102,10 @@ $publishDir = Join-Path ([System.IO.Path]::GetTempPath()) "tcmine-launcher-publi
 # Limpa antes: um publish self-contained não apaga sozinho o que sobrou de uma
 # versão anterior (um arquivo removido entre uma versão e outra ficaria para
 # trás), e o Velopack de qualquer forma substitui a pasta inteira.
-if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
+if (Test-Path $publishDir)
+{
+    Remove-Item $publishDir -Recurse -Force
+}
 
 Write-Host "==> Publicar (self-contained, win-x64)"
 dotnet publish "$Root\src\launcher\TCMine.Launcher.App" `
@@ -100,7 +114,10 @@ dotnet publish "$Root\src\launcher\TCMine.Launcher.App" `
     --self-contained true `
     -o $publishDir
 
-if ($LASTEXITCODE -ne 0) { throw "dotnet publish falhou." }
+if ($LASTEXITCODE -ne 0)
+{
+    throw "dotnet publish falhou."
+}
 
 # A versão do vpk (CLI) tem de acompanhar o pacote Velopack referenciado pelo
 # launcher (Directory.Packages.props) — um vpk mais novo ou mais velho pode
@@ -111,11 +128,13 @@ $velopackVersion = (Select-String -Path "$Root\Directory.Packages.props" `
 
 $vpkInstalado = dotnet tool list -g | Select-String -SimpleMatch "vpk "
 
-if (-not $vpkInstalado) {
+if (-not $vpkInstalado)
+{
     Write-Host "==> Instalando vpk $velopackVersion"
     dotnet tool install -g vpk --version $velopackVersion
 }
-elseif ($vpkInstalado -notmatch [regex]::Escape($velopackVersion)) {
+elseif ($vpkInstalado -notmatch [regex]::Escape($velopackVersion))
+{
     Write-Host "==> Atualizando vpk para $velopackVersion (versão do pacote Velopack do launcher)"
     dotnet tool update -g vpk --version $velopackVersion
 }
@@ -133,7 +152,10 @@ vpk pack `
     --runtime win-x64 `
     --outputDir $releasesDir
 
-if ($LASTEXITCODE -ne 0) { throw "vpk pack falhou." }
+if ($LASTEXITCODE -ne 0)
+{
+    throw "vpk pack falhou."
+}
 
 Write-Host ""
 Write-Host "Pronto: $releasesDir"

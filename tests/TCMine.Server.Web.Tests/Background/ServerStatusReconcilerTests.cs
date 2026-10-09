@@ -65,10 +65,7 @@ public sealed class ServerStatusReconcilerTests
         var quebrado = Servidor(GameServerStatus.Running);
         var bom = Servidor(GameServerStatus.Stopped);
 
-        var orchestrator = new FakeOrchestrator(GameServerStatus.Running)
-        {
-            FalhaEm = quebrado.Id
-        };
+        var orchestrator = new FakeOrchestrator(GameServerStatus.Running) { FalhaEm = quebrado.Id };
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
             new FakeServers(quebrado, bom), orchestrator, Ct);
@@ -130,6 +127,7 @@ public sealed class ServerStatusReconcilerTests
 
         public Task RemoveBackupAsync(Guid backupId, CancellationToken ct) =>
             throw new NotImplementedException();
+
         public Task<(int Count, long TotalBytes)> GetBackupUsageAsync(CancellationToken ct) =>
             throw new NotImplementedException();
     }

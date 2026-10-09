@@ -111,7 +111,8 @@ public sealed partial class SubmitCloudBatch(
             // Mesmo número, conteúdo diferente: não há linha nova possível (o
             // índice é único). Responde quarentena para o mod travar o canal.
             LogMismatch(ctx.ServerId, player, request.Epoch, request.Seq);
-            return CloudCallResult<CloudBatchReply>.Ok(new CloudBatchReply("quarantined", nameof(CloudQuarantineReason.PayloadMismatch)));
+            return CloudCallResult<CloudBatchReply>.Ok(new CloudBatchReply("quarantined",
+                nameof(CloudQuarantineReason.PayloadMismatch)));
         }
 
         return existing.Status == CloudBatchStatus.Quarantined
@@ -147,15 +148,16 @@ public sealed partial class SubmitCloudBatch(
         return CloudCallResult<CloudBatchReply>.Ok(new CloudBatchReply("quarantined", reason.ToString()));
     }
 
-    private static CloudBatch NewBatch(CloudServerContext ctx, string player, CloudBatchRequest request, string hash) => new()
-    {
-        VaultId = ctx.VaultId,
-        PlayerUuid = player,
-        ServerId = ctx.ServerId,
-        Epoch = request.Epoch,
-        Seq = request.Seq,
-        PayloadHash = hash
-    };
+    private static CloudBatch NewBatch(CloudServerContext ctx, string player, CloudBatchRequest request, string hash) =>
+        new()
+        {
+            VaultId = ctx.VaultId,
+            PlayerUuid = player,
+            ServerId = ctx.ServerId,
+            Epoch = request.Epoch,
+            Seq = request.Seq,
+            PayloadHash = hash
+        };
 
     private static CloudQuarantineReason ReasonOf(CloudBatchCheck check) => check switch
     {
@@ -166,12 +168,15 @@ public sealed partial class SubmitCloudBatch(
     };
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Nuvem: lote {Epoch}/{Seq} de {Player} (servidor {ServerId}) foi para a quarentena: {Reason} — {Detail}")]
-    private partial void LogQuarantined(Guid serverId, string player, long epoch, long seq, CloudQuarantineReason reason,
+        Message =
+            "Nuvem: lote {Epoch}/{Seq} de {Player} (servidor {ServerId}) foi para a quarentena: {Reason} — {Detail}")]
+    private partial void LogQuarantined(Guid serverId, string player, long epoch, long seq,
+        CloudQuarantineReason reason,
         string detail);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Nuvem: lote {Epoch}/{Seq} de {Player} (servidor {ServerId}) repetiu o número com conteúdo diferente.")]
+        Message =
+            "Nuvem: lote {Epoch}/{Seq} de {Player} (servidor {ServerId}) repetiu o número com conteúdo diferente.")]
     private partial void LogMismatch(Guid serverId, string player, long epoch, long seq);
 }
 

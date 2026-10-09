@@ -15,11 +15,4 @@ public static class ModpackRoleMap
         ModpackRole.Owner => ModpackRoleDto.Owner,
         _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Papel de modpack desconhecido.")
     };
-
-    public static ModpackRole ToDomain(this ModpackRoleDto role) => role switch
-    {
-        ModpackRoleDto.Editor => ModpackRole.Editor,
-        ModpackRoleDto.Owner => ModpackRole.Owner,
-        _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Papel de modpack desconhecido.")
-    };
 }

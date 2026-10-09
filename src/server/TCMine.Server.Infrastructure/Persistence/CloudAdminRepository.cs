@@ -61,7 +61,11 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
         var keys = await db.CloudServerCredentials.AsNoTracking()
             .Where(c => serverIds.Contains(c.GameServerId) && c.RevokedAt == null)
             .ToListAsync(ct);
-        return [.. keys.Select(k => new CloudServerKeyView(k.GameServerId, k.KeyPrefix, k.CreatedAt, k.LastSeenAt, k.ModVersion))];
+        return
+        [
+            .. keys.Select(k =>
+                new CloudServerKeyView(k.GameServerId, k.KeyPrefix, k.CreatedAt, k.LastSeenAt, k.ModVersion))
+        ];
     }
 
     public async Task<IReadOnlyList<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, int limit,
@@ -83,7 +87,8 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
         var selected = uuids
             .Where(uuid => search is null
                            || uuid.Contains(search.Replace("-", ""), StringComparison.OrdinalIgnoreCase)
-                           || (names.TryGetValue(uuid, out var n) && n.Contains(search, StringComparison.OrdinalIgnoreCase)))
+                           || (names.TryGetValue(uuid, out var n) &&
+                               n.Contains(search, StringComparison.OrdinalIgnoreCase)))
             .OrderBy(uuid => names.GetValueOrDefault(uuid) ?? "~" + uuid, StringComparer.CurrentCultureIgnoreCase)
             .Take(limit)
             .ToHashSet();
@@ -103,11 +108,13 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
             .. selected.Select(uuid =>
             {
                 var lease = leases.GetValueOrDefault(uuid);
-                var views = channels.Where(c => c.PlayerUuid == uuid).OrderBy(c => c.CreatedAt).ThenBy(c => c.Id).Select(c =>
-                {
-                    var t = totals.GetValueOrDefault(c.Id);
-                    return new CloudChannelView(c.Id, c.Name, c.IsFrozen, c.FrozenReason, t?.Types ?? 0, t?.Total ?? 0);
-                }).ToArray();
+                var views = channels.Where(c => c.PlayerUuid == uuid).OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+                    .Select(c =>
+                    {
+                        var t = totals.GetValueOrDefault(c.Id);
+                        return new CloudChannelView(c.Id, c.Name, c.IsFrozen, c.FrozenReason, t?.Types ?? 0,
+                            t?.Total ?? 0);
+                    }).ToArray();
                 return new CloudPlayerView(uuid, names.GetValueOrDefault(uuid), views, lease?.HolderServerId,
                     lease?.Epoch ?? 0, lease?.ExpiresAt);
             }).OrderBy(p => p.DisplayName ?? "~" + p.PlayerUuid, StringComparer.CurrentCultureIgnoreCase)
@@ -121,7 +128,14 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
             from b in db.CloudBalances.AsNoTracking()
             join i in db.CloudItemTypes.AsNoTracking() on b.ItemTypeId equals i.Id
             where b.ChannelId == channelId && b.Amount > 0
-            select new { i.Fingerprint, i.ItemId, i.ModId, i.DisplayName, b.Amount }
+            select new
+            {
+                i.Fingerprint,
+                i.ItemId,
+                i.ModId,
+                i.DisplayName,
+                b.Amount
+            }
         ).ToListAsync(ct);
         return
         [

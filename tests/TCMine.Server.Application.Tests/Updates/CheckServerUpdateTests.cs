@@ -14,8 +14,8 @@ public sealed class CheckServerUpdateTests
     [InlineData("0.5.0", "0.5.0", false)]
     [InlineData("0.6.0", "0.5.0", false)]
     [InlineData("0.5.0-beta.1", "0.5.0", true)] // a estável sai DEPOIS da beta de mesmo número
-    [InlineData("0.9.0", "0.10.0", true)]       // numérico, não alfabético
-    [InlineData("dev", "0.5.0", false)]         // build local não se compara
+    [InlineData("0.9.0", "0.10.0", true)] // numérico, não alfabético
+    [InlineData("dev", "0.5.0", false)] // build local não se compara
     public async Task Avisa_so_quando_a_publicada_e_maior(string current, string published, bool expected)
     {
         var caso = new CheckServerUpdate(new Feed(published), new FakeUserScope { IsInstanceAdmin = true });

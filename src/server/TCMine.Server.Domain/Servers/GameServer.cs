@@ -60,13 +60,13 @@ public sealed class GameServer : Entity, IOwnedEntity
     /// <summary>Já tem mundo gravado? Deriva de WorldInitializedAt.</summary>
     public bool HasWorld => WorldInitializedAt is not null;
 
-    public Guid OwnerId { get; set; }
-
     /// <summary>
     ///     Nuvem de itens (mod tccloud) que este servidor usa. Nulo = nuvem
     ///     desligada aqui (ex.: servidor de testes).
     /// </summary>
     public Guid? CloudVaultId { get; private set; }
+
+    public Guid OwnerId { get; set; }
 
     /// <summary>
     ///     Liga a uma nuvem. A regra que importa é a do dono: um servidor só

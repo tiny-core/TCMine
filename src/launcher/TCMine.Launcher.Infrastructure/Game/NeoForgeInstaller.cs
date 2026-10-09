@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Text.Json;
 using CmlLib.Core;
 using Microsoft.Extensions.Logging;
 using TCMine.Launcher.Core.Abstractions;
@@ -19,6 +18,12 @@ namespace TCMine.Launcher.Infrastructure.Game;
 /// </summary>
 internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
 {
+    private static readonly Action<ILogger, int, string, string, Exception?> LogInstallerFailed =
+        LoggerMessage.Define<int, string, string>(
+            LogLevel.Error,
+            new EventId(1, nameof(LogInstallerFailed)),
+            "Instalador do NeoForge saiu com {Codigo}. stderr: {Erro} stdout: {Saida}");
+
     public async Task<string> InstallAsync(
         string minecraftVersion,
         string neoForgeVersion,
@@ -85,9 +90,7 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
 
         await using (var source = await response.Content.ReadAsStreamAsync(ct))
         await using (var file = File.Create(target))
-        {
             await source.CopyToAsync(file, ct);
-        }
 
         return target;
     }
@@ -112,8 +115,8 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         };
 
         using var process = Process.Start(info)
-                             ?? throw new InvalidOperationException(
-                                 "Não foi possível executar o instalador do NeoForge.");
+                            ?? throw new InvalidOperationException(
+                                "Não foi possível executar o instalador do NeoForge.");
 
         // Lidas em paralelo: o instalador escreve bastante, e não drenar os dois
         // canais enche o buffer do pipe e trava o processo para sempre — sem
@@ -145,10 +148,4 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         if (!File.Exists(path))
             File.WriteAllText(path, """{"profiles":{},"version":3}""");
     }
-
-    private static readonly Action<ILogger, int, string, string, Exception?> LogInstallerFailed =
-        LoggerMessage.Define<int, string, string>(
-            LogLevel.Error,
-            new EventId(1, nameof(LogInstallerFailed)),
-            "Instalador do NeoForge saiu com {Codigo}. stderr: {Erro} stdout: {Saida}");
 }

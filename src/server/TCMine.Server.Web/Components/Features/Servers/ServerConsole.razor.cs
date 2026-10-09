@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
-using TCMine.Contracts.Hubs;
-using MudBlazor;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using MudBlazor;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
@@ -21,6 +21,8 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
     /// </summary>
     private const int MaxLines = 500;
 
+    private const int MaxHistory = 50;
+
     /// <summary>
     ///     De quanto em quanto tempo a tela é redesenhada.
     ///     Renderizar por linha inundaria o circuito no arranque do servidor,
@@ -31,6 +33,13 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
 
     private readonly string _consoleId = $"console-{Guid.CreateVersion7():N}";
 
+    private readonly Lock _gate = new();
+
+    /// <summary>Os comandos desta sessão, do mais antigo ao mais novo, para ↑/↓.</summary>
+    private readonly List<string> _history = [];
+
+    private readonly Queue<ConsoleEntry> _lines = new();
+
     /// <summary>
     ///     Chave sintética para o broadcaster — não é uma conexão de Hub de
     ///     verdade, só o que ele usa para contar ouvintes e ligar/desligar o
@@ -38,26 +47,18 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
     /// </summary>
     private readonly string _subscriptionId = $"admin-console-{Guid.CreateVersion7():N}";
 
-    private readonly Lock _gate = new();
-    private readonly Queue<ConsoleEntry> _lines = new();
-
-    /// <summary>Os comandos desta sessão, do mais antigo ao mais novo, para ↑/↓.</summary>
-    private readonly List<string> _history = [];
-
-    private const int MaxHistory = 50;
+    private bool _autoScroll = true;
+    private string _filter = "";
 
     private int _historyIndex;
     private string _input = "";
-    private string _filter = "";
-    private bool _sending;
-    private bool _showReference;
-    private ServerRoleDto? _role;
     private MudTextField<string>? _inputField;
-
-    private bool _autoScroll = true;
     private IJSObjectReference? _module;
     private bool _pending;
     private Timer? _renderTimer;
+    private ServerRoleDto? _role;
+    private bool _sending;
+    private bool _showReference;
     private bool _streaming;
 
     [Parameter] [EditorRequired] public GameServer Server { get; set; } = default!;
@@ -88,9 +89,6 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
                         || c.Description.Contains(_filter.Trim(), StringComparison.OrdinalIgnoreCase))
             .GroupBy(c => c.Category);
 
-    protected override async Task OnInitializedAsync() =>
-        _role = await Scope.GetRoleAsync(Server.Id, CancellationToken.None);
-
     public async ValueTask DisposeAsync()
     {
         await StopAsync();
@@ -109,6 +107,9 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
 
         GC.SuppressFinalize(this);
     }
+
+    protected override async Task OnInitializedAsync() =>
+        _role = await Scope.GetRoleAsync(Server.Id, CancellationToken.None);
 
     protected override async Task OnParametersSetAsync()
     {
@@ -299,10 +300,7 @@ public partial class ServerConsole : ComponentBase, IAsyncDisposable
 
     private void Clear()
     {
-        lock (_gate)
-        {
-            _lines.Clear();
-        }
+        lock (_gate) _lines.Clear();
     }
 
     private async Task ScrollToBottomAsync()

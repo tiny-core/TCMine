@@ -4,7 +4,6 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
-using TCMine.Server.Domain.Identity;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Endpoints;
 

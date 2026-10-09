@@ -4,6 +4,8 @@ using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Domain.Settings;
@@ -17,6 +19,11 @@ namespace TCMine.Server.Application.Tests.Servers;
 /// </summary>
 public sealed class WorldBackupTests
 {
+    // ---- Fixtures ----
+
+    private static readonly Guid ModpackId = Guid.CreateVersion7();
+    private static readonly Guid VersaoAtualId = Guid.CreateVersion7();
+
     [Fact]
     public async Task Backup_a_quente_pausa_o_autosave_descarrega_copia_e_religa()
     {
@@ -42,7 +49,7 @@ public sealed class WorldBackupTests
         // O mod guarda os créditos recentes até um save confirmado: sem o
         // checkpoint entre o flush e a cópia, o zip sai com a nuvem atrasada.
         var server = Servidor();
-        server.AttachToCloudVault(new TCMine.Server.Domain.Cloud.CloudVault { Name = "N", OwnerId = server.OwnerId });
+        server.AttachToCloudVault(new CloudVault { Name = "N", OwnerId = server.OwnerId });
         var rcon = new FakeRcon();
 
         var result = await NewBackup(server, new FakeStore(), GameServerStatus.Running, rcon: rcon)
@@ -272,7 +279,7 @@ public sealed class WorldBackupTests
         var repo = new FakeServers(server, existentes: antigos);
         var store = new FakeStore();
 
-        await NewBackup(server, store, GameServerStatus.Stopped, repo, manter: 2)
+        await NewBackup(server, store, GameServerStatus.Stopped, repo, 2)
             .HandleAsync(server.Id, null, CancellationToken.None, WorldBackupReason.BeforeVersionChange);
 
         // 4 antigos + o que acabou de ser criado = 5; guarda os 2 mais recentes,
@@ -293,7 +300,7 @@ public sealed class WorldBackupTests
 
         var repo = new FakeServers(server, existentes: manuais);
 
-        await NewBackup(server, new FakeStore(), GameServerStatus.Stopped, repo, manter: 1)
+        await NewBackup(server, new FakeStore(), GameServerStatus.Stopped, repo, 1)
             .HandleAsync(server.Id, null, CancellationToken.None);
 
         Assert.Empty(repo.BackupsRemovidos);
@@ -306,7 +313,7 @@ public sealed class WorldBackupTests
         var antigos = Enumerable.Range(0, 5).Select(_ => Automatico(server)).ToArray();
         var repo = new FakeServers(server, existentes: antigos);
 
-        await NewBackup(server, new FakeStore(), GameServerStatus.Stopped, repo, manter: 0)
+        await NewBackup(server, new FakeStore(), GameServerStatus.Stopped, repo, 0)
             .HandleAsync(server.Id, null, CancellationToken.None, WorldBackupReason.BeforeVersionChange);
 
         Assert.Empty(repo.BackupsRemovidos);
@@ -320,17 +327,14 @@ public sealed class WorldBackupTests
         var repo = new FakeServers(server, backup);
         var store = new FakeStore();
 
-        var result = await new DeleteWorldBackup(repo, store, new FakeUserScope()).HandleAsync(backup.Id, CancellationToken.None);
+        var result =
+            await new DeleteWorldBackup(repo, store, new FakeUserScope()).HandleAsync(backup.Id,
+                CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.True(store.Apagou);
         Assert.True(repo.BackupRemovido);
     }
-
-    // ---- Fixtures ----
-
-    private static readonly Guid ModpackId = Guid.CreateVersion7();
-    private static readonly Guid VersaoAtualId = Guid.CreateVersion7();
 
     private static GameServer Servidor() => new()
     {
@@ -394,10 +398,7 @@ public sealed class WorldBackupTests
 
     private static ModpackVersion Versao(string numero)
     {
-        var version = new ModpackVersion
-        {
-            ModpackId = ModpackId, Version = numero, LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = ModpackId, Version = numero, LoaderVersion = "21.1.100" };
 
         version.UpsertFile(new ModpackFile
         {
@@ -449,8 +450,8 @@ public sealed class WorldBackupTests
 
         // O caso de uso busca a versão fixada pelo Id do servidor; o fake devolve
         // esta, e o rótulo é o que vai para o registro do backup.
-        typeof(TCMine.Server.Domain.Common.Entity)
-            .GetProperty(nameof(TCMine.Server.Domain.Common.Entity.Id))!
+        typeof(Entity)
+            .GetProperty(nameof(Entity.Id))!
             .SetValue(version, id);
 
         return version;
@@ -551,7 +552,9 @@ public sealed class WorldBackupTests
     }
 
     private sealed class FakeServers(
-        GameServer server, WorldBackup? backup = null, params WorldBackup[] existentes)
+        GameServer server,
+        WorldBackup? backup = null,
+        params WorldBackup[] existentes)
         : FakeServerRepositoryBase
     {
         private readonly List<WorldBackup> _backups = [.. existentes];

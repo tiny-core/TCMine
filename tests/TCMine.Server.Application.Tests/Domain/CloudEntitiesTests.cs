@@ -56,18 +56,19 @@ public sealed class CloudEntitiesTests
     [InlineData("069a79f444e94726a5befca90e38aaf5", "069a79f444e94726a5befca90e38aaf5")]
     [InlineData("nao-e-uuid", null)]
     [InlineData("", null)]
-    public void Uuid_do_jogador_e_normalizado(string bruto, string? esperado)
-    {
+    public void Uuid_do_jogador_e_normalizado(string bruto, string? esperado) =>
         CloudChannel.NormalizePlayerUuid(bruto).ShouldBe(esperado);
-    }
 
     [Fact]
     public void Quarentena_so_se_resolve_uma_vez()
     {
         var q = new CloudQuarantine
         {
-            VaultId = Guid.CreateVersion7(), BatchId = Guid.CreateVersion7(),
-            Reason = CloudQuarantineReason.StaleEpoch, Detail = "x", PayloadJson = "{}"
+            VaultId = Guid.CreateVersion7(),
+            BatchId = Guid.CreateVersion7(),
+            Reason = CloudQuarantineReason.StaleEpoch,
+            Detail = "x",
+            PayloadJson = "{}"
         };
         q.Resolve(CloudQuarantineResolution.Discarded, Guid.CreateVersion7(), DateTimeOffset.UtcNow);
 
@@ -83,14 +84,16 @@ public sealed class CloudEntitiesTests
     [InlineData(CloudRuleScope.Item, "semnamespace", null)]
     [InlineData(CloudRuleScope.Item, "mod:", null)]
     [InlineData(CloudRuleScope.Tag, "com espaco:x", null)]
-    public void Padrao_da_regra_e_normalizado_por_escopo(CloudRuleScope scope, string bruto, string? esperado)
-    {
+    public void Padrao_da_regra_e_normalizado_por_escopo(CloudRuleScope scope, string bruto, string? esperado) =>
         CloudItemRule.NormalizePattern(scope, bruto).ShouldBe(esperado);
-    }
 
     private static GameServer NovoServidor(Guid dono) => new()
     {
-        Name = "S", ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),
-        ConnectAddress = "localhost", RconSecret = "segredo", OwnerId = dono
+        Name = "S",
+        ModpackId = Guid.CreateVersion7(),
+        ModpackVersionId = Guid.CreateVersion7(),
+        ConnectAddress = "localhost",
+        RconSecret = "segredo",
+        OwnerId = dono
     };
 }

@@ -48,7 +48,15 @@ public sealed class AccessRequestRepository(IDbContextFactory<TcMineDbContext> f
             join u in db.Users.AsNoTracking() on r.UserId equals u.Id
             join s in db.GameServers.AsNoTracking() on r.GameServerId equals s.Id
             where gameServerIds.Contains(r.GameServerId) && r.Status == AccessRequestStatus.Pending
-            select new { r.Id, r.UserId, u.DisplayName, r.GameServerId, ServerName = s.Name, r.CreatedAt }
+            select new
+            {
+                r.Id,
+                r.UserId,
+                u.DisplayName,
+                r.GameServerId,
+                ServerName = s.Name,
+                r.CreatedAt
+            }
         ).ToListAsync(ct);
 
         // Ordem por Id (GUID v7, cronológico): o SQLite rejeita DateTimeOffset
@@ -57,7 +65,8 @@ public sealed class AccessRequestRepository(IDbContextFactory<TcMineDbContext> f
         [
             .. linhas
                 .OrderBy(l => l.Id)
-                .Select(l => new AccessRequestView(l.Id, l.UserId, l.DisplayName, l.GameServerId, l.ServerName, l.CreatedAt))
+                .Select(l =>
+                    new AccessRequestView(l.Id, l.UserId, l.DisplayName, l.GameServerId, l.ServerName, l.CreatedAt))
         ];
     }
 

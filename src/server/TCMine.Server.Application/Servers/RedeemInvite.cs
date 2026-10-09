@@ -51,12 +51,7 @@ public sealed class RedeemInvite(
         else
         {
             await memberships.AddAsync(
-                new Membership
-                {
-                    UserId = userId,
-                    GameServerId = invite.GameServerId,
-                    Role = invite.Role
-                },
+                new Membership { UserId = userId, GameServerId = invite.GameServerId, Role = invite.Role },
                 ct);
         }
 

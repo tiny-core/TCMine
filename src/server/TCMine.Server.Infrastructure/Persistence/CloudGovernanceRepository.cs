@@ -40,7 +40,8 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
 
     // ---------------------------------------------------------------- suspeitos
 
-    public async Task RecordSuspectsAsync(Guid vaultId, IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items,
+    public async Task RecordSuspectsAsync(Guid vaultId,
+        IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items,
         DateTimeOffset now, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -56,8 +57,10 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
                 db.CloudSuspectItems.Add(suspect);
                 existing[itemId] = suspect;
             }
+
             suspect.Seen(attempts, evidence, now);
         }
+
         await db.SaveChangesAsync(ct);
     }
 

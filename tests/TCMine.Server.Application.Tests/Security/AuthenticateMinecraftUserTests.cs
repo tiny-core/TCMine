@@ -60,11 +60,7 @@ public sealed class AuthenticateMinecraftUserTests
     [Fact]
     public async Task Reconhece_quem_volta_pelo_uuid_e_nao_pelo_nome()
     {
-        var existente = new User
-        {
-            DisplayName = "nome-antigo",
-            MinecraftUuid = "abc123"
-        };
+        var existente = new User { DisplayName = "nome-antigo", MinecraftUuid = "abc123" };
         var users = new FakeUsers(existente);
         var caso = new AuthenticateMinecraftUser(users, new FakeProfiles("nome-novo", "abc123"));
 
@@ -108,9 +104,15 @@ public sealed class AuthenticateMinecraftUserTests
     {
         private readonly MinecraftProfile? _profile;
 
-        public FakeProfiles(string name, string uuid) => _profile = new MinecraftProfile(uuid, name);
+        public FakeProfiles(string name, string uuid)
+        {
+            _profile = new MinecraftProfile(uuid, name);
+        }
 
-        public FakeProfiles(MinecraftProfile? profile) => _profile = profile;
+        public FakeProfiles(MinecraftProfile? profile)
+        {
+            _profile = profile;
+        }
 
         public bool Consultado { get; private set; }
 

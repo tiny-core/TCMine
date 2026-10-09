@@ -12,9 +12,9 @@ namespace TCMine.Server.Infrastructure.Tests;
 /// </summary>
 public sealed class CloudAdminRepositoryTests
 {
-    private static CancellationToken Ct => TestContext.Current.CancellationToken;
     private const string Ana = "069a79f444e94726a5befca90e38aaf5";
     private const string Beto = "11111111222233334444555566667777";
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Lista_de_nuvens_conta_servidores_e_jogadores_distintos()
@@ -65,8 +65,6 @@ public sealed class CloudAdminRepositoryTests
         itens.Select(i => i.ItemId).ShouldBe(["minecraft:cobblestone", "minecraft:diamond"]);
     }
 
-    private sealed record Cenario(Guid Dono, Guid Nuvem, Guid Servidor, Guid CanalPrincipalAna);
-
     private static async Task<Cenario> Semear(SqliteTestFactory factory)
     {
         await using var db = factory.CreateDbContext();
@@ -74,8 +72,12 @@ public sealed class CloudAdminRepositoryTests
         var nuvem = new CloudVault { Name = "N", OwnerId = dono };
         var servidor = new GameServer
         {
-            Name = "S", ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),
-            ConnectAddress = "localhost", RconSecret = "segredo", OwnerId = dono
+            Name = "S",
+            ModpackId = Guid.CreateVersion7(),
+            ModpackVersionId = Guid.CreateVersion7(),
+            ConnectAddress = "localhost",
+            RconSecret = "segredo",
+            OwnerId = dono
         };
         servidor.AttachToCloudVault(nuvem);
         db.AddRange(nuvem, servidor, new User { DisplayName = "Ana", MinecraftUuid = Ana });
@@ -99,7 +101,11 @@ public sealed class CloudAdminRepositoryTests
 
     private static CloudItemType Item(string id, char c) => new()
     {
-        Fingerprint = new string(c, 64), ItemId = id, ModId = "minecraft", DisplayName = id, Encoded = [1]
+        Fingerprint = new string(c, 64),
+        ItemId = id,
+        ModId = "minecraft",
+        DisplayName = id,
+        Encoded = [1]
     };
 
     private static CloudBalance Saldo(CloudChannel canal, CloudItemType item, long quantidade)
@@ -108,4 +114,6 @@ public sealed class CloudAdminRepositoryTests
         if (quantidade > 0) saldo.Apply(quantidade);
         return saldo;
     }
+
+    private sealed record Cenario(Guid Dono, Guid Nuvem, Guid Servidor, Guid CanalPrincipalAna);
 }

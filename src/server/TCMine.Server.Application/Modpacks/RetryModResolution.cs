@@ -1,7 +1,6 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
-using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Modpacks;
 
@@ -29,9 +28,7 @@ public sealed class RetryModResolution(
             return Result<int>.Fail("Modpack não encontrado.");
 
         if (version.State is ModpackVersionState.Failed)
-        {
             version.RetryAfterFailure();
-        }
         else if (version.State is not ModpackVersionState.Draft)
         {
             return Result<int>.Fail(

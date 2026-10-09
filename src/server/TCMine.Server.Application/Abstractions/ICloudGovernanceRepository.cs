@@ -6,8 +6,17 @@ namespace TCMine.Server.Application.Abstractions;
 public sealed record CloudQuarantineView(CloudQuarantine Quarantine, CloudBatch Batch);
 
 /// <summary>Linha do histórico de saldos para a aba de auditoria.</summary>
-public sealed record CloudLedgerView(Guid Id, DateTimeOffset At, string PlayerUuid, string ChannelName, string ItemId,
-    string DisplayName, long Delta, long BalanceAfter, CloudLedgerSource Source, string? Reason);
+public sealed record CloudLedgerView(
+    Guid Id,
+    DateTimeOffset At,
+    string PlayerUuid,
+    string ChannelName,
+    string ItemId,
+    string DisplayName,
+    long Delta,
+    long BalanceAfter,
+    CloudLedgerSource Source,
+    string? Reason);
 
 /// <summary>
 ///     Regras de item, suspeitos, incidentes de rollback, operações em dúvida,
@@ -29,7 +38,9 @@ public interface ICloudGovernanceRepository
     Task RecordSuspectsAsync(Guid vaultId, IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items,
         DateTimeOffset now, CancellationToken ct);
 
-    Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status, CancellationToken ct);
+    Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status,
+        CancellationToken ct);
+
     Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct);
     Task UpdateSuspectAsync(CloudSuspectItem suspect, CancellationToken ct);
 
@@ -71,5 +82,7 @@ public interface ICloudGovernanceRepository
     // Auditoria
     Task AddAuditAsync(CloudAdminAuditEntry entry, CancellationToken ct);
     Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct);
-    Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit, CancellationToken ct);
+
+    Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit,
+        CancellationToken ct);
 }
