@@ -167,9 +167,13 @@ function Show-Report {
     $files = @(Get-ChildItem -Path $logs -Filter "launcher-*.log" | Sort-Object Name | Select-Object -Last $Days)
     if ($files.Count -eq 0) { throw "Nenhum launcher-*.log em $logs" }
 
-    # Ordenado: os marcos saem na ordem em que acontecem no arranque.
-    $marks = New-Object System.Collections.Specialized.OrderedDictionary
+    # Uma entrada por ABERTURA do launcher: "host montado" abre a entrada, e os
+    # outros dois marcos são dela. Juntar todas as aberturas numa mediana só
+    # misturava a primeira depois de ligar o PC (segundos) com as seguintes
+    # (décimos de segundo), e o número não descrevia nenhuma das duas.
+    $runs = New-Object System.Collections.Generic.List[object]
     $installs = New-Object System.Collections.Generic.List[string]
+    $current = $null
 
     foreach ($file in $files) {
         # Get-Content e não File.ReadLines: o launcher aberto mantém o arquivo
@@ -178,15 +182,30 @@ function Show-Report {
             # O "." no lugar das letras acentuadas: a medição não pode depender
             # da codificação do console.
             if ($line -match 'Arranque: "?(.+?)"? em (\d+) ms(?: \("?([^")]+)"?\))?') {
-                $name = $Matches[1]
-                # O desfecho (com sessão, login, offline...) separa caminhos de
-                # custo diferente, que não podem entrar na mesma mediana.
-                if ($Matches[3]) { $name = "$name ($($Matches[3]))" }
+                $mark = $Matches[1]
+                $ms = [double]$Matches[2]
+                $outcome = $Matches[3]
 
-                if (-not $marks.Contains($name)) {
-                    $marks.Add($name, (New-Object System.Collections.Generic.List[double]))
+                if ($mark -like "host*") {
+                    # A frio o runtime e os binários vêm do disco: o host passa
+                    # de 1 s. A quente fica em ~0,3 s. O corte é folgado.
+                    $kind = "a quente"
+                    if ($ms -ge 1000) { $kind = "a frio" }
+
+                    $current = [pscustomobject]@{
+                        HostMs = $ms; WindowMs = $null; UsableMs = $null; Outcome = ""; Kind = $kind
+                    }
+                    $runs.Add($current)
                 }
-                $marks[$name].Add([double]$Matches[2])
+                elseif ($null -ne $current) {
+                    if ($mark -like "janela*") {
+                        $current.WindowMs = $ms
+                    }
+                    elseif ($mark -like "primeira*") {
+                        $current.UsableMs = $ms
+                        if ($outcome) { $current.Outcome = $outcome }
+                    }
+                }
             }
             elseif ($line -match '\] (Instala.+o de modpack .+)$') {
                 $installs.Add($Matches[1])
@@ -196,14 +215,41 @@ function Show-Report {
 
     Write-Host ("Arquivos: {0}" -f (($files | ForEach-Object { $_.Name }) -join ", "))
 
-    if ($marks.Count -eq 0) {
+    if ($runs.Count -eq 0) {
         Write-Host "Nenhuma linha 'Arranque:' no período."
     }
 
-    foreach ($name in $marks.Keys) {
-        $values = $marks[$name].ToArray()
-        Write-Host ("{0} ({1} aberturas)" -f $name, $values.Count)
-        Write-Host ("  {0}  -> mediana {1:N0} ms" -f ($values -join ", "), (Get-Median $values))
+    foreach ($kind in "a quente", "a frio") {
+        $group = @($runs | Where-Object { $_.Kind -eq $kind })
+        if ($group.Count -eq 0) { continue }
+
+        Write-Host ""
+        Write-Host ("Arranque {0} ({1} aberturas)" -f $kind, $group.Count)
+
+        $hosts = @($group | ForEach-Object { $_.HostMs })
+        Write-Host ("  host montado: {0}  -> mediana {1:N0} ms" -f ($hosts -join ", "), (Get-Median $hosts))
+
+        $windows = @($group | Where-Object { $null -ne $_.WindowMs } | ForEach-Object { $_.WindowMs })
+        if ($windows.Count -gt 0) {
+            Write-Host ("  janela visível: {0}  -> mediana {1:N0} ms" -f ($windows -join ", "), (Get-Median $windows))
+        }
+
+        # O desfecho (com sessão, login, offline...) separa caminhos de custo
+        # diferente, que não podem entrar na mesma mediana.
+        $byOutcome = @($group | Where-Object { $null -ne $_.UsableMs } | Group-Object -Property Outcome)
+        foreach ($entry in $byOutcome) {
+            $label = $entry.Name
+            if (-not $label) { $label = "sem desfecho no log" }
+
+            $usable = @($entry.Group | ForEach-Object { $_.UsableMs })
+            $samples = $usable -join ", "
+            Write-Host ("  primeira tela utilizável ({0}): {1}  -> mediana {2:N0} ms" -f $label, $samples, (Get-Median $usable))
+        }
+
+        $unfinished = @($group | Where-Object { $null -eq $_.UsableMs }).Count
+        if ($unfinished -gt 0) {
+            Write-Host ("  {0} abertura(s) sem 'primeira tela utilizável': o launcher fechou antes (por exemplo, para se atualizar)" -f $unfinished)
+        }
     }
 
     if ($installs.Count -gt 0) {
@@ -211,9 +257,6 @@ function Show-Report {
         Write-Host ("Instalações e atualizações ({0})" -f $installs.Count)
         foreach ($install in $installs) { Write-Host "  $install" }
     }
-
-    Write-Host ""
-    Write-Host "A primeira abertura depois de ligar o PC é a medição 'a frio'; as seguintes são 'a quente'."
 }
 
 switch ($Command) {
