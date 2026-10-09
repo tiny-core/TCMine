@@ -13,6 +13,24 @@ O texto completo de cada lançamento está na
 
 ## [Não lançado]
 
+## [1.1.2] — 2026-10-09
+
+Launcher **1.1.2**. Nenhuma mudança de comportamento.
+
+### Manutenção
+
+- **Mais medição temporária de desempenho** ([docs/BASELINE.md](docs/BASELINE.md)):
+  o servidor registra quanto leva para iniciar um servidor de jogo (linha
+  "Início de servidor") e o launcher, quanto leva cada fase de uma instalação ou
+  atualização de modpack (linha "Instalação de modpack"). A linha de arranque do
+  launcher passa a dizer como o arranque terminou (com sessão, login, offline).
+- `scripts/baseline.sh report` e `scripts/baseline.ps1 report` leem essas linhas
+  e entregam amostras e medianas prontas.
+
+### Atualizar
+
+Nada a fazer: não há migration nova e o protocolo do launcher **não** mudou.
+
 ## [1.1.1] — 2026-10-09
 
 Launcher **1.1.1**. Nenhuma mudança de comportamento: é a primeira versão
