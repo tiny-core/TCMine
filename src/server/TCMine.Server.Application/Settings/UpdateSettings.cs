@@ -1,6 +1,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Settings;
 
@@ -19,6 +20,19 @@ public sealed class UpdateSettings(ISettingsRepository repository)
 
         if (command.WorldBackupKeepCount is < 0)
             return Result.Fail("A retenção de backups não pode ser negativa.");
+
+        // A faixa só decide a porta SUGERIDA a servidores novos. Uma faixa
+        // inválida não quebraria nada à vista — o alocador cairia na padrão em
+        // silêncio — e o admin ficaria sem entender por que o número que gravou
+        // não vale. Recusar aqui é o que torna o campo confiável.
+        if (!GamePortRange.IsValid(command.GamePortRangeStart) || !GamePortRange.IsValid(command.GamePortRangeEnd))
+        {
+            return Result.Fail(
+                $"As portas da faixa devem ficar entre {GamePortRange.Min} e {GamePortRange.Max}.");
+        }
+
+        if (command.GamePortRangeStart > command.GamePortRangeEnd)
+            return Result.Fail("A primeira porta da faixa não pode ser maior que a última.");
 
         // Um id malformado só se manifestaria na máquina do jogador, como uma
         // falha de login sem explicação: o handshake entrega o lixo, o MSAL
@@ -41,6 +55,8 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         settings.DefaultLoader = command.DefaultLoader;
         settings.DefaultMemoryMb = command.DefaultMemoryMb;
         settings.WorldBackupKeepCount = command.WorldBackupKeepCount;
+        settings.GamePortRangeStart = command.GamePortRangeStart;
+        settings.GamePortRangeEnd = command.GamePortRangeEnd;
 
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
@@ -69,6 +85,12 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Backups automáticos a manter por servidor. Zero = ilimitado.</summary>
     public int WorldBackupKeepCount { get; init; } = 5;
+
+    /// <summary>Primeira porta oferecida a um servidor novo.</summary>
+    public int GamePortRangeStart { get; init; } = GamePortDefaults.First;
+
+    /// <summary>Última porta oferecida a um servidor novo (inclusive).</summary>
+    public int GamePortRangeEnd { get; init; } = GamePortDefaults.Last;
 
     /// <summary>
     ///     Client ID da app Azure do login com a Microsoft. Vazio = limpar

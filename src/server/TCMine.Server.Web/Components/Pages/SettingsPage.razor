@@ -1,5 +1,6 @@
 @page "/admin/settings"
 @using TCMine.Contracts.Modpacks
+@using TCMine.Server.Domain.Servers
 
 <PageTitle>Configurações — TCMine</PageTitle>
 
@@ -60,6 +61,34 @@ else
                                          Variant="Variant.Outlined" Min="0" Max="50"/>
                     </MudItem>
                 </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Rede" Icon="@Icons.Material.Filled.Router" Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Class="mb-1">Portas dos servidores</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    Cada servidor de jogo publica uma porta própria nesta máquina. Um servidor
+                    novo recebe a primeira livre desta faixa; quem já existe mantém a sua, mesmo
+                    que fique fora dela.
+                </MudText>
+
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_gamePortRangeStart" Label="Primeira porta"
+                                         Variant="Variant.Outlined"
+                                         Min="GamePortRange.Min" Max="GamePortRange.Max"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_gamePortRangeEnd" Label="Última porta"
+                                         Variant="Variant.Outlined"
+                                         Min="GamePortRange.Min" Max="GamePortRange.Max"/>
+                    </MudItem>
+                </MudGrid>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    Para jogadores de fora da sua rede entrarem, o roteador precisa redirecionar
+                    estas portas (TCP) para esta máquina. Redirecionar a faixa inteira de uma vez
+                    evita voltar ao roteador a cada servidor novo.
+                </MudAlert>
             </MudTabPanel>
 
             <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">
