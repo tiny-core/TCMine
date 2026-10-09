@@ -123,7 +123,7 @@ public partial class ModpackOverridesPage : IAsyncDisposable
             return;
 
         _loaded = (ModpackId, VersionId);
-        LoadTimer.Start(nameof(ModpackDetailPage));
+        LoadTimer.Start(nameof(ModpackOverridesPage));
         await LoadAsync();
         LoadTimer.Loaded();
     }
