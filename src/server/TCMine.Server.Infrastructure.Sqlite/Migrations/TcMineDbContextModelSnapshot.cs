@@ -1277,6 +1277,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("GamePort")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("MaxPlayers")
                         .HasColumnType("INTEGER");
 
@@ -1319,6 +1322,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CloudVaultId");
+
+                    b.HasIndex("GamePort")
+                        .IsUnique();
 
                     b.HasIndex("ModpackId");
 
@@ -1406,6 +1412,16 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<string>("DefaultMinecraftVersion")
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("GamePortRangeEnd")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(25599);
+
+                    b.Property<int>("GamePortRangeStart")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(25565);
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");

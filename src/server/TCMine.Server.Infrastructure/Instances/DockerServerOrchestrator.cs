@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using System.Globalization;
+using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure.Docker;
@@ -39,8 +40,9 @@ public sealed partial class DockerServerOrchestrator(
 
         var containerName = $"tcmine-{gameServerId}";
 
-        // Porta do jogo: extrai do ConnectAddress se tiver ":porta", senão 25565.
-        var hostPort = ExtractPort(server.ConnectAddress);
+        // A porta do host é do servidor, e não mais adivinhada do texto do
+        // endereço. Invariante: o formato vai para o label e para o bind.
+        var hostPort = server.GamePort.ToString(CultureInfo.InvariantCulture);
         var instancePath = materializer.GetInstancePath(gameServerId);
 
         // O que decide QUE jogo roda vem do modpack (Minecraft e loader, fixos)
@@ -221,12 +223,4 @@ public sealed partial class DockerServerOrchestrator(
         Level = LogLevel.Debug,
         Message = "Docker: container {ContainerId} Running={Running} Status={Status} Exit={ExitCode}.")]
     private partial void LogInspected(string containerId, bool running, string? status, int exitCode);
-
-    private static string ExtractPort(string connectAddress)
-    {
-        var idx = connectAddress.LastIndexOf(':');
-        return idx >= 0 && int.TryParse(connectAddress[(idx + 1)..], out _)
-            ? connectAddress[(idx + 1)..]
-            : "25565";
-    }
 }

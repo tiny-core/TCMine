@@ -65,8 +65,10 @@ internal sealed class CloudAmbiente : IAsyncDisposable
         await using var db = await dbs.CreateDbContextAsync(Ct);
         var nuvem = new CloudVault { Name = "Nuvem", OwnerId = dono };
         db.CloudVaults.Add(nuvem);
-        var (a, chaveA) = NovoServidor("Servidor A", dono, nuvem);
-        var (b, chaveB) = NovoServidor("Servidor B", dono, nuvem);
+        // Portas diferentes: o índice único de GamePort recusa dois servidores
+        // na mesma, que é justamente o que o padrão daria aos dois.
+        var (a, chaveA) = NovoServidor("Servidor A", dono, nuvem, 25565);
+        var (b, chaveB) = NovoServidor("Servidor B", dono, nuvem, 25566);
         db.GameServers.AddRange(a, b);
         await db.SaveChangesAsync(Ct);
         db.CloudServerCredentials.AddRange(Credencial(a, nuvem, chaveA), Credencial(b, nuvem, chaveB));
@@ -85,7 +87,7 @@ internal sealed class CloudAmbiente : IAsyncDisposable
     }
 
     private static (GameServer, (string Key, string Prefix, string Hash)) NovoServidor(string nome, Guid dono,
-        CloudVault nuvem)
+        CloudVault nuvem, int porta)
     {
         var servidor = new GameServer
         {
@@ -93,6 +95,7 @@ internal sealed class CloudAmbiente : IAsyncDisposable
             ModpackId = Guid.CreateVersion7(),
             ModpackVersionId = Guid.CreateVersion7(),
             ConnectAddress = "localhost",
+            GamePort = porta,
             RconSecret = "segredo",
             OwnerId = dono
         };

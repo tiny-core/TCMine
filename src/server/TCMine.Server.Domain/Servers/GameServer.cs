@@ -4,6 +4,16 @@ using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Domain.Servers;
 
+/// <summary>Limites da porta de jogo, partilhados pelo domínio e pelas regras.</summary>
+public static class GamePortDefaults
+{
+    /// <summary>Porta padrão do Minecraft; também o início da faixa padrão.</summary>
+    public const int First = 25565;
+
+    /// <summary>Fim da faixa padrão: 35 portas, um redirecionamento só no roteador.</summary>
+    public const int Last = 25599;
+}
+
 public sealed class GameServer : Entity, IOwnedEntity
 {
     public required string Name { get; set; }
@@ -18,6 +28,16 @@ public sealed class GameServer : Entity, IOwnedEntity
 
     /// <summary>Endereço publicado no servers.dat do cliente.</summary>
     public required string ConnectAddress { get; set; }
+
+    /// <summary>
+    ///     Porta do HOST em que o container do jogo publica a 25565 dele.
+    ///     Única entre todos os servidores, parados incluídos: a porta de um
+    ///     servidor nunca muda sozinha, e dois nunca disputam a mesma.
+    ///     Antes ela era adivinhada a partir do texto do
+    ///     <see cref="ConnectAddress" /> — um campo fazia dois papéis, e dois
+    ///     servidores sem ":porta" no endereço caíam ambos na 25565.
+    /// </summary>
+    public int GamePort { get; set; } = GamePortDefaults.First;
 
     public GameServerStatus Status { get; set; } = GameServerStatus.Stopped;
 

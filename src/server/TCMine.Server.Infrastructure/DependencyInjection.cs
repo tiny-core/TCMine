@@ -164,6 +164,7 @@ public static class DependencyInjection
         services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();
 
         services.AddScoped<IServerOrchestrator, DockerServerOrchestrator>();
+        services.AddScoped<IGamePortAllocator, GamePortAllocator>();
         services.AddScoped<IContainerStats, DockerContainerStats>();
         services.AddScoped<IBlobJanitor, FileSystemBlobJanitor>();
         services.AddScoped<IWorldBackupStore, FileSystemWorldBackupStore>();

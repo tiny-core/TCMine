@@ -50,8 +50,11 @@ public static class CloudLeaseGuard
             if (!lease.IsFree(now))
             {
                 if (releasableBy is null || lease.HolderServerId != releasableBy)
+                {
                     return (null,
                         $"O jogador {player} está com os canais num servidor agora. Espere ele sair ou libere o lease.");
+                }
+
                 lease.ForceRelease();
             }
             else

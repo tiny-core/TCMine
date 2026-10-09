@@ -76,8 +76,10 @@ public sealed partial class ImportUpstreamPack(
 
         var pack = await source.FetchAsync(projectId, fileId, ct);
         if (pack is null)
+        {
             return Result<Guid>.Fail(
                 "Não foi possível ler o pack na origem. Ele pode não permitir download por terceiros.");
+        }
 
         var slug = await UniqueSlugAsync(Slugify(pack.Name), ct);
 
