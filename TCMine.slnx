@@ -45,6 +45,8 @@
   </Folder>
   <Folder Name="/_docs/">
     <File Path="CHANGELOG.md" />
+    <File Path="docs/BASELINE.md" />
+    <File Path="docs/CLOUD-STORAGE.md" />
     <File Path="docs/DEPLOY.md" />
     <File Path="docs/RELEASE.md" />
     <File Path="docs/ROADMAP.md" />
@@ -56,7 +58,6 @@
   </Folder>
   <Folder Name="/_root/">
     <File Path=".editorconfig" />
-    <File Path=".env" />
     <File Path=".env.example" />
     <File Path=".gitignore" />
     <File Path="Directory.Build.props" />
@@ -65,7 +66,10 @@
     <File Path="TCMine.Server.slnx" />
   </Folder>
   <Folder Name="/_scripts/">
+    <File Path="scripts/baseline.ps1" />
+    <File Path="scripts/baseline.sh" />
     <File Path="scripts/check-launcher-version.sh" />
+    <File Path="scripts/release-launcher.ps1" />
     <File Path="scripts/smoke-image.sh" />
     <File Path="scripts/tc" />
   </Folder>

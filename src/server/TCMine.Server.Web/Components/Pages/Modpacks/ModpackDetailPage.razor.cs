@@ -7,25 +7,54 @@ using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Components.Features.Modpacks;
+using TCMine.Server.Web.Diagnostics;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackDetailPage : ComponentBase, IDisposable
 {
+    /// <summary>Apaga o modpack. Só o dono (ou o admin da instalação).</summary>
+    private bool _canDelete;
+
+    /// <summary>
+    ///     Edita mods, versões, ícone, etc. Falso esconde as ações de edição sem
+    ///     esconder a página inteira: quem só olha continua vendo o pack.
+    /// </summary>
+    private bool _canEdit;
+
+    /// <summary>Convida/remove editores. Só o dono.</summary>
+    private bool _canManageEditors;
+
+    /// <summary>
+    ///     Quantos mods o pack de origem declara. Só existe em versão importada —
+    ///     é o que permite mostrar "120 de 471" em vez de um spinner sem fim.
+    ///     Calculado no load; desserializar o snapshot a cada render seria caro.
+    /// </summary>
+    private int? _expectedModCount;
+
+    private bool _isCompleting;
     private bool _isLoading = true;
     private bool _isPublishing;
     private bool _isRetrying;
-    private bool _isCompleting;
+
+    private Guid _loaded;
     private Modpack? _modpack;
+
+    /// <summary>Assinatura de dono, exibida no topo — visível a quem quer que veja a página.</summary>
+    private ModpackMemberView? _owner;
+
     private ModpackVersion? _selectedVersion;
     private Guid _selectedVersionId;
     private int _serverCount;
 
-    [Parameter] public Guid ModpackId { get; set; }
-
     /// <summary>Contagens por versão, agregadas no banco (ver GetVersionStatsAsync).</summary>
     private IReadOnlyDictionary<Guid, ModpackVersionStats> _stats =
         new Dictionary<Guid, ModpackVersionStats>();
+
+    /// <summary>Resultado da consulta à origem. Nulo enquanto não consultou (ou se falhou).</summary>
+    private UpstreamUpdateStatus? _upstream;
+
+    [Parameter] public Guid ModpackId { get; set; }
 
     private ModpackVersionStats SelectedStats =>
         _selectedVersionId != Guid.Empty && _stats.TryGetValue(_selectedVersionId, out var s)
@@ -36,48 +65,21 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     private int OverrideCount => SelectedStats.OverrideCount;
     private long TotalSizeBytes => SelectedStats.TotalSizeBytes;
 
-    /// <summary>Contagem de arquivos de uma versão qualquer (linha do tempo).</summary>
-    private int FileCountOf(Guid versionId) =>
-        _stats.TryGetValue(versionId, out var s) ? s.TotalCount : 0;
+    [Inject] private VersionLifecycleActions VersionActions { get; set; } = null!;
+    [Inject] private ISnackbar Snackbar { get; set; } = null!;
+    [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = null!;
+    [Inject] private ArchiveModpackVersion ArchiveUseCase { get; set; } = null!;
+    [Inject] private RestoreModpackVersion RestoreUseCase { get; set; } = null!;
+    [Inject] private DeleteModpack DeleteModpackUseCase { get; set; } = null!;
+    [Inject] private IServerRepository ServerRepository { get; set; } = null!;
+    [Inject] private RetryModResolution RetryUseCase { get; set; } = null!;
+    [Inject] private CompleteFromServerPack ServerPackUseCase { get; set; } = null!;
+    [Inject] private JobProgressRegistry Jobs { get; set; } = null!;
+    [Inject] private CheckUpstreamUpdate UpstreamCheck { get; set; } = null!;
+    [Inject] private IModpackMembershipRepository Memberships { get; set; } = null!;
+    [Inject] private ICurrentUserScope Scope { get; set; } = null!;
 
-    /// <summary>
-    ///     Quantos mods o pack de origem declara. Só existe em versão importada —
-    ///     é o que permite mostrar "120 de 471" em vez de um spinner sem fim.
-    ///     Calculado no load; desserializar o snapshot a cada render seria caro.
-    /// </summary>
-    private int? _expectedModCount;
-
-    [Inject] private VersionLifecycleActions VersionActions { get; set; } = default!;
-    [Inject] private ISnackbar Snackbar { get; set; } = default!;
-    [Inject] private DeleteModpackVersion DeleteVersionUseCase { get; set; } = default!;
-    [Inject] private ArchiveModpackVersion ArchiveUseCase { get; set; } = default!;
-    [Inject] private RestoreModpackVersion RestoreUseCase { get; set; } = default!;
-    [Inject] private DeleteModpack DeleteModpackUseCase { get; set; } = default!;
-    [Inject] private IServerRepository ServerRepository { get; set; } = default!;
-    [Inject] private RetryModResolution RetryUseCase { get; set; } = default!;
-    [Inject] private CompleteFromServerPack ServerPackUseCase { get; set; } = default!;
-    [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
-    [Inject] private CheckUpstreamUpdate UpstreamCheck { get; set; } = default!;
-    [Inject] private IModpackMembershipRepository Memberships { get; set; } = default!;
-    [Inject] private ICurrentUserScope Scope { get; set; } = default!;
-
-    /// <summary>Assinatura de dono, exibida no topo — visível a quem quer que veja a página.</summary>
-    private ModpackMemberView? _owner;
-
-    /// <summary>
-    ///     Edita mods, versões, ícone etc. Falso esconde as ações de edição sem
-    ///     esconder a página inteira: quem só olha continua vendo o pack.
-    /// </summary>
-    private bool _canEdit;
-
-    /// <summary>Apaga o modpack. Só o dono (ou o admin da instalação).</summary>
-    private bool _canDelete;
-
-    /// <summary>Convida/remove editores. Só o dono.</summary>
-    private bool _canManageEditors;
-
-    /// <summary>Resultado da consulta à origem. Nulo enquanto não consultou (ou se falhou).</summary>
-    private UpstreamUpdateStatus? _upstream;
+    [Inject] private PageLoadTimer LoadTimer { get; set; } = null!;
 
     /// <summary>
     ///     Página do pack na origem. O CurseForge não expõe o slug no manifest,
@@ -91,13 +93,22 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         _ => null
     };
 
+    /// <summary>Progresso empurrado pelo worker para a versão selecionada.</summary>
+    private JobProgress? Progress =>
+        _selectedVersionId == Guid.Empty ? null : Jobs.Get(_selectedVersionId);
+
     public void Dispose()
     {
         Jobs.Changed -= OnJobChanged;
         GC.SuppressFinalize(this);
     }
 
-    private Guid _loaded;
+    /// <summary>Contagem de arquivos de uma versão qualquer (linha do tempo).</summary>
+    private int FileCountOf(Guid versionId) =>
+        _stats.TryGetValue(versionId, out var s) ? s.TotalCount : 0;
+
+    // método novo, logo abaixo do OnParametersSetAsync
+    protected override void OnAfterRender(bool firstRender) => LoadTimer.Rendered();
 
     protected override void OnInitialized() => Jobs.Changed += OnJobChanged;
 
@@ -113,8 +124,11 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         if (_loaded == ModpackId)
             return;
 
+        // OnParametersSetAsync: as duas linhas em volta do LoadAsync
         _loaded = ModpackId;
+        LoadTimer.Start(nameof(ModpackDetailPage));
         await LoadAsync();
+        LoadTimer.Loaded();
     }
 
     private async Task LoadAsync()
@@ -130,7 +144,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         if (_modpack is not null)
         {
             // Preserva a versão selecionada entre recargas (poll, publish); se ela
-            // sumiu ou não havia seleção, cai na mais recente (lista por Id desc).
+            // sumiu ou não havia seleção, cai na mais recente (lista por ID desc).
             var selected = _selectedVersionId != Guid.Empty
                 ? _modpack.Versions.FirstOrDefault(v => v.Id == _selectedVersionId)
                 : null;
@@ -154,7 +168,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
         _isLoading = false;
 
-        // Consulta à origem depois de pintar a tela: é rede, e prender o
+        // Consulta à origem após pintar a tela: é rede, e prender o
         // carregamento da página por ela seria trocar um travamento por outro.
         _ = CheckUpstreamAsync();
     }
@@ -174,10 +188,6 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         _upstream = result.Succeeded ? result.Value : null;
         await InvokeAsync(StateHasChanged);
     }
-
-    /// <summary>Progresso empurrado pelo worker para a versão selecionada.</summary>
-    private JobProgress? Progress =>
-        _selectedVersionId == Guid.Empty ? null : Jobs.Get(_selectedVersionId);
 
     // Assina o registro de progresso: o worker avisa e a página se redesenha.
     // Antes isto era um Timer de 2s por circuito — progresso atrasado, grosseiro
@@ -334,7 +344,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
         var dialog = await DialogService.ShowAsync<CheckUpdatesDialog>("Verificar atualizações", parameters, options);
 
-        // Ok devolve o Id do Draft novo — leva o admin direto para os mods dele.
+        // Ok devolve o ID do Draft novo — leva o admin direto para os mods dele.
         if (await dialog.Result is { Canceled: false, Data: Guid newVersionId })
             Navigation.NavigateTo($"/admin/modpacks/{ModpackId}/versions/{newVersionId}/mods");
     }
@@ -482,7 +492,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
             Snackbar.Add(
                 result.Value > 0
-                    ? $"Reparando: {result.Value} mods reenfileirados. O que já baixou foi mantido."
+                    ? $"Reparando: {result.Value} mods re-enfileirados. O que já baixou foi mantido."
                     : "Versão devolvida para rascunho. Nada ficou faltando para rebaixar.",
                 Severity.Success);
 
@@ -536,7 +546,8 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         ModpackVersionState.Draft => "Adicione mods e overrides; publique quando estiver pronto.",
         ModpackVersionState.Resolving => "Baixando e verificando os arquivos. Isto atualiza sozinho.",
         ModpackVersionState.Ready => "Pronta para uso. Crie um servidor ou verifique se há mods mais novos.",
-        ModpackVersionState.Failed => "Nada foi perdido: o reparo devolve a versão para rascunho e rebaixa só o que faltou.",
+        ModpackVersionState.Failed =>
+            "Nada foi perdido: o reparo devolve a versão para rascunho e rebaixa só o que faltou.",
         ModpackVersionState.Archived => "Some de novas instalações, mas quem já a fixou continua rodando.",
         _ => ""
     };
