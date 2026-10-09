@@ -11,8 +11,6 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
-## [Não lançado]
-
 ## [1.1.3] — 2026-10-09
 
 Launcher **1.1.3**.
