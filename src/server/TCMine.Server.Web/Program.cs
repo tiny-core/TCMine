@@ -41,8 +41,8 @@ builder.Services.AddSingleton<ICloudEndpointSource, CloudEndpointSource>();
 // configuração logo abaixo.
 StorageLayout.Apply(builder.Configuration, builder.Configuration);
 
-// A connection string sai dos campos separados (Host, Port, Name, Username,
-// Password) quando não vem pronta — ou do caminho da raiz, no caso do SQLite.
+// A connection string sai dos campos separados (Host, Port, Name, Username, Password)
+// quando não vem pronta — ou do caminho da raiz, no caso do SQLite.
 // Depois do StorageLayout porque o SQLite depende da raiz já resolvida.
 if (DatabaseConnection.Build(builder.Configuration, builder.Configuration[StorageLayout.RootKey])
     is { } connectionString)
@@ -51,8 +51,8 @@ if (DatabaseConnection.Build(builder.Configuration, builder.Configuration[Storag
         new Dictionary<string, string?> { ["Database:ConnectionString"] = connectionString });
 }
 
-// O SQLite abre o arquivo mas não cria a pasta: uma instalação nova (ou um
-// data/ apagado) morreria aqui com uma mensagem que não menciona pasta nenhuma.
+// O SQLite abre o arquivo, mas não cria a pasta: uma instalação nova (ou um data/ apagado)
+// morreria aqui com uma mensagem que não menciona pasta nenhuma.
 StoragePaths.EnsureCreated(builder.Configuration, builder.Environment);
 
 // Em container, a pasta de instâncias precisa ser o mesmo caminho dentro e
@@ -92,7 +92,7 @@ builder.Services.AddTcMineRateLimiting();
 
 // HSTS é grudento: o navegador guarda a promessa e recusa http naquele domínio
 // até o prazo vencer. 30 dias (o padrão) é proteção real e ainda permite
-// corrigir um erro de configuração dentro de um mês. Sem Preload de propósito —
+// corrigir um erro de configuração em um mês. Sem Preload de propósito —
 // entrar na lista dos navegadores é praticamente irreversível.
 builder.Services.AddHsts(options => options.MaxAge = TimeSpan.FromDays(30));
 
@@ -128,8 +128,7 @@ builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 
 // ---------- Proteção de dados ----------
 // Chaves persistidas em disco: sem isto elas são regeradas a cada arranque, o
-// que derrubaria toda sessão e tornaria ilegível o que foi cifrado antes (a
-// chave da API do CurseForge).
+// que derrubaria toda sessão e tornaria ilegível o cifrado antes (a chave da API do CurseForge).
 // O caminho é configurável porque em container /app é efêmero: recriar o
 // container apagaria as chaves, derrubando toda sessão e tornando ilegível o
 // que foi cifrado com elas — a chave do CurseForge.
@@ -140,8 +139,8 @@ builder.Services
     .SetApplicationName("TCMine");
 
 // ---------- Identidade ----------
-// Cookie de sessão para o painel. O launcher usa outro caminho (handshake +
-// download por hash), que segue anônimo — ver os endpoints marcados abaixo.
+// Cookie de sessão para o painel. O launcher usa outro caminho (handshake + download por hash),
+// que segue anônimo — ver os endpoints marcados abaixo.
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -176,6 +175,10 @@ builder.Services.AddScoped<UserPrincipalHolder>();
 builder.Services.AddScoped<ICurrentUserScope, HttpContextUserScope>();
 builder.Services.AddScoped<ServerActions>();
 builder.Services.AddScoped<VersionLifecycleActions>();
+
+// TEMPORÁRIO (fase 1 → fase 8): cronômetro da linha de base. Transient para
+// cada página receber o seu.
+builder.Services.AddTransient<PageLoadTimer>();
 
 builder.Services.AddTcMineApplication();
 
@@ -230,7 +233,7 @@ var app = builder.Build();
 // Isto valia só para Development, sob a regra de que produção migraria por
 // bundle no deploy. A regra pressupõe um pipeline de deploy, e o TCMine não tem
 // um: ele é entregue como imagem para alguém subir com `docker compose up` na
-// própria máquina. Sem migrar aqui, o container sobe, responde ao health check
+// própria máquina. Sem migrar aqui, o container sobe, responde ao Health check
 // (que não toca o banco) e devolve 500 em toda página — que é exatamente o que
 // aconteceu ao testar a imagem pela primeira vez.
 //
@@ -252,8 +255,8 @@ if (builder.Configuration.GetValue("Database:AutoMigrate", true))
         // Banco fora do ar no arranque não pode derrubar o processo: é
         // exatamente o caso que /health/live existe para distinguir — o
         // processo está vivo, o banco não está, e reiniciar a aplicação não
-        // conserta banco. Quem sobe junto com o Postgres no mesmo compose passa
-        // por aqui em todo boot, enquanto o banco ainda aceita conexões.
+        // conserta banco. Quem sobe com o Postgres no mesmo compose passa
+        // por aqui e no boot, enquanto o banco ainda aceita conexões.
         // O /health e o /health/ready seguem reprovando até o banco responder.
         Log.Error(ex, "Não foi possível aplicar as migrations no arranque.");
     }
@@ -275,7 +278,7 @@ app.UseTcMineSecurityHeaders();
 app.UseSerilogRequestLogging();
 
 // Depois do UseForwardedHeaders, e não antes: é ele que troca o IP do proxy pelo
-// IP real do cliente. Invertida, a ordem faria todo mundo cair no mesmo balde.
+// IP real do cliente. Invertida, a ordem faria todos cairem no mesmo balde.
 app.UseRateLimiter();
 
 app.MapHandshake();
@@ -294,10 +297,8 @@ app.MapHealthChecks("/health");
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 
 // Readiness: pronto para receber tráfego.
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains(DatabaseHealthCheck.ReadyTag)
-});
+app.MapHealthChecks("/health/ready",
+    new HealthCheckOptions { Predicate = check => check.Tags.Contains(DatabaseHealthCheck.ReadyTag) });
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -325,12 +326,15 @@ app.MapRazorComponents<App>()
 app.MapHub<MainHub>(HubRoutes.Main).RequireAuthorization();
 
 app.Run();
+return;
 
-// Regra única para todo cookie que a aplicação emite — sessão e antiforgery.
+// Regra única para cookie que a aplicação emite — sessão e antiforgery.
 // Em produção o cookie NUNCA pode viajar em claro; SameAsRequest significa
 // exatamente que viaja, se alguém chegar por http. Em desenvolvimento a app roda
 // em http puro, e exigir Secure deixaria o login impossível de testar localmente.
-static CookieSecurePolicy CookiePolicyFor(IHostEnvironment environment) =>
-    environment.IsDevelopment()
+static CookieSecurePolicy CookiePolicyFor(IHostEnvironment environment)
+{
+    return environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
+}

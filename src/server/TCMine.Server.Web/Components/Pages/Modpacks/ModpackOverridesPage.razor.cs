@@ -7,28 +7,16 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Components.Features.Modpacks;
+using TCMine.Server.Web.Diagnostics;
 
 namespace TCMine.Server.Web.Components.Pages.Modpacks;
 
 public partial class ModpackOverridesPage : IAsyncDisposable
 {
-    private bool _dirty;
-
-    private string? _dragPath; // path a ser arrastado (definido no handle)
-    private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
-    private StandaloneCodeEditor _editor = default!;
-
-    /// <summary>
-    ///     Os scripts do Monaco já desceram. Enquanto for falso o editor NÃO
-    ///     pode ser renderizado: o BlazorMonaco monta no primeiro render e
-    ///     chamaria um JS que ainda não existe.
-    /// </summary>
-    private bool _monacoLoaded;
-
-    /// <summary>Preenchido quando o editor não pôde ser carregado.</summary>
-    private string? _monacoError;
-
-    private IJSObjectReference? _monacoModule;
+    // O painel só tem tema escuro (o alternador saiu); o Monaco monta fora do
+    // MudThemeProvider e não acompanha isso sozinho, mas também não tem mais
+    // o que acompanhar — é sempre este.
+    private const string MonacoTheme = "vs-dark";
 
     /// <summary>
     ///     Completa quando o editor terminou de montar — ou quando desistimos
@@ -39,23 +27,45 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     /// </summary>
     private readonly TaskCompletionSource _editorMounted =
         new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    private bool _dirty;
+
+    private string? _dragPath; // path a ser arrastado (definido no handle)
+    private string? _dropTarget; // path sobre o qual se está a pairar (para realce)
+    private StandaloneCodeEditor _editor = default!;
     private bool _isLoading = true;
-    private bool _isSaving;
 
     /// <summary>Leitura do arquivo em curso — o clique numa árvore grande não é instantâneo.</summary>
     private bool _isOpening;
 
-    /// <summary>Preenchido quando o arquivo aberto não cabe no editor (binário ou grande).</summary>
-    private OverrideContent? _notEditable;
+    private bool _isSaving;
+
+    private (Guid Modpack, Guid Version) _loaded;
     private Modpack? _modpack;
-    private string? _selectedPath;
-    private List<TreeItemData<string>> _treeItems = [];
+
+    /// <summary>Preenchido quando o editor não pôde ser carregado.</summary>
+    private string? _monacoError;
+
+    /// <summary>
+    ///     Os scripts do Monaco já desceram. Enquanto for falso o editor NÃO
+    ///     pode ser renderizado: o BlazorMonaco monta no primeiro render e
+    ///     chamaria um JS que ainda não existe.
+    /// </summary>
+    private bool _monacoLoaded;
+
+    private IJSObjectReference? _monacoModule;
 
     /// <summary>
     ///     A árvore inteira em memória (barata: são strings), indexada por caminho.
     ///     Só vira componente o galho que o admin abre — ver LoadChildrenAsync.
     /// </summary>
     private Dictionary<string, Node> _nodesByPath = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Preenchido quando o arquivo aberto não cabe no editor (binário ou grande).</summary>
+    private OverrideContent? _notEditable;
+
+    private string? _selectedPath;
+    private List<TreeItemData<string>> _treeItems = [];
     private int _treeRevision;
     private ModpackVersion? _version;
     [Parameter] public Guid ModpackId { get; set; }
@@ -74,12 +84,30 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-    // O painel só tem tema escuro (o alternador saiu); o Monaco monta fora do
-    // MudThemeProvider e não acompanha isso sozinho, mas também não tem mais
-    // o que acompanhar — é sempre este.
-    private const string MonacoTheme = "vs-dark";
+    [Inject] private PageLoadTimer LoadTimer { get; set; } = default!;
 
-    private (Guid Modpack, Guid Version) _loaded;
+    /// <summary>
+    ///     Solta o módulo JS ao sair da página. O circuito do Blazor Server é
+    ///     longo: sem isto, cada visita à aba deixaria uma referência viva.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        // A página não tem finalizador; o SuppressFinalize é só o que a CA1816
+        // exige de quem implementa o padrão.
+        GC.SuppressFinalize(this);
+
+        if (_monacoModule is null)
+            return;
+
+        try
+        {
+            await _monacoModule.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuito já caiu (o admin fechou a aba): não há o que soltar.
+        }
+    }
 
     /// <summary>
     ///     Recarrega quando a ROTA muda, e não só na primeira vez — mesma regra
@@ -95,7 +123,9 @@ public partial class ModpackOverridesPage : IAsyncDisposable
             return;
 
         _loaded = (ModpackId, VersionId);
+        LoadTimer.Start(nameof(ModpackDetailPage));
         await LoadAsync();
+        LoadTimer.Loaded();
     }
 
     // Trocar versão numa aba por versão navega para a mesma aba da nova. Como o
@@ -145,8 +175,11 @@ public partial class ModpackOverridesPage : IAsyncDisposable
         _nodesByPath = new Dictionary<string, Node>(StringComparer.OrdinalIgnoreCase);
         IndexNodes(root.Values);
 
-        _treeItems = [.. root.Values.OrderBy(n => n.IsFile).ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(ToItem)];
+        _treeItems =
+        [
+            .. root.Values.OrderBy(n => n.IsFile).ThenBy(n => n.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(ToItem)
+        ];
         _treeRevision++; // muda a identidade do MudTreeView → força recriação
     }
 
@@ -188,6 +221,8 @@ public partial class ModpackOverridesPage : IAsyncDisposable
     /// </summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        LoadTimer.Rendered();
+
         if (!firstRender || _monacoLoaded)
             return;
 
@@ -205,12 +240,13 @@ public partial class ModpackOverridesPage : IAsyncDisposable
             // a primeira. Iterar uma string dá os caracteres dela — o editor
             // tentava baixar um script chamado "_" e falhava com uma mensagem
             // que não dizia nada.
-            await _monacoModule.InvokeVoidAsync("ensure", (object)new[]
-            {
-                Assets["_content/BlazorMonaco/jsInterop.js"],
-                Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"],
-                Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"]
-            });
+            await _monacoModule.InvokeVoidAsync("ensure",
+                (object)new[]
+                {
+                    Assets["_content/BlazorMonaco/jsInterop.js"],
+                    Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/loader.js"],
+                    Assets["_content/BlazorMonaco/lib/monaco-editor/min/vs/editor/editor.main.js"]
+                });
 
             _monacoLoaded = true;
         }
@@ -514,28 +550,5 @@ public partial class ModpackOverridesPage : IAsyncDisposable
         public string FullPath = "";
         public bool IsFile;
         public string Name = "";
-    }
-
-    /// <summary>
-    ///     Solta o módulo JS ao sair da página. O circuito do Blazor Server é
-    ///     longo: sem isto, cada visita à aba deixaria uma referência viva.
-    /// </summary>
-    public async ValueTask DisposeAsync()
-    {
-        // A página não tem finalizador; o SuppressFinalize é só o que a CA1816
-        // exige de quem implementa o padrão.
-        GC.SuppressFinalize(this);
-
-        if (_monacoModule is null)
-            return;
-
-        try
-        {
-            await _monacoModule.DisposeAsync();
-        }
-        catch (JSDisconnectedException)
-        {
-            // Circuito já caiu (o admin fechou a aba): não há o que soltar.
-        }
     }
 }

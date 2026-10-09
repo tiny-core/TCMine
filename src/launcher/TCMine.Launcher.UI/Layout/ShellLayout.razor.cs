@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Logging;
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.UI.State;
@@ -18,6 +19,9 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     [Inject] private ActionLock Lock { get; set; } = default!;
 
     [Inject] private GameSession Game { get; set; } = default!;
+
+    // TEMPORÁRIO (linha de base, sai no fim da fase 8).
+    [Inject] private ILogger<ShellLayout> Logger { get; set; } = default!;
 
     public void Dispose()
     {
@@ -75,8 +79,18 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
             // No finally: uma exceção aqui deixaria a janela girando para sempre,
             // que é o pior desfecho possível para um arranque.
             Shell.FinishStartup();
+
+            // TEMPORÁRIO (linha de base, sai no fim da fase 8). No finally
+            // porque é aqui que o arranque termina, com ou sem servidor.
+            var usableMs = StartupClock.ElapsedMs;
+            LogStartupFinished(Logger, usableMs);
         }
     }
 
     private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    // Estático com ILogger explícito, como no LoggingErrorBoundary: o gerador
+    // de [LoggerMessage] só acha campo, e um componente recebe por [Inject].
+    [LoggerMessage(Level = LogLevel.Information, Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms.")]
+    private static partial void LogStartupFinished(ILogger logger, long elapsedMs);
 }
