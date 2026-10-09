@@ -27,6 +27,11 @@ VERSAO_ARQ="src/launcher/VERSION"
 # nenhum, e distinguir "só comentário" aqui seria apostar contra o compilador.
 CAMINHOS=(src/launcher src/shared Directory.Packages.props Directory.Build.props)
 
+# As tags server-v* nascem no GitHub (o release.yml as cria), nunca na máquina
+# de quem desenvolve. Sem buscá-las, a conferência local compara com uma
+# release atrasada. Falhar aqui (sem rede) não impede a conferência.
+git fetch --tags --quiet origin 2>/dev/null || true
+
 # A release anterior é a tag server-v* mais próxima deste commit. O release.yml
 # cria a tag DEPOIS de publicar, então na conferência o HEAD ainda não a
 # carrega. (Quando a tag era o gatilho, era preciso olhar a partir de HEAD^.)

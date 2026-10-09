@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Web.Diagnostics;
 
 namespace TCMine.Server.Web.Components.Pages.Cloud;
 
@@ -22,13 +23,23 @@ public partial class CloudVaultPage : ComponentBase
     [Inject] private ListCloudDoubtful DoubtfulUseCase { get; set; } = default!;
     [Inject] private ListCloudIncidents IncidentsUseCase { get; set; } = default!;
 
+    // TEMPORÁRIO (linha de base, sai no fim da fase 8).
+    [Inject] private PageLoadTimer LoadTimer { get; set; } = default!;
+
     /// <summary>Pendências por aba: o dono vê de longe onde há algo para decidir.</summary>
     private (int Suspects, int Quarantine, int Doubtful, int Incidents) _counts;
 
     /// <summary>MudBlazor esconde o badge quando o dado é nulo.</summary>
     private static int? Badge(int count) => count > 0 ? count : null;
 
-    protected override Task OnParametersSetAsync() => LoadAsync();
+    protected override async Task OnParametersSetAsync()
+    {
+        LoadTimer.Start(nameof(CloudVaultPage));
+        await LoadAsync();
+        LoadTimer.Loaded();
+    }
+
+    protected override void OnAfterRender(bool firstRender) => LoadTimer.Rendered();
 
     private async Task LoadAsync()
     {
