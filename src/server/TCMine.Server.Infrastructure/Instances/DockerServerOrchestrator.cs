@@ -1,4 +1,5 @@
-﻿using TCMine.Contracts.Servers;
+﻿using Microsoft.Extensions.Logging;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Infrastructure.Docker;
 
@@ -10,16 +11,19 @@ namespace TCMine.Server.Infrastructure.Instances;
 ///     sobrevive a re-materializações. O container é dono do processo — o TCMine
 ///     nunca o hospeda em si.
 /// </summary>
-public sealed class DockerServerOrchestrator(
+public sealed partial class DockerServerOrchestrator(
     DockerApiClient docker,
     IInstanceMaterializer materializer,
     IServerRepository servers,
-    IModpackRepository modpacks) : IServerOrchestrator
+    IModpackRepository modpacks,
+    ILogger<DockerServerOrchestrator> logger) : IServerOrchestrator
 {
     private const string Image = "itzg/minecraft-server:latest";
 
     /// <summary>Label com a impressão digital da spec (ver <see cref="ItzgEnv.Fingerprint" />).</summary>
     private const string SpecLabel = "tcmine.spec";
+
+    private readonly ILogger<DockerServerOrchestrator> _logger = logger;
 
     public async Task<string> EnsureCreatedAsync(Guid gameServerId, CancellationToken ct)
     {
@@ -116,8 +120,7 @@ public sealed class DockerServerOrchestrator(
             ExposedPorts = new Dictionary<string, object> { ["25565/tcp"] = new() },
             Labels = new Dictionary<string, string>
             {
-                ["tcmine.server"] = gameServerId.ToString(),
-                [SpecLabel] = fingerprint
+                ["tcmine.server"] = gameServerId.ToString(), [SpecLabel] = fingerprint
             },
             HostConfig = new HostConfig
             {
@@ -138,14 +141,6 @@ public sealed class DockerServerOrchestrator(
 
         return containerId;
     }
-
-    /// <summary>
-    ///     UID/GID para a imagem itzg, quando dá para saber.
-    ///     Fora do Linux não se aplica: no Docker Desktop o bind mount não
-    ///     carrega dono de Unix, e mandar números aí só confundiria.
-    /// </summary>
-    private static string[] UsuarioDoProcesso() =>
-        ProcessUser.Current is { } user ? [$"UID={user.Uid}", $"GID={user.Gid}"] : [];
 
     public async Task RemoveAsync(Guid gameServerId, CancellationToken ct)
     {
@@ -183,15 +178,16 @@ public sealed class DockerServerOrchestrator(
         catch (Exception ex)
         {
             // Não deixa uma falha de inspect derrubar a reconciliação da página.
-            Console.WriteLine($"[Docker] inspect falhou para {server.ContainerId}: {ex.Message}");
+            LogInspectFailed(ex, server.ContainerId);
             return server.Status; // mantém o último conhecido
         }
 
         if (inspect is null)
             return GameServerStatus.Stopped;
 
-        Console.WriteLine(
-            $"[Docker] {server.ContainerId[..12]} Running={inspect.State.Running} Status={inspect.State.Status} Exit={inspect.State.ExitCode}");
+        // Debug, e não Information: isto roda a cada reconciliação de cada
+        // servidor. Era um Console.WriteLine — sem nível, não havia como calar.
+        LogInspected(server.ContainerId, inspect.State.Running, inspect.State.Status, inspect.State.ExitCode);
 
         return inspect.State switch
         {
@@ -209,6 +205,22 @@ public sealed class DockerServerOrchestrator(
         // sem despejar o log inteiro de uma sessão de horas no circuito.
         return docker.StreamLogsAsync($"tcmine-{gameServerId}", 200, ct);
     }
+
+    /// <summary>
+    ///     UID/GID para a imagem itzg, quando dá para saber.
+    ///     Fora do Linux não se aplica: no Docker Desktop o bind mount não
+    ///     carrega dono de Unix, e mandar números aí só confundiria.
+    /// </summary>
+    private static string[] UsuarioDoProcesso() =>
+        ProcessUser.Current is { } user ? [$"UID={user.Uid}", $"GID={user.Gid}"] : [];
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Docker: inspect falhou para o container {ContainerId}.")]
+    private partial void LogInspectFailed(Exception ex, string containerId);
+
+    [LoggerMessage(
+        Level = LogLevel.Debug,
+        Message = "Docker: container {ContainerId} Running={Running} Status={Status} Exit={ExitCode}.")]
+    private partial void LogInspected(string containerId, bool running, string? status, int exitCode);
 
     private static string ExtractPort(string connectAddress)
     {

@@ -52,10 +52,8 @@ public class ChooseInstanceTests
     }
 
     [Fact]
-    public void Sem_nada_instalado_nao_ha_ativa_nem_com_escolha_gravada()
-    {
+    public void Sem_nada_instalado_nao_ha_ativa_nem_com_escolha_gravada() =>
         ChooseInstance.Resolve([], Instalada("Alpha").Key).ShouldBeNull();
-    }
 
     [Fact]
     public void A_vista_distingue_os_dois_vazios()
@@ -83,7 +81,7 @@ public class ChooseInstanceTests
                 InstalledAt = DateTimeOffset.UtcNow,
                 ManagedFiles = new Dictionary<string, string>()
             },
-            SizeBytes: 0,
-            Path: $"/instancias/{name}");
+            0,
+            $"/instancias/{name}");
     }
 }

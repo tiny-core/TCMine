@@ -13,6 +13,19 @@ namespace TCMine.Launcher.Core.Tests.Modpacks;
 /// </summary>
 public class UpdateInstanceTests
 {
+    // ---------- apoio ----------
+
+    private static readonly Uri Servidor = new("https://servidor.exemplo/");
+
+    private static readonly ModpackDto Pack = new()
+    {
+        Id = Guid.CreateVersion7(),
+        Slug = "pack",
+        Name = "Pack",
+        MinecraftVersion = "1.21.1",
+        Loader = ModLoader.NeoForge
+    };
+
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -21,11 +34,11 @@ public class UpdateInstanceTests
         // Começar a reescrever mods para só então copiar deixaria o jogador sem
         // os dois caminhos: nem a versão antiga, nem a garantia de poder voltar.
         var ordem = new List<string>();
-        var backup = new BackupFalso(temMundo: true, ordem);
+        var backup = new BackupFalso(true, ordem);
         var scenario = Cenario(backup, ordem);
 
         await scenario.HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
+            Servidor, Pack, Guid.CreateVersion7(), Instalada(), true, null, Ct);
 
         ordem.ShouldBe(["backup", "instalação"]);
     }
@@ -36,11 +49,11 @@ public class UpdateInstanceTests
         // É isto que a torna reversível. Instalar por cima de uma cópia que não
         // existe é o caso em que o jogador perde tudo sem ninguém saber.
         var ordem = new List<string>();
-        var backup = new BackupFalso(temMundo: true, ordem) { Erro = new IOException("disco cheio") };
+        var backup = new BackupFalso(true, ordem) { Erro = new IOException("disco cheio") };
         var scenario = Cenario(backup, ordem);
 
         var result = await scenario.HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
+            Servidor, Pack, Guid.CreateVersion7(), Instalada(), true, null, Ct);
 
         result.Succeeded.ShouldBeFalse();
         result.Error!.ShouldContain("disco cheio");
@@ -53,11 +66,11 @@ public class UpdateInstanceTests
         // Propor backup de uma instalação que nunca foi jogada ensina o jogador a
         // ignorar o aviso.
         var ordem = new List<string>();
-        var backup = new BackupFalso(temMundo: false, ordem);
+        var backup = new BackupFalso(false, ordem);
         var scenario = Cenario(backup, ordem);
 
         await scenario.HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: true, null, Ct);
+            Servidor, Pack, Guid.CreateVersion7(), Instalada(), true, null, Ct);
 
         ordem.ShouldBe(["instalação"]);
     }
@@ -66,11 +79,11 @@ public class UpdateInstanceTests
     public async Task Sem_pedir_backup_nem_se_pergunta_pelo_mundo()
     {
         var ordem = new List<string>();
-        var backup = new BackupFalso(temMundo: true, ordem);
+        var backup = new BackupFalso(true, ordem);
         var scenario = Cenario(backup, ordem);
 
         await scenario.HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), Instalada(), backupWorld: false, null, Ct);
+            Servidor, Pack, Guid.CreateVersion7(), Instalada(), false, null, Ct);
 
         ordem.ShouldBe(["instalação"]);
     }
@@ -85,23 +98,10 @@ public class UpdateInstanceTests
         var instance = Instalada();
 
         await new UpdateInstance(installer, new BackupFalso(false, ordem)).HandleAsync(
-            Servidor, Pack, Guid.CreateVersion7(), instance, backupWorld: true, null, Ct);
+            Servidor, Pack, Guid.CreateVersion7(), instance, true, null, Ct);
 
         installer.Alvo.ShouldBe(instance.Key);
     }
-
-    // ---------- apoio ----------
-
-    private static readonly Uri Servidor = new("https://servidor.exemplo/");
-
-    private static readonly ModpackDto Pack = new()
-    {
-        Id = Guid.CreateVersion7(),
-        Slug = "pack",
-        Name = "Pack",
-        MinecraftVersion = "1.21.1",
-        Loader = ModLoader.NeoForge
-    };
 
     private static UpdateInstance Cenario(BackupFalso backup, List<string> ordem) =>
         new(new InstaladorFalso(ordem), backup);
@@ -120,8 +120,8 @@ public class UpdateInstanceTests
                 MinecraftVersion = "1.21.1",
                 Loader = ModLoader.NeoForge
             },
-            SizeBytes: 0,
-            Path: "/instancias/pack");
+            0,
+            "/instancias/pack");
 
     private sealed class BackupFalso(bool temMundo, List<string> ordem) : IWorldBackup
     {

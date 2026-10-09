@@ -20,7 +20,7 @@ mesma máquina e com o mesmo modpack.
 | Modpack de referência | All the Mods 10 — 6 versões, 22 185 arquivos (≈ 3 570 por versão) |
 
 ## Regras
- 
+
 - Build de Release, na imagem publicada — nunca `dotnet run` nem Debug.
 - Cada medição 3 vezes; vale a mediana.
 - "A frio" = primeira vez depois de reiniciar a máquina. "A quente" = segunda vez em diante.
@@ -30,14 +30,14 @@ mesma máquina e com o mesmo modpack.
 
 Tudo é medido do HOST, pelo nome do container — nada roda dentro dele.
 
-| #  | Medição                                   | Amostras (carga / renderização)        | Mediana         |
-|----|-------------------------------------------|----------------------------------------|-----------------|
-| S1 | Boot até `/health/live` responder         |                                        | _falta medir_   |
-| S2 | `ModpackDetailPage`                       | 58/11, 17/19, 16/18, 17/16, 13/21      | **17 / 18 ms**  |
-| S3 | `ModpackOverridesPage`                    | 160/48, 203/37, 196/36, 163/35         | **179 / 36 ms** |
-| S4 | `CloudVaultPage`                          | 87/41, 16/16, 39/36, 7/23              | **27 / 29 ms**  |
-| S5 | Iniciar um servidor de jogo até `Running` | 684 (container 538)                    | 684 ms (1 amostra, container já criado) |
-| S6 | Memória do container em repouso           | 227 MiB                                | 227 MiB (1 amostra, servidores de jogo parados) |
+| #  | Medição                                   | Amostras (carga / renderização)   | Mediana                                         |
+|----|-------------------------------------------|-----------------------------------|-------------------------------------------------|
+| S1 | Boot até `/health/live` responder         |                                   | _falta medir_                                   |
+| S2 | `ModpackDetailPage`                       | 58/11, 17/19, 16/18, 17/16, 13/21 | **17 / 18 ms**                                  |
+| S3 | `ModpackOverridesPage`                    | 160/48, 203/37, 196/36, 163/35    | **179 / 36 ms**                                 |
+| S4 | `CloudVaultPage`                          | 87/41, 16/16, 39/36, 7/23         | **27 / 29 ms**                                  |
+| S5 | Iniciar um servidor de jogo até `Running` | 684 (container 538)               | 684 ms (1 amostra, container já criado)         |
+| S6 | Memória do container em repouso           | 227 MiB                           | 227 MiB (1 amostra, servidores de jogo parados) |
 
 S2–S5 são a saída do `report` na 1.1.2. Uma rodada anterior, na 1.1.1, deu
 79/42, 185/40 e 14/23 ms para S2, S3 e S4 — a mesma ordem de grandeza.
@@ -90,14 +90,14 @@ sessão, login, offline…), porque são caminhos de custo diferente, e lista as
 linhas "Instalação de modpack" — uma por instalação ou atualização, com o tempo
 de cada fase (plano, download, aplicação, fecho).
 
-| #  | Medição                                                    | 1    | 2    | 3   | Mediana                                   | Meta |
-|----|------------------------------------------------------------|------|------|-----|-------------------------------------------|------|
-| L1 | Processo → host montado (a quente)                         | 282  | 280  | 278 | **280 ms**                                |      |
-| L2 | Processo → janela visível (a quente)                       | 915  | 923  | 907 | **915 ms**                                |      |
-| L3 | Processo → primeira tela utilizável (a quente, com sessão) | 3563 | 3245 |     | ~3,4 s (2 amostras)                       |      |
-| L4 | Idem, primeira abertura após atualizar                     | 9932 | 11168 |    | ~10,5 s (2 amostras; host 2,9–5,1 s, janela 4,9–7,0 s) |      |
-| L5 | Instalar o modpack de referência do zero                   | 49186 |     |     | **49,2 s** (1 amostra; fases abaixo)      |      |
-| L6 | Atualizar para a versão seguinte                           |      |      |     | _falta medir_                             |      |
+| #  | Medição                                                    | 1     | 2     | 3   | Mediana                                                | Meta |
+|----|------------------------------------------------------------|-------|-------|-----|--------------------------------------------------------|------|
+| L1 | Processo → host montado (a quente)                         | 282   | 280   | 278 | **280 ms**                                             |      |
+| L2 | Processo → janela visível (a quente)                       | 915   | 923   | 907 | **915 ms**                                             |      |
+| L3 | Processo → primeira tela utilizável (a quente, com sessão) | 3563  | 3245  |     | ~3,4 s (2 amostras)                                    |      |
+| L4 | Idem, primeira abertura após atualizar                     | 9932  | 11168 |     | ~10,5 s (2 amostras; host 2,9–5,1 s, janela 4,9–7,0 s) |      |
+| L5 | Instalar o modpack de referência do zero                   | 49186 |       |     | **49,2 s** (1 amostra; fases abaixo)                   |      |
+| L6 | Atualizar para a versão seguinte                           |       |       |     | _falta medir_                                          |      |
 
 ### O que os números dizem
 
@@ -113,13 +113,13 @@ de cada fase (plano, download, aplicação, fecho).
 
 All the Mods 10 1.2.1, com o estado local limpo, na 1.1.2 (2026-10-09):
 
-| Fase      | Tempo       | O que faz                                              |
-|-----------|-------------|--------------------------------------------------------|
-| Plano     | 84 ms       | manifesto do servidor e diff contra o disco            |
-| Download  | **45,5 s**  | 3 569 arquivos, 1,58 GB — um pedido HTTP por arquivo   |
-| Aplicação | 3,6 s       | 3 692 arquivos ligados do store para a instância       |
-| Fecho     | 26 ms       | limpeza e gravação do manifesto                        |
-| **Total** | **49,2 s**  |                                                        |
+| Fase      | Tempo      | O que faz                                            |
+|-----------|------------|------------------------------------------------------|
+| Plano     | 84 ms      | manifesto do servidor e diff contra o disco          |
+| Download  | **45,5 s** | 3 569 arquivos, 1,58 GB — um pedido HTTP por arquivo |
+| Aplicação | 3,6 s      | 3 692 arquivos ligados do store para a instância     |
+| Fecho     | 26 ms      | limpeza e gravação do manifesto                      |
+| **Total** | **49,2 s** |                                                      |
 
 O download é 92% do total. Ele tem duas metades de natureza diferente, visíveis
 no log HTTP de uma instalação anterior (37 s do primeiro ao último pedido):
@@ -128,8 +128,8 @@ no log HTTP de uma instalação anterior (37 s do primeiro ao último pedido):
   pedidos por segundo, limitados pela largura de banda. É onde vai quase todo o
   1,58 GB — a média da instalação inteira é ~35 MB/s.
 - **Depois vêm milhares de arquivos pequenos** (configs, overrides): o ritmo
-  estabiliza em ~150 pedidos/s com 6 downloads simultâneos
-  (`InstallModpackVersion.ParallelDownloads`) e ~37 ms até os cabeçalhos de
+  estabiliza em ~150 pedidos/s com 6 downloads simultâneos (`InstallModpackVersion.ParallelDownloads`) e ~37 ms até os
+  cabeçalhos de
   cada resposta. Aí o limite é a ida-e-volta, não a banda: ~3 400 pedidos ×
   37 ms ÷ 6 ≈ 21 s para transferir poucos megabytes.
 
@@ -172,16 +172,16 @@ As demais tabelas têm 0–2 linhas.
 
 Uma por medição que a refatoração pretende mexer; as outras só não podem piorar.
 
-| #  | Hoje                     | Meta                        | Fase |
-|----|--------------------------|-----------------------------|------|
-| S2 | 17 / 18 ms               | não piorar                  | —    |
-| S3 | 179 / 36 ms              | carga ≤ 60 ms               | 6    |
-| S4 | 27 / 29 ms               | não piorar                  | —    |
-| S6 | 227 MiB                  | não piorar (≤ 250 MiB)      | —    |
-| L2 | 915 ms                   | não piorar                  | —    |
-| L3 | ~3,4 s                   | ≤ 1,5 s                     | 8    |
-| L5 | 49,2 s (download 45,5 s) | ≤ 30 s                      | 8    |
-| —  | 14 chaves / 2 servidores | 1 chave por servidor        | 5    |
+| #  | Hoje                     | Meta                   | Fase |
+|----|--------------------------|------------------------|------|
+| S2 | 17 / 18 ms               | não piorar             | —    |
+| S3 | 179 / 36 ms              | carga ≤ 60 ms          | 6    |
+| S4 | 27 / 29 ms               | não piorar             | —    |
+| S6 | 227 MiB                  | não piorar (≤ 250 MiB) | —    |
+| L2 | 915 ms                   | não piorar             | —    |
+| L3 | ~3,4 s                   | ≤ 1,5 s                | 8    |
+| L5 | 49,2 s (download 45,5 s) | ≤ 30 s                 | 8    |
+| —  | 14 chaves / 2 servidores | 1 chave por servidor   | 5    |
 
 S5 (684 ms com o container já criado) só não pode piorar. S1 e L6 recebem meta
 quando forem medidos; falta também S5 no PRIMEIRO start de um servidor, que

@@ -11,7 +11,8 @@
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
                 Nenhuma origem disponível. O Modrinth não precisa de configuração; para o
                 CurseForge, cadastre a chave da API em
-                <MudLink Href="/admin/settings">Configurações</MudLink>.
+                <MudLink Href="/admin/settings">Configurações</MudLink>
+                .
             </MudAlert>
         }
         else
@@ -109,7 +110,8 @@
                     @if (_loadingReleases)
                     {
                         <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Consultando as versões do pack…</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Consultando as versões do pack…
+                        </MudText>
                     }
                     else if (_releases.Count > 0)
                     {

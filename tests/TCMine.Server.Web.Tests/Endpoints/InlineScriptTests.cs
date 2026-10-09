@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Contracts.Servers;
@@ -24,8 +25,14 @@ public sealed class InlineScriptTests(PainelAutenticado painel) : IClassFixture<
     public static TheoryData<string> Rotas =>
         new()
         {
-            "/admin/setup", "/", "/admin", "/admin/modpacks", "/admin/servers",
-            "/admin/mods", "/admin/settings", "/admin/storage"
+            "/admin/setup",
+            "/",
+            "/admin",
+            "/admin/modpacks",
+            "/admin/servers",
+            "/admin/mods",
+            "/admin/settings",
+            "/admin/storage"
         };
 
     [Theory]
@@ -58,17 +65,14 @@ public sealed class InlineScriptTests(PainelAutenticado painel) : IClassFixture<
 /// </summary>
 public sealed class PainelAutenticado : IAsyncLifetime
 {
-    private TcMineAppFactory _factory = default!;
     private HttpClient _client = default!;
+    private TcMineAppFactory _factory = default!;
 
     public async ValueTask InitializeAsync()
     {
         _factory = new TcMineAppFactory
         {
-            Servicos = services =>
-            {
-                services.AddSingleton<IServerOrchestrator>(new ContainersParados());
-            }
+            Servicos = services => { services.AddSingleton<IServerOrchestrator>(new ContainersParados()); }
         };
 
         var cookie = await _factory.EntrarComoAdminAsync();
@@ -77,15 +81,15 @@ public sealed class PainelAutenticado : IAsyncLifetime
         _client.DefaultRequestHeaders.Add("Cookie", cookie);
     }
 
-    public Task<string> BuscarAsync(string rota, CancellationToken ct) =>
-        _client.GetStringAsync(rota, ct);
-
     public ValueTask DisposeAsync()
     {
         _client.Dispose();
         _factory.Dispose();
         return ValueTask.CompletedTask;
     }
+
+    public Task<string> BuscarAsync(string rota, CancellationToken ct) =>
+        _client.GetStringAsync(rota, ct);
 
     private sealed class ContainersParados : IServerOrchestrator
     {
@@ -101,7 +105,7 @@ public sealed class PainelAutenticado : IAsyncLifetime
         public Task RemoveAsync(Guid gameServerId, CancellationToken ct) => Task.CompletedTask;
 
         public async IAsyncEnumerable<ConsoleLine> StreamLogsAsync(
-            Guid gameServerId, [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct)
+            Guid gameServerId, [EnumeratorCancellation] CancellationToken ct)
         {
             // Nenhuma linha: o console não faz parte do que este teste afirma.
             await Task.CompletedTask;

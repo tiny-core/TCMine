@@ -66,13 +66,15 @@ public sealed partial class InterruptedWorkRecovery(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} ingestão(ões) interrompida(s) voltaram para a fila.")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "{Count} ingestão(ões) interrompida(s) voltaram para a fila.")]
     private partial void LogIngestionsRecovered(int count);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao retomar as ingestões interrompidas.")]
     private partial void LogIngestionsFailed(Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "{Count} importação(ões) interrompida(s) voltaram para a fila.")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "{Count} importação(ões) interrompida(s) voltaram para a fila.")]
     private partial void LogImportsRecovered(int count);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Falha ao retomar as importações interrompidas.")]

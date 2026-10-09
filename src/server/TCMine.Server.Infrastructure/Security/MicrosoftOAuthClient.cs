@@ -61,9 +61,7 @@ public sealed partial class MicrosoftOAuthClient(
 
         if (payload?.AccessToken is not { Length: > 0 } accessToken
             || payload.IdToken is not { Length: > 0 } idToken)
-        {
             return Result<MicrosoftIdentity>.Fail("A Microsoft respondeu sem token de acesso ou de identidade.");
-        }
 
         var claims = DecodeIdTokenClaims(idToken);
 
@@ -95,7 +93,7 @@ public sealed partial class MicrosoftOAuthClient(
     private static byte[] Base64UrlDecode(string value)
     {
         var padded = value.Replace('-', '+').Replace('_', '/');
-        padded = padded.PadRight(padded.Length + ((4 - (padded.Length % 4)) % 4), '=');
+        padded = padded.PadRight(padded.Length + (4 - padded.Length % 4) % 4, '=');
         return Convert.FromBase64String(padded);
     }
 
@@ -106,8 +104,10 @@ public sealed partial class MicrosoftOAuthClient(
     private partial void LogTokenExchangeFailed(int status);
 
     private sealed record TokenResponse(
-        [property: JsonPropertyName("access_token")] string? AccessToken,
-        [property: JsonPropertyName("id_token")] string? IdToken);
+        [property: JsonPropertyName("access_token")]
+        string? AccessToken,
+        [property: JsonPropertyName("id_token")]
+        string? IdToken);
 
     private sealed record IdTokenClaims(
         [property: JsonPropertyName("oid")] string? ObjectId,

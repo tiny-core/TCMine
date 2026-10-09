@@ -58,13 +58,11 @@ public abstract record ModResolution
         IReadOnlyList<ModDependency> Dependencies,
         string? IconUrl = null,
         FileSide? Side = null,
-
         /// <summary>
         ///     Pasta da instância onde este arquivo vive. Nem tudo o que vem num
         ///     modpack é mod: um shaderpack em mods/ derruba o jogo no arranque.
         /// </summary>
         string Folder = "mods",
-
         /// <summary>
         ///     Id canônico do projeto na origem, quando ela o informa. O pedido
         ///     pode ter chegado por outro nome (o slug do Modrinth), e a
@@ -80,7 +78,9 @@ public abstract record ModResolution
     ///     mods afetados para o admin decidir o que fazer.
     /// </summary>
     public sealed record DistributionDenied(
-        string ProjectName, Uri ProjectPage, string Folder = "mods") : ModResolution;
+        string ProjectName,
+        Uri ProjectPage,
+        string Folder = "mods") : ModResolution;
 
     public sealed record NotFound(string Reason, string Folder = "mods") : ModResolution;
 }

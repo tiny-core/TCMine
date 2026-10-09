@@ -8,7 +8,11 @@ namespace TCMine.Server.Application.Cloud;
 /// <param name="AttachedHere">ligado a ESTA nuvem</param>
 /// <param name="AttachedElsewhere">ligado a outra nuvem do mesmo dono</param>
 /// <param name="Key">chave ativa (só o prefixo e o último contato), se houver</param>
-public sealed record CloudVaultServerView(Guid ServerId, string Name, bool AttachedHere, bool AttachedElsewhere,
+public sealed record CloudVaultServerView(
+    Guid ServerId,
+    string Name,
+    bool AttachedHere,
+    bool AttachedElsewhere,
     CloudServerKeyView? Key);
 
 /// <summary>
@@ -16,7 +20,10 @@ public sealed record CloudVaultServerView(Guid ServerId, string Name, bool Attac
 ///     domínio, <c>GameServer.AttachToCloudVault</c>). Servidores de outros
 ///     donos nem aparecem.
 /// </summary>
-public sealed class ListCloudVaultServers(ICloudAdminRepository repo, IServerRepository servers, ICurrentUserScope scope)
+public sealed class ListCloudVaultServers(
+    ICloudAdminRepository repo,
+    IServerRepository servers,
+    ICurrentUserScope scope)
 {
     public async Task<Result<IReadOnlyList<CloudVaultServerView>>> HandleAsync(Guid vaultId, CancellationToken ct)
     {
@@ -31,9 +38,9 @@ public sealed class ListCloudVaultServers(ICloudAdminRepository repo, IServerRep
         [
             .. owned.OrderBy(s => s.Name, StringComparer.CurrentCultureIgnoreCase).Select(s => new CloudVaultServerView(
                 s.Id, s.Name,
-                AttachedHere: s.CloudVaultId == vaultId,
-                AttachedElsewhere: s.CloudVaultId is not null && s.CloudVaultId != vaultId,
-                Key: s.CloudVaultId == vaultId ? keys.GetValueOrDefault(s.Id) : null))
+                s.CloudVaultId == vaultId,
+                s.CloudVaultId is not null && s.CloudVaultId != vaultId,
+                s.CloudVaultId == vaultId ? keys.GetValueOrDefault(s.Id) : null))
         ];
         return Result<IReadOnlyList<CloudVaultServerView>>.Success(views);
     }
@@ -82,9 +89,7 @@ public sealed class SetServerCloudVault(
             }
         }
         else
-        {
             server.DetachFromCloudVault();
-        }
 
         // A chave e o arquivo saem já; a chave nova (da nuvem nova) vem no
         // próximo start do servidor (ProvisionServerCloudKey).
@@ -94,9 +99,11 @@ public sealed class SetServerCloudVault(
 
         // Registrado nas duas nuvens envolvidas: cada dono vê a sua história inteira.
         if (previous is { } from)
-            await CloudAudit.WriteAsync(governance, from, scope.UserId, "server.detach", $"{server.Name} ({serverId})", ct);
+            await CloudAudit.WriteAsync(governance, from, scope.UserId, "server.detach", $"{server.Name} ({serverId})",
+                ct);
         if (vaultId is { } to)
-            await CloudAudit.WriteAsync(governance, to, scope.UserId, "server.attach", $"{server.Name} ({serverId})", ct);
+            await CloudAudit.WriteAsync(governance, to, scope.UserId, "server.attach", $"{server.Name} ({serverId})",
+                ct);
         return Result.Success();
     }
 }
@@ -122,8 +129,9 @@ public sealed class RevokeCloudServerKey(
 
         await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
-        if ((await servers.GetByIdAsync(serverId, ct)) is { CloudVaultId: { } vaultId } server)
-            await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "server.revoke_key", $"{server.Name} ({serverId})", ct);
+        if (await servers.GetByIdAsync(serverId, ct) is { CloudVaultId: { } vaultId } server)
+            await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "server.revoke_key",
+                $"{server.Name} ({serverId})", ct);
         return Result.Success();
     }
 }

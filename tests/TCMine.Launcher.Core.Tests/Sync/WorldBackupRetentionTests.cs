@@ -15,11 +15,11 @@ public class WorldBackupRetentionTests
     {
         var names = Enumerable.Range(1, 8).Select(i => $"saves-2026010{i}-120000.zip").ToArray();
 
-        var expiradas = WorldBackupRetention.Expired(names, keep: 5);
+        var expiradas = WorldBackupRetention.Expired(names, 5);
 
         expiradas.ShouldBe(
             ["saves-20260103-120000.zip", "saves-20260102-120000.zip", "saves-20260101-120000.zip"],
-            ignoreOrder: true);
+            true);
     }
 
     [Fact]
@@ -27,12 +27,9 @@ public class WorldBackupRetentionTests
     {
         // Esta função corre logo a seguir a criar uma cópia. Apagá-la seria
         // destruir exatamente a que a atualização acabou de exigir.
-        var names = new[]
-        {
-            "saves-20260101-120000.zip", "saves-20260102-120000.zip", "saves-20260103-120000.zip"
-        };
+        var names = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip", "saves-20260103-120000.zip" };
 
-        WorldBackupRetention.Expired(names, keep: 1)
+        WorldBackupRetention.Expired(names, 1)
             .ShouldNotContain("saves-20260103-120000.zip");
     }
 
@@ -41,7 +38,7 @@ public class WorldBackupRetentionTests
     {
         var names = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
 
-        WorldBackupRetention.Expired(names, keep: 5).ShouldBeEmpty();
+        WorldBackupRetention.Expired(names, 5).ShouldBeEmpty();
     }
 
     [Fact]
@@ -52,7 +49,7 @@ public class WorldBackupRetentionTests
         // convenção do painel.
         var names = new[] { "saves-20260101-120000.zip", "saves-20260102-120000.zip" };
 
-        WorldBackupRetention.Expired(names, keep: 0).ShouldBeEmpty();
+        WorldBackupRetention.Expired(names, 0).ShouldBeEmpty();
     }
 
     [Fact]
@@ -65,6 +62,6 @@ public class WorldBackupRetentionTests
             "saves-20260102-120000.zip", "saves-20260105-120000.zip", "saves-20260101-120000.zip"
         };
 
-        WorldBackupRetention.Expired(foraDeOrdem, keep: 2).ShouldBe(["saves-20260101-120000.zip"]);
+        WorldBackupRetention.Expired(foraDeOrdem, 2).ShouldBe(["saves-20260101-120000.zip"]);
     }
 }

@@ -1,5 +1,7 @@
 using System.Reflection;
 using NetArchTest.Rules;
+using TCMine.Launcher.Core;
+using TCMine.Launcher.Infrastructure;
 // O xunit v3 tem um Xunit.TestResult próprio e o using global de Xunit faz
 // ele vencer a resolução. O alias desfaz a ambiguidade.
 using ArchResult = NetArchTest.Rules.TestResult;
@@ -17,13 +19,13 @@ namespace TCMine.Launcher.Architecture.Tests;
 public class LayerRules
 {
     private static readonly Assembly LauncherCore =
-        typeof(Launcher.Core.AssemblyMarker).Assembly;
+        typeof(AssemblyMarker).Assembly;
 
     private static readonly Assembly LauncherUi =
-        typeof(Launcher.UI.AssemblyMarker).Assembly;
+        typeof(UI.AssemblyMarker).Assembly;
 
     private static readonly Assembly LauncherInfrastructure =
-        typeof(Launcher.Infrastructure.LauncherPaths).Assembly;
+        typeof(LauncherPaths).Assembly;
 
     /// <summary>
     ///     Mensagem de falha com os tipos culpados. O padrão do NetArchTest só

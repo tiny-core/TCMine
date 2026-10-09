@@ -4,6 +4,6 @@
     que é o que aconteceria com pre puro numa lateral estreita.
 */
 .tc-news-body {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }

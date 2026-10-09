@@ -13,7 +13,7 @@ public class ServerAddressTests
     [InlineData("mc.exemplo.com:25570", "mc.exemplo.com", 25570)]
     [InlineData(" 192.168.0.10:25565 ", "192.168.0.10", 25565)]
     [InlineData("[2001:db8::1]:25565", "2001:db8::1", 25565)]
-    [InlineData("2001:db8::1", "2001:db8::1", null)]       // IPv6 sem porta: não corta no último ':'
+    [InlineData("2001:db8::1", "2001:db8::1", null)] // IPv6 sem porta: não corta no último ':'
     public void Separa_host_e_porta(string text, string host, int? port) =>
         ServerAddress.Parse(text).ShouldBe(new ServerAddress(host, port));
 

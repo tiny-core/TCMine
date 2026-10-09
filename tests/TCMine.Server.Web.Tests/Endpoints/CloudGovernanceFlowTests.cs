@@ -25,16 +25,16 @@ public sealed class CloudGovernanceFlowTests
         env.Relogio.Avancar(TimeSpan.FromMinutes(31));
         var b = env.Cliente(env.ChaveB);
         await Acquire(b);
-        (await Lote(a, Credito(canal, seq: 1, delta: 10, depois: 10))).Result.ShouldBe("quarantined");
+        (await Lote(a, Credito(canal, 1, 10, 10))).Result.ShouldBe("quarantined");
         var quarentena = await UnicaQuarentenaAsync(env);
 
         // B ainda segura os canais: aplicar agora desincronizaria o B.
         (await env.PainelAsync<ResolveCloudQuarantine, Result>(u =>
-            u.HandleAsync(env.Nuvem, quarentena, apply: true, Ct))).Succeeded.ShouldBeFalse();
+            u.HandleAsync(env.Nuvem, quarentena, true, Ct))).Succeeded.ShouldBeFalse();
 
         await PostAsync<CloudReleaseReply>(b, "/api/cloud/v1/leases/release", new CloudReleaseRequest(Jogador, 2, 0));
         (await env.PainelAsync<ResolveCloudQuarantine, Result>(u =>
-            u.HandleAsync(env.Nuvem, quarentena, apply: true, Ct))).Succeeded.ShouldBeTrue();
+            u.HandleAsync(env.Nuvem, quarentena, true, Ct))).Succeeded.ShouldBeTrue();
 
         (await env.SaldoAsync(Diamante)).ShouldBe(10);
         await using var db = await env.DbAsync();
@@ -49,18 +49,18 @@ public sealed class CloudGovernanceFlowTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 5, depois: 5));
-        await Lote(a, Debito(canal, seq: 2, delta: -6, depois: -1));
+        await Lote(a, Credito(canal, 1, 5, 5));
+        await Lote(a, Debito(canal, 2, -6, -1));
         await PostAsync<CloudReleaseReply>(a, "/api/cloud/v1/leases/release", new CloudReleaseRequest(Jogador, 1, 1));
         var quarentena = await UnicaQuarentenaAsync(env);
 
         var aplicar = await env.PainelAsync<ResolveCloudQuarantine, Result>(u =>
-            u.HandleAsync(env.Nuvem, quarentena, apply: true, Ct));
+            u.HandleAsync(env.Nuvem, quarentena, true, Ct));
         aplicar.Succeeded.ShouldBeFalse();
         aplicar.Error!.ShouldContain("ficaria");
 
         (await env.PainelAsync<ResolveCloudQuarantine, Result>(u =>
-            u.HandleAsync(env.Nuvem, quarentena, apply: false, Ct))).Succeeded.ShouldBeTrue();
+            u.HandleAsync(env.Nuvem, quarentena, false, Ct))).Succeeded.ShouldBeTrue();
         (await env.SaldoAsync(Diamante)).ShouldBe(5);
     }
 
@@ -70,7 +70,7 @@ public sealed class CloudGovernanceFlowTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 10, depois: 10));
+        await Lote(a, Credito(canal, 1, 10, 10));
         await PostAsync<CloudReleaseReply>(a, "/api/cloud/v1/leases/release", new CloudReleaseRequest(Jogador, 1, 1));
         await PostOkAsync(a, "/api/cloud/v1/reports/doubtful",
             new CloudDoubtfulRequest("boot-7", [new CloudDoubtfulDto(Jogador, canal, Diamante, "RecentDebit", 3)]));
@@ -79,9 +79,9 @@ public sealed class CloudGovernanceFlowTests
         {
             var duvida = await db.CloudDoubtfulOperations.SingleAsync(Ct);
             (await env.PainelAsync<ResolveCloudDoubtful, Result>(u =>
-                u.HandleAsync(env.Nuvem, duvida.Id, refund: true, Ct))).Succeeded.ShouldBeTrue();
+                u.HandleAsync(env.Nuvem, duvida.Id, true, Ct))).Succeeded.ShouldBeTrue();
             (await env.PainelAsync<ResolveCloudDoubtful, Result>(u =>
-                u.HandleAsync(env.Nuvem, duvida.Id, refund: true, Ct))).Succeeded.ShouldBeFalse();
+                u.HandleAsync(env.Nuvem, duvida.Id, true, Ct))).Succeeded.ShouldBeFalse();
         }
 
         (await env.SaldoAsync(Diamante)).ShouldBe(13);
@@ -95,13 +95,13 @@ public sealed class CloudGovernanceFlowTests
         var a = env.Cliente(env.ChaveA);
         await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(mundo, null));
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 64, depois: 64));
-        await Lote(a, Debito(canal, seq: 2, delta: -14, depois: 50));
+        await Lote(a, Credito(canal, 1, 64, 64));
+        await Lote(a, Debito(canal, 2, -14, 50));
 
         // O mundo voltou para logo depois do lote 1 (o servidor ainda segura o lease).
         var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
         await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello",
-            HelloDoMundo(mundo, new() { [Jogador] = new CloudSeqPosition(1, 1) }));
+            HelloDoMundo(mundo, new Dictionary<string, CloudSeqPosition> { [Jogador] = new(1, 1) }));
         var incidente = await IncidenteAsync(env);
 
         var previa = await env.PainelAsync<ResolveCloudIncident, Result<IReadOnlyList<CloudRevertLine>>>(u =>
@@ -111,15 +111,16 @@ public sealed class CloudGovernanceFlowTests
         linha.After.ShouldBe(64);
 
         (await env.PainelAsync<ResolveCloudIncident, Result>(u =>
-            u.HandleAsync(env.Nuvem, incidente, revert: true, Ct))).Succeeded.ShouldBeTrue();
+            u.HandleAsync(env.Nuvem, incidente, true, Ct))).Succeeded.ShouldBeTrue();
 
         (await env.SaldoAsync(Diamante)).ShouldBe(64);
         await using var db = await env.DbAsync();
         (await db.CloudBatches.SingleAsync(b => b.Seq == 2, Ct)).Status.ShouldBe(CloudBatchStatus.Reverted);
-        (await db.CloudLeases.SingleAsync(Ct)).HolderServerId.ShouldBeNull("o servidor do incidente pega saldos novos no próximo acquire");
+        (await db.CloudLeases.SingleAsync(Ct)).HolderServerId.ShouldBeNull(
+            "o servidor do incidente pega saldos novos no próximo acquire");
         // O mundo restaurado continua declarando o ponto em que está (lote 1): sem incidente novo.
         (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello",
-                HelloDoMundo(mundo, new() { [Jogador] = new CloudSeqPosition(1, 1) }))).ReadOnly
+                HelloDoMundo(mundo, new Dictionary<string, CloudSeqPosition> { [Jogador] = new(1, 1) }))).ReadOnly
             .ShouldBeFalse("incidente resolvido destrava a nuvem");
     }
 
@@ -131,13 +132,13 @@ public sealed class CloudGovernanceFlowTests
         var a = env.Cliente(env.ChaveA);
         await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(mundo, null));
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 64, depois: 64));
+        await Lote(a, Credito(canal, 1, 64, 64));
         await PostAsync<CloudReleaseReply>(a, "/api/cloud/v1/leases/release", new CloudReleaseRequest(Jogador, 1, 1));
 
         // O jogador foi para o B e tirou 60.
         var b = env.Cliente(env.ChaveB);
         await Acquire(b);
-        await Lote(b, Debito(canal, seq: 1, delta: -60, depois: 4) with { Epoch = 2 });
+        await Lote(b, Debito(canal, 1, -60, 4) with { Epoch = 2 });
         await PostAsync<CloudReleaseReply>(b, "/api/cloud/v1/leases/release", new CloudReleaseRequest(Jogador, 2, 1));
 
         // O mundo do A volta para antes de tudo.
@@ -152,7 +153,7 @@ public sealed class CloudGovernanceFlowTests
         linha.Shortfall.ShouldBe(60);
 
         (await env.PainelAsync<ResolveCloudIncident, Result>(u =>
-            u.HandleAsync(env.Nuvem, incidente, revert: true, Ct))).Succeeded.ShouldBeTrue();
+            u.HandleAsync(env.Nuvem, incidente, true, Ct))).Succeeded.ShouldBeTrue();
         (await env.SaldoAsync(Diamante)).ShouldBe(0);
     }
 

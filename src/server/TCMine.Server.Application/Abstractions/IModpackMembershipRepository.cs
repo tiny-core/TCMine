@@ -42,7 +42,5 @@ public interface IModpackMembershipRepository
     /// </summary>
     Task<ModpackMemberView?> GetOwnerAsync(Guid modpackId, CancellationToken ct);
 
-    Task UpdateAsync(ModpackMembership membership, CancellationToken ct);
-
     Task RemoveAsync(Guid id, CancellationToken ct);
 }

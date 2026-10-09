@@ -1,10 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core;
 using TCMine.Launcher.Core.Abstractions;
-using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Core.Connectivity;
+using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Infrastructure;
 using TCMine.Server.Application.Abstractions;
@@ -43,7 +44,7 @@ public sealed class LauncherCatalogContractTests
 
         await using var launcher = MontarLauncher();
 
-        var config = new TCMine.Contracts.LauncherConfig
+        var config = new LauncherConfig
         {
             Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
@@ -112,7 +113,7 @@ public sealed class LauncherCatalogContractTests
 
         await using var launcher = MontarLauncher();
 
-        var config = new TCMine.Contracts.LauncherConfig
+        var config = new LauncherConfig
         {
             Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
@@ -152,7 +153,7 @@ public sealed class LauncherCatalogContractTests
 
         await using var launcher = MontarLauncher();
 
-        var config = new TCMine.Contracts.LauncherConfig
+        var config = new LauncherConfig
         {
             Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
         };
@@ -227,12 +228,7 @@ public sealed class LauncherCatalogContractTests
         foreach (var (numero, publicar) in
                  new[] { ("1.0.0", true), ("1.1.0", true), ("1.2.0-beta", true), ("1.3.0", false) })
         {
-            var version = new ModpackVersion
-            {
-                ModpackId = modpack.Id,
-                Version = numero,
-                LoaderVersion = "21.1.0"
-            };
+            var version = new ModpackVersion { ModpackId = modpack.Id, Version = numero, LoaderVersion = "21.1.0" };
 
             if (publicar)
             {

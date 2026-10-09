@@ -15,7 +15,10 @@ public class EndpointContractTests : IClassFixture<EndpointContractTests.Fixture
 {
     private readonly TcMineAppFactory _factory;
 
-    public EndpointContractTests(Fixture fixture) => _factory = fixture.Factory;
+    public EndpointContractTests(Fixture fixture)
+    {
+        _factory = fixture.Factory;
+    }
 
     private HttpClient Cliente =>
         _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });

@@ -97,8 +97,7 @@ public sealed class UpdateSettingsTests
         await new UpdateSettings(repo).HandleAsync(
             new UpdateSettingsCommand
             {
-                DefaultMemoryMb = 4096,
-                AzureClientId = "  44444444-4444-4444-4444-444444444444  "
+                DefaultMemoryMb = 4096, AzureClientId = "  44444444-4444-4444-4444-444444444444  "
             },
             CancellationToken.None);
 

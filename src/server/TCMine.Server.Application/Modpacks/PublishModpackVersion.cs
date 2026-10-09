@@ -60,12 +60,13 @@ public sealed class PublishModpackVersion(
         // ...depois do UpdateVersionAsync + notifier, no ramo de sucesso:
         undo.Clear(versionId);
 
-        await activity.AddAsync(new ActivityEvent
-        {
-            Kind = ActivityEventKind.VersionPublished,
-            Message = $"Versão {version.Version} publicada.",
-            Href = $"/admin/modpacks/{version.ModpackId}"
-        }, ct);
+        await activity.AddAsync(
+            new ActivityEvent
+            {
+                Kind = ActivityEventKind.VersionPublished,
+                Message = $"Versão {version.Version} publicada.",
+                Href = $"/admin/modpacks/{version.ModpackId}"
+            }, ct);
 
         return Result.Success();
     }

@@ -15,9 +15,9 @@ namespace TCMine.Launcher.Infrastructure.Configuration;
 public sealed partial class BundledServerAddress(ILogger<BundledServerAddress> logger) : IBundledServerAddress
 {
     public const string FileName = "server.json";
+    private readonly Lazy<string?> _address = new(() => Read(AppContext.BaseDirectory, logger));
 
     private readonly ILogger<BundledServerAddress> _logger = logger;
-    private readonly Lazy<string?> _address = new(() => Read(AppContext.BaseDirectory, logger));
 
     public string? Get() => _address.Value;
 

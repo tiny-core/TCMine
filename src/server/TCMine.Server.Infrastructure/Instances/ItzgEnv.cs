@@ -58,11 +58,7 @@ public static class ItzgEnv
                 "O modpack não tem versão do Minecraft definida; sem ela o container subiria na versão mais recente.");
         }
 
-        var env = new List<string>
-        {
-            $"TYPE={ToServerType(loader)}",
-            $"VERSION={minecraftVersion.Trim()}"
-        };
+        var env = new List<string> { $"TYPE={ToServerType(loader)}", $"VERSION={minecraftVersion.Trim()}" };
 
         // Build do loader em branco = deixa o itzg escolher a recomendada para
         // aquele Minecraft. Mandar "NEOFORGE_VERSION=" vazio não é o mesmo que

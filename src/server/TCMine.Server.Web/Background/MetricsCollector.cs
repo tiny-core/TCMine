@@ -20,6 +20,16 @@ public sealed partial class MetricsCollector(
     ILogger<MetricsCollector> logger) : BackgroundService
 {
     /// <summary>
+    ///     Teto de coletas simultâneas. Em série, cada servidor no ar custa ~1s
+    ///     (o /stats do Docker espera o delta de CPU internamente) mais o
+    ///     round-trip do RCON — com dez servidores a rodada já se aproxima do
+    ///     próprio intervalo de 15s, e as coletas atrasam ou empilham. Um teto
+    ///     em vez de paralelismo total evita afogar o daemon do Docker com
+    ///     dezenas de chamadas de uma vez só.
+    /// </summary>
+    private const int MaxConcurrentCollections = 6;
+
+    /// <summary>
     ///     15s é o compromisso: o /stats do Docker espera ~1s internamente por
     ///     container para calcular o delta de CPU, então amostrar de 2 em 2
     ///     segundos com dez servidores gastaria mais tempo coletando do que
@@ -58,16 +68,6 @@ public sealed partial class MetricsCollector(
                 break;
         }
     }
-
-    /// <summary>
-    ///     Teto de coletas simultâneas. Em série, cada servidor no ar custa ~1s
-    ///     (o /stats do Docker espera o delta de CPU internamente) mais o
-    ///     round-trip do RCON — com dez servidores a rodada já se aproxima do
-    ///     próprio intervalo de 15s, e as coletas atrasam ou empilham. Um teto
-    ///     em vez de paralelismo total evita afogar o daemon do Docker com
-    ///     dezenas de chamadas de uma vez só.
-    /// </summary>
-    private const int MaxConcurrentCollections = 6;
 
     private async Task CollectAsync(CancellationToken ct)
     {

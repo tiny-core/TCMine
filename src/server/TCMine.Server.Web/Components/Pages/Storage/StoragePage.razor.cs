@@ -11,6 +11,11 @@ public partial class StoragePage : ComponentBase, IDisposable
 {
     private readonly HashSet<string> _selected = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Espaço ocupado por snapshots de mundo, somado do banco.</summary>
+    private long _backupBytes;
+
+    private int _backupCount;
+
     private bool _hasActiveJobs;
     private bool _isDeleting;
     private bool _isScanning;
@@ -19,11 +24,6 @@ public partial class StoragePage : ComponentBase, IDisposable
     private Guid _jobId;
 
     private StorageReport? _report;
-
-    /// <summary>Espaço ocupado por snapshots de mundo, somado do banco.</summary>
-    private long _backupBytes;
-
-    private int _backupCount;
 
     [Inject] private ScanStorage ScanUseCase { get; set; } = default!;
     [Inject] private IServerRepository Servers { get; set; } = default!;
@@ -35,6 +35,12 @@ public partial class StoragePage : ComponentBase, IDisposable
     /// <summary>Progresso do trabalho desta página, empurrado pelo caso de uso.</summary>
     private JobProgress? Progress => _jobId == Guid.Empty ? null : Jobs.Get(_jobId);
 
+    private double UsedPercent =>
+        _report is null or { TotalBytes: 0 } ? 0 : _report.ReferencedBytes * 100d / _report.TotalBytes;
+
+    private double OrphanPercent =>
+        _report is null or { TotalBytes: 0 } ? 0 : _report.OrphanBytes * 100d / _report.TotalBytes;
+
     public void Dispose()
     {
         Jobs.Changed -= OnJobChanged;
@@ -44,12 +50,6 @@ public partial class StoragePage : ComponentBase, IDisposable
     protected override void OnInitialized() => Jobs.Changed += OnJobChanged;
 
     private void OnJobChanged() => _ = InvokeAsync(StateHasChanged);
-
-    private double UsedPercent =>
-        _report is null or { TotalBytes: 0 } ? 0 : _report.ReferencedBytes * 100d / _report.TotalBytes;
-
-    private double OrphanPercent =>
-        _report is null or { TotalBytes: 0 } ? 0 : _report.OrphanBytes * 100d / _report.TotalBytes;
 
     /// <summary>
     ///     Varre sob demanda, não ao abrir a página. Percorrer dezenas de
@@ -88,10 +88,8 @@ public partial class StoragePage : ComponentBase, IDisposable
         }
     }
 
-    private async Task LoadBackupUsageAsync()
-    {
+    private async Task LoadBackupUsageAsync() =>
         (_backupCount, _backupBytes) = await Servers.GetBackupUsageAsync(CancellationToken.None);
-    }
 
     private void Toggle(string sha256, bool selected)
     {

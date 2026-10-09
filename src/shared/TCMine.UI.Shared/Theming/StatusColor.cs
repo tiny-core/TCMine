@@ -25,25 +25,6 @@ public static class StatusColors
         };
     }
 
-    /// <summary>
-    ///     Fundo suave correspondente, como variável CSS.
-    ///     Devolve a variável e não o hexadecimal porque o valor muda com o
-    ///     tema: resolver em C# significaria descobrir se o modo escuro está
-    ///     ativo e reagir a cada troca. O CSS já faz isso sozinho.
-    /// </summary>
-    public static string BackgroundVarForServerStatus(GameServerStatus status)
-    {
-        return status switch
-        {
-            GameServerStatus.Running => "var(--tc-status-success-bg)",
-            GameServerStatus.Starting => "var(--tc-status-info-bg)",
-            GameServerStatus.Updating => "var(--tc-status-info-bg)",
-            GameServerStatus.Stopping => "var(--tc-status-warning-bg)",
-            GameServerStatus.Crashed => "var(--tc-status-error-bg)",
-            _ => "transparent"
-        };
-    }
-
     /// <summary>Ícone do estado. Cor sozinha exclui quem não a distingue.</summary>
     public static string IconForServerStatus(GameServerStatus status)
     {

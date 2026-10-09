@@ -18,10 +18,7 @@ public sealed class NavMatchTests
     }
 
     [Fact]
-    public void Item_acende_na_propria_rota()
-    {
-        NavMatch.IsActive("/modpacks", "modpacks").ShouldBeTrue();
-    }
+    public void Item_acende_na_propria_rota() => NavMatch.IsActive("/modpacks", "modpacks").ShouldBeTrue();
 
     [Fact]
     public void Item_continua_aceso_numa_rota_filha()

@@ -26,7 +26,7 @@ public sealed class ModpackFileConfiguration : IEntityTypeConfiguration<ModpackF
         builder.Property(f => f.Side).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Property(f => f.Origin).HasConversion<string>().HasMaxLength(32).IsRequired();
         builder.Property(f => f.OriginReference).HasMaxLength(256);
-                // URL de CDN com assinatura passa de 512 com facilidade.
+        // URL de CDN com assinatura passa de 512 com facilidade.
         builder.Property(f => f.IconUrl).HasMaxLength(1024);
 
         // Cresce com o mod (um modpack-lib pode exigir dezenas): sem limite.

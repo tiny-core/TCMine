@@ -28,6 +28,7 @@ public partial class CloudAuditPanel : ComponentBase
             Snackbar.Add(result.Error!, Severity.Error);
             return;
         }
+
         _actions = [.. result.Value.Actions];
         _ledger = [.. result.Value.Ledger];
     }

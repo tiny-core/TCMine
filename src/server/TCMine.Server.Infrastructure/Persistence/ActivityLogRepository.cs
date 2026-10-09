@@ -6,7 +6,8 @@ using TCMine.Server.Domain.Common;
 namespace TCMine.Server.Infrastructure.Persistence;
 
 public sealed partial class ActivityLogRepository(
-    IDbContextFactory<TcMineDbContext> factory, ILogger<ActivityLogRepository> logger) : IActivityLogRepository
+    IDbContextFactory<TcMineDbContext> factory,
+    ILogger<ActivityLogRepository> logger) : IActivityLogRepository
 {
     public async Task AddAsync(ActivityEvent entry, CancellationToken ct)
     {

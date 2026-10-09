@@ -25,8 +25,8 @@ public sealed class ZipModJarInspectorTests
     public async Task Le_o_lado_declarado_pelo_fabric(string environment, FileSide esperado)
     {
         var jar = Jar("fabric.mod.json", $$"""
-            { "id": "sodium", "environment": "{{environment}}" }
-            """);
+                                           { "id": "sodium", "environment": "{{environment}}" }
+                                           """);
 
         var info = await new ZipModJarInspector().InspectAsync(jar, Ct);
 
@@ -52,19 +52,19 @@ public sealed class ZipModJarInspectorTests
         // usar shaders no cliente, com tudo em BOTH. Se um dia o NeoForge
         // ganhar campo de lado, é este teste que vai falhar e avisar.
         var jar = Jar("META-INF/neoforge.mods.toml", """
-            modLoader = "javafml"
-            loaderVersion = "[4,)"
+                                                     modLoader = "javafml"
+                                                     loaderVersion = "[4,)"
 
-            [[mods]]
-            modId = "colorwheel"
-            version = "1.2.9"
+                                                     [[mods]]
+                                                     modId = "colorwheel"
+                                                     version = "1.2.9"
 
-            [[dependencies.colorwheel]]
-            modId = "neoforge"
-            type = "required"
-            versionRange = "[21.1,)"
-            side = "BOTH"
-            """);
+                                                     [[dependencies.colorwheel]]
+                                                     modId = "neoforge"
+                                                     type = "required"
+                                                     versionRange = "[21.1,)"
+                                                     side = "BOTH"
+                                                     """);
 
         var info = await new ZipModJarInspector().InspectAsync(jar, Ct);
 

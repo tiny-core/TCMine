@@ -71,16 +71,16 @@ public sealed class ModpackMembershipRepository(IDbContextFactory<TcMineDbContex
             : new ModpackMemberView(line.MembershipId, line.UserId, line.DisplayName, ModpackRoleDto.Owner);
     }
 
+    public async Task RemoveAsync(Guid id, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.ModpackMemberships.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
+    }
+
     public async Task UpdateAsync(ModpackMembership membership, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         db.ModpackMemberships.Update(membership);
         await db.SaveChangesAsync(ct);
-    }
-
-    public async Task RemoveAsync(Guid id, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        await db.ModpackMemberships.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
     }
 }

@@ -27,8 +27,9 @@ public partial class CloudIncidentDialog : DialogComponentBase
     }
 
     private Task RevertAsync() =>
-        SubmitAsync(() => UseCase.HandleAsync(VaultId, Incident.Id, revert: true, CancellationToken.None), "Estorno feito.");
+        SubmitAsync(() => UseCase.HandleAsync(VaultId, Incident.Id, true, CancellationToken.None), "Estorno feito.");
 
     private Task AcceptAsync() =>
-        SubmitAsync(() => UseCase.HandleAsync(VaultId, Incident.Id, revert: false, CancellationToken.None), "Incidente aceito.");
+        SubmitAsync(() => UseCase.HandleAsync(VaultId, Incident.Id, false, CancellationToken.None),
+            "Incidente aceito.");
 }

@@ -15,6 +15,8 @@ public partial class ModpackNewsPage : ComponentBase
     private bool _isNew;
     private bool _isPublished;
     private bool _isSaving;
+
+    private Guid _loaded;
     private Modpack? _modpack;
     private List<News> _posts = [];
     private string _title = "";
@@ -28,8 +30,6 @@ public partial class ModpackNewsPage : ComponentBase
     [Inject] private DeleteNews DeleteUseCase { get; set; } = default!;
     [Inject] private IDialogService DialogService { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
-
-    private Guid _loaded;
 
     /// <summary>
     ///     Recarrega quando a ROTA muda, e não só na primeira vez. Navegar desta

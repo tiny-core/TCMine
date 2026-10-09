@@ -16,6 +16,12 @@ namespace TCMine.Server.Application.Tests.Fakes;
 /// </summary>
 public abstract class FakeModpackRepositoryBase : IModpackRepository
 {
+    /// <summary>Server packs gravados pelo preenchimento retroativo.</summary>
+    public Dictionary<Guid, (string FileId, string? PageUrl)> ServerPacksGravados { get; } = [];
+
+    /// <summary>Lados gravados, para o teste conferir sem banco.</summary>
+    public Dictionary<Guid, FileSide> LadosGravados { get; } = [];
+
     public virtual Task<bool> SlugExistsAsync(string slug, CancellationToken ct) =>
         throw new NotImplementedException();
 
@@ -37,7 +43,8 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(Guid modpackId, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public virtual Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
+    public virtual Task<IReadOnlyList<ModpackVersion>>
+        ListVersionSummariesAsync(Guid modpackId, CancellationToken ct) =>
         throw new NotImplementedException();
 
     public virtual Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
@@ -97,18 +104,12 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct) =>
         throw new NotImplementedException();
 
-    /// <summary>Server packs gravados pelo preenchimento retroativo.</summary>
-    public Dictionary<Guid, (string FileId, string? PageUrl)> ServerPacksGravados { get; } = [];
-
     public virtual Task SetServerPackAsync(
         Guid versionId, string fileId, string? pageUrl, CancellationToken ct)
     {
         ServerPacksGravados[versionId] = (fileId, pageUrl);
         return Task.CompletedTask;
     }
-
-    /// <summary>Lados gravados, para o teste conferir sem banco.</summary>
-    public Dictionary<Guid, FileSide> LadosGravados { get; } = [];
 
     public virtual Task SetFileSideAsync(
         Guid versionId, Guid fileId, FileSide side, CancellationToken ct)

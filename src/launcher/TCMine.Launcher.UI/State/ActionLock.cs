@@ -19,8 +19,8 @@ namespace TCMine.Launcher.UI.State;
 /// </summary>
 public sealed class ActionLock : IDisposable
 {
-    private readonly InstallOperationState _operation;
     private readonly GameSession _game;
+    private readonly InstallOperationState _operation;
     private string? _lastReason;
 
     public ActionLock(InstallOperationState operation, GameSession game)
@@ -41,13 +41,13 @@ public sealed class ActionLock : IDisposable
         : _operation.IsRunning ? "Espere a instalação em curso terminar."
         : null;
 
-    public event Action? Changed;
-
     public void Dispose()
     {
         _operation.Changed -= OnSourceChanged;
         _game.Changed -= OnSourceChanged;
     }
+
+    public event Action? Changed;
 
     private void OnSourceChanged()
     {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Web.Background;
 
@@ -11,6 +12,7 @@ public partial class UpstreamUpdateDialog : DialogComponentBase, IDisposable
 
     /// <summary>Acompanhamento do trabalho desta janela.</summary>
     private Guid _jobId;
+
     private string _latestLabel = "";
     private bool _loading = true;
     private string _newVersion = "";
@@ -19,10 +21,12 @@ public partial class UpstreamUpdateDialog : DialogComponentBase, IDisposable
     [Parameter] public Guid VersionId { get; set; }
 
     /// <summary>Rótulo do autor na versão atual, só para o texto "4.2 → 4.3".</summary>
-    [Parameter] public string CurrentLabel { get; set; } = "";
+    [Parameter]
+    public string CurrentLabel { get; set; } = "";
 
     /// <summary>Nossa numeração atual, para sugerir a próxima.</summary>
-    [Parameter] public string CurrentVersion { get; set; } = "";
+    [Parameter]
+    public string CurrentVersion { get; set; } = "";
 
     [Inject] private UpdateFromUpstream UpdateUseCase { get; set; } = default!;
     [Inject] private JobProgressRegistry Jobs { get; set; } = default!;
@@ -76,8 +80,8 @@ public partial class UpstreamUpdateDialog : DialogComponentBase, IDisposable
                     VersionId, _newVersion, CancellationToken.None, false, _jobId);
 
                 return result.Succeeded
-                    ? TCMine.Server.Application.Common.Result.Success()
-                    : TCMine.Server.Application.Common.Result.Fail(result.Error!);
+                    ? Result.Success()
+                    : Result.Fail(result.Error!);
             },
             "Rascunho criado. Os mods novos estão sendo baixados em segundo plano.");
     }

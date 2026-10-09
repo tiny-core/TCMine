@@ -55,8 +55,8 @@ public sealed partial class CloudHello(
             vault.MaxItemBytes,
             vault.MaxChannelsPerPlayer,
             vault.LeaseTtlMinutes * 60,
-            ReadOnly: readOnlyReason is not null,
-            ReadOnlyReason: readOnlyReason));
+            readOnlyReason is not null,
+            readOnlyReason));
     }
 
     private async Task<CloudRollbackIncident?> DetectRollbackAsync(CloudServerContext ctx, CloudCheckpoint checkpoint,
@@ -97,10 +97,12 @@ public sealed partial class CloudHello(
     }
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Nuvem: hello do servidor {ServerId} (mod {ModVersion}, mundo {WorldId}, {Players} jogadores no checkpoint).")]
+        Message =
+            "Nuvem: hello do servidor {ServerId} (mod {ModVersion}, mundo {WorldId}, {Players} jogadores no checkpoint).")]
     private partial void LogHello(Guid serverId, string modVersion, Guid worldId, int players);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Nuvem: o mundo do servidor {ServerId} voltou no tempo ({Players} jogadores atrás do TCMine); nuvem em somente leitura até o dono decidir.")]
+        Message =
+            "Nuvem: o mundo do servidor {ServerId} voltou no tempo ({Players} jogadores atrás do TCMine); nuvem em somente leitura até o dono decidir.")]
     private partial void LogRollback(Guid serverId, int players);
 }

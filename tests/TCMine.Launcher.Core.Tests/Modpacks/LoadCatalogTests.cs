@@ -78,8 +78,8 @@ public class LoadCatalogTests
         var entradas = LoadCatalog.Join(
             [pack],
             [
-                Server(pack.Id, "no-ar", GameServerStatus.Running, online: 7),
-                Server(pack.Id, "parado", GameServerStatus.Stopped, online: 0)
+                Server(pack.Id, "no-ar", GameServerStatus.Running, 7),
+                Server(pack.Id, "parado", GameServerStatus.Stopped)
             ]);
 
         var entrada = entradas.ShouldHaveSingleItem();

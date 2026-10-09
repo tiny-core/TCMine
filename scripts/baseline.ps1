@@ -36,12 +36,12 @@ param(
 
     [string]$Url = "http://localhost:5144",
 
-    # Release por padrão: Debug mede o código sem otimização e engana.
+# Release por padrão: Debug mede o código sem otimização e engana.
     [string]$Configuration = "Release",
 
     [int]$Rounds = 3,
 
-    # report: quantos arquivos de log (um por dia) entram na conta.
+# report: quantos arquivos de log (um por dia) entram na conta.
     [int]$Days = 1
 )
 
@@ -52,34 +52,44 @@ $project = Join-Path $root "src\server\TCMine.Server.Web"
 $database = Join-Path $project "data\tcmine.db"
 $processName = "TCMine.Server.Web"
 
-function Test-Live {
-    try {
+function Test-Live
+{
+    try
+    {
         $response = Invoke-WebRequest -Uri "$Url/health/live" -UseBasicParsing -TimeoutSec 1
         return $response.StatusCode -eq 200
     }
-    catch {
+    catch
+    {
         return $false
     }
 }
 
-function Stop-Server {
+function Stop-Server
+{
     Get-Process -Name $processName -ErrorAction SilentlyContinue | Stop-Process -Force
     # Stop-Process volta assim que PEDE a morte; a porta só fica livre quando o
     # processo sai de fato.
-    while (Get-Process -Name $processName -ErrorAction SilentlyContinue) {
+    while (Get-Process -Name $processName -ErrorAction SilentlyContinue)
+    {
         Start-Sleep -Milliseconds 100
     }
 }
 
-function Measure-Boot {
-    if (Get-Process -Name $processName -ErrorAction SilentlyContinue) {
+function Measure-Boot
+{
+    if (Get-Process -Name $processName -ErrorAction SilentlyContinue)
+    {
         throw "O servidor já está rodando. Pare-o antes (IDE ou scripts/tc kill): a medição precisa subir do zero."
     }
 
     # Compila fora do cronômetro; o arranque medido usa --no-build.
     Write-Host "Compilando ($Configuration)..."
     dotnet build $project -c $Configuration --nologo -v quiet | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "Build falhou." }
+    if ($LASTEXITCODE -ne 0)
+    {
+        throw "Build falhou."
+    }
 
     $log = Join-Path $env:TEMP "tcmine-baseline-boot.log"
 
@@ -89,15 +99,18 @@ function Measure-Boot {
         $run = Start-Process dotnet -PassThru -WindowStyle Hidden `
             -RedirectStandardOutput $log `
             -ArgumentList "run", "--project", "`"$project`"", "-c", $Configuration,
-                          "--no-build", "--launch-profile", "http"
+        "--no-build", "--launch-profile", "http"
 
         # /health/live e não /health: o live responde assim que o Kestrel
         # escuta; o /health só passa com o banco pronto e mediria outra coisa.
-        while (-not (Test-Live)) {
-            if ($run.HasExited) {
+        while (-not (Test-Live))
+        {
+            if ($run.HasExited)
+            {
                 throw "O servidor saiu antes de responder. Veja $log"
             }
-            if ($watch.Elapsed.TotalSeconds -gt 120) {
+            if ($watch.Elapsed.TotalSeconds -gt 120)
+            {
                 Stop-Server
                 throw "Sem resposta em 120 s. Veja $log"
             }
@@ -111,9 +124,11 @@ function Measure-Boot {
     Write-Host "Inclui cerca de 1 s do próprio 'dotnet run'; compare só com outras medições feitas por este script."
 }
 
-function Measure-Memory {
+function Measure-Memory
+{
     $process = Get-Process -Name $processName -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $process) {
+    if (-not $process)
+    {
         throw "O servidor não está rodando. Suba-o e deixe em repouso por um minuto antes de medir."
     }
 
@@ -121,15 +136,25 @@ function Measure-Memory {
     Write-Host ("memória (privada):     {0:N0} MB" -f ($process.PrivateMemorySize64 / 1MB))
 }
 
-function Measure-Database {
-    if (-not (Test-Path $database)) { throw "Banco de dev não encontrado em $database" }
+function Measure-Database
+{
+    if (-not (Test-Path $database))
+    {
+        throw "Banco de dev não encontrado em $database"
+    }
 
     $python = Get-Command python, py -ErrorAction SilentlyContinue | Select-Object -First 1
-    if (-not $python) { throw "Python não encontrado no PATH (é o mesmo que o 'tc db' usa)." }
+    if (-not $python)
+    {
+        throw "Python não encontrado no PATH (é o mesmo que o 'tc db' usa)."
+    }
 
     $bytes = (Get-Item $database).Length
     $wal = "$database-wal"
-    if (Test-Path $wal) { $bytes += (Get-Item $wal).Length }
+    if (Test-Path $wal)
+    {
+        $bytes += (Get-Item $wal).Length
+    }
     Write-Host ("tamanho (db + wal): {0:N1} MB" -f ($bytes / 1MB))
 
     # Num arquivo temporário e não em 'python -c': aspas dentro de aspas na
@@ -148,24 +173,38 @@ for count, table in rows:
     & $python.Source $script $database
 }
 
-function Get-Median {
+function Get-Median
+{
     param([double[]]$Values)
 
     $sorted = @($Values | Sort-Object)
     $count = $sorted.Count
-    if ($count -eq 0) { return 0 }
+    if ($count -eq 0)
+    {
+        return 0
+    }
 
     $middle = [int][math]::Floor($count / 2)
-    if ($count % 2 -eq 1) { return $sorted[$middle] }
+    if ($count % 2 -eq 1)
+    {
+        return $sorted[$middle]
+    }
     return ($sorted[$middle - 1] + $sorted[$middle]) / 2
 }
 
-function Show-Report {
+function Show-Report
+{
     $logs = Join-Path $env:LOCALAPPDATA "TCMine\logs"
-    if (-not (Test-Path $logs)) { throw "Pasta de logs do launcher não encontrada em $logs" }
+    if (-not (Test-Path $logs))
+    {
+        throw "Pasta de logs do launcher não encontrada em $logs"
+    }
 
     $files = @(Get-ChildItem -Path $logs -Filter "launcher-*.log" | Sort-Object Name | Select-Object -Last $Days)
-    if ($files.Count -eq 0) { throw "Nenhum launcher-*.log em $logs" }
+    if ($files.Count -eq 0)
+    {
+        throw "Nenhum launcher-*.log em $logs"
+    }
 
     # Uma entrada por ABERTURA do launcher: "host montado" abre a entrada, e os
     # outros dois marcos são dela. Juntar todas as aberturas numa mediana só
@@ -175,39 +214,53 @@ function Show-Report {
     $installs = New-Object System.Collections.Generic.List[string]
     $current = $null
 
-    foreach ($file in $files) {
+    foreach ($file in $files)
+    {
         # Get-Content e não File.ReadLines: o launcher aberto mantém o arquivo
         # em escrita, e o Get-Content lê assim mesmo.
-        foreach ($line in (Get-Content -Path $file.FullName -Encoding UTF8)) {
+        foreach ($line in (Get-Content -Path $file.FullName -Encoding UTF8))
+        {
             # O "." no lugar das letras acentuadas: a medição não pode depender
             # da codificação do console.
-            if ($line -match 'Arranque: "?(.+?)"? em (\d+) ms(?: \("?([^")]+)"?\))?') {
+            if ($line -match 'Arranque: "?(.+?)"? em (\d+) ms(?: \("?([^")]+)"?\))?')
+            {
                 $mark = $Matches[1]
                 $ms = [double]$Matches[2]
                 $outcome = $Matches[3]
 
-                if ($mark -like "host*") {
+                if ($mark -like "host*")
+                {
                     # A frio o runtime e os binários vêm do disco: o host passa
                     # de 1 s. A quente fica em ~0,3 s. O corte é folgado.
                     $kind = "a quente"
-                    if ($ms -ge 1000) { $kind = "a frio" }
+                    if ($ms -ge 1000)
+                    {
+                        $kind = "a frio"
+                    }
 
                     $current = [pscustomobject]@{
                         HostMs = $ms; WindowMs = $null; UsableMs = $null; Outcome = ""; Kind = $kind
                     }
                     $runs.Add($current)
                 }
-                elseif ($null -ne $current) {
-                    if ($mark -like "janela*") {
+                elseif ($null -ne $current)
+                {
+                    if ($mark -like "janela*")
+                    {
                         $current.WindowMs = $ms
                     }
-                    elseif ($mark -like "primeira*") {
+                    elseif ($mark -like "primeira*")
+                    {
                         $current.UsableMs = $ms
-                        if ($outcome) { $current.Outcome = $outcome }
+                        if ($outcome)
+                        {
+                            $current.Outcome = $outcome
+                        }
                     }
                 }
             }
-            elseif ($line -match '\] (Instala.+o de modpack .+)$') {
+            elseif ($line -match '\] (Instala.+o de modpack .+)$')
+            {
                 $installs.Add($Matches[1])
             }
         }
@@ -215,13 +268,18 @@ function Show-Report {
 
     Write-Host ("Arquivos: {0}" -f (($files | ForEach-Object { $_.Name }) -join ", "))
 
-    if ($runs.Count -eq 0) {
+    if ($runs.Count -eq 0)
+    {
         Write-Host "Nenhuma linha 'Arranque:' no período."
     }
 
-    foreach ($kind in "a quente", "a frio") {
+    foreach ($kind in "a quente", "a frio")
+    {
         $group = @($runs | Where-Object { $_.Kind -eq $kind })
-        if ($group.Count -eq 0) { continue }
+        if ($group.Count -eq 0)
+        {
+            continue
+        }
 
         Write-Host ""
         Write-Host ("Arranque {0} ({1} aberturas)" -f $kind, $group.Count)
@@ -230,16 +288,21 @@ function Show-Report {
         Write-Host ("  host montado: {0}  -> mediana {1:N0} ms" -f ($hosts -join ", "), (Get-Median $hosts))
 
         $windows = @($group | Where-Object { $null -ne $_.WindowMs } | ForEach-Object { $_.WindowMs })
-        if ($windows.Count -gt 0) {
+        if ($windows.Count -gt 0)
+        {
             Write-Host ("  janela visível: {0}  -> mediana {1:N0} ms" -f ($windows -join ", "), (Get-Median $windows))
         }
 
         # O desfecho (com sessão, login, offline...) separa caminhos de custo
         # diferente, que não podem entrar na mesma mediana.
         $byOutcome = @($group | Where-Object { $null -ne $_.UsableMs } | Group-Object -Property Outcome)
-        foreach ($entry in $byOutcome) {
+        foreach ($entry in $byOutcome)
+        {
             $label = $entry.Name
-            if (-not $label) { $label = "sem desfecho no log" }
+            if (-not $label)
+            {
+                $label = "sem desfecho no log"
+            }
 
             $usable = @($entry.Group | ForEach-Object { $_.UsableMs })
             $samples = $usable -join ", "
@@ -247,22 +310,38 @@ function Show-Report {
         }
 
         $unfinished = @($group | Where-Object { $null -eq $_.UsableMs }).Count
-        if ($unfinished -gt 0) {
+        if ($unfinished -gt 0)
+        {
             Write-Host ("  {0} abertura(s) sem 'primeira tela utilizável': o launcher fechou antes (por exemplo, para se atualizar)" -f $unfinished)
         }
     }
 
-    if ($installs.Count -gt 0) {
+    if ($installs.Count -gt 0)
+    {
         Write-Host ""
         Write-Host ("Instalações e atualizações ({0})" -f $installs.Count)
-        foreach ($install in $installs) { Write-Host "  $install" }
+        foreach ($install in $installs)
+        {
+            Write-Host "  $install"
+        }
     }
 }
 
-switch ($Command) {
-    "report" { Show-Report }
-    "boot" { Measure-Boot }
-    "mem"  { Measure-Memory }
-    "db"   { Measure-Database }
-    default { Get-Help $PSCommandPath -Examples }
+switch ($Command)
+{
+    "report" {
+        Show-Report
+    }
+    "boot" {
+        Measure-Boot
+    }
+    "mem"  {
+        Measure-Memory
+    }
+    "db"   {
+        Measure-Database
+    }
+    default {
+        Get-Help $PSCommandPath -Examples
+    }
 }

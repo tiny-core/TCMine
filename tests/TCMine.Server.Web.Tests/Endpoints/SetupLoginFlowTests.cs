@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using TCMine.Server.Web.Tests.Infrastructure;
 
@@ -54,7 +55,7 @@ public sealed class SetupLoginFlowTests
     private static async Task SalvarClientIdAsync(HttpClient client)
     {
         var html = await client.GetStringAsync("/admin/setup", TestContext.Current.CancellationToken);
-        var token = System.Text.RegularExpressions.Regex.Match(
+        var token = Regex.Match(
             html, """name="__RequestVerificationToken"[^>]*value="([^"]+)""").Groups[1].Value;
 
         var response = await client.PostAsync(

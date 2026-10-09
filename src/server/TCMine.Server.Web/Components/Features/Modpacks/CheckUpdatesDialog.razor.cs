@@ -14,6 +14,7 @@ public partial class CheckUpdatesDialog : IDisposable
 
     /// <summary>Acompanhamento desta verificação — uma consulta por mod.</summary>
     private Guid _jobId;
+
     private string _newVersion = "";
     private List<ModUpdateInfo> _updates = [];
 

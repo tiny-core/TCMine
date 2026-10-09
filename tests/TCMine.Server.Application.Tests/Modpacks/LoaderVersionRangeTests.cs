@@ -58,8 +58,6 @@ public sealed class LoaderVersionRangeTests
     }
 
     [Fact]
-    public void Sufixo_de_pre_lancamento_e_ignorado()
-    {
+    public void Sufixo_de_pre_lancamento_e_ignorado() =>
         Assert.True(LoaderVersionRange.IsSatisfied("[21.1.80,)", "21.1.100-beta"));
-    }
 }

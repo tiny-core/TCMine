@@ -1,6 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using TCMine.Launcher.Core;
 using TCMine.Launcher.Infrastructure;
 
 namespace TCMine.Launcher.Core.Tests.Infrastructure;
@@ -44,8 +43,7 @@ public sealed class DependencyInjectionTests : IDisposable
             // O contentor valida sozinho o que consegue: dependências em falta e
             // singletons a capturar scoped, que é a outra classe de erro que só
             // aparece em runtime.
-            ValidateOnBuild = true,
-            ValidateScopes = true
+            ValidateOnBuild = true, ValidateScopes = true
         });
 
         await using var escopo = provider.CreateAsyncScope();

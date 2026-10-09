@@ -27,15 +27,6 @@ public sealed partial class ConsoleBroadcaster(
     /// </summary>
     private static readonly TimeSpan EsperaParaReligar = TimeSpan.FromSeconds(5);
 
-    private readonly ConcurrentDictionary<Guid, Bombeamento> _porServidor = new();
-
-    /// <summary>
-    ///     O que cada conexão assinou. Sem isto, uma queda de conexão deixaria o
-    ///     contador de assinantes alto para sempre e o stream nunca fecharia —
-    ///     e queda de conexão é o caso comum, não a exceção.
-    /// </summary>
-    private readonly ConcurrentDictionary<string, HashSet<Guid>> _porConexao = new();
-
     /// <summary>
     ///     De quem é cada conexão.
     ///     Mora aqui, e não numa classe à parte, porque este já é o único lugar
@@ -47,14 +38,13 @@ public sealed partial class ConsoleBroadcaster(
     private readonly ConcurrentDictionary<string, Guid> _donoDaConexao = new();
 
     /// <summary>
-    ///     Mesma linha que vai para o grupo do SignalR, para quem já está NESTE
-    ///     processo e não precisa de rede para ouvir — o painel do admin, que
-    ///     antes abria seu próprio stream do Docker por aba em vez de reusar
-    ///     este. Assinar via <see cref="Subscribe" /> com um id sintético (não
-    ///     precisa ser uma conexão de Hub de verdade) já entra na contagem de
-    ///     ouvintes e liga o bombeamento sozinho.
+    ///     O que cada conexão assinou. Sem isto, uma queda de conexão deixaria o
+    ///     contador de assinantes alto para sempre e o stream nunca fecharia —
+    ///     e queda de conexão é o caso comum, não a exceção.
     /// </summary>
-    public event Action<Guid, ConsoleLineDto>? LineReceived;
+    private readonly ConcurrentDictionary<string, HashSet<Guid>> _porConexao = new();
+
+    private readonly ConcurrentDictionary<Guid, Bombeamento> _porServidor = new();
 
     public async ValueTask DisposeAsync()
     {
@@ -65,6 +55,16 @@ public sealed partial class ConsoleBroadcaster(
         _porConexao.Clear();
         _donoDaConexao.Clear();
     }
+
+    /// <summary>
+    ///     Mesma linha que vai para o grupo do SignalR, para quem já está NESTE
+    ///     processo e não precisa de rede para ouvir — o painel do admin, que
+    ///     antes abria seu próprio stream do Docker por aba em vez de reusar
+    ///     este. Assinar via <see cref="Subscribe" /> com um id sintético (não
+    ///     precisa ser uma conexão de Hub de verdade) já entra na contagem de
+    ///     ouvintes e liga o bombeamento sozinho.
+    /// </summary>
+    public event Action<Guid, ConsoleLineDto>? LineReceived;
 
     public void Subscribe(string connectionId, Guid userId, Guid serverId)
     {
@@ -136,10 +136,7 @@ public sealed partial class ConsoleBroadcaster(
             return;
 
         Guid[] servers;
-        lock (assinaturas)
-        {
-            servers = [.. assinaturas];
-        }
+        lock (assinaturas) servers = [.. assinaturas];
 
         foreach (var serverId in servers)
             Soltar(serverId);

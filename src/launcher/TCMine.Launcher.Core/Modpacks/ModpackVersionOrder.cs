@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace TCMine.Launcher.Core.Modpacks;
 
 /// <summary>
@@ -56,7 +58,7 @@ public static class ModpackVersionOrder
 
         for (var i = 0; i < parts.Length; i++)
         {
-            if (!long.TryParse(parts[i], System.Globalization.NumberStyles.None, null, out numbers[i]))
+            if (!long.TryParse(parts[i], NumberStyles.None, null, out numbers[i]))
                 return null;
         }
 

@@ -73,7 +73,7 @@ public sealed class VersionLifecycleActions(
         if (confirm is not true)
             return false;
 
-        var result = await publishUseCase.HandleAsync(version.Id, ct, acceptPending: pending.Count > 0);
+        var result = await publishUseCase.HandleAsync(version.Id, ct, pending.Count > 0);
         if (!result.Succeeded)
         {
             snackbar.Add(result.Error!, Severity.Error);

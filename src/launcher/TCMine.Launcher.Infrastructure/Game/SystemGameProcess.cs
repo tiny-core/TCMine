@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 using TCMine.Launcher.Core.Abstractions;
 
@@ -37,8 +38,7 @@ internal sealed class SystemGameProcess : IGameProcess
     ///     pode ser chamado depois do <c>Start</c> — e chamá-lo duas vezes atira.
     /// </summary>
     public async IAsyncEnumerable<string> ReadOutputAsync(
-        [System.Runtime.CompilerServices.EnumeratorCancellation]
-        CancellationToken ct)
+        [EnumeratorCancellation] CancellationToken ct)
     {
         _processo.BeginOutputReadLine();
         _processo.BeginErrorReadLine();
@@ -59,7 +59,7 @@ internal sealed class SystemGameProcess : IGameProcess
             // processo real, e matar só o pai deixaria o Minecraft a correr sem
             // ninguém a olhar por ele.
             if (!_processo.HasExited)
-                _processo.Kill(entireProcessTree: true);
+                _processo.Kill(true);
         }
         catch (Exception ex) when (ex is InvalidOperationException or SystemException)
         {

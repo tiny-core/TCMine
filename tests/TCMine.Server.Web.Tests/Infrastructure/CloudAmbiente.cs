@@ -43,6 +43,8 @@ internal sealed class CloudAmbiente : IAsyncDisposable
     public required string ChaveA { get; init; }
     public required string ChaveB { get; init; }
 
+    public ValueTask DisposeAsync() => Factory.DisposeAsync();
+
     public static async Task<CloudAmbiente> CriarAsync()
     {
         var relogio = new RelogioFalso();
@@ -72,8 +74,13 @@ internal sealed class CloudAmbiente : IAsyncDisposable
 
         return new CloudAmbiente
         {
-            Factory = factory, Relogio = relogio, Dono = dono, ServidorA = a.Id, Nuvem = nuvem.Id,
-            ChaveA = chaveA.Key, ChaveB = chaveB.Key
+            Factory = factory,
+            Relogio = relogio,
+            Dono = dono,
+            ServidorA = a.Id,
+            Nuvem = nuvem.Id,
+            ChaveA = chaveA.Key,
+            ChaveB = chaveB.Key
         };
     }
 
@@ -82,8 +89,12 @@ internal sealed class CloudAmbiente : IAsyncDisposable
     {
         var servidor = new GameServer
         {
-            Name = nome, ModpackId = Guid.CreateVersion7(), ModpackVersionId = Guid.CreateVersion7(),
-            ConnectAddress = "localhost", RconSecret = "segredo", OwnerId = dono
+            Name = nome,
+            ModpackId = Guid.CreateVersion7(),
+            ModpackVersionId = Guid.CreateVersion7(),
+            ConnectAddress = "localhost",
+            RconSecret = "segredo",
+            OwnerId = dono
         };
         servidor.AttachToCloudVault(nuvem);
         return (servidor, CloudServerKey.Generate());
@@ -118,7 +129,9 @@ internal sealed class CloudAmbiente : IAsyncDisposable
             antiga.Revoke(Relogio.GetUtcNow());
         var (key, prefix, hash) = CloudServerKey.Generate();
         db.CloudServerCredentials.Add(new CloudServerCredential
-            { GameServerId = ServidorA, VaultId = Nuvem, KeyPrefix = prefix, KeyHash = hash });
+        {
+            GameServerId = ServidorA, VaultId = Nuvem, KeyPrefix = prefix, KeyHash = hash
+        });
         await db.SaveChangesAsync(Ct);
         return key;
     }
@@ -142,9 +155,9 @@ internal sealed class CloudAmbiente : IAsyncDisposable
     {
         await using var db = await Dbs().CreateDbContextAsync(Ct);
         return await (from b in db.CloudBalances
-                      join i in db.CloudItemTypes on b.ItemTypeId equals i.Id
-                      where i.Fingerprint == fingerprint
-                      select b.Amount).SumAsync(Ct);
+            join i in db.CloudItemTypes on b.ItemTypeId equals i.Id
+            where i.Fingerprint == fingerprint
+            select b.Amount).SumAsync(Ct);
     }
 
     public async Task<int> ContarLedgerAsync()
@@ -169,8 +182,6 @@ internal sealed class CloudAmbiente : IAsyncDisposable
         return await acao(scope.ServiceProvider.GetRequiredService<TUseCase>());
     }
 
-    public ValueTask DisposeAsync() => Factory.DisposeAsync();
-
     private sealed class DonoDoPainel(Guid dono) : ICurrentUserScope
     {
         public Guid? UserId => dono;
@@ -194,30 +205,31 @@ internal static class CloudApi
 
     public static CloudHelloRequest HelloDoMundo(Guid mundo, Dictionary<string, CloudSeqPosition>? jogadores) =>
         new(CloudProtocol.Current, "0.1.0", new CloudCheckpoint(mundo, jogadores));
-    
+
     public static async Task PostOkAsync(HttpClient client, string url, object body)
     {
         var resposta = await client.PostAsJsonAsync(url, body, Ct);
         resposta.StatusCode.ShouldBe(HttpStatusCode.OK, await resposta.Content.ReadAsStringAsync(Ct));
     }
-    
+
     public static CloudHelloRequest Hello() =>
         new(CloudProtocol.Current, "0.1.0", new CloudCheckpoint(Guid.CreateVersion7(), null));
-    
+
     public static async Task<CloudAcquireReply> Acquire(HttpClient client) =>
         await PostAsync<CloudAcquireReply>(client, "/api/cloud/v1/leases/acquire",
             new CloudAcquireRequest(Jogador, "ana"));
-    
+
     public static async Task<CloudBatchReply> Lote(HttpClient client, CloudBatchRequest lote) =>
         await PostAsync<CloudBatchReply>(client, "/api/cloud/v1/batches", lote);
-    
+
     public static CloudBatchRequest Credito(Guid canal, long seq, long delta, long depois) =>
         new(Jogador, 1, seq, [new CloudOpDto(canal, Diamante, delta)], [new CloudExpectedDto(canal, Diamante, depois)],
             [new CloudItemDto(Diamante, "minecraft:diamond", "Diamante", Convert.ToBase64String([1, 2, 3]))]);
-    
+
     public static CloudBatchRequest Debito(Guid canal, long seq, long delta, long depois) =>
-        new(Jogador, 1, seq, [new CloudOpDto(canal, Diamante, delta)], [new CloudExpectedDto(canal, Diamante, depois)], null);
-    
+        new(Jogador, 1, seq, [new CloudOpDto(canal, Diamante, delta)], [new CloudExpectedDto(canal, Diamante, depois)],
+            null);
+
     public static async Task<T> PostAsync<T>(HttpClient client, string url, object body)
     {
         var resposta = await client.PostAsJsonAsync(url, body, Ct);

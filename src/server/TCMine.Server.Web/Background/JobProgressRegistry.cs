@@ -17,17 +17,6 @@ public sealed class JobProgressRegistry : IJobProgressReporter
     private readonly ConcurrentDictionary<Guid, JobProgress> _active = new();
 
     /// <summary>
-    ///     Últimos encerramentos, para a UI conseguir mostrar "terminou" mesmo que
-    ///     o componente só renderize depois. Limitado — não é histórico.
-    /// </summary>
-    private readonly ConcurrentDictionary<Guid, string?> _finished = new();
-
-    public IReadOnlyCollection<KeyValuePair<Guid, JobProgress>> Active => _active.ToArray();
-
-    /// <summary>Disparado a cada mudança. Assinantes devem re-renderizar via InvokeAsync.</summary>
-    public event Action? Changed;
-
-    /// <summary>
     ///     Um cancelamento por trabalho, ligado ao desligamento da aplicação.
     ///     Vive aqui pelo mesmo motivo do progresso: o admin que mandou parar
     ///     pode ter saído da página, e o botão de cancelar precisa funcionar de
@@ -35,7 +24,31 @@ public sealed class JobProgressRegistry : IJobProgressReporter
     /// </summary>
     private readonly ConcurrentDictionary<Guid, CancellationTokenSource> _cancellations = new();
 
+    /// <summary>
+    ///     Últimos encerramentos, para a UI conseguir mostrar "terminou" mesmo que
+    ///     o componente só renderize depois. Limitado — não é histórico.
+    /// </summary>
+    private readonly ConcurrentDictionary<Guid, string?> _finished = new();
+
+    public IReadOnlyCollection<KeyValuePair<Guid, JobProgress>> Active => _active.ToArray();
+
     public bool IsRunning(Guid scopeId) => _active.ContainsKey(scopeId);
+
+    public void Report(Guid scopeId, JobProgress progress)
+    {
+        _active[scopeId] = progress;
+        Changed?.Invoke();
+    }
+
+    public void Complete(Guid scopeId, string? error = null)
+    {
+        _active.TryRemove(scopeId, out _);
+        _finished[scopeId] = error;
+        Changed?.Invoke();
+    }
+
+    /// <summary>Disparado a cada mudança. Assinantes devem re-renderizar via InvokeAsync.</summary>
+    public event Action? Changed;
 
     /// <summary>Este trabalho aceita ser cancelado?</summary>
     public bool IsCancellable(Guid scopeId) => _cancellations.ContainsKey(scopeId);
@@ -72,19 +85,6 @@ public sealed class JobProgressRegistry : IJobProgressReporter
         if (_cancellations.TryRemove(scopeId, out var cts))
             cts.Dispose();
 
-        Changed?.Invoke();
-    }
-
-    public void Report(Guid scopeId, JobProgress progress)
-    {
-        _active[scopeId] = progress;
-        Changed?.Invoke();
-    }
-
-    public void Complete(Guid scopeId, string? error = null)
-    {
-        _active.TryRemove(scopeId, out _);
-        _finished[scopeId] = error;
         Changed?.Invoke();
     }
 

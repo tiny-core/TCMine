@@ -113,7 +113,7 @@ public sealed class JobCancellationTests
 
         registry.IsRunning(scope).ShouldBeFalse("nada reportou progresso ainda");
 
-        registry.Report(scope, new JobProgress("t", "passo", 0, 0));
+        registry.Report(scope, new JobProgress("t", "passo"));
 
         registry.IsRunning(scope).ShouldBeTrue();
     }

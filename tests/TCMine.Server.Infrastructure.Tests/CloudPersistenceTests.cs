@@ -23,13 +23,13 @@ public sealed class CloudPersistenceTests
 
         await using (var db = factory.CreateDbContext())
         {
-            db.CloudBatches.Add(Lote(vault.Id, seq: 1));
+            db.CloudBatches.Add(Lote(vault.Id, 1));
             await db.SaveChangesAsync(Ct);
         }
 
         await using (var db = factory.CreateDbContext())
         {
-            db.CloudBatches.Add(Lote(vault.Id, seq: 1));
+            db.CloudBatches.Add(Lote(vault.Id, 1));
             await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync(Ct));
         }
     }
@@ -68,11 +68,17 @@ public sealed class CloudPersistenceTests
         using var factory = new SqliteTestFactory();
         var vault = await NovaNuvem(factory);
         var bytes = Enumerable.Range(0, 300).Select(i => (byte)i).ToArray();
-        var canal = new CloudChannel { VaultId = vault.Id, PlayerUuid = new string('b', 32), Name = CloudChannel.DefaultName };
+        var canal = new CloudChannel
+        {
+            VaultId = vault.Id, PlayerUuid = new string('b', 32), Name = CloudChannel.DefaultName
+        };
         var item = new CloudItemType
         {
-            Fingerprint = new string('f', 64), ItemId = "minecraft:diamond", ModId = "minecraft",
-            DisplayName = "Diamante", Encoded = bytes
+            Fingerprint = new string('f', 64),
+            ItemId = "minecraft:diamond",
+            ModId = "minecraft",
+            DisplayName = "Diamante",
+            Encoded = bytes
         };
         var saldo = new CloudBalance { ChannelId = canal.Id, ItemTypeId = item.Id };
         saldo.Apply(5_000_000_000L); // passa de int: a coluna tem de ser bigint
@@ -113,7 +119,11 @@ public sealed class CloudPersistenceTests
 
     private static CloudBatch Lote(Guid vaultId, long seq) => new()
     {
-        VaultId = vaultId, PlayerUuid = new string('a', 32), ServerId = Guid.CreateVersion7(),
-        Epoch = 1, Seq = seq, PayloadHash = new string('0', 64)
+        VaultId = vaultId,
+        PlayerUuid = new string('a', 32),
+        ServerId = Guid.CreateVersion7(),
+        Epoch = 1,
+        Seq = seq,
+        PayloadHash = new string('0', 64)
     };
 }

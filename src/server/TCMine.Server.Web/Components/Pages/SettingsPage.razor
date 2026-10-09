@@ -1,4 +1,3 @@
-@using TCMine.Server.Application.Abstractions
 @page "/admin/settings"
 @using TCMine.Contracts.Modpacks
 
@@ -27,196 +26,196 @@ else
     @* Coluna central, não a largura inteira de .tc-page: um MudTextField
        esticado a 1440px fica tão largo que vira difícil de ler. *@
     <div class="tc-centered-column" style="max-width:900px;">
-    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
+        <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
 
-        <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-                Valores já preenchidos ao criar um modpack ou uma versão. Nada aqui altera
-                o que já existe.
-            </MudText>
+            <MudTabPanel Text="Modpacks" Icon="@Icons.Material.Filled.Inventory2" Class="pa-6">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    Valores já preenchidos ao criar um modpack ou uma versão. Nada aqui altera
+                    o que já existe.
+                </MudText>
 
-            <MudGrid>
-                <MudItem xs="12" md="6">
-                    <MudTextField @bind-Value="_defaultMcVersion" Label="Versão do Minecraft padrão"
-                                  Variant="Variant.Outlined" Placeholder="ex.: 1.21.1"
-                                  HelperText="Deixe vazio para não sugerir nenhuma."/>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudSelect T="ModLoader" @bind-Value="_defaultLoader" Label="Loader padrão"
-                               Variant="Variant.Outlined">
-                        @foreach (var loader in Enum.GetValues<ModLoader>())
-                        {
-                            <MudSelectItem T="ModLoader" Value="loader">@loader</MudSelectItem>
-                        }
-                    </MudSelect>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudNumericField @bind-Value="_defaultMemoryMb" Label="RAM padrão (MB)"
-                                     Variant="Variant.Outlined" Min="512" Step="512"/>
-                </MudItem>
-                <MudItem xs="12" md="6">
-                    <MudNumericField @bind-Value="_worldBackupKeepCount"
-                                     Label="Backups automáticos a manter"
-                                     HelperText="Por servidor. Zero = ilimitado. Backups manuais nunca expiram."
-                                     Variant="Variant.Outlined" Min="0" Max="50"/>
-                </MudItem>
-            </MudGrid>
-        </MudTabPanel>
-
-        <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">
-            <MudText Typo="Typo.subtitle1" Class="mb-1">CurseForge</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-                Sem a chave da API, o TCMine funciona só com o Modrinth. A chave é
-                guardada cifrada e nunca é exibida de volta.
-            </MudText>
-
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-                @if (_hasCurseForgeKey)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.CheckCircle">
-                        chave configurada
-                    </MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.RemoveCircleOutline">
-                        sem chave
-                    </MudChip>
-                }
-            </MudStack>
-
-            <MudGrid>
-                <MudItem xs="12" md="8">
-                    <MudTextField @bind-Value="_curseForgeKey" Label="Chave da API"
-                                  InputType="InputType.Password" Variant="Variant.Outlined"
-                                  Disabled="_clearCurseForgeKey"
-                                  HelperText="@(_hasCurseForgeKey ? "Deixe vazio para manter a chave atual." : "Cole a chave gerada no console do CurseForge.")"/>
-                </MudItem>
-                @if (_hasCurseForgeKey)
-                {
-                    <MudItem xs="12" md="4" Class="d-flex align-center">
-                        <MudCheckBox @bind-Value="_clearCurseForgeKey" Color="Color.Error"
-                                     Label="Remover a chave"/>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_defaultMcVersion" Label="Versão do Minecraft padrão"
+                                      Variant="Variant.Outlined" Placeholder="ex.: 1.21.1"
+                                      HelperText="Deixe vazio para não sugerir nenhuma."/>
                     </MudItem>
-                }
-            </MudGrid>
-        </MudTabPanel>
+                    <MudItem xs="12" md="6">
+                        <MudSelect T="ModLoader" @bind-Value="_defaultLoader" Label="Loader padrão"
+                                   Variant="Variant.Outlined">
+                            @foreach (var loader in Enum.GetValues<ModLoader>())
+                            {
+                                <MudSelectItem T="ModLoader" Value="loader">@loader</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_defaultMemoryMb" Label="RAM padrão (MB)"
+                                         Variant="Variant.Outlined" Min="512" Step="512"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_worldBackupKeepCount"
+                                         Label="Backups automáticos a manter"
+                                         HelperText="Por servidor. Zero = ilimitado. Backups manuais nunca expiram."
+                                         Variant="Variant.Outlined" Min="0" Max="50"/>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
 
-        <MudTabPanel Text="Login" Icon="@Icons.Material.Filled.Login" Class="pa-6">
-            <MudText Typo="Typo.subtitle1" Class="mb-1">Login com a Microsoft</MudText>
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
-                O launcher prova a conta do jogador contra uma app registrada no Entra ID
-                (Azure) e troca essa prova por uma sessão aqui. Sem o client ID, o launcher
-                recusa o pareamento pedindo para avisar o administrador — ninguém entra.
-            </MudText>
+            <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Class="mb-1">CurseForge</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    Sem a chave da API, o TCMine funciona só com o Modrinth. A chave é
+                    guardada cifrada e nunca é exibida de volta.
+                </MudText>
 
-            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
-                @if (!string.IsNullOrWhiteSpace(_azureClientId))
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.CheckCircle">
-                        login configurado
-                    </MudChip>
-                }
-                else if (_hasAzureClientIdFromFile)
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.Description">
-                        configurado por arquivo
-                    </MudChip>
-                }
-                else
-                {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.ErrorOutline">
-                        jogadores não conseguem entrar
-                    </MudChip>
-                }
-            </MudStack>
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                    @if (_hasCurseForgeKey)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.CheckCircle">
+                            chave configurada
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.RemoveCircleOutline">
+                            sem chave
+                        </MudChip>
+                    }
+                </MudStack>
 
-            @* Sem este aviso, quem configurou por appsettings abre esta tela, vê o
+                <MudGrid>
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_curseForgeKey" Label="Chave da API"
+                                      InputType="InputType.Password" Variant="Variant.Outlined"
+                                      Disabled="_clearCurseForgeKey"
+                                      HelperText="@(_hasCurseForgeKey ? "Deixe vazio para manter a chave atual." : "Cole a chave gerada no console do CurseForge.")"/>
+                    </MudItem>
+                    @if (_hasCurseForgeKey)
+                    {
+                        <MudItem xs="12" md="4" Class="d-flex align-center">
+                            <MudCheckBox @bind-Value="_clearCurseForgeKey" Color="Color.Error"
+                                         Label="Remover a chave"/>
+                        </MudItem>
+                    }
+                </MudGrid>
+            </MudTabPanel>
+
+            <MudTabPanel Text="Login" Icon="@Icons.Material.Filled.Login" Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Class="mb-1">Login com a Microsoft</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    O launcher prova a conta do jogador contra uma app registrada no Entra ID
+                    (Azure) e troca essa prova por uma sessão aqui. Sem o client ID, o launcher
+                    recusa o pareamento pedindo para avisar o administrador — ninguém entra.
+                </MudText>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                    @if (!string.IsNullOrWhiteSpace(_azureClientId))
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.CheckCircle">
+                            login configurado
+                        </MudChip>
+                    }
+                    else if (_hasAzureClientIdFromFile)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.Description">
+                            configurado por arquivo
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.ErrorOutline">
+                            jogadores não conseguem entrar
+                        </MudChip>
+                    }
+                </MudStack>
+
+                @* Sem este aviso, quem configurou por appsettings abre esta tela, vê o
                campo vazio e conclui que o login está quebrado — quando está de pé. *@
-            @if (_hasAzureClientIdFromFile)
-            {
-                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
-                    Há um client ID definido em <code>Server:AzureClientId</code> (appsettings ou
-                    variável de ambiente): <strong>@_azureClientIdFromFile</strong>. Ele vale
-                    enquanto o campo abaixo estiver vazio. Preencher aqui tem precedência e
-                    passa a valer no próximo handshake, sem reiniciar o servidor.
-                </MudAlert>
-            }
+                @if (_hasAzureClientIdFromFile)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4">
+                        Há um client ID definido em <code>Server:AzureClientId</code> (appsettings ou
+                        variável de ambiente): <strong>@_azureClientIdFromFile</strong>. Ele vale
+                        enquanto o campo abaixo estiver vazio. Preencher aqui tem precedência e
+                        passa a valer no próximo handshake, sem reiniciar o servidor.
+                    </MudAlert>
+                }
 
-            <MudGrid>
-                <MudItem xs="12" md="8">
-                    <MudTextField @bind-Value="_azureClientId" Label="ID do aplicativo (cliente)"
-                                  Variant="Variant.Outlined" Immediate="true"
-                                  Placeholder="00000000-0000-0000-0000-000000000000"
-                                  Adornment="Adornment.Start" AdornmentIcon="@Icons.Custom.Brands.Microsoft"
-                                  HelperText="GUID do registro no Entra ID. Não é segredo: o launcher o recebe no handshake."/>
-                </MudItem>
-            </MudGrid>
+                <MudGrid>
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_azureClientId" Label="ID do aplicativo (cliente)"
+                                      Variant="Variant.Outlined" Immediate="true"
+                                      Placeholder="00000000-0000-0000-0000-000000000000"
+                                      Adornment="Adornment.Start" AdornmentIcon="@Icons.Custom.Brands.Microsoft"
+                                      HelperText="GUID do registro no Entra ID. Não é segredo: o launcher o recebe no handshake."/>
+                    </MudItem>
+                </MudGrid>
 
-            <MudText Typo="Typo.subtitle2" Class="mt-8 mb-2">Como registrar a app no Azure</MudText>
+                <MudText Typo="Typo.subtitle2" Class="mt-8 mb-2">Como registrar a app no Azure</MudText>
 
-            <MudList T="string" Dense="true" Class="mb-4">
-                <MudListItem T="string" Icon="@Icons.Material.Filled.LooksOne">
-                    <MudText Typo="Typo.body2">
-                        No <strong>portal.azure.com</strong>, abra <em>Microsoft Entra ID → Registros
-                        de aplicativo → Novo registro</em>.
-                    </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.LooksTwo">
-                    <MudText Typo="Typo.body2">
-                        Em tipos de conta, escolha <strong>somente contas Microsoft pessoais</strong>.
-                        Conta de Minecraft é sempre conta pessoal; escolher o tipo organizacional faz
-                        todo login falhar, e o erro aparece só na máquina do jogador.
-                    </MudText>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks3">
-                    <MudText Typo="Typo.body2" Class="mb-2">
-                        Adicione a plataforma <strong>cliente público / nativo</strong> e registre os
-                        dois URIs do launcher abaixo — um por caminho de login, e faltando o do
-                        broker o jogador precisa digitar a senha toda vez:
-                    </MudText>
-                    <MudPaper Outlined="true" Class="pa-3 mb-1">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Navegador do sistema</MudText>
-                        <MudText Typo="Typo.body2"><code>http://localhost</code></MudText>
-                    </MudPaper>
-                    <MudPaper Outlined="true" Class="pa-3">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Broker do Windows (WAM)</MudText>
+                <MudList T="string" Dense="true" Class="mb-4">
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.LooksOne">
                         <MudText Typo="Typo.body2">
-                            <code>ms-appx-web://microsoft.aad.brokerplugin/@(_azureClientIdPreview)</code>
+                            No <strong>portal.azure.com</strong>, abra <em>Microsoft Entra ID → Registros
+                                de aplicativo → Novo registro</em>.
                         </MudText>
-                    </MudPaper>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks4">
-                    <MudText Typo="Typo.body2" Class="mb-2">
-                        Adicione TAMBÉM a plataforma <strong>Web</strong> e registre este terceiro
-                        URI — é por ele que o PAINEL (não o launcher) entra com a Microsoft:
-                    </MudText>
-                    <MudPaper Outlined="true" Class="pa-3">
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">Login do painel</MudText>
-                        <MudText Typo="Typo.body2"><code>@_microsoftCallbackUrl</code></MudText>
-                    </MudPaper>
-                </MudListItem>
-                <MudListItem T="string" Icon="@Icons.Material.Filled.Looks5">
-                    <MudText Typo="Typo.body2">
-                        Habilite <strong>permitir fluxos de cliente público</strong> e copie o
-                        <em>ID do aplicativo (cliente)</em> para o campo acima. A app não precisa de
-                        segredo: o fluxo usa PKCE, e um segredo no launcher seria público de qualquer forma.
-                    </MudText>
-                </MudListItem>
-            </MudList>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.LooksTwo">
+                        <MudText Typo="Typo.body2">
+                            Em tipos de conta, escolha <strong>somente contas Microsoft pessoais</strong>.
+                            Conta de Minecraft é sempre conta pessoal; escolher o tipo organizacional faz
+                            todo login falhar, e o erro aparece só na máquina do jogador.
+                        </MudText>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Looks3">
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Adicione a plataforma <strong>cliente público / nativo</strong> e registre os
+                            dois URIs do launcher abaixo — um por caminho de login, e faltando o do
+                            broker o jogador precisa digitar a senha toda vez:
+                        </MudText>
+                        <MudPaper Outlined="true" Class="pa-3 mb-1">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Navegador do sistema</MudText>
+                            <MudText Typo="Typo.body2"><code>http://localhost</code></MudText>
+                        </MudPaper>
+                        <MudPaper Outlined="true" Class="pa-3">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Broker do Windows (WAM)</MudText>
+                            <MudText Typo="Typo.body2">
+                                <code>ms-appx-web://microsoft.aad.brokerplugin/@(_azureClientIdPreview)</code>
+                            </MudText>
+                        </MudPaper>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Looks4">
+                        <MudText Typo="Typo.body2" Class="mb-2">
+                            Adicione TAMBÉM a plataforma <strong>Web</strong> e registre este terceiro
+                            URI — é por ele que o PAINEL (não o launcher) entra com a Microsoft:
+                        </MudText>
+                        <MudPaper Outlined="true" Class="pa-3">
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">Login do painel</MudText>
+                            <MudText Typo="Typo.body2"><code>@_microsoftCallbackUrl</code></MudText>
+                        </MudPaper>
+                    </MudListItem>
+                    <MudListItem T="string" Icon="@Icons.Material.Filled.Looks5">
+                        <MudText Typo="Typo.body2">
+                            Habilite <strong>permitir fluxos de cliente público</strong> e copie o
+                            <em>ID do aplicativo (cliente)</em> para o campo acima. A app não precisa de
+                            segredo: o fluxo usa PKCE, e um segredo no launcher seria público de qualquer forma.
+                        </MudText>
+                    </MudListItem>
+                </MudList>
 
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
-                A Mojang exige aprovação para apps de terceiros usarem a API de autenticação do
-                Minecraft. Enquanto ela não sai, o registro fica correto e o login ainda falha na
-                etapa do XSTS — não adianta procurar erro na configuração daqui.
-            </MudAlert>
-        </MudTabPanel>
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    A Mojang exige aprovação para apps de terceiros usarem a API de autenticação do
+                    Minecraft. Enquanto ela não sai, o registro fica correto e o login ainda falha na
+                    etapa do XSTS — não adianta procurar erro na configuração daqui.
+                </MudAlert>
+            </MudTabPanel>
 
-    </MudTabs>
+        </MudTabs>
     </div>
 }

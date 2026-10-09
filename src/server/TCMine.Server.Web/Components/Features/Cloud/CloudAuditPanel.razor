@@ -1,6 +1,3 @@
-@using TCMine.Server.Application.Abstractions
-@using TCMine.Server.Domain.Cloud
-
 <MudText Typo="Typo.subtitle1" Class="mb-2">Decisões no painel</MudText>
 @if (_actions is null)
 {
@@ -19,16 +16,23 @@ else
             <MudTh>Detalhes</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText></MudTd>
-            <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.Action</MudText></MudTd>
-            <MudTd><MudText Typo="Typo.caption">@context.Details</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText>
+            </MudTd>
+            <MudTd Style="font-family:monospace;">
+                <MudText Typo="Typo.caption">@context.Action</MudText>
+            </MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.Details</MudText>
+            </MudTd>
         </RowTemplate>
     </MudTable>
 }
 
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
     <MudText Typo="Typo.subtitle1">Histórico de saldos</MudText>
-    <MudTextField @bind-Value="_player" Placeholder="UUID do jogador (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+    <MudTextField @bind-Value="_player" Placeholder="UUID do jogador (opcional)" Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
                   Style="max-width:360px;" OnKeyDown="@(e => e.Key == "Enter" ? LoadAsync() : Task.CompletedTask)"/>
     <MudButton Variant="Variant.Outlined" OnClick="LoadAsync">Filtrar</MudButton>
 </MudStack>
@@ -45,10 +49,16 @@ else
             <MudTh>Origem</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd><MudText Typo="Typo.caption">@context.At.ToLocalTime().ToString("dd/MM HH:mm:ss")</MudText></MudTd>
-            <MudTd Style="font-family:monospace;"><MudText Typo="Typo.caption">@context.PlayerUuid</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.At.ToLocalTime().ToString("dd/MM HH:mm:ss")</MudText>
+            </MudTd>
+            <MudTd Style="font-family:monospace;">
+                <MudText Typo="Typo.caption">@context.PlayerUuid</MudText>
+            </MudTd>
             <MudTd>@context.ChannelName</MudTd>
-            <MudTd><MudText Typo="Typo.caption">@context.DisplayName</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.DisplayName</MudText>
+            </MudTd>
             <MudTd Style="text-align:right;">@context.Delta.ToString("+#,0;-#,0;0")</MudTd>
             <MudTd Style="text-align:right;">@context.BalanceAfter.ToString("N0")</MudTd>
             <MudTd>

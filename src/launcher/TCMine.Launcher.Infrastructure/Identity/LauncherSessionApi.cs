@@ -109,22 +109,6 @@ public sealed partial class LauncherSessionApi(
         }
     }
 
-    private static async Task<string?> TryReadProblemDetailAsync(HttpResponseMessage response, CancellationToken ct)
-    {
-        try
-        {
-            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-
-            return document.RootElement.TryGetProperty("detail", out var detail)
-                ? detail.GetString()
-                : null;
-        }
-        catch (JsonException)
-        {
-            return null;
-        }
-    }
-
     public async Task SignOutAsync(Uri serverUrl, CancellationToken ct)
     {
         try
@@ -137,6 +121,23 @@ public sealed partial class LauncherSessionApi(
             // pediu para sair tem de sair, e a sessão do outro lado expira
             // sozinha. Registrar basta.
             LogSaidaSemServidor(ex);
+        }
+    }
+
+    private static async Task<string?> TryReadProblemDetailAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            using var document =
+                await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+
+            return document.RootElement.TryGetProperty("detail", out var detail)
+                ? detail.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 

@@ -1,7 +1,6 @@
-@using TCMine.Server.Application.Abstractions
-
 <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-3">
-    <MudTextField @bind-Value="_search" Placeholder="Buscar por nome ou UUID" Variant="Variant.Outlined" Margin="Margin.Dense"
+    <MudTextField @bind-Value="_search" Placeholder="Buscar por nome ou UUID" Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
                   Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" Immediate="false"
                   OnKeyDown="@(e => e.Key == "Enter" ? LoadAsync() : Task.CompletedTask)" Style="max-width:360px;"/>
     <MudButton Variant="Variant.Outlined" OnClick="LoadAsync" Disabled="_isBusy">Buscar</MudButton>
@@ -33,7 +32,8 @@ else
         <RowTemplate>
             <MudTd DataLabel="Jogador">
                 <MudText Typo="Typo.body2">@(context.DisplayName ?? "(sem conta no TCMine)")</MudText>
-                <MudText Typo="Typo.caption" Class="mud-text-secondary" Style="font-family:monospace;">@context.PlayerUuid</MudText>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary"
+                         Style="font-family:monospace;">@context.PlayerUuid</MudText>
             </MudTd>
             <MudTd DataLabel="Canais">
                 @foreach (var channel in context.Channels)
@@ -56,7 +56,8 @@ else
                     </MudText>
                     @if (context.LeaseExpiresAt is { } expires)
                     {
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">expira @expires.ToLocalTime().ToString("dd/MM HH:mm")</MudText>
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                            expira @expires.ToLocalTime().ToString("dd/MM HH:mm")</MudText>
                     }
                 }
                 else

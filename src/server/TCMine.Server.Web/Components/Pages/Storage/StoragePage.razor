@@ -1,5 +1,4 @@
 @page "/admin/storage"
-@using TCMine.Server.Application.Storage
 
 <PageTitle>Armazenamento — TCMine</PageTitle>
 
@@ -214,7 +213,8 @@ else
                         </MudStack>
                     </MudTd>
                     <MudTd DataLabel="Criado">
-                        <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
+                        <MudText
+                            Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</MudText>
                     </MudTd>
                     <MudTd DataLabel="Tamanho" Style="text-align:right;">
                         @HumanSize.Bytes(context.SizeBytes)

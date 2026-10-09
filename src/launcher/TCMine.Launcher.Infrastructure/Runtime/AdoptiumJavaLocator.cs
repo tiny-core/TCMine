@@ -153,7 +153,7 @@ public sealed partial class AdoptiumJavaLocator(
         // com a combinação pedida no texto, poupa investigar um erro de extração
         // mais à frente que não teria nada a ver com a causa.
         if (package?.Link is not { Length: > 0 } || package.Checksum is not { Length: > 0 }
-                                                || package.Name is not { Length: > 0 })
+                                                 || package.Name is not { Length: > 0 })
         {
             throw new InvalidOperationException(
                 $"O Adoptium não tem JRE {majorVersion} para {OsName()}/{CpuArchitecture()}.");
@@ -242,15 +242,13 @@ public sealed partial class AdoptiumJavaLocator(
         Directory.CreateDirectory(temporary);
 
         if (name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-        {
             ZipFile.ExtractToDirectory(file, temporary);
-        }
         else
         {
             using var comprimido = File.OpenRead(file);
             using var gzip = new GZipStream(comprimido, CompressionMode.Decompress);
 
-            TarFile.ExtractToDirectory(gzip, temporary, overwriteFiles: true);
+            TarFile.ExtractToDirectory(gzip, temporary, true);
         }
 
         if (Directory.Exists(target))

@@ -2,22 +2,22 @@
 <!-- data-theme="dark": o launcher é escuro e ponto. As variáveis geradas por
      TokenCssBuilder respondem a este atributo, então elas já valem antes de o
      MudBlazor terminar de montar — sem isso o primeiro quadro pisca claro. -->
-<html lang="pt-BR" data-theme="dark">
+<html data-theme="dark" lang="pt-BR">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <base href="/"/>
   <title>TCMine Launcher</title>
 
   <!-- Nenhuma fonte ou folha de estilo vem da rede: o launcher precisa abrir
        igual sem internet, e um <link> para uma CDN deixaria a janela em branco
        enquanto o pedido morre no timeout. -->
-  <link rel="stylesheet" href="_content/MudBlazor/MudBlazor.min.css"/>
-  <link rel="stylesheet" href="_content/TCMine.UI.Shared/tcmine.css"/>
-  <link rel="stylesheet" href="_content/TCMine.Launcher.UI/launcher.css"/>
+  <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet"/>
+  <link href="_content/TCMine.UI.Shared/tcmine.css" rel="stylesheet"/>
+  <link href="_content/TCMine.Launcher.UI/launcher.css" rel="stylesheet"/>
 
   <!-- Bundle do CSS isolado (.razor.css de todos os projetos referenciados). -->
-  <link rel="stylesheet" href="TCMine.Launcher.App.styles.css"/>
+  <link href="TCMine.Launcher.App.styles.css" rel="stylesheet"/>
 </head>
 <body>
 
@@ -28,7 +28,7 @@
      única saída, e sem esta faixa a janela ficaria congelada sem explicação. -->
 <div id="blazor-error-ui">
   Alguma coisa correu mal. Recarregue o launcher.
-  <a href="" class="reload">Recarregar</a>
+  <a class="reload" href="">Recarregar</a>
 </div>
 
 <script src="_framework/blazor.webview.js"></script>

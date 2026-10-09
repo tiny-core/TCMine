@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
@@ -78,14 +77,14 @@ public static class AuthEndpoints
                 });
 
             var authorize = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize"
-                             + $"?client_id={Uri.EscapeDataString(clientId)}"
-                             + "&response_type=code"
-                             + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
-                             + "&response_mode=query"
-                             + "&scope=" + Uri.EscapeDataString("openid profile XboxLive.signin offline_access")
-                             + $"&state={state}"
-                             + $"&code_challenge={ComputeCodeChallenge(verifier)}"
-                             + "&code_challenge_method=S256";
+                            + $"?client_id={Uri.EscapeDataString(clientId)}"
+                            + "&response_type=code"
+                            + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
+                            + "&response_mode=query"
+                            + "&scope=" + Uri.EscapeDataString("openid profile XboxLive.signin offline_access")
+                            + $"&state={state}"
+                            + $"&code_challenge={ComputeCodeChallenge(verifier)}"
+                            + "&code_challenge_method=S256";
 
             return Results.Redirect(authorize);
         });
@@ -95,7 +94,8 @@ public static class AuthEndpoints
             [FromQuery] string? code,
             [FromQuery] string? state,
             [FromQuery] string? error,
-            [FromQuery(Name = "error_description")] string? errorDescription,
+            [FromQuery(Name = "error_description")]
+            string? errorDescription,
             AuthenticateMicrosoftUser authenticate,
             LinkMinecraftAccount linkMinecraft,
             IMicrosoftOAuthClient oauth,
@@ -110,9 +110,7 @@ public static class AuthEndpoints
 
             if (!TryDecodeOAuthCookie(cookie, out var expectedState, out var verifier, out var isLink,
                     out var returnUrl))
-            {
                 return Results.Redirect(BuildUrl("/admin/login", "Sessão de login expirou. Tente de novo.", null));
-            }
 
             if (error is not null)
             {
@@ -266,7 +264,6 @@ public static class AuthEndpoints
     ///     ser o que o jogador digitou, e o valor calculado nunca bateria com
     ///     o que está registrado — a Microsoft devolve "invalid_request:
     ///     redirect_uri is not valid" sem dizer que a causa é essa.
-    ///
     ///     EM DEVELOPMENT, ignora o PublicUrl mesmo que ele exista: o
     ///     appsettings.json base traz um valor de template
     ///     ("https://localhost:7001") que não bate com NENHUM dos perfis reais
@@ -288,7 +285,7 @@ public static class AuthEndpoints
     /// </summary>
     private static string ComputeCodeChallenge(string verifier)
     {
-        var hash = SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(verifier));
+        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(verifier));
         return Convert.ToBase64String(hash).Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
 

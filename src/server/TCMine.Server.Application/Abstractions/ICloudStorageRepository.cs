@@ -51,7 +51,8 @@ public interface ICloudStorageRepository
     Task AddChannelAsync(CloudChannel channel, CancellationToken ct);
 
     /// <summary>Saldos maiores que zero dos canais, com o tipo de item.</summary>
-    Task<IReadOnlyList<CloudSnapshotItem>> LoadSnapshotAsync(IReadOnlyCollection<Guid> channelIds, CancellationToken ct);
+    Task<IReadOnlyList<CloudSnapshotItem>>
+        LoadSnapshotAsync(IReadOnlyCollection<Guid> channelIds, CancellationToken ct);
 
     /// <summary>Todos os saldos (inclusive zero) dos canais: base para validar um lote e as cotas.</summary>
     Task<IReadOnlyList<CloudBalance>> ListBalancesAsync(IReadOnlyCollection<Guid> channelIds, CancellationToken ct);
@@ -80,7 +81,8 @@ public interface ICloudStorageRepository
     Task<IReadOnlyList<CloudBatch>> ListAppliedBatchesAsync(Guid vaultId, Guid serverId, CancellationToken ct);
 
     /// <summary>Linhas do ledger geradas por estes lotes.</summary>
-    Task<IReadOnlyList<CloudLedgerEntry>> ListLedgerByBatchesAsync(IReadOnlyCollection<Guid> batchIds, CancellationToken ct);
+    Task<IReadOnlyList<CloudLedgerEntry>> ListLedgerByBatchesAsync(IReadOnlyCollection<Guid> batchIds,
+        CancellationToken ct);
 
     /// <summary>
     ///     Guarda o lote recusado e congela os canais que ele tocava. Lança

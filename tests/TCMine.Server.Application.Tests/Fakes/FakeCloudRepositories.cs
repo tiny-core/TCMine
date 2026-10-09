@@ -53,7 +53,8 @@ internal sealed class FakeCloudCredentialRepository : ICloudCredentialRepository
     public Task<CloudServerCredential?> FindByIdAsync(Guid id, CancellationToken ct) =>
         Task.FromResult(Credentials.FirstOrDefault(c => c.Id == id));
 
-    public Task<IReadOnlyList<CloudServerCredential>> ListActiveByServerAsync(Guid gameServerId, CancellationToken ct) =>
+    public Task<IReadOnlyList<CloudServerCredential>>
+        ListActiveByServerAsync(Guid gameServerId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<CloudServerCredential>>(
             [.. Credentials.Where(c => c.GameServerId == gameServerId && c.IsActive)]);
 
@@ -79,29 +80,73 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<CloudItemRule>> ListRulesAsync(Guid vaultId, CancellationToken ct) => throw new NotImplementedException();
+    public Task<IReadOnlyList<CloudItemRule>> ListRulesAsync(Guid vaultId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public Task<CloudItemRule?> GetRuleAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     public Task<bool> AddRuleAsync(CloudItemRule rule, CancellationToken ct) => throw new NotImplementedException();
     public Task RemoveRuleAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    public Task RecordSuspectsAsync(Guid vaultId, IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items, DateTimeOffset now, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status, CancellationToken ct) => throw new NotImplementedException();
-    public Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    public Task UpdateSuspectAsync(CloudSuspectItem suspect, CancellationToken ct) => throw new NotImplementedException();
-    public Task AddDoubtfulAsync(IReadOnlyList<CloudDoubtfulOperation> operations, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly, CancellationToken ct) => throw new NotImplementedException();
-    public Task<CloudDoubtfulOperation?> GetDoubtfulAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    public Task UpdateDoubtfulAsync(CloudDoubtfulOperation operation, CancellationToken ct) => throw new NotImplementedException();
-    public Task<CloudRollbackIncident?> GetOpenIncidentAsync(Guid serverId, CancellationToken ct) => throw new NotImplementedException();
-    public Task AddIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly, CancellationToken ct) => throw new NotImplementedException();
-    public Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    public Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) => throw new NotImplementedException();
-    public Task<Guid?> PreviousWorldAsync(Guid serverId, Guid currentCredentialId, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId, Guid serverId, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly, CancellationToken ct) => throw new NotImplementedException();
-    public Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    public Task UpdateQuarantineAsync(CloudQuarantine quarantine, CloudBatch batch, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyDictionary<Guid, (string ItemId, string DisplayName)>> ItemNamesAsync(IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct) => throw new NotImplementedException();
-    public Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task RecordSuspectsAsync(Guid vaultId, IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items,
+        DateTimeOffset now, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status,
+        CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task UpdateSuspectAsync(CloudSuspectItem suspect, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task AddDoubtfulAsync(IReadOnlyList<CloudDoubtfulOperation> operations, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<CloudDoubtfulOperation?> GetDoubtfulAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task UpdateDoubtfulAsync(CloudDoubtfulOperation operation, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<CloudRollbackIncident?> GetOpenIncidentAsync(Guid serverId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task AddIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<Guid?> PreviousWorldAsync(Guid serverId, Guid currentCredentialId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId,
+        Guid serverId, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task UpdateQuarantineAsync(CloudQuarantine quarantine, CloudBatch batch, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyDictionary<Guid, (string ItemId, string DisplayName)>> ItemNamesAsync(
+        IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit,
+        CancellationToken ct) => throw new NotImplementedException();
 }

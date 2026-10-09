@@ -88,6 +88,6 @@ public sealed class ActionLockTests
             MinecraftVersion = "1.21.1",
             Loader = ModLoader.NeoForge
         },
-        SizeBytes: 0,
-        Path: "/instancias/pack");
+        0,
+        "/instancias/pack");
 }

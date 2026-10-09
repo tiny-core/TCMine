@@ -19,9 +19,9 @@ public sealed class LocalFirstIngestionTests
     [Fact]
     public async Task Release_conhecida_com_blob_local_nao_consulta_a_origem()
     {
-        var cenario = new Cenario(conhecido: Conhecido(dependencias: "lib-a"));
+        var cenario = new Cenario(Conhecido("lib-a"));
 
-        var version = await cenario.Ingerir(fileId: "999");
+        var version = await cenario.Ingerir("999");
 
         cenario.Resolver.Chamadas.ShouldBe(0);
         cenario.Downloads.ShouldBe(0);
@@ -37,9 +37,9 @@ public sealed class LocalFirstIngestionTests
     [Fact]
     public async Task Blob_ausente_no_disco_cai_para_a_rede()
     {
-        var cenario = new Cenario(conhecido: Conhecido(dependencias: ""), blobExiste: false);
+        var cenario = new Cenario(Conhecido(""), false);
 
-        await cenario.Ingerir(fileId: "999");
+        await cenario.Ingerir("999");
 
         cenario.Resolver.Chamadas.ShouldBe(1);
         cenario.Downloads.ShouldBe(1);
@@ -50,9 +50,9 @@ public sealed class LocalFirstIngestionTests
     {
         // Linha de antes do campo existir: não sabemos o que o mod exige, então
         // a origem é perguntada — mas os bytes já estão aqui, e não descem.
-        var cenario = new Cenario(conhecido: Conhecido(dependencias: null));
+        var cenario = new Cenario(Conhecido(null));
 
-        var version = await cenario.Ingerir(fileId: "999");
+        var version = await cenario.Ingerir("999");
 
         cenario.Resolver.Chamadas.ShouldBe(1);
         cenario.Downloads.ShouldBe(0);
@@ -62,9 +62,9 @@ public sealed class LocalFirstIngestionTests
     [Fact]
     public async Task Sem_release_fixada_a_origem_decide_e_o_disco_evita_o_download()
     {
-        var cenario = new Cenario(conhecido: Conhecido(dependencias: ""));
+        var cenario = new Cenario(Conhecido(""));
 
-        await cenario.Ingerir(fileId: null);
+        await cenario.Ingerir(null);
 
         cenario.Resolver.Chamadas.ShouldBe(1);
         cenario.Downloads.ShouldBe(0);
@@ -85,9 +85,9 @@ public sealed class LocalFirstIngestionTests
 
     private sealed class Cenario(ModpackFile? conhecido, bool blobExiste = true)
     {
+        private readonly ContaDownloads _downloader = new();
         public Resolver Resolver { get; } = new();
         public int Downloads => _downloader.Chamadas;
-        private readonly ContaDownloads _downloader = new();
 
         public async Task<ModpackVersion> Ingerir(string? fileId)
         {

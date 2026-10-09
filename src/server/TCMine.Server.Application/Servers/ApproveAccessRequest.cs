@@ -44,7 +44,10 @@ public sealed class ApproveAccessRequest(
         if (existente is null)
         {
             await memberships.AddAsync(
-                new Membership { UserId = request.UserId, GameServerId = request.GameServerId, Role = ServerRole.Member },
+                new Membership
+                {
+                    UserId = request.UserId, GameServerId = request.GameServerId, Role = ServerRole.Member
+                },
                 ct);
         }
 

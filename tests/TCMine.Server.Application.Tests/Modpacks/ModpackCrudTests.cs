@@ -133,7 +133,7 @@ public sealed class ModpackCrudTests
     {
         // Tirar do ar sem apagar: o admin costuma querer o texto de volta, e
         // reescrevê-lo do zero seria a alternativa.
-        var repo = new FakeNews(Novidade(publicada: true));
+        var repo = new FakeNews(Novidade(true));
 
         var result = await new UpdateNews(repo)
             .HandleAsync(repo.Existente!.Id, "Título", "corpo", false, Ct);
@@ -155,7 +155,7 @@ public sealed class ModpackCrudTests
     [Fact]
     public async Task Apagar_novidade_remove_pelo_id()
     {
-        var repo = new FakeNews(Novidade(publicada: true));
+        var repo = new FakeNews(Novidade(true));
 
         var result = await new DeleteNews(repo).HandleAsync(repo.Existente!.Id, Ct);
 
@@ -167,20 +167,14 @@ public sealed class ModpackCrudTests
 
     private static News Novidade(bool publicada) => new()
     {
-        ModpackId = Guid.CreateVersion7(),
-        Title = "Título",
-        Body = "corpo",
-        IsPublished = publicada
+        ModpackId = Guid.CreateVersion7(), Title = "Título", Body = "corpo", IsPublished = publicada
     };
 
     private sealed class FakeModpacks : FakeModpackRepositoryBase
     {
         public Modpack Modpack { get; } = new()
         {
-            Slug = "teste",
-            Name = "Original",
-            MinecraftVersion = "1.21.1",
-            Loader = ModLoader.NeoForge
+            Slug = "teste", Name = "Original", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         };
 
         public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) =>

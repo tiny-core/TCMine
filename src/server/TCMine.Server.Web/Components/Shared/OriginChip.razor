@@ -5,10 +5,9 @@
    O selo leva à página do projeto quando ela existe (ver UpstreamLinks);
    override e upload manual não têm — o slug deles é sintético — e aí fica
    sem link em vez de levar a um 404. *@
-@using TCMine.Server.Domain.Modpacks
 
 <MudChip T="string" Size="Size.Small"
-         Icon="@OriginChip.IconFor(Origin)" Color="@OriginChip.ColorFor(Origin)"
+         Icon="@IconFor(Origin)" Color="@ColorFor(Origin)"
          Variant="Variant.Text" Href="@Page" Target="@(Page is null ? null : "_blank")">
-    @OriginChip.LabelFor(Origin)
+    @LabelFor(Origin)
 </MudChip>

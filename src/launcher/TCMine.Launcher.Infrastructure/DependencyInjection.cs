@@ -6,12 +6,12 @@ using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Infrastructure.Configuration;
 using TCMine.Launcher.Infrastructure.Connectivity;
 using TCMine.Launcher.Infrastructure.Content;
-using TCMine.Launcher.Infrastructure.Hub;
-using TCMine.Launcher.Infrastructure.Instances;
 using TCMine.Launcher.Infrastructure.Game;
+using TCMine.Launcher.Infrastructure.Hub;
+using TCMine.Launcher.Infrastructure.Identity;
+using TCMine.Launcher.Infrastructure.Instances;
 using TCMine.Launcher.Infrastructure.Runtime;
 using TCMine.Launcher.Infrastructure.Updates;
-using TCMine.Launcher.Infrastructure.Identity;
 using TCMine.MinecraftAuth;
 
 namespace TCMine.Launcher.Infrastructure;
@@ -62,10 +62,7 @@ public static class DependencyInjection
         // Live, o XSTS e o Minecraft Services é com a Microsoft, e mandar para
         // eles o cookie de sessão do TCMine seria entregar a sessão do jogador
         // a quem não tem nada com ela.
-        services.AddHttpClient<MinecraftTokenExchange>(client =>
-            {
-                client.Timeout = TimeSpan.FromSeconds(30);
-            })
+        services.AddHttpClient<MinecraftTokenExchange>(client => { client.Timeout = TimeSpan.FromSeconds(30); })
             .AddStandardResilienceHandler();
 
         services.AddTransient<IMinecraftAuthenticator, MinecraftAuthenticator>();

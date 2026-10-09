@@ -63,16 +63,6 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
             .FirstOrDefaultAsync(m => m.UserId == userId && m.GameServerId == gameServerId, ct);
     }
 
-    public async Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.Memberships
-            .AsNoTracking()
-            .Where(m => m.GameServerId == gameServerId)
-            .OrderBy(m => m.Id)
-            .ToListAsync(ct);
-    }
-
     public async Task<IReadOnlyList<Membership>> ListByUserAsync(Guid userId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -129,5 +119,15 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.Memberships.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.Memberships
+            .AsNoTracking()
+            .Where(m => m.GameServerId == gameServerId)
+            .OrderBy(m => m.Id)
+            .ToListAsync(ct);
     }
 }

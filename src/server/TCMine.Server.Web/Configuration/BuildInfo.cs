@@ -5,7 +5,8 @@ namespace TCMine.Server.Web.Configuration;
 /// <summary>
 ///     A versão desta build, para a interface mostrar.
 ///     Vem do <c>InformationalVersion</c>, que o MSBuild preenche a partir de
-///     <c>src/server/VERSION</c> (ver <c>src/server/Directory.Build.props</c>). Saber em que versão a instalação está deixou de ser detalhe
+///     <c>src/server/VERSION</c> (ver <c>src/server/Directory.Build.props</c>). Saber em que versão a instalação está
+///     deixou de ser detalhe
 ///     no dia em que uma imagem nova foi publicada e o container continuou
 ///     rodando a antiga — pelo painel não havia como perceber.
 /// </summary>

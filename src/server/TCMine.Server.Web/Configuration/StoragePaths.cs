@@ -129,9 +129,7 @@ public static class StoragePaths
         // ":memory:" e o formato de URI compartilhada não têm arquivo em disco.
         if (dataSource.StartsWith(":memory:", StringComparison.OrdinalIgnoreCase)
             || dataSource.StartsWith("file::memory:", StringComparison.OrdinalIgnoreCase))
-        {
             return null;
-        }
 
         var diretorio = Path.GetDirectoryName(dataSource);
 

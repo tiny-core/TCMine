@@ -1,9 +1,7 @@
 using TCMine.Contracts.Modpacks;
-using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Domain.Modpacks;
-
 using TCMine.Server.Application.Tests.Fakes;
+using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;
 
@@ -114,6 +112,5 @@ public sealed class ArchiveRestoreModpackVersionTests
             Saved = version;
             return Task.CompletedTask;
         }
-
     }
 }

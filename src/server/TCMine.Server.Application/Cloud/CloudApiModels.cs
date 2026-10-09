@@ -49,7 +49,12 @@ public sealed record CloudAcquireRequest(string PlayerUuid, string? PlayerName);
 
 public sealed record CloudItemDto(string Fingerprint, string ItemId, string DisplayName, string Encoded);
 
-public sealed record CloudChannelItemDto(string Fingerprint, long Amount, string ItemId, string DisplayName, string Encoded);
+public sealed record CloudChannelItemDto(
+    string Fingerprint,
+    long Amount,
+    string ItemId,
+    string DisplayName,
+    string Encoded);
 
 public sealed record CloudChannelDto(Guid Id, string Name, bool Frozen, IReadOnlyList<CloudChannelItemDto> Items);
 

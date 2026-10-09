@@ -86,9 +86,7 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
                 db.Memberships.Remove(m);
             }
             else
-            {
                 m.UserId = keepId;
-            }
         }
 
         var keptModpacks = await db.ModpackMemberships.Where(m => m.UserId == keepId).ToListAsync(ct);
@@ -101,9 +99,7 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
                 db.ModpackMemberships.Remove(m);
             }
             else
-            {
                 m.UserId = keepId;
-            }
         }
 
         await db.SaveChangesAsync(ct);
@@ -112,9 +108,9 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
         await db.AccessRequests.Where(r => r.UserId == absorbedId)
             .ExecuteUpdateAsync(s => s.SetProperty(r => r.UserId, keepId), ct);
         await db.AccessRequests.Where(r => r.ResolvedByUserId == absorbedId)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.ResolvedByUserId, (Guid?)keepId), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(r => r.ResolvedByUserId, keepId), ct);
         await db.Invites.Where(i => i.RedeemedByUserId == absorbedId)
-            .ExecuteUpdateAsync(s => s.SetProperty(i => i.RedeemedByUserId, (Guid?)keepId), ct);
+            .ExecuteUpdateAsync(s => s.SetProperty(i => i.RedeemedByUserId, keepId), ct);
         await db.Invites.Where(i => i.CreatedByUserId == absorbedId)
             .ExecuteUpdateAsync(s => s.SetProperty(i => i.CreatedByUserId, keepId), ct);
         await db.GameServers.Where(g => g.OwnerId == absorbedId)

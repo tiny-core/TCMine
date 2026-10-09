@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Components;
 using TCMine.Launcher.Core.Identity;
-using TCMine.Launcher.UI.Abstractions;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
@@ -13,7 +12,8 @@ public partial class SettingsPage : ComponentBase, IDisposable
     ///     Sair com o jogo aberto deixaria o jogo a correr com uma sessão que já
     ///     não existe; o botão espera o jogo fechar.
     /// </summary>
-    [Inject] private ActionLock Lock { get; set; } = default!;
+    [Inject]
+    private ActionLock Lock { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
@@ -21,13 +21,13 @@ public partial class SettingsPage : ComponentBase, IDisposable
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-    protected override void OnInitialized() => Lock.Changed += OnLockChanged;
-
     public void Dispose()
     {
         Lock.Changed -= OnLockChanged;
         GC.SuppressFinalize(this);
     }
+
+    protected override void OnInitialized() => Lock.Changed += OnLockChanged;
 
     private void OnLockChanged() => InvokeAsync(StateHasChanged);
 

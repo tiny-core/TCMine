@@ -20,7 +20,7 @@ public sealed class ListAccessibleServersTests
     public async Task Sem_vinculo_servidor_publico_vem_granted_e_privado_vem_none()
     {
         var player = Guid.CreateVersion7();
-        var publico = Servidor("Público", whitelistEnabled: false);
+        var publico = Servidor("Público", false);
         var privado = Servidor("Privado");
 
         var lista = await new ListAccessibleServers(
@@ -47,9 +47,7 @@ public sealed class ListAccessibleServersTests
                 new FakeServers(meu),
                 new FakeMemberships(new Membership
                 {
-                    UserId = player,
-                    GameServerId = meu.Id,
-                    Role = ServerRole.Moderator
+                    UserId = player, GameServerId = meu.Id, Role = ServerRole.Moderator
                 }),
                 new FakeAccessRequests(),
                 Jogador(player))

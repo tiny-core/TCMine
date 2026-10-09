@@ -1,4 +1,3 @@
-using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
@@ -87,9 +86,7 @@ public sealed class IngestionSchedulerTests
     {
         var version = new ModpackVersion
         {
-            ModpackId = Guid.CreateVersion7(),
-            Version = "1.0.0",
-            LoaderVersion = "21.1.100"
+            ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.100"
         };
 
         var repo = new FakeRepo();

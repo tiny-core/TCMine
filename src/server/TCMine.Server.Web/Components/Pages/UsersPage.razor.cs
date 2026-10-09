@@ -11,8 +11,8 @@ public partial class UsersPage : ComponentBase
     private bool _canManage;
     private bool _isBusy;
     private bool _loaded;
-    private List<User> _users = [];
     private string _search = "";
+    private List<User> _users = [];
 
     [Inject] private ListUsers ListUseCase { get; set; } = default!;
     [Inject] private SetInstanceAdmin SetAdminUseCase { get; set; } = default!;
@@ -59,7 +59,8 @@ public partial class UsersPage : ComponentBase
             var result = await SetAdminUseCase.HandleAsync(user.Id, ligado, CancellationToken.None);
 
             if (result.Succeeded)
-                Snackbar.Add($"{user.DisplayName}: {(ligado ? "promovido a" : "removido de")} admin.", Severity.Success);
+                Snackbar.Add($"{user.DisplayName}: {(ligado ? "promovido a" : "removido de")} admin.",
+                    Severity.Success);
             else
                 Snackbar.Add(result.Error!, Severity.Error);
 
@@ -75,8 +76,7 @@ public partial class UsersPage : ComponentBase
     {
         var parameters = new DialogParameters<UserMembershipsDialog>
         {
-            { x => x.UserId, user.Id },
-            { x => x.DisplayName, user.DisplayName }
+            { x => x.UserId, user.Id }, { x => x.DisplayName, user.DisplayName }
         };
 
         var dialog = await DialogService.ShowAsync<UserMembershipsDialog>(

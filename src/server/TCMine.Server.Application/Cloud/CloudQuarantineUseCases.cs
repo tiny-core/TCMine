@@ -5,13 +5,18 @@ using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Cloud;
 
-public sealed class ListCloudQuarantine(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudQuarantine(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudQuarantineView>>> HandleAsync(Guid vaultId, bool openOnly, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<CloudQuarantineView>>> HandleAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudQuarantineView>>.Success(await governance.ListQuarantineAsync(vaultId, openOnly, ct))
+            ? Result<IReadOnlyList<CloudQuarantineView>>.Success(
+                await governance.ListQuarantineAsync(vaultId, openOnly, ct))
             : Result<IReadOnlyList<CloudQuarantineView>>.Fail(access.Error!);
     }
 }
@@ -66,6 +71,7 @@ public sealed class ResolveCloudQuarantine(
         {
             request = null;
         }
+
         if (request?.Ops is null || request.Expected is null)
             return Result.Fail("O lote guardado está ilegível; só dá para descartar.");
 
@@ -83,7 +89,7 @@ public sealed class ResolveCloudQuarantine(
             balances.ToDictionary(b => (b.ChannelId, fingerprints[b.ItemTypeId]), b => b.Amount),
             vault.MaxTypesPerChannel, vault.MaxTotalPerChannel, vault.MaxItemBytes);
 
-        var outcome = CloudBatchDecision.Decide(request, state, ownerApproval: true);
+        var outcome = CloudBatchDecision.Decide(request, state, true);
         if (outcome is CloudBatchDecision.Rejected rejected)
             return Result.Fail($"Não dá para aplicar agora: {rejected.Detail}");
 
@@ -96,7 +102,10 @@ public sealed class ResolveCloudQuarantine(
         batch.MarkResolved(CloudBatchStatus.Applied);
         var reason = $"Quarentena aplicada pelo dono (lote {batch.Epoch}/{batch.Seq}, {quarantine.Reason})";
         var committed = await storage.CommitAdminAsync(new CloudAdminCommit(leases, newItems,
-            [.. accepted.Changes.Select(c => new CloudAdminChange(c.ChannelId, ids[c.Fingerprint], c.Delta, c.After, batch.Id))],
+            [
+                .. accepted.Changes.Select(c =>
+                    new CloudAdminChange(c.ChannelId, ids[c.Fingerprint], c.Delta, c.After, batch.Id))
+            ],
             CloudLedgerSource.QuarantineApply, userId, reason, [quarantine, batch]), ct);
         if (!committed)
             return Result.Fail("Um servidor pegou os canais deste jogador agora; tente de novo.");

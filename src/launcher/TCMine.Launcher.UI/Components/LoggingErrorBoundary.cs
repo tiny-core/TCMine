@@ -27,13 +27,13 @@ public sealed partial class LoggingErrorBoundary : ErrorBoundary, IDisposable
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
-    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
-
     void IDisposable.Dispose()
     {
         Navigation.LocationChanged -= OnLocationChanged;
         GC.SuppressFinalize(this);
     }
+
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs e) =>
         InvokeAsync(Recover);

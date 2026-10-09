@@ -57,9 +57,11 @@ public sealed partial class CreateWorldBackup(
                 $"O servidor está {status}. Espere ele assentar antes de salvar o mundo.");
         }
 
-        void Report(int done, int total) =>
+        void Report(int done, int total)
+        {
             progress.Report(jobId, new JobProgress(
                 $"Backup do mundo — {server.Name}", "Compactando", done, total));
+        }
 
         var autosaveDesligado = false;
 
@@ -116,7 +118,7 @@ public sealed partial class CreateWorldBackup(
                 Message = reason is WorldBackupReason.Manual
                     ? $"Backup do mundo de {server.Name} criado."
                     : $"Backup automático do mundo de {server.Name} antes de trocar a versão.",
-                Href = $"/admin/servers"
+                Href = "/admin/servers"
             }, ct);
 
             progress.Complete(jobId);

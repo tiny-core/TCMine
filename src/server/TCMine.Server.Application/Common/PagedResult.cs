@@ -10,7 +10,6 @@ namespace TCMine.Server.Application.Common;
 /// </summary>
 public sealed record PagedResult<T>(IReadOnlyList<T> Items, int TotalCount)
 {
-    public static PagedResult<T> Empty { get; } = new([], 0);
 }
 
 /// <summary>

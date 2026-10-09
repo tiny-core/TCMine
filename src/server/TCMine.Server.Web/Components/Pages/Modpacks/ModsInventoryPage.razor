@@ -90,7 +90,8 @@
             </MudTd>
             <MudTd DataLabel="Tamanho" Style="text-align:right;">@HumanSize.Bytes(context.SizeBytes)</MudTd>
             <MudTd DataLabel="Versões" Style="text-align:right;">
-                <MudTooltip Text="@($"{context.ActiveReferences} em versões ativas de {context.TotalReferences} no total")">
+                <MudTooltip
+                    Text="@($"{context.ActiveReferences} em versões ativas de {context.TotalReferences} no total")">
                     <MudText Typo="Typo.caption">@context.ActiveReferences / @context.TotalReferences</MudText>
                 </MudTooltip>
             </MudTd>

@@ -4,13 +4,18 @@ using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Cloud;
 
-public sealed class ListCloudDoubtful(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudDoubtful(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudDoubtfulOperation>>> HandleAsync(Guid vaultId, bool openOnly, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<CloudDoubtfulOperation>>> HandleAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudDoubtfulOperation>>.Success(await governance.ListDoubtfulAsync(vaultId, openOnly, ct))
+            ? Result<IReadOnlyList<CloudDoubtfulOperation>>.Success(
+                await governance.ListDoubtfulAsync(vaultId, openOnly, ct))
             : Result<IReadOnlyList<CloudDoubtfulOperation>>.Fail(access.Error!);
     }
 }
@@ -55,7 +60,8 @@ public sealed class ResolveCloudDoubtful(
             return Result.Fail("O canal da operação não existe mais.");
         var itemIds = await storage.ItemIdsByFingerprintAsync([op.Fingerprint], ct);
         if (!itemIds.TryGetValue(op.Fingerprint, out var itemTypeId))
-            return Result.Fail("O TCMine nunca recebeu a definição deste item (o crédito não chegou); não dá para devolver por aqui.");
+            return Result.Fail(
+                "O TCMine nunca recebeu a definição deste item (o crédito não chegou); não dá para devolver por aqui.");
 
         var (leases, leaseError) = await CloudLeaseGuard.LoadFreeAsync(storage, vaultId, [op.PlayerUuid], now, ct);
         if (leases is null)

@@ -18,7 +18,7 @@ public sealed class DenyAccessRequest(
             return Result.Fail("Pedido não encontrado.");
 
         var podeDecidir = scope.IsInstanceAdmin
-                           || AccessRequestPolicy.CanDecide(await scope.GetRoleAsync(request.GameServerId, ct));
+                          || AccessRequestPolicy.CanDecide(await scope.GetRoleAsync(request.GameServerId, ct));
 
         if (!podeDecidir)
             return Result.Fail("Sem permissão para decidir pedidos deste servidor.");

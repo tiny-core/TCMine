@@ -14,16 +14,28 @@ public partial class PublicCatalog : ComponentBase, IAsyncDisposable
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromSeconds(15);
 
     private PublicCatalogView _catalog = new([], []);
-    private LauncherReleaseInfo? _launcher;
-    private bool _isLoading = true;
-    private PeriodicTimer? _timer;
     private CancellationTokenSource? _cts;
+    private bool _isLoading = true;
+    private LauncherReleaseInfo? _launcher;
+    private PeriodicTimer? _timer;
 
     [Inject] private GetPublicCatalog CatalogUseCase { get; set; } = default!;
     [Inject] private ILauncherReleaseSource LauncherSource { get; set; } = default!;
 
     private int TotalOnline => _catalog.Servers.Sum(s => s.OnlinePlayers ?? 0);
     private int OnlineServerCount => _catalog.Servers.Count(s => s.Status is GameServerStatus.Running);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_cts is not null)
+        {
+            await _cts.CancelAsync();
+            _cts.Dispose();
+        }
+
+        _timer?.Dispose();
+        GC.SuppressFinalize(this);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -85,16 +97,4 @@ public partial class PublicCatalog : ComponentBase, IAsyncDisposable
         GameServerStatus.Crashed => "fora do ar",
         _ => "parado"
     };
-
-    public async ValueTask DisposeAsync()
-    {
-        if (_cts is not null)
-        {
-            await _cts.CancelAsync();
-            _cts.Dispose();
-        }
-
-        _timer?.Dispose();
-        GC.SuppressFinalize(this);
-    }
 }

@@ -104,8 +104,6 @@ public partial class ModpackAssetsPage
             await LoadAsync();
         }
         else
-        {
             Snackbar.Add(result.Error!, Severity.Error);
-        }
     }
 }

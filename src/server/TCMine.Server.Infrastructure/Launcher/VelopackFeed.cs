@@ -82,16 +82,6 @@ public static class VelopackFeed
         }
     }
 
-    private sealed record ReleasesFile([property: JsonPropertyName("Assets")] ReleaseAsset[]? Assets);
-
-    private sealed record ReleaseAsset(
-        [property: JsonPropertyName("Version")] string? Version,
-        [property: JsonPropertyName("Type")] string? Type);
-
-    private sealed record AssetEntry(
-        [property: JsonPropertyName("RelativeFileName")] string? RelativeFileName,
-        [property: JsonPropertyName("Type")] string? Type);
-
     /// <summary>
     ///     O primeiro caminho do canal em que este processo não consegue
     ///     escrever (a própria pasta ou um arquivo dela), ou <c>null</c>. O vpk
@@ -125,4 +115,16 @@ public static class VelopackFeed
 
         return null;
     }
+
+    private sealed record ReleasesFile([property: JsonPropertyName("Assets")] ReleaseAsset[]? Assets);
+
+    private sealed record ReleaseAsset(
+        [property: JsonPropertyName("Version")]
+        string? Version,
+        [property: JsonPropertyName("Type")] string? Type);
+
+    private sealed record AssetEntry(
+        [property: JsonPropertyName("RelativeFileName")]
+        string? RelativeFileName,
+        [property: JsonPropertyName("Type")] string? Type);
 }

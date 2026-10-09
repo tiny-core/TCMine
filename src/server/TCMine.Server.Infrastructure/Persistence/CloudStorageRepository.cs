@@ -44,7 +44,8 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
         return [.. rows.Select(r => (r.Lease, TimeSpan.FromMinutes(r.LeaseTtlMinutes)))];
     }
 
-    public async Task<IReadOnlyList<CloudChannel>> ListChannelsAsync(Guid vaultId, string playerUuid, CancellationToken ct)
+    public async Task<IReadOnlyList<CloudChannel>> ListChannelsAsync(Guid vaultId, string playerUuid,
+        CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var channels = await db.CloudChannels.AsNoTracking()
@@ -135,8 +136,10 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             // calculou. Se não der, alguém mudou o saldo por fora do lease (bug):
             // aborta tudo em vez de gravar um ledger que não fecha.
             if (balance.Apply(change.Delta) != change.BalanceAfter)
+            {
                 throw new InvalidOperationException(
                     $"Saldo do canal {change.ChannelId} mudou fora do lease; lote {batch.Epoch}/{batch.Seq} abortado.");
+            }
 
             db.CloudLedger.Add(new CloudLedgerEntry
             {
@@ -162,6 +165,7 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             else
                 AttachLease(db, lease, read.Value);
         }
+
         db.CloudItemTypes.AddRange(commit.NewItemTypes);
         foreach (var entity in commit.AlsoUpdate)
             db.Update(entity);
@@ -179,8 +183,10 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
                 db.CloudBalances.Add(balance);
                 existing[(change.ChannelId, change.ItemTypeId)] = balance;
             }
+
             if (balance.Apply(change.Delta) != change.BalanceAfter)
-                throw new InvalidOperationException($"Saldo do canal {change.ChannelId} mudou durante a decisão do painel.");
+                throw new InvalidOperationException(
+                    $"Saldo do canal {change.ChannelId} mudou durante a decisão do painel.");
             db.CloudLedger.Add(new CloudLedgerEntry
             {
                 ChannelId = change.ChannelId,
@@ -197,7 +203,8 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
         return await TrySaveAsync(db, ct);
     }
 
-    public async Task<IReadOnlyList<CloudBatch>> ListAppliedBatchesAsync(Guid vaultId, Guid serverId, CancellationToken ct)
+    public async Task<IReadOnlyList<CloudBatch>> ListAppliedBatchesAsync(Guid vaultId, Guid serverId,
+        CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.CloudBatches.AsNoTracking()

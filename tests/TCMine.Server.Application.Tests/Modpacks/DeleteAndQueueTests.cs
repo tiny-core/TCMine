@@ -1,5 +1,4 @@
 using TCMine.Contracts.Modpacks;
-using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Tests.Fakes;
@@ -120,6 +119,13 @@ public sealed class DeleteAndQueueTests
         RconSecret = "segredo"
     };
 
+    /// <summary>O agendador entra no meio: e ele que grava o pedido antes de enfileirar.</summary>
+    private static QueueIngestion CriarQueueIngestion(ModpackVersion version, FakeQueue queue)
+    {
+        var repo = new FakeModpacks(version);
+        return new QueueIngestion(repo, new IngestionScheduler(repo, queue));
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeModpacks : FakeModpackRepositoryBase
@@ -127,8 +133,15 @@ public sealed class DeleteAndQueueTests
         private readonly Modpack? _modpack;
         private readonly ModpackVersion? _version;
 
-        public FakeModpacks(Modpack modpack) => _modpack = modpack;
-        public FakeModpacks(ModpackVersion version) => _version = version;
+        public FakeModpacks(Modpack modpack)
+        {
+            _modpack = modpack;
+        }
+
+        public FakeModpacks(ModpackVersion version)
+        {
+            _version = version;
+        }
 
         public bool Removido { get; private set; }
 
@@ -143,13 +156,6 @@ public sealed class DeleteAndQueueTests
             Removido = true;
             return Task.CompletedTask;
         }
-    }
-
-    /// <summary>O agendador entra no meio: e ele que grava o pedido antes de enfileirar.</summary>
-    private static QueueIngestion CriarQueueIngestion(ModpackVersion version, FakeQueue queue)
-    {
-        var repo = new FakeModpacks(version);
-        return new QueueIngestion(repo, new IngestionScheduler(repo, queue));
     }
 
     private sealed class FakeQueue : IIngestionQueue
@@ -167,6 +173,5 @@ public sealed class DeleteAndQueueTests
     {
         public override Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<GameServer>>([.. seed]);
-
     }
 }

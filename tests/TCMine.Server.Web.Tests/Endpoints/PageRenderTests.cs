@@ -33,8 +33,14 @@ public sealed class PageRenderTests
     /// </summary>
     public static TheoryData<string> Rotas => new()
     {
-        "/", "/admin", "/admin/modpacks", "/admin/mods", "/admin/servers",
-        "/admin/storage", "/admin/settings", "/admin/login"
+        "/",
+        "/admin",
+        "/admin/modpacks",
+        "/admin/mods",
+        "/admin/servers",
+        "/admin/storage",
+        "/admin/settings",
+        "/admin/login"
     };
 
     /// <summary>Abas do modpack que não são por versão.</summary>
@@ -56,7 +62,7 @@ public sealed class PageRenderTests
     public async Task Aba_de_modpack_renderiza(string sufixo)
     {
         await using var factory = new TcMineAppFactory();
-        var (modpackId, _) = await SemearAsync(factory, comArquivos: true);
+        var (modpackId, _) = await SemearAsync(factory, true);
 
         var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}{sufixo}");
 
@@ -81,7 +87,7 @@ public sealed class PageRenderTests
     public async Task Aba_de_versao_com_conteudo_renderiza(string aba)
     {
         await using var factory = new TcMineAppFactory();
-        var (modpackId, versionId) = await SemearAsync(factory, comArquivos: true);
+        var (modpackId, versionId) = await SemearAsync(factory, true);
 
         var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}/versions/{versionId}/{aba}");
 
@@ -95,7 +101,7 @@ public sealed class PageRenderTests
         // Sem arquivo nenhum: é aqui que o NoRecordsContent entra em cena, e foi
         // exatamente ali que o parâmetro inexistente se escondeu.
         await using var factory = new TcMineAppFactory();
-        var (modpackId, versionId) = await SemearAsync(factory, comArquivos: false);
+        var (modpackId, versionId) = await SemearAsync(factory, false);
 
         var html = await BuscarAsync(factory, $"/admin/modpacks/{modpackId}/versions/{versionId}/{aba}");
 
@@ -147,10 +153,7 @@ public sealed class PageRenderTests
             Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         if (comArquivos)
         {

@@ -1,4 +1,3 @@
-using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Modpacks;
 
@@ -7,6 +6,15 @@ namespace TCMine.Server.Application.Tests.Fakes;
 /// <summary>Base para fakes de origem externa — ver <see cref="FakeModpackRepositoryBase" />.</summary>
 public abstract class FakeUpstreamPackSourceBase : IUpstreamPackSource
 {
+    /// <summary>Nome de arquivo por id de release. Vazio salvo se o teste encher.</summary>
+    public Dictionary<string, string> FileNames { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Server pack que o teste quer devolver. Nulo = não existe.</summary>
+    public IServerPackReader? ServerPack { get; set; }
+
+    /// <summary>Server pack que o teste quer anunciar. Nulo = a release não tem.</summary>
+    public UpstreamServerPack? ServerPackInfo { get; set; }
+
     public virtual ModFileOrigin Origin => ModFileOrigin.CurseForge;
 
     public virtual ValueTask<bool> IsAvailableAsync(CancellationToken ct) => ValueTask.FromResult(true);
@@ -23,19 +31,10 @@ public abstract class FakeUpstreamPackSourceBase : IUpstreamPackSource
     public virtual Task<IReadOnlyList<UpstreamRelease>> ListReleasesAsync(string projectId, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    /// <summary>Nome de arquivo por id de release. Vazio salvo se o teste encher.</summary>
-    public Dictionary<string, string> FileNames { get; } = new(StringComparer.Ordinal);
-
-    /// <summary>Server pack que o teste quer devolver. Nulo = não existe.</summary>
-    public IServerPackReader? ServerPack { get; set; }
-
     public virtual Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
         IReadOnlyList<string> fileIds, CancellationToken ct) =>
         Task.FromResult<IReadOnlyDictionary<string, string>>(
             fileIds.Where(FileNames.ContainsKey).ToDictionary(id => id, id => FileNames[id], StringComparer.Ordinal));
-
-    /// <summary>Server pack que o teste quer anunciar. Nulo = a release não tem.</summary>
-    public UpstreamServerPack? ServerPackInfo { get; set; }
 
     public virtual Task<UpstreamServerPack?> GetServerPackAsync(
         string projectId, string fileId, CancellationToken ct) =>

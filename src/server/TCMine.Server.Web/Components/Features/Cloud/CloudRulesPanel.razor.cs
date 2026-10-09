@@ -9,13 +9,13 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 /// <summary>Aba "Regras": regras de item da nuvem e a fila de suspeitos.</summary>
 public partial class CloudRulesPanel : ComponentBase
 {
-    private List<CloudItemRule>? _rules;
-    private List<CloudSuspectItem>? _suspects;
-    private CloudRuleScope _scope = CloudRuleScope.Item;
     private CloudRuleAction _action = CloudRuleAction.Block;
-    private string _pattern = "";
-    private string? _note;
     private bool _isBusy;
+    private string? _note;
+    private string _pattern = "";
+    private List<CloudItemRule>? _rules;
+    private CloudRuleScope _scope = CloudRuleScope.Item;
+    private List<CloudSuspectItem>? _suspects;
 
     [Parameter] [EditorRequired] public Guid VaultId { get; set; }
     [Parameter] public EventCallback Changed { get; set; }
@@ -46,7 +46,7 @@ public partial class CloudRulesPanel : ComponentBase
     private async Task LoadAsync()
     {
         var rules = await ListRules.HandleAsync(VaultId, CancellationToken.None);
-        var suspects = await ListSuspects.HandleAsync(VaultId, pendingOnly: true, CancellationToken.None);
+        var suspects = await ListSuspects.HandleAsync(VaultId, true, CancellationToken.None);
         _rules = rules.Succeeded ? [.. rules.Value!] : [];
         _suspects = suspects.Succeeded ? [.. suspects.Value!] : [];
     }
@@ -59,6 +59,7 @@ public partial class CloudRulesPanel : ComponentBase
             _pattern = "";
             _note = null;
         }
+
         return result;
     }, "Regra criada.");
 
@@ -76,7 +77,8 @@ public partial class CloudRulesPanel : ComponentBase
         try
         {
             var result = await action();
-            Snackbar.Add(result.Succeeded ? success : result.Error!, result.Succeeded ? Severity.Success : Severity.Error);
+            Snackbar.Add(result.Succeeded ? success : result.Error!,
+                result.Succeeded ? Severity.Success : Severity.Error);
             await LoadAsync();
             await Changed.InvokeAsync();
         }

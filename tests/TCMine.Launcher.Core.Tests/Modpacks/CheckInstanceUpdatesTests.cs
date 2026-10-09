@@ -1,6 +1,5 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Abstractions;
-using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.Core.Sync;
 using TCMine.Launcher.Core.Tests.Fakes;
@@ -81,11 +80,7 @@ public class CheckInstanceUpdatesTests
         var alphaNova = Versao(pack, "1.2.0-beta2");
         var connection = new FakeServerConnection
         {
-            Latest =
-            {
-                [(pack, ReleaseChannel.Release)] = Versao(pack, "1.1.0"),
-                [(pack, ReleaseChannel.Alpha)] = alphaNova
-            }
+            Latest = { [(pack, ReleaseChannel.Release)] = Versao(pack), [(pack, ReleaseChannel.Alpha)] = alphaNova }
         };
 
         var instance = Instalada(pack, Guid.CreateVersion7(), "1.2.0-beta1");
@@ -107,7 +102,7 @@ public class CheckInstanceUpdatesTests
 
         // Só há alpha publicada. A estável fica onde está em vez de saltar de canal.
         var news = await new CheckInstanceUpdates(connection).HandleAsync(
-            [Instalada(pack, Guid.CreateVersion7(), "1.0.0")], Ct);
+            [Instalada(pack, Guid.CreateVersion7())], Ct);
 
         news.ShouldBeEmpty();
         connection.LatestQueries.ShouldBe([(pack, ReleaseChannel.Release)]);
@@ -122,13 +117,13 @@ public class CheckInstanceUpdatesTests
 
         await new CheckInstanceUpdates(connection).HandleAsync(
             [
-                Instalada(pack, Guid.CreateVersion7(), "1.0.0"),
+                Instalada(pack, Guid.CreateVersion7()),
                 Instalada(pack, Guid.CreateVersion7(), "1.1.0-beta")
             ],
             Ct);
 
         connection.LatestQueries.ShouldBe(
-            [(pack, ReleaseChannel.Release), (pack, ReleaseChannel.Alpha)], ignoreOrder: true);
+            [(pack, ReleaseChannel.Release), (pack, ReleaseChannel.Alpha)], true);
     }
 
     // ---------- apoio ----------
@@ -166,7 +161,6 @@ public class CheckInstanceUpdatesTests
                 InstalledAt = DateTimeOffset.UtcNow,
                 ManagedFiles = new Dictionary<string, string>()
             },
-            SizeBytes: 0,
-            Path: "/instancias/pack");
-
+            0,
+            "/instancias/pack");
 }

@@ -5,21 +5,34 @@ using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Cloud;
 
-public sealed class ListCloudIncidents(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudIncidents(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudRollbackIncident>>> HandleAsync(Guid vaultId, bool openOnly, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<CloudRollbackIncident>>> HandleAsync(Guid vaultId, bool openOnly,
+        CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudRollbackIncident>>.Success(await governance.ListIncidentsAsync(vaultId, openOnly, ct))
+            ? Result<IReadOnlyList<CloudRollbackIncident>>.Success(
+                await governance.ListIncidentsAsync(vaultId, openOnly, ct))
             : Result<IReadOnlyList<CloudRollbackIncident>>.Fail(access.Error!);
     }
 }
 
 /// <summary>Uma linha da prévia do estorno: o que volta e onde o saldo não cobre.</summary>
 /// <param name="Shortfall">quanto NÃO pôde ser estornado porque o saldo acabou (itens já saíram por outro servidor)</param>
-public sealed record CloudRevertLine(string PlayerUuid, Guid ChannelId, Guid ItemTypeId, string ItemId, string DisplayName,
-    long Delta, long Current, long After, long Shortfall);
+public sealed record CloudRevertLine(
+    string PlayerUuid,
+    Guid ChannelId,
+    Guid ItemTypeId,
+    string ItemId,
+    string DisplayName,
+    long Delta,
+    long Current,
+    long After,
+    long Shortfall);
 
 /// <summary>
 ///     Estorno de um mundo que voltou no tempo (plano §5.2). Os lotes que o
@@ -37,7 +50,8 @@ public sealed class ResolveCloudIncident(
     ICurrentUserScope scope,
     TimeProvider clock)
 {
-    public async Task<Result<IReadOnlyList<CloudRevertLine>>> PreviewAsync(Guid vaultId, Guid incidentId, CancellationToken ct)
+    public async Task<Result<IReadOnlyList<CloudRevertLine>>> PreviewAsync(Guid vaultId, Guid incidentId,
+        CancellationToken ct)
     {
         var load = await LoadAsync(vaultId, incidentId, ct);
         return load.Error is not null
@@ -66,7 +80,7 @@ public sealed class ResolveCloudIncident(
         // Leases presos pelo próprio servidor do incidente são liberados junto: ele
         // está em somente leitura e vai pegar os saldos novos no próximo acquire.
         var (leases, leaseError) = await CloudLeaseGuard.LoadFreeAsync(storage, vaultId,
-            load.Batches!.Select(b => b.PlayerUuid), now, ct, releasableBy: incident.ServerId);
+            load.Batches!.Select(b => b.PlayerUuid), now, ct, incident.ServerId);
         if (leases is null)
             return Result.Fail(leaseError!);
 
@@ -78,7 +92,10 @@ public sealed class ResolveCloudIncident(
         var reason = $"Estorno do rollback do servidor {incident.ServerId} ({load.Batches.Count} lotes"
                      + (shortfall > 0 ? $"; {shortfall} itens já tinham saído e não voltaram" : "") + ")";
         var committed = await storage.CommitAdminAsync(new CloudAdminCommit(leases, [],
-            [.. lines.Where(l => l.Delta != 0).Select(l => new CloudAdminChange(l.ChannelId, l.ItemTypeId, l.Delta, l.After, null))],
+            [
+                .. lines.Where(l => l.Delta != 0).Select(l =>
+                    new CloudAdminChange(l.ChannelId, l.ItemTypeId, l.Delta, l.After, null))
+            ],
             CloudLedgerSource.Revert, userId, reason, [incident, .. load.Batches]), ct);
         if (!committed)
             return Result.Fail("Um servidor pegou os canais de um destes jogadores agora; tente de novo.");
@@ -86,9 +103,6 @@ public sealed class ResolveCloudIncident(
         await CloudAudit.WriteAsync(governance, vaultId, userId, "incident.revert", reason, ct);
         return Result.Success();
     }
-
-    private sealed record Loaded(string? Error, CloudRollbackIncident? Incident = null,
-        IReadOnlyList<CloudBatch>? Batches = null, IReadOnlyList<CloudRevertLine>? Lines = null);
 
     private async Task<Loaded> LoadAsync(Guid vaultId, Guid incidentId, CancellationToken ct)
     {
@@ -116,7 +130,8 @@ public sealed class ResolveCloudIncident(
 
         var totals = ledger
             .GroupBy(e => (e.ChannelId, e.ItemTypeId))
-            .Select(g => (g.Key.ChannelId, g.Key.ItemTypeId, Player: playerOf[g.First().BatchId!.Value], Revert: -g.Sum(e => e.Delta)))
+            .Select(g => (g.Key.ChannelId, g.Key.ItemTypeId, Player: playerOf[g.First().BatchId!.Value],
+                Revert: -g.Sum(e => e.Delta)))
             .ToList();
         var balances = (await storage.ListBalancesAsync([.. totals.Select(t => t.ChannelId).Distinct()], ct))
             .ToDictionary(b => (b.ChannelId, b.ItemTypeId), b => b.Amount);
@@ -134,14 +149,24 @@ public sealed class ResolveCloudIncident(
 
         return new Loaded(null, incident, batches, lines);
     }
+
+    private sealed record Loaded(
+        string? Error,
+        CloudRollbackIncident? Incident = null,
+        IReadOnlyList<CloudBatch>? Batches = null,
+        IReadOnlyList<CloudRevertLine>? Lines = null);
 }
 
-public sealed class ListCloudAudit(ICloudAdminRepository repo, ICloudGovernanceRepository governance, ICurrentUserScope scope)
+public sealed class ListCloudAudit(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
 {
     public const int Limit = 300;
 
-    public async Task<Result<(IReadOnlyList<CloudAdminAuditEntry> Actions, IReadOnlyList<CloudLedgerView> Ledger)>> HandleAsync(
-        Guid vaultId, string? playerUuid, CancellationToken ct)
+    public async Task<Result<(IReadOnlyList<CloudAdminAuditEntry> Actions, IReadOnlyList<CloudLedgerView> Ledger)>>
+        HandleAsync(
+            Guid vaultId, string? playerUuid, CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         if (!access.Succeeded)

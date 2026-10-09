@@ -67,7 +67,7 @@ services:
       # /health/live não toca o banco: responde enquanto o processo estiver de
       # pé. É o certo para reinício automático — banco fora do ar não se
       # conserta reiniciando a aplicação.
-      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/live"]
+      test: [ "CMD", "curl", "-fsS", "http://localhost:8080/health/live" ]
       interval: 30s
       timeout: 5s
       start_period: 40s
@@ -77,7 +77,7 @@ services:
   #   docker compose --profile postgres up -d
   # e aponte TCMINE_DB_PROVIDER=Postgres com a connection string abaixo.
   postgres:
-    profiles: ["postgres"]
+    profiles: [ "postgres" ]
     image: postgres:17-alpine
     restart: unless-stopped
 
@@ -90,7 +90,7 @@ services:
       - ${TCMINE_ROOT}/postgres:/var/lib/postgresql/data
 
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tcmine}"]
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tcmine}" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -50,7 +50,8 @@ public sealed class LauncherUpdateEndpointsTests : IDisposable
         var client = factory.CreateClient();
 
         var setup = await client.GetAsync("/updates/launcher/win-x64-p2/TCMine.Launcher-win-x64-p2-Setup.exe", Ct);
-        var pacote = await client.GetAsync("/updates/launcher/win-x64-p2/TCMine.Launcher-1.0.0-win-x64-p2-full.nupkg", Ct);
+        var pacote = await client.GetAsync("/updates/launcher/win-x64-p2/TCMine.Launcher-1.0.0-win-x64-p2-full.nupkg",
+            Ct);
 
         setup.Headers.CacheControl!.NoCache.ShouldBeTrue();
         pacote.Headers.CacheControl!.MaxAge.ShouldBe(TimeSpan.FromDays(365));

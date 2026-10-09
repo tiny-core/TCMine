@@ -11,13 +11,14 @@ public static class CloudAudit
 {
     public static Task WriteAsync(ICloudGovernanceRepository governance, Guid vaultId, Guid? userId, string action,
         string details, CancellationToken ct) =>
-        governance.AddAuditAsync(new CloudAdminAuditEntry
-        {
-            VaultId = vaultId,
-            ActorUserId = userId,
-            Action = action,
-            Details = details.Length > 2048 ? details[..2045] + "..." : details
-        }, ct);
+        governance.AddAuditAsync(
+            new CloudAdminAuditEntry
+            {
+                VaultId = vaultId,
+                ActorUserId = userId,
+                Action = action,
+                Details = details.Length > 2048 ? details[..2045] + "..." : details
+            }, ct);
 }
 
 /// <summary>
@@ -49,15 +50,16 @@ public static class CloudLeaseGuard
             if (!lease.IsFree(now))
             {
                 if (releasableBy is null || lease.HolderServerId != releasableBy)
-                    return (null, $"O jogador {player} está com os canais num servidor agora. Espere ele sair ou libere o lease.");
+                    return (null,
+                        $"O jogador {player} está com os canais num servidor agora. Espere ele sair ou libere o lease.");
                 lease.ForceRelease();
             }
             else
-            {
                 lease.MarkAdminChange();
-            }
+
             leases.Add((lease, read));
         }
+
         return (leases, null);
     }
 }

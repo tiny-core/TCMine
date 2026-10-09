@@ -74,7 +74,7 @@ public sealed class IngestionWorkPlannerTests
         // que o pack de origem prometia. Duplicar o mod no plano faria o mesmo
         // download duas vezes.
         var (modpack, version) = ComSnapshot("jei");
-        version.UpsertPending(Pendente("jei", PendingModReason.Queued, fileId: "999"));
+        version.UpsertPending(Pendente("jei", PendingModReason.Queued, "999"));
 
         var item = IngestionWorkPlanner.PlanRetry(version, modpack).ShouldHaveSingleItem();
         item.FileId.ShouldBe("999");
@@ -107,10 +107,7 @@ public sealed class IngestionWorkPlannerTests
             Slug = "teste", Name = "Teste", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
         };
 
-        var version = new ModpackVersion
-        {
-            ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100"
-        };
+        var version = new ModpackVersion { ModpackId = modpack.Id, Version = "1.0.0", LoaderVersion = "21.1.100" };
 
         return (modpack, version);
     }
@@ -122,8 +119,7 @@ public sealed class IngestionWorkPlannerTests
         modpack.UpstreamProvider = ModFileOrigin.CurseForge;
         version.UpstreamSnapshotJson = new UpstreamSnapshot
         {
-            Mods = mods.ToDictionary(m => m, _ => "1"),
-            Overrides = new Dictionary<string, string>()
+            Mods = mods.ToDictionary(m => m, _ => "1"), Overrides = new Dictionary<string, string>()
         }.ToJson();
 
         return (modpack, version);

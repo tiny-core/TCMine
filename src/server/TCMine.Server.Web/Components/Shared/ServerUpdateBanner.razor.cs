@@ -14,8 +14,8 @@ namespace TCMine.Server.Web.Components.Shared;
 /// </summary>
 public partial class ServerUpdateBanner : ComponentBase
 {
-    private ServerRelease? _release;
     private bool _dismissed;
+    private ServerRelease? _release;
 
     [Inject] private CheckServerUpdate CheckUpdate { get; set; } = default!;
 

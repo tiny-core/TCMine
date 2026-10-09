@@ -2,8 +2,8 @@
 
 Todas as mudanças relevantes do **TCMine Server** e, a partir da 0.4.0, também
 do **TCMine Launcher**, que partilham repositório e protocolo. Desde a 1.0.0, o
-launcher vai dentro da imagem do servidor e a tag é uma só
-(`server-v*`); o número dele vive em `src/launcher/VERSION`. As versões
+launcher vai dentro da imagem do servidor e a tag é uma só (`server-v*`); o número dele vive em `src/launcher/VERSION`.
+As versões
 seguem [SemVer](https://semver.org/lang/pt-BR/). A partir da **1.0.0**, o que
 está em [Compromisso de estabilidade](README.md#compromisso-de-estabilidade) só
 muda de forma incompatível numa versão MAIOR.
@@ -45,8 +45,8 @@ refatoração.
   `server-v*`; commits comuns não disparam nada. Os workflows `ci.yml` e
   `release-server.yml` saíram — ver [docs/RELEASE.md](docs/RELEASE.md).
 - **Medição temporária de desempenho** ([docs/BASELINE.md](docs/BASELINE.md)):
-  o servidor registra no log o tempo de abertura de três páginas do painel
-  (linhas "Abertura de página") e o launcher, três marcos do arranque (linhas
+  o servidor registra no log o tempo de abertura de três páginas do painel (linhas "Abertura de página") e o launcher,
+  três marcos do arranque (linhas
   "Arranque:"). Uma linha de log por abertura, sem outro efeito; sai no fim da
   refatoração.
 - O `scripts/tc` deixou de travar no Git Bash.
@@ -64,8 +64,8 @@ Launcher **1.1.0**.
 - **Fonte Inter, autogospedada.** `TcMineTheme.Default` já pedia "Inter" na
   tipografia desde a reformulação visual, mas sem `@font-face` nenhum o
   navegador caía pro fallback em silêncio (o CSP do painel recusa o Google
-  Fonts, e o launcher tem de abrir sem rede). Quatro pesos estáticos
-  (400/500/600/700) agora vivem em `TCMine.UI.Shared/wwwroot/fonts`, licença
+  Fonts, e o launcher tem de abrir sem rede). Quatro pesos estáticos (400/500/600/700) agora vivem em
+  `TCMine.UI.Shared/wwwroot/fonts`, licença
   OFL ao lado.
 - **Comandos pelo console do painel.** O dono e os admins do servidor (e
   moderadores, dentro da lista permitida) mandam comandos pelo RCON direto da
@@ -77,8 +77,8 @@ Launcher **1.1.0**.
   servidor voltaria sozinho — parar é pelo botão Parar.
 
 - **Entrar no servidor com um clique.** A lista de servidores da tela de jogar
-  ganhou o botão *Entrar*: abre o Minecraft já conectando ao servidor
-  (`--quickPlayMultiplayer`). Se o servidor estiver numa versão do modpack mais
+  ganhou o botão *Entrar*: abre o Minecraft já conectando ao servidor (`--quickPlayMultiplayer`). Se o servidor estiver
+  numa versão do modpack mais
   nova que a da instância, ela é atualizada antes, com o backup automático do
   mundo; se estiver numa mais antiga, o launcher recusa e explica — descer de
   versão quebra o mundo. Servidor parado ou jogo já aberto deixam o botão
@@ -89,11 +89,11 @@ Launcher **1.1.0**.
   motivo no botão e um aviso em todas as telas, que também oferece fechar o
   jogo.
 
-- **Atividade recente na Visão geral.** Novo painel mostra login no painel
-  (só o da Microsoft — o do launcher reautentica a cada abertura e inundaria
+- **Atividade recente na Visão geral.** Novo painel mostra login no painel (só o da Microsoft — o do launcher
+  reautentica a cada abertura e inundaria
   o feed), versão publicada, servidor caído e backup de mundo criado, do
-  mais recente para o mais antigo. Guardado num registro próprio
-  (`activity_events`) que nunca derruba quem gravou: uma falha ao escrever
+  mais recente para o mais antigo. Guardado num registro próprio (`activity_events`) que nunca derruba quem gravou: uma
+  falha ao escrever
   o log fica só num aviso.
 - **Pico de jogadores do dia** na Visão geral, ao lado da contagem atual.
   `PlayerCountCache` passa a guardar também o maior valor visto hoje (UTC)
@@ -107,8 +107,8 @@ Launcher **1.1.0**.
 ### Mudado
 
 - **Visual novo: "pedra vulcânica".** Painel, página pública e launcher passam
-  a seguir o TCMine Design System — fundo de pedra escura, laranja só como luz
-  (ação primária, foco, estado), sem azul. **Só tema escuro**: o alternador de
+  a seguir o TCMine Design System — fundo de pedra escura, laranja só como luz (ação primária, foco, estado), sem azul.
+  **Só tema escuro**: o alternador de
   tema do painel saiu. Botões em minúsculas ("Novo modpack"), cartões com
   borda fina, foco sempre visível.
 - **Menu do painel agrupado** em Conteúdo, Jogo, Pessoas e Sistema, com link
@@ -123,14 +123,14 @@ Launcher **1.1.0**.
   endereço) e uma chamada final; funciona na largura de um celular.
 - **Visão geral e Overrides do modpack no visual novo.** Últimas duas abas
   do workspace de um modpack ainda em `--mud-palette-*`: a linha
-  chave/valor de "Detalhes da versão" e os dois painéis da Visão geral
-  (linha do tempo de versões, detalhes) foram para `--tc-*` e ganharam
+  chave/valor de "Detalhes da versão" e os dois painéis da Visão geral (linha do tempo de versões, detalhes) foram para
+  `--tc-*` e ganharam
   borda fina (`tc-panel`, no lugar de `Elevation="2"`); a árvore de
   overrides também. Com isto fecha o item "Terminar a reformulação
   visual" do roadmap.
 - **Console no visual novo, com a referência de comandos em painel lateral.**
-  O fundo do log passa a ser o tom "afundado" do design system
-  (`--tc-bg-sunken`), e todas as cores do console (eco do comando, resposta,
+  O fundo do log passa a ser o tom "afundado" do design system (`--tc-bg-sunken`), e todas as cores do console (eco do
+  comando, resposta,
   erro, hover da lista de comandos) saem de `--mud-palette-*` para
   `--tc-*`. A referência de comandos, que antes abria abaixo do campo e
   empurrava o console para cima, agora abre ao lado — uma coluna de 360px
@@ -144,7 +144,7 @@ Launcher **1.1.0**.
   `MudTabs`; faltava só nivelar): chips de status de integração ("Chave
   configurada"/"Login configurado"/"Jogadores não conseguem entrar"…) para
   minúsculas, e a elevação das abas igualada à da aba de uma nuvem (0, não
-  2) — eram as duas únicas telas com `MudTabs` e tinham sombras diferentes.
+    2) — eram as duas únicas telas com `MudTabs` e tinham sombras diferentes.
 - **Tela de Armazenamento no visual novo**: `PageHeader` em vez de
   cabeçalho manual, painéis com a classe `tc-panel`, e a barra de ocupação
   do content store retintada para os tokens `--tc-*` (estava em
@@ -167,11 +167,11 @@ Launcher **1.1.0**.
   sem espaço). A célula "Lado" da aba de mods tinha o mesmo problema fora
   do rascunho ("Both"/"ClientOnly") — corrigido junto, num `FileSideLabels`
   compartilhado com o aviso de pendências que já existia.
-- **Tela de Servidores (painel) no visual novo.** Cabeçalho padrão
-  (`PageHeader`, como a Visão geral já usa) em vez de um `MudStack` manual
+- **Tela de Servidores (painel) no visual novo.** Cabeçalho padrão (`PageHeader`, como a Visão geral já usa) em vez de
+  um `MudStack` manual
   próprio; painel com borda fina. Os selos de status de servidor e de
-  versão (`ServerStatusChip`, `VersionStateChip`) passam a minúsculas
-  ("online", "rascunho"…) — eram os dois únicos componentes compartilhados
+  versão (`ServerStatusChip`, `VersionStateChip`) passam a minúsculas ("online", "rascunho"…) — eram os dois únicos
+  componentes compartilhados
   que ainda escapavam da regra "chips em minúsculas", e a correção vale
   para toda tela que os usa (também a aba Servidores do modpack e a tela
   de jogar do launcher).
@@ -182,8 +182,8 @@ Launcher **1.1.0**.
   continua só para quem tem acesso), e o botão passa a dizer "Atualizar e
   entrar" quando a versão do servidor está na frente da instância
   instalada — comparação por SemVer (`ModpackVersionOrder`), feita no
-  cliente a partir de um campo novo e opcional no contrato
-  (`GameServerDto.ModpackVersionLabel`, resolvido no hub por modpack, sem
+  cliente a partir de um campo novo e opcional no contrato (`GameServerDto.ModpackVersionLabel`, resolvido no hub por
+  modpack, sem
   consulta por servidor). Servidor atrás da instância aparece desligado
   com o motivo, antes do clique — `JoinServer` já recusava, só que depois.
 - **Aba de mods e cabeçalho de versão no visual novo.** O seletor de versão
@@ -263,8 +263,7 @@ a ingestão de mods com o que já está em casa antes de ir à rede.
   CurseForge, o TCMine verifica se aquela release já foi ingerida (em qualquer
   modpack) e se os bytes estão no disco. Importar um segundo pack que partilha
   metade dos mods com o primeiro deixa de baixar e de gastar cota de API com
-  essa metade. A importação também passou a recusar um pack já importado
-  **antes** de baixar o zip.
+  essa metade. A importação também passou a recusar um pack já importado **antes** de baixar o zip.
 
 - **Aviso de atualização no painel.** O admin da instalação vê quando sai uma
   versão estável nova do TCMine Server, com o link das notas e o comando para
@@ -351,8 +350,8 @@ a ingestão de mods com o que já está em casa antes de ir à rede.
 ### Atualizar
 
 Nada a fazer no banco: as migrations novas (`AddModpackFileDependencies`,
-`RemoveEmail`) aplicam-se no arranque. O protocolo do launcher **não** mudou
-(continua 2): não é preciso publicar launcher novo.
+`RemoveEmail`) aplicam-se no arranque. O protocolo do launcher **não** mudou (continua 2): não é preciso publicar
+launcher novo.
 
 Os containers dos servidores de jogo existentes são **recriados no próximo
 start** — é a primeira vez que levam a impressão digital da configuração. O
@@ -371,16 +370,16 @@ informe-o.
 
 ### Adicionado
 
-- **Login só pela Microsoft.** Acabou o par e-mail/senha: o primeiro acesso
-  (`/admin/setup`) pede o client ID do Entra ID e quem entra primeiro vira o
+- **Login só pela Microsoft.** Acabou o par e-mail/senha: o primeiro acesso (`/admin/setup`) pede o client ID do Entra
+  ID e quem entra primeiro vira o
   administrador da instalação. O painel e o launcher passam a ser a mesma conta
   — antes o servidor recém-criado do admin não aparecia no launcher dele, porque
   eram duas contas sem relação.
 
 - **Pedidos de acesso.** O launcher mostra também os servidores com whitelist em
   que o jogador ainda não entrou, com o endereço escondido e um botão "Pedir
-  acesso"; o admin aprova ou recusa na página *Pedidos de acesso*. Servidor
-  **sem** whitelist aparece para qualquer jogador autenticado, sem convite.
+  acesso"; o admin aprova ou recusa na página *Pedidos de acesso*. Servidor **sem** whitelist aparece para qualquer
+  jogador autenticado, sem convite.
 
 - **Convites pelo launcher.** O jogador resgata o código que recebeu direto na
   tela inicial.
@@ -547,8 +546,8 @@ revelou três problemas distintos, e consertá-los abriu espaço para o resto.
   lado cada mod roda, e o `neoforge.mods.toml` também não — então tudo entrava
   como "os dois", e o servidor morria no arranque pedindo uma dependência que é
   de cliente. Três saídas, nessa ordem: o **server pack do autor** decide (é a
-  lista curada do que um servidor precisa), o **jar** decide quando declara
-  (Fabric), e o **admin** decide sempre, num seletor na grade de mods.
+  lista curada do que um servidor precisa), o **jar** decide quando declara (Fabric), e o **admin** decide sempre, num
+  seletor na grade de mods.
 
 - **Shaderpacks apareciam como "sem versão compatível".** A busca filtrava todo
   projeto por loader, e shaderpack não tem loader. Cada arquivo vai agora para a
@@ -764,8 +763,8 @@ devolva ao rascunho e mande resolver de novo.
 
 - **Importar packs grandes do CurseForge ainda falhava**, com o mesmo
   `value too long for type character varying(512)` da 0.1.1 — em outra coluna. O
-  registro do que veio da origem guarda um par projeto/arquivo e o nome de
-  **cada** mod do pack, então um pack de trezentos mods gera dezenas de KB. A
+  registro do que veio da origem guarda um par projeto/arquivo e o nome de **cada** mod do pack, então um pack de
+  trezentos mods gera dezenas de KB. A
   configuração dizia que essa coluna não tinha limite; não tinha efeito, e ela
   saía com os 512 do padrão. Agora é `text`, sem limite de verdade.
 - As colunas que guardam **por que** um mod ficou pendente foram alargadas: uma

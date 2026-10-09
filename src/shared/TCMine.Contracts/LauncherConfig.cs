@@ -27,8 +27,7 @@ public sealed record LauncherConfig
 
     public Uri? BrandingIconUrl { get; init; }
 
-    [JsonIgnore]
-    public bool IsTransportSecure => IsSecureTransport(ServerUrl);
+    [JsonIgnore] public bool IsTransportSecure => IsSecureTransport(ServerUrl);
 
     /// <summary>
     ///     A mesma regra, aplicável antes de existir configuração.

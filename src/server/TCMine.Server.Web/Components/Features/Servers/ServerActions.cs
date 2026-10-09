@@ -1,6 +1,7 @@
 using MudBlazor;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
@@ -46,12 +47,13 @@ public sealed class ServerActions(
             // significa "percebemos que caiu", não o instante exato da queda.
             if (real is GameServerStatus.Crashed)
             {
-                await activity.AddAsync(new ActivityEvent
-                {
-                    Kind = ActivityEventKind.ServerCrashed,
-                    Message = $"{server.Name} caiu.",
-                    Href = "/admin/servers"
-                }, ct);
+                await activity.AddAsync(
+                    new ActivityEvent
+                    {
+                        Kind = ActivityEventKind.ServerCrashed,
+                        Message = $"{server.Name} caiu.",
+                        Href = "/admin/servers"
+                    }, ct);
             }
         }
     }
@@ -76,7 +78,7 @@ public sealed class ServerActions(
         RunAsync(() => deleteUseCase.HandleAsync(serverId, ct, Guid.CreateVersion7()), "Servidor removido.");
 
     private async Task<bool> RunAsync(
-        Func<Task<TCMine.Server.Application.Common.Result>> action, string? successMessage = null)
+        Func<Task<Result>> action, string? successMessage = null)
     {
         var result = await action();
 

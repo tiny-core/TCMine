@@ -11,8 +11,6 @@ public sealed class FakeJobProgress : IJobProgressReporter
     public List<JobProgress> Reported { get; } = [];
     public List<(Guid ScopeId, string? Error)> Completed { get; } = [];
 
-    public void Report(Guid scopeId, JobProgress progress) => Reported.Add(progress);
-
     /// <summary>
     ///     Disparado no momento exato da conclusão. Serve para o teste observar o
     ///     que já estava gravado quando o mundo foi avisado — é assim que se
@@ -20,14 +18,16 @@ public sealed class FakeJobProgress : IJobProgressReporter
     /// </summary>
     public Action? OnComplete { get; set; }
 
+    /// <summary>Escopos que o teste quer fingir em curso.</summary>
+    public HashSet<Guid> EmCurso { get; } = [];
+
+    public void Report(Guid scopeId, JobProgress progress) => Reported.Add(progress);
+
     public void Complete(Guid scopeId, string? error = null)
     {
         Completed.Add((scopeId, error));
         OnComplete?.Invoke();
     }
-
-    /// <summary>Escopos que o teste quer fingir em curso.</summary>
-    public HashSet<Guid> EmCurso { get; } = [];
 
     public bool IsRunning(Guid scopeId) => EmCurso.Contains(scopeId);
 }

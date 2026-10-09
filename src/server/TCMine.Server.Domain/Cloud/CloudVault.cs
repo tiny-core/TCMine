@@ -16,8 +16,6 @@ public sealed class CloudVault : Entity, IOwnedEntity
 
     public required string Name { get; set; }
 
-    public Guid OwnerId { get; set; }
-
     public CloudPolicyMode PolicyMode { get; private set; } = CloudPolicyMode.Blocklist;
 
     /// <summary>
@@ -43,6 +41,8 @@ public sealed class CloudVault : Entity, IOwnedEntity
     public bool IsEnabled { get; private set; } = true;
 
     public TimeSpan LeaseTtl => TimeSpan.FromMinutes(LeaseTtlMinutes);
+
+    public Guid OwnerId { get; set; }
 
     /// <summary>
     ///     Muda os limites de uma vez, validando juntos — um limite isolado fora

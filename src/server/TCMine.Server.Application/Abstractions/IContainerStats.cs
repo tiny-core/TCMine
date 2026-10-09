@@ -27,6 +27,4 @@ public sealed record ContainerSample(
     long MemoryUsedBytes,
     long MemoryLimitBytes)
 {
-    public double MemoryPercent =>
-        MemoryLimitBytes > 0 ? Math.Clamp(MemoryUsedBytes * 100d / MemoryLimitBytes, 0, 100) : 0;
 }

@@ -3,41 +3,41 @@
    confundir com o resto da tela. Altura fixa com rolagem — sem ela a página
    cresceria sem fim e o "seguir" não teria para onde rolar. */
 .tc-console {
-    height: 320px;
-    overflow-y: auto;
-    padding: 8px 12px;
-    border-radius: 6px;
-    background-color: var(--tc-bg-sunken);
-    border: 1px solid var(--tc-border);
-    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-    font-size: .78rem;
-    line-height: 1.45;
+  height: 320px;
+  overflow-y: auto;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background-color: var(--tc-bg-sunken);
+  border: 1px solid var(--tc-border);
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: .78rem;
+  line-height: 1.45;
 }
 
 /* pre-wrap preserva o alinhamento das tabelas que alguns mods imprimem, mas
    ainda quebra linhas longas em vez de criar rolagem horizontal. */
 .tc-console-line {
-    white-space: pre-wrap;
-    word-break: break-word;
-    color: var(--tc-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--tc-text-primary);
 }
 
 /* O que o admin mandou e o que o servidor respondeu, para não se perderem
    no meio do log: o eco do comando em destaque, a resposta recuada, o erro
    na cor de erro. */
 .tc-console-command {
-    color: var(--tc-brand-primary);
-    font-weight: 600;
+  color: var(--tc-brand-primary);
+  font-weight: 600;
 }
 
 .tc-console-reply {
-    padding-left: 1.2em;
-    color: var(--tc-text-secondary);
+  padding-left: 1.2em;
+  color: var(--tc-text-secondary);
 }
 
 .tc-console-error {
-    padding-left: 1.2em;
-    color: var(--tc-status-error);
+  padding-left: 1.2em;
+  color: var(--tc-status-error);
 }
 
 /* Console + referência lado a lado (painel lateral), e não um empurrando o
@@ -45,69 +45,69 @@
    do painel faz (ver tc-home). Só existe enquanto a referência está aberta;
    fechada, o console continua ocupando a largura inteira sozinho. */
 .tc-console-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-    align-items: start;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
 @media (min-width: 900px) {
-    .tc-console-layout {
-        grid-template-columns: minmax(0, 1fr) 360px;
-    }
+  .tc-console-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
 }
 
 .tc-console-main {
-    min-width: 0;
+  min-width: 0;
 }
 
 .tc-console-side {
-    min-width: 0;
-    max-height: 320px;
-    overflow-y: auto;
-    border-radius: 6px;
-    border: 1px solid var(--tc-border);
-    background: var(--tc-surface-raised);
-    padding: 10px;
+  min-width: 0;
+  max-height: 320px;
+  overflow-y: auto;
+  border-radius: 6px;
+  border: 1px solid var(--tc-border);
+  background: var(--tc-surface-raised);
+  padding: 10px;
 }
 
 .tc-command-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-wrap: wrap;
 }
 
 .tc-command-row:hover,
 .tc-command-row:focus-visible {
-    background-color: var(--tc-surface-selected);
+  background-color: var(--tc-surface-selected);
 }
 
 .tc-command-syntax {
-    font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-    font-size: .8rem;
-    color: var(--tc-brand-primary);
-    min-width: 280px;
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: .8rem;
+  color: var(--tc-brand-primary);
+  min-width: 280px;
 }
 
 .tc-command-desc {
-    flex: 1;
-    font-size: .85rem;
-    color: var(--tc-text-secondary);
+  flex: 1;
+  font-size: .85rem;
+  color: var(--tc-text-secondary);
 }
 
 /* No painel lateral (estreito) a sintaxe e a descrição empilham — o
    min-width de 280px da versão larga não cabe nos ~340px úteis do painel e
    cortaria a descrição fora. */
 .tc-console-side .tc-command-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .tc-console-side .tc-command-syntax {
-    min-width: 0;
+  min-width: 0;
 }

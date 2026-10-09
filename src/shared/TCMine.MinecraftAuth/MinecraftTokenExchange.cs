@@ -64,15 +64,6 @@ public sealed partial class MinecraftTokenExchange(
         }
     }
 
-    /// <summary>
-    ///     O XSTS devolve duas coisas que só valem juntas, e o
-    ///     <see cref="MinecraftTokenResult" /> carrega uma só. Saem daqui em par,
-    ///     e não num campo da classe: alargar o resultado contaminaria as duas
-    ///     portas que o usam, e um campo seria estado partilhado entre trocas —
-    ///     invisível enquanto ninguém troca duas ao mesmo tempo, e errado sempre.
-    /// </summary>
-    private sealed record XstsSession(MinecraftTokenResult Resultado, string? UserHash = null);
-
     private async Task<MinecraftTokenResult> AuthenticateXboxLiveAsync(string microsoftToken, CancellationToken ct)
     {
         var request = new XboxAuthRequest
@@ -206,4 +197,13 @@ public sealed partial class MinecraftTokenExchange(
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Resposta ilegível na troca de token.")]
     private partial void LogUnreadableResponse(Exception ex);
+
+    /// <summary>
+    ///     O XSTS devolve duas coisas que só valem juntas, e o
+    ///     <see cref="MinecraftTokenResult" /> carrega uma só. Saem daqui em par,
+    ///     e não num campo da classe: alargar o resultado contaminaria as duas
+    ///     portas que o usam, e um campo seria estado partilhado entre trocas —
+    ///     invisível enquanto ninguém troca duas ao mesmo tempo, e errado sempre.
+    /// </summary>
+    private sealed record XstsSession(MinecraftTokenResult Resultado, string? UserHash = null);
 }

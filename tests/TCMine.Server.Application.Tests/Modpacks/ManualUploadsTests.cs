@@ -1,4 +1,3 @@
-using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Application.Tests.Modpacks;

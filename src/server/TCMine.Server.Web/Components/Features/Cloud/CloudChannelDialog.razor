@@ -1,4 +1,3 @@
-@using TCMine.Server.Web.Components.Features.Modpacks
 @inherits DialogComponentBase
 
 <MudDialog>
@@ -43,7 +42,8 @@
     <DialogActions>
         @if (Channel.Frozen)
         {
-            <MudButton Color="Color.Warning" StartIcon="@Icons.Material.Filled.WbSunny" OnClick="UnfreezeAsync" Disabled="IsBusy">
+            <MudButton Color="Color.Warning" StartIcon="@Icons.Material.Filled.WbSunny" OnClick="UnfreezeAsync"
+                       Disabled="IsBusy">
                 Descongelar
             </MudButton>
         }

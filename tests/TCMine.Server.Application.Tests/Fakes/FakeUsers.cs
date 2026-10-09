@@ -16,6 +16,15 @@ internal sealed class FakeUsers(params User[] seed) : IUserRepository
     public User? Adicionado { get; private set; }
     public bool Atualizado { get; private set; }
 
+    /// <summary>
+    ///     Simula o outro login que gravou a mesma conta primeiro: quando
+    ///     preenchido, o próximo TryAddAsync perde a corrida para este usuário.
+    /// </summary>
+    public User? Concorrente { get; set; }
+
+    /// <summary>Fusões pedidas, como (mantida, absorvida).</summary>
+    public List<(Guid Keep, Guid Absorbed)> Fusoes { get; } = [];
+
     public Task<bool> AnyAsync(CancellationToken ct) => Task.FromResult(_users.Count > 0);
 
     public Task<User?> GetByIdAsync(Guid id, CancellationToken ct) =>
@@ -34,15 +43,6 @@ internal sealed class FakeUsers(params User[] seed) : IUserRepository
         _users.Add(user);
         return Task.CompletedTask;
     }
-
-    /// <summary>
-    ///     Simula o outro login que gravou a mesma conta primeiro: quando
-    ///     preenchido, o próximo TryAddAsync perde a corrida para este usuário.
-    /// </summary>
-    public User? Concorrente { get; set; }
-
-    /// <summary>Fusões pedidas, como (mantida, absorvida).</summary>
-    public List<(Guid Keep, Guid Absorbed)> Fusoes { get; } = [];
 
     public Task<bool> TryAddAsync(User user, CancellationToken ct)
     {

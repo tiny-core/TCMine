@@ -1,14 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Identity;
-using TCMine.Server.Application.Abstractions;
 using TCMine.Contracts.Servers;
+using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Infrastructure.Persistence;
@@ -147,10 +149,7 @@ public sealed class InviteFlowTests
     public async Task Resgate_sem_sessao_e_recusado()
     {
         await using var factory = new TcMineAppFactory();
-        var client = factory.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions
-        {
-            AllowAutoRedirect = false
-        });
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
         var response = await client.PostAsJsonAsync(
             "/api/v1/invites/redeem",
@@ -167,7 +166,7 @@ public sealed class InviteFlowTests
     /// </summary>
     private static async Task<string> SemearConviteAsync(TcMineAppFactory factory, Guid servidorId)
     {
-        var code = Server.Application.Security.SecureToken.GenerateCode();
+        var code = SecureToken.GenerateCode();
 
         using var escopo = factory.Services.CreateScope();
         var db = await escopo.ServiceProvider
@@ -176,8 +175,8 @@ public sealed class InviteFlowTests
 
         db.Invites.Add(new Invite
         {
-            CodeHash = Server.Application.Security.SecureToken.Hash(
-                Server.Application.Security.SecureToken.NormalizeCode(code)),
+            CodeHash = SecureToken.Hash(
+                SecureToken.NormalizeCode(code)),
             GameServerId = servidorId,
             Role = ServerRole.Moderator,
             CreatedByUserId = Guid.CreateVersion7(),

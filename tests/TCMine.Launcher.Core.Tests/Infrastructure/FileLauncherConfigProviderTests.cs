@@ -13,7 +13,8 @@ namespace TCMine.Launcher.Core.Tests.Infrastructure;
 /// </summary>
 public sealed class FileLauncherConfigProviderTests : IDisposable
 {
-    private readonly string _raiz = Path.Combine(Path.GetTempPath(), "tcmine-teste-" + Guid.NewGuid().ToString("N")[..8]);
+    private readonly string _raiz =
+        Path.Combine(Path.GetTempPath(), "tcmine-teste-" + Guid.NewGuid().ToString("N")[..8]);
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

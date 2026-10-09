@@ -17,10 +17,8 @@ public sealed class CloudServerKeyTests
     }
 
     [Fact]
-    public void Duas_chaves_nunca_sao_iguais()
-    {
+    public void Duas_chaves_nunca_sao_iguais() =>
         CloudServerKey.Generate().Key.ShouldNotBe(CloudServerKey.Generate().Key);
-    }
 
     [Theory]
     [InlineData(null)]
@@ -29,10 +27,7 @@ public sealed class CloudServerKeyTests
     [InlineData("tcs_curto_segredo")]
     [InlineData("xyz_abcdefghijkm_segredo")]
     [InlineData("tcs_abcdefghijkm_")]
-    public void Formato_estranho_nao_tem_prefixo(string? key)
-    {
-        CloudServerKey.PrefixOf(key).ShouldBeNull();
-    }
+    public void Formato_estranho_nao_tem_prefixo(string? key) => CloudServerKey.PrefixOf(key).ShouldBeNull();
 
     [Fact]
     public void Segredo_com_sublinhado_continua_valido()
@@ -46,12 +41,9 @@ public sealed class CloudServerKeyTests
     {
         var canal = Guid.CreateVersion7();
         var a = new CloudBatchRequest("p", 1, 2,
-            [new(canal, "a", 1), new(canal, "b", -1)], [new(canal, "a", 1), new(canal, "b", 0)], null);
-        var b = a with
-        {
-            Ops = [.. a.Ops.Reverse()],
-            Definitions = [new CloudItemDto("a", "m:a", "A", "AQ==")]
-        };
+            [new CloudOpDto(canal, "a", 1), new CloudOpDto(canal, "b", -1)],
+            [new CloudExpectedDto(canal, "a", 1), new CloudExpectedDto(canal, "b", 0)], null);
+        var b = a with { Ops = [.. a.Ops.Reverse()], Definitions = [new CloudItemDto("a", "m:a", "A", "AQ==")] };
         var c = a with { Seq = 3 };
 
         CloudBatchHash.Of(a).ShouldBe(CloudBatchHash.Of(b));

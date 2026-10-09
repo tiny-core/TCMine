@@ -39,9 +39,9 @@ public static class JavaRequirement
         return (minor, patch) switch
         {
             // 1.20.5 trouxe o salto para 21; 1.20.4 e abaixo ficaram no 17.
-            ( > 20, _) => 21,
+            (> 20, _) => 21,
             (20, >= 5) => 21,
-            ( >= 17, _) => 17,
+            (>= 17, _) => 17,
 
             // 1.16.5 e abaixo: o Java 8 da época. Um pack assim é raro hoje, mas
             // rodá-lo em 21 falha — os loaders antigos usam APIs removidas.

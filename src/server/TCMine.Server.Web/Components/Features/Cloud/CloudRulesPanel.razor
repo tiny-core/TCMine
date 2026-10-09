@@ -1,5 +1,4 @@
 @using TCMine.Server.Domain.Cloud
-
 <MudText Typo="Typo.subtitle1" Class="mb-1">Regras de item</MudText>
 <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-3">
     O mais específico vence (item, depois tag, depois mod, depois o modo da nuvem); no mesmo nível, bloquear vence.
@@ -8,7 +7,8 @@
 
 <MudGrid Spacing="2" Class="mb-2" Style="max-width:900px;">
     <MudItem xs="12" sm="2">
-        <MudSelect T="CloudRuleScope" @bind-Value="_scope" Label="Alvo" Variant="Variant.Outlined" Margin="Margin.Dense">
+        <MudSelect T="CloudRuleScope" @bind-Value="_scope" Label="Alvo" Variant="Variant.Outlined"
+                   Margin="Margin.Dense">
             <MudSelectItem Value="CloudRuleScope.Item">Item</MudSelectItem>
             <MudSelectItem Value="CloudRuleScope.Tag">Tag</MudSelectItem>
             <MudSelectItem Value="CloudRuleScope.Mod">Mod</MudSelectItem>
@@ -18,17 +18,20 @@
         <MudTextField @bind-Value="_pattern" Label="@PatternHint" Variant="Variant.Outlined" Margin="Margin.Dense"/>
     </MudItem>
     <MudItem xs="12" sm="2">
-        <MudSelect T="CloudRuleAction" @bind-Value="_action" Label="Ação" Variant="Variant.Outlined" Margin="Margin.Dense">
+        <MudSelect T="CloudRuleAction" @bind-Value="_action" Label="Ação" Variant="Variant.Outlined"
+                   Margin="Margin.Dense">
             <MudSelectItem Value="CloudRuleAction.Block">Bloquear</MudSelectItem>
             <MudSelectItem Value="CloudRuleAction.Allow">Permitir</MudSelectItem>
         </MudSelect>
     </MudItem>
     <MudItem xs="12" sm="3">
-        <MudTextField @bind-Value="_note" Label="Nota (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense" MaxLength="256"/>
+        <MudTextField @bind-Value="_note" Label="Nota (opcional)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      MaxLength="256"/>
     </MudItem>
     <MudItem xs="12" sm="1" Class="d-flex align-center">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync"
-                   Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_pattern))">Criar</MudButton>
+                   Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_pattern))">Criar
+        </MudButton>
     </MudItem>
 </MudGrid>
 
@@ -44,14 +47,17 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd>@Label(context.Scope)</MudTd>
-            <MudTd Style="font-family:monospace;">@(context.Scope == CloudRuleScope.Tag ? "#" : "")@context.Pattern</MudTd>
+            <MudTd
+                Style="font-family:monospace;">@(context.Scope == CloudRuleScope.Tag ? "#" : "")@context.Pattern</MudTd>
             <MudTd>
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
                          Color="@(context.Action == CloudRuleAction.Block ? Color.Error : Color.Success)">
                     @(context.Action == CloudRuleAction.Block ? "bloquear" : "permitir")
                 </MudChip>
             </MudTd>
-            <MudTd><MudText Typo="Typo.caption">@context.Note</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.Note</MudText>
+            </MudTd>
             <MudTd Style="text-align:right;">
                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
                                OnClick="@(() => RemoveAsync(context))" Disabled="_isBusy"/>
@@ -88,11 +94,17 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd Style="font-family:monospace;">@context.ItemId</MudTd>
-            <MudTd><MudText Typo="Typo.caption">@context.Evidence</MudText></MudTd>
+            <MudTd>
+                <MudText Typo="Typo.caption">@context.Evidence</MudText>
+            </MudTd>
             <MudTd>@context.Attempts</MudTd>
             <MudTd Style="text-align:right;">
-                <MudButton Size="Size.Small" Color="Color.Success" OnClick="@(() => ResolveAsync(context, true))" Disabled="_isBusy">Permitir</MudButton>
-                <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => ResolveAsync(context, false))" Disabled="_isBusy">Bloquear</MudButton>
+                <MudButton Size="Size.Small" Color="Color.Success" OnClick="@(() => ResolveAsync(context, true))"
+                           Disabled="_isBusy">Permitir
+                </MudButton>
+                <MudButton Size="Size.Small" Color="Color.Error" OnClick="@(() => ResolveAsync(context, false))"
+                           Disabled="_isBusy">Bloquear
+                </MudButton>
             </MudTd>
         </RowTemplate>
     </MudTable>

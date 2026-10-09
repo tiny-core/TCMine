@@ -31,7 +31,7 @@ else
 {
     <MudPaper Outlined="true" Class="tc-panel tc-fade-in">
         <MudTable Items="_vaults" Dense="true" Hover="true" Elevation="0"
-                  OnRowClick="@((TableRowClickEventArgs<CloudVaultSummary> e) => Open(e.Item!))"
+                  OnRowClick="@(e => Open(e.Item!))"
                   T="CloudVaultSummary" Style="cursor:pointer;">
             <HeaderContent>
                 <MudTh>Nome</MudTh>
@@ -46,11 +46,14 @@ else
                 <MudTd DataLabel="Situação">
                     @if (context.IsEnabled)
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">ligada</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">ligada
+                        </MudChip>
                     }
                     else
                     {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">somente leitura</MudChip>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined">somente
+                            leitura
+                        </MudChip>
                     }
                 </MudTd>
             </RowTemplate>

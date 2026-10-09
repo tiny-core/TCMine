@@ -23,11 +23,34 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     private readonly string _database = $"tcmine_teste_{Guid.CreateVersion7():N}";
     private readonly string _servidor;
 
-    private PostgresTestDatabase(string server) => _servidor = server;
+    private PostgresTestDatabase(string server)
+    {
+        _servidor = server;
+    }
 
     /// <summary>Connection string do servidor, ou nulo quando não há um configurado.</summary>
     public static string? ServerConnectionString =>
         Environment.GetEnvironmentVariable(ConnectionVariable) is { Length: > 0 } valor ? valor : null;
+
+    public async ValueTask DisposeAsync()
+    {
+        // Fecha as conexões abertas antes do DROP: o PostgreSQL recusa apagar um
+        // banco que ainda tem sessão ligada, e o teste seguinte herdaria o lixo.
+        NpgsqlConnection.ClearAllPools();
+
+        try
+        {
+            await using var admin = new TcMineDbContext(Opcoes(_servidor));
+#pragma warning disable EF1002
+            await admin.Database.ExecuteSqlRawAsync(
+                $"DROP DATABASE IF EXISTS \"{_database}\" WITH (FORCE)");
+#pragma warning restore EF1002
+        }
+        catch (Exception)
+        {
+            // Limpeza não reprova teste; o banco do CI morre com o job.
+        }
+    }
 
     /// <summary>
     ///     Cria um banco só para este teste e aplica as migrations.
@@ -38,8 +61,8 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     public static async Task<PostgresTestDatabase> CreateAsync(CancellationToken ct)
     {
         var server = ServerConnectionString
-                       ?? throw new InvalidOperationException(
-                           $"{ConnectionVariable} não está definida. Use Assert.Skip antes de chamar.");
+                     ?? throw new InvalidOperationException(
+                         $"{ConnectionVariable} não está definida. Use Assert.Skip antes de chamar.");
 
         var instance = new PostgresTestDatabase(server);
 
@@ -61,26 +84,6 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     }
 
     public TcMineDbContext CreateContext() => new(Opcoes(ConnectionStringDoBanco()));
-
-    public async ValueTask DisposeAsync()
-    {
-        // Fecha as conexões abertas antes do DROP: o PostgreSQL recusa apagar um
-        // banco que ainda tem sessão ligada, e o teste seguinte herdaria o lixo.
-        NpgsqlConnection.ClearAllPools();
-
-        try
-        {
-            await using var admin = new TcMineDbContext(Opcoes(_servidor));
-#pragma warning disable EF1002
-            await admin.Database.ExecuteSqlRawAsync(
-                $"DROP DATABASE IF EXISTS \"{_database}\" WITH (FORCE)");
-#pragma warning restore EF1002
-        }
-        catch (Exception)
-        {
-            // Limpeza não reprova teste; o banco do CI morre com o job.
-        }
-    }
 
     private string ConnectionStringDoBanco() =>
         new NpgsqlConnectionStringBuilder(_servidor) { Database = _database }.ConnectionString;

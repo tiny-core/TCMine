@@ -12,10 +12,10 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 public partial class CloudPlayersPanel : ComponentBase
 {
     private const int ListLimit = ListCloudPlayers.Limit;
+    private bool _isBusy;
 
     private List<CloudPlayerView>? _players;
     private string? _search;
-    private bool _isBusy;
 
     [Parameter] [EditorRequired] public Guid VaultId { get; set; }
     [Parameter] public IReadOnlyDictionary<Guid, string> ServerNames { get; set; } = new Dictionary<Guid, string>();
@@ -63,12 +63,13 @@ public partial class CloudPlayersPanel : ComponentBase
         var confirm = await DialogService.ShowMessageBoxAsync("Liberar lease à força",
             "Use só se o servidor que está com os canais morreu de vez. Se ele voltar, os lotes que ainda tinha " +
             "no diário vão para a quarentena em vez de serem aplicados.",
-            yesText: "Liberar", cancelText: "Cancelar");
+            "Liberar", cancelText: "Cancelar");
         if (confirm != true)
             return;
 
         var result = await ForceReleaseUseCase.HandleAsync(VaultId, player.PlayerUuid, CancellationToken.None);
-        Snackbar.Add(result.Succeeded ? "Lease liberado." : result.Error!, result.Succeeded ? Severity.Success : Severity.Error);
+        Snackbar.Add(result.Succeeded ? "Lease liberado." : result.Error!,
+            result.Succeeded ? Severity.Success : Severity.Error);
         await LoadAsync();
     }
 }

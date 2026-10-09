@@ -12,15 +12,15 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 /// </summary>
 public partial class CloudVaultSettingsPanel : ComponentBase
 {
-    private string _name = "";
     private bool _enabled;
-    private CloudPolicyMode _mode;
-    private int _leaseTtl;
-    private int _maxItemBytes;
-    private int _maxChannels;
-    private int _maxTypes;
-    private long _maxTotal;
     private bool _isBusy;
+    private int _leaseTtl;
+    private int _maxChannels;
+    private int _maxItemBytes;
+    private long _maxTotal;
+    private int _maxTypes;
+    private CloudPolicyMode _mode;
+    private string _name = "";
 
     [Parameter] [EditorRequired] public CloudVault Vault { get; set; } = default!;
     [Parameter] public EventCallback Saved { get; set; }

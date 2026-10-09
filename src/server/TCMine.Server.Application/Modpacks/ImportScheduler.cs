@@ -27,10 +27,7 @@ public sealed class ImportScheduler(
 
         var request = new ImportRequest
         {
-            Origin = origin,
-            ProjectId = projectId,
-            FileId = fileId,
-            DisplayName = displayName
+            Origin = origin, ProjectId = projectId, FileId = fileId, DisplayName = displayName
         };
 
         await requests.AddAsync(request, ct);

@@ -286,7 +286,8 @@ public sealed record CreateContainerRequest
     ///     jogo e decisivo para o de e-mail: é o que vai no HELO, e um HELO que
     ///     não bate com o DNS reverso é motivo de recusa do outro lado.
     /// </summary>
-    [JsonPropertyName("Hostname")] public string? Hostname { get; init; }
+    [JsonPropertyName("Hostname")]
+    public string? Hostname { get; init; }
 }
 
 public sealed record HostConfig
@@ -306,7 +307,8 @@ public sealed record PortBinding
     ///     0.0.0.0 — ou seja, na internet, se a máquina estiver exposta. Para um
     ///     serviço que só o próprio TCMine consome, isto precisa ser 127.0.0.1.
     /// </summary>
-    [JsonPropertyName("HostIp")] public string? HostIp { get; init; }
+    [JsonPropertyName("HostIp")]
+    public string? HostIp { get; init; }
 }
 
 public sealed record RestartPolicy

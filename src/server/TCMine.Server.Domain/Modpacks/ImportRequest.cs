@@ -15,6 +15,7 @@ namespace TCMine.Server.Domain.Modpacks;
 /// </summary>
 public sealed class ImportRequest : Entity
 {
+    public const int MaxRecoveryAttempts = 3;
     public required ModFileOrigin Origin { get; set; }
 
     /// <summary>Id do pack na origem.</summary>
@@ -32,8 +33,6 @@ public sealed class ImportRequest : Entity
     ///     retomá-lo a cada arranque põe o servidor em ciclo de queda.
     /// </summary>
     public int RecoveryAttempts { get; set; }
-
-    public const int MaxRecoveryAttempts = 3;
 
     /// <summary>Devolve false quando a cota acabou — aí quem chama desiste.</summary>
     public bool TryRegisterRecovery()

@@ -61,12 +61,7 @@ public sealed class CreateGameServer(
         if (userScope.UserId is { } criador)
         {
             await memberships.AddAsync(
-                new Membership
-                {
-                    UserId = criador,
-                    GameServerId = server.Id,
-                    Role = ServerRole.Owner
-                },
+                new Membership { UserId = criador, GameServerId = server.Id, Role = ServerRole.Owner },
                 ct);
         }
 

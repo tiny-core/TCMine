@@ -329,14 +329,6 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         return new PagedResult<ModpackFile>(items, total);
     }
 
-    // "mods/jei-1.5.jar" → "jei-1.5.jar". O caminho completo não acrescenta nada
-    // numa tabela onde tudo mora em mods/.
-    private static string FileNameOf(string path)
-    {
-        var slash = path.LastIndexOf('/');
-        return slash < 0 ? path : path[(slash + 1)..];
-    }
-
     public async Task<IReadOnlySet<string>> ListReferencedHashesAsync(CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
@@ -477,5 +469,13 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
             db.ModpackFiles.Remove(file);
             await db.SaveChangesAsync(ct);
         }
+    }
+
+    // "mods/jei-1.5.jar" → "jei-1.5.jar". O caminho completo não acrescenta nada
+    // numa tabela onde tudo mora em mods/.
+    private static string FileNameOf(string path)
+    {
+        var slash = path.LastIndexOf('/');
+        return slash < 0 ? path : path[(slash + 1)..];
     }
 }

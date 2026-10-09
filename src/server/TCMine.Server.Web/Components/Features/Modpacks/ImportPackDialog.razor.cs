@@ -9,27 +9,28 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class ImportPackDialog
 {
-    private bool _isSearching;
-    private string _query = "";
-    private IReadOnlyList<UpstreamPackSummary> _results = [];
-    private bool _searched;
-    private UpstreamPackSummary? _selected;
+    /// <summary>Origens prontas para uso — o Modrinth sempre está, o CurseForge só com chave.</summary>
+    private List<IUpstreamPackSource> _available = [];
 
-    /// <summary>Releases do pack selecionado, da mais nova para a mais velha.</summary>
-    private IReadOnlyList<UpstreamRelease> _releases = [];
+    private bool _isSearching;
 
     private bool _loadingReleases;
+
+    private ModFileOrigin _originValue;
+    private string _query = "";
 
     /// <summary>Release escolhida; nula = deixa a origem decidir (a mais recente).</summary>
     private string? _releaseId;
 
-    /// <summary>Origens prontas para uso — o Modrinth sempre está, o CurseForge só com chave.</summary>
-    private List<IUpstreamPackSource> _available = [];
+    /// <summary>Releases do pack selecionado, da mais nova para a mais velha.</summary>
+    private IReadOnlyList<UpstreamRelease> _releases = [];
+
+    private IReadOnlyList<UpstreamPackSummary> _results = [];
+    private bool _searched;
+    private UpstreamPackSummary? _selected;
 
     /// <summary>Nulo enquanto nenhuma origem estiver disponível.</summary>
     private IUpstreamPackSource? _source;
-
-    private ModFileOrigin _originValue;
 
     [Inject] private IEnumerable<IUpstreamPackSource> Sources { get; set; } = default!;
     [Inject] private ImportScheduler Scheduler { get; set; } = default!;
@@ -100,7 +101,8 @@ public partial class ImportPackDialog
                 return;
 
             _releases = releases;
-            _releaseId = (releases.FirstOrDefault(r => r.IsStable) ?? (releases.Count > 0 ? releases[0] : null))?.FileId;
+            _releaseId = (releases.FirstOrDefault(r => r.IsStable) ?? (releases.Count > 0 ? releases[0] : null))
+                ?.FileId;
         }
         catch (HttpRequestException)
         {

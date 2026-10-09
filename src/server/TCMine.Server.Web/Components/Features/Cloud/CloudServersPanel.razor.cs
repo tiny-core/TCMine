@@ -12,13 +12,14 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 /// </summary>
 public partial class CloudServersPanel : ComponentBase
 {
-    private List<CloudVaultServerView>? _servers;
     private bool _isBusy;
+    private List<CloudVaultServerView>? _servers;
 
     [Parameter] [EditorRequired] public Guid VaultId { get; set; }
 
     /// <summary>Avisa a página (os nomes dos servidores mudam o que a aba de jogadores mostra).</summary>
-    [Parameter] public EventCallback ServersChanged { get; set; }
+    [Parameter]
+    public EventCallback ServersChanged { get; set; }
 
     [Inject] private ListCloudVaultServers ListUseCase { get; set; } = default!;
     [Inject] private SetServerCloudVault SetVaultUseCase { get; set; } = default!;
@@ -64,7 +65,7 @@ public partial class CloudServersPanel : ComponentBase
     }
 
     private async Task<bool> ConfirmAsync(string title, string message) =>
-        await DialogService.ShowMessageBoxAsync(title, message, yesText: "Confirmar", cancelText: "Cancelar") == true;
+        await DialogService.ShowMessageBoxAsync(title, message, "Confirmar", cancelText: "Cancelar") == true;
 
     private async Task RunAsync(Func<Task<Result>> action, string success)
     {
@@ -74,7 +75,8 @@ public partial class CloudServersPanel : ComponentBase
         try
         {
             var result = await action();
-            Snackbar.Add(result.Succeeded ? success : result.Error!, result.Succeeded ? Severity.Success : Severity.Error);
+            Snackbar.Add(result.Succeeded ? success : result.Error!,
+                result.Succeeded ? Severity.Success : Severity.Error);
             await LoadAsync();
             await ServersChanged.InvokeAsync();
         }

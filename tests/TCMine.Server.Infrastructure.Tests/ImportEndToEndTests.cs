@@ -1,12 +1,12 @@
-using TCMine.Contracts.Servers;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
-using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Infrastructure.Persistence;
 
@@ -30,6 +30,9 @@ public sealed class ImportEndToEndTests
 {
     /// <summary>Perto do All the Mods 10 (481), que é o pack que quebrou tudo.</summary>
     private const int Mods = 300;
+
+    private const string MotivoDoSkip =
+        "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -129,10 +132,13 @@ public sealed class ImportEndToEndTests
         var criado = await import.HandleAsync(ModFileOrigin.CurseForge, "925200", null, Ct);
         var version = (await repo.ListVersionsAsync(criado.Value, Ct)).Single();
 
-        ModpackIngestionService Servico() => new(
-            repo, blobs, [new ResolverDeTeste()], downloader,
-            new InspetorMudo(), new ProgressoMudo(),
-            NullLogger<ModpackIngestionService>.Instance);
+        ModpackIngestionService Servico()
+        {
+            return new ModpackIngestionService(
+                repo, blobs, [new ResolverDeTeste()], downloader,
+                new InspetorMudo(), new ProgressoMudo(),
+                NullLogger<ModpackIngestionService>.Instance);
+        }
 
         await Servico().IngestAsync(version.Id, fila.Itens, Ct);
 
@@ -148,9 +154,6 @@ public sealed class ImportEndToEndTests
         final!.Files.Count.ShouldBe(arquivosDepoisDaPrimeira, "reingerir não pode acumular arquivo");
         downloader.Baixados.ShouldBe(primeiraPassada, "o que não mudou não desce de novo");
     }
-
-    private const string MotivoDoSkip =
-        "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
 
     /// <summary>
     ///     Um pack com o formato do que quebra: centenas de mods e um override
@@ -233,7 +236,7 @@ public sealed class ImportEndToEndTests
 
         public Task<ModResolution> ResolveAsync(ModRequest request, CancellationToken ct)
         {
-            var n = int.Parse(request.ProjectId, System.Globalization.CultureInfo.InvariantCulture);
+            var n = int.Parse(request.ProjectId, CultureInfo.InvariantCulture);
 
             ModResolution resolucao = (n % 10) switch
             {
@@ -312,8 +315,14 @@ public sealed class ImportEndToEndTests
 
     private sealed class ProgressoMudo : IJobProgressReporter
     {
-        public void Report(Guid scopeId, JobProgress progress) { }
-        public void Complete(Guid scopeId, string? error = null) { }
+        public void Report(Guid scopeId, JobProgress progress)
+        {
+        }
+
+        public void Complete(Guid scopeId, string? error = null)
+        {
+        }
+
         public bool IsRunning(Guid scopeId) => false;
     }
 

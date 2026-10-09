@@ -155,54 +155,6 @@ public sealed partial class CurseForgePackSource(
         };
     }
 
-    /// <summary>
-    ///     Link para o server pack na página do autor.
-    ///     Sem o slug não dá para montar a URL amigável, e a de /projects não
-    ///     aceita o caminho de arquivo — nesse caso é melhor não oferecer link
-    ///     nenhum do que oferecer um que dá 404.
-    /// </summary>
-    private static string? ServerPackUrlDe(string? slug, int? serverPackFileId) =>
-        slug is { Length: > 0 } && serverPackFileId is { } id
-            ? $"https://www.curseforge.com/minecraft/modpacks/{slug}/files/{id.ToString(CultureInfo.InvariantCulture)}"
-            : null;
-
-    /// <summary>
-    ///     Traduz os arquivos do manifest e enriquece com o nome de cada mod.
-    ///     O manifest só traz ids; sem o nome, o acompanhamento da ingestão
-    ///     mostraria "Baixando 927874", que não diz nada a ninguém. O endpoint em
-    ///     lote resolve isso numa chamada (limite de 1000 ids por requisição).
-    /// </summary>
-    private async Task<IReadOnlyList<UpstreamPackMod>> WithNamesAsync(
-        IReadOnlyList<CurseForgeManifestFile> files, CancellationToken ct)
-    {
-        var names = new Dictionary<int, string>();
-
-        foreach (var chunk in files.Select(f => f.ProjectId).Distinct().Chunk(1000))
-        {
-            var response = await api.PostAsync(
-                "/v1/mods",
-                new CurseForgeModsRequest { ModIds = chunk },
-                CurseForgeJsonContext.Default.CurseForgeModsRequest,
-                CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeMod,
-                ct);
-
-            foreach (var mod in response?.Data ?? [])
-            {
-                if (mod.Name is { Length: > 0 })
-                    names[mod.Id] = mod.Name;
-            }
-        }
-
-        return
-        [
-            .. files.Select(f => new UpstreamPackMod(
-                f.ProjectId.ToString(CultureInfo.InvariantCulture),
-                f.FileId.ToString(CultureInfo.InvariantCulture),
-                f.Required,
-                names.GetValueOrDefault(f.ProjectId)))
-        ];
-    }
-
     public async Task<IReadOnlyDictionary<string, string>> GetFileNamesAsync(
         IReadOnlyList<string> fileIds, CancellationToken ct)
     {
@@ -302,6 +254,54 @@ public sealed partial class CurseForgePackSource(
 
             throw;
         }
+    }
+
+    /// <summary>
+    ///     Link para o server pack na página do autor.
+    ///     Sem o slug não dá para montar a URL amigável, e a de /projects não
+    ///     aceita o caminho de arquivo — nesse caso é melhor não oferecer link
+    ///     nenhum do que oferecer um que dá 404.
+    /// </summary>
+    private static string? ServerPackUrlDe(string? slug, int? serverPackFileId) =>
+        slug is { Length: > 0 } && serverPackFileId is { } id
+            ? $"https://www.curseforge.com/minecraft/modpacks/{slug}/files/{id.ToString(CultureInfo.InvariantCulture)}"
+            : null;
+
+    /// <summary>
+    ///     Traduz os arquivos do manifest e enriquece com o nome de cada mod.
+    ///     O manifest só traz ids; sem o nome, o acompanhamento da ingestão
+    ///     mostraria "Baixando 927874", que não diz nada a ninguém. O endpoint em
+    ///     lote resolve isso numa chamada (limite de 1000 ids por requisição).
+    /// </summary>
+    private async Task<IReadOnlyList<UpstreamPackMod>> WithNamesAsync(
+        IReadOnlyList<CurseForgeManifestFile> files, CancellationToken ct)
+    {
+        var names = new Dictionary<int, string>();
+
+        foreach (var chunk in files.Select(f => f.ProjectId).Distinct().Chunk(1000))
+        {
+            var response = await api.PostAsync(
+                "/v1/mods",
+                new CurseForgeModsRequest { ModIds = chunk },
+                CurseForgeJsonContext.Default.CurseForgeModsRequest,
+                CurseForgeJsonContext.Default.CurseForgeResponseIReadOnlyListCurseForgeMod,
+                ct);
+
+            foreach (var mod in response?.Data ?? [])
+            {
+                if (mod.Name is { Length: > 0 })
+                    names[mod.Id] = mod.Name;
+            }
+        }
+
+        return
+        [
+            .. files.Select(f => new UpstreamPackMod(
+                f.ProjectId.ToString(CultureInfo.InvariantCulture),
+                f.FileId.ToString(CultureInfo.InvariantCulture),
+                f.Required,
+                names.GetValueOrDefault(f.ProjectId)))
+        ];
     }
 
     private async Task<CurseForgeFile?> FindPackFileAsync(int modId, string? fileId, CancellationToken ct)
@@ -445,8 +445,8 @@ public sealed partial class CurseForgePackSource(
 internal sealed class ZipServerPackReader : IServerPackReader
 {
     private readonly string _caminho;
-    private readonly ZipArchive _zip;
     private readonly Dictionary<string, ZipArchiveEntry> _mods;
+    private readonly ZipArchive _zip;
 
     public ZipServerPackReader(string path)
     {

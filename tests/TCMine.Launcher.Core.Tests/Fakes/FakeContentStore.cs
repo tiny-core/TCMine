@@ -41,6 +41,4 @@ public sealed class FakeContentStore : IContentStore
         Materialized[destinationPath] = allowHardLink;
         return Task.CompletedTask;
     }
-
-    public Task<long> GetSizeOnDiskAsync(CancellationToken ct) => Task.FromResult(0L);
 }

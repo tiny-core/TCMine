@@ -15,13 +15,14 @@ public sealed partial class FileSystemBlobJanitor(
     IOptions<BlobStorageOptions> options,
     ILogger<FileSystemBlobJanitor> logger) : IBlobJanitor
 {
-    private readonly ILogger<FileSystemBlobJanitor> _logger = logger;
     /// <summary>
     ///     Quantos arquivos por ida à thread do pool. Grande o bastante para o
     ///     custo do salto se diluir, pequeno o bastante para a interface
     ///     respirar entre os lotes.
     /// </summary>
     private const int BatchSize = 500;
+
+    private readonly ILogger<FileSystemBlobJanitor> _logger = logger;
 
     private readonly BlobStorageOptions _options = options.Value;
 
@@ -53,35 +54,6 @@ public sealed partial class FileSystemBlobJanitor(
         }
     }
 
-    /// <summary>Lê até <paramref name="tamanho" /> arquivos, pulando o que não é blob.</summary>
-    private static List<StoredBlob> NextBatch(IEnumerator<string> caminhos, int size)
-    {
-        var lote = new List<StoredBlob>(size);
-
-        while (lote.Count < size && caminhos.MoveNext())
-        {
-            var path = caminhos.Current;
-            var name = Path.GetFileName(path);
-
-            // Ignora o que não parece blob: a pasta .tmp guarda escritas em
-            // andamento, e apagá-las abortaria um download em curso.
-            if (!IsHash(name))
-                continue;
-
-            try
-            {
-                var info = new FileInfo(path);
-                lote.Add(new StoredBlob(name, info.Length, info.CreationTimeUtc));
-            }
-            catch (IOException)
-            {
-                // Arquivo sumiu entre listar e medir: some da conta, sem drama.
-            }
-        }
-
-        return lote;
-    }
-
     public async Task<bool> DeleteAsync(string sha256, CancellationToken ct)
     {
         if (!IsHash(sha256))
@@ -111,6 +83,35 @@ public sealed partial class FileSystemBlobJanitor(
                 return false;
             }
         }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Lê até <paramref name="tamanho" /> arquivos, pulando o que não é blob.</summary>
+    private static List<StoredBlob> NextBatch(IEnumerator<string> caminhos, int size)
+    {
+        var lote = new List<StoredBlob>(size);
+
+        while (lote.Count < size && caminhos.MoveNext())
+        {
+            var path = caminhos.Current;
+            var name = Path.GetFileName(path);
+
+            // Ignora o que não parece blob: a pasta .tmp guarda escritas em
+            // andamento, e apagá-las abortaria um download em curso.
+            if (!IsHash(name))
+                continue;
+
+            try
+            {
+                var info = new FileInfo(path);
+                lote.Add(new StoredBlob(name, info.Length, info.CreationTimeUtc));
+            }
+            catch (IOException)
+            {
+                // Arquivo sumiu entre listar e medir: some da conta, sem drama.
+            }
+        }
+
+        return lote;
     }
 
     private static bool IsHash(string value) => value.Length is 64 && value.All(char.IsAsciiHexDigit);

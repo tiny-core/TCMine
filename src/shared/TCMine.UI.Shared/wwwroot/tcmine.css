@@ -222,8 +222,12 @@ a:focus-visible {
 }
 
 @keyframes tc-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .45; }
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .45;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -344,8 +348,15 @@ a:focus-visible {
 }
 
 /* Rolagem discreta, na cor da pedra. */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--tc-bg-sunken); }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tc-bg-sunken);
+}
+
 ::-webkit-scrollbar-thumb {
   background: var(--tc-border);
   border-radius: 999px;

@@ -12,6 +12,9 @@ namespace TCMine.Launcher.Core.Abstractions;
 /// </summary>
 public interface IGameProcess : IDisposable
 {
+    /// <summary>Válido depois de <see cref="ReadOutputAsync" /> terminar.</summary>
+    int ExitCode { get; }
+
     /// <summary>
     ///     Linhas de stdout e stderr, na ordem em que o jogo as escreve.
     ///     Os dois canais vêm misturados de propósito: separá-los faria as
@@ -19,9 +22,6 @@ public interface IGameProcess : IDisposable
     ///     Termina quando o processo sai. Consumir uma vez só.
     /// </summary>
     IAsyncEnumerable<string> ReadOutputAsync(CancellationToken ct);
-
-    /// <summary>Válido depois de <see cref="ReadOutputAsync" /> terminar.</summary>
-    int ExitCode { get; }
 
     /// <summary>Mata o processo. Para quando o jogo pendura e não há mais saída.</summary>
     void Kill();

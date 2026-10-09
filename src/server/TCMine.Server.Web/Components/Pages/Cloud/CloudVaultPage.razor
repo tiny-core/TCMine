@@ -1,5 +1,4 @@
 @page "/admin/cloud/{VaultId:guid}"
-@using TCMine.Server.Web.Components.Features.Cloud
 
 <PageTitle>@(_vault?.Name ?? "Nuvem") — TCMine</PageTitle>
 
@@ -28,16 +27,20 @@ else
         <MudTabPanel Text="Jogadores" Icon="@Icons.Material.Filled.People">
             <CloudPlayersPanel VaultId="VaultId" ServerNames="_serverNames"/>
         </MudTabPanel>
-        <MudTabPanel Text="Regras" Icon="@Icons.Material.Filled.Rule" BadgeData="@Badge(_counts.Suspects)" BadgeColor="Color.Warning">
+        <MudTabPanel Text="Regras" Icon="@Icons.Material.Filled.Rule" BadgeData="@Badge(_counts.Suspects)"
+                     BadgeColor="Color.Warning">
             <CloudRulesPanel VaultId="VaultId" Changed="LoadCountsAsync"/>
         </MudTabPanel>
-        <MudTabPanel Text="Quarentena" Icon="@Icons.Material.Filled.GppMaybe" BadgeData="@Badge(_counts.Quarantine)" BadgeColor="Color.Error">
+        <MudTabPanel Text="Quarentena" Icon="@Icons.Material.Filled.GppMaybe" BadgeData="@Badge(_counts.Quarantine)"
+                     BadgeColor="Color.Error">
             <CloudQuarantinePanel VaultId="VaultId" ServerNames="_serverNames" Changed="LoadCountsAsync"/>
         </MudTabPanel>
-        <MudTabPanel Text="Em dúvida" Icon="@Icons.Material.Filled.HelpOutline" BadgeData="@Badge(_counts.Doubtful)" BadgeColor="Color.Warning">
+        <MudTabPanel Text="Em dúvida" Icon="@Icons.Material.Filled.HelpOutline" BadgeData="@Badge(_counts.Doubtful)"
+                     BadgeColor="Color.Warning">
             <CloudDoubtfulPanel VaultId="VaultId" ServerNames="_serverNames" Changed="LoadCountsAsync"/>
         </MudTabPanel>
-        <MudTabPanel Text="Incidentes" Icon="@Icons.Material.Filled.History" BadgeData="@Badge(_counts.Incidents)" BadgeColor="Color.Error">
+        <MudTabPanel Text="Incidentes" Icon="@Icons.Material.Filled.History" BadgeData="@Badge(_counts.Incidents)"
+                     BadgeColor="Color.Error">
             <CloudIncidentsPanel VaultId="VaultId" ServerNames="_serverNames" Changed="LoadCountsAsync"/>
         </MudTabPanel>
         <MudTabPanel Text="Auditoria" Icon="@Icons.Material.Filled.ReceiptLong">

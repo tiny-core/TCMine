@@ -22,7 +22,7 @@ public partial class CloudIncidentsPanel : ComponentBase
 
     private async Task LoadAsync()
     {
-        var result = await ListUseCase.HandleAsync(VaultId, openOnly: !_showResolved, CancellationToken.None);
+        var result = await ListUseCase.HandleAsync(VaultId, !_showResolved, CancellationToken.None);
         _items = result.Succeeded ? [.. result.Value!] : [];
     }
 

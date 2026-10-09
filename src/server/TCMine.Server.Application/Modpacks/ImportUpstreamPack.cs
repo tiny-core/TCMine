@@ -40,6 +40,7 @@ public sealed partial class ImportUpstreamPack(
         Guid jobId = default, string? displayName = null)
     {
         var title = displayName is { Length: > 0 } ? $"Importando {displayName}" : "Importando pack";
+
         void Step(string step, int done, int total)
         {
             if (jobId != default)
@@ -75,7 +76,8 @@ public sealed partial class ImportUpstreamPack(
 
         var pack = await source.FetchAsync(projectId, fileId, ct);
         if (pack is null)
-            return Result<Guid>.Fail("Não foi possível ler o pack na origem. Ele pode não permitir download por terceiros.");
+            return Result<Guid>.Fail(
+                "Não foi possível ler o pack na origem. Ele pode não permitir download por terceiros.");
 
         var slug = await UniqueSlugAsync(Slugify(pack.Name), ct);
 

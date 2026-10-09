@@ -3,7 +3,6 @@
 @using TCMine.Server.Application.Abstractions
 @using TCMine.Server.Application.Modpacks
 @using TCMine.Server.Domain.Modpacks
-@using TCMine.UI.Shared.Formatting
 @inject IModpackRepository Repository
 @inject RemoveModpackFile RemoveFileUseCase
 @inject IDialogService DialogService
@@ -80,7 +79,7 @@ else
                     <TemplateColumn Title="Origem">
                         <CellTemplate>
                             @if (UpstreamLinks.ProjectPage(context.Item.Origin, context.Item.ProjectSlug)
-                                 is { } pagina)
+                                     is { } pagina)
                             {
                                 <MudChip T="string" Size="Size.Small" Variant="Variant.Text"
                                          Href="@pagina" Target="_blank">

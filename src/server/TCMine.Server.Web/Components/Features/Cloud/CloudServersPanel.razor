@@ -1,5 +1,3 @@
-@using TCMine.Server.Application.Cloud
-
 @if (_servers is null)
 {
     <MudSkeleton SkeletonType="SkeletonType.Rectangle" Height="120px"/>
@@ -20,6 +18,7 @@ else
     {
         <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-2"/>
     }
+
     <MudTable Items="_servers" Dense="true" Hover="true">
         <HeaderContent>
             <MudTh>Servidor</MudTh>
@@ -32,11 +31,14 @@ else
             <MudTd DataLabel="Nuvem">
                 @if (context.AttachedHere)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">ligado</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">ligado
+                    </MudChip>
                 }
                 else if (context.AttachedElsewhere)
                 {
-                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">em outra nuvem</MudChip>
+                    <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">em outra
+                        nuvem
+                    </MudChip>
                 }
                 else
                 {
@@ -55,7 +57,8 @@ else
                 }
                 else if (context.AttachedHere)
                 {
-                    <MudText Typo="Typo.caption" Color="Color.Warning">Sem chave: inicie (ou reinicie) o servidor</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Warning">Sem chave: inicie (ou reinicie) o servidor
+                    </MudText>
                 }
             </MudTd>
             <MudTd Style="text-align:right;">
@@ -68,6 +71,7 @@ else
                                            OnClick="@(() => RevokeAsync(context))" Disabled="_isBusy"/>
                         </MudTooltip>
                     }
+
                     <MudTooltip Text="Desligar da nuvem">
                         <MudIconButton Icon="@Icons.Material.Filled.CloudOff" Size="Size.Small" Color="Color.Error"
                                        OnClick="@(() => DetachAsync(context))" Disabled="_isBusy"/>
@@ -75,7 +79,8 @@ else
                 }
                 else
                 {
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.CloudQueue"
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.CloudQueue"
                                OnClick="@(() => AttachAsync(context))" Disabled="_isBusy">
                         Ligar aqui
                     </MudButton>

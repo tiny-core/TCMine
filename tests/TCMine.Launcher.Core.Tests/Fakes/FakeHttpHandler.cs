@@ -37,10 +37,7 @@ public sealed class FakeHttpHandler : HttpMessageHandler
     /// </summary>
     public FakeHttpHandler RespondeBytes(string url, byte[] corpo)
     {
-        _respostas[url] = () => new HttpResponseMessage(HttpStatusCode.OK)
-        {
-            Content = new ByteArrayContent(corpo)
-        };
+        _respostas[url] = () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(corpo) };
 
         return this;
     }

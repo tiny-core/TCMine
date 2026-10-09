@@ -51,7 +51,7 @@ public sealed class AuthenticateMicrosoftUserTests
             MicrosoftObjectId = "oid-fixo", DisplayName = "nome-antigo", IsInstanceAdmin = true
         };
         var users = new FakeUsers(existente);
-        var caso = Build(users, oid: "oid-fixo", nome: "nome-novo");
+        var caso = Build(users, "oid-fixo", "nome-novo");
 
         var result = await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
 
@@ -69,7 +69,7 @@ public sealed class AuthenticateMicrosoftUserTests
         // completar o oid na linha que já existe — não criar uma segunda.
         var doLauncher = new User { DisplayName = "jogador", MinecraftUuid = "uuid-123" };
         var users = new FakeUsers(doLauncher);
-        var caso = Build(users, oid: "oid-novo", minecraftUuid: "uuid-123");
+        var caso = Build(users, "oid-novo", minecraftUuid: "uuid-123");
 
         var result = await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
 
@@ -87,7 +87,7 @@ public sealed class AuthenticateMicrosoftUserTests
         var painel = new User { MicrosoftObjectId = "oid-ana", DisplayName = "Ana" };
         var doLauncher = new User { DisplayName = "ana", MinecraftUuid = "uuid-ana" };
         var users = new FakeUsers(painel, doLauncher);
-        var caso = Build(users, oid: "oid-ana", minecraftUuid: "uuid-ana");
+        var caso = Build(users, "oid-ana", minecraftUuid: "uuid-ana");
 
         var result = await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
 
@@ -103,7 +103,7 @@ public sealed class AuthenticateMicrosoftUserTests
         var painel = new User { MicrosoftObjectId = "oid-ana", DisplayName = "Ana" };
         var outra = new User { MicrosoftObjectId = "oid-bia", DisplayName = "Bia", MinecraftUuid = "uuid-x" };
         var users = new FakeUsers(painel, outra);
-        var caso = Build(users, oid: "oid-ana", minecraftUuid: "uuid-x");
+        var caso = Build(users, "oid-ana", minecraftUuid: "uuid-x");
 
         await caso.HandleAsync("client", "code", "https://x/callback", "verifier", Ct);
 

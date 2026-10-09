@@ -1,6 +1,6 @@
 /* Nome de servidor longo quebra em vez de alargar a coluna. */
 .tc-side-name {
-    overflow-wrap: anywhere;
+  overflow-wrap: anywhere;
 }
 
 /*
@@ -9,6 +9,6 @@
     sem isso arrastar viraria seleção de texto).
 */
 .tc-side-address {
-    user-select: text;
-    overflow-wrap: anywhere;
+  user-select: text;
+  overflow-wrap: anywhere;
 }

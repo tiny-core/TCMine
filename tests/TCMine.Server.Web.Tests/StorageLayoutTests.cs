@@ -15,7 +15,7 @@ public sealed class StorageLayoutTests
     [Fact]
     public void Raiz_preenche_os_caminhos_de_arquivo()
     {
-        var config = Configurar(new() { ["Storage:RootPath"] = "/dados/tcmine" });
+        var config = Configurar(new Dictionary<string, string?> { ["Storage:RootPath"] = "/dados/tcmine" });
 
         config["BlobStorage:RootPath"].ShouldBe("/dados/tcmine/data/blobs");
         config["Instances:RootPath"].ShouldBe("/dados/tcmine/instances");
@@ -32,10 +32,9 @@ public sealed class StorageLayoutTests
     {
         // Quem põe os blobs num disco maior que o resto não pode perder essa
         // possibilidade por causa da conveniência de ter uma raiz.
-        var config = Configurar(new()
+        var config = Configurar(new Dictionary<string, string?>
         {
-            ["Storage:RootPath"] = "/dados/tcmine",
-            ["BlobStorage:RootPath"] = "/disco-grande/blobs"
+            ["Storage:RootPath"] = "/dados/tcmine", ["BlobStorage:RootPath"] = "/disco-grande/blobs"
         });
 
         config["BlobStorage:RootPath"].ShouldBe("/disco-grande/blobs");
@@ -47,7 +46,7 @@ public sealed class StorageLayoutTests
     {
         // A configuração explícita continua sendo o caminho normal; a raiz é
         // atalho, não obrigação.
-        var config = Configurar(new() { ["Instances:RootPath"] = "/so/isto" });
+        var config = Configurar(new Dictionary<string, string?> { ["Instances:RootPath"] = "/so/isto" });
 
         config["Instances:RootPath"].ShouldBe("/so/isto");
         config["BlobStorage:RootPath"].ShouldBeNull();
@@ -56,7 +55,7 @@ public sealed class StorageLayoutTests
     [Fact]
     public void Barra_sobrando_no_fim_da_raiz_nao_duplica()
     {
-        var config = Configurar(new() { ["Storage:RootPath"] = "/dados/tcmine/" });
+        var config = Configurar(new Dictionary<string, string?> { ["Storage:RootPath"] = "/dados/tcmine/" });
 
         config["Instances:RootPath"].ShouldBe("/dados/tcmine/instances");
     }
@@ -162,13 +161,10 @@ public sealed class StorageLayoutTests
         // resultado foi a aplicação recusando subir no runner do CI — Linux,
         // sem container, com a pasta de desenvolvimento em data/instances.
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["Instances:RootPath"] = "data/instances"
-            })
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Instances:RootPath"] = "data/instances" })
             .Build();
 
-        Should.NotThrow(() => MountCoherence.Verify(config, emContainer: false));
+        Should.NotThrow(() => MountCoherence.Verify(config, false));
     }
 
     [Fact]
@@ -179,12 +175,11 @@ public sealed class StorageLayoutTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Instances:RootPath"] = "/qualquer/coisa",
-                [MountCoherence.SkipKey] = "true"
+                ["Instances:RootPath"] = "/qualquer/coisa", [MountCoherence.SkipKey] = "true"
             })
             .Build();
 
-        Should.NotThrow(() => MountCoherence.Verify(config, emContainer: true));
+        Should.NotThrow(() => MountCoherence.Verify(config, true));
     }
 
     private static IConfigurationRoot Configurar(Dictionary<string, string?> valores)

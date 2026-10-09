@@ -13,17 +13,20 @@ namespace TCMine.Launcher.UI.Pages;
 
 public partial class HomePage : ComponentBase, IDisposable
 {
+    /// <summary>O único caso que resta: nem sequer há servidor pareado.</summary>
+    private const string WhyCannotPlay = "Pareie com um servidor para poder jogar.";
+
     private InstalledInstance? _active;
-    private bool _needsChoice;
-    private bool _loading = true;
-    private IReadOnlyList<GameServerDto> _servers = [];
-    private IReadOnlyList<ModpackNewsDto> _news = [];
+    private string? _error;
+    private double? _fraction;
+    private Guid? _joining;
 
     private bool _launching;
-    private Guid? _joining;
+    private bool _loading = true;
+    private bool _needsChoice;
+    private IReadOnlyList<ModpackNewsDto> _news = [];
     private string? _phase;
-    private double? _fraction;
-    private string? _error;
+    private IReadOnlyList<GameServerDto> _servers = [];
 
     /// <summary>
     ///     Há conta e pareamento para abrir o jogo.
@@ -40,9 +43,6 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private bool CanPlay => Shell.Pairing?.Config is not null;
 
-    /// <summary>O único caso que resta: nem sequer há servidor pareado.</summary>
-    private const string WhyCannotPlay = "Pareie com um servidor para poder jogar.";
-
     private string? JoinBlockedReason =>
         Lock.Reason
         ?? (_launching ? "Abrindo o jogo…"
@@ -50,7 +50,8 @@ public partial class HomePage : ComponentBase, IDisposable
             : WhyCannotPlay);
 
     /// <summary>Jogo aberto ou instalação em curso (ver <see cref="ActionLock" />).</summary>
-    [Inject] private ActionLock Lock { get; set; } = default!;
+    [Inject]
+    private ActionLock Lock { get; set; } = default!;
 
     [Inject] private ChooseInstance Active { get; set; } = default!;
 

@@ -118,9 +118,6 @@ public sealed partial class ModrinthModSearch(
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao buscar '{Query}' no Modrinth.")]
     private partial void LogSearchError(Exception ex, string query);
 
-    private sealed record SearchResponse(
-        [property: JsonPropertyName("hits")] IReadOnlyList<Hit> Hits);
-
     /// <summary>Tem release para a versão e o loader do pack?</summary>
     private static bool Serve(Hit hit, string minecraftVersion, string loader)
     {
@@ -143,6 +140,9 @@ public sealed partial class ModrinthModSearch(
         var versions = hit.Versions.TakeLast(4).Reverse().ToList();
         return versions.Count is 0 ? null : string.Join(", ", versions);
     }
+
+    private sealed record SearchResponse(
+        [property: JsonPropertyName("hits")] IReadOnlyList<Hit> Hits);
 
     private sealed record Hit(
         [property: JsonPropertyName("project_id")]

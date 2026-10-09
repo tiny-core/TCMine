@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using TCMine.Launcher.Infrastructure.Serialization;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Sync;
+using TCMine.Launcher.Infrastructure.Serialization;
 
 namespace TCMine.Launcher.Infrastructure.Instances;
 
@@ -86,9 +86,12 @@ public sealed partial class FileSystemInstanceStore(
 
         var instaladas = await Task.WhenAll(carregamentos);
 
-        return [.. instaladas
-            .OfType<InstalledInstance>()
-            .OrderBy(i => i.Manifest.ModpackName, StringComparer.CurrentCultureIgnoreCase)];
+        return
+        [
+            .. instaladas
+                .OfType<InstalledInstance>()
+                .OrderBy(i => i.Manifest.ModpackName, StringComparer.CurrentCultureIgnoreCase)
+        ];
     }
 
     public async Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct)
@@ -103,27 +106,6 @@ public sealed partial class FileSystemInstanceStore(
                 .Select(folder => LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct)));
 
         return [.. manifestos.OfType<InstanceManifest>()];
-    }
-
-    /// <summary>
-    ///     Uma instância, ou null se a pasta não tiver manifesto — pode ser
-    ///     sobra de uma instalação interrompida, e listá-la ofereceria ao
-    ///     jogador um card sem nome nem versão.
-    /// </summary>
-    private async Task<InstalledInstance?> CarregarAsync(string folder, CancellationToken ct)
-    {
-        var manifest = await LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct);
-
-        if (manifest is null)
-            return null;
-
-        var tamanho = await Task.Run(() => SizeOf(folder), ct);
-
-        // A chave vem do NOME DA PASTA, e não do manifesto. É o que faz as
-        // instalações antigas — nomeadas pela regra do par (modpack, versão) —
-        // continuarem a ser encontradas sem renomear nada, e o que permite
-        // duas instâncias do mesmo pack coexistirem.
-        return new InstalledInstance(new InstanceKey(Path.GetFileName(folder)), manifest, tamanho, folder);
     }
 
     public Task DeleteFilesAsync(InstanceKey key, IEnumerable<string> relativePaths, CancellationToken ct)
@@ -160,6 +142,27 @@ public sealed partial class FileSystemInstanceStore(
             Directory.Delete(raiz, true);
 
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    ///     Uma instância, ou null se a pasta não tiver manifesto — pode ser
+    ///     sobra de uma instalação interrompida, e listá-la ofereceria ao
+    ///     jogador um card sem nome nem versão.
+    /// </summary>
+    private async Task<InstalledInstance?> CarregarAsync(string folder, CancellationToken ct)
+    {
+        var manifest = await LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct);
+
+        if (manifest is null)
+            return null;
+
+        var tamanho = await Task.Run(() => SizeOf(folder), ct);
+
+        // A chave vem do NOME DA PASTA, e não do manifesto. É o que faz as
+        // instalações antigas — nomeadas pela regra do par (modpack, versão) —
+        // continuarem a ser encontradas sem renomear nada, e o que permite
+        // duas instâncias do mesmo pack coexistirem.
+        return new InstalledInstance(new InstanceKey(Path.GetFileName(folder)), manifest, tamanho, folder);
     }
 
     private string ManifestPath(InstanceKey key) => Path.Combine(PathFor(key), InstanceManifest.FileName);

@@ -1,12 +1,8 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Domain.Cloud;
-using TCMine.Server.Domain.Servers;
-using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Web.Tests.Infrastructure;
 using static TCMine.Server.Web.Tests.Infrastructure.CloudApi;
 
@@ -113,8 +109,8 @@ public sealed class CloudApiContractTests
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
 
-        (await Lote(a, Credito(canal, seq: 1, delta: 64, depois: 64))).Result.ShouldBe("applied");
-        (await Lote(a, Debito(canal, seq: 2, delta: -14, depois: 50))).Result.ShouldBe("applied");
+        (await Lote(a, Credito(canal, 1, 64, 64))).Result.ShouldBe("applied");
+        (await Lote(a, Debito(canal, 2, -14, 50))).Result.ShouldBe("applied");
         (await PostAsync<CloudReleaseReply>(a, "/api/cloud/v1/leases/release",
             new CloudReleaseRequest(Jogador, 1, 2))).Released.ShouldBeTrue();
 
@@ -132,7 +128,7 @@ public sealed class CloudApiContractTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        var lote = Credito(canal, seq: 1, delta: 10, depois: 10);
+        var lote = Credito(canal, 1, 10, 10);
 
         (await Lote(a, lote)).Result.ShouldBe("applied");
         (await Lote(a, lote)).Result.ShouldBe("duplicate");
@@ -147,9 +143,9 @@ public sealed class CloudApiContractTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 10, depois: 10));
+        await Lote(a, Credito(canal, 1, 10, 10));
 
-        var outro = await Lote(a, Credito(canal, seq: 1, delta: 99, depois: 99));
+        var outro = await Lote(a, Credito(canal, 1, 99, 99));
 
         outro.Result.ShouldBe("quarantined");
         (await env.SaldoAsync(Diamante)).ShouldBe(10);
@@ -161,9 +157,9 @@ public sealed class CloudApiContractTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 5, depois: 5));
+        await Lote(a, Credito(canal, 1, 5, 5));
 
-        var r = await Lote(a, Debito(canal, seq: 2, delta: -6, depois: -1));
+        var r = await Lote(a, Debito(canal, 2, -6, -1));
 
         r.Result.ShouldBe("quarantined");
         r.Reason.ShouldBe(nameof(CloudQuarantineReason.NegativeBalance));
@@ -184,7 +180,7 @@ public sealed class CloudApiContractTests
         env.Relogio.Avancar(TimeSpan.FromMinutes(31));
         await Acquire(env.Cliente(env.ChaveB));
 
-        var atrasado = await Lote(a, Credito(canal, seq: 1, delta: 10, depois: 10));
+        var atrasado = await Lote(a, Credito(canal, 1, 10, 10));
 
         atrasado.Result.ShouldBe("quarantined");
         atrasado.Reason.ShouldBe(nameof(CloudQuarantineReason.StaleEpoch));
@@ -197,10 +193,10 @@ public sealed class CloudApiContractTests
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 1, depois: 1));
+        await Lote(a, Credito(canal, 1, 1, 1));
 
         (await PostAsync<CloudReleaseReply>(a, "/api/cloud/v1/leases/release",
-            new CloudReleaseRequest(Jogador, 1, LastSeq: 2))).Released.ShouldBeFalse();
+            new CloudReleaseRequest(Jogador, 1, 2))).Released.ShouldBeFalse();
         (await Acquire(env.Cliente(env.ChaveB))).Status.ShouldBe("busy");
     }
 
@@ -225,7 +221,7 @@ public sealed class CloudApiContractTests
         var a = env.Cliente(env.ChaveA);
         await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(mundo, null));
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 64, depois: 64));
+        await Lote(a, Credito(canal, 1, 64, 64));
 
         // Reinício (chave nova) com o mundo restaurado de antes do lote 1.
         var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
@@ -236,7 +232,8 @@ public sealed class CloudApiContractTests
         (await env.ContarAsync(db => db.CloudRollbackIncidents)).ShouldBe(1);
 
         // Novo boot com o incidente ainda aberto: continua travado, sem abrir outro.
-        (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello", HelloDoMundo(mundo, []))).ReadOnly.ShouldBeTrue();
+        (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello", HelloDoMundo(mundo, []))).ReadOnly
+            .ShouldBeTrue();
         (await env.ContarAsync(db => db.CloudRollbackIncidents)).ShouldBe(1);
     }
 
@@ -247,7 +244,7 @@ public sealed class CloudApiContractTests
         var a = env.Cliente(env.ChaveA);
         await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(Guid.CreateVersion7(), null));
         var canal = (await Acquire(a)).Channels.Single().Id;
-        await Lote(a, Credito(canal, seq: 1, delta: 1, depois: 1));
+        await Lote(a, Credito(canal, 1, 1, 1));
 
         var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
         var hello = await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello",
@@ -281,7 +278,8 @@ public sealed class CloudApiContractTests
     {
         await using var env = await CloudAmbiente.CriarAsync();
         var a = env.Cliente(env.ChaveA);
-        var suspeito = new CloudSuspectsRequest([new CloudSuspectDto("SophisticatedBackpacks:Backpack", "storage_uuid", 2)]);
+        var suspeito =
+            new CloudSuspectsRequest([new CloudSuspectDto("SophisticatedBackpacks:Backpack", "storage_uuid", 2)]);
         await PostOkAsync(a, "/api/cloud/v1/reports/suspects", suspeito);
         await PostOkAsync(a, "/api/cloud/v1/reports/suspects", suspeito);
 

@@ -13,14 +13,14 @@ public partial class ServerFormDialog
     private string _connectAddress = "";
     private bool _isNew;
     private int _maxPlayers = 20;
-
-    /// <summary>Ligada por padrão: um servidor novo nasce fechado.</summary>
-    private bool _whitelistEnabled = true;
     private int _memoryMb = 4096;
+    private string _minecraftVersion = "";
     private string _name = "";
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
-    private string _minecraftVersion = "";
+
+    /// <summary>Ligada por padrão: um servidor novo nasce fechado.</summary>
+    private bool _whitelistEnabled = true;
 
     [Parameter] public Guid ModpackId { get; set; }
     [Parameter] public GameServer? Existing { get; set; }

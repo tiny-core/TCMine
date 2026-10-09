@@ -43,5 +43,4 @@ public partial class MainLayout : LayoutComponentBase, IAsyncDisposable
         if (_module is not null)
             await _module.InvokeVoidAsync("submitForm", "tc-logout-form");
     }
-
 }

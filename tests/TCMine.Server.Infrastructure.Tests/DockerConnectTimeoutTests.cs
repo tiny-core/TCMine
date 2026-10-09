@@ -27,16 +27,14 @@ public sealed class DockerConnectTimeoutTests
 
         var factory = new DockerHttpClientFactory(Options.Create(new DockerOptions
         {
-            Endpoint = @"npipe://./pipe/tcmine-pipe-que-nao-existe",
-            ConnectTimeout = TimeSpan.FromSeconds(1)
+            Endpoint = @"npipe://./pipe/tcmine-pipe-que-nao-existe", ConnectTimeout = TimeSpan.FromSeconds(1)
         }));
 
         using var client = factory.Create();
 
         var relogio = Stopwatch.StartNew();
 
-        await Should.ThrowAsync<HttpRequestException>(
-            async () => await client.GetAsync("/v1.45/containers/json", Ct));
+        await Should.ThrowAsync<HttpRequestException>(async () => await client.GetAsync("/v1.45/containers/json", Ct));
 
         relogio.Stop();
 
