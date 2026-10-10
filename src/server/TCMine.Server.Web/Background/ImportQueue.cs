@@ -16,10 +16,19 @@ public sealed class ImportQueue : IImportQueue
 
     public ValueTask EnqueueAsync(ImportRequest request, CancellationToken ct) =>
         _channel.Writer.WriteAsync(
-            new ImportJob(request.Id, request.Origin, request.ProjectId, request.FileId, request.DisplayName),
+            new ImportJob(
+                request.Id, request.Origin, request.ProjectId, request.FileId, request.DisplayName,
+                request.RequestedBy),
             ct);
 
     public IAsyncEnumerable<ImportJob> ReadAllAsync(CancellationToken ct) => _channel.Reader.ReadAllAsync(ct);
 }
 
-public sealed record ImportJob(Guid Id, ModFileOrigin Origin, string ProjectId, string? FileId, string DisplayName);
+/// <param name="RequestedBy">Quem pediu: o worker não tem sessão de onde tirar isso.</param>
+public sealed record ImportJob(
+    Guid Id,
+    ModFileOrigin Origin,
+    string ProjectId,
+    string? FileId,
+    string DisplayName,
+    Guid? RequestedBy);

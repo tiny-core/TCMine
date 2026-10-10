@@ -910,6 +910,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<int>("RecoveryAttempts")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

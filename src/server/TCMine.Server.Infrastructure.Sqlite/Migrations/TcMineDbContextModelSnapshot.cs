@@ -905,6 +905,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<int>("RecoveryAttempts")
                         .HasColumnType("INTEGER");
 
+                    b.Property<Guid?>("RequestedBy")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
