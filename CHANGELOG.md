@@ -11,6 +11,41 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [1.2.0] — 2026-10-10
+
+Launcher **1.1.3** (sem mudanças).
+
+**Antes de atualizar:** faça backup do banco — esta versão traz duas migrations
+que alteram dados. Se dois servidores usam o mesmo endereço sem `:porta`, veja
+a nota de migração abaixo.
+
+### Adicionado
+
+- **Porta por servidor.** Cada servidor de jogo tem a sua porta, escolhida no
+  formulário e conferida contra os outros servidores e contra o que o Docker já
+  publica na máquina. Um servidor novo recebe a primeira livre.
+- **Faixa de portas** em Configurações → Rede (padrão 25565–25599): de onde sai
+  a porta sugerida a um servidor novo.
+
+### Corrigido
+
+- **Dois servidores sem `:porta` no endereço disputavam a 25565.** A porta era
+  lida do texto do endereço de conexão; sem ela, todo servidor caía na padrão e
+  só o primeiro a iniciar subia.
+- **Modpack importado ficava sem dono.** A importação roda em segundo plano,
+  onde não há usuário logado, e o pack era gravado sem dono e sem ninguém com
+  papel de Owner. Quem pede a importação agora é registrado e vira o dono.
+
+### Migração
+
+- `AddGamePort` preenche a porta de cada servidor a partir do endereço atual
+  (25565 quando não há `:porta`). Portas repetidas são renumeradas: o servidor
+  mais antigo mantém a sua e os demais recebem as seguintes. Para escolher você
+  mesmo quem fica com qual, ponha `:porta` no endereço de cada servidor ANTES de
+  atualizar. Depois, confira o redirecionamento das portas no roteador.
+- `AddImportRequester` entrega os modpacks sem dono ao administrador mais antigo
+  da instalação e garante a ele o papel de Owner.
+
 ## [1.1.3] — 2026-10-09
 
 Launcher **1.1.3**.
