@@ -1313,6 +1313,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Subdomain")
+                        .HasMaxLength(63)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -1334,6 +1338,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasIndex("ModpackVersionId");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("Subdomain")
+                        .IsUnique();
 
                     b.ToTable("game_servers", (string)null);
                 });
@@ -1397,6 +1404,14 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CloudflareApiTokenEncrypted")
+                        .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CloudflareZoneId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -1414,6 +1429,14 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<string>("DefaultMinecraftVersion")
                         .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DnsBaseDomain")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DnsHostLabel")
+                        .HasMaxLength(63)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("GamePortRangeEnd")

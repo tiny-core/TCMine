@@ -225,7 +225,8 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 - Fixa `ModpackVersionId` **no servidor, não no modpack** (permite rollout gradual e rollback por re-apontamento).
   `ConnectAddress` (texto do admin — **nunca** mostrado nem enviado cru: o endereço publicado sai de
-  `GameAddress.Resolve`, que junta `GamePort` e o host público de `GetPublicHost`), `GamePort`, `Status`,
+  `GameAddress.Resolve`, via `AddressSettings.For` de `GetAddressSettings`, que junta `GamePort`, o host público e o
+  subdomínio), `GamePort`, `Subdomain` (rótulo de DNS; o SRV é mantido na Cloudflare por `SyncGameDns`), `Status`,
   `ContainerId`, `MemoryMb`, `MaxPlayers`, `RconSecret` (**required, NUNCA exposto em DTO nem log** — quem tem a senha
   RCON controla a máquina do jogo),
   `WorldInitializedAt`/`HasWorld` (seam do backup).

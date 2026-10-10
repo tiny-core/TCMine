@@ -17,17 +17,26 @@ public static class GameAddress
     private const int MaxPort = 65535;
 
     /// <summary>
-    ///     O endereço publicado de um servidor. Três casos, do mais ao menos
-    ///     explícito:
+    ///     O endereço publicado de um servidor. Do mais ao menos explícito:
     ///     texto com ":porta" sai como foi escrito — é o admin dizendo que a porta
     ///     de fora é outra (o roteador redireciona);
     ///     texto sem porta recebe a porta do servidor;
-    ///     texto vazio é "automático": o host público da instalação mais a porta do
-    ///     servidor. Sem host público conhecido não há endereço, e volta vazio.
+    ///     texto vazio e servidor com nome de DNS: o nome, SEM porta — quem a leva
+    ///     é o registro SRV (ver <see cref="GameDns" />);
+    ///     texto vazio sem nome de DNS é "automático": o host público da instalação
+    ///     mais a porta do servidor. Sem host público conhecido não há endereço, e
+    ///     volta vazio.
     /// </summary>
-    public static string Resolve(string? connectAddress, int gamePort, string? publicHost)
+    /// <param name="dnsHost">
+    ///     O <c>sub.dominio</c> do servidor (<see cref="GameDns.ServerHost" />), ou
+    ///     nulo quando ele não tem.
+    /// </param>
+    public static string Resolve(string? connectAddress, int gamePort, string? publicHost, string? dnsHost = null)
     {
         var (host, port) = Split(connectAddress);
+
+        if (host.Length == 0 && !string.IsNullOrWhiteSpace(dnsHost))
+            return dnsHost.Trim();
 
         if (host.Length == 0)
             return Join(Split(publicHost).Host, gamePort);

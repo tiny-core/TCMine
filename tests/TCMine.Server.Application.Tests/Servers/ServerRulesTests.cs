@@ -71,6 +71,87 @@ public sealed class ServerRulesTests
     }
 
     [Fact]
+    public async Task Subdominio_e_gravado_normalizado()
+    {
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, "  Sobrevivencia ");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("sobrevivencia", servers.Adicionado!.Subdomain);
+    }
+
+    [Theory]
+    [InlineData("sobre vivencia")]
+    [InlineData("a.b")]
+    [InlineData("-x")]
+    public async Task Subdominio_invalido_nao_cria_o_servidor(string subdomain)
+    {
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, subdomain);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(servers.Adicionado);
+    }
+
+    [Fact]
+    public async Task Subdominio_de_outro_servidor_e_recusado_dizendo_qual()
+    {
+        // Dois servidores com o mesmo nome disputariam o mesmo registro SRV.
+        var outro = Servidor();
+        outro.Subdomain = "sobrevivencia";
+        var servers = new FakeServers(outro);
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Novo", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, "sobrevivencia");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(outro.Name, result.Error);
+    }
+
+    [Fact]
+    public async Task Editar_sem_informar_subdominio_mantem_o_que_o_servidor_tem()
+    {
+        var server = Servidor();
+        server.Subdomain = "sobrevivencia";
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "outro nome", "jogo", 4096, 20, true, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("sobrevivencia", server.Subdomain);
+    }
+
+    [Fact]
+    public async Task Editar_com_subdominio_vazio_tira_o_subdominio()
+    {
+        var server = Servidor();
+        server.Subdomain = "sobrevivencia";
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "Servidor", "jogo", 4096, 20, true, CancellationToken.None, 0, "");
+
+        Assert.True(result.Succeeded);
+        Assert.Null(server.Subdomain);
+    }
+
+    [Fact]
+    public async Task Editar_mantendo_o_proprio_subdominio_nao_conflita_consigo()
+    {
+        var server = Servidor();
+        server.Subdomain = "sobrevivencia";
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "Servidor", "jogo", 4096, 20, true, CancellationToken.None, 0, "sobrevivencia");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("sobrevivencia", server.Subdomain);
+    }
+
+    [Fact]
     public async Task Porta_informada_e_livre_e_respeitada()
     {
         var servers = new FakeServers();
@@ -328,6 +409,9 @@ public sealed class ServerRulesTests
 
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(_servers.FirstOrDefault(s => s.Id == id));
+
+        public override Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<GameServer>>(_servers);
 
         public override Task AddAsync(GameServer server, CancellationToken ct)
         {

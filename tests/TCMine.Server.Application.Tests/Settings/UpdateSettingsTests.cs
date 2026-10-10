@@ -179,6 +179,81 @@ public sealed class UpdateSettingsTests
         Assert.Null(repo.Salvo);
     }
 
+    [Fact]
+    public async Task Token_da_cloudflare_vazio_mantem_o_atual()
+    {
+        // A mesma regra da chave do CurseForge: o token nunca volta para a tela,
+        // então um campo em branco é "não mexi".
+        var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token-antigo" });
+
+        await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
+
+        Assert.Equal("token-antigo", repo.Salvo!.CloudflareApiTokenEncrypted);
+    }
+
+    [Fact]
+    public async Task Apagar_o_token_da_cloudflare_exige_a_flag_explicita()
+    {
+        var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token-antigo" });
+
+        await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, ClearCloudflareApiToken = true },
+            CancellationToken.None);
+
+        Assert.Null(repo.Salvo!.CloudflareApiTokenEncrypted);
+    }
+
+    [Fact]
+    public async Task Configuracao_de_dns_e_gravada_normalizada()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand
+            {
+                DefaultMemoryMb = 4096,
+                CloudflareApiToken = "  token-novo  ",
+                CloudflareZoneId = " 0123456789abcdef0123456789ABCDEF ",
+                DnsBaseDomain = " Exemplo.COM ",
+                DnsHostLabel = " MC "
+            },
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("token-novo", repo.Salvo!.CloudflareApiTokenEncrypted);
+        Assert.Equal("0123456789abcdef0123456789ABCDEF", repo.Salvo.CloudflareZoneId);
+        Assert.Equal("exemplo.com", repo.Salvo.DnsBaseDomain);
+        Assert.Equal("mc", repo.Salvo.DnsHostLabel);
+    }
+
+    [Theory]
+    [InlineData("exemplo.com", null, null)] // o nome do domínio no lugar do Zone ID
+    [InlineData("0123456789abcdef", null, null)] // curto
+    [InlineData(null, "exemplo", null)] // um rótulo só
+    [InlineData(null, "https://exemplo.com", null)]
+    [InlineData(null, null, "mc.jogos")] // dois níveis
+    [InlineData(null, null, "-mc")]
+    public async Task Recusa_configuracao_de_dns_malformada(string? zoneId, string? baseDomain, string? hostLabel)
+    {
+        // Um valor errado gravado hoje vira erro da Cloudflare no dia em que
+        // alguém sincronizar — longe de quem o digitou.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand
+            {
+                DefaultMemoryMb = 4096,
+                CloudflareZoneId = zoneId,
+                DnsBaseDomain = baseDomain,
+                DnsHostLabel = hostLabel
+            },
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeSettings(InstallationSettings settings) : ISettingsRepository

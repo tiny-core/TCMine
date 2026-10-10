@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Settings;
@@ -52,7 +53,10 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         typeof(UpdateGameServer),
 
         // Injetado pelas listas de servidores, pelo formulário e pelo hub.
-        typeof(GetPublicHost),
+        typeof(GetAddressSettings),
+
+        // Botão "Sincronizar agora" da aba Rede.
+        typeof(SyncGameDns),
         typeof(ChangeServerVersion),
         typeof(CreateWorldBackup),
         typeof(RestoreWorldBackup),

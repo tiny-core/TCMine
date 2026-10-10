@@ -19,8 +19,8 @@ public partial class ModpackServersPage
     private Guid _loaded;
     private Modpack? _modpack;
 
-    /// <summary>Host público da instalação, para os servidores de endereço automático.</summary>
-    private string? _publicHost;
+    /// <summary>Host público e domínio da instalação, para montar o endereço de cada servidor.</summary>
+    private AddressSettings _address = new(null, null, null);
     private List<GameServer> _servers = [];
 
     private Dictionary<Guid, ModpackVersion> _versionsById = new();
@@ -34,11 +34,10 @@ public partial class ModpackServersPage
 
     [Inject] private ServerActions Actions { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
-    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
+    [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
 
     /// <summary>O endereço publicado de um servidor (resolvido). Vazio quando não há.</summary>
-    private string AddressOf(GameServer server) =>
-        GameAddress.Resolve(server.ConnectAddress, server.GamePort, _publicHost);
+    private string AddressOf(GameServer server) => _address.For(server);
 
     // Copia o endereço para a área de transferência — atalho útil para colar no
     // launcher/cliente. Usa a Clipboard API do navegador via interop.
@@ -97,7 +96,7 @@ public partial class ModpackServersPage
         _versionsById = (await ModpackRepository.ListVersionsAsync(ModpackId, CancellationToken.None))
             .ToDictionary(v => v.Id);
 
-        _publicHost = (await PublicHostLookup.HandleAsync(false, CancellationToken.None)).Effective;
+        _address = await AddressLookup.HandleAsync(false, CancellationToken.None);
 
         _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
         _isLoading = false;

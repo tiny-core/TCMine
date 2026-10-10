@@ -1318,6 +1318,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<string>("Subdomain")
+                        .HasMaxLength(63)
+                        .HasColumnType("character varying(63)");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1339,6 +1343,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasIndex("ModpackVersionId");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("Subdomain")
+                        .IsUnique();
 
                     b.ToTable("game_servers", (string)null);
                 });
@@ -1402,6 +1409,14 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("CloudflareApiTokenEncrypted")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("CloudflareZoneId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1420,6 +1435,14 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<string>("DefaultMinecraftVersion")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
+
+                    b.Property<string>("DnsBaseDomain")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("DnsHostLabel")
+                        .HasMaxLength(63)
+                        .HasColumnType("character varying(63)");
 
                     b.Property<int>("GamePortRangeEnd")
                         .ValueGeneratedOnAdd()

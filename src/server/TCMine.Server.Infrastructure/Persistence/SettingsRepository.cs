@@ -41,6 +41,7 @@ public sealed class SettingsRepository : ISettingsRepository
 
         // Devolve em claro para quem for usar; a UI decide o que exibir.
         settings.CurseForgeApiKeyEncrypted = Unprotect(settings.CurseForgeApiKeyEncrypted);
+        settings.CloudflareApiTokenEncrypted = Unprotect(settings.CloudflareApiTokenEncrypted);
         return settings;
     }
 
@@ -74,6 +75,11 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.GamePortRangeStart = settings.GamePortRangeStart;
         stored.GamePortRangeEnd = settings.GamePortRangeEnd;
         stored.PublicHost = settings.PublicHost;
+
+        stored.CloudflareZoneId = settings.CloudflareZoneId;
+        stored.DnsBaseDomain = settings.DnsBaseDomain;
+        stored.DnsHostLabel = settings.DnsHostLabel;
+        stored.CloudflareApiTokenEncrypted = Protect(settings.CloudflareApiTokenEncrypted);
 
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);
 

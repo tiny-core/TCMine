@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Configuration;
@@ -43,6 +44,24 @@ public partial class SettingsPage : ComponentBase
     /// <summary>Começa ligado: a detecção só roda depois do primeiro render.</summary>
     private bool _isDetecting = true;
 
+    // ---- DNS (Cloudflare) ----
+    private bool _clearCloudflareToken;
+
+    /// <summary>Novo token digitado. Vazio = manter o que já está gravado.</summary>
+    private string _cloudflareToken = "";
+
+    private string _cloudflareZoneId = "";
+    private string _dnsBaseDomain = "";
+    private string _dnsHostLabel = "";
+
+    /// <summary>Resultado da última sincronização pedida nesta tela. Nulo = ainda não pediu.</summary>
+    private DnsSyncReport? _dnsReport;
+
+    /// <summary>Só sabemos se existe — o token nunca volta para a tela.</summary>
+    private bool _hasCloudflareToken;
+
+    private bool _isSyncingDns;
+
     private bool _isLoading = true;
     private bool _isSaving;
 
@@ -75,8 +94,36 @@ public partial class SettingsPage : ComponentBase
     [Inject] private IOptions<ServerOptions> ServerOptions { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
-    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
+    [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+    [Inject] private SyncGameDns DnsSync { get; set; } = default!;
+
+    /// <summary>
+    ///     O nome do registro A como ficará, para o admin ver o que vai aparecer
+    ///     na zona dele antes de salvar.
+    /// </summary>
+    private string DnsHostPreview =>
+        GameDns.ServerHost(
+            string.IsNullOrWhiteSpace(_dnsHostLabel) ? GameDns.DefaultHostLabel : _dnsHostLabel,
+            string.IsNullOrWhiteSpace(_dnsBaseDomain) ? "seu-dominio.com" : _dnsBaseDomain)!;
+
+    /// <summary>
+    ///     Sincroniza com o que está GRAVADO, não com o que está digitado: o caso
+    ///     de uso lê a configuração do banco, como fará quando rodar sozinho. Por
+    ///     isso o botão avisa para salvar antes.
+    /// </summary>
+    private async Task SyncDnsAsync()
+    {
+        _isSyncingDns = true;
+        try
+        {
+            _dnsReport = await DnsSync.HandleAsync(CancellationToken.None);
+        }
+        finally
+        {
+            _isSyncingDns = false;
+        }
+    }
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -93,7 +140,7 @@ public partial class SettingsPage : ComponentBase
 
         try
         {
-            _detectedAddress = (await PublicHostLookup.HandleAsync(true, CancellationToken.None)).Detected;
+            _detectedAddress = (await AddressLookup.HandleAsync(true, CancellationToken.None)).DetectedHost;
         }
         finally
         {
@@ -129,6 +176,13 @@ public partial class SettingsPage : ComponentBase
 
         _publicHost = settings.PublicHost ?? "";
 
+        _hasCloudflareToken = !string.IsNullOrEmpty(settings.CloudflareApiTokenEncrypted);
+        _cloudflareZoneId = settings.CloudflareZoneId ?? "";
+        _dnsBaseDomain = settings.DnsBaseDomain ?? "";
+        _dnsHostLabel = settings.DnsHostLabel ?? "";
+        _cloudflareToken = "";
+        _clearCloudflareToken = false;
+
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);
 
@@ -156,6 +210,11 @@ public partial class SettingsPage : ComponentBase
                 GamePortRangeStart = _gamePortRangeStart,
                 GamePortRangeEnd = _gamePortRangeEnd,
                 PublicHost = _publicHost,
+                CloudflareApiToken = _cloudflareToken,
+                ClearCloudflareApiToken = _clearCloudflareToken,
+                CloudflareZoneId = _cloudflareZoneId,
+                DnsBaseDomain = _dnsBaseDomain,
+                DnsHostLabel = _dnsHostLabel,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey

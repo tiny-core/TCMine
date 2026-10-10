@@ -64,6 +64,22 @@ public sealed class SettingsRepositoryTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task O_token_da_cloudflare_fica_cifrado_no_banco()
+    {
+        // O token edita a zona de DNS inteira. Um vazamento só do banco não pode
+        // entregá-lo em claro.
+        var repo = new SettingsRepository(_factory, new EphemeralDataProtectionProvider());
+
+        await repo.SaveAsync(Changed(), Ct);
+
+        await using var db = await _factory.CreateDbContextAsync(Ct);
+        var stored = db.InstallationSettings.Single().CloudflareApiTokenEncrypted;
+
+        stored.ShouldNotBeNullOrEmpty();
+        stored!.ShouldNotContain("token-da-cloudflare");
+    }
+
     private static InstallationSettings Changed() => new()
     {
         DefaultMinecraftVersion = "1.20.1",
@@ -73,6 +89,10 @@ public sealed class SettingsRepositoryTests : IDisposable
         GamePortRangeStart = 30000,
         GamePortRangeEnd = 30010,
         PublicHost = "jogar.exemplo.com",
+        CloudflareApiTokenEncrypted = "token-da-cloudflare",
+        CloudflareZoneId = "0123456789abcdef0123456789abcdef",
+        DnsBaseDomain = "exemplo.com",
+        DnsHostLabel = "jogo",
         CurseForgeApiKeyEncrypted = "chave-do-curseforge",
         AzureClientId = "55555555-5555-5555-5555-555555555555"
     };
