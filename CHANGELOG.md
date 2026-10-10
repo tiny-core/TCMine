@@ -11,6 +11,42 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [1.3.0] — 2026-10-10
+
+Launcher **1.1.3** (sem mudanças).
+
+**Antes de atualizar:** faça backup do banco — esta versão traz uma migration.
+
+### Adicionado
+
+- **Endereço público** em Configurações → Rede: um domínio ou DDNS desta
+  máquina, sem porta. Vazio, vale o IP público detectado, que a mesma aba mostra
+  com botão de copiar. A aba também explica o CGNAT, que a detecção não enxerga.
+- **Endereço automático.** O endereço de conexão de um servidor deixou de ser
+  obrigatório: em branco, o servidor é publicado como o endereço público mais a
+  porta dele. O formulário mostra o endereço que os jogadores vão receber.
+
+### Corrigido
+
+- **O botão Entrar do launcher ignorava a porta do servidor.** Desde a 1.2.0 cada
+  servidor tem a sua porta, mas o endereço seguia para o launcher como o texto do
+  formulário. Um servidor fora da 25565 com o endereço sem `:porta` abria o jogo
+  na 25565 — a porta de outro servidor. O endereço agora sai montado: sem porta
+  escrita, recebe a do servidor; com porta escrita, vale o que está escrito. O
+  painel mostra e copia esse mesmo endereço. Não exige atualizar o launcher.
+- **A faixa de portas não era gravada.** Configurações → Rede dizia "salvo" e a
+  faixa continuava a padrão (25565–25599). Quem a alterou na 1.2.0 precisa
+  gravá-la de novo.
+
+### Migração
+
+- `AddPublicHost` acrescenta a coluna do endereço público, vazia. Nenhum dado
+  existente muda: os servidores mantêm o endereço que têm, e os que estão sem
+  `:porta` passam a sair com a porta certa sem ninguém editá-los.
+- O container passa a consultar `www.cloudflare.com` e, em falha,
+  `api.ipify.org` para detectar o IP público. Sem saída para eles, preencha o
+  endereço público à mão.
+
 ## [1.2.0] — 2026-10-10
 
 Launcher **1.1.3** (sem mudanças).
