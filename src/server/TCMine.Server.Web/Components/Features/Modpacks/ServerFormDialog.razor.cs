@@ -22,8 +22,10 @@ public partial class ServerFormDialog
     /// <summary>Por que não houve porta para sugerir (faixa esgotada). Nulo = houve.</summary>
     private string? _portSuggestionError;
 
-    /// <summary>Host público da instalação, para a prévia do endereço automático.</summary>
-    private string? _publicHost;
+    /// <summary>Host público e domínio da instalação, para a prévia do endereço.</summary>
+    private AddressSettings _address = new(null, null, null);
+
+    private string _subdomain = "";
 
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
@@ -38,7 +40,7 @@ public partial class ServerFormDialog
     [Inject] private UpdateGameServer UpdateUseCase { get; set; } = default!;
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private IGamePortAllocator Ports { get; set; } = default!;
-    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
+    [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
 
     /// <summary>
     ///     A porta ESCRITA no endereço, quando há. Só ela pode discordar da porta
@@ -56,10 +58,30 @@ public partial class ServerFormDialog
     ///     mostrar.
     /// </summary>
     private string PublishedAddress =>
-        GameAddress.Resolve(
+        _address.For(
             _connectAddress,
             GamePortRange.IsValid(_gamePort) ? _gamePort : GamePortDefaults.First,
-            _publicHost);
+            _subdomain);
+
+    /// <summary>
+    ///     O que o campo Subdomínio vai fazer, dito no próprio campo: com o DNS
+    ///     configurado mostra o nome completo; sem ele, diz o que falta — o
+    ///     subdomínio fica guardado e passa a valer quando a Cloudflare for
+    ///     configurada.
+    /// </summary>
+    private string SubdomainHelp =>
+        _address.DnsBaseDomain is { } domain
+            ? $"Opcional. Publica este servidor como nome.{domain}, sem porta (só Minecraft Java)."
+            : "Opcional. Só é publicado com a Cloudflare configurada em Configurações → Rede.";
+
+    /// <summary>
+    ///     Os dois preenchidos: o endereço escrito vence, e o subdomínio é criado
+    ///     na Cloudflare mas não é o que os jogadores recebem. Vale avisar, porque
+    ///     quem preenche os dois quase sempre queria o subdomínio.
+    /// </summary>
+    private bool AddressHidesSubdomain =>
+        !string.IsNullOrWhiteSpace(_connectAddress)
+        && GameDns.ServerHost(_subdomain, _address.DnsBaseDomain) is not null;
 
     private ModpackVersion? _selected => _versions.FirstOrDefault(v => v.Id == _selectedVersionId);
     private int SelectedModCount => _selected?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
@@ -68,13 +90,14 @@ public partial class ServerFormDialog
     {
         _isNew = Existing is null;
 
-        _publicHost = (await PublicHostLookup.HandleAsync(false, CancellationToken.None)).Effective;
+        _address = await AddressLookup.HandleAsync(false, CancellationToken.None);
 
         if (Existing is not null)
         {
             _name = Existing.Name;
             _connectAddress = Existing.ConnectAddress;
             _gamePort = Existing.GamePort;
+            _subdomain = Existing.Subdomain ?? "";
             _memoryMb = Existing.MemoryMb;
             _maxPlayers = Existing.MaxPlayers;
             _whitelistEnabled = Existing.WhitelistEnabled;
@@ -128,12 +151,12 @@ public partial class ServerFormDialog
         {
             return await UpdateUseCase.HandleAsync(
                 Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
-                CancellationToken.None, _gamePort);
+                CancellationToken.None, _gamePort, _subdomain);
         }
 
         var created = await CreateUseCase.HandleAsync(
             ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
-            CancellationToken.None, _gamePort);
+            CancellationToken.None, _gamePort, _subdomain);
         return created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
     }
 }

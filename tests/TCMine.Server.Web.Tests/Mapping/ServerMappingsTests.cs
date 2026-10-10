@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Mapping;
 
@@ -20,7 +21,7 @@ public sealed class ServerMappingsTests
     {
         // A regressão: endereço sem ":porta", servidor na 25566. O launcher
         // recebia "94.63.98.255" e o jogo tentava a 25565.
-        var dto = Granted(Servidor("94.63.98.255", 25566)).ToDto(new NoPlayers(), NoLabels, null);
+        var dto = Granted(Servidor("94.63.98.255", 25566)).ToDto(new NoPlayers(), NoLabels, Address(null));
 
         dto.ConnectAddress.ShouldBe("94.63.98.255:25566");
     }
@@ -28,7 +29,7 @@ public sealed class ServerMappingsTests
     [Fact]
     public void Endereco_automatico_usa_o_host_publico()
     {
-        var dto = Granted(Servidor("", 25566)).ToDto(new NoPlayers(), NoLabels, "jogar.exemplo.com");
+        var dto = Granted(Servidor("", 25566)).ToDto(new NoPlayers(), NoLabels, Address("jogar.exemplo.com"));
 
         dto.ConnectAddress.ShouldBe("jogar.exemplo.com:25566");
     }
@@ -37,7 +38,7 @@ public sealed class ServerMappingsTests
     public void Automatico_sem_host_publico_sai_nulo_e_nao_vazio()
     {
         // Nulo é o que o launcher já entende como "não há por onde entrar".
-        var dto = Granted(Servidor("", 25566)).ToDto(new NoPlayers(), NoLabels, null);
+        var dto = Granted(Servidor("", 25566)).ToDto(new NoPlayers(), NoLabels, Address(null));
 
         dto.ConnectAddress.ShouldBeNull();
     }
@@ -48,8 +49,23 @@ public sealed class ServerMappingsTests
         var pending = new AccessibleServer(
             Servidor("94.63.98.255", 25566), ServerRoleDto.Member, ServerAccessState.Pending);
 
-        pending.ToDto(new NoPlayers(), NoLabels, "jogar.exemplo.com").ConnectAddress.ShouldBeNull();
+        pending.ToDto(new NoPlayers(), NoLabels, Address("jogar.exemplo.com")).ConnectAddress.ShouldBeNull();
     }
+
+    [Fact]
+    public void Servidor_com_subdominio_sai_pelo_nome_sem_porta()
+    {
+        // O jogo só consulta o SRV quando o endereço vem sem porta.
+        var server = Servidor("", 25566);
+        server.Subdomain = "sobrevivencia";
+
+        var dto = Granted(server).ToDto(
+            new NoPlayers(), NoLabels, new AddressSettings("1.2.3.4", null, "exemplo.com"));
+
+        dto.ConnectAddress.ShouldBe("sobrevivencia.exemplo.com");
+    }
+
+    private static AddressSettings Address(string? publicHost) => new(publicHost, null, null);
 
     private static AccessibleServer Granted(GameServer server) =>
         new(server, ServerRoleDto.Member, ServerAccessState.Granted);

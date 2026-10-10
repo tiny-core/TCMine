@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TCMine.Server.Application.Cloud;
+using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Application.Public;
 using TCMine.Server.Application.Security;
@@ -139,7 +140,8 @@ public static class DependencyInjection
         services.AddScoped<RemoveMember>();
         services.AddScoped<ChangeMemberRole>();
         services.AddScoped<UpdateSettings>();
-        services.AddScoped<GetPublicHost>();
+        services.AddScoped<GetAddressSettings>();
+        services.AddScoped<SyncGameDns>();
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<CompleteFromServerPack>();
         services.AddScoped<BackfillServerPacks>();

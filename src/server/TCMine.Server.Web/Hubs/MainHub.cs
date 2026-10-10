@@ -35,7 +35,7 @@ public sealed class MainHub(
     RequestServerAccess requestAccess,
     ConsoleBroadcaster broadcaster,
     IPlayerCountSource players,
-    GetPublicHost publicHost) : Hub<ILauncherClient>, IServerHub
+    GetAddressSettings addressSettings) : Hub<ILauncherClient>, IServerHub
 {
     /// <summary>
     ///     ToArray(), e NÃO uma expressão de coleção.
@@ -131,10 +131,10 @@ public sealed class MainHub(
         // Para os servidores de endereço automático. Com host gravado nas
         // configurações isto é só uma leitura do banco; sem ele, o IP detectado
         // vem do cache do provedor.
-        var host = (await publicHost.HandleAsync(false, Context.ConnectionAborted)).Effective;
+        var address = await addressSettings.HandleAsync(false, Context.ConnectionAborted);
 
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
-        return servers.Select(s => s.ToDto(players, versionLabels, host)).ToArray();
+        return servers.Select(s => s.ToDto(players, versionLabels, address)).ToArray();
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

@@ -39,6 +39,12 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
         // servidores nunca disputam a mesma porta do host.
         builder.HasIndex(s => s.GamePort).IsUnique();
 
+        // 63 é o limite de um rótulo de DNS. Único pelo mesmo motivo da porta:
+        // dois servidores com o mesmo nome disputariam o mesmo registro. Nulo
+        // não conta — os dois bancos deixam vários servidores sem subdomínio.
+        builder.Property(s => s.Subdomain).HasMaxLength(63);
+        builder.HasIndex(s => s.Subdomain).IsUnique();
+
         builder.HasIndex(s => s.OwnerId);
         builder.HasIndex(s => s.ModpackVersionId);
         builder.HasIndex(s => s.ModpackId);

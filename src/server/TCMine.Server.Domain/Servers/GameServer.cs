@@ -44,6 +44,16 @@ public sealed class GameServer : Entity, IOwnedEntity
     /// </summary>
     public int GamePort { get; set; } = GamePortDefaults.First;
 
+    /// <summary>
+    ///     Rótulo de DNS deste servidor ("sobrevivencia"), já normalizado. Nulo =
+    ///     sem nome próprio. Com o domínio da instalação vira
+    ///     <c>sobrevivencia.exemplo.com</c>, mantido na Cloudflare por um registro
+    ///     SRV (ver <see cref="GameDns" />).
+    ///     Único entre os servidores: dois com o mesmo nome disputariam o mesmo
+    ///     registro.
+    /// </summary>
+    public string? Subdomain { get; set; }
+
     public GameServerStatus Status { get; set; } = GameServerStatus.Stopped;
 
     /// <summary>ID do container itzg/minecraft-server. Nulo se nunca foi criado.</summary>

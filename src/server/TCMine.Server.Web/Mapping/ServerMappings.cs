@@ -1,6 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Domain.Servers;
+using TCMine.Server.Application.Settings;
 
 namespace TCMine.Server.Web.Mapping;
 
@@ -14,13 +14,13 @@ namespace TCMine.Server.Web.Mapping;
 /// </summary>
 public static class ServerMappings
 {
-    /// <param name="publicHost">
-    ///     Host público da instalação (<c>GetPublicHost</c>), para os servidores
-    ///     de endereço automático. Nulo quando não se conhece nenhum.
+    /// <param name="address">
+    ///     O que a instalação sabe sobre o próprio endereço (<c>GetAddressSettings</c>):
+    ///     host público e domínio dos subdomínios.
     /// </param>
     public static GameServerDto ToDto(
         this AccessibleServer accessible, IPlayerCountSource players, IReadOnlyDictionary<Guid, string> versionLabels,
-        string? publicHost)
+        AddressSettings address)
     {
         var server = accessible.Server;
 
@@ -39,9 +39,8 @@ public static class ServerMappings
             // nenhum (automático, e host público desconhecido) vai nulo, que é
             // como o contrato já diz "não há por onde entrar".
             ConnectAddress = accessible.AccessState is ServerAccessState.Granted
-                             && GameAddress.Resolve(server.ConnectAddress, server.GamePort, publicHost)
-                                 is { Length: > 0 } address
-                ? address
+                             && address.For(server) is { Length: > 0 } published
+                ? published
                 : null,
             Status = server.Status,
 

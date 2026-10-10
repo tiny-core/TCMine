@@ -52,6 +52,38 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         if (publicHost is { Length: > PublicHostMaxLength })
             return Result.Fail($"O endereço público pode ter no máximo {PublicHostMaxLength} caracteres.");
 
+        // ---- DNS (Cloudflare) ----
+        // Os três são validados mesmo com o DNS incompleto: um valor errado
+        // gravado hoje vira erro da Cloudflare no dia em que o token chegar.
+        var zoneId = Trimmed(command.CloudflareZoneId);
+
+        if (zoneId is not null && !(zoneId.Length == 32 && zoneId.All(Uri.IsHexDigit)))
+        {
+            return Result.Fail(
+                "O Zone ID da Cloudflare tem 32 caracteres hexadecimais — está na página Overview do "
+                + "domínio, na coluna da direita. Não é o nome do domínio nem o Account ID.");
+        }
+
+        var dnsBaseDomain = GameDns.NormalizeLabel(command.DnsBaseDomain);
+
+        if (dnsBaseDomain is not null && !GameDns.IsValidDomain(dnsBaseDomain))
+        {
+            return Result.Fail(
+                "O domínio dos servidores é um nome como exemplo.com ou jogos.exemplo.com, sem http:// e "
+                + "sem porta.");
+        }
+
+        if (dnsBaseDomain is { Length: > PublicHostMaxLength })
+            return Result.Fail($"O domínio dos servidores pode ter no máximo {PublicHostMaxLength} caracteres.");
+
+        var dnsHostLabel = GameDns.NormalizeLabel(command.DnsHostLabel);
+
+        if (dnsHostLabel is not null && !GameDns.IsValidLabel(dnsHostLabel))
+        {
+            return Result.Fail(
+                "O nome do registro do IP aceita só letras sem acento, números e hífen (ex.: mc).");
+        }
+
         // Um id malformado só se manifestaria na máquina do jogador, como uma
         // falha de login sem explicação: o handshake entrega o lixo, o MSAL
         // tenta montar a autoridade com ele e desiste. Recusar aqui move o erro
@@ -80,6 +112,11 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         // então vazio é "apague" (volta a valer o IP detectado).
         settings.PublicHost = publicHost;
 
+        // Públicos como o endereço acima: voltam preenchidos, e vazio apaga.
+        settings.CloudflareZoneId = zoneId;
+        settings.DnsBaseDomain = dnsBaseDomain;
+        settings.DnsHostLabel = dnsHostLabel;
+
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
         // deliberado do admin — não um campo que ele não teve como preencher.
@@ -90,6 +127,12 @@ public sealed class UpdateSettings(ISettingsRepository repository)
             settings.CurseForgeApiKeyEncrypted = null;
         else if (!string.IsNullOrWhiteSpace(command.CurseForgeApiKey))
             settings.CurseForgeApiKeyEncrypted = command.CurseForgeApiKey.Trim();
+
+        // O token segue a regra dos segredos: vazio = manter.
+        if (command.ClearCloudflareApiToken)
+            settings.CloudflareApiTokenEncrypted = null;
+        else if (!string.IsNullOrWhiteSpace(command.CloudflareApiToken))
+            settings.CloudflareApiTokenEncrypted = command.CloudflareApiToken.Trim();
 
         await repository.SaveAsync(settings, ct);
         return Result.Success();
@@ -130,4 +173,18 @@ public sealed record UpdateSettingsCommand
     public string? CurseForgeApiKey { get; init; }
 
     public bool ClearCurseForgeApiKey { get; init; }
+
+    /// <summary>Novo token da Cloudflare. Vazio = manter o atual.</summary>
+    public string? CloudflareApiToken { get; init; }
+
+    public bool ClearCloudflareApiToken { get; init; }
+
+    /// <summary>Id da zona na Cloudflare. Vazio = limpar.</summary>
+    public string? CloudflareZoneId { get; init; }
+
+    /// <summary>Domínio sob o qual os servidores ganham nome. Vazio = limpar.</summary>
+    public string? DnsBaseDomain { get; init; }
+
+    /// <summary>Rótulo do registro A mantido pelo TCMine. Vazio = o padrão ("mc").</summary>
+    public string? DnsHostLabel { get; init; }
 }

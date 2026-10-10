@@ -271,6 +271,27 @@ O **endereço** que os jogadores recebem é montado pelo TCMine:
 - endereço **com porta** (`mc.exemplo.com:25565`) → sai como está escrito. É
   para quando o roteador expõe uma porta e entrega em outra.
 
+### Subdomínio por servidor (opcional)
+
+Com o domínio na Cloudflare, cada servidor pode ter um nome próprio e sem porta
+(`sobrevivencia.exemplo.com`). Em *Configurações → Rede → Subdomínios*:
+
+1. Crie na Cloudflare um token **só para isto** (*My Profile → API Tokens →
+   Create Token → Edit zone DNS*), restrito à zona do domínio.
+2. Cole o token, o **Zone ID** (página *Overview* do domínio) e o domínio, e
+   salve.
+3. Preencha o campo *Subdomínio* no formulário de cada servidor e use
+   *Sincronizar agora*.
+
+O TCMine cria um registro SRV por servidor e, se o endereço público não for um
+nome, um registro A (`mc.exemplo.com` por padrão) com o IP público. Ele só
+altera e apaga registros que ele mesmo criou — reconhece-os por um comentário
+que começa por `tcmine:` — e não cria nada por cima de um registro seu com o
+mesmo nome. Tirar o token não apaga os registros já criados.
+
+O registro A é criado em modo **DNS only** (nuvem cinza): o proxy da Cloudflare
+não passa o protocolo do jogo. SRV só é consultado pelo Minecraft **Java**.
+
 O IP público é detectado consultando a Cloudflare e, se ela falhar, o ipify — o
 container precisa de saída HTTPS para `www.cloudflare.com` ou `api.ipify.org`.
 Com o endereço público preenchido, nenhuma dessas consultas é necessária para

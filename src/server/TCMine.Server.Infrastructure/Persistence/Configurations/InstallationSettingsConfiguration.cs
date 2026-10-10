@@ -26,6 +26,17 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         // está em UpdateSettings.PublicHostMaxLength, que é quem recusa).
         builder.Property(s => s.PublicHost).HasMaxLength(255);
 
+        // DNS (Cloudflare). O token é texto cifrado, com a mesma folga da chave
+        // do CurseForge; o Zone ID tem 32 caracteres; o domínio e o rótulo
+        // seguem os limites do DNS (255 e 63).
+        builder.Property(s => s.CloudflareApiTokenEncrypted).HasMaxLength(1024);
+        builder.Property(s => s.CloudflareZoneId).HasMaxLength(64);
+        builder.Property(s => s.DnsBaseDomain).HasMaxLength(255);
+        builder.Property(s => s.DnsHostLabel).HasMaxLength(63);
+
+        // Calculado a partir dos três acima — não é coluna.
+        builder.Ignore(s => s.DnsEnabled);
+
         // Com padrão NO BANCO: a linha de configurações já existe nas
         // instalações em uso, e sem isto a migration a deixaria com a faixa
         // 0–0. O valor é o literal, e não a constante do domínio, porque

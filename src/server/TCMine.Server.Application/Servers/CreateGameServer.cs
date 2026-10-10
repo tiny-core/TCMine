@@ -16,7 +16,7 @@ public sealed class CreateGameServer(
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
-        Guid modpackVersionId, CancellationToken ct, int gamePort = 0)
+        Guid modpackVersionId, CancellationToken ct, int gamePort = 0, string? subdomain = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
@@ -42,6 +42,18 @@ public sealed class CreateGameServer(
             : ready.FirstOrDefault(v => v.Id == modpackVersionId);
         if (pinned is null)
             return Result<Guid>.Fail("Selecione uma versão publicada válida.");
+
+        // Opcional. Conferido aqui, e não só pelo índice único do banco, para o
+        // erro dizer QUAL servidor já tem o nome.
+        var label = GameDns.NormalizeLabel(subdomain);
+        if (label is not null)
+        {
+            if (!GameDns.IsValidLabel(label))
+                return Result<Guid>.Fail(GameDns.InvalidLabelMessage);
+
+            if (GameDns.OwnerOf(label, await servers.ListAllAsync(ct), null) is { } taken)
+                return Result<Guid>.Fail($"O subdomínio \"{label}\" já é usado pelo servidor \"{taken.Name}\".");
+        }
 
         // Zero = "escolha por mim": a primeira livre da faixa. Um número
         // explícito vem do formulário e é conferido contra os outros servidores
@@ -70,6 +82,7 @@ public sealed class CreateGameServer(
             ModpackVersionId = pinned.Id,
             ConnectAddress = connectAddress.Trim(),
             GamePort = port,
+            Subdomain = label,
             MemoryMb = memoryMb,
             MaxPlayers = maxPlayers,
             // Segredo RCON gerado aqui, no server. Nunca exibido nem logado.

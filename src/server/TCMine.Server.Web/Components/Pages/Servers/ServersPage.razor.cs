@@ -25,7 +25,7 @@ public partial class ServersPage : ComponentBase
     [Inject] private IPlayerCountSource Players { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
-    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
+    [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
 
     /// <summary>
     ///     Filtro em memória: servidores são poucos por natureza (um homelab tem
@@ -57,7 +57,7 @@ public partial class ServersPage : ComponentBase
 
         // Uma leitura para a tabela inteira: o host público é da instalação,
         // não de cada servidor.
-        var publicHost = (await PublicHostLookup.HandleAsync(false, CancellationToken.None)).Effective;
+        var address = await AddressLookup.HandleAsync(false, CancellationToken.None);
 
         var rows = new List<ServerRow>();
         foreach (var group in servers.GroupBy(s => s.ModpackId))
@@ -76,7 +76,7 @@ public partial class ServersPage : ComponentBase
 
             rows.AddRange(group.Select(s => new ServerRow(
                 s,
-                GameAddress.Resolve(s.ConnectAddress, s.GamePort, publicHost),
+                address.For(s),
                 namesById.GetValueOrDefault(s.ModpackId, "—"),
                 versions.GetValueOrDefault(s.ModpackVersionId, "—"),
 

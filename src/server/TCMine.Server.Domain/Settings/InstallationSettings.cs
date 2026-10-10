@@ -52,6 +52,42 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public string? PublicHost { get; set; }
 
+    // ---------- DNS dos servidores (Cloudflare) ----------
+
+    /// <summary>
+    ///     Token da API da Cloudflare, cifrado em repouso como a chave do
+    ///     CurseForge e, como ela, nunca devolvido à UI. Precisa só da permissão
+    ///     de editar DNS na zona abaixo.
+    /// </summary>
+    public string? CloudflareApiTokenEncrypted { get; set; }
+
+    /// <summary>Id da zona na Cloudflare (32 caracteres hexadecimais). Não é segredo.</summary>
+    public string? CloudflareZoneId { get; set; }
+
+    /// <summary>
+    ///     Domínio sob o qual os servidores ganham nome ("exemplo.com", ou um
+    ///     nível abaixo: "jogos.exemplo.com"). Tem de estar dentro da zona.
+    /// </summary>
+    public string? DnsBaseDomain { get; set; }
+
+    /// <summary>
+    ///     Rótulo do registro A que o TCMine mantém apontado para o IP público
+    ///     ("mc" → mc.exemplo.com), e para onde os SRV apontam. Nulo = o padrão,
+    ///     <see cref="GameDns.DefaultHostLabel" />. Não é usado quando o endereço
+    ///     público é um nome: aí os SRV apontam para ele.
+    /// </summary>
+    public string? DnsHostLabel { get; set; }
+
+    /// <summary>
+    ///     Há o bastante para manter registros: token, zona e domínio. Faltando
+    ///     um, os subdomínios dos servidores ficam guardados mas não são
+    ///     publicados nem usados no endereço.
+    /// </summary>
+    public bool DnsEnabled =>
+        !string.IsNullOrWhiteSpace(CloudflareApiTokenEncrypted)
+        && !string.IsNullOrWhiteSpace(CloudflareZoneId)
+        && !string.IsNullOrWhiteSpace(DnsBaseDomain);
+
     // ---------- Integrações ----------
 
     /// <summary>

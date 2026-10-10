@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine.MinecraftAuth;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Public;
+using TCMine.Server.Infrastructure.Dns;
 using TCMine.Server.Infrastructure.Docker;
 using TCMine.Server.Infrastructure.Ingestion;
 using TCMine.Server.Infrastructure.Ingestion.CurseForge;
@@ -163,6 +164,17 @@ public static class DependencyInjection
         services.AddHttpClient<IPublicAddressProvider, PublicAddressProvider>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(3);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+        });
+
+        // DNS dos servidores de jogo. Token e zona não entram aqui: vivem na
+        // configuração da instalação e vão em cada chamada. Sem resiliência
+        // padrão — criar registro não é idempotente, e quem repete é a
+        // sincronização seguinte.
+        services.AddHttpClient<ICloudflareDns, CloudflareDnsClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.cloudflare.com/client/v4/");
+            client.Timeout = TimeSpan.FromSeconds(15);
             client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
         });
 

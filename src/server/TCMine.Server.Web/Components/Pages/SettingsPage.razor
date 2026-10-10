@@ -137,6 +137,100 @@ else
                     estas portas (TCP) para esta máquina. Redirecionar a faixa inteira de uma vez
                     evita voltar ao roteador a cada servidor novo.
                 </MudAlert>
+
+                <MudDivider Class="my-6"/>
+
+                <MudText Typo="Typo.subtitle1" Class="mb-1">Subdomínios (Cloudflare)</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    Dá a cada servidor um nome próprio, sem porta — sobrevivencia.seu-dominio.com.
+                    O TCMine cria na sua zona um registro SRV por servidor com subdomínio, e só
+                    mexe nos registros que ele mesmo criou. Funciona no Minecraft Java; o Bedrock
+                    não consulta SRV.
+                </MudText>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+                    @if (_hasCloudflareToken)
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.CheckCircle">
+                            token configurado
+                        </MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
+                                 Icon="@Icons.Material.Filled.RemoveCircleOutline">
+                            sem token
+                        </MudChip>
+                    }
+                </MudStack>
+
+                <MudGrid>
+                    <MudItem xs="12" md="8">
+                        <MudTextField @bind-Value="_cloudflareToken" Label="Token da API"
+                                      InputType="InputType.Password" Variant="Variant.Outlined"
+                                      Disabled="_clearCloudflareToken"
+                                      HelperText="@(_hasCloudflareToken ? "Deixe vazio para manter o token atual." : "Crie um token só para isto, com a permissão Zone → DNS → Edit e restrito a esta zona.")"/>
+                    </MudItem>
+                    @if (_hasCloudflareToken)
+                    {
+                        <MudItem xs="12" md="4" Class="d-flex align-center">
+                            <MudCheckBox @bind-Value="_clearCloudflareToken" Color="Color.Error"
+                                         Label="Remover o token"/>
+                        </MudItem>
+                    }
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_cloudflareZoneId" Label="Zone ID"
+                                      Variant="Variant.Outlined"
+                                      HelperText="32 caracteres, na página Overview do domínio na Cloudflare."/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_dnsBaseDomain" Label="Domínio dos servidores"
+                                      Variant="Variant.Outlined" Placeholder="ex.: seu-dominio.com"
+                                      Immediate="true"
+                                      HelperText="Os servidores ficam um nível abaixo dele. Tem de estar dentro da zona."/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_dnsHostLabel" Label="Nome do registro do IP"
+                                      Variant="Variant.Outlined" Placeholder="@GameDns.DefaultHostLabel"
+                                      Immediate="true"
+                                      HelperText="@($"O TCMine mantém {DnsHostPreview} apontado para o IP público, e os servidores apontam para ele. Não é usado quando o endereço público acima é um nome.")"/>
+                    </MudItem>
+                </MudGrid>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Sync"
+                               OnClick="SyncDnsAsync" Disabled="_isSyncingDns || _isSaving">
+                        @if (_isSyncingDns)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                        }
+                        Sincronizar agora
+                    </MudButton>
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                        Usa o que está salvo: salve antes de sincronizar.
+                    </MudText>
+                </MudStack>
+
+                @if (_dnsReport is { Enabled: false })
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                        Nada foi feito: faltam o token, o Zone ID ou o domínio nas configurações salvas.
+                    </MudAlert>
+                }
+                else if (_dnsReport is not null)
+                {
+                    <MudAlert Severity="@(_dnsReport.Succeeded ? Severity.Success : Severity.Warning)"
+                              Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                        @_dnsReport.Created criado(s), @_dnsReport.Updated atualizado(s),
+                        @_dnsReport.Deleted apagado(s), @_dnsReport.Unchanged já certo(s).
+                        @foreach (var problem in _dnsReport.Problems)
+                        {
+                            <div>@problem</div>
+                        }
+                    </MudAlert>
+                }
             </MudTabPanel>
 
             <MudTabPanel Text="Integrações" Icon="@Icons.Material.Filled.Extension" Class="pa-6">

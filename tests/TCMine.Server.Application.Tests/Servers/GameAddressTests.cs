@@ -61,6 +61,22 @@ public sealed class GameAddressTests
     }
 
     [Fact]
+    public void Servidor_com_nome_de_dns_sai_sem_porta()
+    {
+        // A porta vai no registro SRV; escrita no endereço, o jogo deixaria de
+        // consultá-lo.
+        Assert.Equal("sobrevivencia.exemplo.com",
+            GameAddress.Resolve("", 25570, "1.2.3.4", "sobrevivencia.exemplo.com"));
+    }
+
+    [Fact]
+    public void Endereco_escrito_vence_o_nome_de_dns()
+    {
+        Assert.Equal("outro.exemplo.com:25570",
+            GameAddress.Resolve("outro.exemplo.com", 25570, "1.2.3.4", "sobrevivencia.exemplo.com"));
+    }
+
+    [Fact]
     public void Ipv6_so_leva_porta_entre_colchetes()
     {
         Assert.Equal("[2001:db8::1]:25566", GameAddress.Resolve("", 25566, "2001:db8::1"));

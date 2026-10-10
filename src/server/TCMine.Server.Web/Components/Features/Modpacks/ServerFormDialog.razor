@@ -34,6 +34,19 @@
             </MudAlert>
         }
 
+        <MudTextField @bind-Value="_subdomain" Label="Subdomínio"
+                      Placeholder="@GameDns.Suggest(_name)"
+                      HelperText="@SubdomainHelp"
+                      Immediate="true" Class="mb-2"/>
+
+        @if (AddressHidesSubdomain)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                Com o endereço de conexão preenchido, é ele que os jogadores recebem. Para
+                publicar o subdomínio, deixe o endereço em branco.
+            </MudAlert>
+        }
+
         @* O que os jogadores recebem de fato — o mesmo cálculo que vai ao launcher. *@
         @if (PublishedAddress.Length > 0)
         {
