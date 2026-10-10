@@ -5,7 +5,7 @@ namespace TCMine.Server.Web.Background;
 
 /// <summary>
 ///     Consome a fila de importação, um pack por vez.
-///     Serial de propósito: importar dois packs grandes ao mesmo tempo brigaria
+///     Serial de propósito: importar dois packs grandes ao mesmo tempo, brigaria
 ///     por banda e por escrita no SQLite sem terminar nenhum mais rápido.
 /// </summary>
 public sealed partial class ImportWorker(
@@ -35,7 +35,7 @@ public sealed partial class ImportWorker(
                 var useCase = scope.ServiceProvider.GetRequiredService<ImportUpstreamPack>();
 
                 var result = await useCase.HandleAsync(
-                    job.Origin, job.ProjectId, job.FileId, jobToken, job.Id, job.DisplayName);
+                    job.Origin, job.ProjectId, job.FileId, jobToken, job.Id, job.DisplayName, job.RequestedBy);
 
                 concluido = true;
 

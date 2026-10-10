@@ -1,3 +1,5 @@
+using TCMine.Contracts.Modpacks;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
@@ -21,7 +23,7 @@ public sealed class ImportRecoveryTests
         var repo = new FakeRequests();
         var queue = new FakeQueue(repo);
 
-        var result = await new ImportScheduler(repo, queue).ScheduleAsync(
+        var result = await new ImportScheduler(repo, queue, new FakeScope()).ScheduleAsync(
             ModFileOrigin.CurseForge, "999", null, "All the Mods 10", CancellationToken.None);
 
         result.Succeeded.ShouldBeTrue();
@@ -37,11 +39,25 @@ public sealed class ImportRecoveryTests
     }
 
     [Fact]
+    public async Task Pedido_guarda_quem_pediu()
+    {
+        // A importação roda no worker, sem sessão. Se o pedido não levar o
+        // solicitante, o modpack nasce sem dono — foi assim que o All the Mods 10
+        // ficou com OwnerId zerado em produção.
+        var repo = new FakeRequests();
+
+        await new ImportScheduler(repo, new FakeQueue(repo), new FakeScope()).ScheduleAsync(
+            ModFileOrigin.CurseForge, "999", null, "Pack", CancellationToken.None);
+
+        repo.Registros.Single().RequestedBy.ShouldBe(FakeScope.Solicitante);
+    }
+
+    [Fact]
     public async Task Mesmo_pack_nao_entra_duas_vezes_ao_mesmo_tempo()
     {
         var repo = new FakeRequests();
         var queue = new FakeQueue(repo);
-        var scheduler = new ImportScheduler(repo, queue);
+        var scheduler = new ImportScheduler(repo, queue, new FakeScope());
 
         await scheduler.ScheduleAsync(ModFileOrigin.CurseForge, "999", null, "Pack", CancellationToken.None);
         var segunda = await scheduler.ScheduleAsync(
@@ -103,6 +119,21 @@ public sealed class ImportRecoveryTests
 
         retomadas.ShouldBe(0);
         queue.Enfileirados.ShouldBeEmpty();
+    }
+
+    private sealed class FakeScope : ICurrentUserScope
+    {
+        public static readonly Guid Solicitante = Guid.Parse("01a10c54-7474-783b-8671-77dd348e7e1c");
+
+        public Guid? UserId => Solicitante;
+        public Guid OwnerId => Solicitante;
+        public bool IsInstanceAdmin => true;
+
+        public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
+            Task.FromResult<ServerRoleDto?>(null);
+
+        public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackRoleDto?>(null);
     }
 
     private sealed class FakeRequests : IImportRequestRepository

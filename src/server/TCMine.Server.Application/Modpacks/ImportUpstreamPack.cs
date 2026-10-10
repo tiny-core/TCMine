@@ -34,10 +34,12 @@ public sealed partial class ImportUpstreamPack(
     ///     <paramref name="jobId" /> identifica a importação para o acompanhamento
     ///     antes de existir uma versão: a UI já mostra "baixando o pack" enquanto
     ///     o modpack nem foi criado.
+    ///     <paramref name="requestedBy" /> é quem pediu a importação. Vem do
+    ///     pedido gravado porque, em segundo plano, o escopo não tem usuário.
     /// </summary>
     public async Task<Result<Guid>> HandleAsync(
         ModFileOrigin origin, string projectId, string? fileId, CancellationToken ct,
-        Guid jobId = default, string? displayName = null)
+        Guid jobId = default, string? displayName = null, Guid? requestedBy = null)
     {
         var title = displayName is { Length: > 0 } ? $"Importando {displayName}" : "Importando pack";
 
@@ -83,9 +85,14 @@ public sealed partial class ImportUpstreamPack(
 
         var slug = await UniqueSlugAsync(Slugify(pack.Name), ct);
 
+        // O solicitante gravado no pedido vale mais que o escopo: dentro do
+        // worker o escopo é anônimo, e confiar nele era o que deixava o pack
+        // importado com OwnerId zerado e sem nenhum Owner.
+        var importador = requestedBy ?? scope.UserId;
+
         var modpack = new Modpack
         {
-            OwnerId = scope.OwnerId,
+            OwnerId = importador ?? scope.OwnerId,
             Slug = slug,
             Name = pack.Name,
             Summary = pack.Author is { Length: > 0 } author ? $"Importado do {origin}. Autor: {author}." : null,
@@ -103,10 +110,10 @@ public sealed partial class ImportUpstreamPack(
 
         // Quem importa vira Owner, mesma regra do CreateModpack — um pack
         // importado não é menos dono de alguém do que um criado do zero.
-        if (scope.UserId is { } importador)
+        if (importador is { } dono)
         {
             await memberships.AddAsync(
-                new ModpackMembership { UserId = importador, ModpackId = modpack.Id, Role = ModpackRole.Owner },
+                new ModpackMembership { UserId = dono, ModpackId = modpack.Id, Role = ModpackRole.Owner },
                 ct);
         }
 

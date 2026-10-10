@@ -28,6 +28,15 @@ public sealed class ImportRequest : Entity
     public required string DisplayName { get; set; }
 
     /// <summary>
+    ///     Quem pediu a importação. O trabalho roda no ImportWorker, fora de
+    ///     qualquer requisição — lá não existe "usuário atual", e sem este campo
+    ///     o modpack nascia sem dono e sem ninguém com papel de Owner.
+    ///     Gravado (e não só passado pela fila) para sobreviver à retomada no
+    ///     arranque. Nulo só em pedidos anteriores a esta coluna.
+    /// </summary>
+    public Guid? RequestedBy { get; set; }
+
+    /// <summary>
     ///     Quantas vezes o arranque já retomou esta importação.
     ///     Mesmo freio da ingestão: se o que derruba o processo é este pack,
     ///     retomá-lo a cada arranque põe o servidor em ciclo de queda.

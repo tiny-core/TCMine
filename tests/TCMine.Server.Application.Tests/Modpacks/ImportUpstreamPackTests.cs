@@ -128,6 +128,32 @@ public sealed class ImportUpstreamPackTests
         Assert.Null(repo.Created);
     }
 
+    [Fact]
+    public async Task Em_segundo_plano_o_dono_e_quem_pediu_a_importacao()
+    {
+        // O worker não tem sessão: o escopo ali é anônimo. Antes, o modpack
+        // saía com OwnerId zerado e sem vínculo de Owner — ninguém podia
+        // convidar nem apagar. O solicitante vem do pedido gravado.
+        var solicitante = Guid.Parse("01a10c54-7474-783b-8671-77dd348e7e1c");
+        var repo = new FakeRepo();
+        var memberships = new FakeMemberships();
+        var useCase = new ImportUpstreamPack(
+            [new FakeSource(PackComDoisModsEUmOverride())], repo, memberships, new FakeBlobStore(),
+            new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
+            new FakeDownloader(), new BackgroundScope());
+
+        var result = await useCase.HandleAsync(
+            ModFileOrigin.CurseForge, "999", null, CancellationToken.None, requestedBy: solicitante);
+
+        Assert.True(result.Succeeded, result.Error);
+        Assert.Equal(solicitante, repo.Created!.OwnerId);
+
+        var vinculo = Assert.Single(memberships.Added);
+        Assert.Equal(solicitante, vinculo.UserId);
+        Assert.Equal(repo.Created.Id, vinculo.ModpackId);
+        Assert.Equal(ModpackRole.Owner, vinculo.Role);
+    }
+
     // ---- Fixtures ----
 
     private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeQueue? queue = null) =>
@@ -208,9 +234,29 @@ public sealed class ImportUpstreamPackTests
             Task.FromResult<ModpackRoleDto?>(ModpackRoleDto.Owner);
     }
 
+    /// <summary>O escopo do ImportWorker: nenhuma requisição, nenhum usuário.</summary>
+    private sealed class BackgroundScope : ICurrentUserScope
+    {
+        public Guid? UserId => null;
+        public Guid OwnerId => Guid.Empty;
+        public bool IsInstanceAdmin => false;
+
+        public Task<ServerRoleDto?> GetRoleAsync(Guid gameServerId, CancellationToken ct) =>
+            Task.FromResult<ServerRoleDto?>(null);
+
+        public Task<ModpackRoleDto?> GetModpackRoleAsync(Guid modpackId, CancellationToken ct) =>
+            Task.FromResult<ModpackRoleDto?>(null);
+    }
+
     private sealed class FakeMemberships : IModpackMembershipRepository
     {
-        public Task AddAsync(ModpackMembership membership, CancellationToken ct) => Task.CompletedTask;
+        public List<ModpackMembership> Added { get; } = [];
+
+        public Task AddAsync(ModpackMembership membership, CancellationToken ct)
+        {
+            Added.Add(membership);
+            return Task.CompletedTask;
+        }
 
         public Task<ModpackMembership?> GetAsync(Guid userId, Guid modpackId, CancellationToken ct) =>
             Task.FromResult<ModpackMembership?>(null);

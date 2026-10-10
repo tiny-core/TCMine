@@ -13,7 +13,8 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class ImportScheduler(
     IImportRequestRepository requests,
-    IImportQueue queue)
+    IImportQueue queue,
+    ICurrentUserScope scope)
 {
     /// <summary>Devolve o id do pedido, que é também o id do acompanhamento.</summary>
     public async Task<Result<Guid>> ScheduleAsync(
@@ -27,7 +28,14 @@ public sealed class ImportScheduler(
 
         var request = new ImportRequest
         {
-            Origin = origin, ProjectId = projectId, FileId = fileId, DisplayName = displayName
+            Origin = origin,
+            ProjectId = projectId,
+            FileId = fileId,
+            DisplayName = displayName,
+
+            // Este é o último ponto em que ainda há um usuário: daqui em
+            // diante o trabalho é do worker, que não tem sessão nenhuma.
+            RequestedBy = scope.UserId
         };
 
         await requests.AddAsync(request, ct);

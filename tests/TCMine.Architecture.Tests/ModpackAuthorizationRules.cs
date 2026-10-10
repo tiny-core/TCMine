@@ -62,7 +62,7 @@ public class ModpackAuthorizationRules
     private static readonly string[] EfeitosInternos =
     [
         // Orquestração/background — quem chama já autorizou, ou é um job.
-        "BackfillServerPacks", "ImportScheduler", "IngestionScheduler", "ModpackIngestionService",
+        "BackfillServerPacks", "IngestionScheduler", "ModpackIngestionService",
         "OverrideUndoService", "RecoverInterruptedImports", "RecoverInterruptedIngestions",
 
         // Lógica pura, sem usuário nenhum na hora.
