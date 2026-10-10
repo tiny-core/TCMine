@@ -5,6 +5,7 @@ using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Web.Mapping;
 
@@ -33,7 +34,8 @@ public sealed class MainHub(
     SendServerCommand sendCommand,
     RequestServerAccess requestAccess,
     ConsoleBroadcaster broadcaster,
-    IPlayerCountSource players) : Hub<ILauncherClient>, IServerHub
+    IPlayerCountSource players,
+    GetPublicHost publicHost) : Hub<ILauncherClient>, IServerHub
 {
     /// <summary>
     ///     ToArray(), e NÃO uma expressão de coleção.
@@ -126,8 +128,13 @@ public sealed class MainHub(
 
         var versionLabels = await VersionLabelsAsync(servers, Context.ConnectionAborted);
 
+        // Para os servidores de endereço automático. Com host gravado nas
+        // configurações isto é só uma leitura do banco; sem ele, o IP detectado
+        // vem do cache do provedor.
+        var host = (await publicHost.HandleAsync(false, Context.ConnectionAborted)).Effective;
+
         // Array pelo mesmo motivo do GetModpacksAsync, logo acima.
-        return servers.Select(s => s.ToDto(players, versionLabels)).ToArray();
+        return servers.Select(s => s.ToDto(players, versionLabels, host)).ToArray();
     }
 
     public async Task SubscribeServerAsync(Guid serverId)

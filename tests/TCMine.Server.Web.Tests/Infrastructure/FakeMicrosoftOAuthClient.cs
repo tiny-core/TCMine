@@ -19,6 +19,19 @@ internal sealed class FakeMicrosoftOAuthClient : IMicrosoftOAuthClient
 }
 
 /// <summary>
+///     IP público fixo, sem rede. As listas de servidores, o formulário e a aba
+///     Rede consultam o provedor de verdade — sem este registro, renderizar
+///     essas páginas num teste sairia para a Cloudflare.
+///     O valor é da faixa reservada a documentação (RFC 5737).
+/// </summary>
+internal sealed class FakePublicAddressProvider : IPublicAddressProvider
+{
+    public const string Address = "203.0.113.7";
+
+    public Task<string?> GetAsync(CancellationToken ct) => Task.FromResult<string?>(Address);
+}
+
+/// <summary>
 ///     Sem Minecraft por padrão: a maioria dos testes que bootstrapam um admin
 ///     não tem nada a ver com a cadeia Xbox Live → XSTS, e deixá-la real faria a
 ///     suíte depender da rede. Testes que precisam de um admin COM Minecraft

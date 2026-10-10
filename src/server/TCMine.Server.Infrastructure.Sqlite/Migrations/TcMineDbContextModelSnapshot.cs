@@ -1426,6 +1426,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasColumnType("INTEGER")
                         .HasDefaultValue(25565);
 
+                    b.Property<string>("PublicHost")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 

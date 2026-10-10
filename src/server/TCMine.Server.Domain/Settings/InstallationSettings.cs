@@ -43,6 +43,15 @@ public sealed class InstallationSettings : Entity
 
     public int GamePortRangeEnd { get; set; } = GamePortDefaults.Last;
 
+    /// <summary>
+    ///     Host pelo qual os jogadores alcançam esta máquina: um domínio ou DDNS,
+    ///     sem porta. Nulo = usar o IP público detectado.
+    ///     Existe ao lado da detecção porque o IP de uma ligação residencial muda,
+    ///     e um nome não: com ele preenchido, a troca de IP não invalida o
+    ///     endereço que os jogadores já têm.
+    /// </summary>
+    public string? PublicHost { get; set; }
+
     // ---------- Integrações ----------
 
     /// <summary>

@@ -13,6 +13,9 @@ namespace TCMine.Server.Application.Settings;
 /// </summary>
 public sealed class UpdateSettings(ISettingsRepository repository)
 {
+    /// <summary>O limite de um nome DNS completo; é também o tamanho da coluna.</summary>
+    public const int PublicHostMaxLength = 255;
+
     public async Task<Result> HandleAsync(UpdateSettingsCommand command, CancellationToken ct)
     {
         if (command.DefaultMemoryMb is < 512)
@@ -33,6 +36,21 @@ public sealed class UpdateSettings(ISettingsRepository repository)
 
         if (command.GamePortRangeStart > command.GamePortRangeEnd)
             return Result.Fail("A primeira porta da faixa não pode ser maior que a última.");
+
+        // Só o host. A porta é a de cada servidor, e qualquer coisa a mais aqui
+        // (http://, uma barra, uma porta) viraria parte do endereço que o jogo
+        // recebe — o erro apareceria no jogador, como "servidor desconhecido".
+        var publicHost = Trimmed(command.PublicHost);
+
+        if (publicHost is not null && !GameAddress.IsBareHost(publicHost))
+        {
+            return Result.Fail(
+                "O endereço público é só o host: um domínio ou IP, sem http://, sem barra e sem porta. "
+                + "A porta é a de cada servidor.");
+        }
+
+        if (publicHost is { Length: > PublicHostMaxLength })
+            return Result.Fail($"O endereço público pode ter no máximo {PublicHostMaxLength} caracteres.");
 
         // Um id malformado só se manifestaria na máquina do jogador, como uma
         // falha de login sem explicação: o handshake entrega o lixo, o MSAL
@@ -57,6 +75,10 @@ public sealed class UpdateSettings(ISettingsRepository repository)
         settings.WorldBackupKeepCount = command.WorldBackupKeepCount;
         settings.GamePortRangeStart = command.GamePortRangeStart;
         settings.GamePortRangeEnd = command.GamePortRangeEnd;
+
+        // Como o client ID abaixo: é público e volta para a tela preenchido,
+        // então vazio é "apague" (volta a valer o IP detectado).
+        settings.PublicHost = publicHost;
 
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
@@ -91,6 +113,12 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Última porta oferecida a um servidor novo (inclusive).</summary>
     public int GamePortRangeEnd { get; init; } = GamePortDefaults.Last;
+
+    /// <summary>
+    ///     Domínio ou DDNS desta máquina, sem porta. Vazio = limpar, e volta a
+    ///     valer o IP detectado.
+    /// </summary>
+    public string? PublicHost { get; init; }
 
     /// <summary>
     ///     Client ID da app Azure do login com a Microsoft. Vazio = limpar

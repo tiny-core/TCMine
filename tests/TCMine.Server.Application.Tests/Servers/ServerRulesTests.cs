@@ -56,6 +56,21 @@ public sealed class ServerRulesTests
     }
 
     [Fact]
+    public async Task Servidor_pode_nascer_sem_endereco()
+    {
+        // Vazio é "automático": o endereço publicado sai do host público da
+        // instalação e da porta do servidor (GameAddressTests). Exigir o texto
+        // obrigava o admin a descobrir e digitar o próprio IP.
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "  ", 4096, 20, Guid.Empty, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("", servers.Adicionado!.ConnectAddress);
+    }
+
+    [Fact]
     public async Task Porta_informada_e_livre_e_respeitada()
     {
         var servers = new FakeServers();

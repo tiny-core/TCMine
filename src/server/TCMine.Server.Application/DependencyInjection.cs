@@ -139,6 +139,7 @@ public static class DependencyInjection
         services.AddScoped<RemoveMember>();
         services.AddScoped<ChangeMemberRole>();
         services.AddScoped<UpdateSettings>();
+        services.AddScoped<GetPublicHost>();
         services.AddScoped<ImportUpstreamPack>();
         services.AddScoped<CompleteFromServerPack>();
         services.AddScoped<BackfillServerPacks>();

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
+using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
@@ -36,8 +37,18 @@ public partial class SettingsPage : ComponentBase
     /// <summary>Só sabemos se existe — o valor nunca volta para a tela.</summary>
     private bool _hasCurseForgeKey;
 
+    /// <summary>IP público detectado. Nulo enquanto detecta e quando não se detectou.</summary>
+    private string? _detectedAddress;
+
+    /// <summary>Começa ligado: a detecção só roda depois do primeiro render.</summary>
+    private bool _isDetecting = true;
+
     private bool _isLoading = true;
     private bool _isSaving;
+
+    /// <summary>Volta preenchido, como o client ID: é público, e o admin precisa conferi-lo.</summary>
+    private string _publicHost = "";
+
     private int _worldBackupKeepCount = 5;
 
     /// <summary>
@@ -64,8 +75,41 @@ public partial class SettingsPage : ComponentBase
     [Inject] private IOptions<ServerOptions> ServerOptions { get; set; } = default!;
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
+    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
 
     protected override Task OnInitializedAsync() => LoadAsync();
+
+    /// <summary>
+    ///     A detecção do IP sai para a rede, e por isso fica FORA do carregamento
+    ///     da página: aqui ela roda com a tela já desenhada, e uma rede lenta
+    ///     custa um spinner num canto em vez de segurar as configurações inteiras.
+    ///     Também não roda no pré-render, que esperaria por ela antes de responder.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+
+        try
+        {
+            _detectedAddress = (await PublicHostLookup.HandleAsync(true, CancellationToken.None)).Detected;
+        }
+        finally
+        {
+            _isDetecting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CopyDetectedAddress()
+    {
+        if (_detectedAddress is null)
+            return;
+
+        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _detectedAddress);
+        Snackbar.Add("IP copiado.", Severity.Info);
+    }
 
     private async Task LoadAsync()
     {
@@ -82,6 +126,8 @@ public partial class SettingsPage : ComponentBase
         // que é a que o alocador está usando de fato.
         (_gamePortRangeStart, _gamePortRangeEnd) =
             GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
+
+        _publicHost = settings.PublicHost ?? "";
 
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);
@@ -109,6 +155,7 @@ public partial class SettingsPage : ComponentBase
                 WorldBackupKeepCount = _worldBackupKeepCount,
                 GamePortRangeStart = _gamePortRangeStart,
                 GamePortRangeEnd = _gamePortRangeEnd,
+                PublicHost = _publicHost,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey

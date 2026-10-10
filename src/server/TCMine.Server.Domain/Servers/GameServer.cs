@@ -26,7 +26,12 @@ public sealed class GameServer : Entity, IOwnedEntity
     /// </summary>
     public required Guid ModpackVersionId { get; set; }
 
-    /// <summary>Endereço publicado no servers.dat do cliente.</summary>
+    /// <summary>
+    ///     O que o admin escreveu como endereço — NÃO o que os jogadores recebem.
+    ///     Vazio = automático (host público da instalação). Sem ":porta", a porta
+    ///     é a <see cref="GamePort" />. Com ":porta", vale o que está escrito.
+    ///     Quem mostra ou envia o endereço passa por <see cref="GameAddress.Resolve" />.
+    /// </summary>
     public required string ConnectAddress { get; set; }
 
     /// <summary>

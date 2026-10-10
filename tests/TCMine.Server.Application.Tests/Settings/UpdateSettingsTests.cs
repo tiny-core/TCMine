@@ -135,6 +135,50 @@ public sealed class UpdateSettingsTests
         Assert.Equal(30010, repo.Salvo!.GamePortRangeEnd);
     }
 
+    [Fact]
+    public async Task Endereco_publico_e_gravado_sem_espacos()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = "  jogar.exemplo.com  " },
+            CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("jogar.exemplo.com", repo.Salvo!.PublicHost);
+    }
+
+    [Fact]
+    public async Task Endereco_publico_vazio_limpa_o_valor()
+    {
+        // Volta para a tela preenchido, então um branco é decisão do admin:
+        // "voltar a usar o IP detectado".
+        var repo = new FakeSettings(new InstallationSettings { PublicHost = "jogar.exemplo.com" });
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = "" }, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(repo.Salvo!.PublicHost);
+    }
+
+    [Theory]
+    [InlineData("jogar.exemplo.com:25565")] // a porta é a de cada servidor
+    [InlineData("https://jogar.exemplo.com")]
+    [InlineData("jogar.exemplo.com/")]
+    public async Task Recusa_endereco_publico_que_nao_e_so_o_host(string publicHost)
+    {
+        // O que sobrasse aqui viraria parte do endereço entregue ao jogo, e o
+        // erro só apareceria no jogador.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = publicHost }, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeSettings(InstallationSettings settings) : ISettingsRepository

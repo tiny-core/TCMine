@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Mapping;
 
@@ -13,8 +14,13 @@ namespace TCMine.Server.Web.Mapping;
 /// </summary>
 public static class ServerMappings
 {
+    /// <param name="publicHost">
+    ///     Host público da instalação (<c>GetPublicHost</c>), para os servidores
+    ///     de endereço automático. Nulo quando não se conhece nenhum.
+    /// </param>
     public static GameServerDto ToDto(
-        this AccessibleServer accessible, IPlayerCountSource players, IReadOnlyDictionary<Guid, string> versionLabels)
+        this AccessibleServer accessible, IPlayerCountSource players, IReadOnlyDictionary<Guid, string> versionLabels,
+        string? publicHost)
     {
         var server = accessible.Server;
 
@@ -27,7 +33,16 @@ public static class ServerMappings
             ModpackVersionLabel = versionLabels.GetValueOrDefault(server.ModpackVersionId),
 
             // Só sai com o acesso concedido — ver a nota em GameServerDto.
-            ConnectAddress = accessible.AccessState is ServerAccessState.Granted ? server.ConnectAddress : null,
+            // E sai RESOLVIDO, nunca o texto cru: o launcher entrega isto ao jogo
+            // como está, e um endereço sem ":porta" de um servidor fora da 25565
+            // mandava o jogador bater na porta de outro servidor. Sem endereço
+            // nenhum (automático, e host público desconhecido) vai nulo, que é
+            // como o contrato já diz "não há por onde entrar".
+            ConnectAddress = accessible.AccessState is ServerAccessState.Granted
+                             && GameAddress.Resolve(server.ConnectAddress, server.GamePort, publicHost)
+                                 is { Length: > 0 } address
+                ? address
+                : null,
             Status = server.Status,
 
             // Última contagem amostrada. Zero quando ainda não se sabe — o

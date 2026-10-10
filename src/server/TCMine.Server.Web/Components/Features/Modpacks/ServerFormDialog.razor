@@ -8,7 +8,8 @@
     <DialogContent>
         <MudTextField @bind-Value="_name" Label="Nome" Immediate="true" Class="mb-2"/>
         <MudTextField @bind-Value="_connectAddress" Label="Endereço de conexão"
-                      HelperText="O que os jogadores digitam, ex.: play.meuserver.com ou play.meuserver.com:25566"
+                      Placeholder="automático"
+                      HelperText="Vazio = automático: o endereço público da instalação. Preencha para usar um domínio próprio deste servidor; a porta entra sozinha."
                       Immediate="true" Class="mb-2"/>
 
         @* Value + ValueChanged em vez de @bind: trocar a porta precisa levar o
@@ -24,11 +25,27 @@
                 @_portSuggestionError
             </MudAlert>
         }
-        else if (AddressPointsElsewhere)
+        else if (ExplicitAddressPort is { } addressPort && addressPort != _gamePort)
         {
             <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                O endereço aponta para a porta @GamePortRange.AddressPort(_connectAddress) e o servidor
-                publica a @_gamePort. Só funciona se o roteador redirecionar uma para a outra.
+                O endereço aponta para a porta @addressPort e o servidor publica a @_gamePort. Só
+                funciona se o roteador redirecionar uma para a outra. Para o endereço seguir a
+                porta do servidor, apague o ":@(addressPort)" dele.
+            </MudAlert>
+        }
+
+        @* O que os jogadores recebem de fato — o mesmo cálculo que vai ao launcher. *@
+        @if (PublishedAddress.Length > 0)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                Os jogadores entram por <b>@PublishedAddress</b>
+            </MudText>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                Sem endereço para publicar: o IP público não foi detectado e não há endereço
+                público em Configurações → Rede. Escreva um endereço aqui ou preencha lá.
             </MudAlert>
         }
         <MudGrid>
@@ -70,7 +87,7 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    OnClick="Save"
-                   Disabled="IsBusy || string.IsNullOrWhiteSpace(_name) || string.IsNullOrWhiteSpace(_connectAddress) || (_isNew && _selectedVersionId == Guid.Empty)">
+                   Disabled="IsBusy || string.IsNullOrWhiteSpace(_name) || (_isNew && _selectedVersionId == Guid.Empty)">
             @if (IsBusy)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>

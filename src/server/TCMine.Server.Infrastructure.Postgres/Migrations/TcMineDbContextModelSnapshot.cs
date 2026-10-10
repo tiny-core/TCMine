@@ -1431,6 +1431,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(25565);
 
+                    b.Property<string>("PublicHost")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

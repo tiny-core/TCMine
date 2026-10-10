@@ -224,7 +224,8 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 ### GameServer (instância de jogo)
 
 - Fixa `ModpackVersionId` **no servidor, não no modpack** (permite rollout gradual e rollback por re-apontamento).
-  `ConnectAddress`, `Status`,
+  `ConnectAddress` (texto do admin — **nunca** mostrado nem enviado cru: o endereço publicado sai de
+  `GameAddress.Resolve`, que junta `GamePort` e o host público de `GetPublicHost`), `GamePort`, `Status`,
   `ContainerId`, `MemoryMb`, `MaxPlayers`, `RconSecret` (**required, NUNCA exposto em DTO nem log** — quem tem a senha
   RCON controla a máquina do jogo),
   `WorldInitializedAt`/`HasWorld` (seam do backup).

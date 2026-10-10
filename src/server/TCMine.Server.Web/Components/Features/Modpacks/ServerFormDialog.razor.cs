@@ -3,6 +3,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Servers;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Domain.Servers;
 
@@ -21,6 +22,9 @@ public partial class ServerFormDialog
     /// <summary>Por que não houve porta para sugerir (faixa esgotada). Nulo = houve.</summary>
     private string? _portSuggestionError;
 
+    /// <summary>Host público da instalação, para a prévia do endereço automático.</summary>
+    private string? _publicHost;
+
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
 
@@ -34,16 +38,28 @@ public partial class ServerFormDialog
     [Inject] private UpdateGameServer UpdateUseCase { get; set; } = default!;
     [Inject] private IModpackRepository ModpackRepository { get; set; } = default!;
     [Inject] private IGamePortAllocator Ports { get; set; } = default!;
+    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
 
     /// <summary>
-    ///     Endereço e porta discordam. Não é erro — um roteador pode expor a 25565
-    ///     e entregar na 25570 —, mas é a causa mais comum de "não consigo entrar",
-    ///     então o formulário avisa em vez de calar.
+    ///     A porta ESCRITA no endereço, quando há. Só ela pode discordar da porta
+    ///     do servidor: um endereço sem porta segue a do servidor sozinho.
+    ///     Discordar não é erro — um roteador pode expor a 25565 e entregar na
+    ///     25570 —, mas é a causa mais comum de "não consigo entrar", então o
+    ///     formulário avisa em vez de calar.
     /// </summary>
-    private bool AddressPointsElsewhere =>
-        !string.IsNullOrWhiteSpace(_connectAddress)
-        && GamePortRange.IsValid(_gamePort)
-        && GamePortRange.AddressPort(_connectAddress) != _gamePort;
+    private int? ExplicitAddressPort =>
+        GamePortRange.IsValid(_gamePort) ? GameAddress.ExplicitPort(_connectAddress) : null;
+
+    /// <summary>
+    ///     O endereço como será publicado. Com a porta em zero (faixa esgotada, e
+    ///     o caso de uso é quem recusa) a prévia usa a padrão só para ter o que
+    ///     mostrar.
+    /// </summary>
+    private string PublishedAddress =>
+        GameAddress.Resolve(
+            _connectAddress,
+            GamePortRange.IsValid(_gamePort) ? _gamePort : GamePortDefaults.First,
+            _publicHost);
 
     private ModpackVersion? _selected => _versions.FirstOrDefault(v => v.Id == _selectedVersionId);
     private int SelectedModCount => _selected?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
@@ -51,6 +67,8 @@ public partial class ServerFormDialog
     protected override async Task OnInitializedAsync()
     {
         _isNew = Existing is null;
+
+        _publicHost = (await PublicHostLookup.HandleAsync(false, CancellationToken.None)).Effective;
 
         if (Existing is not null)
         {
@@ -87,14 +105,15 @@ public partial class ServerFormDialog
     }
 
     /// <summary>
-    ///     Troca a porta e, se o endereço ainda apontava para a anterior, leva o
-    ///     endereço junto. Um endereço que o admin já apontou para outra porta
+    ///     Troca a porta e, se o endereço tinha a anterior ESCRITA, leva o
+    ///     endereço junto. Sem porta escrita não há o que levar — ele já segue a
+    ///     do servidor. E um endereço que o admin apontou para outra porta
     ///     (redirecionamento no roteador) é decisão dele e fica como está.
     /// </summary>
     private void OnGamePortChanged(int port)
     {
-        if (GamePortRange.AddressPort(_connectAddress) == _gamePort)
-            _connectAddress = GamePortRange.WithPort(_connectAddress, port);
+        if (GameAddress.ExplicitPort(_connectAddress) == _gamePort)
+            _connectAddress = GameAddress.WithPort(_connectAddress, port);
 
         _gamePort = port;
     }

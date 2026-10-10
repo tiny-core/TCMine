@@ -22,6 +22,10 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         // que é como o portal do Azure às vezes o entrega ao copiar.
         builder.Property(s => s.AzureClientId).HasMaxLength(64);
 
+        // Um nome DNS completo tem no máximo 255 caracteres (o mesmo número
+        // está em UpdateSettings.PublicHostMaxLength, que é quem recusa).
+        builder.Property(s => s.PublicHost).HasMaxLength(255);
+
         // Com padrão NO BANCO: a linha de configurações já existe nas
         // instalações em uso, e sem isto a migration a deixaria com a faixa
         // 0–0. O valor é o literal, e não a constante do domínio, porque
