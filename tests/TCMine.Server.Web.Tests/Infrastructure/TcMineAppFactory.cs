@@ -64,6 +64,9 @@ internal class TcMineAppFactory : WebApplicationFactory<Program>
         {
             services.AddScoped<IMicrosoftOAuthClient, FakeMicrosoftOAuthClient>();
             services.AddScoped<IMinecraftTokenExchange, FakeMinecraftTokenExchange>();
+
+            // O IP público também é rede de verdade (Cloudflare, ipify).
+            services.AddSingleton<IPublicAddressProvider, FakePublicAddressProvider>();
         });
 
         if (Servicos is not null)

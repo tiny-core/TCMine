@@ -9,6 +9,7 @@ using TCMine.Server.Infrastructure.Ingestion.CurseForge;
 using TCMine.Server.Infrastructure.Ingestion.Modrinth;
 using TCMine.Server.Infrastructure.Instances;
 using TCMine.Server.Infrastructure.Launcher;
+using TCMine.Server.Infrastructure.Network;
 using TCMine.Server.Infrastructure.Persistence;
 using TCMine.Server.Infrastructure.Security;
 using TCMine.Server.Infrastructure.Storage;
@@ -154,6 +155,15 @@ public static class DependencyInjection
             // A API do GitHub recusa pedido sem User-Agent.
             client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine-Server");
             client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        });
+
+        // IP público, para o endereço dos servidores de jogo. Sem resiliência
+        // padrão e com tempo limite curto: está no caminho da lista de
+        // servidores do launcher, e o provedor já tem uma segunda fonte.
+        services.AddHttpClient<IPublicAddressProvider, PublicAddressProvider>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(3);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
         });
 
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));

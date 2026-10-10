@@ -255,18 +255,38 @@ reduz a entrar.
 
 ## Portas dos servidores de jogo
 
-A porta de cada servidor vem do `ConnectAddress` que você digita ao criá-lo:
-`mc.exemplo.com:25566` publica na 25566; sem porta, cai na 25565. **Cada
-servidor precisa de uma porta diferente** — dois com a mesma fazem o segundo
-falhar ao subir. Abra cada uma no firewall (e, se for rede doméstica, encaminhe
-no roteador).
+Cada servidor publica uma porta própria nesta máquina, escolhida no formulário
+(um servidor novo recebe a primeira livre da faixa em *Configurações → Rede*,
+padrão 25565–25599). Abra a faixa no firewall e, se for rede doméstica,
+encaminhe-a no roteador — a faixa inteira de uma vez evita voltar ao roteador a
+cada servidor novo.
+
+O **endereço** que os jogadores recebem é montado pelo TCMine:
+
+- campo de endereço do servidor **vazio** → o endereço público da instalação
+  mais a porta do servidor. O endereço público é o que estiver em
+  *Configurações → Rede* (um domínio ou DDNS) ou, na falta dele, o IP público
+  detectado;
+- endereço **sem porta** (`mc.exemplo.com`) → recebe a porta do servidor;
+- endereço **com porta** (`mc.exemplo.com:25565`) → sai como está escrito. É
+  para quando o roteador expõe uma porta e entrega em outra.
+
+O IP público é detectado consultando a Cloudflare e, se ela falhar, o ipify — o
+container precisa de saída HTTPS para `www.cloudflare.com` ou `api.ipify.org`.
+Com o endereço público preenchido, nenhuma dessas consultas é necessária para
+os jogadores entrarem.
 
 ## Se for hospedar em casa
 
 Uma limitação que não é do TCMine e morde sempre:
 
-- **IP residencial muda.** Configure DDNS, ou os jogadores perdem o endereço na
-  próxima renovação.
+- **IP residencial muda.** Configure DDNS e ponha o nome em *Configurações →
+  Rede → Endereço público*, ou os jogadores perdem o endereço na próxima
+  renovação.
+- **CGNAT.** Muitas operadoras dividem um IP público entre vários clientes. O
+  painel detecta esse IP normalmente, mas o encaminhamento de portas do roteador
+  não funciona e ninguém de fora entra. Sinal típico: o IP da WAN mostrado pelo
+  roteador é diferente do detectado. A saída é pedir um IP público à operadora.
 
 Um Cloudflare Tunnel resolve o TLS do painel sem abrir porta no roteador, e
 envia o `X-Forwarded-Proto` de que o painel precisa. Ele **não serve para o

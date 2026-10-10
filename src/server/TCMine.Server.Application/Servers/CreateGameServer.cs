@@ -20,8 +20,11 @@ public sealed class CreateGameServer(
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
-        if (string.IsNullOrWhiteSpace(connectAddress))
-            return Result<Guid>.Fail("Informe o endereço de conexão.");
+
+        // O endereço pode vir vazio: é "automático", e quem o publica o monta
+        // com o host público da instalação e a porta deste servidor
+        // (GameAddress.Resolve). Exigi-lo aqui obrigava o admin a descobrir e
+        // digitar o próprio IP a cada servidor.
 
         // Só versões publicadas podem rodar (arquivos resolvidos e imutáveis).
         // Somente versões publicadas E estáveis rodam. Alpha/beta ficam de fora —

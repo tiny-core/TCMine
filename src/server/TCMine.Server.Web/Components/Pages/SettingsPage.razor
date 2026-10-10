@@ -64,6 +64,54 @@ else
             </MudTabPanel>
 
             <MudTabPanel Text="Rede" Icon="@Icons.Material.Filled.Router" Class="pa-6">
+                <MudText Typo="Typo.subtitle1" Class="mb-1">Endereço público</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    O host pelo qual os jogadores alcançam esta máquina. Um servidor com o
+                    endereço em branco é publicado como este host mais a porta dele.
+                </MudText>
+
+                <MudTextField @bind-Value="_publicHost" Label="Endereço público"
+                              Variant="Variant.Outlined" Placeholder="ex.: jogar.meudominio.com"
+                              HelperText="Domínio ou DDNS, sem porta. Vazio = usar o IP detectado abaixo."/>
+
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1" Class="mt-3">
+                    @if (_isDetecting)
+                    {
+                        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            Detectando o IP público…
+                        </MudText>
+                    }
+                    else if (_detectedAddress is null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                            Não foi possível detectar o IP público agora. A detecção tenta de
+                            novo sozinha; os servidores com endereço escrito não dependem dela.
+                        </MudText>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.body2">
+                            IP público detectado: <b>@_detectedAddress</b>
+                        </MudText>
+                        <MudTooltip Text="Copiar">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                           OnClick="CopyDetectedAddress"/>
+                        </MudTooltip>
+                    }
+                </MudStack>
+
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    O IP detectado é o que a internet vê desta rede — não a prova de que ela
+                    aceita conexões. Em operadoras com CGNAT esse IP é dividido entre vários
+                    clientes, e o redirecionamento de portas do roteador não funciona: ninguém
+                    de fora entra, mesmo com tudo certo aqui. O sinal mais comum é o IP da WAN
+                    mostrado pelo roteador ser diferente do detectado. A saída é pedir um IP
+                    público à operadora ou usar um túnel.
+                </MudAlert>
+
+                <MudDivider Class="my-6"/>
+
                 <MudText Typo="Typo.subtitle1" Class="mb-1">Portas dos servidores</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                     Cada servidor de jogo publica uma porta própria nesta máquina. Um servidor

@@ -76,11 +76,27 @@ else
                     </MudStack>
                 </MudTd>
                 <MudTd DataLabel="Endereço">
-                    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
-                        <MudText Typo="Typo.caption">@context.Server.ConnectAddress</MudText>
-                        <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
-                                       OnClick="@(() => CopyAddress(context.Server.ConnectAddress))"/>
-                    </MudStack>
+                    @* O endereço RESOLVIDO — o mesmo que o launcher recebe —, e
+                       não o texto do formulário: com a porta do servidor e, no
+                       automático, o host público. *@
+                    @if (context.Address.Length > 0)
+                    {
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudText Typo="Typo.caption">@context.Address</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                           OnClick="@(() => CopyAddress(context.Address))"/>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudTooltip
+                            Text="Endereço automático, mas o IP público não foi detectado. Preencha o endereço público em Configurações → Rede, ou escreva um endereço neste servidor.">
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Color="Color.Warning" Icon="@Icons.Material.Filled.LinkOff">
+                                sem endereço
+                            </MudChip>
+                        </MudTooltip>
+                    }
                 </MudTd>
                 <MudTd DataLabel="RAM" Style="text-align:right;">
                     <MudText Typo="Typo.caption">@context.Server.MemoryMb MB</MudText>

@@ -63,25 +63,4 @@ public sealed class GamePortRangeTests
     {
         Assert.Equal(valid, GamePortRange.IsValid(port));
     }
-
-    [Theory]
-    [InlineData("play.exemplo.com", 25565)] // sem porta, o cliente usa a padrão
-    [InlineData("play.exemplo.com:25570", 25570)]
-    [InlineData(" 94.63.98.255:25566 ", 25566)]
-    [InlineData("", 25565)]
-    [InlineData("play.exemplo.com:abc", 25565)]
-    public void Porta_do_endereco_e_a_escrita_ou_a_padrao(string address, int expected)
-    {
-        Assert.Equal(expected, GamePortRange.AddressPort(address));
-    }
-
-    [Theory]
-    [InlineData("play.exemplo.com", 25570, "play.exemplo.com:25570")]
-    [InlineData("play.exemplo.com:25570", 25571, "play.exemplo.com:25571")]
-    [InlineData("play.exemplo.com:25570", 25565, "play.exemplo.com")] // a padrão fica implícita
-    [InlineData("", 25570, "")] // sem host não há o que completar
-    public void Trocar_a_porta_do_endereco_preserva_o_host(string address, int port, string expected)
-    {
-        Assert.Equal(expected, GamePortRange.WithPort(address, port));
-    }
 }

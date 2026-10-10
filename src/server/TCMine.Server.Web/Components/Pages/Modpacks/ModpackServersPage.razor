@@ -51,14 +51,30 @@ else
                                                   Wrap="Wrap.Wrap">
                                             <ServerStatusChip Status="server.Status"/>
 
-                                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                                @server.ConnectAddress
-                                            </MudText>
-                                            <MudTooltip Text="Copiar endereço">
-                                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
-                                                               Size="Size.Small"
-                                                               OnClick="@(() => CopyAddress(server.ConnectAddress))"/>
-                                            </MudTooltip>
+                                            @* Resolvido: o mesmo endereço que o
+                                               launcher recebe, com a porta. *@
+                                            @if (AddressOf(server) is { Length: > 0 } address)
+                                            {
+                                                <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                                    @address
+                                                </MudText>
+                                                <MudTooltip Text="Copiar endereço">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy"
+                                                                   Size="Size.Small"
+                                                                   OnClick="@(() => CopyAddress(address))"/>
+                                                </MudTooltip>
+                                            }
+                                            else
+                                            {
+                                                <MudTooltip
+                                                    Text="Endereço automático, mas o IP público não foi detectado. Preencha o endereço público em Configurações → Rede, ou escreva um endereço neste servidor.">
+                                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                                             Color="Color.Warning"
+                                                             Icon="@Icons.Material.Filled.LinkOff">
+                                                        sem endereço
+                                                    </MudChip>
+                                                </MudTooltip>
+                                            }
 
                                             @if (_versionsById.TryGetValue(server.ModpackVersionId, out var ver))
                                             {

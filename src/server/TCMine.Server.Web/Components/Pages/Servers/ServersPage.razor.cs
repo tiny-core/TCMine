@@ -4,6 +4,7 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Components.Features.Servers;
 
@@ -24,6 +25,7 @@ public partial class ServersPage : ComponentBase
     [Inject] private IPlayerCountSource Players { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
+    [Inject] private GetPublicHost PublicHostLookup { get; set; } = default!;
 
     /// <summary>
     ///     Filtro em memória: servidores são poucos por natureza (um homelab tem
@@ -53,6 +55,10 @@ public partial class ServersPage : ComponentBase
         var modpacks = await ModpackRepository.ListAsync(CancellationToken.None);
         var namesById = modpacks.ToDictionary(m => m.Id, m => m.Name);
 
+        // Uma leitura para a tabela inteira: o host público é da instalação,
+        // não de cada servidor.
+        var publicHost = (await PublicHostLookup.HandleAsync(false, CancellationToken.None)).Effective;
+
         var rows = new List<ServerRow>();
         foreach (var group in servers.GroupBy(s => s.ModpackId))
         {
@@ -70,6 +76,7 @@ public partial class ServersPage : ComponentBase
 
             rows.AddRange(group.Select(s => new ServerRow(
                 s,
+                GameAddress.Resolve(s.ConnectAddress, s.GamePort, publicHost),
                 namesById.GetValueOrDefault(s.ModpackId, "—"),
                 versions.GetValueOrDefault(s.ModpackVersionId, "—"),
 
@@ -118,8 +125,10 @@ public partial class ServersPage : ComponentBase
     }
 
     /// <summary>Servidor mais o que a tabela precisa mostrar ao lado dele.</summary>
+    /// <param name="Address">O endereço publicado (resolvido). Vazio quando não há.</param>
     private sealed record ServerRow(
         GameServer Server,
+        string Address,
         string ModpackName,
         string VersionLabel,
         string? NewerVersion);
