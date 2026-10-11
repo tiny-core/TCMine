@@ -66,7 +66,16 @@ public sealed partial class DockerServerOrchestrator(
 
         // A senha do RCON fica FORA da impressão digital: ela não muda, e um
         // label é legível por qualquer um com acesso ao Docker.
-        var fingerprint = ItzgEnv.Fingerprint(image, settings, [$"port={hostPort}", $"bind={instancePath}"]);
+        // Limite de memória e teto do log entram também: são fixados no create,
+        // e um container antigo (limite igual ao heap, log sem teto) precisa
+        // ser recriado para ganhá-los.
+        var memoryLimit = ItzgEnv.ContainerMemoryBytes(server.MemoryMb);
+        var fingerprint = ItzgEnv.Fingerprint(image, settings,
+        [
+            $"port={hostPort}", $"bind={instancePath}",
+            $"memory={memoryLimit.ToString(CultureInfo.InvariantCulture)}",
+            $"log={ItzgEnv.LogMaxSize}x{ItzgEnv.LogMaxFiles}"
+        ]);
 
         // 1. Se temos um ContainerId e ele ainda existe, decide entre reusar e
         //    recriar. Reusar SEMPRE era o defeito: o ambiente de um container é
@@ -107,7 +116,21 @@ public sealed partial class DockerServerOrchestrator(
 
         // A Engine API não puxa no create — garantimos a imagem primeiro.
         // Idempotente: se já está local, o pull retorna rápido.
-        await docker.PullImageAsync(image, ct);
+        try
+        {
+            await docker.PullImageAsync(image, ct);
+        }
+        catch (HttpRequestException ex)
+        {
+            // Sem internet, ou o Docker Hub limitou os downloads: a imagem que
+            // já está na máquina serve. Recusar o início aqui deixava o
+            // servidor fora do ar por causa de uma ATUALIZAÇÃO que não veio.
+            // Sem cópia local não há o que fazer, e o erro do pull é a causa.
+            if (!await docker.ImageExistsAsync(image, ct))
+                throw;
+
+            LogPullSkipped(ex, image);
+        }
 
         var spec = new CreateContainerRequest
         {
@@ -136,7 +159,20 @@ public sealed partial class DockerServerOrchestrator(
             HostConfig = new HostConfig
             {
                 Binds = [$"{instancePath}:/data"],
-                Memory = (long)server.MemoryMb * 1024 * 1024,
+                Memory = memoryLimit,
+
+                // O padrão do Docker (json-file sem opções) cresce para sempre:
+                // um servidor tagarela enche o disco em semanas, e disco cheio
+                // derruba o banco junto. O histórico do jogo continua inteiro
+                // em /data/logs, que é do Minecraft e ele mesmo gira.
+                LogConfig = new LogConfig
+                {
+                    Type = "json-file",
+                    Config = new Dictionary<string, string>
+                    {
+                        ["max-size"] = ItzgEnv.LogMaxSize, ["max-file"] = ItzgEnv.LogMaxFiles
+                    }
+                },
                 PortBindings =
                     new Dictionary<string, PortBinding[]> { ["25565/tcp"] = [new PortBinding { HostPort = hostPort }] },
                 RestartPolicy = new RestartPolicy { Name = "unless-stopped" }
@@ -224,6 +260,11 @@ public sealed partial class DockerServerOrchestrator(
     /// </summary>
     private static string[] UsuarioDoProcesso() =>
         ProcessUser.Current is { } user ? [$"UID={user.Uid}", $"GID={user.Gid}"] : [];
+
+    [LoggerMessage(
+        Level = LogLevel.Warning,
+        Message = "Docker: não deu para atualizar a imagem {Image}; o servidor sobe com a cópia local.")]
+    private partial void LogPullSkipped(Exception ex, string image);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Docker: inspect falhou para o container {ContainerId}.")]
     private partial void LogInspectFailed(Exception ex, string containerId);

@@ -18,6 +18,22 @@ namespace TCMine.Server.Application.Tests.Modpacks;
 public sealed class ImportRecoveryTests
 {
     [Fact]
+    public async Task Importacao_sem_conta_e_recusada_antes_de_gravar_o_pedido()
+    {
+        // O modpack importado nasce com o solicitante como Owner. Sem
+        // solicitante ele nasceria sem ninguém que o pudesse editar ou apagar.
+        var repo = new FakeRequests();
+        var anonimo = new global::TCMine.Server.Application.Tests.Fakes.FakeUserScope { UserId = null };
+
+        var result = await new ImportScheduler(repo, new FakeQueue(repo), anonimo).ScheduleAsync(
+            ModFileOrigin.CurseForge, "999", null, "All the Mods 10", CancellationToken.None);
+
+        result.Succeeded.ShouldBeFalse();
+        repo.Registros.ShouldBeEmpty();
+        repo.Eventos.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task Pedido_e_gravado_antes_de_entrar_na_fila()
     {
         var repo = new FakeRequests();

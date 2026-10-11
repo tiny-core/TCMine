@@ -392,12 +392,42 @@ public sealed class ServerRulesTests
         Assert.False(servers.Removido);
     }
 
+    [Fact]
+    public async Task Criar_servidor_com_modpack_alheio_e_recusado_sem_gravar_nada()
+    {
+        // Sem papel no modpack: a conta existe, o modpack existe, e mesmo assim
+        // não pode — o servidor levaria os arquivos de um pack que não é dela.
+        var servers = new FakeServers();
+        var semPapel = new FakeUserScope(modpackRole: null);
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers, scope: semPapel)
+            .HandleAsync(Guid.CreateVersion7(), "Meu servidor", "", 4096, 10, Guid.Empty, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        // A mesma frase de "não existe": não dá para mapear modpacks pelo id.
+        Assert.Equal("Modpack não encontrado.", result.Error);
+        Assert.Null(servers.Adicionado);
+    }
+
+    [Fact]
+    public async Task Editor_do_modpack_pode_criar_servidor_com_ele()
+    {
+        var editor = new FakeUserScope(modpackRole: ModpackRoleDto.Editor);
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), scope: editor)
+            .HandleAsync(Guid.CreateVersion7(), "Meu servidor", "", 4096, 10, Guid.Empty, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+    }
+
     // ---- Fixtures ----
 
     private static CreateGameServer NewCreate(
-        ModpackVersion version, FakeServers? servers = null, FakeMemberships? memberships = null) =>
+        ModpackVersion version, FakeServers? servers = null, FakeMemberships? memberships = null,
+        ICurrentUserScope? scope = null) =>
         new(servers ?? new FakeServers(), new FakeModpacks(version),
-            memberships ?? new FakeMemberships(), new FakeScope(), new FakePorts(), new FakeDnsSyncSignal());
+            memberships ?? new FakeMemberships(), scope ?? new FakeScope(), new FakePorts(),
+            new FakeDnsSyncSignal());
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)
     {

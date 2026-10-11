@@ -115,4 +115,17 @@ public sealed class ItzgEnvTests
         a.ShouldBe(b);
         a.ShouldNotBe(c);
     }
+
+    [Theory]
+    // Heap pequeno: os 25% seriam menos do que a JVM gasta fora do heap.
+    [InlineData(1024, 1536)]
+    [InlineData(2048, 2560)]
+    // Daqui em diante valem os 25%.
+    [InlineData(4096, 5120)]
+    [InlineData(8192, 10240)]
+    public void Limite_do_container_fica_acima_do_heap(int heapMb, int limitMb)
+    {
+        // Limite igual ao heap é OOM kill garantido quando o heap enche.
+        ItzgEnv.ContainerMemoryBytes(heapMb).ShouldBe(limitMb * 1024L * 1024L);
+    }
 }

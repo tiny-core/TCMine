@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Servers;
 
@@ -22,6 +23,15 @@ public sealed class CreateGameServer(
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
+
+        // Subir um servidor com um modpack é usá-lo por inteiro: os arquivos
+        // dele vão para a máquina e para quem entrar. Sem esta conferência,
+        // qualquer conta criava servidor com o modpack de outra — bastava o
+        // id. Editor para cima; a mensagem não distingue "não existe" de "não
+        // é seu" (ver ModpackAuthorization).
+        var auth = await userScope.RequireAsync(modpackId, ModpackAccessPolicy.CanEdit, ct);
+        if (!auth.Succeeded)
+            return Result<Guid>.Fail(auth.Error!);
 
         // O endereço pode vir vazio: é "automático", e quem o publica o monta
         // com o host público da instalação e a porta deste servidor

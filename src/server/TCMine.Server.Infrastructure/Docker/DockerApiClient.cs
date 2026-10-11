@@ -151,7 +151,7 @@ public sealed class DockerApiClient
             new ExecCreateRequest { Cmd = command },
             ct);
 
-        create.EnsureSuccessStatusCode();
+        await EnsureAsync(create, "rodar o comando no container", ct);
 
         var created = await create.Content.ReadFromJsonAsync<CreateContainerResponse>(ct);
         if (created?.Id is not { Length: > 0 } execId)
@@ -162,7 +162,7 @@ public sealed class DockerApiClient
             new ExecStartRequest(),
             ct);
 
-        start.EnsureSuccessStatusCode();
+        await EnsureAsync(start, "rodar o comando no container", ct);
         return await start.Content.ReadAsStringAsync(ct);
     }
 
@@ -171,7 +171,7 @@ public sealed class DockerApiClient
     {
         var response = await _http.PostAsJsonAsync(
             $"{_prefix}/containers/create?name={Uri.EscapeDataString(name)}", spec, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response, "criar o container", ct);
         var created = await response.Content.ReadFromJsonAsync<CreateContainerResponse>(ct);
         return created!.Id;
     }
@@ -181,7 +181,7 @@ public sealed class DockerApiClient
         var response = await _http.PostAsync($"{_prefix}/containers/{id}/start", null, ct);
         // 304 = já corria; não é erro.
         if (response.StatusCode is not HttpStatusCode.NotModified)
-            response.EnsureSuccessStatusCode();
+            await EnsureAsync(response, "iniciar o container", ct);
     }
 
     /// <summary>Parada graciosa: SIGTERM, espera t segundos, depois SIGKILL.</summary>
@@ -189,7 +189,7 @@ public sealed class DockerApiClient
     {
         var response = await _http.PostAsync($"{_prefix}/containers/{id}/stop?t={timeoutSeconds}", null, ct);
         if (response.StatusCode is not HttpStatusCode.NotModified)
-            response.EnsureSuccessStatusCode();
+            await EnsureAsync(response, "parar o container", ct);
     }
 
     /// <summary>
@@ -216,7 +216,7 @@ public sealed class DockerApiClient
         var response = await _http.GetAsync($"{_prefix}/containers/{id}/json", ct);
         if (response.StatusCode is HttpStatusCode.NotFound)
             return null;
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response, "consultar o container", ct);
 
         return await response.Content.ReadFromJsonAsync<ContainerInspect>(
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct);
@@ -227,26 +227,82 @@ public sealed class DockerApiClient
         var response = await _http.DeleteAsync(
             $"{_prefix}/containers/{id}?force={force.ToString().ToLowerInvariant()}", ct);
         if (response.StatusCode is not HttpStatusCode.NotFound)
-            response.EnsureSuccessStatusCode();
+            await EnsureAsync(response, "remover o container", ct);
     }
 
     /// <summary>
     ///     Puxa uma imagem do registry. A rota devolve progresso em stream (uma
     ///     linha JSON por evento); drenamos até ao fim, que é quando o pull acaba.
+    ///     O pull que falha no MEIO responde 200: o erro vem como mais uma linha
+    ///     do stream (<c>{"error":"..."}</c>). Só drenar engolia isso, e a falha
+    ///     reaparecia um passo depois como "No such image" no create — longe da
+    ///     causa (sem internet, limite do Docker Hub, tag que não existe).
     /// </summary>
     public async Task PullImageAsync(string image, CancellationToken ct)
     {
-        var response = await _http.PostAsync(
+        var action = $"baixar a imagem {image}";
+
+        using var response = await _http.PostAsync(
             $"{_prefix}/images/create?fromImage={Uri.EscapeDataString(image)}", null, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureAsync(response, action, ct);
 
         // Consumir o stream até ao fim é o que "espera o pull terminar".
         await using var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
-        while (await reader.ReadLineAsync(ct) is not null)
+        while (await reader.ReadLineAsync(ct) is { } line)
         {
-            // Poderíamos parsear o progresso para a UI; por ora só drenamos.
+            // Só as linhas de erro interessam; o progresso é descartado. O
+            // teste do texto antes do parse poupa desserializar centenas de
+            // linhas de "Downloading".
+            if (line.Contains("\"error\"", StringComparison.Ordinal)
+                && DockerError.Extract(line) is { } error)
+                throw new HttpRequestException(DockerError.Describe(action, error));
         }
+    }
+
+    /// <summary>
+    ///     A imagem já está nesta máquina? É o que permite subir um servidor
+    ///     sem internet: o pull falha, mas a imagem de ontem serve.
+    /// </summary>
+    public async Task<bool> ImageExistsAsync(string image, CancellationToken ct)
+    {
+        try
+        {
+            // O nome vai cru no caminho ("itzg/minecraft-server:java21"): é
+            // como a Engine API o espera, com a barra e tudo.
+            using var response = await _http.GetAsync($"{_prefix}/images/{image}/json", ct);
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    ///     O <c>EnsureSuccessStatusCode</c> que lê o motivo. Continua sendo uma
+    ///     <see cref="HttpRequestException" /> — quem já tratava falha do Docker
+    ///     por esse tipo (métricas, RCON) não muda —, só que com a mensagem do
+    ///     daemon em vez do número do status.
+    /// </summary>
+    private static async Task EnsureAsync(HttpResponseMessage response, string action, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        string? body = null;
+        try
+        {
+            body = await response.Content.ReadAsStringAsync(ct);
+        }
+        catch (HttpRequestException)
+        {
+            // Sem corpo legível: fica só a ação e o status.
+        }
+
+        var detail = DockerError.Extract(body) ?? $"HTTP {(int)response.StatusCode}";
+
+        throw new HttpRequestException(DockerError.Describe(action, detail), null, response.StatusCode);
     }
 }
 
@@ -309,6 +365,19 @@ public sealed record HostConfig
     [JsonPropertyName("PortBindings")] public Dictionary<string, PortBinding[]>? PortBindings { get; init; }
     [JsonPropertyName("RestartPolicy")] public RestartPolicy? RestartPolicy { get; init; }
     [JsonPropertyName("Memory")] public long Memory { get; init; }
+
+    /// <summary>
+    ///     Como o Docker guarda a saída do container. Nulo é o padrão do daemon
+    ///     — que, sem configuração, é um arquivo JSON sem teto.
+    /// </summary>
+    [JsonPropertyName("LogConfig")]
+    public LogConfig? LogConfig { get; init; }
+}
+
+public sealed record LogConfig
+{
+    [JsonPropertyName("Type")] public required string Type { get; init; }
+    [JsonPropertyName("Config")] public Dictionary<string, string>? Config { get; init; }
 }
 
 public sealed record PortBinding

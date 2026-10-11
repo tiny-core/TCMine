@@ -20,6 +20,12 @@ public sealed class ImportScheduler(
     public async Task<Result<Guid>> ScheduleAsync(
         ModFileOrigin origin, string projectId, string? fileId, string displayName, CancellationToken ct)
     {
+        // Importar é criar um modpack, e modpack sem dono não tem quem o
+        // edite, publique ou apague: o vínculo de Owner nasce do RequestedBy
+        // gravado abaixo. Sem conta, o worker criaria um modpack órfão.
+        if (scope.UserId is null)
+            return Result<Guid>.Fail("Entre com a sua conta para importar um modpack.");
+
         // Duas importações do mesmo pack em paralelo criariam dois modpacks
         // disputando a mesma procedência — a checagem que o caso de uso já faz
         // contra o catálogo, aplicada ao que ainda está em curso.

@@ -160,6 +160,32 @@ public static class ItzgEnv
     ///     criado, então versão, loader, memória ou porta novos exigem recriá-lo.
     ///     Ordenado para a ordem da lista não mudar o resultado.
     /// </summary>
+    /// <summary>Tamanho de cada arquivo de log do container antes de girar.</summary>
+    public const string LogMaxSize = "10m";
+
+    /// <summary>Quantos arquivos de log ficam. Com <see cref="LogMaxSize" />: 30 MB por servidor.</summary>
+    public const string LogMaxFiles = "3";
+
+    /// <summary>
+    ///     Limite de memória do CONTAINER para um heap de <paramref name="heapMb" />.
+    ///     O limite era igual ao heap, e isso mata o servidor: a JVM gasta
+    ///     memória FORA do heap (metaspace, pilhas de thread, buffers diretos do
+    ///     Netty, o próprio coletor), e um pack grande passa fácil de 1 GB ali.
+    ///     Com heap e limite iguais, o kernel derruba o processo (OOM kill, exit
+    ///     137) justamente quando o heap enche — sem nenhuma linha no console.
+    ///     A folga é 25% do heap, com piso de 512 MB: em heap pequeno os 25%
+    ///     seriam menos do que a JVM precisa só para existir.
+    /// </summary>
+    public static long ContainerMemoryBytes(int heapMb)
+    {
+        const long megabyte = 1024L * 1024L;
+        const long minimumOverheadMb = 512;
+
+        var overheadMb = Math.Max(heapMb / 4L, minimumOverheadMb);
+
+        return (heapMb + overheadMb) * megabyte;
+    }
+
     public static string Fingerprint(string image, IEnumerable<string> env, IEnumerable<string> extra)
     {
         var canonical = string.Join('\n', new[] { image }.Concat(env.Order(StringComparer.Ordinal))
