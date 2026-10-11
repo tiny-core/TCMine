@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using TCMine.Server.Application.Abstractions;
@@ -33,6 +34,38 @@ public sealed partial class PublicAddressProvider(
     private static readonly TimeSpan RetryAfter = TimeSpan.FromMinutes(1);
 
     private readonly ILogger<PublicAddressProvider> _logger = logger;
+
+    /// <summary>
+    ///     O transporte das consultas, preso ao IPv4.
+    ///     As duas fontes respondem com o IP por onde a conexão CHEGOU. Numa rede
+    ///     com IPv6 a máquina prefere-o, e a resposta era um endereço IPv6 — que
+    ///     não serve: o registro A só aceita IPv4, e é por IPv4 que o roteador
+    ///     redireciona as portas do jogo. Abrir o socket como IPv4 faz o nome das
+    ///     fontes resolver só para IPv4, e a resposta passa a ser o IPv4 público.
+    ///     Uma rede sem IPv4 nenhum fica sem detecção, o que é o resultado certo:
+    ///     ali não há endereço que um registro A possa ter.
+    /// </summary>
+    public static SocketsHttpHandler CreateIpv4Handler() => new()
+    {
+        ConnectCallback = async (context, ct) =>
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
+            {
+                NoDelay = true
+            };
+
+            try
+            {
+                await socket.ConnectAsync(context.DnsEndPoint, ct);
+                return new NetworkStream(socket, true);
+            }
+            catch
+            {
+                socket.Dispose();
+                throw;
+            }
+        }
+    };
 
     public async Task<string?> GetAsync(CancellationToken ct)
     {

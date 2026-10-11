@@ -160,12 +160,14 @@ public static class DependencyInjection
 
         // IP público, para o endereço dos servidores de jogo. Sem resiliência
         // padrão e com tempo limite curto: está no caminho da lista de
-        // servidores do launcher, e o provedor já tem uma segunda fonte.
+        // servidores do launcher, e o provedor já tem uma segunda fonte. O
+        // transporte é só IPv4 — ver PublicAddressProvider.CreateIpv4Handler.
         services.AddHttpClient<IPublicAddressProvider, PublicAddressProvider>(client =>
-        {
-            client.Timeout = TimeSpan.FromSeconds(3);
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
-        });
+            {
+                client.Timeout = TimeSpan.FromSeconds(3);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+            })
+            .ConfigurePrimaryHttpMessageHandler(PublicAddressProvider.CreateIpv4Handler);
 
         // DNS dos servidores de jogo. Token e zona não entram aqui: vivem na
         // configuração da instalação e vão em cada chamada. Sem resiliência
