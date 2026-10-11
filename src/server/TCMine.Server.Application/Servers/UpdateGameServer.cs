@@ -14,7 +14,8 @@ public sealed class UpdateGameServer(
 {
     public async Task<Result> HandleAsync(
         Guid id, string name, string connectAddress, int memoryMb, int maxPlayers,
-        bool whitelistEnabled, CancellationToken ct, int gamePort = 0, string? subdomain = null)
+        bool whitelistEnabled, CancellationToken ct, int gamePort = 0, string? subdomain = null,
+        IReadOnlyDictionary<string, string>? options = null)
     {
         // Antes da validação do nome: responder "informe o nome" a quem nem
         // deveria enxergar este servidor já confirma que ele existe.
@@ -28,6 +29,12 @@ public sealed class UpdateGameServer(
         var server = await servers.GetByIdAsync(id, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
+
+        // Nulo = não mexe nas opções de jogo; um dicionário (mesmo vazio)
+        // substitui todas. Como as demais conferências, antes de alterar algo.
+        var (gameOptions, optionsError) = GameOptions.Normalize(options);
+        if (options is not null && optionsError is not null)
+            return Result.Fail(optionsError);
 
         // Nulo = não mexe no subdomínio; vazio = tira. Como a porta abaixo, a
         // recusa vem antes de qualquer campo ser alterado.
@@ -58,6 +65,11 @@ public sealed class UpdateGameServer(
 
         if (subdomain is not null)
             server.Subdomain = label;
+
+        // Chegam ao jogo no próximo início: entram na impressão digital do
+        // container, que é recriado com o mundo intacto.
+        if (options is not null)
+            server.OptionsJson = GameOptions.Serialize(gameOptions);
 
         server.MemoryMb = memoryMb;
         server.MaxPlayers = maxPlayers;

@@ -27,6 +27,47 @@ public partial class ServerFormDialog
 
     private string _subdomain = "";
 
+    /// <summary>
+    ///     As opções de jogo definidas no formulário: variável do itzg → valor.
+    ///     Só as definidas — uma opção em "padrão do modpack" não está aqui.
+    /// </summary>
+    private readonly Dictionary<string, string> _options = new(StringComparer.Ordinal);
+
+    /// <summary>
+    ///     Quantas opções de um grupo estão definidas — o número no selo da aba.
+    ///     Nulo quando nenhuma, para a aba ficar sem selo: é o que deixa ver de
+    ///     relance onde o servidor foge do padrão do modpack.
+    /// </summary>
+    private string? DefinedIn(IEnumerable<GameOption> group)
+    {
+        var count = group.Count(o => _options.ContainsKey(o.Key));
+
+        return count > 0 ? count.ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+    }
+
+    private string GetOption(string key) => _options.GetValueOrDefault(key, "");
+
+    /// <summary>Em branco tira a opção: volta a valer o que o modpack traz.</summary>
+    private void SetOption(string key, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            _options.Remove(key);
+        else
+            _options[key] = value;
+    }
+
+    private int? GetNumber(string key) =>
+        int.TryParse(
+            GetOption(key),
+            System.Globalization.NumberStyles.AllowLeadingSign,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out var number)
+            ? number
+            : null;
+
+    private void SetNumber(string key, int? value) =>
+        SetOption(key, value?.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
     /// <summary>Teto de opções no campo Porta: uma faixa enorme não vira uma lista interminável.</summary>
     private const int MaxPortChoices = 100;
 
@@ -139,6 +180,9 @@ public partial class ServerFormDialog
             _connectAddress = Existing.ConnectAddress;
             _gamePort = Existing.GamePort;
             _subdomain = Existing.Subdomain ?? "";
+
+            foreach (var (key, value) in GameOptions.Parse(Existing.OptionsJson))
+                _options[key] = value;
             _memoryMb = Existing.MemoryMb;
             _maxPlayers = Existing.MaxPlayers;
             _whitelistEnabled = Existing.WhitelistEnabled;
@@ -194,12 +238,12 @@ public partial class ServerFormDialog
         {
             return await UpdateUseCase.HandleAsync(
                 Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
-                CancellationToken.None, _gamePort, _subdomain);
+                CancellationToken.None, _gamePort, _subdomain, _options);
         }
 
         var created = await CreateUseCase.HandleAsync(
             ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
-            CancellationToken.None, _gamePort, _subdomain);
+            CancellationToken.None, _gamePort, _subdomain, _options);
         return created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
     }
 }

@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using TCMine.Contracts.Modpacks;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Infrastructure.Instances;
 
@@ -137,6 +138,20 @@ public static class ItzgEnv
 
         return env;
     }
+
+    /// <summary>
+    ///     As opções de jogo do servidor como variáveis do itzg. A chave de cada
+    ///     opção JÁ é o nome da variável; o que passa aqui é só o que está no
+    ///     catálogo (<see cref="GameOptions.Parse" /> descarta o resto), então
+    ///     nada que o TCMine controla — TYPE, VERSION, RCON — pode vir por esta via.
+    ///     Ordenado, para a mesma configuração dar sempre a mesma lista.
+    /// </summary>
+    public static IReadOnlyList<string> OptionVariables(string? optionsJson) =>
+    [
+        .. GameOptions.Parse(optionsJson)
+            .OrderBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => $"{p.Key}={p.Value}")
+    ];
 
     /// <summary>
     ///     Impressão digital da spec do container. Vai num label, e é por ela que

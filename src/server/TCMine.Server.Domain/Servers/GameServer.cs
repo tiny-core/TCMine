@@ -54,6 +54,14 @@ public sealed class GameServer : Entity, IOwnedEntity
     /// </summary>
     public string? Subdomain { get; set; }
 
+    /// <summary>
+    ///     As opções de jogo definidas para este servidor (dificuldade, distância
+    ///     de visão…), em JSON: só as que o admin definiu. Nulo = nenhuma, e vale
+    ///     tudo o que o modpack traz. Ler e gravar sempre por
+    ///     <see cref="GameOptions" />, que é quem sabe o que é válido.
+    /// </summary>
+    public string? OptionsJson { get; set; }
+
     public GameServerStatus Status { get; set; } = GameServerStatus.Stopped;
 
     /// <summary>ID do container itzg/minecraft-server. Nulo se nunca foi criado.</summary>

@@ -1305,6 +1305,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("OptionsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("uuid");
 

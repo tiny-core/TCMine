@@ -43,6 +43,10 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
         // dois servidores com o mesmo nome disputariam o mesmo registro. Nulo
         // não conta — os dois bancos deixam vários servidores sem subdomínio.
         builder.Property(s => s.Subdomain).HasMaxLength(63);
+
+        // JSON das opções de jogo. O catálogo é fechado e cada valor tem teto,
+        // então 4000 sobra — e continua sendo um limite, não texto sem fim.
+        builder.Property(s => s.OptionsJson).HasMaxLength(4000);
         builder.HasIndex(s => s.Subdomain).IsUnique();
 
         builder.HasIndex(s => s.OwnerId);

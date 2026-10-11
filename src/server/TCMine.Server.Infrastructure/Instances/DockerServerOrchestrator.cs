@@ -56,7 +56,12 @@ public sealed partial class DockerServerOrchestrator(
         [
             .. gameEnv,
             $"MEMORY={server.MemoryMb}M",
-            $"MAX_PLAYERS={server.MaxPlayers}"
+            $"MAX_PLAYERS={server.MaxPlayers}",
+
+            // Dificuldade, distância de visão e as demais opções do formulário.
+            // Por estarem aqui entram também na impressão digital: mudar uma
+            // opção recria o container no próximo início.
+            .. ItzgEnv.OptionVariables(server.OptionsJson)
         ];
 
         // A senha do RCON fica FORA da impressão digital: ela não muda, e um

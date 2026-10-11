@@ -116,7 +116,10 @@ public partial class ModpackServersPage
     private async Task OpenForm(GameServer? existing)
     {
         var parameters = new DialogParameters { ["ModpackId"] = ModpackId, ["Existing"] = existing };
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        // Médio, e não pequeno: o formulário tem seis abas, e no pequeno a
+        // barra delas não cabe sem rolar.
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true };
 
         var dialog = await DialogService.ShowAsync<ServerFormDialog>(
             existing is null ? "Novo servidor" : "Editar servidor", parameters, options);

@@ -1300,6 +1300,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("OptionsJson")
+                        .HasMaxLength(4000)
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("OwnerId")
                         .HasColumnType("TEXT");
 

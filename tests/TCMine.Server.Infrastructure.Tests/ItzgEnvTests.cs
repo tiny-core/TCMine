@@ -84,6 +84,28 @@ public sealed class ItzgEnvTests
     }
 
     [Fact]
+    public void Opcoes_de_jogo_viram_variaveis_em_ordem_estavel()
+    {
+        // A ordem entra na impressão digital do container: a mesma configuração
+        // tem de dar sempre a mesma lista, ou ele seria recriado à toa.
+        ItzgEnv.OptionVariables("""{"VIEW_DISTANCE":"8","DIFFICULTY":"hard","PVP":"false"}""")
+            .ShouldBe(["DIFFICULTY=hard", "PVP=false", "VIEW_DISTANCE=8"]);
+    }
+
+    [Fact]
+    public void Sem_opcoes_nao_ha_variaveis()
+    {
+        ItzgEnv.OptionVariables(null).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Opcao_fora_do_catalogo_nunca_chega_ao_container()
+    {
+        // Mesmo gravada à mão no banco: VERSION é do modpack.
+        ItzgEnv.OptionVariables("""{"VERSION":"1.8.9","PVP":"true"}""").ShouldBe(["PVP=true"]);
+    }
+
+    [Fact]
     public void Impressao_digital_muda_com_a_versao_e_ignora_a_ordem()
     {
         var a = ItzgEnv.Fingerprint("img", ["VERSION=1.21.1", "TYPE=NEOFORGE"], ["port=25565"]);

@@ -17,7 +17,8 @@ public sealed class CreateGameServer(
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
-        Guid modpackVersionId, CancellationToken ct, int gamePort = 0, string? subdomain = null)
+        Guid modpackVersionId, CancellationToken ct, int gamePort = 0, string? subdomain = null,
+        IReadOnlyDictionary<string, string>? options = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
@@ -43,6 +44,11 @@ public sealed class CreateGameServer(
             : ready.FirstOrDefault(v => v.Id == modpackVersionId);
         if (pinned is null)
             return Result<Guid>.Fail("Selecione uma versão publicada válida.");
+
+        // Opções de jogo: só o que está no catálogo, com valor válido.
+        var (gameOptions, optionsError) = GameOptions.Normalize(options);
+        if (optionsError is not null)
+            return Result<Guid>.Fail(optionsError);
 
         // Opcional. Conferido aqui, e não só pelo índice único do banco, para o
         // erro dizer QUAL servidor já tem o nome.
@@ -84,6 +90,7 @@ public sealed class CreateGameServer(
             ConnectAddress = connectAddress.Trim(),
             GamePort = port,
             Subdomain = label,
+            OptionsJson = GameOptions.Serialize(gameOptions),
             MemoryMb = memoryMb,
             MaxPlayers = maxPlayers,
             // Segredo RCON gerado aqui, no server. Nunca exibido nem logado.

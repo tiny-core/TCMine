@@ -71,6 +71,60 @@ public sealed class ServerRulesTests
     }
 
     [Fact]
+    public async Task Opcoes_de_jogo_validas_sao_gravadas_com_o_servidor()
+    {
+        var servers = new FakeServers();
+        var options = new Dictionary<string, string> { ["DIFFICULTY"] = "hard", ["VIEW_DISTANCE"] = "8" };
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, null, options);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("hard", GameOptions.Parse(servers.Adicionado!.OptionsJson)["DIFFICULTY"]);
+    }
+
+    [Fact]
+    public async Task Opcao_fora_do_catalogo_nao_cria_o_servidor()
+    {
+        // A recusa é do caso de uso, e não só do formulário: a borda é plural.
+        var servers = new FakeServers();
+        var options = new Dictionary<string, string> { ["VERSION"] = "1.21.1" };
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, null, options);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(servers.Adicionado);
+    }
+
+    [Fact]
+    public async Task Editar_sem_informar_opcoes_mantem_as_que_o_servidor_tem()
+    {
+        var server = Servidor();
+        server.OptionsJson = "{\"PVP\":\"false\"}";
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "outro nome", "jogo", 4096, 20, true, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("false", GameOptions.Parse(server.OptionsJson)["PVP"]);
+    }
+
+    [Fact]
+    public async Task Editar_com_opcoes_vazias_tira_todas()
+    {
+        var server = Servidor();
+        server.OptionsJson = "{\"PVP\":\"false\"}";
+
+        var result = await NewUpdate(server).HandleAsync(
+            server.Id, "Servidor", "jogo", 4096, 20, true, CancellationToken.None, 0, null,
+            new Dictionary<string, string>());
+
+        Assert.True(result.Succeeded);
+        Assert.Null(server.OptionsJson);
+    }
+
+    [Fact]
     public async Task Subdominio_e_gravado_normalizado()
     {
         var servers = new FakeServers();
