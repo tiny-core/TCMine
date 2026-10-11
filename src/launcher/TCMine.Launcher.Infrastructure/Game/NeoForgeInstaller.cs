@@ -32,12 +32,13 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
-        var nomeDaVersao = $"neoforge-{neoForgeVersion}";
+        // Artefato, flag e nome da versão mudam entre o NeoForge do 1.20.1 e
+        // o de hoje — a regra inteira está no NeoForgeArtifact.
+        var artifact = NeoForgeArtifact.For(minecraftVersion, neoForgeVersion);
 
-        // Já instalado: o JSON da versão existir é o sinal, e é o mesmo que o
-        // CmlLib procura para abrir. Reinstalar custaria minutos a cada clique.
-        if (File.Exists(Path.Combine(layout.Versions, nomeDaVersao, $"{nomeDaVersao}.json")))
-            return nomeDaVersao;
+        // Já instalado: reinstalar custaria minutos a cada clique.
+        if (artifact.FindInstalled(layout.Versions) is { } installed)
+            return installed;
 
         // A raiz do .minecraft para o instalador é onde estão versions/ e
         // libraries/ — a COMPARTILHADA, não a da instância. É lá que ele escreve,
@@ -47,37 +48,33 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
         Directory.CreateDirectory(raiz);
         EnsureLauncherProfile(raiz);
 
-        var jar = await DownloadInstallerAsync(neoForgeVersion, ct);
+        var jar = await DownloadInstallerAsync(artifact, neoForgeVersion, ct);
 
         try
         {
             progress?.Report(new GameLaunchProgress($"Instalando NeoForge {neoForgeVersion}"));
 
-            await RunInstallerAsync(javaPath, jar, raiz, ct);
+            await RunInstallerAsync(javaPath, jar, artifact.InstallFlag, raiz, ct);
         }
         finally
         {
             File.Delete(jar);
         }
 
-        if (!File.Exists(Path.Combine(layout.Versions, nomeDaVersao, $"{nomeDaVersao}.json")))
-        {
-            throw new InvalidOperationException(
-                $"O instalador do NeoForge {neoForgeVersion} terminou mas não deixou a versão "
-                + $"{nomeDaVersao}. Confirme que a versão existe para o Minecraft {minecraftVersion}.");
-        }
-
-        return nomeDaVersao;
+        return artifact.FindInstalled(layout.Versions)
+               ?? throw new InvalidOperationException(
+                   $"O instalador do NeoForge {neoForgeVersion} terminou mas não deixou a versão "
+                   + $"{artifact.VersionName}. Confirme que a versão existe para o Minecraft {minecraftVersion}.");
     }
 
-    private async Task<string> DownloadInstallerAsync(string neoForgeVersion, CancellationToken ct)
+    private async Task<string> DownloadInstallerAsync(
+        NeoForgeArtifact artifact,
+        string neoForgeVersion,
+        CancellationToken ct)
     {
-        var url = "https://maven.neoforged.net/releases/net/neoforged/neoforge/"
-                  + $"{neoForgeVersion}/neoforge-{neoForgeVersion}-installer.jar";
-
         var target = Path.Combine(Path.GetTempPath(), $"neoforge-{Guid.CreateVersion7():N}.jar");
 
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        using var response = await http.GetAsync(artifact.InstallerUrl, HttpCompletionOption.ResponseHeadersRead, ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -98,15 +95,17 @@ internal sealed class NeoForgeInstaller(HttpClient http, ILogger logger)
     private async Task RunInstallerAsync(
         string javaPath,
         string jar,
+        string installFlag,
         string raiz,
         CancellationToken ct)
     {
         var info = new ProcessStartInfo(javaPath)
         {
-            // --install-client em modo headless. Sem isto o instalador abre uma
+            // Instalação do cliente em modo headless (a flag vem do artefato:
+            // o instalador antigo só conhece a forma camelCase). Sem isto o instalador abre uma
             // janela Swing e fica à espera de alguém clicar, dentro de um
             // launcher que não tem como mostrá-la.
-            ArgumentList = { "-jar", jar, "--install-client", raiz },
+            ArgumentList = { "-jar", jar, installFlag, raiz },
             WorkingDirectory = raiz,
             UseShellExecute = false,
             RedirectStandardOutput = true,
