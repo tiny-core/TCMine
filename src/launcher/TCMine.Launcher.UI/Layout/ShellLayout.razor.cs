@@ -8,6 +8,9 @@ namespace TCMine.Launcher.UI.Layout;
 
 public partial class ShellLayout : LayoutComponentBase, IDisposable
 {
+    private bool _updateFailed;
+    private bool _updating;
+
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
     [Inject] private ServerPairing Pairing { get; set; } = default!;
@@ -22,6 +25,8 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private LinkSupervisor Link { get; set; } = default!;
 
+    [Inject] private UpdateLauncher Updater { get; set; } = default!;
+
     // TEMPORÁRIO (linha de base, sai no fim da fase 8).
     [Inject] private ILogger<ShellLayout> Logger { get; set; } = default!;
 
@@ -29,6 +34,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     {
         Shell.Changed -= OnShellChanged;
         Lock.Changed -= OnShellChanged;
+        Link.NavigationRequested -= OnNavigationRequested;
         GC.SuppressFinalize(this);
     }
 
@@ -47,6 +53,7 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
         // Antes do arranque: é o supervisor que abre o canal assim que houver
         // sessão, e a sessão pode ser retomada já nos passos abaixo.
+        Link.NavigationRequested += OnNavigationRequested;
         Link.Attach();
 
         Shell.BeginCheck();
@@ -110,6 +117,44 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     }
 
     private void OnShellChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    ///     O supervisor pede a rota e a moldura navega: ele vive fora da árvore
+    ///     de componentes e chama de qualquer thread, e navegar só é seguro no
+    ///     contexto do circuito.
+    /// </summary>
+    private void OnNavigationRequested(string route) => InvokeAsync(() => Navigation.NavigateTo(route));
+
+    private string UpdateNotice(string version) =>
+        _updateFailed ? "Não foi possível atualizar o launcher agora. Tente de novo."
+        : Lock.Reason is { } reason ? $"Há uma versão nova do launcher ({version}). {reason}"
+        : $"Há uma versão nova do launcher ({version}).";
+
+    /// <summary>
+    ///     Atualiza porque o jogador pediu. Recusa com o jogo aberto ou uma
+    ///     instalação em curso: reiniciar aí deixaria o jogo órfão, ou uma
+    ///     instância pela metade.
+    /// </summary>
+    private async Task UpdateNowAsync()
+    {
+        if (_updating || Lock.IsLocked)
+            return;
+
+        _updating = true;
+        _updateFailed = false;
+
+        try
+        {
+            // Verdadeiro quer dizer que o processo vai reiniciar: não há mais
+            // nada a fazer aqui. Falso é falha — não havia como chegar ao botão
+            // sem uma versão à espera.
+            _updateFailed = !await Updater.HandleAsync(Shell.Pairing?.Server, CancellationToken.None);
+        }
+        finally
+        {
+            _updating = false;
+        }
+    }
 
     // Estático com ILogger explícito, como no LoggingErrorBoundary: o gerador
     // de [LoggerMessage] só acha campo, e um componente recebe por [Inject].

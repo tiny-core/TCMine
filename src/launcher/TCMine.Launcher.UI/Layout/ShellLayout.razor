@@ -52,6 +52,29 @@
                     </MudAlert>
                 }
 
+                @* Só aparece para uma versão descoberta com a sessão já aberta
+                   (o servidor atualizou e voltou). No arranque a atualização é
+                   automática; aqui reiniciar é escolha do jogador. *@
+                @if (Shell.PendingUpdate is { } versao)
+                {
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-4"
+                              Icon="@Icons.Material.Filled.Update">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                            <span>@UpdateNotice(versao)</span>
+                            <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
+                                       StartIcon="@Icons.Material.Filled.Refresh"
+                                       Disabled="@(_updating || Lock.IsLocked)"
+                                       OnClick="UpdateNowAsync">
+                                Atualizar e reiniciar
+                            </MudButton>
+                        </MudStack>
+                        @if (_updating)
+                        {
+                            <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mt-2"/>
+                        }
+                    </MudAlert>
+                }
+
                 @* Em todas as telas, e não só na de jogar: as ações ficam
                    desligadas em qualquer uma enquanto o jogo corre (ver
                    ActionLock), e um botão cinzento sem o porquê à vista parece

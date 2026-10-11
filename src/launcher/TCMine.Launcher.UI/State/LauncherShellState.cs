@@ -42,6 +42,20 @@ public sealed class LauncherShellState
     public LinkStatus Link { get; private set; }
 
     /// <summary>
+    ///     O servidor não respondeu e o launcher está a tentar de novo sozinho.
+    ///     Existe para o rodapé não dizer um "Sem ligação" seco, que convida a
+    ///     fechar e reabrir — coisa que deixou de ser precisa.
+    /// </summary>
+    public bool IsRecovering { get; private set; }
+
+    /// <summary>
+    ///     Versão do launcher à espera no servidor, descoberta com a sessão já
+    ///     aberta. No arranque a atualização é automática e isto fica nulo; aqui
+    ///     é só um aviso, porque reiniciar a meio é decisão do jogador.
+    /// </summary>
+    public string? PendingUpdate { get; private set; }
+
+    /// <summary>
     ///     O que o rodapé mostra.
     ///     Com sessão, quem manda é o canal vivo — é ele que nota uma queda. Sem
     ///     sessão ainda não existe canal (o hub exige login), e o melhor que há é
@@ -49,7 +63,8 @@ public sealed class LauncherShellState
     /// </summary>
     public ConnectionState Connection =>
         _checking ? ConnectionState.Connecting
-        : Pairing?.IsOnline is not true ? ConnectionState.Disconnected
+        : Pairing?.IsOnline is not true
+            ? IsRecovering ? ConnectionState.Reconnecting : ConnectionState.Disconnected
         : !IsSignedIn ? ConnectionState.Connected
         : Link switch
         {
@@ -125,6 +140,24 @@ public sealed class LauncherShellState
             return;
 
         Link = link;
+        Changed?.Invoke();
+    }
+
+    public void SetRecovering(bool recovering)
+    {
+        if (IsRecovering == recovering)
+            return;
+
+        IsRecovering = recovering;
+        Changed?.Invoke();
+    }
+
+    public void SetPendingUpdate(string? version)
+    {
+        if (PendingUpdate == version)
+            return;
+
+        PendingUpdate = version;
         Changed?.Invoke();
     }
 

@@ -15,4 +15,14 @@ public interface ILauncherUpdater
     ///     fazer nada em silêncio.
     /// </summary>
     Task<bool> UpdateAsync(Uri feedUrl, CancellationToken ct);
+
+    /// <summary>
+    ///     Só procura. Devolve a versão que está à espera no feed, ou nulo quando
+    ///     não há nada (ou não deu para saber — as duas coisas pedem o mesmo:
+    ///     seguir com a versão atual).
+    ///     Separado do <see cref="UpdateAsync" /> porque no meio de uma sessão
+    ///     reiniciar não é decisão do launcher: ele avisa, e o jogador escolhe
+    ///     quando.
+    /// </summary>
+    Task<string?> FindUpdateAsync(Uri feedUrl, CancellationToken ct);
 }

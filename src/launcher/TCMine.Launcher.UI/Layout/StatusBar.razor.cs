@@ -17,7 +17,7 @@ public partial class StatusBar : ComponentBase, IDisposable
 
         // Diferente de "Sem ligação" de propósito: aqui o jogador não precisa
         // fazer nada, e dizer isso evita que ele feche o launcher para "consertar".
-        ConnectionState.Reconnecting => "Ligação perdida. A religar…",
+        ConnectionState.Reconnecting => "Sem ligação. A tentar de novo…",
 
         // "Sem servidor" e "sem ligação" pedem ações diferentes: uma é parear,
         // a outra é esperar. Um rótulo só para os dois casos mandaria o jogador

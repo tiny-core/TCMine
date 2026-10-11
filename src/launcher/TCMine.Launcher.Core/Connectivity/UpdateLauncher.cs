@@ -35,4 +35,21 @@ public sealed class UpdateLauncher(ILauncherUpdater updater)
 
         return await updater.UpdateAsync(feed, ct);
     }
+
+    /// <summary>
+    ///     A versão nova que está à espera, sem a instalar; nulo quando não há.
+    ///     As mesmas três recusas do <see cref="HandleAsync" />, e de propósito:
+    ///     avisar de uma atualização que o botão depois se recusa a instalar
+    ///     seria pior do que não avisar.
+    /// </summary>
+    public async Task<string?> FindAsync(HandshakeResponse? server, CancellationToken ct)
+    {
+        if (server is null || server.UpdatesFrozen)
+            return null;
+
+        if (server.LauncherFeedUrl is not { } feed)
+            return null;
+
+        return await updater.FindUpdateAsync(feed, ct);
+    }
 }

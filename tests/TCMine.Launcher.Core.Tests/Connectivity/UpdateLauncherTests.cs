@@ -40,6 +40,30 @@ public class UpdateLauncherTests
     }
 
     [Fact]
+    public async Task Procurar_devolve_a_versao_a_espera_sem_instalar()
+    {
+        var updater = new UpdaterFalso(false, "1.2.0");
+
+        var versao = await new UpdateLauncher(updater).FindAsync(Resposta(), Ct);
+
+        versao.ShouldBe("1.2.0");
+        updater.Feed.ShouldBe(new Uri("https://servidor.exemplo/updates/launcher/win-x64-p2/"));
+    }
+
+    [Fact]
+    public async Task Congelado_ou_sem_handshake_nem_avisa()
+    {
+        // Avisar de uma versão que o botão depois se recusa a instalar seria
+        // pior do que não avisar.
+        var updater = new UpdaterFalso(false, "1.2.0");
+        var caso = new UpdateLauncher(updater);
+
+        (await caso.FindAsync(Resposta() with { UpdatesFrozen = true }, Ct)).ShouldBeNull();
+        (await caso.FindAsync(null, Ct)).ShouldBeNull();
+        updater.Feed.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Sem_handshake_nao_atualiza()
     {
         // Servidor fora do ar. Ir buscar binários por uma URL guardada que já
@@ -73,9 +97,15 @@ public class UpdateLauncherTests
         AzureClientId = "client"
     };
 
-    private sealed class UpdaterFalso(bool vaiAtualizar) : ILauncherUpdater
+    private sealed class UpdaterFalso(bool vaiAtualizar, string? disponivel = null) : ILauncherUpdater
     {
         public Uri? Feed { get; private set; }
+
+        public Task<string?> FindUpdateAsync(Uri feedUrl, CancellationToken ct)
+        {
+            Feed = feedUrl;
+            return Task.FromResult(disponivel);
+        }
 
         public Task<bool> UpdateAsync(Uri feedUrl, CancellationToken ct)
         {

@@ -57,6 +57,30 @@ public sealed partial class VelopackLauncherUpdater(
         }
     }
 
+    public async Task<string?> FindUpdateAsync(Uri feedUrl, CancellationToken ct)
+    {
+        try
+        {
+            var manager = new UpdateManager(feedUrl.ToString());
+
+            if (!manager.IsInstalled)
+                return null;
+
+            var newer = await manager.CheckForUpdatesAsync();
+
+            return newer?.TargetFullRelease.Version.ToString();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            LogCheckFailed(ex);
+            return null;
+        }
+    }
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Não foi possível verificar se há atualização do launcher.")]
+    private partial void LogCheckFailed(Exception ex);
+
     [LoggerMessage(Level = LogLevel.Information, Message = "Atualização do launcher encontrada: {Version}.")]
     private partial void LogFound(string version);
 
