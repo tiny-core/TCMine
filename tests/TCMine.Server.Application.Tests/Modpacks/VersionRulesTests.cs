@@ -20,7 +20,7 @@ public sealed class VersionRulesTests
         var rascunho = Versao(modpack, "1.1.0");
         modpack.Versions.Add(rascunho);
 
-        var result = await new CreateModpackVersion(new FakeRepo(modpack)).HandleAsync(
+        var result = await new CreateModpackVersion(new FakeRepo(modpack), FakeVersionCatalog.PermissiveGuard()).HandleAsync(
             new CreateModpackVersionCommand(modpack.Id, "1.2.0", "21.1.100", null, false),
             CancellationToken.None);
 
@@ -34,7 +34,7 @@ public sealed class VersionRulesTests
         var publicada = Publicar(Versao(modpack, "1.0.0"));
         modpack.Versions.Add(publicada);
 
-        var result = await new CreateModpackVersion(new FakeRepo(modpack)).HandleAsync(
+        var result = await new CreateModpackVersion(new FakeRepo(modpack), FakeVersionCatalog.PermissiveGuard()).HandleAsync(
             new CreateModpackVersionCommand(modpack.Id, "  1.0.0  ", "21.1.100", null, false),
             CancellationToken.None);
 
@@ -52,7 +52,7 @@ public sealed class VersionRulesTests
 
         var repo = new FakeRepo(modpack);
 
-        var result = await new CreateModpackVersion(repo).HandleAsync(
+        var result = await new CreateModpackVersion(repo, FakeVersionCatalog.PermissiveGuard()).HandleAsync(
             new CreateModpackVersionCommand(modpack.Id, "1.1.0", "21.1.100", null, true),
             CancellationToken.None);
 

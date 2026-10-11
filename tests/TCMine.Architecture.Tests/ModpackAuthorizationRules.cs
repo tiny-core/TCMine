@@ -65,6 +65,11 @@ public class ModpackAuthorizationRules
         "BackfillServerPacks", "IngestionScheduler", "ModpackIngestionService",
         "OverrideUndoService", "RecoverInterruptedImports", "RecoverInterruptedIngestions",
 
+        // Regra de consistência (a build existe para aquele Minecraft?), não
+        // de acesso: roda dentro de criar/editar/publicar versão, que são quem
+        // responde pela permissão.
+        "LoaderVersionGuard",
+
         // Lógica pura, sem usuário nenhum na hora.
         "IngestionWorkPlanner", "LoaderVersionRange", "UpstreamMerge",
 

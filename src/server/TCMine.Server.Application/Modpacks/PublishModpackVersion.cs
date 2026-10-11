@@ -13,7 +13,8 @@ public sealed class PublishModpackVersion(
     IServerHubNotifier notifier,
     OverrideUndoService undo,
     IActivityLogRepository activity,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    LoaderVersionGuard loaderGuard)
 {
     /// <summary>
     ///     <paramref name="acceptPending" /> é o "eu sei o que estou fazendo" do
@@ -30,6 +31,17 @@ public sealed class PublishModpackVersion(
         var auth = await scope.RequireAsync(version.ModpackId, ModpackAccessPolicy.CanEdit, ct);
         if (!auth.Succeeded)
             return auth;
+
+        // A última conferência antes de a versão ficar imutável. Pega o que as
+        // outras portas não viram: um pack importado, ou um rascunho criado
+        // antes de esta regra existir.
+        if (await repository.GetByIdAsync(version.ModpackId, ct) is { } modpack)
+        {
+            var loaderCheck = await loaderGuard.CheckAsync(
+                modpack.Loader, modpack.MinecraftVersion, version.LoaderVersion, ct);
+            if (!loaderCheck.Succeeded)
+                return loaderCheck;
+        }
 
         // ManualUploads, e não PendingMods: os enfileirados não pedem nada do
         // admin e não podem entrar nesta contagem.

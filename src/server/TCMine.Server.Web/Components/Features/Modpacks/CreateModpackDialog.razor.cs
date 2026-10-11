@@ -57,7 +57,7 @@ public partial class CreateModpackDialog
     }
 
     private async Task ReloadMc() =>
-        _mcVersions = await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None);
+        _mcVersions = (await Catalog.GetMinecraftVersionsAsync(_mcReleasesOnly, CancellationToken.None)).Versions;
 
     private Task<IEnumerable<string>> SearchMc(string value, CancellationToken ct)
     {

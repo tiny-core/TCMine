@@ -8,20 +8,24 @@ public class QuiltVersionSource(HttpClient http)
     // A meta do PRÓPRIO Quilt. Isto apontava para a do Fabric, e o painel
     // oferecia versões de loader que não existem no Quilt — o container subia
     // pedindo ao itzg um loader que ele não tem como baixar.
-    // A lista de loader é independente da versão do MC.
-    private const string LoaderUrl = "https://meta.quiltmc.org/v3/versions/loader";
+    // Por versão do jogo, como no Fabric: só os loaders que servem àquele
+    // Minecraft, e lista vazia quando o Quilt não o suporta.
+    private const string LoaderUrl = "https://meta.quiltmc.org/v3/versions/loader/";
 
-    public async Task<IReadOnlyList<string>> GetAsync(bool releasesOnly, CancellationToken ct)
+    public async Task<IReadOnlyList<string>> GetAsync(string minecraftVersion, bool releasesOnly, CancellationToken ct)
     {
-        var loaders = await http.GetFromJsonAsync<IReadOnlyList<Entry>>(LoaderUrl, ct);
-        if (loaders is null)
+        var entries = await http.GetFromJsonAsync<IReadOnlyList<Entry>>(
+            LoaderUrl + Uri.EscapeDataString(minecraftVersion.Trim()), ct);
+
+        if (entries is null)
             return [];
 
         return
         [
-            .. loaders
-                .Select(l => l.Version)
-                .Where(v => !releasesOnly || IsStable(v))
+            .. entries
+                .Select(e => e.Loader?.Version)
+                .Where(v => v is not null && (!releasesOnly || IsStable(v)))
+                .Select(v => v!)
         ];
     }
 
@@ -34,6 +38,9 @@ public class QuiltVersionSource(HttpClient http)
     private static bool IsStable(string version) => !version.Contains('-', StringComparison.Ordinal);
 
     private sealed record Entry(
+        [property: JsonPropertyName("loader")] Loader? Loader);
+
+    private sealed record Loader(
         [property: JsonPropertyName("version")]
         string Version);
 }

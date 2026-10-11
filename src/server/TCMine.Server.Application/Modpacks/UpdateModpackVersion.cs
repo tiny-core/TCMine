@@ -14,7 +14,7 @@ namespace TCMine.Server.Application.Modpacks;
 ///     muda é a versão do Minecraft e o loader em si — esses ficam no modpack e
 ///     são imutáveis, porque mod não migra entre eles.
 /// </summary>
-public sealed class UpdateModpackVersion(IModpackRepository repository)
+public sealed class UpdateModpackVersion(IModpackRepository repository, LoaderVersionGuard loaderGuard)
 {
     public async Task<Result> HandleAsync(
         Guid versionId, string version, string loaderVersion, int? recommendedMemoryMb,
@@ -34,6 +34,18 @@ public sealed class UpdateModpackVersion(IModpackRepository repository)
 
         if (current.State is not ModpackVersionState.Draft)
             return Result.Fail("Só é possível editar uma versão em rascunho.");
+
+        // Só quando a build MUDA: quem só corrige o número da versão não deve ser
+        // travado por uma build antiga que o catálogo deixou de listar. A que
+        // ficou é conferida de novo ao publicar.
+        if (!loaderVersion.Trim().Equals(current.LoaderVersion, StringComparison.OrdinalIgnoreCase)
+            && await repository.GetByIdAsync(current.ModpackId, ct) is { } modpack)
+        {
+            var loaderCheck = await loaderGuard.CheckAsync(
+                modpack.Loader, modpack.MinecraftVersion, loaderVersion, ct);
+            if (!loaderCheck.Succeeded)
+                return loaderCheck;
+        }
 
         var versionText = version.Trim();
 

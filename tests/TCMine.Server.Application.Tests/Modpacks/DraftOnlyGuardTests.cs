@@ -19,7 +19,7 @@ public sealed class DraftOnlyGuardTests
     {
         var version = Publicada();
 
-        var result = await new UpdateModpackVersion(new FakeRepo(version))
+        var result = await new UpdateModpackVersion(new FakeRepo(version), FakeVersionCatalog.PermissiveGuard())
             .HandleAsync(version.Id, "9.9.9", "21.1.999", 8192, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -31,7 +31,7 @@ public sealed class DraftOnlyGuardTests
     {
         var version = Rascunho();
 
-        var result = await new UpdateModpackVersion(new FakeRepo(version))
+        var result = await new UpdateModpackVersion(new FakeRepo(version), FakeVersionCatalog.PermissiveGuard())
             .HandleAsync(version.Id, "  1.2.0  ", "  21.1.247  ", 8192, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -48,7 +48,7 @@ public sealed class DraftOnlyGuardTests
         // rodar contra um loader diferente do que o manifesto prometeu.
         var version = Publicada();
 
-        var result = await new UpdateModpackVersion(new FakeRepo(version))
+        var result = await new UpdateModpackVersion(new FakeRepo(version), FakeVersionCatalog.PermissiveGuard())
             .HandleAsync(version.Id, "1.0.0", "21.1.999", null, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -62,7 +62,7 @@ public sealed class DraftOnlyGuardTests
         // branco, a instância não sobe — e o erro apareceria só na hora de jogar.
         var version = Rascunho();
 
-        var result = await new UpdateModpackVersion(new FakeRepo(version))
+        var result = await new UpdateModpackVersion(new FakeRepo(version), FakeVersionCatalog.PermissiveGuard())
             .HandleAsync(version.Id, "1.2.0", "   ", null, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -148,6 +148,32 @@ public sealed class DraftOnlyGuardTests
 
     // ---- Fixtures ----
 
+    [Fact]
+    public async Task Nao_troca_para_build_de_loader_que_nao_existe()
+    {
+        var version = Rascunho();
+
+        var result = await new UpdateModpackVersion(new FakeRepo(version), new FakeVersionCatalog("21.1.259").Guard())
+            .HandleAsync(version.Id, "1.0.0", "21.1.999", null, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("21.1.100", version.LoaderVersion);
+    }
+
+    [Fact]
+    public async Task Editar_sem_trocar_a_build_nao_e_travado_por_uma_build_antiga()
+    {
+        // A build do rascunho (21.1.100) não está no catálogo, mas ninguém a
+        // trocou: corrigir só o número da versão tem de continuar possível.
+        var version = Rascunho();
+
+        var result = await new UpdateModpackVersion(new FakeRepo(version), new FakeVersionCatalog("21.1.259").Guard())
+            .HandleAsync(version.Id, "1.0.1", "21.1.100", null, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("1.0.1", version.Version);
+    }
+
     private static ModpackVersion Rascunho() => new()
     {
         ModpackId = Guid.CreateVersion7(), Version = "1.0.0", LoaderVersion = "21.1.100"
@@ -194,6 +220,14 @@ public sealed class DraftOnlyGuardTests
             Task.FromResult<ModpackVersion?>(version);
 
         public override Task UpdateVersionAsync(ModpackVersion v, CancellationToken ct) => Task.CompletedTask;
+
+        // Lido quando a build do loader muda: a conferência precisa do loader
+        // e do Minecraft do modpack.
+        public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) =>
+            Task.FromResult<Modpack?>(new Modpack
+            {
+                Slug = "teste", Name = "Teste", MinecraftVersion = "1.21.1", Loader = ModLoader.NeoForge
+            });
 
         public override Task<IReadOnlyList<ModpackVersion>> ListVersionsAsync(
             Guid modpackId, CancellationToken ct) =>

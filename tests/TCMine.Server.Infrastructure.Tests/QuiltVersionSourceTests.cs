@@ -11,13 +11,14 @@ namespace TCMine.Server.Infrastructure.Tests;
 /// </summary>
 public sealed class QuiltVersionSourceTests
 {
-    // Formato real de https://meta.quiltmc.org/v3/versions/loader (sem "stable").
+    // Formato real de https://meta.quiltmc.org/v3/versions/loader/{jogo}: cada
+    // entrada embrulha o loader, e não há campo "stable".
     private const string Loaders = """
                                    [
-                                     {"separator":".","build":4,"maven":"org.quiltmc:quilt-loader:0.31.0-beta.4","version":"0.31.0-beta.4"},
-                                     {"separator":".","build":0,"maven":"org.quiltmc:quilt-loader:0.30.0","version":"0.30.0"},
-                                     {"separator":".","build":2,"maven":"org.quiltmc:quilt-loader:0.30.0-beta.2","version":"0.30.0-beta.2"},
-                                     {"separator":".","build":3,"maven":"org.quiltmc:quilt-loader:0.29.3","version":"0.29.3"}
+                                     {"loader":{"separator":".","build":4,"maven":"org.quiltmc:quilt-loader:0.31.0-beta.4","version":"0.31.0-beta.4"},"hashed":{}},
+                                     {"loader":{"separator":".","build":0,"maven":"org.quiltmc:quilt-loader:0.30.0","version":"0.30.0"},"hashed":{}},
+                                     {"loader":{"separator":".","build":2,"maven":"org.quiltmc:quilt-loader:0.30.0-beta.2","version":"0.30.0-beta.2"},"hashed":{}},
+                                     {"loader":{"separator":".","build":3,"maven":"org.quiltmc:quilt-loader:0.29.3","version":"0.29.3"},"hashed":{}}
                                    ]
                                    """;
 
@@ -28,16 +29,18 @@ public sealed class QuiltVersionSourceTests
     {
         var handler = new Resposta(Loaders);
 
-        await new QuiltVersionSource(new HttpClient(handler)).GetAsync(false, Ct);
+        await new QuiltVersionSource(new HttpClient(handler)).GetAsync("1.21.1", false, Ct);
 
         handler.Pedido.ShouldNotBeNull();
         handler.Pedido.Host.ShouldBe("meta.quiltmc.org");
+        // Por versão do jogo: a lista geral traz loader que não serve a ela.
+        handler.Pedido.AbsolutePath.ShouldEndWith("/versions/loader/1.21.1");
     }
 
     [Fact]
     public async Task Sem_filtro_devolve_todas_na_ordem_da_meta()
     {
-        var versions = await new QuiltVersionSource(new HttpClient(new Resposta(Loaders))).GetAsync(false, Ct);
+        var versions = await new QuiltVersionSource(new HttpClient(new Resposta(Loaders))).GetAsync("1.21.1", false, Ct);
 
         versions.ShouldBe(["0.31.0-beta.4", "0.30.0", "0.30.0-beta.2", "0.29.3"]);
     }
@@ -47,7 +50,7 @@ public sealed class QuiltVersionSourceTests
     {
         // A meta do Quilt não tem "stable". Se o filtro voltar a depender desse
         // campo, esta lista sai vazia.
-        var versions = await new QuiltVersionSource(new HttpClient(new Resposta(Loaders))).GetAsync(true, Ct);
+        var versions = await new QuiltVersionSource(new HttpClient(new Resposta(Loaders))).GetAsync("1.21.1", true, Ct);
 
         versions.ShouldBe(["0.30.0", "0.29.3"]);
     }

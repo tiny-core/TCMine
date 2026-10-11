@@ -6,6 +6,10 @@ namespace TCMine.Server.Web.Components.Features.Modpacks;
 
 public partial class LoaderVersionPicker : ComponentBase
 {
+    /// <summary>A fonte não respondeu: a lista vazia não quer dizer "não existe".</summary>
+    private bool _failed;
+
+    private bool _isLoading;
     private bool _releasesOnly = true;
     private IReadOnlyList<string> _versions = [];
 
@@ -24,7 +28,17 @@ public partial class LoaderVersionPicker : ComponentBase
 
     [Inject] private IVersionCatalog Catalog { get; set; } = default!;
 
-    protected override Task OnInitializedAsync() => ReloadAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+
+        // Campo vazio numa versão nova: já vem com a build mais recente que
+        // serve a este Minecraft (a lista chega da mais nova para a mais
+        // antiga, e com "só releases" ligado é a estável mais recente). Quem
+        // edita uma versão que já tem build não é tocado.
+        if (string.IsNullOrWhiteSpace(Value) && _versions.Count > 0)
+            await ValueChanged.InvokeAsync(_versions[0]);
+    }
 
     private async Task ReloadAsync()
     {
@@ -34,11 +48,23 @@ public partial class LoaderVersionPicker : ComponentBase
         if (string.IsNullOrWhiteSpace(MinecraftVersion))
         {
             _versions = [];
+            _failed = false;
             return;
         }
 
-        _versions = await Catalog.GetLoaderVersionsAsync(
-            Loader, MinecraftVersion, _releasesOnly, CancellationToken.None);
+        _isLoading = true;
+        try
+        {
+            var lookup = await Catalog.GetLoaderVersionsAsync(
+                Loader, MinecraftVersion, _releasesOnly, CancellationToken.None);
+
+            _versions = lookup.Versions;
+            _failed = lookup.Failed;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
     }
 
     private Task OnChanged(string value) => ValueChanged.InvokeAsync(value);

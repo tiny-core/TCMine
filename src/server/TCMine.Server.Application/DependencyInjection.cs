@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddScoped<CreateModpack>();
         services.AddScoped<DeleteModpack>();
         services.AddScoped<CreateModpackVersion>();
+        services.AddScoped<LoaderVersionGuard>();
 
         services.AddScoped<ListModpackAccess>();
         services.AddScoped<AddModpackEditor>();

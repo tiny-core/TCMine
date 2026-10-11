@@ -17,7 +17,8 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
+        var useCase = new PublishModpackVersion(
+            repo, notifier, undo, new FakeActivityLog(), new FakeUserScope(), FakeVersionCatalog.PermissiveGuard());
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
@@ -33,7 +34,8 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = null };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
+        var useCase = new PublishModpackVersion(
+            repo, notifier, undo, new FakeActivityLog(), new FakeUserScope(), FakeVersionCatalog.PermissiveGuard());
 
         var result = await useCase.HandleAsync(Guid.CreateVersion7(), CancellationToken.None);
 
@@ -49,13 +51,33 @@ public sealed class PublishModpackVersionTests
         var repo = new FakeModpackRepository { Version = version };
         var notifier = new FakeHubNotifier();
         var undo = new OverrideUndoService();
-        var useCase = new PublishModpackVersion(repo, notifier, undo, new FakeActivityLog(), new FakeUserScope());
+        var useCase = new PublishModpackVersion(
+            repo, notifier, undo, new FakeActivityLog(), new FakeUserScope(), FakeVersionCatalog.PermissiveGuard());
 
         var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Null(repo.Saved); // não gravou nada
         Assert.Equal(0, notifier.Calls); // nem avisou
+    }
+
+    [Fact]
+    public async Task Nao_publica_com_build_de_loader_que_nao_existe()
+    {
+        // Publicar torna a versão imutável: é a última chance de pegar uma build
+        // que o container não teria como baixar.
+        var version = DraftWithFile();
+        var repo = new FakeModpackRepository { Version = version };
+        var notifier = new FakeHubNotifier();
+        var useCase = new PublishModpackVersion(
+            repo, notifier, new OverrideUndoService(), new FakeActivityLog(), new FakeUserScope(),
+            new FakeVersionCatalog("21.1.259").Guard());
+
+        var result = await useCase.HandleAsync(version.Id, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Saved);
+        Assert.Equal(0, notifier.Calls);
     }
 
     // ---- Fixtures ----

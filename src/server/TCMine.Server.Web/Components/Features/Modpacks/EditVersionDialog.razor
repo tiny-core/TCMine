@@ -13,7 +13,7 @@
            versão do Minecraft nem o loader — esses ficam no modpack e são
            imutáveis, porque mod não migra entre eles. *@
         <LoaderVersionPicker @bind-Value="_loaderVersion"
-                             Loader="Loader" MinecraftVersion="MinecraftVersion"
+                             Loader="Loader" MinecraftVersion="@MinecraftVersion"
                              Class="mt-3"/>
 
         <MudNumericField @bind-Value="_memoryMb" Label="RAM recomendada (MB)"

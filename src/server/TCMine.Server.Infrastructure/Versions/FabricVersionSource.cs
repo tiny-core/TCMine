@@ -1,28 +1,37 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 namespace TCMine.Server.Infrastructure.Versions;
 
 public sealed class FabricVersionSource(HttpClient http)
 {
-    // A lista de loader do Fabric é independente da versão do MC.
-    private const string LoaderUrl = "https://meta.fabricmc.net/v2/versions/loader";
+    // Por versão do jogo, e não a lista geral: a geral traz todo loader que já
+    // existiu, inclusive para um Minecraft que o Fabric não suporta. Aqui a
+    // meta devolve só os loaders que têm intermediário para aquele jogo — e
+    // uma lista vazia quando não há nenhum, que é a resposta certa.
+    private const string LoaderUrl = "https://meta.fabricmc.net/v2/versions/loader/";
 
-    public async Task<IReadOnlyList<string>> GetAsync(bool releasesOnly, CancellationToken ct)
+    public async Task<IReadOnlyList<string>> GetAsync(string minecraftVersion, bool releasesOnly, CancellationToken ct)
     {
-        var loaders = await http.GetFromJsonAsync<IReadOnlyList<Entry>>(LoaderUrl, ct);
-        if (loaders is null)
+        var entries = await http.GetFromJsonAsync<IReadOnlyList<Entry>>(
+            LoaderUrl + Uri.EscapeDataString(minecraftVersion.Trim()), ct);
+
+        if (entries is null)
             return [];
 
         return
         [
-            .. loaders
-                .Where(l => !releasesOnly || l.Stable)
-                .Select(l => l.Version)
+            .. entries
+                .Select(e => e.Loader)
+                .Where(l => l is not null && (!releasesOnly || l.Stable))
+                .Select(l => l!.Version)
         ];
     }
 
     private sealed record Entry(
+        [property: JsonPropertyName("loader")] Loader? Loader);
+
+    private sealed record Loader(
         [property: JsonPropertyName("version")]
         string Version,
         [property: JsonPropertyName("stable")] bool Stable);

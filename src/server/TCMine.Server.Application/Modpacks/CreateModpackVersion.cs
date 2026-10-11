@@ -8,7 +8,7 @@ namespace TCMine.Server.Application.Modpacks;
 /// <summary>
 ///     Cria uma versão. Nasce em Draft, vazia; os arquivos vêm depois.
 /// </summary>
-public sealed class CreateModpackVersion(IModpackRepository repository)
+public sealed class CreateModpackVersion(IModpackRepository repository, LoaderVersionGuard loaderGuard)
 {
     public async Task<Result<Guid>> HandleAsync(CreateModpackVersionCommand command, CancellationToken ct)
     {
@@ -16,6 +16,13 @@ public sealed class CreateModpackVersion(IModpackRepository repository)
 
         if (modpack is null)
             return Result<Guid>.Fail("Modpack não encontrado.");
+
+        // Antes de qualquer outra regra: uma build que não existe para o
+        // Minecraft do pack não vira versão, nem em rascunho.
+        var loaderCheck = await loaderGuard.CheckAsync(
+            modpack.Loader, modpack.MinecraftVersion, command.LoaderVersion, ct);
+        if (!loaderCheck.Succeeded)
+            return Result<Guid>.Fail(loaderCheck.Error!);
 
         var versionText = command.Version.Trim();
 
