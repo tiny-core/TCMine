@@ -11,7 +11,7 @@ namespace TCMine.Server.Application.Settings;
 ///     de volta, então um campo em branco significa "não mexi nisso", e não
 ///     "apague". Para remover de fato existe a flag explícita de limpeza.
 /// </summary>
-public sealed class UpdateSettings(ISettingsRepository repository)
+public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSignal dnsSync)
 {
     /// <summary>O limite de um nome DNS completo; é também o tamanho da coluna.</summary>
     public const int PublicHostMaxLength = 255;
@@ -135,6 +135,11 @@ public sealed class UpdateSettings(ISettingsRepository repository)
             settings.CloudflareApiTokenEncrypted = command.CloudflareApiToken.Trim();
 
         await repository.SaveAsync(settings, ct);
+
+        // Token, zona, domínio e endereço público entram todos no que a
+        // sincronização escreve.
+        dnsSync.Request();
+
         return Result.Success();
     }
 

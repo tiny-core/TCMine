@@ -224,7 +224,7 @@ public sealed class ServerRulesTests
 
         var result =
             await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(ServerRoleDto.Moderator),
-                    new FakePorts())
+                    new FakePorts(), new FakeDnsSyncSignal())
                 .HandleAsync(server.Id, "outro nome", "outro:25565", 4096, 20, true, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -273,7 +273,8 @@ public sealed class ServerRulesTests
     }
 
     private static UpdateGameServer NewUpdate(GameServer server) =>
-        new(new FakeServers(server), new FakeWhitelistSync(), new FakeUserScope(), new FakePorts());
+        new(new FakeServers(server), new FakeWhitelistSync(), new FakeUserScope(), new FakePorts(),
+            new FakeDnsSyncSignal());
 
     [Fact]
     public async Task Apagar_servidor_exige_Owner_e_Admin_nao_basta()
@@ -288,7 +289,7 @@ public sealed class ServerRulesTests
 
         var result = await new DeleteGameServer(
                 servers, orchestrator, materializer, new FakeJobProgress(),
-                new FakeUserScope(ServerRoleDto.Admin))
+                new FakeUserScope(ServerRoleDto.Admin), new FakeDnsSyncSignal())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -305,11 +306,16 @@ public sealed class ServerRulesTests
         var orchestrator = new FakeOrchestrator();
         var materializer = new FakeMaterializer();
 
+        var dns = new FakeDnsSyncSignal();
+
         var result = await new DeleteGameServer(servers, orchestrator, materializer, new FakeJobProgress(),
-                new FakeUserScope())
+                new FakeUserScope(), dns)
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.True(result.Succeeded);
+
+        // O SRV do servidor apagado tem de sair da zona.
+        Assert.Equal(1, dns.Requests);
         Assert.True(orchestrator.Removido);
         Assert.True(materializer.Apagado);
         Assert.True(servers.Removido);
@@ -325,7 +331,7 @@ public sealed class ServerRulesTests
         var orchestrator = new FakeOrchestrator { Explode = true };
 
         var result = await new DeleteGameServer(servers, orchestrator, new FakeMaterializer(), new FakeJobProgress(),
-                new FakeUserScope())
+                new FakeUserScope(), new FakeDnsSyncSignal())
             .HandleAsync(server.Id, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -337,7 +343,7 @@ public sealed class ServerRulesTests
     private static CreateGameServer NewCreate(
         ModpackVersion version, FakeServers? servers = null, FakeMemberships? memberships = null) =>
         new(servers ?? new FakeServers(), new FakeModpacks(version),
-            memberships ?? new FakeMemberships(), new FakeScope(), new FakePorts());
+            memberships ?? new FakeMemberships(), new FakeScope(), new FakePorts(), new FakeDnsSyncSignal());
 
     private ModpackVersion Versao(string numero, ModpackVersionState estado)
     {

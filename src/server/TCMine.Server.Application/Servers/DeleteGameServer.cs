@@ -9,7 +9,8 @@ public sealed class DeleteGameServer(
     IServerOrchestrator orchestrator,
     IInstanceMaterializer materializer,
     IJobProgressReporter progress,
-    ICurrentUserScope scope)
+    ICurrentUserScope scope,
+    IDnsSyncSignal dnsSync)
 {
     public async Task<Result> HandleAsync(Guid id, CancellationToken ct, Guid jobId = default)
     {
@@ -47,6 +48,10 @@ public sealed class DeleteGameServer(
         }
 
         await servers.RemoveAsync(id, ct); // 3. remove o registo
+
+        // O SRV de um servidor apagado continuaria a mandar jogadores para uma
+        // porta onde não há mais nada — ou onde amanhã haverá outro servidor.
+        dnsSync.Request();
 
         progress.Complete(jobId);
         return Result.Success();

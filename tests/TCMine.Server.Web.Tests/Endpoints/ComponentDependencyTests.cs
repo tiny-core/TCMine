@@ -57,6 +57,10 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
 
         // Botão "Sincronizar agora" da aba Rede.
         typeof(SyncGameDns),
+
+        // Injetado por criar, editar e apagar servidor e por salvar configurações:
+        // sem o registro, nenhum desses casos de uso resolve.
+        typeof(IDnsSyncSignal),
         typeof(ChangeServerVersion),
         typeof(CreateWorldBackup),
         typeof(RestoreWorldBackup),

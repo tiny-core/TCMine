@@ -9,7 +9,8 @@ public sealed class UpdateGameServer(
     IServerRepository servers,
     IServerWhitelistSync whitelist,
     ICurrentUserScope scope,
-    IGamePortAllocator ports)
+    IGamePortAllocator ports,
+    IDnsSyncSignal dnsSync)
 {
     public async Task<Result> HandleAsync(
         Guid id, string name, string connectAddress, int memoryMb, int maxPlayers,
@@ -66,6 +67,10 @@ public sealed class UpdateGameServer(
         server.UpdatedAt = DateTimeOffset.UtcNow;
 
         await servers.UpdateAsync(server, ct);
+
+        // Porta ou subdomínio podem ter mudado, e os dois estão no SRV. Pedir
+        // sempre é mais barato do que decidir aqui o que conta como mudança.
+        dnsSync.Request();
 
         // Só quando muda: aplicar a cada salvamento reescreveria a lista inteira
         // por causa de um ajuste de RAM.

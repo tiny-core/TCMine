@@ -1,5 +1,6 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
+using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Application.Tests.Settings;
@@ -17,7 +18,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings { CurseForgeApiKeyEncrypted = "chave-antiga" });
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
 
         Assert.Equal("chave-antiga", repo.Salvo!.CurseForgeApiKeyEncrypted);
@@ -28,7 +29,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings { CurseForgeApiKeyEncrypted = "chave-antiga" });
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, CurseForgeApiKey = "  chave-nova  " },
             CancellationToken.None);
 
@@ -40,7 +41,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings { CurseForgeApiKeyEncrypted = "chave-antiga" });
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, ClearCurseForgeApiKey = true },
             CancellationToken.None);
 
@@ -51,7 +52,7 @@ public sealed class UpdateSettingsTests
     public async Task Recusa_ram_padrao_abaixo_do_minimo()
     {
         // Abaixo de 512 MB o servidor de Minecraft nem sobe.
-        var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()))
+        var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()), new FakeDnsSyncSignal())
             .HandleAsync(new UpdateSettingsCommand { DefaultMemoryMb = 256 }, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -63,7 +64,7 @@ public sealed class UpdateSettingsTests
         // Um id malformado atravessa o handshake inteiro e só falha no MSAL, na
         // máquina do jogador. Recusar aqui é a única chance de o erro aparecer
         // para quem consegue corrigi-lo.
-        var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()))
+        var result = await new UpdateSettings(new FakeSettings(new InstallationSettings()), new FakeDnsSyncSignal())
             .HandleAsync(
                 new UpdateSettingsCommand { DefaultMemoryMb = 4096, AzureClientId = "app-do-tcmine" },
                 CancellationToken.None);
@@ -82,7 +83,7 @@ public sealed class UpdateSettingsTests
             AzureClientId = "33333333-3333-3333-3333-333333333333"
         });
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -94,7 +95,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings());
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand
             {
                 DefaultMemoryMb = 4096, AzureClientId = "  44444444-4444-4444-4444-444444444444  "
@@ -114,7 +115,7 @@ public sealed class UpdateSettingsTests
         // veria na tela um número que não vale.
         var repo = new FakeSettings(new InstallationSettings());
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, GamePortRangeStart = start, GamePortRangeEnd = end },
             CancellationToken.None);
 
@@ -127,7 +128,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings());
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, GamePortRangeStart = 30000, GamePortRangeEnd = 30010 },
             CancellationToken.None);
 
@@ -140,7 +141,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings());
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = "  jogar.exemplo.com  " },
             CancellationToken.None);
 
@@ -155,7 +156,7 @@ public sealed class UpdateSettingsTests
         // "voltar a usar o IP detectado".
         var repo = new FakeSettings(new InstallationSettings { PublicHost = "jogar.exemplo.com" });
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = "" }, CancellationToken.None);
 
         Assert.True(result.Succeeded);
@@ -172,7 +173,7 @@ public sealed class UpdateSettingsTests
         // erro só apareceria no jogador.
         var repo = new FakeSettings(new InstallationSettings());
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, PublicHost = publicHost }, CancellationToken.None);
 
         Assert.False(result.Succeeded);
@@ -186,7 +187,7 @@ public sealed class UpdateSettingsTests
         // então um campo em branco é "não mexi".
         var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token-antigo" });
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
 
         Assert.Equal("token-antigo", repo.Salvo!.CloudflareApiTokenEncrypted);
@@ -197,7 +198,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token-antigo" });
 
-        await new UpdateSettings(repo).HandleAsync(
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand { DefaultMemoryMb = 4096, ClearCloudflareApiToken = true },
             CancellationToken.None);
 
@@ -209,7 +210,7 @@ public sealed class UpdateSettingsTests
     {
         var repo = new FakeSettings(new InstallationSettings());
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand
             {
                 DefaultMemoryMb = 4096,
@@ -240,7 +241,7 @@ public sealed class UpdateSettingsTests
         // alguém sincronizar — longe de quem o digitou.
         var repo = new FakeSettings(new InstallationSettings());
 
-        var result = await new UpdateSettings(repo).HandleAsync(
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
             new UpdateSettingsCommand
             {
                 DefaultMemoryMb = 4096,
@@ -252,6 +253,21 @@ public sealed class UpdateSettingsTests
 
         Assert.False(result.Succeeded);
         Assert.Null(repo.Salvo);
+    }
+
+    [Fact]
+    public async Task Salvar_pede_a_sincronizacao_do_dns_e_recusar_nao()
+    {
+        // Token, zona, domínio e endereço público entram no que vai para a
+        // Cloudflare: gravou, tem de sincronizar. Recusou, nada mudou.
+        var signal = new FakeDnsSyncSignal();
+        var settings = new UpdateSettings(new FakeSettings(new InstallationSettings()), signal);
+
+        await settings.HandleAsync(new UpdateSettingsCommand { DefaultMemoryMb = 256 }, CancellationToken.None);
+        Assert.Equal(0, signal.Requests);
+
+        await settings.HandleAsync(new UpdateSettingsCommand { DefaultMemoryMb = 4096 }, CancellationToken.None);
+        Assert.Equal(1, signal.Requests);
     }
 
     // ---- Fakes ----

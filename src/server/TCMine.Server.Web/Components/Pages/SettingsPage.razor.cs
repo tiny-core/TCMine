@@ -7,6 +7,7 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Components.Pages;
@@ -54,8 +55,32 @@ public partial class SettingsPage : ComponentBase
     private string _dnsBaseDomain = "";
     private string _dnsHostLabel = "";
 
-    /// <summary>Resultado da última sincronização pedida nesta tela. Nulo = ainda não pediu.</summary>
-    private DnsSyncReport? _dnsReport;
+    /// <summary>
+    ///     A última sincronização — a automática, ou a pedida nesta tela. Nulo =
+    ///     nenhuma desde que o painel subiu.
+    /// </summary>
+    private DnsSyncOutcome? _dnsOutcome;
+
+    private DnsSyncReport? _dnsReport => _dnsOutcome?.Report;
+
+    /// <summary>"agora mesmo", "há 4 min": o bastante para saber se o resultado é fresco.</summary>
+    private string DnsOutcomeAge
+    {
+        get
+        {
+            if (_dnsOutcome is null)
+                return "";
+
+            var minutes = (int)(DateTimeOffset.UtcNow - _dnsOutcome.At).TotalMinutes;
+
+            return minutes switch
+            {
+                < 1 => "agora mesmo",
+                < 60 => $"há {minutes} min",
+                _ => $"há {minutes / 60} h"
+            };
+        }
+    }
 
     /// <summary>Só sabemos se existe — o token nunca volta para a tela.</summary>
     private bool _hasCloudflareToken;
@@ -97,6 +122,7 @@ public partial class SettingsPage : ComponentBase
     [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
     [Inject] private SyncGameDns DnsSync { get; set; } = default!;
+    [Inject] private DnsSyncState DnsState { get; set; } = default!;
 
     /// <summary>
     ///     O nome do registro A como ficará, para o admin ver o que vai aparecer
@@ -117,7 +143,10 @@ public partial class SettingsPage : ComponentBase
         _isSyncingDns = true;
         try
         {
-            _dnsReport = await DnsSync.HandleAsync(CancellationToken.None);
+            // Fica registrado no mesmo lugar que a automática: a tela mostra
+            // sempre a mais recente, venha de onde vier.
+            DnsState.Record(await DnsSync.HandleAsync(CancellationToken.None));
+            _dnsOutcome = DnsState.Last;
         }
         finally
         {
@@ -182,6 +211,7 @@ public partial class SettingsPage : ComponentBase
         _dnsHostLabel = settings.DnsHostLabel ?? "";
         _cloudflareToken = "";
         _clearCloudflareToken = false;
+        _dnsOutcome = DnsState.Last;
 
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);

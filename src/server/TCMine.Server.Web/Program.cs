@@ -223,6 +223,13 @@ builder.Services.AddHostedService<DockerReachability>();
 // Microsoft): emite o código de resgate no log.
 builder.Services.AddHostedService<AdminClaimBootstrap>();
 
+// DNS dos servidores de jogo: o estado é singleton (liga quem pede a quem
+// executa, e guarda o último resultado para a aba Rede); o serviço sincroniza
+// a pedido e de tempos em tempos.
+builder.Services.AddSingleton<DnsSyncState>();
+builder.Services.AddSingleton<IDnsSyncSignal>(sp => sp.GetRequiredService<DnsSyncState>());
+builder.Services.AddHostedService<DnsSyncWorker>();
+
 // O launcher embutido na imagem vai para o feed, com o endereço desta instalação.
 builder.Services.AddHostedService<LauncherBundlePublisher>();
 

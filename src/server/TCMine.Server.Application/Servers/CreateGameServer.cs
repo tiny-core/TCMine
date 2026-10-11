@@ -12,7 +12,8 @@ public sealed class CreateGameServer(
     IModpackRepository modpacks,
     IMembershipRepository memberships,
     ICurrentUserScope userScope,
-    IGamePortAllocator ports)
+    IGamePortAllocator ports,
+    IDnsSyncSignal dnsSync)
 {
     public async Task<Result<Guid>> HandleAsync(
         Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
@@ -101,6 +102,9 @@ public sealed class CreateGameServer(
                 new Membership { UserId = criador, GameServerId = server.Id, Role = ServerRole.Owner },
                 ct);
         }
+
+        // Servidor novo com subdomínio precisa do SRV dele.
+        dnsSync.Request();
 
         return Result<Guid>.Success(server.Id);
     }

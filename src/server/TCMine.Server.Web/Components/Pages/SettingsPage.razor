@@ -209,20 +209,28 @@ else
                         Sincronizar agora
                     </MudButton>
                     <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                        Usa o que está salvo: salve antes de sincronizar.
+                        Roda sozinha a cada 5 minutos e logo depois de salvar um servidor ou estas
+                        configurações. O botão usa o que está salvo.
                     </MudText>
                 </MudStack>
 
+                @if (_dnsOutcome is not null)
+                {
+                    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-4">
+                        Última sincronização: @DnsOutcomeAge
+                    </MudText>
+                }
+
                 @if (_dnsReport is { Enabled: false })
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-2">
                         Nada foi feito: faltam o token, o Zone ID ou o domínio nas configurações salvas.
                     </MudAlert>
                 }
                 else if (_dnsReport is not null)
                 {
                     <MudAlert Severity="@(_dnsReport.Succeeded ? Severity.Success : Severity.Warning)"
-                              Variant="Variant.Outlined" Dense="true" Class="mt-4">
+                              Variant="Variant.Outlined" Dense="true" Class="mt-2">
                         @_dnsReport.Created criado(s), @_dnsReport.Updated atualizado(s),
                         @_dnsReport.Deleted apagado(s), @_dnsReport.Unchanged já certo(s).
                         @foreach (var problem in _dnsReport.Problems)
