@@ -27,6 +27,42 @@ public partial class ServerFormDialog
 
     private string _subdomain = "";
 
+    /// <summary>Teto de opções no campo Porta: uma faixa enorme não vira uma lista interminável.</summary>
+    private const int MaxPortChoices = 100;
+
+    private GamePortChoices _portChoices = new(GamePortDefaults.First, GamePortDefaults.Last, [], false);
+
+    /// <summary>
+    ///     O que o campo Porta oferece: as livres da faixa. Na edição, a porta
+    ///     que o servidor já tem entra sempre — mesmo fora da faixa (um servidor
+    ///     de antes de a faixa mudar), porque mantê-la é sempre permitido.
+    /// </summary>
+    private IEnumerable<int> PortOptions =>
+        Existing is null || _portChoices.Free.Contains(Existing.GamePort)
+            ? _portChoices.Free
+            : _portChoices.Free.Prepend(Existing.GamePort);
+
+    private string PortHelp
+    {
+        get
+        {
+            var range = $"Portas livres da faixa {_portChoices.RangeStart}–{_portChoices.RangeEnd}";
+            var more = _portChoices.Truncated ? $" (as {MaxPortChoices} primeiras)" : "";
+
+            return _isNew
+                ? $"{range}{more}. A faixa muda em Configurações → Rede."
+                : $"{range}{more}. Uma troca vale a partir do próximo início.";
+        }
+    }
+
+    /// <summary>O rótulo de uma opção: só a porta atual de um servidor fora da faixa precisa de explicação.</summary>
+    private string PortLabel(int port) =>
+        Existing is not null
+        && port == Existing.GamePort
+        && !GamePortRange.Contains(_portChoices.RangeStart, _portChoices.RangeEnd, port)
+            ? $"{port} (atual, fora da faixa)"
+            : port.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
     private Guid _selectedVersionId;
     private List<ModpackVersion> _versions = [];
 
@@ -92,6 +128,11 @@ public partial class ServerFormDialog
 
         _address = await AddressLookup.HandleAsync(false, CancellationToken.None);
 
+        // Antes de preencher os campos: a lista é o que o campo Porta oferece,
+        // nos dois modos. Na edição o servidor em causa fica de fora da conta,
+        // para a porta que ele já tem aparecer como escolha.
+        _portChoices = await Ports.ListChoicesAsync(Existing?.Id, MaxPortChoices, CancellationToken.None);
+
         if (Existing is not null)
         {
             _name = Existing.Name;
@@ -116,9 +157,11 @@ public partial class ServerFormDialog
         // pegar esta porta antes do Salvar, o caso de uso confere de novo e recusa.
         // Sem porta livre o campo fica em zero, que o caso de uso lê como
         // "escolha por mim" — e devolve o mesmo erro mostrado aqui.
-        var suggested = await Ports.AllocateAsync(CancellationToken.None);
-        _gamePort = suggested.Succeeded ? suggested.Value : 0;
-        _portSuggestionError = suggested.Succeeded ? null : suggested.Error;
+        _gamePort = _portChoices.Free.Count > 0 ? _portChoices.Free[0] : 0;
+        _portSuggestionError = _portChoices.Free.Count > 0
+            ? null
+            : $"Não há porta livre na faixa {_portChoices.RangeStart}–{_portChoices.RangeEnd}. "
+              + "Aumente a faixa em Configurações → Rede ou apague um servidor.";
 
         // A versão do Minecraft é do modpack (fixa, imutável), não da versão
         // publicada — a legenda mostrava LoaderVersion rotulado de "Minecraft",

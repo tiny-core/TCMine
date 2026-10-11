@@ -8,6 +8,11 @@ namespace TCMine.Server.Application.Tests.Servers;
 /// </summary>
 public sealed class GamePortRangeTests
 {
+    // Campos, e não matrizes escritas na chamada: o analisador (CA1861) recusa
+    // matriz constante como argumento.
+    private static readonly int[] FreeAroundTheUsed = [25565, 25567, 25569];
+    private static readonly int[] FirstThree = [30000, 30001, 30002];
+
     [Fact]
     public void A_primeira_livre_e_a_menor_que_ninguem_usa()
     {
@@ -36,6 +41,32 @@ public sealed class GamePortRangeTests
         var used = new HashSet<int> { 25565 };
 
         Assert.Equal(25566, GamePortRange.FirstFree(25565, 25566, used));
+    }
+
+    [Fact]
+    public void Portas_livres_saem_em_ordem_e_sem_as_ocupadas()
+    {
+        var used = new HashSet<int> { 25566, 25568 };
+
+        Assert.Equal(FreeAroundTheUsed, GamePortRange.FreePorts(25565, 25569, used, 100));
+    }
+
+    [Fact]
+    public void Portas_livres_respeitam_o_teto()
+    {
+        // O formulário mostra uma lista: uma faixa de milhares de portas não
+        // pode virar milhares de opções.
+        Assert.Equal(FirstThree, GamePortRange.FreePorts(30000, 60000, new HashSet<int>(), 3));
+    }
+
+    [Theory]
+    [InlineData(25565, true)]
+    [InlineData(25599, true)]
+    [InlineData(25564, false)]
+    [InlineData(25600, false)]
+    public void Faixa_inclui_as_duas_pontas_e_nada_alem(int port, bool inside)
+    {
+        Assert.Equal(inside, GamePortRange.Contains(25565, 25599, port));
     }
 
     [Theory]

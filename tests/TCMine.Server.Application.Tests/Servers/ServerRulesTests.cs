@@ -389,6 +389,9 @@ public sealed class ServerRulesTests
         public Task<Result<int>> AllocateAsync(CancellationToken ct) =>
             Task.FromResult(Result<int>.Success(Allocated));
 
+        public Task<GamePortChoices> ListChoicesAsync(Guid? exceptServerId, int max, CancellationToken ct) =>
+            Task.FromResult(new GamePortChoices(Allocated, Allocated, [Allocated], false));
+
         public Task<Result> EnsureAvailableAsync(int port, Guid? exceptServerId, CancellationToken ct) =>
             Task.FromResult(port == Taken ? Result.Fail("porta ocupada") : Result.Success());
     }

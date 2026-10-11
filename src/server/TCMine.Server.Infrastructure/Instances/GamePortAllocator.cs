@@ -35,10 +35,40 @@ public sealed partial class GamePortAllocator(
                 $"Não há porta livre na faixa {start}–{end}. Aumente a faixa nas configurações ou apague um servidor.");
     }
 
+    public async Task<GamePortChoices> ListChoicesAsync(Guid? exceptServerId, int max, CancellationToken ct)
+    {
+        var config = await settings.GetAsync(ct);
+        var (start, end) = GamePortRange.Normalize(config.GamePortRangeStart, config.GamePortRangeEnd);
+
+        var used = new HashSet<int>(
+            (await servers.ListAllAsync(ct)).Where(s => s.Id != exceptServerId).Select(s => s.GamePort));
+        used.UnionWith(await DockerPortsAsync(exceptServerId, ct));
+
+        // Uma a mais do que o teto: é como se sabe que a lista foi cortada sem
+        // contar a faixa inteira.
+        var free = GamePortRange.FreePorts(start, end, used, max + 1);
+
+        return new GamePortChoices(start, end, [.. free.Take(max)], free.Count > max);
+    }
+
     public async Task<Result> EnsureAvailableAsync(int port, Guid? exceptServerId, CancellationToken ct)
     {
         if (!GamePortRange.IsValid(port))
             return Result.Fail($"A porta deve ficar entre {GamePortRange.Min} e {GamePortRange.Max}.");
+
+        // Fora da faixa é recusado mesmo estando livre. A faixa é o que o admin
+        // redirecionou no roteador: uma porta fora dela subiria sem erro nenhum
+        // e ninguém de fora conseguiria entrar. Quem precisa de outra porta
+        // aumenta a faixa — e aí lembra de redirecioná-la.
+        var config = await settings.GetAsync(ct);
+        var (start, end) = GamePortRange.Normalize(config.GamePortRangeStart, config.GamePortRangeEnd);
+
+        if (!GamePortRange.Contains(start, end, port))
+        {
+            return Result.Fail(
+                $"A porta {port} está fora da faixa configurada ({start}–{end}). Escolha uma porta da faixa ou "
+                + "aumente-a em Configurações → Rede.");
+        }
 
         var owner = (await servers.ListAllAsync(ct))
             .FirstOrDefault(s => s.GamePort == port && s.Id != exceptServerId);

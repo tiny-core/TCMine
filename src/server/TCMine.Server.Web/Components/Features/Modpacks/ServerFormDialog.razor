@@ -14,10 +14,17 @@
 
         @* Value + ValueChanged em vez de @bind: trocar a porta precisa levar o
            endereço junto, e isso só dá para fazer vendo o valor ANTIGO. *@
-        <MudNumericField T="int" Value="_gamePort" ValueChanged="OnGamePortChanged" Label="Porta"
-                         Min="GamePortRange.Min" Max="GamePortRange.Max" HideSpinButtons="true"
-                         HelperText="@(_isNew ? "Porta que o servidor publica nesta máquina. Sugerida a primeira livre." : "Porta que o servidor publica nesta máquina. Uma troca vale a partir do próximo início.")"
-                         Class="mb-2"/>
+        @* Lista, e não caixa de texto: só aparecem portas que servem — dentro
+           da faixa que o admin redirecionou no roteador, e livres. Digitar um
+           número deixava escolher uma porta que subia sem erro e por onde
+           ninguém de fora entrava. *@
+        <MudSelect T="int" Value="_gamePort" ValueChanged="OnGamePortChanged" Label="Porta"
+                   HelperText="@PortHelp" Disabled="@(!PortOptions.Any())" Class="mb-2">
+            @foreach (var port in PortOptions)
+            {
+                <MudSelectItem T="int" Value="port">@PortLabel(port)</MudSelectItem>
+            }
+        </MudSelect>
 
         @if (_portSuggestionError is not null)
         {

@@ -23,6 +23,28 @@ public static class GamePortRange
             ? (start, end)
             : (GamePortDefaults.First, GamePortDefaults.Last);
 
+    /// <summary>A porta está dentro da faixa (as duas pontas contam).</summary>
+    public static bool Contains(int start, int end, int port) => port >= start && port <= end;
+
+    /// <summary>
+    ///     As portas livres da faixa, da menor para a maior, até
+    ///     <paramref name="max" />. O teto existe para a lista de escolha do
+    ///     formulário: uma faixa de milhares de portas não vira milhares de
+    ///     opções na tela.
+    /// </summary>
+    public static IReadOnlyList<int> FreePorts(int start, int end, IReadOnlySet<int> used, int max)
+    {
+        var free = new List<int>();
+
+        for (var port = start; port <= end && free.Count < max; port++)
+        {
+            if (!used.Contains(port))
+                free.Add(port);
+        }
+
+        return free;
+    }
+
     /// <summary>A menor porta da faixa que não está em <paramref name="used" />, ou nulo se não sobra nenhuma.</summary>
     public static int? FirstFree(int start, int end, IReadOnlySet<int> used)
     {
