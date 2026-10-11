@@ -20,6 +20,8 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private GameSession Game { get; set; } = default!;
 
+    [Inject] private LinkSupervisor Link { get; set; } = default!;
+
     // TEMPORÁRIO (linha de base, sai no fim da fase 8).
     [Inject] private ILogger<ShellLayout> Logger { get; set; } = default!;
 
@@ -42,6 +44,11 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     {
         Shell.Changed += OnShellChanged;
         Lock.Changed += OnShellChanged;
+
+        // Antes do arranque: é o supervisor que abre o canal assim que houver
+        // sessão, e a sessão pode ser retomada já nos passos abaixo.
+        Link.Attach();
+
         Shell.BeginCheck();
 
         // TEMPORÁRIO (linha de base): como o arranque terminou. Sem isto, uma

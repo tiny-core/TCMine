@@ -17,8 +17,24 @@ public interface IServerConnection : IAsyncDisposable
 {
     bool IsConnected { get; }
 
-    /// <summary>Disparado quando o canal cai ou volta, para a UI acompanhar.</summary>
+    /// <summary>O estado do canal neste instante. Ver <see cref="LinkStatus" />.</summary>
+    LinkStatus Status { get; }
+
+    /// <summary>
+    ///     Disparado a cada mudança de <see cref="Status" /> — inclusive quando o
+    ///     canal cai sozinho e quando volta. Pode vir de qualquer thread.
+    /// </summary>
     event Action? StateChanged;
+
+    /// <summary>
+    ///     Mantém o canal aberto com este servidor, tentando de novo sem limite
+    ///     sempre que ele estiver em baixo.
+    ///     Não espera e não lança: quem chama está a declarar uma intenção
+    ///     ("quero estar ligado"), e o resultado chega por <see cref="StateChanged" />.
+    ///     Chamar outra vez com o mesmo endereço não faz nada. Vale até
+    ///     <see cref="DisconnectAsync" />.
+    /// </summary>
+    void KeepConnected(Uri serverUrl);
 
     Task ConnectAsync(Uri serverUrl, CancellationToken ct);
 

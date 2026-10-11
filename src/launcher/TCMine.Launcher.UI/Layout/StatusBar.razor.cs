@@ -15,6 +15,10 @@ public partial class StatusBar : ComponentBase, IDisposable
         ConnectionState.Connected => $"Ligado a {Shell.ServerName ?? "server"}",
         ConnectionState.Connecting => "A verificar ligação…",
 
+        // Diferente de "Sem ligação" de propósito: aqui o jogador não precisa
+        // fazer nada, e dizer isso evita que ele feche o launcher para "consertar".
+        ConnectionState.Reconnecting => "Ligação perdida. A religar…",
+
         // "Sem servidor" e "sem ligação" pedem ações diferentes: uma é parear,
         // a outra é esperar. Um rótulo só para os dois casos mandaria o jogador
         // redigitar um endereço que está correto.
@@ -24,7 +28,7 @@ public partial class StatusBar : ComponentBase, IDisposable
     private string DotClass => Shell.Connection switch
     {
         ConnectionState.Connected => "tc-dot-online",
-        ConnectionState.Connecting => "tc-dot-pending",
+        ConnectionState.Connecting or ConnectionState.Reconnecting => "tc-dot-pending",
         _ => "tc-dot-offline"
     };
 

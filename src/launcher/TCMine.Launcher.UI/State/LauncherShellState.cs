@@ -35,10 +35,29 @@ public sealed class LauncherShellState
     /// <summary>Existe servidor conhecido, mesmo que ele não esteja atendendo.</summary>
     public bool IsPaired => Pairing?.IsPaired is true;
 
+    /// <summary>
+    ///     O estado do canal persistente, como o <see cref="LinkSupervisor" /> o
+    ///     reporta. Só tem significado com sessão: sem ela não há canal aberto.
+    /// </summary>
+    public LinkStatus Link { get; private set; }
+
+    /// <summary>
+    ///     O que o rodapé mostra.
+    ///     Com sessão, quem manda é o canal vivo — é ele que nota uma queda. Sem
+    ///     sessão ainda não existe canal (o hub exige login), e o melhor que há é
+    ///     a resposta do último handshake.
+    /// </summary>
     public ConnectionState Connection =>
         _checking ? ConnectionState.Connecting
-        : Pairing?.IsOnline is true ? ConnectionState.Connected
-        : ConnectionState.Disconnected;
+        : Pairing?.IsOnline is not true ? ConnectionState.Disconnected
+        : !IsSignedIn ? ConnectionState.Connected
+        : Link switch
+        {
+            LinkStatus.Up => ConnectionState.Connected,
+            LinkStatus.Reconnecting => ConnectionState.Reconnecting,
+            LinkStatus.Connecting => ConnectionState.Connecting,
+            _ => ConnectionState.Disconnected
+        };
 
     /// <summary>O servidor respondeu. Sem isto não há como emitir sessão.</summary>
     public bool IsOnline => Pairing?.IsOnline is true;
@@ -100,6 +119,15 @@ public sealed class LauncherShellState
         Changed?.Invoke();
     }
 
+    public void Apply(LinkStatus link)
+    {
+        if (Link == link)
+            return;
+
+        Link = link;
+        Changed?.Invoke();
+    }
+
     /// <summary>Chamado quando o arranque termina, com ou sem sucesso.</summary>
     public void FinishStartup()
     {
@@ -118,5 +146,8 @@ public enum ConnectionState
 {
     Disconnected,
     Connecting,
-    Connected
+    Connected,
+
+    /// <summary>Estava ligado, caiu, e o launcher está a tentar voltar sozinho.</summary>
+    Reconnecting
 }

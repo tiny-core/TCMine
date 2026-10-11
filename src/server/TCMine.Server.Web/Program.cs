@@ -115,6 +115,13 @@ builder.Services
         // não. Ver UserPrincipalHolder.
         options.AddFilter(new HubIdentityFilter());
     })
+    // Só no hub dos launchers, e não nas opções globais acima: aquelas valem
+    // também para o circuito do painel, que não tem nada a ganhar com isto.
+    // O sinal a cada 5 s é o que deixa o launcher perceber em 15 s que o
+    // servidor sumiu sem fechar o socket. O ClientTimeoutInterval fica no
+    // padrão (30 s) de propósito: um launcher antigo manda o sinal dele a cada
+    // 15 s, e apertar o prazo aqui o derrubaria a toda hora.
+    .AddHubOptions<MainHub>(options => options.KeepAliveInterval = TimeSpan.FromSeconds(5))
     // MessagePack é binário: mensagens menores e serialização mais rápida
     // que JSON. Vale principalmente no stream de console, que é constante.
     .AddMessagePackProtocol();

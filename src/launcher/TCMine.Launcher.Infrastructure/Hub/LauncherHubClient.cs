@@ -43,20 +43,29 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
                 options.Cookies = cookies;
             })
             .AddMessagePackProtocol()
-            // Reconecta sozinho com backoff. Sem argumento, a política vai
-            // até cerca de 30s de intervalo e desiste; passar um array
-            // customizado permite tentar por mais tempo, já que servidor
-            // reiniciando por update pode demorar.
-            .WithAutomaticReconnect([
-                TimeSpan.Zero,
-                TimeSpan.FromSeconds(2),
-                TimeSpan.FromSeconds(5),
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(30)
-            ])
+            // Reconecta sozinho e NUNCA desiste (ver UnlimitedRetryPolicy). A
+            // lista fixa que estava aqui parava na quinta tentativa, e um
+            // servidor reiniciando por update demora mais do que isso.
+            .WithAutomaticReconnect(new UnlimitedRetryPolicy())
             .Build();
 
+        // Uma queda silenciosa (cabo puxado, Wi-Fi que some) não fecha o
+        // socket: só é percebida quando o servidor deixa de dar sinal. Com os
+        // padrões (15 s / 30 s) o rodapé levava meio minuto para notar. O
+        // servidor manda o sinal dele a cada 5 s (AddHubOptions no Program.cs),
+        // e o prazo tem de ser folgado em relação a isso.
+        _connection.KeepAliveInterval = TimeSpan.FromSeconds(5);
+        _connection.ServerTimeout = TimeSpan.FromSeconds(15);
+
         RegisterHandlers();
+
+        _connection.Reconnecting += error =>
+        {
+            LogReconnecting(error?.Message ?? "sem causa informada");
+            Reconnecting?.Invoke();
+
+            return Task.CompletedTask;
+        };
 
         _connection.Reconnected += async _ =>
         {
@@ -70,6 +79,8 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
         {
             if (error is not null)
                 LogConnectionClosed(error);
+
+            Closed?.Invoke();
 
             return Task.CompletedTask;
         };
@@ -131,6 +142,15 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
     /// <summary>Disparado ao reconectar. É o gatilho da reconciliação.</summary>
     public event Func<Task>? Reconnected;
 
+    /// <summary>O canal caiu e o SignalR começou a tentar reabri-lo.</summary>
+    public event Action? Reconnecting;
+
+    /// <summary>
+    ///     O canal fechou de vez: foi descartado, ou o servidor mandou fechar sem
+    ///     direito a reconexão. Daqui o SignalR não tenta mais nada sozinho.
+    /// </summary>
+    public event Action? Closed;
+
     public Task ConnectAsync(CancellationToken ct) => _connection.StartAsync(ct);
 
     // ---------- Recebimento: ILauncherClient ----------
@@ -156,6 +176,9 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
         _connection.On<Guid, ServerRoleDto>(nameof(ILauncherClient.RoleChanged),
             (serverId, role) => RoleChanged?.Invoke(serverId, role));
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Conexão com o servidor caiu ({Reason}); a religar.")]
+    private partial void LogReconnecting(string reason);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Reconectado ao servidor.")]
     private partial void LogReconnected();

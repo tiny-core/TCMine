@@ -45,22 +45,37 @@ public class FakeServerConnection : IServerConnection
     /// <summary>Servidores pedidos, na ordem — para provar que o id certo foi enviado.</summary>
     public List<Guid> AccessRequested { get; } = [];
 
+    /// <summary>Endereços que alguém pediu para manter ligados, na ordem.</summary>
+    public List<Uri> Kept { get; } = [];
+
     public bool IsConnected { get; set; }
+
+    public LinkStatus Status { get; private set; }
 
     public event Action? StateChanged;
 
     public Task ConnectAsync(Uri serverUrl, CancellationToken ct)
     {
         Connected.Add(serverUrl);
-        IsConnected = true;
-        StateChanged?.Invoke();
+        Report(LinkStatus.Up);
 
         return Task.CompletedTask;
+    }
+
+    public void KeepConnected(Uri serverUrl) => Kept.Add(serverUrl);
+
+    /// <summary>Simula o canal a mudar de estado sozinho, como numa queda.</summary>
+    public void Report(LinkStatus status)
+    {
+        Status = status;
+        IsConnected = status is LinkStatus.Up;
+        StateChanged?.Invoke();
     }
 
     public virtual Task DisconnectAsync()
     {
         Disconnected = true;
+        Status = LinkStatus.Down;
         IsConnected = false;
         StateChanged?.Invoke();
 

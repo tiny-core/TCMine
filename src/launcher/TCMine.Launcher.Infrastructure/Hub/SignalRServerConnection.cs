@@ -14,6 +14,10 @@ namespace TCMine.Launcher.Infrastructure.Hub;
 ///     presença e assinatura de grupo mais adiante.
 ///     Ligar duas vezes é operação normal, não erro: acontece ao entrar depois
 ///     de sair, e ao trocar de servidor. A conexão anterior é encerrada antes.
+///     São duas redes de segurança, uma dentro da outra. Uma queda comum é
+///     reaberta pelo próprio SignalR, sem limite de tentativas; o que ele não
+///     cobre — a primeira ligação falhar, ou o servidor fechar o canal de vez —
+///     é coberto pelo vigia de <see cref="KeepConnected" />.
 /// </summary>
 public sealed partial class SignalRServerConnection(
     LauncherHubClientFactory factory,
@@ -26,9 +30,23 @@ public sealed partial class SignalRServerConnection(
     // guarda deixaria uma conexão órfã, viva e invisível.
     private readonly SemaphoreSlim _porta = new(1, 1);
 
+    // Guarda só a troca do vigia. À parte da _porta porque KeepConnected é
+    // síncrono e não pode esperar por uma ligação em curso.
+    private readonly Lock _watcherGate = new();
+
+    // Acorda o vigia quando o canal fica em baixo. Um semáforo e não um evento:
+    // um aviso que chegue enquanto o vigia está ocupado fica guardado, em vez de
+    // se perder.
+    private readonly SemaphoreSlim _wake = new(0);
+
     private LauncherHubClient? _client;
+    private volatile LinkStatus _status = LinkStatus.Down;
+    private CancellationTokenSource? _watcher;
+    private Uri? _watched;
 
     public bool IsConnected => _client?.State is HubConnectionState.Connected;
+
+    public LinkStatus Status => _status;
 
     public event Action? StateChanged;
 
@@ -40,36 +58,75 @@ public sealed partial class SignalRServerConnection(
         {
             await FecharAsync();
 
-            var cliente = factory.Create(serverUrl);
+            Set(LinkStatus.Connecting);
 
-            await cliente.ConnectAsync(ct);
+            var cliente = factory.Create(serverUrl);
+            Watch(cliente);
+
+            try
+            {
+                await cliente.ConnectAsync(ct);
+            }
+            catch
+            {
+                // O cliente que não ligou não pode ficar vivo: ele segura um
+                // HttpClient e, pior, os eventos que acabamos de assinar.
+                await DiscardAsync(cliente);
+                Set(LinkStatus.Down);
+
+                throw;
+            }
 
             _client = cliente;
 
+            Set(LinkStatus.Up);
             LogConectado(serverUrl);
         }
         finally
         {
             _porta.Release();
         }
+    }
 
-        StateChanged?.Invoke();
+    public void KeepConnected(Uri serverUrl)
+    {
+        CancellationToken token;
+
+        lock (_watcherGate)
+        {
+            if (_watcher is not null && serverUrl.Equals(_watched))
+                return;
+
+            _watcher?.Cancel();
+            _watcher?.Dispose();
+
+            _watcher = new CancellationTokenSource();
+            _watched = serverUrl;
+            token = _watcher.Token;
+        }
+
+        // Task.Run: nada do vigia roda na thread de quem chamou (a de interface)
+        // nem dentro do lock acima — a primeira ligação já dispara eventos.
+        _ = Task.Run(() => WatchLinkAsync(serverUrl, token), CancellationToken.None);
     }
 
     public async Task DisconnectAsync()
     {
+        // Antes de fechar: desligar é uma decisão (sair da conta), e o vigia
+        // reabriria o canal no instante seguinte.
+        StopWatching();
+
         await _porta.WaitAsync();
 
         try
         {
             await FecharAsync();
+            Set(LinkStatus.Down);
         }
         finally
         {
             _porta.Release();
         }
-
-        StateChanged?.Invoke();
     }
 
     public Task<IReadOnlyList<ModpackDto>> GetModpacksAsync(CancellationToken ct) =>
@@ -95,7 +152,11 @@ public sealed partial class SignalRServerConnection(
     public Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct) =>
         Require().RequestServerAccessAsync(gameServerId);
 
-    public async ValueTask DisposeAsync() => await FecharAsync();
+    public async ValueTask DisposeAsync()
+    {
+        StopWatching();
+        await FecharAsync();
+    }
 
     /// <summary>
     ///     Chamar sem conexão é erro de programação, não estado esperado: as
@@ -106,6 +167,100 @@ public sealed partial class SignalRServerConnection(
     private LauncherHubClient Require() =>
         _client ?? throw new InvalidOperationException("O canal com o servidor não está aberto.");
 
+    /// <summary>
+    ///     O vigia: enquanto o canal estiver em baixo, tenta abri-lo; com ele de
+    ///     pé (ou a ser reaberto pelo SignalR), dorme até ser avisado.
+    /// </summary>
+    private async Task WatchLinkAsync(Uri serverUrl, CancellationToken ct)
+    {
+        var failures = 0;
+
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                if (_status is not LinkStatus.Down)
+                {
+                    failures = 0;
+                    await _wake.WaitAsync(ct);
+
+                    continue;
+                }
+
+                try
+                {
+                    await ConnectAsync(serverUrl, ct);
+
+                    continue;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    failures++;
+                    LogRetryScheduled(ex, ReconnectBackoff.DelayFor(failures));
+                }
+
+                await Task.Delay(ReconnectBackoff.DelayFor(failures), ct);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Saiu da conta, trocou de servidor ou fechou o launcher.
+        }
+    }
+
+    private void StopWatching()
+    {
+        lock (_watcherGate)
+        {
+            _watcher?.Cancel();
+            _watcher?.Dispose();
+            _watcher = null;
+            _watched = null;
+        }
+    }
+
+    /// <summary>
+    ///     Traduz os eventos do SignalR em <see cref="LinkStatus" />.
+    ///     Cada reação confere se o cliente ainda é o atual: um cliente
+    ///     descartado dispara "fechou" ao morrer, e sem a conferência esse aviso
+    ///     atrasado derrubaria o estado do canal novo que o substituiu.
+    /// </summary>
+    private void Watch(LauncherHubClient cliente)
+    {
+        cliente.Reconnecting += () =>
+        {
+            if (ReferenceEquals(_client, cliente))
+                Set(LinkStatus.Reconnecting);
+        };
+
+        cliente.Reconnected += () =>
+        {
+            if (ReferenceEquals(_client, cliente))
+                Set(LinkStatus.Up);
+
+            return Task.CompletedTask;
+        };
+
+        cliente.Closed += () =>
+        {
+            if (ReferenceEquals(_client, cliente))
+                Set(LinkStatus.Down);
+        };
+    }
+
+    private void Set(LinkStatus status)
+    {
+        if (_status == status)
+            return;
+
+        _status = status;
+
+        if (status is LinkStatus.Down)
+            _wake.Release();
+
+        StateChanged?.Invoke();
+    }
+
     private async Task FecharAsync()
     {
         if (_client is null)
@@ -114,9 +269,14 @@ public sealed partial class SignalRServerConnection(
         var anterior = _client;
         _client = null;
 
+        await DiscardAsync(anterior);
+    }
+
+    private async Task DiscardAsync(LauncherHubClient cliente)
+    {
         try
         {
-            await anterior.DisposeAsync();
+            await cliente.DisposeAsync();
         }
         catch (Exception ex)
         {
@@ -128,6 +288,10 @@ public sealed partial class SignalRServerConnection(
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Canal aberto com {ServerUrl}.")]
     private partial void LogConectado(Uri serverUrl);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Não foi possível abrir o canal com o servidor; nova tentativa em {Delay}.")]
+    private partial void LogRetryScheduled(Exception ex, TimeSpan delay);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao fechar o canal anterior.")]
     private partial void LogFalhaAoFechar(Exception ex);

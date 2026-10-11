@@ -19,6 +19,7 @@ public static class DependencyInjection
         services.AddSingleton<InstallOperationState>();
         services.AddSingleton<ActionLock>();
         services.AddScoped<PostPairingRoute>();
+        services.AddScoped<LinkSupervisor>();
 
         services.AddMudServices();
 
