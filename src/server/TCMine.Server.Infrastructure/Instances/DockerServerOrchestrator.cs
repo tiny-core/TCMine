@@ -19,8 +19,6 @@ public sealed partial class DockerServerOrchestrator(
     IModpackRepository modpacks,
     ILogger<DockerServerOrchestrator> logger) : IServerOrchestrator
 {
-    private const string Image = "itzg/minecraft-server:latest";
-
     /// <summary>Label com a impressão digital da spec (ver <see cref="ItzgEnv.Fingerprint" />).</summary>
     private const string SpecLabel = "tcmine.spec";
 
@@ -48,6 +46,12 @@ public sealed partial class DockerServerOrchestrator(
         // O que decide QUE jogo roda vem do modpack (Minecraft e loader, fixos)
         // e da versão fixada no servidor (build do loader).
         var gameEnv = ItzgEnv.GameVariables(modpack.MinecraftVersion, modpack.Loader, version.LoaderVersion);
+
+        // A imagem leva o Java daquela versão do Minecraft. Entra na impressão
+        // digital logo abaixo: um container criado com outra imagem (o :latest
+        // de antes, por exemplo) é recriado no próximo início, com o mundo
+        // intacto na pasta montada.
+        var image = ItzgEnv.Image(modpack.MinecraftVersion);
         IReadOnlyList<string> settings =
         [
             .. gameEnv,
@@ -57,7 +61,7 @@ public sealed partial class DockerServerOrchestrator(
 
         // A senha do RCON fica FORA da impressão digital: ela não muda, e um
         // label é legível por qualquer um com acesso ao Docker.
-        var fingerprint = ItzgEnv.Fingerprint(Image, settings, [$"port={hostPort}", $"bind={instancePath}"]);
+        var fingerprint = ItzgEnv.Fingerprint(image, settings, [$"port={hostPort}", $"bind={instancePath}"]);
 
         // 1. Se temos um ContainerId e ele ainda existe, decide entre reusar e
         //    recriar. Reusar SEMPRE era o defeito: o ambiente de um container é
@@ -98,11 +102,11 @@ public sealed partial class DockerServerOrchestrator(
 
         // A Engine API não puxa no create — garantimos a imagem primeiro.
         // Idempotente: se já está local, o pull retorna rápido.
-        await docker.PullImageAsync(Image, ct);
+        await docker.PullImageAsync(image, ct);
 
         var spec = new CreateContainerRequest
         {
-            Image = Image,
+            Image = image,
             Env =
             [
                 "EULA=TRUE",
