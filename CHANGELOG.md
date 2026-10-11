@@ -11,6 +11,82 @@ muda de forma incompatível numa versão MAIOR.
 O texto completo de cada lançamento está na
 [página de releases](https://github.com/tiny-core/TCMine/releases).
 
+## [1.4.0] — 2026-10-11
+
+Launcher **1.1.3** (sem mudanças).
+
+**Antes de atualizar:** faça backup do banco — esta versão traz duas migrations.
+Todos os containers de jogo são recriados no próximo início de cada servidor; o
+mundo não é tocado (veja a nota de migração).
+
+### Adicionado
+
+- **Subdomínio por servidor, com DNS automático na Cloudflare.** Em
+  Configurações → Rede, informe um token da Cloudflare, a zona e o domínio base;
+  cada servidor pode então ter um subdomínio (`atm10.exemplo.org`) e os
+  jogadores entram sem digitar porta. O painel cria e mantém sozinho o registro
+  `A` da máquina e um `SRV` por servidor, e remove os de servidores apagados. Só
+  mexe nos registros que ele mesmo criou. Exige um IPv4 público alcançável: não
+  funciona atrás de CGNAT.
+- **Opções do jogo no formulário do servidor**, em abas (Jogo, Mundo,
+  Desempenho, Jogadores, Sistema): dificuldade, modo de jogo, PvP, distância de
+  visão e de simulação, semente, whitelist, flags de desempenho da JVM e outras.
+  Cada opção tem descrição e só é aplicada quando marcada.
+- **Lista de portas livres.** A porta do servidor deixou de ser um campo de
+  texto: o formulário oferece só as portas livres da faixa configurada.
+- **Build do loader conferida ao criar, editar e publicar uma versão.** Uma
+  build que não existe para o Minecraft do modpack é recusada com mensagem
+  clara, em vez de o container falhar ao iniciar. Se a fonte de versões estiver
+  fora do ar, a conferência é pulada e o painel avisa.
+- **NeoForge para Minecraft 26.x e para o 1.20.1** na lista de builds.
+- **O servidor sobe sem internet** quando a imagem do jogo já está na máquina:
+  a falha ao atualizar a imagem vira um aviso no log.
+
+### Alterado
+
+- **Java escolhido pela versão do Minecraft.** A imagem do jogo era sempre a
+  mais recente; agora é a do Java que aquele Minecraft pede (8 até o 1.16.5, 16
+  no 1.17, 17 do 1.18 ao 1.20.4, 21 a partir do 1.20.5, 25 no 26.x).
+- **Limite de memória do container acima do heap.** Era igual à memória do
+  servidor, e o sistema matava o jogo quando o heap enchia, sem nenhuma linha no
+  console. Agora é a memória configurada mais 25% (mínimo de 512 MB). **Confira
+  se a máquina tem essa folga**: um servidor de 8 GB passa a poder usar 10 GB.
+- **Log do container com teto** de 30 MB por servidor (3 arquivos de 10 MB). O
+  log do próprio jogo, em `logs/` na pasta do servidor, não muda.
+- **Criar servidor exige permissão de edição no modpack.** Antes bastava ter
+  conta.
+- **Erros do Docker dizem a causa.** Porta em uso, disco cheio, imagem que não
+  existe e limite do Docker Hub aparecem em português, com o texto original do
+  Docker junto, no lugar de "status code 500".
+
+### Corrigido
+
+- **A lista de builds do loader não era filtrada pelo Minecraft.** Nos diálogos
+  de criar e editar versão ela mostrava builds de qualquer versão do jogo, e
+  Fabric e Quilt listavam todo loader já lançado. Agora só aparece o que serve
+  ao Minecraft do modpack, com a build mais nova já selecionada.
+- **Uma falha passageira na fonte de versões deixava a lista vazia por meia
+  hora.** A falha era guardada em cache como se fosse resposta.
+- **O IP público detectado podia ser IPv6**, que não serve para o registro `A`
+  nem para a maioria dos jogadores. A detecção passou a usar só IPv4.
+- **Uma falha no meio do download da imagem do jogo era ignorada** e reaparecia
+  depois como "No such image".
+
+### Migração
+
+- `AddGameDns` acrescenta o subdomínio do servidor e as configurações de DNS,
+  todas vazias. Sem configurar a Cloudflare, nada muda.
+- `AddGameOptions` acrescenta as opções de jogo do servidor, vazias. Servidores
+  existentes continuam com o que já têm no `server.properties`.
+- **Containers recriados.** Java, limite de memória e teto de log são fixados na
+  criação do container, então cada servidor recria o seu no próximo início. O
+  mundo e os arquivos ficam na pasta do servidor e não são afetados. O primeiro
+  início pode demorar: a imagem do Java certo é baixada.
+- Quem alterou a faixa de portas na 1.2.0 e ainda não a gravou de novo na 1.3.0
+  deve fazê-lo antes de criar servidores.
+- O painel passa a consultar `api.cloudflare.com` (só com o DNS configurado),
+  `meta.fabricmc.net`, `meta.quiltmc.org` e `maven.neoforged.net`.
+
 ## [1.3.0] — 2026-10-10
 
 Launcher **1.1.3** (sem mudanças).
