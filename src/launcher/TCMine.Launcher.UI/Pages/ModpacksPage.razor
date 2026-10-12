@@ -5,39 +5,39 @@
 <PageHeader Title="Modpacks" Subtitle="O catálogo publicado pelo servidor.">
     <MudButton Variant="Variant.Outlined"
                StartIcon="@Icons.Material.Filled.Refresh"
-               Disabled="_loading"
+               Disabled="@Catalog.IsLoading"
                OnClick="LoadAsync">
         Atualizar
     </MudButton>
 </PageHeader>
 
-@if (_loading)
+@if (Shown is null)
 {
     <LoadingCards Count="6"/>
 }
-else if (_catalog?.Failed is true)
+else if (Shown?.Failed is true)
 {
     @* Erro é diferente de vazio: um catálogo vazio é uma resposta, e uma falha
        de canal pede uma nova tentativa. Um estado só para os dois faria o
        jogador achar que o servidor não publicou nada. *@
     <EmptyState Icon="@Icons.Material.Filled.CloudOff"
                 Title="Não foi possível carregar o catálogo"
-                Description="@_catalog.Error">
+                Description="@Shown.Error">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync">
             Tentar de novo
         </MudButton>
     </EmptyState>
 }
-else if (_catalog?.IsEmpty is true)
+else if (Shown?.IsEmpty is true)
 {
     <EmptyState Icon="@Icons.Material.Filled.Widgets"
                 Title="Nenhum modpack disponível"
                 Description="O catálogo é publicado pelo servidor e aparece aqui assim que a sua conta tiver acesso."/>
 }
-else if (_catalog is not null)
+else if (Shown is not null)
 {
     <MudGrid>
-        @foreach (var entrada in _catalog.Entries)
+        @foreach (var entrada in Shown.Entries)
         {
             <MudItem xs="12" sm="6" md="4">
                 <MudCard Class="tc-card tc-fade-in" Elevation="0" Outlined="true">

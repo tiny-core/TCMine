@@ -21,6 +21,12 @@ public static class DependencyInjection
         services.AddScoped<PostPairingRoute>();
         services.AddScoped<LinkSupervisor>();
 
+        // Scoped como o supervisor: em Blazor Hybrid o escopo é a janela
+        // inteira, então vivem tanto quanto a aplicação — e podem depender dos
+        // casos de uso do Core, que são scoped.
+        services.AddScoped<CatalogStore>();
+        services.AddScoped<NewsStore>();
+
         services.AddMudServices();
 
         return services;

@@ -165,11 +165,11 @@ else
             @* Servidores e novidades vêm do catálogo. Sem rede a coluna some
                inteira em vez de mostrar caixas vazias: o que importa nesta tela
                está no disco e continua à esquerda. *@
-            <HomeServers Servers="_servers" OnRedeemInvite="RedeemInviteAsync"
+            <HomeServers Servers="Servers" OnRedeemInvite="RedeemInviteAsync"
                          OnJoin="JoinAsync" Joining="_joining"
                          JoinBlockedReason="@JoinBlockedReason"
                          ActiveVersion="@_active.Manifest.Version"/>
-            <HomeNews Posts="_news"/>
+            <HomeNews Posts="NewsPosts"/>
         </aside>
     </div>
 }

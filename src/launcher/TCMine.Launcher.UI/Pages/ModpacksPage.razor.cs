@@ -9,8 +9,6 @@ namespace TCMine.Launcher.UI.Pages;
 
 public partial class ModpacksPage : ComponentBase, IDisposable
 {
-    private CatalogView? _catalog;
-
     /// <summary>Modpacks com alguma versão instalada nesta máquina.</summary>
     private HashSet<Guid> _installed = [];
 
@@ -23,9 +21,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     /// </summary>
     private HashSet<Guid> _installedVersions = [];
 
-    private bool _loading;
-
-    [Inject] private LoadCatalog Catalog { get; set; } = default!;
+    [Inject] private CatalogStore Catalog { get; set; } = default!;
 
     [Inject] private InstallModpackVersion Installer { get; set; } = default!;
 
@@ -47,6 +43,7 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     {
         Operation.Changed -= OnOperationChanged;
         Lock.Changed -= OnOperationChanged;
+        Catalog.Changed -= OnOperationChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -57,8 +54,9 @@ public partial class ModpacksPage : ComponentBase, IDisposable
         // a barra de novo — é para isto que o estado saiu do campo local.
         Operation.Changed += OnOperationChanged;
         Lock.Changed += OnOperationChanged;
+        Catalog.Changed += OnOperationChanged;
 
-        await LoadAsync();
+        await Catalog.EnsureLoadedAsync();
         await RefreshInstalledAsync();
     }
 
@@ -73,22 +71,14 @@ public partial class ModpacksPage : ComponentBase, IDisposable
             ? $"{entrada.OnlinePlayers} online"
             : "Servidor parado";
 
-    private async Task LoadAsync()
-    {
-        if (Shell.Pairing?.Config is not { } config)
-            return;
+    /// <summary>
+    ///     O que a tela mostra: o catálogo guardado, ou a falha quando nunca
+    ///     chegou nenhum. Nulo enquanto a primeira busca não termina, e é isso
+    ///     que mostra o esqueleto — uma rebusca com dados à vista não pisca.
+    /// </summary>
+    private CatalogView? Shown => Catalog.View;
 
-        _loading = true;
-
-        try
-        {
-            _catalog = await Catalog.HandleAsync(config.ServerUrl, CancellationToken.None);
-        }
-        finally
-        {
-            _loading = false;
-        }
-    }
+    private Task LoadAsync() => Catalog.RefreshAsync();
 
     private async Task RefreshInstalledAsync()
     {

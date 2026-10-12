@@ -4,7 +4,6 @@ using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
-using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
 using TCMine.Launcher.UI.Components;
 using TCMine.Launcher.UI.State;
@@ -24,9 +23,7 @@ public partial class HomePage : ComponentBase, IDisposable
     private bool _launching;
     private bool _loading = true;
     private bool _needsChoice;
-    private IReadOnlyList<ModpackNewsDto> _news = [];
     private string? _phase;
-    private IReadOnlyList<GameServerDto> _servers = [];
 
     /// <summary>
     ///     Há conta e pareamento para abrir o jogo.
@@ -55,9 +52,23 @@ public partial class HomePage : ComponentBase, IDisposable
 
     [Inject] private ChooseInstance Active { get; set; } = default!;
 
-    [Inject] private LoadCatalog Catalog { get; set; } = default!;
+    [Inject] private CatalogStore Catalog { get; set; } = default!;
 
-    [Inject] private IServerConnection Connection { get; set; } = default!;
+    [Inject] private NewsStore NewsFeed { get; set; } = default!;
+
+    /// <summary>
+    ///     Os servidores do pack ativo, lidos do catálogo guardado a cada
+    ///     desenho. Calculados e não copiados para um campo: a cópia era o que
+    ///     ficava velha quando o catálogo mudava com a tela aberta.
+    /// </summary>
+    private IReadOnlyList<GameServerDto> Servers =>
+        _active is null
+            ? []
+            : Catalog.Current?.Entries.FirstOrDefault(e => e.Modpack.Id == _active.Manifest.ModpackId)?.Servers
+              ?? [];
+
+    private IReadOnlyList<ModpackNewsDto> NewsPosts =>
+        _active is null ? [] : NewsFeed.For(_active.Manifest.ModpackId);
 
     [Inject] private GameSession Game { get; set; } = default!;
 
@@ -79,6 +90,8 @@ public partial class HomePage : ComponentBase, IDisposable
     {
         Game.Changed -= OnGameChanged;
         Lock.Changed -= OnGameChanged;
+        Catalog.Changed -= OnGameChanged;
+        NewsFeed.Changed -= OnGameChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -88,6 +101,11 @@ public partial class HomePage : ComponentBase, IDisposable
         // voltou. A tela tem de o encontrar assim, e não em branco.
         Game.Changed += OnGameChanged;
         Lock.Changed += OnGameChanged;
+
+        // O catálogo e as novidades mudam sozinhos (o canal voltou, outro
+        // ponto pediu para rebuscar), e a coluna da direita tem de os seguir.
+        Catalog.Changed += OnGameChanged;
+        NewsFeed.Changed += OnGameChanged;
 
         try
         {
@@ -205,32 +223,15 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private async Task LoadSideAsync()
     {
-        if (_active is null || Shell.Pairing?.Config is not { } config)
+        if (_active is null)
             return;
 
-        var catalog = await Catalog.HandleAsync(config.ServerUrl, CancellationToken.None);
-
-        if (catalog.Failed)
-            return;
-
-        _servers = catalog.Entries
-            .FirstOrDefault(e => e.Modpack.Id == _active.Manifest.ModpackId)
-            ?.Servers ?? [];
-
-        StateHasChanged();
+        await Catalog.EnsureLoadedAsync();
 
         // Depois dos servidores, e numa chamada à parte: as novidades são o que
         // menos importa nesta tela, e falhar a buscá-las não pode levar os
         // servidores consigo.
-        try
-        {
-            _news = await Connection.GetNewsAsync(_active.Manifest.ModpackId, CancellationToken.None);
-            StateHasChanged();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Sem novidades a coluna simplesmente não as mostra.
-        }
+        await NewsFeed.RefreshAsync(_active.Manifest.ModpackId);
     }
 
     /// <summary>
@@ -244,6 +245,6 @@ public partial class HomePage : ComponentBase, IDisposable
         var result = await dialog.Result;
 
         if (result is { Canceled: false })
-            await LoadSideAsync();
+            await Catalog.RefreshAsync();
     }
 }
