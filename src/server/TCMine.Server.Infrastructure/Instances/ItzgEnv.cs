@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Infrastructure.Docker;
 
 namespace TCMine.Server.Infrastructure.Instances;
 
@@ -185,6 +186,39 @@ public static class ItzgEnv
 
         return (heapMb + overheadMb) * megabyte;
     }
+
+    /// <summary>
+    ///     A verificação de saúde do container: o comando da própria imagem
+    ///     (<c>mc-health</c>, que pergunta ao servidor se ele aceita jogadores),
+    ///     com os prazos trocados.
+    ///     A imagem dá 2 minutos de arranque. Um pack grande (o ATM10 leva de 3 a
+    ///     5) seria dado como "doente" antes de terminar de subir. Aqui são 15 —
+    ///     dentro desse prazo uma falha não conta, e o primeiro sucesso já marca
+    ///     o servidor como pronto, então um pack pequeno não espera nada a mais.
+    ///     Durante o arranque confere a cada 5 s (e não 30): é essa espera que o
+    ///     jogador sente entre "o jogo terminou de subir" e o botão Entrar ligar.
+    /// </summary>
+    public static HealthcheckConfig Healthcheck { get; } = new()
+    {
+        Test = ["CMD", "mc-health"],
+        Interval = Nanoseconds(TimeSpan.FromSeconds(30)),
+        Timeout = Nanoseconds(TimeSpan.FromSeconds(10)),
+        Retries = 3,
+        StartPeriod = Nanoseconds(TimeSpan.FromMinutes(15)),
+        StartInterval = Nanoseconds(TimeSpan.FromSeconds(5))
+    };
+
+    /// <summary>
+    ///     A verificação de saúde em texto, para a impressão digital: mudar um
+    ///     prazo recria o container no próximo início, como qualquer outra parte
+    ///     da spec.
+    /// </summary>
+    public static string HealthcheckSignature =>
+        string.Join(' ', Healthcheck.Test) + string.Create(CultureInfo.InvariantCulture,
+            $" i{Healthcheck.Interval} t{Healthcheck.Timeout} r{Healthcheck.Retries} s{Healthcheck.StartPeriod} si{Healthcheck.StartInterval}");
+
+    /// <summary>A Engine API mede durações em nanossegundos.</summary>
+    private static long Nanoseconds(TimeSpan value) => value.Ticks * 100;
 
     public static string Fingerprint(string image, IEnumerable<string> env, IEnumerable<string> extra)
     {

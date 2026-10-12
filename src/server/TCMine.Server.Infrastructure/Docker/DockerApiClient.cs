@@ -406,6 +406,13 @@ public sealed record CreateContainerRequest
     [JsonPropertyName("Labels")] public Dictionary<string, string>? Labels { get; init; }
 
     /// <summary>
+    ///     Substitui a verificação de saúde da imagem (ver ItzgEnv.Healthcheck).
+    ///     Nulo herda a da imagem.
+    /// </summary>
+    [JsonPropertyName("Healthcheck")]
+    public HealthcheckConfig? Healthcheck { get; init; }
+
+    /// <summary>
     ///     Nome que o container apresenta de si. Irrelevante para o servidor de
     ///     jogo e decisivo para o de e-mail: é o que vai no HELO, e um HELO que
     ///     não bate com o DNS reverso é motivo de recusa do outro lado.
@@ -475,4 +482,29 @@ public sealed record ContainerState
     [JsonPropertyName("Status")] public string Status { get; init; } = ""; // running, exited, created…
     [JsonPropertyName("Running")] public bool Running { get; init; }
     [JsonPropertyName("ExitCode")] public int ExitCode { get; init; }
+
+    /// <summary>Nulo quando o container não tem verificação de saúde.</summary>
+    [JsonPropertyName("Health")]
+    public ContainerHealth? Health { get; init; }
+}
+
+public sealed record ContainerHealth
+{
+    /// <summary>"starting", "healthy" ou "unhealthy".</summary>
+    [JsonPropertyName("Status")]
+    public string Status { get; init; } = "";
+}
+
+/// <summary>A verificação de saúde no create. Durações em nanossegundos, como a API pede.</summary>
+public sealed record HealthcheckConfig
+{
+    [JsonPropertyName("Test")] public required IReadOnlyList<string> Test { get; init; }
+    [JsonPropertyName("Interval")] public long Interval { get; init; }
+    [JsonPropertyName("Timeout")] public long Timeout { get; init; }
+    [JsonPropertyName("Retries")] public int Retries { get; init; }
+    [JsonPropertyName("StartPeriod")] public long StartPeriod { get; init; }
+
+    /// <summary>Intervalo durante o arranque (Engine API 1.44+; um daemon mais velho o ignora).</summary>
+    [JsonPropertyName("StartInterval")]
+    public long StartInterval { get; init; }
 }

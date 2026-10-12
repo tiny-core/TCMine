@@ -77,6 +77,11 @@ public partial class HomeServers : ComponentBase
         if (JoinBlockedReason is not null)
             return JoinBlockedReason;
 
+        // Iniciando é diferente de desligado: aqui o jogador só precisa de
+        // esperar, e o botão libera sozinho quando o jogo aceitar jogadores.
+        if (server.Status is GameServerStatus.Starting)
+            return "O servidor está iniciando. O botão libera quando ele aceitar jogadores.";
+
         if (server.Status is not GameServerStatus.Running)
             return "O servidor não está no ar agora.";
 

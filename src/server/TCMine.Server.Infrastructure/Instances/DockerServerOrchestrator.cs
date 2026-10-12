@@ -74,7 +74,8 @@ public sealed partial class DockerServerOrchestrator(
         [
             $"port={hostPort}", $"bind={instancePath}",
             $"memory={memoryLimit.ToString(CultureInfo.InvariantCulture)}",
-            $"log={ItzgEnv.LogMaxSize}x{ItzgEnv.LogMaxFiles}"
+            $"log={ItzgEnv.LogMaxSize}x{ItzgEnv.LogMaxFiles}",
+            $"health={ItzgEnv.HealthcheckSignature}"
         ]);
 
         // 1. Se temos um ContainerId e ele ainda existe, decide entre reusar e
@@ -152,6 +153,7 @@ public sealed partial class DockerServerOrchestrator(
                 .. UsuarioDoProcesso()
             ],
             ExposedPorts = new Dictionary<string, object> { ["25565/tcp"] = new() },
+            Healthcheck = ItzgEnv.Healthcheck,
             Labels = new Dictionary<string, string>
             {
                 ["tcmine.server"] = gameServerId.ToString(), [SpecLabel] = fingerprint
@@ -236,15 +238,29 @@ public sealed partial class DockerServerOrchestrator(
         // servidor. Era um Console.WriteLine — sem nível, não havia como calar.
         LogInspected(server.ContainerId, inspect.State.Running, inspect.State.Status, inspect.State.ExitCode);
 
-        return inspect.State switch
-        {
-            { Running: true } => GameServerStatus.Running,
-            { Status: "restarting" } => GameServerStatus.Starting,
-            { Status: "created" } => GameServerStatus.Stopped,
-            { ExitCode: not 0 } => GameServerStatus.Crashed,
-            _ => GameServerStatus.Stopped
-        };
+        return StatusOf(inspect.State);
     }
+
+    /// <summary>
+    ///     O status de um servidor a partir do estado do container.
+    ///     "Container de pé" não é "jogo pronto": um pack grande leva minutos a
+    ///     carregar depois de o processo arrancar, e era nesse intervalo que o
+    ///     launcher oferecia "Entrar" e a ligação era recusada. Enquanto a
+    ///     verificação de saúde diz "starting", o servidor está Iniciando.
+    ///     "unhealthy" continua Running: o processo está de pé e talvez preso,
+    ///     e é o console que vai dizer porquê — escondê-lo como "Iniciando"
+    ///     faria o admin esperar por algo que não vem. Sem verificação de saúde
+    ///     (container antigo), vale o que valia antes.
+    /// </summary>
+    public static GameServerStatus StatusOf(ContainerState state) => state switch
+    {
+        { Running: true, Health.Status: "starting" } => GameServerStatus.Starting,
+        { Running: true } => GameServerStatus.Running,
+        { Status: "restarting" } => GameServerStatus.Starting,
+        { Status: "created" } => GameServerStatus.Stopped,
+        { ExitCode: not 0 } => GameServerStatus.Crashed,
+        _ => GameServerStatus.Stopped
+    };
 
     public IAsyncEnumerable<ConsoleLine> StreamLogsAsync(Guid gameServerId, CancellationToken ct)
     {

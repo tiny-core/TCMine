@@ -128,4 +128,28 @@ public sealed class ItzgEnvTests
         // Limite igual ao heap é OOM kill garantido quando o heap enche.
         ItzgEnv.ContainerMemoryBytes(heapMb).ShouldBe(limitMb * 1024L * 1024L);
     }
+
+    [Fact]
+    public void Verificacao_de_saude_espera_o_bastante_para_um_pack_grande()
+    {
+        // A imagem dá 2 minutos; o ATM10 leva de 3 a 5 para subir. Dentro do
+        // prazo de arranque uma falha não conta, então o prazo pode ser folgado.
+        var check = ItzgEnv.Healthcheck;
+
+        check.Test.ShouldBe(["CMD", "mc-health"]);
+        TimeSpan.FromTicks(check.StartPeriod / 100).ShouldBeGreaterThanOrEqualTo(TimeSpan.FromMinutes(10));
+        TimeSpan.FromTicks(check.StartInterval / 100).ShouldBeLessThanOrEqualTo(TimeSpan.FromSeconds(10));
+    }
+
+    [Fact]
+    public void Assinatura_da_verificacao_de_saude_cobre_os_prazos()
+    {
+        // Entra na impressão digital: se um prazo mudar e a assinatura não,
+        // o container antigo seria reusado com a verificação velha.
+        var assinatura = ItzgEnv.HealthcheckSignature;
+
+        assinatura.ShouldContain("mc-health");
+        assinatura.ShouldContain(ItzgEnv.Healthcheck.StartPeriod.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        assinatura.ShouldContain(ItzgEnv.Healthcheck.StartInterval.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
 }
