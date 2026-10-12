@@ -45,9 +45,11 @@ O fluxo central: o servidor **pública manifestos completos** de cada versão; o
 jogador contra o manifesto (baixa o que falta, apaga o que sobrou). É um modelo **declarativo** — o manifesto descreve o
 estado final desejado, e o launcher faz o disco convergir para ele.
 
-**Estável desde a 1.0.0.** O README lista o que ficou congelado (protocolo do launcher, `/api/v1`,
-`/api/cloud/v1`, chaves de configuração, layout de `TCMINE_ROOT`, migrations só para a frente). Mudar
-qualquer um deles de forma incompatível é versão MAIOR — **avise antes de propor**.
+**Em desenvolvimento, na linha 0.x.** As versões 1.0.0 a 1.4.0 foram renumeradas para 0.6.0–0.10.0 (ver o
+topo do CHANGELOG); não volte a 1.x sem o dono decidir. O README, em *Compatibilidade*, lista o que não muda sem
+aviso (protocolo do launcher, `/api/v1`, `/api/cloud/v1`, chaves de configuração, layout de `TCMINE_ROOT`,
+migrations só para a frente). Mudar qualquer um deles de forma incompatível exige nota de migração no
+CHANGELOG — **avise antes de propor**.
 
 ---
 
@@ -275,8 +277,16 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   porta). Rodando, nunca se mexe. A pasta é rematerializada a cada start — é assim que trocar a versão do
   servidor chega ao jogo. Reusar o container sempre era o bug "o servidor sobe sempre na versão errada".
 - **O container é a fonte da verdade do status, não a coluna.** A coluna `Status`
-  é cache; sincronize com `GetStatusAsync` (que inspeciona o Docker) ao carregar, e reconcilie no arranque. Um container
-  `unless-stopped` sobrevive a reinícios do TCMine — não há "attach", só reconsulta pelo `ContainerId`.
+  é cache. O `ServerStatusReconciler` faz uma varredura completa a cada ligação ao Docker e depois segue o
+  stream `/events` (`IContainerEvents`, filtrado pelo label `tcmine.server`; os `exec_*` do RCON e do
+  `mc-health` são ignorados). Toda gravação de status passa por `ServerStatusTransitions` →
+  `IServerRepository.UpdateStatusAsync`, que escreve **só a coluna**: gravar a linha inteira atropelaria uma
+  edição do admin feita ao mesmo tempo. Um container `unless-stopped` sobrevive a reinícios do TCMine — não há
+  "attach", só reconsulta pelo `ContainerId`.
+- **Running quer dizer "aceita jogadores", não "container de pé".** O container leva a verificação de saúde de
+  `ItzgEnv.Healthcheck` (o `mc-health` da imagem, 15 min de arranque) e `DockerServerOrchestrator.StatusOf`
+  mapeia saúde `starting` para Iniciando. `unhealthy` continua Running de propósito: o processo está de pé e
+  o console é que diz por quê. O launcher só libera Entrar em Running.
 - **Transporte Docker**: `HttpClient` com `SocketsHttpHandler.ConnectCallback`
   sobre socket Unix (`/var/run/docker.sock`) ou named pipe (Windows,
   `npipe://./pipe/docker_engine`). Config em `DockerOptions`. A `BaseAddress`
@@ -460,10 +470,22 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   a Mojang; o arquivo nem é compilado em release.
 - **Catálogo**: `IServerConnection` (porta) esconde o SignalR de tudo acima dela,
   e `SignalRServerConnection` guarda UMA conexão para a aplicação inteira — uma
-  por tela faria o servidor ver o mesmo jogador como vários. O canal é aberto **sob demanda** pelo `LoadCatalog`, e não
-  no login: ligar no login deixaria a
-  tela sem saída quando a conexão caísse depois, porque o botão de "tentar de
-  novo" não teria o que religar. Sair fecha o canal (ver `SignIn.SignOutAsync`).
+  por tela faria o servidor ver o mesmo jogador como vários. Sair fecha o canal (ver `SignIn.SignOutAsync`).
+- **A ligação fica viva enquanto há sessão** (Fase 4). O `LinkSupervisor` (UI/State) abre o canal assim que há
+  sessão e o mantém: o SignalR reconecta sem limite (`UnlimitedRetryPolicy`, teto de 30 s) e o
+  `KeepConnected` reabre o canal quando a primeira ligação falha ou o servidor o fecha. Este documento dizia
+  que o canal abria sob demanda, para a tela ter o que religar — com a reconexão sem limite, a tela já não
+  precisa religar nada. O estado real (`LinkStatus`) vai para a barra de estado. Sem servidor no arranque, o
+  supervisor repete o handshake até ele responder; quando a ligação volta, refaz o handshake. Um 401 para a
+  reconexão (`SessionRejected`) e a sessão é renovada em silêncio uma vez por ligação; só se falhar vai para o
+  login. Uma atualização do launcher achada no meio da sessão vira aviso com botão (`PendingUpdate`) —
+  reiniciar sozinho tiraria o jogador do jogo.
+- **Os dados do servidor moram em stores** (`CatalogStore`, `NewsStore`), não nas páginas. Elas buscam de
+  novo quando a ligação sobe e quando o servidor manda `Invalidated(ResourceKind, Guid?)`. Do lado do
+  servidor, o repositório que o launcher lê chama `IResourceChanges.Touch` depois de gravar, e cada método
+  de escrita leva `[Invalidates]` ou `[NotVisibleToLauncher]` — uma regra de arquitetura cobra. O
+  `LauncherInvalidations` junta cada janela de 250 ms numa mensagem por tipo. O aviso leva só tipo e id:
+  o launcher busca pelo hub, com as permissões dele, em vez de receber dados que talvez não pudesse ver.
 - **`LauncherCatalogContractTests` sobe a aplicação num socket REAL (Kestrel em
   porta efêmera), e não no TestServer.** É o único jeito de exercer o cliente do
   launcher como ele é: ele monta o próprio `HttpClient` e o próprio

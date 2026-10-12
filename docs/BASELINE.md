@@ -1,9 +1,9 @@
 # Linha de base de performance
 
-Números de partida da refatoração, medidos na versão **1.1.1** — a primeira com a
-instrumentação, e sem nenhuma mudança de comportamento em relação à 1.1.0. As
-fases 6 e 8 só fecham quando a meta de cada linha é atingida ou a diferença é
-explicada.
+Números de partida da refatoração, medidos na versão **0.7.1** (publicada como
+1.1.1) — a primeira com a instrumentação, e sem nenhuma mudança de comportamento
+em relação à 0.7.0. As fases 6 e 8 só fecham quando a meta de cada linha é
+atingida ou a diferença é explicada.
 
 ## Ambiente da medição
 
@@ -12,7 +12,7 @@ mesma máquina e com o mesmo modpack.
 
 | Item                  | Valor                                                             |
 |-----------------------|-------------------------------------------------------------------|
-| Versão                | servidor 1.1.1, launcher 1.1.1 (`server-v1.1.1`, `933a059`)       |
+| Versão                | servidor 0.7.1, launcher 0.7.1 (commit "Release 0.7.1")           |
 | Data                  | 2026-10-09                                                        |
 | Servidor              | Ubuntu Server, Docker, 14 GiB de RAM visíveis ao container        |
 | Provider do banco     | Postgres                                                          |
@@ -39,7 +39,7 @@ Tudo é medido do HOST, pelo nome do container — nada roda dentro dele.
 | S5 | Iniciar um servidor de jogo até `Running` | 684 (container 538)               | 684 ms (1 amostra, container já criado)         |
 | S6 | Memória do container em repouso           | 227 MiB                           | 227 MiB (1 amostra, servidores de jogo parados) |
 
-S2–S5 são a saída do `report` na 1.1.2. Uma rodada anterior, na 1.1.1, deu
+S2–S5 são a saída do `report` na 0.7.2. Uma rodada anterior, na 0.7.1, deu
 79/42, 185/40 e 14/23 ms para S2, S3 e S4 — a mesma ordem de grandeza.
 
 ### Como medir
@@ -68,7 +68,7 @@ cronômetro (`PageLoadTimer`) é temporário e sai no fim da fase 8.
 - A renderização é pequena e constante (10–61 ms): na ABERTURA, o tamanho dos
   componentes não pesa. O cronômetro não mede o uso (digitar, trocar de aba).
 - A primeira página de uma sessão parada custa mais (58 e 87 ms na primeira
-  abertura de S2 e S4; na rodada da 1.1.1, um 520 ms em S3 depois de ~14 min sem
+  abertura de S2 e S4; na rodada da 0.7.1, um 520 ms em S3 depois de ~14 min sem
   uso); reabertas, S2 e S4 ficam em 13–17 e 7–39 ms.
 - S3 é a única que não esquenta: 160–203 ms em todas as aberturas. Ela carrega o modpack com
   todas as versões e arquivos para filtrar só os overrides.
@@ -111,7 +111,7 @@ de cada fase (plano, download, aplicação, fecho).
 
 ### Instalação do zero (L5)
 
-All the Mods 10 1.2.1, com o estado local limpo, na 1.1.2 (2026-10-09):
+All the Mods 10 1.2.1, com o estado local limpo, na 0.7.2 (2026-10-09):
 
 | Fase      | Tempo      | O que faz                                            |
 |-----------|------------|------------------------------------------------------|

@@ -11,7 +11,7 @@ namespace TCMine.Server.Infrastructure.Tests;
 ///     O <c>SaveAsync</c> copia campo a campo, e uma propriedade nova no domínio
 ///     que ninguém acrescenta à cópia não quebra nada: o valor só some. Já
 ///     aconteceu duas vezes — a retenção de backups voltava a 5 a cada "Salvar",
-///     e a faixa de portas da 1.2.0 nunca chegou ao banco, com a tela dizendo
+///     e a faixa de portas da 0.8.0 nunca chegou ao banco, com a tela dizendo
 ///     "salvo".
 ///     Por isso o teste não lista campos: percorre TODAS as propriedades da
 ///     entidade. Uma propriedade nova reprova aqui até ganhar um valor no

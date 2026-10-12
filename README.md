@@ -5,8 +5,8 @@ repositório.
 
 **TCMine Server** — painel web que cria e publica modpacks, ingere mods do
 Modrinth e do CurseForge, e orquestra os servidores de jogo como containers
-Docker. Estável desde a **1.0.0**, publicado como imagem no Docker Hub — ver o
-[compromisso de estabilidade](#compromisso-de-estabilidade).
+Docker. Em desenvolvimento (0.x), publicado como imagem no Docker Hub — ver o
+que se mantém entre versões em [Compatibilidade](#compatibilidade).
 
 **TCMine Launcher** — cliente desktop (Windows) que instala, atualiza e **abre**
 as instâncias do jogador. O laço está fechado: parear com o servidor, entrar com
@@ -122,21 +122,24 @@ SignalR, Docker Engine API.
 Detalhes de arquitetura e as decisões já tomadas estão em
 [CLAUDE.md](CLAUDE.md).
 
-## Compromisso de estabilidade
+## Compatibilidade
 
-A partir da 1.0.0, o que segue só muda de forma incompatível numa versão MAIOR (2.0.0), e sempre com instrução de
-atualização no [CHANGELOG.md](CHANGELOG.md):
+O TCMine está em desenvolvimento, na linha 0.x: uma versão MENOR (0.11 → 0.12)
+pode mudar algo de forma incompatível, e quando muda o
+[CHANGELOG.md](CHANGELOG.md) diz o que fazer. Mesmo assim, o que segue não muda
+sem aviso nem sem um caminho de atualização:
 
 - **O protocolo do launcher** (`Protocol.Current`, hoje 2): os métodos do hub, a
-  aridade deles e os endpoints `/api/v1/*`. Um launcher publicado continua a
-  falar com qualquer servidor 1.x.
+  aridade deles e os endpoints `/api/v1/*`. Um launcher de protocolo antigo é
+  recusado no handshake com a instrução de atualizar, nunca com um erro que não
+  fala de versão.
 - **A API da nuvem de itens** (`/api/cloud/v1`) que o mod `tccloud` usa.
 - **A configuração**: as chaves de `appsettings`/variáveis de ambiente
   documentadas em [docs/DEPLOY.md](docs/DEPLOY.md) e o layout da pasta de dados (`TCMINE_ROOT`).
-- **O banco**: atualizar dentro da 1.x é só trocar a imagem — as migrations
-  aplicam-se no arranque, sempre para a frente.
+- **O banco**: atualizar é só trocar a imagem — as migrations aplicam-se no
+  arranque, sempre para a frente.
 
-Fora do compromisso: o HTML do painel, os nomes internos de classes e tabelas (o banco é do TCMine, não uma API) e
+Fora disto: o HTML do painel, os nomes internos de classes e tabelas (o banco é do TCMine, não uma API) e
 qualquer coisa marcada como experimental.
 
 ## Lançar uma versão

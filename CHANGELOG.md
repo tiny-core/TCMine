@@ -1,19 +1,109 @@
 # Changelog
 
 Todas as mudanças relevantes do **TCMine Server** e, a partir da 0.4.0, também
-do **TCMine Launcher**, que partilham repositório e protocolo. Desde a 1.0.0, o
-launcher vai dentro da imagem do servidor e a tag é uma só (`server-v*`); o número dele vive em `src/launcher/VERSION`.
-As versões
-seguem [SemVer](https://semver.org/lang/pt-BR/). A partir da **1.0.0**, o que
-está em [Compromisso de estabilidade](README.md#compromisso-de-estabilidade) só
-muda de forma incompatível numa versão MAIOR.
+do **TCMine Launcher**, que partilham repositório e protocolo. Desde a 0.6.0, o
+launcher vai dentro da imagem do servidor e a tag é uma só (`server-v*`); o
+número dele vive em `src/launcher/VERSION`.
 
-O texto completo de cada lançamento está na
-[página de releases](https://github.com/tiny-core/TCMine/releases).
+As versões seguem [SemVer](https://semver.org/lang/pt-BR/). O TCMine está em
+desenvolvimento (0.x): uma versão MENOR pode mudar algo de forma incompatível, e
+quando isso acontece a entrada diz o que fazer. O que se mantém mesmo assim está
+em [Compatibilidade](README.md#compatibilidade).
 
-## [1.4.0] — 2026-10-11
+**Renumeração.** As versões de 1.0.0 a 1.4.0 foram publicadas cedo demais com
+número de estável e renumeradas na 0.11.0 para seguir a linha 0.x: 1.X.Y virou
+0.(X+6).Y — a 1.0.0 é a 0.6.0, a 1.4.0 é a 0.10.0, e o launcher 1.1.3 é o 0.7.3.
+As entradas abaixo já usam os números novos. As releases no GitHub começam na
+0.11.0.
 
-Launcher **1.1.3** (sem mudanças).
+## [0.11.0] — 2026-10-12
+
+Launcher **0.8.0**.
+
+**Antes de atualizar:** esta é a primeira versão depois da renumeração (veja no
+topo). Os números baixaram, e quem já tem a antiga não a recebe sozinho: siga a
+nota de migração, nos três lugares. Não há migration nova.
+
+### Adicionado
+
+- **O status dos servidores acompanha o Docker em tempo real.** Antes ele só
+  era conferido no arranque do painel e ao abrir a tela de servidores: um
+  servidor que caía ficava "no ar" até alguém olhar, e a queda era registrada
+  com a hora em que alguém olhou. Agora o painel segue os eventos do Docker, a
+  tela de Servidores atualiza sozinha e a queda fica com a hora real. Se o
+  Docker sair do ar, o painel se reconecta sozinho e confere tudo de novo.
+- **"Iniciando" até o jogo aceitar jogadores.** Um pack grande leva minutos para
+  carregar depois de o container subir, e era nesse intervalo que o launcher
+  oferecia *Entrar* e a conexão era recusada. O servidor só passa a "No ar"
+  quando o próprio jogo responde. O prazo de arranque é de 15 minutos; um pack
+  pequeno não espera nada a mais.
+- **O launcher atualiza sozinho o que mostra.** Publicar ou arquivar uma
+  versão, editar um modpack ou um servidor, mudar uma permissão ou postar uma
+  novidade chega aos launchers abertos em menos de um segundo, sem o jogador
+  trocar de tela.
+- **Ligação do launcher sempre viva.** A barra de estado mostra o estado real
+  da ligação, em vez do que o arranque viu. Quando o servidor cai, o launcher
+  diz que está tentando de novo e reconecta sozinho, sem limite de tentativas,
+  com espera que cresce até 30 segundos. Ao voltar, o catálogo e as novidades
+  são buscados de novo.
+- **Abrir o launcher com o servidor fora do ar já não exige reabri-lo.** Ele
+  continua tentando e, quando o servidor responde, retoma a sessão sozinho.
+- **Sessão expirada é renovada em silêncio.** Antes, o launcher tentava
+  reconectar para sempre sem perceber que a sessão tinha acabado. Agora ele
+  renova a sessão sozinho e só pede login se a renovação falhar.
+- **Aviso de atualização do launcher.** Uma versão nova encontrada com o
+  launcher já aberto aparece numa faixa com botão, desligado enquanto o jogo
+  está aberto ou uma instalação está em andamento. O launcher nunca reinicia
+  sozinho no meio da sessão; no arranque, a atualização continua automática.
+- **Configurações → Atualizações.** Mostra a versão desta instalação e a mais
+  nova publicada, com o botão *Verificar agora*, que consulta o GitHub na hora.
+
+### Alterado
+
+- **O aviso de versão nova aparece em até uma hora**, e não em até seis. O
+  painel guardava a resposta do GitHub por seis horas, inclusive "não há nada
+  novo": um painel aberto antes de uma release levava até seis horas para
+  avisar dela. Agora a resposta vale uma hora, e uma falha na consulta, 15
+  minutos.
+
+### Corrigido
+
+- **O launcher não instalava NeoForge para Minecraft 1.20.1.** O painel oferece
+  essas builds desde a 0.10.0, mas o launcher pedia o artefato moderno e falhava
+  com 404. No 1.20.1 o NeoForge ainda é publicado com as coordenadas do Forge.
+- **Mudar o status de um servidor podia desfazer uma edição do admin.** A
+  sincronização gravava a linha inteira do servidor; uma edição feita no mesmo
+  instante podia ser sobrescrita. Agora ela grava só o status.
+
+### Migração
+
+A renumeração pede três passos à mão, uma vez:
+
+1. **O servidor.** O painel na 0.10.0 (antiga 1.4.0) não avisa desta versão,
+   porque o número dela é menor. Atualize com
+   `docker compose pull && docker compose up -d`. Se o `docker-compose.yml`
+   fixa a imagem numa linha antiga (`:1.4`, `:1`), troque para `:latest` ou
+   `:0.11`.
+2. **O feed do launcher, antes de subir a imagem nova.** Apague a pasta
+   `${TCMINE_ROOT}/updates/launcher`. O servidor respeita a versão maior que já
+   estiver no feed, e com o 1.1.3 lá ele nunca publicaria o 0.8.0. No arranque,
+   o feed é refeito com o launcher novo.
+3. **Cada computador com o launcher.** O Velopack nunca oferece versão menor,
+   então quem tem o 1.1.3 não recebe o 0.8.0 sozinho. Desinstale o *TCMine
+   Launcher* (Configurações do Windows → Aplicativos) e instale de novo pela
+   página pública do servidor. Instâncias, mundos e o pareamento ficam em
+   `%LocalAppData%\TCMine`, separados do programa, e não são tocados.
+
+O launcher 1.1.3 continua funcionando com este servidor até ser trocado (o
+protocolo continua o **2**), só sem as atualizações ao vivo.
+
+Todos os containers de jogo são recriados no próximo início de cada servidor:
+a verificação de saúde é fixada na criação do container. O mundo e os arquivos
+ficam na pasta do servidor e não são afetados.
+
+## [0.10.0] — 2026-10-11
+
+Launcher **0.7.3** (sem mudanças).
 
 **Antes de atualizar:** faça backup do banco — esta versão traz duas migrations.
 Todos os containers de jogo são recriados no próximo início de cada servidor; o
@@ -82,14 +172,14 @@ mundo não é tocado (veja a nota de migração).
   criação do container, então cada servidor recria o seu no próximo início. O
   mundo e os arquivos ficam na pasta do servidor e não são afetados. O primeiro
   início pode demorar: a imagem do Java certo é baixada.
-- Quem alterou a faixa de portas na 1.2.0 e ainda não a gravou de novo na 1.3.0
+- Quem alterou a faixa de portas na 0.8.0 e ainda não a gravou de novo na 0.9.0
   deve fazê-lo antes de criar servidores.
 - O painel passa a consultar `api.cloudflare.com` (só com o DNS configurado),
   `meta.fabricmc.net`, `meta.quiltmc.org` e `maven.neoforged.net`.
 
-## [1.3.0] — 2026-10-10
+## [0.9.0] — 2026-10-10
 
-Launcher **1.1.3** (sem mudanças).
+Launcher **0.7.3** (sem mudanças).
 
 **Antes de atualizar:** faça backup do banco — esta versão traz uma migration.
 
@@ -104,14 +194,14 @@ Launcher **1.1.3** (sem mudanças).
 
 ### Corrigido
 
-- **O botão Entrar do launcher ignorava a porta do servidor.** Desde a 1.2.0 cada
+- **O botão Entrar do launcher ignorava a porta do servidor.** Desde a 0.8.0 cada
   servidor tem a sua porta, mas o endereço seguia para o launcher como o texto do
   formulário. Um servidor fora da 25565 com o endereço sem `:porta` abria o jogo
   na 25565 — a porta de outro servidor. O endereço agora sai montado: sem porta
   escrita, recebe a do servidor; com porta escrita, vale o que está escrito. O
   painel mostra e copia esse mesmo endereço. Não exige atualizar o launcher.
 - **A faixa de portas não era gravada.** Configurações → Rede dizia "salvo" e a
-  faixa continuava a padrão (25565–25599). Quem a alterou na 1.2.0 precisa
+  faixa continuava a padrão (25565–25599). Quem a alterou na 0.8.0 precisa
   gravá-la de novo.
 
 ### Migração
@@ -123,9 +213,9 @@ Launcher **1.1.3** (sem mudanças).
   `api.ipify.org` para detectar o IP público. Sem saída para eles, preencha o
   endereço público à mão.
 
-## [1.2.0] — 2026-10-10
+## [0.8.0] — 2026-10-10
 
-Launcher **1.1.3** (sem mudanças).
+Launcher **0.7.3** (sem mudanças).
 
 **Antes de atualizar:** faça backup do banco — esta versão traz duas migrations
 que alteram dados. Se dois servidores usam o mesmo endereço sem `:porta`, veja
@@ -158,9 +248,9 @@ a nota de migração abaixo.
 - `AddImportRequester` entrega os modpacks sem dono ao administrador mais antigo
   da instalação e garante a ele o papel de Owner.
 
-## [1.1.3] — 2026-10-09
+## [0.7.3] — 2026-10-09
 
-Launcher **1.1.3**.
+Launcher **0.7.3**.
 
 ### Corrigido
 
@@ -184,9 +274,9 @@ Launcher **1.1.3**.
 A migration `RemoveBlobsTable` aplica-se no arranque. O protocolo do launcher
 **não** mudou.
 
-## [1.1.2] — 2026-10-09
+## [0.7.2] — 2026-10-09
 
-Launcher **1.1.2**. Nenhuma mudança de comportamento.
+Launcher **0.7.2**. Nenhuma mudança de comportamento.
 
 ### Manutenção
 
@@ -202,9 +292,9 @@ Launcher **1.1.2**. Nenhuma mudança de comportamento.
 
 Nada a fazer: não há migration nova e o protocolo do launcher **não** mudou.
 
-## [1.1.1] — 2026-10-09
+## [0.7.1] — 2026-10-09
 
-Launcher **1.1.1**. Nenhuma mudança de comportamento: é a primeira versão
+Launcher **0.7.1**. Nenhuma mudança de comportamento: é a primeira versão
 publicada pelo fluxo novo e a que leva a instrumentação da linha de base da
 refatoração.
 
@@ -226,9 +316,9 @@ refatoração.
 
 Nada a fazer: não há migration nova e o protocolo do launcher **não** mudou.
 
-## [1.1.0] — 2026-10-06
+## [0.7.0] — 2026-10-06
 
-Launcher **1.1.0**.
+Launcher **0.7.0**.
 
 ### Adicionado
 
@@ -401,7 +491,7 @@ Launcher **1.1.0**.
   simultâneos (o servidor aceita oito por cliente), os maiores primeiro, e o
   mesmo conteúdo em dois caminhos é baixado uma vez só.
 
-## [1.0.1] — 2026-10-05
+## [0.6.1] — 2026-10-05
 
 ### Corrigido
 
@@ -417,11 +507,12 @@ Launcher **1.1.0**.
   `Cache-Control`; agora vão com `no-cache` (os `.nupkg`, que levam a versão no
   nome, ficam em cache), e o link da página pública leva `?v={versão}`.
 
-## [1.0.0] — 2026-10-05
+## [0.6.0] — 2026-10-05
 
-A primeira versão estável. Fecha os defeitos que faziam o servidor de jogo
-subir na versão errada e o mesmo jogador virar duas contas, e passa a tratar
-a ingestão de mods com o que já está em casa antes de ir à rede.
+Publicada como 1.0.0, a primeira dita estável, e renumerada na 0.11.0. Fecha
+os defeitos que faziam o servidor de jogo subir na versão errada e o mesmo
+jogador virar duas contas, e passa a tratar a ingestão de mods com o que já
+está em casa antes de ir à rede.
 
 ### Adicionado
 
@@ -578,7 +669,7 @@ informe-o.
 
 As contas de e-mail e senha deixam de existir: entra-se pela Microsoft. Uma
 conta antiga só é reconhecida se tinha um Minecraft vinculado; sem isso, o
-caminho de volta à administração chegou na 1.0.0 (`/admin/claim`).
+caminho de volta à administração chegou nesta versão (`/admin/claim`).
 
 ## [0.4.0] — 2026-09-28
 

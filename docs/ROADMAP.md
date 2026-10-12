@@ -5,16 +5,7 @@ diz o porquê e onde começar, para quem pegar a tarefa (pessoa ou agente) não
 precisar reconstruir o contexto. Ao concluir um item, apague-o daqui e registre
 no CHANGELOG.
 
-## 1. Lançar a 1.1.0
-
-- Criar a tag `server-v1.1.0` na `master` (Releases do GitHub ou
-  `git tag server-v1.1.0 && git push origin server-v1.1.0`). A imagem leva o
-  launcher 1.1.0 (downloads paralelos, Entrar no servidor, trava com o jogo
-  aberto), o console com RCON e o visual novo.
-- No servidor: `docker compose pull && docker compose up -d`. Se houver CDN ou
-  proxy na frente, limpar o cache de `/updates/launcher/*` uma vez.
-
-## 2. Melhorias apontadas e não feitas
+## 1. Melhorias apontadas e não feitas
 
 - **Launcher sem assinatura**: o SmartScreen avisa ao instalar. Assinar o
   pacote exige certificado de code signing — depende de comprar um

@@ -13,9 +13,13 @@ namespace TCMine.Server.Web.Configuration;
 public static class BuildInfo
 {
     /// <summary>
-    ///     Ex.: "1.1.0". Só sai "dev" se a build perdeu o arquivo de versão: aí
-    ///     o SDK cai no padrão 1.0.0, e mostrá-lo seria pior que não mostrar
-    ///     versão alguma.
+    ///     Ex.: "0.11.0". Sai "dev" quando o assembly não traz versão nenhuma.
+    ///     O 1.0.0 padrão do SDK também virava "dev", para o caso de a build
+    ///     perder o arquivo de versão; deixou de virar porque o
+    ///     <c>Directory.Build.props</c> falha a build sem o arquivo, e o
+    ///     <c>BuildInfoTests</c> confere que o número é o dele. Mantê-lo faria a
+    ///     1.0.0 de verdade, quando sair, aparecer como "dev" e desligar o aviso
+    ///     de atualização.
     /// </summary>
     public static string Version { get; } = Descobrir();
 
@@ -31,6 +35,6 @@ public static class BuildInfo
         // O hash não cabe num rodapé e não diz nada a quem opera.
         var version = bruta.Split('+')[0];
 
-        return version is "1.0.0" or "0.0.0" ? "dev" : version;
+        return version is "0.0.0" ? "dev" : version;
     }
 }

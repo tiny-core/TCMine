@@ -74,7 +74,7 @@ public sealed class SettingsRepository : ISettingsRepository
         // propriedade no domínio não quebra nada aqui, o valor só some.
         stored.WorldBackupKeepCount = settings.WorldBackupKeepCount;
 
-        // A mesma armadilha, outra vez: a faixa de portas entrou na 1.2.0 sem
+        // A mesma armadilha, outra vez: a faixa de portas entrou na 0.8.0 sem
         // esta cópia, e a tela dizia "salvo" enquanto o banco ficava com a
         // padrão. O SettingsRepositoryTests grava e relê TODOS os campos para
         // que a próxima propriedade esquecida reprove a suíte.

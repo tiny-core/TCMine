@@ -34,7 +34,7 @@ entender o que foi publicado.
    segundo não se escreve sozinho.
 2. Se o launcher mudou, suba `src/launcher/VERSION` (ver [O launcher](#o-launcher)).
    Para conferir antes: `bash scripts/check-launcher-version.sh`.
-3. Suba `src/server/VERSION` (`1.2.0`, ou `1.2.0-beta.1` para pré-lançamento).
+3. Suba `src/server/VERSION` (`0.12.0`, ou `0.12.0-beta.1` para pré-lançamento).
 4. Leve tudo ao `master`.
 
 O push que altera `src/server/VERSION` no `master` dispara o `release.yml`:
@@ -71,13 +71,13 @@ Para rodar o mesmo na sua máquina:
 
 ### Tags da imagem
 
-Para a versão `1.2.0`:
+Para a versão `0.12.0`:
 
-- `1.2.0` — a versão exata
-- `1.2` — acompanha os patches dessa linha
+- `0.12.0` — a versão exata
+- `0.12` — acompanha os patches dessa linha
 - `latest`
 
-Um pré-lançamento (`1.3.0-beta.1`) recebe **só** a versão exata. Nem `latest`
+Um pré-lançamento (`0.13.0-beta.1`) recebe **só** a versão exata. Nem `latest`
 nem a tag curta: quem pede "a versão atual" não está pedindo um beta.
 
 ## Disparo manual
@@ -130,7 +130,7 @@ versão — o instalador velho apontaria para o endereço velho.
 
 ### A versão: `src/launcher/VERSION`
 
-Um arquivo, uma linha (`1.0.0`). É lido pelo MSBuild (`src/launcher/Directory.Build.props` → `Version` dos assemblies),
+Um arquivo, uma linha (`0.8.0`). É lido pelo MSBuild (`src/launcher/Directory.Build.props` → `Version` dos assemblies),
 pelo
 `Dockerfile`, pelo `release-launcher.ps1` e pela guarda da release. Ninguém
 passa a versão por parâmetro.
