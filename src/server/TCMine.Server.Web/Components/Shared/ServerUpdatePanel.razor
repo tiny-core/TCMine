@@ -1,0 +1,84 @@
+@using TCMine.Server.Application.Updates
+
+<MudStack Spacing="3">
+    <MudText Typo="Typo.body1">
+        Esta instalação roda o <strong>TCMine Server @CurrentVersion</strong>.
+    </MudText>
+
+    @if (_status is null && !_loaded)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
+    }
+    else if (_status is null)
+    {
+        <MudText Typo="Typo.body2">Só o admin da instalação vê o estado das versões.</MudText>
+    }
+    else
+    {
+        switch (_status.State)
+        {
+            case ServerUpdateState.Available:
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true">
+                    <b>TCMine Server @_status.Latest!.Version disponível.</b>
+                    Para atualizar, faça <code>docker compose pull &amp;&amp; docker compose up -d</code>.
+                    <MudLink Href="@_status.Latest.Page.ToString()" Target="_blank" Class="ml-1">O que mudou</MudLink>
+                </MudAlert>
+                break;
+
+            case ServerUpdateState.UpToDate when _status.Latest is null:
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">
+                    Ainda não há nenhuma versão estável publicada.
+                </MudAlert>
+                break;
+
+            case ServerUpdateState.UpToDate:
+                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true">
+                    Está na versão mais recente publicada (@_status.Latest!.Version).
+                </MudAlert>
+                break;
+
+            case ServerUpdateState.Unreachable:
+                @* Nunca "está atualizado": sem resposta, não se sabe. *@
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true">
+                    Não foi possível consultar o GitHub agora (rede, GitHub fora do ar ou limite de
+                    consultas). Tente de novo em alguns minutos.
+                </MudAlert>
+                break;
+
+            case ServerUpdateState.Disabled:
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">
+                    A consulta de versões está desligada nesta instalação (<code>Updates__Enabled=false</code>).
+                </MudAlert>
+                break;
+
+            case ServerUpdateState.LocalBuild:
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">
+                    Build local: não há número para comparar.
+                    @if (_status.Latest is not null)
+                    {
+                        <span>A mais recente publicada é a @_status.Latest.Version.</span>
+                    }
+                </MudAlert>
+                break;
+        }
+
+        @if (_status.CheckedAt is { } checkedAt)
+        {
+            <MudText Typo="Typo.caption" Class="tc-muted">
+                @CheckedAtText(checkedAt) O painel consulta sozinho, no máximo uma vez por hora.
+            </MudText>
+        }
+    }
+
+    <div>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="CheckNowAsync" Disabled="@(_checking || _status is { State: ServerUpdateState.Disabled })">
+            @if (_checking)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+            }
+            Verificar agora
+        </MudButton>
+    </div>
+</MudStack>

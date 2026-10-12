@@ -395,6 +395,12 @@ else
                 </MudAlert>
             </MudTabPanel>
 
+            @* Não é configuração e não passa pelo Salvar: é onde o admin confere
+               a versão sem esperar o aviso do topo, que responde do cache. *@
+            <MudTabPanel Text="Atualizações" Icon="@Icons.Material.Filled.SystemUpdateAlt" Class="pa-6">
+                <ServerUpdatePanel/>
+            </MudTabPanel>
+
         </MudTabs>
     </div>
 }

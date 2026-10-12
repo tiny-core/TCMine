@@ -253,8 +253,8 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   prova é o log porque a página de login é pública: "o primeiro que entrar vira admin" entregaria a instalação
   a qualquer conta Microsoft. Depois do resgate a sessão é **reemitida** — `IsInstanceAdmin` vive na claim.
 - **Aviso de atualização do servidor**: `CheckServerUpdate` (só admin da instalação) compara `BuildInfo.Version` com
-  a estável mais nova `server-v*` do GitHub (`GitHubServerReleaseFeed`, cache de 6 h, inclusive do erro — a API
-  anônima dá 60/h). O banner consulta no `OnAfterRenderAsync`: a pré-renderização (e todo teste por GET) não sai
+  a estável mais nova `server-v*` do GitHub (`GitHubServerReleaseFeed`, cache de 1 h para a resposta e de 15 min
+  para a falha — a API anônima dá 60/h). Configurações → Atualizações tem o "Verificar agora", que ignora o cache. O banner consulta no `OnAfterRenderAsync`: a pré-renderização (e todo teste por GET) não sai
   para a internet. A release `server-v*` é criada pelo `release.yml` Após a imagem chegar ao Docker Hub; não crie tags
   `server-v*` à mão.
 - **Não há e-mail.** SMTP e servidor de e-mail próprio foram removidos com a recuperação de senha; não

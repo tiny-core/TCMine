@@ -52,7 +52,7 @@ Ajuste no `.env`:
 | `TCMINE_PUBLIC_URL`               | Endereço público, com https. Vai no `tcmine.json` e no feed do launcher — e **dentro do instalador do launcher**, que a imagem empacota ao subir: quem instala pela página pública não digita endereço. Sem ele o instalador sai sem endereço e o jogador digita. |
 | `LauncherUpdates__PublishBundled` | `false` desliga o empacotamento do launcher no arranque (feed mantido à mão — ver [RELEASE.md](RELEASE.md#o-launcher)).                                                                                                                                           |
 | `TCMINE_AZURE_CLIENT_ID`          | Client ID da app Azure do login com a Microsoft.                                                                                                                                                                                                                  |
-| `Updates__Enabled`                | `false` desliga o aviso de versão nova no painel (ele consulta as releases do GitHub a cada seis horas). Útil em máquina sem saída para a internet.                                                                                                               |
+| `Updates__Enabled`                | `false` desliga o aviso de versão nova no painel (ele consulta as releases do GitHub no máximo uma vez por hora). Útil em máquina sem saída para a internet.                                                                                                      |
 
 ### Uma raiz, quatro caminhos
 

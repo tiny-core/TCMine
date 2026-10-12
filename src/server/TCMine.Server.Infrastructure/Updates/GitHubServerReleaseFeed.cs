@@ -14,54 +14,61 @@ namespace TCMine.Server.Infrastructure.Updates;
 ///     SERVIDOR. O repositório publica dois produtos, então o filtro é pela tag
 ///     ("server-v*"), e não pelo "latest release" do GitHub — que pode muito bem
 ///     ser uma do launcher.
-///     Cache de seis horas, com acerto e com erro: a API anônima do GitHub dá 60
-///     consultas por hora por IP, e um painel aberto em várias abas não pode
-///     gastá-las nem ficar martelando um GitHub fora do ar.
+///     Cache de uma hora para a resposta e de 15 minutos para a falha: a API
+///     anônima do GitHub dá 60 consultas por hora por IP, e um painel aberto em
+///     várias abas não pode gastá-las nem martelar um GitHub fora do ar. Eram
+///     seis horas para os dois casos, e um painel aberto antes de uma release
+///     levava até seis horas para avisar dela — tempo de sobra para quem
+///     publicou concluir que o aviso não funcionava. O "Verificar agora" das
+///     Configurações passa por cima do cache.
 /// </summary>
 public sealed partial class GitHubServerReleaseFeed(
     HttpClient http,
     IMemoryCache cache,
     IOptions<UpdateOptions> options,
+    TimeProvider clock,
     ILogger<GitHubServerReleaseFeed> logger) : IServerReleaseFeed
 {
     private const string TagPrefix = "server-v";
     private const string CacheKey = "tcmine:server-latest-release";
-    private static readonly TimeSpan CacheFor = TimeSpan.FromHours(6);
+    private static readonly TimeSpan CacheFor = TimeSpan.FromHours(1);
+    private static readonly TimeSpan CacheFailureFor = TimeSpan.FromMinutes(15);
 
     private readonly ILogger<GitHubServerReleaseFeed> _logger = logger;
 
-    public async Task<ServerRelease?> GetLatestStableAsync(CancellationToken ct)
+    public async Task<ServerReleaseLookup> LookupAsync(bool refresh, CancellationToken ct)
     {
         if (!options.Value.Enabled)
-            return null;
+            return new ServerReleaseLookup(ReleaseFeedState.Disabled, null, clock.GetUtcNow());
 
-        if (cache.TryGetValue(CacheKey, out ServerRelease? cached))
+        if (!refresh && cache.TryGetValue(CacheKey, out ServerReleaseLookup? cached) && cached is not null)
             return cached;
 
-        ServerRelease? latest = null;
+        ServerReleaseLookup lookup;
         try
         {
             var releases = await http.GetFromJsonAsync<IReadOnlyList<GitHubRelease>>(
                 $"/repos/{options.Value.Repository}/releases?per_page=50", ct);
 
-            latest = Pick(releases ?? []);
+            lookup = new ServerReleaseLookup(ReleaseFeedState.Ok, Pick(releases ?? []), clock.GetUtcNow());
+            cache.Set(CacheKey, lookup, CacheFor);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException
                                        or JsonException
                                    && !ct.IsCancellationRequested)
         {
             LogFalha(ex, options.Value.Repository);
+
+            // A falha também fica em cache, mas por pouco: o bastante para não
+            // martelar um GitHub fora do ar, curto o bastante para o aviso não
+            // sumir por horas por causa de uma oscilação.
+            lookup = new ServerReleaseLookup(ReleaseFeedState.Unreachable, null, clock.GetUtcNow());
+            cache.Set(CacheKey, lookup, CacheFailureFor);
         }
 
-        cache.Set(CacheKey, latest, CacheFor);
-        return latest;
+        return lookup;
     }
 
-    /// <summary>
-    ///     A estável mais nova do servidor. Rascunho e pré-lançamento ficam de
-    ///     fora: avisar "há atualização" para uma beta empurraria o admin para o
-    ///     que não foi feito para ele.
-    /// </summary>
     internal static ServerRelease? Pick(IEnumerable<GitHubRelease> releases)
     {
         ServerRelease? best = null;

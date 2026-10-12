@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using TCMine.MinecraftAuth;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Public;
@@ -148,6 +149,7 @@ public static class DependencyInjection
         // propósito: é consulta de cortesia, com cache; tentar de novo três
         // vezes contra um GitHub fora do ar só atrasaria o painel.
         services.Configure<UpdateOptions>(configuration.GetSection("Updates"));
+        services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<IServerReleaseFeed, GitHubServerReleaseFeed>(client =>
         {
             client.BaseAddress = new Uri("https://api.github.com");

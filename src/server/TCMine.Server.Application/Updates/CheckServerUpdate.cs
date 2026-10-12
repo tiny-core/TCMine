@@ -11,31 +11,67 @@ namespace TCMine.Server.Application.Updates;
 /// </summary>
 public sealed class CheckServerUpdate(IServerReleaseFeed feed, ICurrentUserScope scope)
 {
+    /// <summary>Para o aviso no topo do painel: pode responder do cache.</summary>
     /// <param name="currentVersion">A versão desta build ("dev" fora de uma imagem publicada).</param>
     /// <returns>A release mais nova quando ela é MAIOR que a atual; senão, nulo.</returns>
     public async Task<ServerRelease?> HandleAsync(string currentVersion, CancellationToken ct)
     {
+        var status = await CheckAsync(currentVersion, refresh: false, ct);
+        return status is { State: ServerUpdateState.Available } ? status.Latest : null;
+    }
+
+    /// <summary>
+    ///     O estado completo, para a tela de Configurações. Com
+    ///     <paramref name="refresh" />, ignora o cache: é o "Verificar agora" de
+    ///     quem acabou de publicar e não quer esperar a próxima consulta.
+    /// </summary>
+    /// <returns>Nulo para quem não é admin da instalação.</returns>
+    public async Task<ServerUpdateStatus?> CheckAsync(string currentVersion, bool refresh, CancellationToken ct)
+    {
         if (!scope.IsInstanceAdmin)
             return null;
 
+        var lookup = await feed.LookupAsync(refresh, ct);
+
+        if (lookup.State is ReleaseFeedState.Disabled)
+            return new ServerUpdateStatus(ServerUpdateState.Disabled, currentVersion, null, null);
+
+        if (lookup.State is ReleaseFeedState.Unreachable)
+            return new ServerUpdateStatus(ServerUpdateState.Unreachable, currentVersion, null, lookup.CheckedAt);
+
         // Build local não tem número que se compare: avisar "há a 0.5.0" a quem
-        // está depurando o código-fonte seria mentira nos dois sentidos.
+        // está depurando o código-fonte seria mentira nos dois sentidos. A tela
+        // ainda mostra qual é a publicada.
         if (!SemanticVersion.TryParse(currentVersion, out var current))
-            return null;
+            return new ServerUpdateStatus(ServerUpdateState.LocalBuild, currentVersion, lookup.Latest, lookup.CheckedAt);
 
-        var latest = await feed.GetLatestStableAsync(ct);
-        if (latest is null || !SemanticVersion.TryParse(latest.Version, out var available))
-            return null;
+        var newer = lookup.Latest is { } latest
+                    && SemanticVersion.TryParse(latest.Version, out var available)
+                    && available > current;
 
-        return available > current ? latest : null;
+        return new ServerUpdateStatus(
+            newer ? ServerUpdateState.Available : ServerUpdateState.UpToDate,
+            currentVersion, lookup.Latest, lookup.CheckedAt);
     }
 }
 
-/// <summary>
-///     O bastante de SemVer para ordenar versões do TCMine: núcleo numérico e
-///     pré-lançamento (que vem ANTES da estável de mesmo núcleo: 0.5.0-beta.1 &lt; 0.5.0).
-///     Metadado de build (+sha) é ignorado, como manda a especificação.
-/// </summary>
+/// <summary>O que a tela diz sobre a versão desta instalação.</summary>
+/// <param name="CheckedAt">Quando o GitHub respondeu (pode ser do cache); nulo se a consulta está desligada.</param>
+public sealed record ServerUpdateStatus(
+    ServerUpdateState State,
+    string CurrentVersion,
+    ServerRelease? Latest,
+    DateTimeOffset? CheckedAt);
+
+public enum ServerUpdateState
+{
+    UpToDate,
+    Available,
+    Unreachable,
+    Disabled,
+    LocalBuild
+}
+
 public readonly record struct SemanticVersion(int Major, int Minor, int Patch, string? PreRelease)
     : IComparable<SemanticVersion>
 {
