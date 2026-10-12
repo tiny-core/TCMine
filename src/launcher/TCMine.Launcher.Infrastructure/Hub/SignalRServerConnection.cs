@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
@@ -52,6 +53,8 @@ public sealed partial class SignalRServerConnection(
     public bool SessionRejected => _sessionRejected;
 
     public event Action? StateChanged;
+
+    public event Action<ResourceKind, Guid?>? Invalidated;
 
     public async Task ConnectAsync(Uri serverUrl, CancellationToken ct)
     {
@@ -266,6 +269,12 @@ public sealed partial class SignalRServerConnection(
                 Set(LinkStatus.Up);
 
             return Task.CompletedTask;
+        };
+
+        cliente.Invalidated += (kind, id) =>
+        {
+            if (ReferenceEquals(_client, cliente))
+                Invalidated?.Invoke(kind, id);
         };
 
         cliente.Closed += () =>

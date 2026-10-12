@@ -1,10 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Infrastructure.Persistence;
 
-public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory) : IServerRepository
+public sealed class ServerRepository(
+    IDbContextFactory<TcMineDbContext> factory,
+    IResourceChanges changes) : IServerRepository
 {
     public async Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct)
     {
@@ -34,6 +37,8 @@ public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         db.GameServers.Add(server);
         await db.SaveChangesAsync(ct);
+
+        changes.Touch(ResourceKind.Servers, server.Id);
     }
 
     public async Task UpdateAsync(GameServer server, CancellationToken ct)
@@ -41,12 +46,18 @@ public sealed class ServerRepository(IDbContextFactory<TcMineDbContext> factory)
         await using var db = await factory.CreateDbContextAsync(ct);
         db.GameServers.Update(server);
         await db.SaveChangesAsync(ct);
+
+        // Inclui as mudanças de estado (ligou, parou, caiu): é por aqui que o
+        // "no ar" chega ao launcher sem ele ter de perguntar.
+        changes.Touch(ResourceKind.Servers, server.Id);
     }
 
     public async Task RemoveAsync(Guid id, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.GameServers.Where(s => s.Id == id).ExecuteDeleteAsync(ct);
+
+        changes.Touch(ResourceKind.Servers, id);
     }
 
     public async Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct)

@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
@@ -46,6 +47,14 @@ public interface IServerConnection : IAsyncDisposable
     ///     <see cref="DisconnectAsync" />.
     /// </summary>
     void KeepConnected(Uri serverUrl);
+
+    /// <summary>
+    ///     O servidor avisou que algo que o launcher mostra mudou (ver
+    ///     <c>ILauncherClient.Invalidated</c>). Quem guarda esse dado rebusca.
+    ///     Pode vir de qualquer thread. Um tipo que este launcher não conhece
+    ///     (de um servidor mais novo) chega na mesma, e quem ouve o ignora.
+    /// </summary>
+    event Action<ResourceKind, Guid?>? Invalidated;
 
     Task ConnectAsync(Uri serverUrl, CancellationToken ct);
 

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
@@ -12,7 +13,9 @@ namespace TCMine.Server.Infrastructure.Persistence;
 ///     para Blazor Server, onde o scope de DI dura a conexão inteira — um
 ///     DbContext scoped acumularia entidades de todas as telas e colidiria.
 /// </summary>
-public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory) : IModpackRepository
+public sealed class ModpackRepository(
+    IDbContextFactory<TcMineDbContext> factory,
+    IResourceChanges changes) : IModpackRepository
 {
     public async Task<bool> SlugExistsAsync(string slug, CancellationToken ct)
     {
@@ -79,12 +82,18 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.Modpacks.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
+
+        changes.Touch(ResourceKind.Modpacks, id);
     }
 
     public async Task RemoveVersionAsync(Guid versionId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.ModpackVersions.Where(v => v.Id == versionId).ExecuteDeleteAsync(ct);
+
+        // Sem o id do modpack à mão, e buscá-lo antes custaria uma consulta para
+        // um aviso que o launcher trata igual: rebusca o catálogo.
+        changes.Touch(ResourceKind.Modpacks);
     }
 
     public async Task UpdateAsync(Modpack modpack, CancellationToken ct)
@@ -92,6 +101,8 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         await using var db = await factory.CreateDbContextAsync(ct);
         db.Modpacks.Update(modpack);
         await db.SaveChangesAsync(ct);
+
+        changes.Touch(ResourceKind.Modpacks, modpack.Id);
     }
 
     public async Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)
@@ -143,6 +154,8 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         await using var db = await factory.CreateDbContextAsync(ct);
         db.Modpacks.Add(modpack);
         await db.SaveChangesAsync(ct);
+
+        changes.Touch(ResourceKind.Modpacks, modpack.Id);
     }
 
     public async Task AddVersionAsync(ModpackVersion version, CancellationToken ct)
@@ -150,6 +163,8 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         await using var db = await factory.CreateDbContextAsync(ct);
         db.ModpackVersions.Add(version);
         await db.SaveChangesAsync(ct);
+
+        TouchIfInstallable(version);
     }
 
     public async Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct)
@@ -193,6 +208,8 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         }
 
         await db.SaveChangesAsync(ct);
+
+        TouchIfInstallable(version);
     }
 
     public async Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct)
@@ -404,6 +421,20 @@ public sealed class ModpackRepository(IDbContextFactory<TcMineDbContext> factory
         }
 
         await db.SaveChangesAsync(ct);
+
+        TouchIfInstallable(version);
+    }
+
+    /// <summary>
+    ///     Avisa só quando a versão é das que o launcher enxerga.
+    ///     A ingestão de um rascunho grava o estado dezenas de vezes; avisar em
+    ///     cada uma faria todo launcher aberto rebuscar o catálogo sem nada ter
+    ///     mudado para ele. Publicar (Ready), arquivar e restaurar avisam.
+    /// </summary>
+    private void TouchIfInstallable(ModpackVersion version)
+    {
+        if (version.State is ModpackVersionState.Ready or ModpackVersionState.Archived)
+            changes.Touch(ResourceKind.Modpacks, version.ModpackId);
     }
 
     public async Task SetServerPackAsync(

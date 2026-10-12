@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core;
 using TCMine.Launcher.Core.Abstractions;
@@ -85,6 +86,46 @@ public sealed class LauncherCatalogContractTests
 
         connection.SessionRejected.ShouldBeTrue(
             $"o hub tem de responder 401 a quem não tem sessão (canal: {connection.Status}; erro: {catalogo.Error})");
+    }
+
+    [Fact]
+    public async Task O_aviso_de_mudanca_atravessa_o_hub_ate_o_launcher()
+    {
+        // Atravessar é o teste: o aviso viaja em MessagePack, com um enum e um
+        // Guid anulável, e só o cliente de verdade exercita esse caminho.
+        await using var server = new RealPortAppFactory
+        {
+            Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
+                new PerfilFixo(new MinecraftProfile("abc123", "ana")))
+        };
+
+        await using var launcher = MontarLauncher();
+
+        var config = new LauncherConfig
+        {
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
+        };
+
+        await launcher.GetRequiredService<SignIn>().InteractiveAsync(config, Ct);
+
+        var connection = launcher.GetRequiredService<IServerConnection>();
+        await connection.ConnectAsync(server.Address, Ct);
+
+        var modpackId = Guid.CreateVersion7();
+        var recebido = new TaskCompletionSource<(ResourceKind Kind, Guid? Id)>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+
+        connection.Invalidated += (kind, id) =>
+        {
+            if (kind is ResourceKind.News && id == modpackId)
+                recebido.TrySetResult((kind, id));
+        };
+
+        server.KestrelServices.GetRequiredService<IResourceChanges>().Touch(ResourceKind.News, modpackId);
+
+        var aviso = await recebido.Task.WaitAsync(TimeSpan.FromSeconds(10), Ct);
+
+        aviso.ShouldBe((ResourceKind.News, modpackId));
     }
 
     /// <summary>

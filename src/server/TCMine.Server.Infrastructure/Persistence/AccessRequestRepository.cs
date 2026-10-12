@@ -1,16 +1,22 @@
 using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Infrastructure.Persistence;
 
-public sealed class AccessRequestRepository(IDbContextFactory<TcMineDbContext> factory) : IAccessRequestRepository
+public sealed class AccessRequestRepository(
+    IDbContextFactory<TcMineDbContext> factory,
+    IResourceChanges changes) : IAccessRequestRepository
 {
     public async Task AddAsync(AccessRequest request, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         db.AccessRequests.Add(request);
         await db.SaveChangesAsync(ct);
+
+        // O pedido aparece como "pendente" na lista de servidores de quem pediu.
+        changes.Touch(ResourceKind.Servers, request.GameServerId);
     }
 
     public async Task<AccessRequest?> GetByIdAsync(Guid id, CancellationToken ct)
@@ -75,5 +81,8 @@ public sealed class AccessRequestRepository(IDbContextFactory<TcMineDbContext> f
         await using var db = await factory.CreateDbContextAsync(ct);
         db.AccessRequests.Update(request);
         await db.SaveChangesAsync(ct);
+
+        // O pedido aparece como "pendente" na lista de servidores de quem pediu.
+        changes.Touch(ResourceKind.Servers, request.GameServerId);
     }
 }

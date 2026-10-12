@@ -139,7 +139,7 @@ public sealed class PostgresColumnLimitsTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new FabricaFixa(postgres));
+        var repo = new ModpackRepository(new FabricaFixa(postgres), new RecordingResourceChanges());
 
         var modpack = new Modpack
         {

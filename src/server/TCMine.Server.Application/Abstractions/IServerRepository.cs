@@ -1,4 +1,5 @@
-﻿using TCMine.Server.Domain.Servers;
+﻿using TCMine.Contracts.Hubs;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
 
@@ -9,8 +10,11 @@ public interface IServerRepository
 
     Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct);
     Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct);
+    [Invalidates(ResourceKind.Servers)]
     Task AddAsync(GameServer server, CancellationToken ct);
+    [Invalidates(ResourceKind.Servers)]
     Task UpdateAsync(GameServer server, CancellationToken ct);
+    [Invalidates(ResourceKind.Servers)]
     Task RemoveAsync(Guid id, CancellationToken ct);
 
     /// <summary>Snapshots de um servidor, do mais novo para o mais antigo.</summary>
@@ -26,7 +30,9 @@ public interface IServerRepository
 
     Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct);
 
+    [NotVisibleToLauncher("Backups de mundo só aparecem no painel.")]
     Task AddBackupAsync(WorldBackup backup, CancellationToken ct);
 
+    [NotVisibleToLauncher("Backups de mundo só aparecem no painel.")]
     Task RemoveBackupAsync(Guid backupId, CancellationToken ct);
 }

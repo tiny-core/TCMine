@@ -1,4 +1,5 @@
 using TCMine.Contracts;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Connectivity;
@@ -57,6 +58,34 @@ public sealed class NewsStoreTests : IAsyncDisposable
         await store.RefreshAsync(Pack);
 
         store.For(Pack).ShouldHaveSingleItem();
+    }
+
+    [Fact]
+    public async Task Aviso_do_servidor_rebusca_as_novidades_do_pack()
+    {
+        _connection.News[Pack] = [Post("Versão 1.2")];
+        using var store = new NewsStore(_connection, _shell);
+        await store.RefreshAsync(Pack);
+
+        var avisos = 0;
+        store.Changed += () => avisos++;
+
+        _connection.News[Pack] = [Post("Versão 1.3"), Post("Versão 1.2")];
+        _connection.RaiseInvalidated(ResourceKind.News, Pack);
+
+        // O fake responde na hora, então a rebusca já terminou aqui.
+        avisos.ShouldBe(1);
+        store.For(Pack).Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void Aviso_de_um_pack_que_ninguem_pediu_e_ignorado()
+    {
+        using var store = new NewsStore(_connection, _shell);
+
+        _connection.RaiseInvalidated(ResourceKind.News, Pack);
+
+        store.For(Pack).ShouldBeEmpty();
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Modpacks;
@@ -44,14 +45,18 @@ public interface IModpackRepository
     /// </summary>
     Task<IReadOnlyList<ModpackVersion>> ListVersionSummariesAsync(Guid modpackId, CancellationToken ct);
 
+    [Invalidates(ResourceKind.Modpacks)]
     Task RemoveAsync(Guid id, CancellationToken ct);
 
     /// <summary>Persiste um modpack novo.</summary>
+    [Invalidates(ResourceKind.Modpacks)]
     Task CreateAsync(Modpack modpack, CancellationToken ct);
 
     /// <summary>Anexa uma versão a um modpack existente.</summary>
+    [Invalidates(ResourceKind.Modpacks)]
     Task AddVersionAsync(ModpackVersion version, CancellationToken ct);
 
+    [Invalidates(ResourceKind.Modpacks)]
     Task RemoveVersionAsync(Guid versionId, CancellationToken ct);
 
     /// <summary>
@@ -60,6 +65,7 @@ public interface IModpackRepository
     ///     carregar, mexer no domínio (adicionar arquivo, mudar estado) e mandar
     ///     gravar, sem se preocupar com rastreamento.
     /// </summary>
+    [Invalidates(ResourceKind.Modpacks)]
     Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct);
 
     /// <summary>
@@ -69,6 +75,7 @@ public interface IModpackRepository
     /// </summary>
     Task<Modpack?> GetWithVersionsAsync(Guid id, CancellationToken ct);
 
+    [NotVisibleToLauncher("Só mexe em rascunho, que o launcher não vê.")]
     Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct);
 
     /// <summary>
@@ -77,6 +84,7 @@ public interface IModpackRepository
     ///     <see cref="UpdateVersionAsync" />, cada save custaria reanexar as
     ///     milhares de linhas já presentes — O(n) por lote, O(n²) na corrida.
     /// </summary>
+    [NotVisibleToLauncher("Só mexe em rascunho, que o launcher não vê.")]
     Task AddFilesAsync(Guid versionId, IReadOnlyList<ModpackFile> files, CancellationToken ct);
 
     /// <summary>
@@ -93,12 +101,14 @@ public interface IModpackRepository
     ///     arquivos pontualmente não pode pagar por um UPDATE em cada um deles no
     ///     fecho da ingestão.
     /// </summary>
+    [Invalidates(ResourceKind.Modpacks)]
     Task SaveVersionStateAsync(ModpackVersion version, CancellationToken ct);
 
     /// <summary>
     ///     Apaga uma pendência resolvida. Como no caso dos arquivos, remover da
     ///     coleção de um grafo destacado não apaga a linha sozinho.
     /// </summary>
+    [NotVisibleToLauncher("Só mexe em rascunho, que o launcher não vê.")]
     Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct);
 
     /// <summary>
@@ -108,6 +118,7 @@ public interface IModpackRepository
     ///     grafo inteiro — milhares de arquivos remarcados para escrever dois
     ///     campos, numa versão que é imutável em todo o resto.
     /// </summary>
+    [NotVisibleToLauncher("O server pack é do container do servidor, não do jogador.")]
     Task SetServerPackAsync(Guid versionId, string fileId, string? pageUrl, CancellationToken ct);
 
     /// <summary>
@@ -115,6 +126,7 @@ public interface IModpackRepository
     ///     <see cref="SetServerPackAsync" />: um enum de uma linha não justifica
     ///     reanexar milhares de arquivos.
     /// </summary>
+    [NotVisibleToLauncher("Só mexe em rascunho, que o launcher não vê.")]
     Task SetFileSideAsync(Guid versionId, Guid fileId, FileSide side, CancellationToken ct);
 
     /// <summary>
@@ -128,6 +140,7 @@ public interface IModpackRepository
     /// </summary>
     Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct);
 
+    [Invalidates(ResourceKind.Modpacks)]
     Task UpdateAsync(Modpack modpack, CancellationToken ct);
 
     /// <summary>

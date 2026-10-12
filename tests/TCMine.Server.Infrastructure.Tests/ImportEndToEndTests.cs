@@ -42,7 +42,7 @@ public sealed class ImportEndToEndTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new Fabrica(postgres));
+        var repo = new ModpackRepository(new Fabrica(postgres), new RecordingResourceChanges());
         var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
         var blobs = new BlobsEmMemoria();
 
@@ -118,7 +118,7 @@ public sealed class ImportEndToEndTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new Fabrica(postgres));
+        var repo = new ModpackRepository(new Fabrica(postgres), new RecordingResourceChanges());
         var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
         var blobs = new BlobsEmMemoria();
         var downloader = new DownloaderFixo();

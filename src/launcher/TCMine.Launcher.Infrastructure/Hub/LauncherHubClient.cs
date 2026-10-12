@@ -145,6 +145,7 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
     public event Action<Guid, int, int>? PlayerCountChanged;
     public event Action<Guid, ConsoleLineDto>? ConsoleLineReceived;
     public event Action<Guid, ServerRoleDto>? RoleChanged;
+    public event Action<ResourceKind, Guid?>? Invalidated;
 
     /// <summary>Disparado ao reconectar. É o gatilho da reconciliação.</summary>
     public event Func<Task>? Reconnected;
@@ -182,6 +183,9 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
 
         _connection.On<Guid, ServerRoleDto>(nameof(ILauncherClient.RoleChanged),
             (serverId, role) => RoleChanged?.Invoke(serverId, role));
+
+        _connection.On<ResourceKind, Guid?>(nameof(ILauncherClient.Invalidated),
+            (kind, id) => Invalidated?.Invoke(kind, id));
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Conexão com o servidor caiu ({Reason}); a religar.")]

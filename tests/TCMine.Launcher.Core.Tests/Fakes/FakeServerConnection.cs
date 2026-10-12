@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
@@ -55,6 +56,11 @@ public class FakeServerConnection : IServerConnection
     public bool SessionRejected { get; private set; }
 
     public event Action? StateChanged;
+
+    public event Action<ResourceKind, Guid?>? Invalidated;
+
+    /// <summary>Simula o servidor a avisar que algo mudou.</summary>
+    public void RaiseInvalidated(ResourceKind kind, Guid? id = null) => Invalidated?.Invoke(kind, id);
 
     public Task ConnectAsync(Uri serverUrl, CancellationToken ct)
     {

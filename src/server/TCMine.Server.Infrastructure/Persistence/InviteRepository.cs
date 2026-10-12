@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Domain.Identity;
@@ -47,13 +48,20 @@ public sealed class InviteRepository(IDbContextFactory<TcMineDbContext> factory)
     }
 }
 
-public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> factory) : IMembershipRepository
+public sealed class MembershipRepository(
+    IDbContextFactory<TcMineDbContext> factory,
+    IResourceChanges changes) : IMembershipRepository
 {
     public async Task AddAsync(Membership membership, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         db.Memberships.Add(membership);
         await db.SaveChangesAsync(ct);
+
+        // Acesso novo muda a lista de servidores DAQUELE jogador. O aviso vai
+        // para todos — só tipo e id —, e cada launcher rebusca com a própria
+        // conta: quem não ganhou nada vê a mesma lista.
+        changes.Touch(ResourceKind.Servers, membership.GameServerId);
     }
 
     public async Task<Membership?> GetAsync(Guid userId, Guid gameServerId, CancellationToken ct)
@@ -113,12 +121,16 @@ public sealed class MembershipRepository(IDbContextFactory<TcMineDbContext> fact
         await using var db = await factory.CreateDbContextAsync(ct);
         db.Memberships.Update(membership);
         await db.SaveChangesAsync(ct);
+
+        changes.Touch(ResourceKind.Servers, membership.GameServerId);
     }
 
     public async Task RemoveAsync(Guid id, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         await db.Memberships.Where(m => m.Id == id).ExecuteDeleteAsync(ct);
+
+        changes.Touch(ResourceKind.Servers);
     }
 
     public async Task<IReadOnlyList<Membership>> ListByServerAsync(Guid gameServerId, CancellationToken ct)

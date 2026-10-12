@@ -46,6 +46,23 @@ internal sealed class RealPortAppFactory : TcMineAppFactory
         }
     }
 
+    /// <summary>
+    ///     Os serviços do Kestrel, que é o host com que o cliente do launcher fala.
+    ///     NÃO são os mesmos do <c>Services</c>: o Kestrel é um segundo host, com
+    ///     os próprios singletons. O banco é partilhado (mesmo arquivo), por isso
+    ///     semear por <c>Services</c> funciona; um aviso pelo hub, não — sairia do
+    ///     host errado e nunca chegaria ao launcher.
+    /// </summary>
+    public IServiceProvider KestrelServices
+    {
+        get
+        {
+            _ = Services;
+
+            return _kestrel?.Services ?? throw new InvalidOperationException("O Kestrel do teste não subiu.");
+        }
+    }
+
     protected override IHost CreateHost(IHostBuilder builder)
     {
         // A base exige um host com TestServer para o CreateClient dela seguir

@@ -92,6 +92,35 @@ public interface ILauncherClient
     ///     console até reconectar por conta própria.
     /// </summary>
     Task RoleChanged(Guid serverId, ServerRoleDto? role);
+
+    /// <summary>
+    ///     Algo que o launcher mostra mudou no servidor: busque de novo.
+    ///     Genérico de propósito. Um método por caso ("modpack publicado",
+    ///     "servidor caiu", "novidade escrita"…) seria uma mudança de contrato a
+    ///     cada tela nova; este cobre todas, e é aditivo — um launcher antigo
+    ///     ignora o que não conhece.
+    ///     Leva só o tipo e o id, nunca o dado: a rebusca passa pelo hub, com as
+    ///     permissões de quem pergunta, e por isso o aviso pode ir para todos.
+    /// </summary>
+    /// <param name="id">O recurso que mudou; nulo quando são vários.</param>
+    Task Invalidated(ResourceKind kind, Guid? id);
+}
+
+/// <summary>
+///     O que um <see cref="ILauncherClient.Invalidated" /> diz que mudou.
+///     Só se ACRESCENTA, no fim: o valor viaja como número, e reordenar faria um
+///     launcher antigo rebuscar a coisa errada.
+/// </summary>
+public enum ResourceKind
+{
+    /// <summary>O catálogo: modpacks e as versões instaláveis deles.</summary>
+    Modpacks,
+
+    /// <summary>Os servidores de jogo: estado, jogadores, endereço, acesso.</summary>
+    Servers,
+
+    /// <summary>As novidades de um modpack (o id é o do modpack).</summary>
+    News
 }
 
 public sealed record ConsoleLineDto(DateTimeOffset Timestamp, string Text, ConsoleStream Stream);

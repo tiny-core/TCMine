@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Settings;
 
@@ -14,12 +15,17 @@ namespace TCMine.Server.Infrastructure.Persistence;
 /// </summary>
 public sealed class SettingsRepository : ISettingsRepository
 {
+    private readonly IResourceChanges _changes;
     private readonly IDbContextFactory<TcMineDbContext> _factory;
     private readonly IDataProtector _protector;
 
-    public SettingsRepository(IDbContextFactory<TcMineDbContext> factory, IDataProtectionProvider protection)
+    public SettingsRepository(
+        IDbContextFactory<TcMineDbContext> factory,
+        IDataProtectionProvider protection,
+        IResourceChanges changes)
     {
         _factory = factory;
+        _changes = changes;
 
         // O "purpose" isola este uso: um texto cifrado aqui não pode ser
         // decifrado por outro protetor da aplicação.
@@ -84,6 +90,10 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);
 
         await db.SaveChangesAsync(ct);
+
+        // O host público e o domínio entram no endereço que cada servidor
+        // mostra ao jogador.
+        _changes.Touch(ResourceKind.Servers);
     }
 
     public async Task<string?> GetCurseForgeApiKeyAsync(CancellationToken ct)

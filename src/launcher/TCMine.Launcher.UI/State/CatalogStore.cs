@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Modpacks;
 
@@ -9,14 +10,15 @@ namespace TCMine.Launcher.UI.State;
 ///     Antes cada página buscava o seu ao abrir, então só atualizava quando o
 ///     jogador navegava: com o servidor de volta depois de uma queda, a coluna
 ///     de servidores da tela Jogar ficava vazia até se trocar de página.
-///     Rebusca sozinho quando o canal fica de pé (entrar, voltar de uma queda),
-///     e quem mais souber que algo mudou chama <see cref="RefreshAsync" />.
+///     Rebusca sozinho quando o canal fica de pé (entrar, voltar de uma queda)
+///     e quando o servidor avisa que modpacks ou servidores mudaram.
 ///     Uma busca de cada vez: pedidos que chegam durante uma busca não abrem
 ///     outra em paralelo, mas também não se perdem — viram UMA busca a seguir,
 ///     porque podem trazer uma mudança que a busca em curso já não vê.
 /// </summary>
 public sealed class CatalogStore : IDisposable
 {
+    private readonly IServerConnection _connection;
     private readonly Lock _gate = new();
     private readonly LoadCatalog _load;
     private readonly LauncherShellState _shell;
@@ -25,13 +27,15 @@ public sealed class CatalogStore : IDisposable
     private LinkStatus _lastLink;
     private Task? _running;
 
-    public CatalogStore(LoadCatalog load, LauncherShellState shell)
+    public CatalogStore(LoadCatalog load, LauncherShellState shell, IServerConnection connection)
     {
         _load = load;
         _shell = shell;
+        _connection = connection;
         _lastLink = shell.Link;
 
         _shell.Changed += OnShellChanged;
+        _connection.Invalidated += OnInvalidated;
     }
 
     /// <summary>O último catálogo que chegou inteiro. Nulo antes da primeira busca.</summary>
@@ -52,7 +56,11 @@ public sealed class CatalogStore : IDisposable
     /// </summary>
     public CatalogView? View => Current ?? (Error is { } error ? CatalogView.Failure(error) : null);
 
-    public void Dispose() => _shell.Changed -= OnShellChanged;
+    public void Dispose()
+    {
+        _shell.Changed -= OnShellChanged;
+        _connection.Invalidated -= OnInvalidated;
+    }
 
     /// <summary>Uma mudança em qualquer coisa acima. Pode vir de qualquer thread.</summary>
     public event Action? Changed;
@@ -131,6 +139,17 @@ public sealed class CatalogStore : IDisposable
         }
 
         Changed?.Invoke();
+    }
+
+    /// <summary>
+    ///     Modpacks e servidores vêm na mesma busca, então os dois avisos pedem o
+    ///     mesmo. O id não importa aqui: rebuscar um item só pouparia uma lista
+    ///     pequena, e abriria a porta a uma tela com metade nova e metade velha.
+    /// </summary>
+    private void OnInvalidated(ResourceKind kind, Guid? id)
+    {
+        if (kind is ResourceKind.Modpacks or ResourceKind.Servers)
+            _ = RefreshAsync();
     }
 
     private void OnShellChanged()

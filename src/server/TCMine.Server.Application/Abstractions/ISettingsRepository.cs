@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Application.Abstractions;
@@ -13,6 +14,7 @@ public interface ISettingsRepository
     /// <summary>Devolve a configuração, criando a linha padrão se ainda não existir.</summary>
     Task<InstallationSettings> GetAsync(CancellationToken ct);
 
+    [Invalidates(ResourceKind.Servers)] // o endereço público entra no endereço de cada servidor
     Task SaveAsync(InstallationSettings settings, CancellationToken ct);
 
     /// <summary>Chave do CurseForge em claro, ou nulo se não configurada.</summary>

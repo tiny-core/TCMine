@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
@@ -16,6 +17,7 @@ public sealed record AccessRequestView(
 
 public interface IAccessRequestRepository
 {
+    [Invalidates(ResourceKind.Servers)]
     Task AddAsync(AccessRequest request, CancellationToken ct);
 
     Task<AccessRequest?> GetByIdAsync(Guid id, CancellationToken ct);
@@ -43,5 +45,6 @@ public interface IAccessRequestRepository
     Task<IReadOnlyList<AccessRequestView>> ListPendingForServersAsync(
         IReadOnlyList<Guid> gameServerIds, CancellationToken ct);
 
+    [Invalidates(ResourceKind.Servers)]
     Task UpdateAsync(AccessRequest request, CancellationToken ct);
 }

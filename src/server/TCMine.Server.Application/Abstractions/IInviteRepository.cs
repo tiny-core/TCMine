@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Servers;
@@ -37,6 +38,7 @@ public sealed record ServerAccessView(
 
 public interface IInviteRepository
 {
+    [NotVisibleToLauncher("O convite em si não aparece; o acesso que ele dá entra pelo membro.")]
     Task AddAsync(Invite invite, CancellationToken ct);
 
     Task<Invite?> GetByIdAsync(Guid id, CancellationToken ct);
@@ -51,11 +53,13 @@ public interface IInviteRepository
     /// <summary>Convites de um servidor, mais recentes primeiro (ordem de ID).</summary>
     Task<IReadOnlyList<Invite>> ListByServerAsync(Guid gameServerId, CancellationToken ct);
 
+    [NotVisibleToLauncher("O convite em si não aparece; o acesso que ele dá entra pelo membro.")]
     Task UpdateAsync(Invite invite, CancellationToken ct);
 }
 
 public interface IMembershipRepository
 {
+    [Invalidates(ResourceKind.Servers)]
     Task AddAsync(Membership membership, CancellationToken ct);
 
     Task<Membership?> GetAsync(Guid userId, Guid gameServerId, CancellationToken ct);
@@ -75,7 +79,9 @@ public interface IMembershipRepository
     /// </summary>
     Task<IReadOnlyList<ServerMemberView>> ListWithUsersAsync(Guid gameServerId, CancellationToken ct);
 
+    [Invalidates(ResourceKind.Servers)]
     Task UpdateAsync(Membership membership, CancellationToken ct);
 
+    [Invalidates(ResourceKind.Servers)]
     Task RemoveAsync(Guid id, CancellationToken ct);
 }

@@ -30,6 +30,8 @@ public partial class InstancesPage : ComponentBase, IDisposable
 
     [Inject] private CheckInstanceUpdates Updates { get; set; } = default!;
 
+    [Inject] private CatalogStore Catalog { get; set; } = default!;
+
     [Inject] private UpdateInstance Updater { get; set; } = default!;
 
     [Inject] private InstallModpackVersion Installer { get; set; } = default!;
@@ -60,6 +62,7 @@ public partial class InstancesPage : ComponentBase, IDisposable
     {
         Operation.Changed -= OnOperationChanged;
         Lock.Changed -= OnOperationChanged;
+        Catalog.Changed -= OnCatalogChanged;
         GC.SuppressFinalize(this);
     }
 
@@ -67,10 +70,33 @@ public partial class InstancesPage : ComponentBase, IDisposable
     {
         Operation.Changed += OnOperationChanged;
         Lock.Changed += OnOperationChanged;
+        Catalog.Changed += OnCatalogChanged;
         return LoadAsync();
     }
 
     private void OnOperationChanged() => InvokeAsync(StateHasChanged);
+
+    /// <summary>
+    ///     O catálogo terminou uma rebusca — uma versão foi publicada, o canal
+    ///     voltou. É o momento de conferir de novo o que há para atualizar, sem o
+    ///     jogador sair e voltar à tela.
+    ///     Só no fim da busca (o aviso também dispara no começo), e não durante
+    ///     um carregamento da tela, que já confere sozinho.
+    /// </summary>
+    private void OnCatalogChanged()
+    {
+        if (!Catalog.IsLoading)
+            InvokeAsync(RefreshUpdatesAsync);
+    }
+
+    private async Task RefreshUpdatesAsync()
+    {
+        if (_loading || !Shell.IsOnline || _instances.Count is 0)
+            return;
+
+        _updates = await Updates.HandleAsync(_instances, CancellationToken.None);
+        StateHasChanged();
+    }
 
     private async Task LoadAsync()
     {

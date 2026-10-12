@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Connectivity;
 
@@ -28,9 +29,14 @@ public sealed class NewsStore : IDisposable
         _lastLink = shell.Link;
 
         _shell.Changed += OnShellChanged;
+        _connection.Invalidated += OnInvalidated;
     }
 
-    public void Dispose() => _shell.Changed -= OnShellChanged;
+    public void Dispose()
+    {
+        _shell.Changed -= OnShellChanged;
+        _connection.Invalidated -= OnInvalidated;
+    }
 
     /// <summary>Pode vir de qualquer thread.</summary>
     public event Action? Changed;
@@ -53,6 +59,28 @@ public sealed class NewsStore : IDisposable
         {
             // Sem novidades a coluna simplesmente não as mostra.
         }
+    }
+
+    /// <summary>
+    ///     Novidade escrita, editada ou apagada. Com o pack conhecido, só ele;
+    ///     sem (apagar não sabe de que pack era), todos os que estão guardados.
+    ///     Um pack que ninguém pediu é ignorado: não há tela à espera dele.
+    /// </summary>
+    private void OnInvalidated(ResourceKind kind, Guid? modpackId)
+    {
+        if (kind is not ResourceKind.News)
+            return;
+
+        if (modpackId is { } id)
+        {
+            if (_posts.ContainsKey(id))
+                _ = RefreshAsync(id);
+
+            return;
+        }
+
+        foreach (var known in _posts.Keys)
+            _ = RefreshAsync(known);
     }
 
     private void OnShellChanged()

@@ -1,4 +1,5 @@
 using TCMine.Contracts;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Launcher.Core.Connectivity;
@@ -60,6 +61,36 @@ public sealed class CatalogStoreTests : IAsyncDisposable
         await store.WhenIdle();
 
         store.Current!.Entries.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Aviso_do_servidor_atualiza_o_catalogo_sem_navegar()
+    {
+        // Meta da fase: mudar um modpack no painel aparece no launcher sem o
+        // jogador fazer nada.
+        _connection.Modpacks = [Modpack("Skyblock")];
+        using var store = NewStore();
+        await store.RefreshAsync();
+
+        _connection.Modpacks = [Modpack("Skyblock"), Modpack("Tecnologia")];
+        _connection.RaiseInvalidated(ResourceKind.Modpacks, Guid.CreateVersion7());
+        await store.WhenIdle();
+
+        store.Current!.Entries.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Aviso_de_novidade_nao_rebusca_o_catalogo()
+    {
+        _connection.Modpacks = [Modpack("Skyblock")];
+        using var store = NewStore();
+        await store.RefreshAsync();
+
+        _connection.Modpacks = [];
+        _connection.RaiseInvalidated(ResourceKind.News, Guid.CreateVersion7());
+        await store.WhenIdle();
+
+        store.Current!.Entries.ShouldHaveSingleItem();
     }
 
     [Fact]
@@ -129,7 +160,7 @@ public sealed class CatalogStoreTests : IAsyncDisposable
         store.Current!.Entries.ShouldHaveSingleItem();
     }
 
-    private CatalogStore NewStore() => new(new LoadCatalog(_connection), _shell);
+    private CatalogStore NewStore() => new(new LoadCatalog(_connection), _shell, _connection);
 
     private void LogIn() =>
         _shell.Apply(SignInState.SignedIn(new LauncherSessionDto

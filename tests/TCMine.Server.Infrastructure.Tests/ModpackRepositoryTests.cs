@@ -1,3 +1,4 @@
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
@@ -10,6 +11,7 @@ namespace TCMine.Server.Infrastructure.Tests;
 public sealed class ModpackRepositoryTests : IDisposable
 {
     private readonly SqliteTestFactory _factory = new();
+    private readonly RecordingResourceChanges _changes = new();
 
     public void Dispose() => _factory.Dispose();
 
@@ -19,7 +21,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // Regressão: o método marcava arquivos existentes como Unchanged, e a
         // edição in-place (mover override, renomear) era silenciosamente
         // ignorada. Este teste falha se alguém voltar a pôr Unchanged.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -39,7 +41,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task AddFilesAsync_insere_o_lote_sem_reanexar_o_grafo()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -60,7 +62,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // enquanto baixa e, no fecho, a versão é gravada com o grafo em memória
         // ainda contendo esses arquivos. Se eles não forem marcados Unchanged, o
         // EF tenta inseri-los de novo e a gravação explode (ou duplica).
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -84,7 +86,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     {
         // Caminho "Added": um arquivo com Id que o EF ainda não conhece tem de
         // virar INSERT, não ser ignorado.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -107,7 +109,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // filhos tirados da coleção — quem remove um arquivo deve chamar
         // RemoveFileAsync explicitamente. Este teste trava esse comportamento
         // para ninguém assumir o contrário e criar um bug silencioso.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -133,7 +135,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task RemoveFileAsync_remove_apenas_o_arquivo_alvo()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -153,7 +155,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task RemoveVersionAsync_cascateia_para_os_arquivos_e_preserva_a_outra_versao()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var v1 = NovaVersao(modpack.Id);
@@ -175,7 +177,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task RemoveAsync_cascateia_para_versoes_e_arquivos()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -193,7 +195,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task ListModInventoryAsync_marca_orfao_o_mod_que_so_vive_em_versao_arquivada()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         // Uma versão publicada e depois arquivada, e outra ativa.
@@ -231,7 +233,7 @@ public sealed class ModpackRepositoryTests : IDisposable
     [Fact]
     public async Task Consultas_paginadas_recortam_no_banco_e_devolvem_o_total()
     {
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -258,6 +260,54 @@ public sealed class ModpackRepositoryTests : IDisposable
         Assert.Equal(10, busca.TotalCount);
     }
 
+    [Fact]
+    public async Task Rascunho_gravado_nao_avisa_os_launchers()
+    {
+        // A ingestão grava o estado do rascunho dezenas de vezes; avisar em cada
+        // uma faria todo launcher aberto rebuscar o catálogo sem nada mudar.
+        var repo = new ModpackRepository(_factory, _changes);
+        var modpack = await SeedModpackAsync(repo);
+        var version = NovaVersao(modpack.Id);
+        await repo.AddVersionAsync(version, CancellationToken.None);
+        _changes.Touched.Clear();
+
+        version.MarkResolving();
+        await repo.SaveVersionStateAsync(version, CancellationToken.None);
+
+        _changes.Touched.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Versao_publicada_avisa_os_launchers_com_o_id_do_modpack()
+    {
+        var repo = new ModpackRepository(_factory, _changes);
+        var modpack = await SeedModpackAsync(repo);
+        var version = NovaVersao(modpack.Id);
+        version.UpsertFile(Arquivo(version.Id, "mods/a.jar", "a"));
+        await repo.AddVersionAsync(version, CancellationToken.None);
+        _changes.Touched.Clear();
+
+        version.MarkResolving();
+        version.MarkReady();
+        await repo.SaveVersionStateAsync(version, CancellationToken.None);
+
+        _changes.Touched.ShouldBe([(ResourceKind.Modpacks, modpack.Id)]);
+    }
+
+    [Fact]
+    public async Task Modpack_apagado_avisa_mesmo_sem_passar_pelo_SaveChanges()
+    {
+        // É por isto que o aviso mora no repositório e não num interceptor do
+        // SaveChanges: apagar é ExecuteDelete, que o interceptor não veria.
+        var repo = new ModpackRepository(_factory, _changes);
+        var modpack = await SeedModpackAsync(repo);
+        _changes.Touched.Clear();
+
+        await repo.RemoveAsync(modpack.Id, CancellationToken.None);
+
+        _changes.Touched.ShouldBe([(ResourceKind.Modpacks, modpack.Id)]);
+    }
+
     private static async Task<Modpack> SeedModpackAsync(ModpackRepository repo)
     {
         var modpack = new Modpack
@@ -278,7 +328,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // Queued que continuava no banco fazia o índice único
         // (ModpackVersionId, ProjectSlug) estourar com 23505 — derrubando a
         // ingestão inteira no fim, depois de baixar centenas de mods.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -312,7 +362,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // Arquivos: continuam de fora de propósito. Num pack importado são
         // milhares de linhas que a tela não usa — ela mostra contagens agregadas
         // — e trazê-las fazia a página levar dezenas de segundos.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);
@@ -335,7 +385,7 @@ public sealed class ModpackRepositoryTests : IDisposable
         // sobra nem repetição. Um shaderpack aparecendo entre os mods some no
         // meio de centenas de linhas; um mod aparecendo em recursos sugere que
         // ele é enviável à mão, e não é.
-        var repo = new ModpackRepository(_factory);
+        var repo = new ModpackRepository(_factory, _changes);
         var modpack = await SeedModpackAsync(repo);
 
         var version = NovaVersao(modpack.Id);

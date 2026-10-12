@@ -33,7 +33,7 @@ public sealed class SettingsRepositoryTests : IDisposable
     [Fact]
     public async Task Tudo_o_que_se_grava_volta_igual()
     {
-        var repo = new SettingsRepository(_factory, new EphemeralDataProtectionProvider());
+        var repo = new SettingsRepository(_factory, new EphemeralDataProtectionProvider(), new RecordingResourceChanges());
         var changed = Changed();
 
         await repo.SaveAsync(changed, Ct);
@@ -69,7 +69,7 @@ public sealed class SettingsRepositoryTests : IDisposable
     {
         // O token edita a zona de DNS inteira. Um vazamento só do banco não pode
         // entregá-lo em claro.
-        var repo = new SettingsRepository(_factory, new EphemeralDataProtectionProvider());
+        var repo = new SettingsRepository(_factory, new EphemeralDataProtectionProvider(), new RecordingResourceChanges());
 
         await repo.SaveAsync(Changed(), Ct);
 

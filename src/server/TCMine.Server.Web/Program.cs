@@ -133,6 +133,14 @@ builder.Services.AddScoped<LauncherNotifier>();
 builder.Services.AddSingleton<ConsoleBroadcaster>();
 builder.Services.AddScoped<IServerHubNotifier, ServerHubNotifier>();
 
+// Singleton e serviço de fundo ao mesmo tempo: os repositórios enfileiram nele
+// (são scoped e não podem esperar pelo envio), e ele junta a rajada e avisa os
+// launchers. A MESMA instância nos três registos, senão a fila de quem escreve
+// não seria a de quem envia.
+builder.Services.AddSingleton<LauncherInvalidations>();
+builder.Services.AddSingleton<IResourceChanges>(sp => sp.GetRequiredService<LauncherInvalidations>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<LauncherInvalidations>());
+
 // ---------- Proteção de dados ----------
 // Chaves persistidas em disco: sem isto elas são regeradas a cada arranque, o
 // que derrubaria toda sessão e tornaria ilegível o cifrado antes (a chave da API do CurseForge).
