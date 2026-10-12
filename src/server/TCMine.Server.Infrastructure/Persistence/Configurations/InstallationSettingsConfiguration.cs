@@ -25,6 +25,7 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         // Um nome DNS completo tem no máximo 255 caracteres (o mesmo número
         // está em UpdateSettings.PublicHostMaxLength, que é quem recusa).
         builder.Property(s => s.PublicHost).HasMaxLength(255);
+        builder.Property(s => s.LanHost).HasMaxLength(255);
 
         // DNS (Cloudflare). O token é texto cifrado, com a mesma folga da chave
         // do CurseForge; o Zone ID tem 32 caracteres; o domínio e o rótulo

@@ -65,6 +65,36 @@ public sealed class ServerMappingsTests
         dto.ConnectAddress.ShouldBe("sobrevivencia.exemplo.com");
     }
 
+    [Fact]
+    public void Endereco_local_leva_a_porta_do_container_e_nao_a_escrita()
+    {
+        // O endereço escrito pode ter a porta de FORA (o roteador redireciona);
+        // dentro de casa, quem responde é a porta publicada nesta máquina.
+        var dto = Granted(Servidor("jogar.exemplo.com:30000", 25566)).ToDto(
+            new NoPlayers(), NoLabels, new AddressSettings("jogar.exemplo.com", null, null, "192.168.1.100"));
+
+        dto.LocalAddress.ShouldBe("192.168.1.100:25566");
+        dto.ConnectAddress.ShouldBe("jogar.exemplo.com:30000");
+    }
+
+    [Fact]
+    public void Sem_ip_local_informado_o_endereco_local_sai_nulo()
+    {
+        var dto = Granted(Servidor("", 25566)).ToDto(new NoPlayers(), NoLabels, Address("jogar.exemplo.com"));
+
+        dto.LocalAddress.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Sem_acesso_concedido_o_endereco_local_tambem_nao_sai()
+    {
+        var pending = new AccessibleServer(
+            Servidor("", 25566), ServerRoleDto.Member, ServerAccessState.Pending);
+
+        pending.ToDto(new NoPlayers(), NoLabels, new AddressSettings(null, null, null, "192.168.1.100"))
+            .LocalAddress.ShouldBeNull();
+    }
+
     private static AddressSettings Address(string? publicHost) => new(publicHost, null, null);
 
     private static AccessibleServer Granted(GameServer server) =>

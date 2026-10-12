@@ -81,6 +81,7 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.GamePortRangeStart = settings.GamePortRangeStart;
         stored.GamePortRangeEnd = settings.GamePortRangeEnd;
         stored.PublicHost = settings.PublicHost;
+        stored.LanHost = settings.LanHost;
 
         stored.CloudflareZoneId = settings.CloudflareZoneId;
         stored.DnsBaseDomain = settings.DnsBaseDomain;

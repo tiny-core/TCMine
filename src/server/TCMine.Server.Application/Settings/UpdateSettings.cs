@@ -52,6 +52,21 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         if (publicHost is { Length: > PublicHostMaxLength })
             return Result.Fail($"O endereço público pode ter no máximo {PublicHostMaxLength} caracteres.");
 
+        // A mesma regra do público: a porta é a de cada servidor. Aqui o erro
+        // custaria mais, porque só aparece para quem joga em casa — justamente
+        // quem não está a olhar para esta tela.
+        var lanHost = Trimmed(command.LanHost);
+
+        if (lanHost is not null && !GameAddress.IsBareHost(lanHost))
+        {
+            return Result.Fail(
+                "O endereço na rede local é só o host — o IP desta máquina na sua rede (ex.: 192.168.1.100), "
+                + "sem porta. A porta é a de cada servidor.");
+        }
+
+        if (lanHost is { Length: > PublicHostMaxLength })
+            return Result.Fail($"O endereço na rede local pode ter no máximo {PublicHostMaxLength} caracteres.");
+
         // ---- DNS (Cloudflare) ----
         // Os três são validados mesmo com o DNS incompleto: um valor errado
         // gravado hoje vira erro da Cloudflare no dia em que o token chegar.
@@ -111,6 +126,7 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         // Como o client ID abaixo: é público e volta para a tela preenchido,
         // então vazio é "apague" (volta a valer o IP detectado).
         settings.PublicHost = publicHost;
+        settings.LanHost = lanHost;
 
         // Públicos como o endereço acima: voltam preenchidos, e vazio apaga.
         settings.CloudflareZoneId = zoneId;
@@ -167,6 +183,12 @@ public sealed record UpdateSettingsCommand
     ///     valer o IP detectado.
     /// </summary>
     public string? PublicHost { get; init; }
+
+    /// <summary>
+    ///     IP desta máquina na rede de casa, sem porta. Vazio = limpar, e quem
+    ///     joga em casa entra pelo endereço público.
+    /// </summary>
+    public string? LanHost { get; init; }
 
     /// <summary>
     ///     Client ID da app Azure do login com a Microsoft. Vazio = limpar

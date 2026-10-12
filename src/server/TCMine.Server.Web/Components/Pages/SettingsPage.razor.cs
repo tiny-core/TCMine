@@ -92,6 +92,7 @@ public partial class SettingsPage : ComponentBase
 
     /// <summary>Volta preenchido, como o client ID: é público, e o admin precisa conferi-lo.</summary>
     private string _publicHost = "";
+    private string _lanHost = "";
 
     private int _worldBackupKeepCount = 5;
 
@@ -204,6 +205,7 @@ public partial class SettingsPage : ComponentBase
             GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
 
         _publicHost = settings.PublicHost ?? "";
+        _lanHost = settings.LanHost ?? "";
 
         _hasCloudflareToken = !string.IsNullOrEmpty(settings.CloudflareApiTokenEncrypted);
         _cloudflareZoneId = settings.CloudflareZoneId ?? "";
@@ -240,6 +242,7 @@ public partial class SettingsPage : ComponentBase
                 GamePortRangeStart = _gamePortRangeStart,
                 GamePortRangeEnd = _gamePortRangeEnd,
                 PublicHost = _publicHost,
+                LanHost = _lanHost,
                 CloudflareApiToken = _cloudflareToken,
                 ClearCloudflareApiToken = _clearCloudflareToken,
                 CloudflareZoneId = _cloudflareZoneId,

@@ -284,6 +284,36 @@ public class LaunchGameTests
     }
 
     [Fact]
+    public async Task Em_casa_o_jogo_abre_apontando_para_a_rede_local()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var local = new ServerAddress("192.168.1.100", 25570);
+        var join = Join(motor, new FakeEndpointProbe(local), out _);
+
+        var result = await join.HandleAsync(
+            instance, Servidor(instance.Manifest) with { LocalAddress = "192.168.1.100:25570" }, Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        motor.Recebido!.Server.ShouldBe(local);
+    }
+
+    [Fact]
+    public async Task Servidor_sem_endereco_nenhum_explica_em_vez_de_abrir()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var join = Join(motor, out _);
+
+        var result = await join.HandleAsync(
+            instance, Servidor(instance.Manifest) with { ConnectAddress = null }, Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeFalse();
+        result.Launch.Message!.ShouldContain("endereço");
+        motor.Recebido.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Sem_acesso_nao_abre_o_jogo()
     {
         var instance = Instalada();
@@ -299,7 +329,12 @@ public class LaunchGameTests
         motor.Recebido.ShouldBeNull();
     }
 
-    private static JoinServer Join(MotorFalso motor, out InstaladorFalso installer, params ModpackVersionDto[] versions)
+    private static JoinServer Join(
+        MotorFalso motor, out InstaladorFalso installer, params ModpackVersionDto[] versions) =>
+        Join(motor, null, out installer, versions);
+
+    private static JoinServer Join(
+        MotorFalso motor, FakeEndpointProbe? probe, out InstaladorFalso installer, params ModpackVersionDto[] versions)
     {
         var connection = new FakeServerConnection();
         foreach (var v in versions)
@@ -311,7 +346,8 @@ public class LaunchGameTests
         return new JoinServer(
             connection,
             new UpdateInstance(instalador, new SemMundo()),
-            Build(motor: motor));
+            Build(motor: motor),
+            probe ?? new FakeEndpointProbe());
     }
 
     private static GameServerDto Servidor(InstanceManifest manifest) => new()

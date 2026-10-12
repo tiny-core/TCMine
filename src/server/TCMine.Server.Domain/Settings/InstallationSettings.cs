@@ -52,6 +52,17 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public string? PublicHost { get; set; }
 
+    /// <summary>
+    ///     Host desta máquina NA REDE DE CASA (ex.: 192.168.1.100), sem porta.
+    ///     Nulo = não informado. Vai ao launcher junto com a porta de cada
+    ///     servidor, para quem joga na mesma rede: muitos roteadores não deixam
+    ///     alcançar o próprio IP público por dentro (falta de "NAT loopback"), e
+    ///     aí o endereço público, que funciona para quem está fora, falha para
+    ///     quem está em casa. Não há como detectá-lo: dentro do container o
+    ///     TCMine só vê o IP da rede do Docker.
+    /// </summary>
+    public string? LanHost { get; set; }
+
     // ---------- DNS dos servidores (Cloudflare) ----------
 
     /// <summary>

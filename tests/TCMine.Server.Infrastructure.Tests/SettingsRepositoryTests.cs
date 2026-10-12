@@ -89,6 +89,7 @@ public sealed class SettingsRepositoryTests : IDisposable
         GamePortRangeStart = 30000,
         GamePortRangeEnd = 30010,
         PublicHost = "jogar.exemplo.com",
+        LanHost = "192.168.1.100",
         CloudflareApiTokenEncrypted = "token-da-cloudflare",
         CloudflareZoneId = "0123456789abcdef0123456789abcdef",
         DnsBaseDomain = "exemplo.com",

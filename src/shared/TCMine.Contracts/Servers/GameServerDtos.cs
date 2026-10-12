@@ -32,6 +32,18 @@ public sealed record GameServerDto
     /// </summary>
     public string? ConnectAddress { get; init; }
 
+    /// <summary>
+    ///     O mesmo servidor pela rede de casa da máquina que o roda (ex.:
+    ///     "192.168.1.100:25566"). Nulo quando o admin não informou o IP local,
+    ///     e nas mesmas condições de acesso de <see cref="ConnectAddress" />.
+    ///     O launcher experimenta este primeiro e só usa se responder: quem está
+    ///     em casa entra por ele, porque muitos roteadores não deixam chegar ao
+    ///     próprio IP público por dentro; quem está fora não o alcança e segue
+    ///     para o <see cref="ConnectAddress" />. Campo opcional novo: launchers
+    ///     antigos o ignoram (CLAUDE.md §7.1).
+    /// </summary>
+    public string? LocalAddress { get; init; }
+
     public required GameServerStatus Status { get; init; }
     public int OnlinePlayers { get; init; }
     public int MaxPlayers { get; init; }

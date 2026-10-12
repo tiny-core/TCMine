@@ -145,7 +145,7 @@ else
                                     @* Console primeiro e já aberto quando o servidor
                                        está no ar: é o que o admin quer ver ao abrir a
                                        tela de um servidor rodando. *@
-                                    @if (server.Status is GameServerStatus.Running)
+                                    @if (server.Status is not GameServerStatus.Stopped)
                                     {
                                         <MudExpansionPanel Text="Console" Expanded="true"
                                                            Icon="@Icons.Material.Filled.Terminal">

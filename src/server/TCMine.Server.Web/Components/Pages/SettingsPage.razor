@@ -112,6 +112,21 @@ else
 
                 <MudDivider Class="my-6"/>
 
+                <MudText Typo="Typo.subtitle1" Class="mb-1">Endereço na rede local</MudText>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+                    O IP desta máquina na sua rede de casa. Quem joga na mesma rede entra por ele, sem
+                    passar pela internet: muitos roteadores não deixam alcançar o próprio IP público
+                    por dentro, e aí o endereço público, que funciona para os amigos de fora, falha
+                    para quem está em casa. O launcher experimenta este primeiro e só o usa se
+                    responder.
+                </MudText>
+
+                <MudTextField @bind-Value="_lanHost" Label="IP na rede local"
+                              Variant="Variant.Outlined" Placeholder="ex.: 192.168.1.100"
+                              HelperText="Sem porta: cada servidor usa a dele. Está nas configurações de rede da máquina ou na lista de aparelhos do roteador. Vazio = desligado."/>
+
+                <MudDivider Class="my-6"/>
+
                 <MudText Typo="Typo.subtitle1" Class="mb-1">Portas dos servidores</MudText>
                 <MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
                     Cada servidor de jogo publica uma porta própria nesta máquina. Um servidor

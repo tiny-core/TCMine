@@ -181,6 +181,38 @@ public sealed class UpdateSettingsTests
     }
 
     [Fact]
+    public async Task Ip_local_e_gravado_sem_espacos_e_vazio_limpa()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+        var caso = new UpdateSettings(repo, new FakeDnsSyncSignal());
+
+        (await caso.HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, LanHost = "  192.168.1.100 " },
+            CancellationToken.None)).Succeeded.ShouldBeTrue();
+        repo.Salvo!.LanHost.ShouldBe("192.168.1.100");
+
+        (await caso.HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, LanHost = "" },
+            CancellationToken.None)).Succeeded.ShouldBeTrue();
+        repo.Salvo!.LanHost.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData("192.168.1.100:25566")] // a porta é a de cada servidor
+    [InlineData("http://192.168.1.100")]
+    public async Task Recusa_ip_local_que_nao_e_so_o_host(string lanHost)
+    {
+        // Só quem joga em casa veria o erro, e justamente na hora de entrar.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, LanHost = lanHost }, CancellationToken.None);
+
+        result.Succeeded.ShouldBeFalse();
+        repo.Salvo.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Token_da_cloudflare_vazio_mantem_o_atual()
     {
         // A mesma regra da chave do CurseForge: o token nunca volta para a tela,

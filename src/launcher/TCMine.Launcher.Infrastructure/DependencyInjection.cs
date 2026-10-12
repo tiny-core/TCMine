@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddSingleton<ILauncherUpdater, VelopackLauncherUpdater>();
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
+        services.AddSingleton<IEndpointProbe, TcpEndpointProbe>();
 
         services.AddHttpClient<IPlayerProfileSource, MinecraftServicesProfileSource>(client =>
         {

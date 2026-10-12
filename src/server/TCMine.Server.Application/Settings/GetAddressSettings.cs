@@ -24,6 +24,7 @@ public sealed class GetAddressSettings(ISettingsRepository settings, IPublicAddr
     {
         var config = await settings.GetAsync(ct);
         var configured = string.IsNullOrWhiteSpace(config.PublicHost) ? null : config.PublicHost.Trim();
+        var local = string.IsNullOrWhiteSpace(config.LanHost) ? null : config.LanHost.Trim();
 
         var detected = configured is null || alwaysDetect
             ? await detector.GetAsync(ct)
@@ -32,7 +33,8 @@ public sealed class GetAddressSettings(ISettingsRepository settings, IPublicAddr
         return new AddressSettings(
             configured,
             detected,
-            config.DnsEnabled ? GameDns.NormalizeLabel(config.DnsBaseDomain) : null);
+            config.DnsEnabled ? GameDns.NormalizeLabel(config.DnsBaseDomain) : null,
+            local);
     }
 }
 
@@ -42,7 +44,12 @@ public sealed class GetAddressSettings(ISettingsRepository settings, IPublicAddr
 ///     O domínio dos subdomínios, só quando o DNS está configurado por inteiro.
 ///     Nulo = subdomínios não são publicados.
 /// </param>
-public sealed record AddressSettings(string? ConfiguredHost, string? DetectedHost, string? DnsBaseDomain)
+/// <param name="LanHost">O IP da máquina na rede de casa. Nulo = não informado.</param>
+public sealed record AddressSettings(
+    string? ConfiguredHost,
+    string? DetectedHost,
+    string? DnsBaseDomain,
+    string? LanHost = null)
 {
     /// <summary>O host público que vale: o gravado e, na falta dele, o detectado.</summary>
     public string? PublicHost => ConfiguredHost ?? DetectedHost;
@@ -53,4 +60,13 @@ public sealed record AddressSettings(string? ConfiguredHost, string? DetectedHos
     /// <summary>O mesmo cálculo, para campos ainda não gravados (a prévia do formulário).</summary>
     public string For(string? connectAddress, int gamePort, string? subdomain) =>
         GameAddress.Resolve(connectAddress, gamePort, PublicHost, GameDns.ServerHost(subdomain, DnsBaseDomain));
+
+    /// <summary>
+    ///     O endereço do servidor na rede de casa: o host local mais a porta do
+    ///     servidor — a porta que o container publica nesta máquina, e não a de
+    ///     um endereço escrito, que pode ser a de fora (o roteador redireciona).
+    ///     Nulo sem host local.
+    /// </summary>
+    public string? LocalFor(GameServer server) =>
+        LanHost is null ? null : GameAddress.WithPort(LanHost, server.GamePort);
 }

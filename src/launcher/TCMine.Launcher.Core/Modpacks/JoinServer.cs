@@ -14,7 +14,11 @@ namespace TCMine.Launcher.Core.Modpacks;
 ///     instância ANTES de abrir: atualiza quando o servidor está à frente, com o
 ///     mesmo backup de sempre, e recusa quando está atrás.
 /// </summary>
-public sealed class JoinServer(IServerConnection connection, UpdateInstance updater, LaunchGame launch)
+public sealed class JoinServer(
+    IServerConnection connection,
+    UpdateInstance updater,
+    LaunchGame launch,
+    IEndpointProbe probe)
 {
     public async Task<JoinServerResult> HandleAsync(
         InstalledInstance instance,
@@ -23,9 +27,15 @@ public sealed class JoinServer(IServerConnection connection, UpdateInstance upda
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
-        if (server.AccessState is not ServerAccessState.Granted
-            || ServerAddress.Parse(server.ConnectAddress) is not { } address)
+        if (server.AccessState is not ServerAccessState.Granted)
             return JoinServerResult.Failed("Você ainda não tem acesso a este servidor.");
+
+        if (ServerAddress.Parse(server.ConnectAddress) is null && ServerAddress.Parse(server.LocalAddress) is null)
+        {
+            return JoinServerResult.Failed(
+                $"{server.Name} ainda não tem endereço. Peça ao administrador para conferir a aba Rede "
+                + "das configurações do painel.");
+        }
 
         if (server.ModpackId != instance.Manifest.ModpackId)
             return JoinServerResult.Failed($"{server.Name} roda outro modpack.");
@@ -78,6 +88,11 @@ public sealed class JoinServer(IServerConnection connection, UpdateInstance upda
             instance = instance with { Manifest = install.Instance! };
             updated = true;
         }
+
+        // Escolhido só agora, depois de uma eventual atualização: ela pode
+        // levar minutos, e o jogador pode ter mudado de rede nesse meio-tempo.
+        progress?.Report(new GameLaunchProgress("Procurando o caminho até o servidor"));
+        var address = await ServerRoute.ChooseAsync(server, probe, ct);
 
         var result = await launch.HandleAsync(instance, config, address, progress, ct);
 

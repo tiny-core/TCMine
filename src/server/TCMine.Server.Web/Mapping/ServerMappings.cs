@@ -42,6 +42,12 @@ public static class ServerMappings
                              && address.For(server) is { Length: > 0 } published
                 ? published
                 : null,
+
+            // As mesmas condições do endereço público: quem não tem acesso não
+            // recebe por onde entrar, nem por dentro.
+            LocalAddress = accessible.AccessState is ServerAccessState.Granted
+                ? address.LocalFor(server)
+                : null,
             Status = server.Status,
 
             // Última contagem amostrada. Zero quando ainda não se sabe — o
