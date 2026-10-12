@@ -281,6 +281,84 @@ public sealed class LinkSupervisorTests : IAsyncDisposable
         _shell.Connection.ShouldBe(ConnectionState.Connected);
     }
 
+    [Fact]
+    public void Sessao_expirada_e_renovada_sem_incomodar_o_jogador()
+    {
+        using var supervisor = Attached();
+
+        string? rota = null;
+        supervisor.NavigationRequested += r => rota = r;
+
+        Pair();
+        LogIn();
+        _connection.Report(LinkStatus.Up);
+
+        _connection.RejectSession();
+
+        _shell.IsSignedIn.ShouldBeTrue();
+        _connection.Kept.Count.ShouldBe(2, "o canal tem de ser avisado de que a sessão foi renovada");
+        rota.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Sessao_expirada_sem_credencial_guardada_leva_ao_login()
+    {
+        using var supervisor = Attached();
+
+        string? rota = null;
+        supervisor.NavigationRequested += r => rota = r;
+
+        Pair();
+        LogIn();
+        _connection.Report(LinkStatus.Up);
+        _authenticator.Result = AuthResult.NoStoredCredentials();
+
+        _connection.RejectSession();
+
+        _shell.IsSignedIn.ShouldBeFalse();
+        rota.ShouldBe("/login");
+    }
+
+    [Fact]
+    public void Sessao_renovada_e_recusada_de_novo_nao_entra_em_ciclo()
+    {
+        // Sem o limite, cada recusa pediria outra sessão à Microsoft e ao
+        // servidor, para sempre, sem ninguém ver.
+        using var supervisor = Attached();
+
+        string? rota = null;
+        supervisor.NavigationRequested += r => rota = r;
+
+        Pair();
+        LogIn();
+        _connection.Report(LinkStatus.Up);
+
+        _connection.RejectSession();
+        _connection.RejectSession();
+
+        _connection.Kept.Count.ShouldBe(2);
+        _shell.IsSignedIn.ShouldBeFalse();
+        _shell.Account!.Message.ShouldNotBeNull();
+        rota.ShouldBe("/login");
+    }
+
+    [Fact]
+    public void Depois_de_voltar_a_ligar_uma_nova_recusa_renova_de_novo()
+    {
+        using var supervisor = Attached();
+
+        Pair();
+        LogIn();
+        _connection.Report(LinkStatus.Up);
+
+        _connection.RejectSession();
+        _connection.Report(LinkStatus.Up);
+        _connection.RejectSession();
+
+        _shell.IsSignedIn.ShouldBeTrue();
+        _connection.Kept.Count.ShouldBe(3);
+    }
+
     private LinkSupervisor Attached()
     {
         var supervisor = new LinkSupervisor(

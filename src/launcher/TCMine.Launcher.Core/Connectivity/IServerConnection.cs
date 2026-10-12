@@ -21,6 +21,15 @@ public interface IServerConnection : IAsyncDisposable
     LinkStatus Status { get; }
 
     /// <summary>
+    ///     O canal está em baixo porque o servidor recusou a sessão (ela expirou
+    ///     ou foi revogada), e não por falta de rede.
+    ///     Tentar de novo com a mesma sessão dá no mesmo, por isso o canal para
+    ///     de tentar sozinho: quem tem de agir é quem sabe renovar a sessão, e
+    ///     depois chamar <see cref="KeepConnected" /> outra vez.
+    /// </summary>
+    bool SessionRejected { get; }
+
+    /// <summary>
     ///     Disparado a cada mudança de <see cref="Status" /> — inclusive quando o
     ///     canal cai sozinho e quando volta. Pode vir de qualquer thread.
     /// </summary>
@@ -31,7 +40,9 @@ public interface IServerConnection : IAsyncDisposable
     ///     sempre que ele estiver em baixo.
     ///     Não espera e não lança: quem chama está a declarar uma intenção
     ///     ("quero estar ligado"), e o resultado chega por <see cref="StateChanged" />.
-    ///     Chamar outra vez com o mesmo endereço não faz nada. Vale até
+    ///     Chamar outra vez com o mesmo endereço não faz nada — a não ser que a
+    ///     sessão tivesse sido recusada (<see cref="SessionRejected" />): aí é o
+    ///     sinal de que ela foi renovada, e as tentativas recomeçam. Vale até
     ///     <see cref="DisconnectAsync" />.
     /// </summary>
     void KeepConnected(Uri serverUrl);

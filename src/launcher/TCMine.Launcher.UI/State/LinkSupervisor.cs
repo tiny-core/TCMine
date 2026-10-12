@@ -44,6 +44,8 @@ public sealed partial class LinkSupervisor : IDisposable
     private Uri? _keeping;
     private LinkStatus _lastLink;
     private int _recovering;
+    private bool _renewedSinceUp;
+    private int _renewing;
 
     /// <param name="delay">
     ///     A espera entre tentativas. Só os testes passam outra: com a real, o
@@ -160,8 +162,19 @@ public sealed partial class LinkSupervisor : IDisposable
         _lastLink = status;
         _shell.Apply(status);
 
+        if (status is LinkStatus.Down && _connection.SessionRejected)
+        {
+            _ = RenewSessionAsync();
+
+            return;
+        }
+
         if (status is not LinkStatus.Up || previous is LinkStatus.Up)
             return;
+
+        // A sessão (nova ou não) foi aceita: uma próxima recusa merece outra
+        // tentativa de renovação.
+        _renewedSinceUp = false;
 
         // O canal VOLTOU (a primeira ligação não conta: o arranque acabou de
         // fazer o handshake). A queda mais comum é o servidor a reiniciar por
@@ -257,6 +270,56 @@ public sealed partial class LinkSupervisor : IDisposable
         }
     }
 
+    /// <summary>
+    ///     O servidor recusou a sessão no canal: ela expirou ou foi revogada.
+    ///     Renova em silêncio, com a credencial guardada — o mesmo que o arranque
+    ///     faz — e só incomoda o jogador se isso não chegar.
+    ///     UMA renovação por ligação bem-sucedida. Se o servidor recusa também a
+    ///     sessão acabada de emitir, renovar de novo daria no mesmo, para sempre:
+    ///     um ciclo de pedidos à Microsoft e ao servidor, sem ninguém a ver.
+    /// </summary>
+    private async Task RenewSessionAsync()
+    {
+        if (Interlocked.Exchange(ref _renewing, 1) is 1)
+            return;
+
+        try
+        {
+            if (_shell.Pairing?.Config is not { } config || !_shell.IsSignedIn)
+                return;
+
+            var renewed = _renewedSinceUp
+                ? SignInState.Failed("O servidor não aceitou a sua sessão. Entre de novo.")
+                : await _signIn.ResumeAsync(config, _lifetimeToken);
+
+            _renewedSinceUp = true;
+            _shell.Apply(renewed);
+
+            if (renewed.IsSignedIn)
+            {
+                // Mesmo endereço de antes: para o canal, é o sinal de que a
+                // sessão foi renovada e vale a pena tentar outra vez.
+                _connection.KeepConnected(config.ServerUrl);
+
+                return;
+            }
+
+            NavigationRequested?.Invoke("/login");
+        }
+        catch (OperationCanceledException)
+        {
+            // O launcher está a fechar.
+        }
+        catch (Exception ex)
+        {
+            LogRenewFailed(ex);
+        }
+        finally
+        {
+            Interlocked.Exchange(ref _renewing, 0);
+        }
+    }
+
     private async Task RefreshAfterReturnAsync()
     {
         try
@@ -272,6 +335,9 @@ public sealed partial class LinkSupervisor : IDisposable
             LogRefreshFailed(ex);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Não foi possível renovar a sessão recusada pelo servidor.")]
+    private partial void LogRenewFailed(Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Tentativa de voltar a ligar ao servidor falhou.")]
     private partial void LogRecoveryFailed(Exception ex);

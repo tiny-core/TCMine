@@ -52,6 +52,8 @@ public class FakeServerConnection : IServerConnection
 
     public LinkStatus Status { get; private set; }
 
+    public bool SessionRejected { get; private set; }
+
     public event Action? StateChanged;
 
     public Task ConnectAsync(Uri serverUrl, CancellationToken ct)
@@ -62,7 +64,18 @@ public class FakeServerConnection : IServerConnection
         return Task.CompletedTask;
     }
 
-    public void KeepConnected(Uri serverUrl) => Kept.Add(serverUrl);
+    public void KeepConnected(Uri serverUrl)
+    {
+        Kept.Add(serverUrl);
+        SessionRejected = false;
+    }
+
+    /// <summary>Simula o servidor a recusar a sessão: o canal cai e não tenta mais.</summary>
+    public void RejectSession()
+    {
+        SessionRejected = true;
+        Report(LinkStatus.Down);
+    }
 
     /// <summary>Simula o canal a mudar de estado sozinho, como numa queda.</summary>
     public void Report(LinkStatus status)

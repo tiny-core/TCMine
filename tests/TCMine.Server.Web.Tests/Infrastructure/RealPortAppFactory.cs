@@ -19,8 +19,32 @@ internal sealed class RealPortAppFactory : TcMineAppFactory
 {
     private IHost? _kestrel;
 
-    /// <summary>Endereço real, com a porta que o sistema escolheu.</summary>
-    public Uri Address { get; private set; } = new("http://localhost");
+    /// <summary>
+    ///     Endereço real, com a porta que o sistema escolheu.
+    ///     Ler o endereço SOBE a aplicação. A fábrica só arranca no primeiro uso
+    ///     dos serviços, e o endereço era uma propriedade com valor inicial
+    ///     "http://localhost": um teste que o lia antes de semear qualquer coisa
+    ///     recebia a porta 80, onde não há ninguém. Foi assim que
+    ///     Sem_entrar_o_hub_recusa_a_conexao passou durante muito tempo sem
+    ///     nunca falar com o servidor — a ligação falhava por recusa do sistema,
+    ///     e o teste lia isso como recusa do hub.
+    ///     Lido do próprio Kestrel, e não de um campo preenchido no arranque: não
+    ///     há valor guardado que possa estar desatualizado ou vazio.
+    /// </summary>
+    public Uri Address
+    {
+        get
+        {
+            _ = Services;
+
+            var enderecos = _kestrel?.Services
+                                .GetRequiredService<IServer>()
+                                .Features.Get<IServerAddressesFeature>()
+                            ?? throw new InvalidOperationException("O Kestrel do teste não subiu.");
+
+            return new Uri(enderecos.Addresses.First());
+        }
+    }
 
     protected override IHost CreateHost(IHostBuilder builder)
     {
@@ -38,12 +62,6 @@ internal sealed class RealPortAppFactory : TcMineAppFactory
 
         _kestrel = builder.Build();
         _kestrel.Start();
-
-        var enderecos = _kestrel.Services
-            .GetRequiredService<IServer>()
-            .Features.Get<IServerAddressesFeature>()!;
-
-        Address = new Uri(enderecos.Addresses.First());
 
         return emMemoria;
     }

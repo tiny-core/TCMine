@@ -21,6 +21,7 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
 {
     private readonly HubConnection _connection;
     private readonly ILogger<LauncherHubClient> _logger;
+    private readonly UnlimitedRetryPolicy _retryPolicy = new();
 
     public LauncherHubClient(
         Uri serverUrl,
@@ -46,7 +47,7 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
             // Reconecta sozinho e NUNCA desiste (ver UnlimitedRetryPolicy). A
             // lista fixa que estava aqui parava na quinta tentativa, e um
             // servidor reiniciando por update demora mais do que isso.
-            .WithAutomaticReconnect(new UnlimitedRetryPolicy())
+            .WithAutomaticReconnect(_retryPolicy)
             .Build();
 
         // Uma queda silenciosa (cabo puxado, Wi-Fi que some) não fecha o
@@ -87,6 +88,12 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
     }
 
     public HubConnectionState State => _connection.State;
+
+    /// <summary>
+    ///     A reconexão parou porque o servidor recusou a sessão. Vale a partir do
+    ///     <see cref="Closed" /> — é a única razão para ele disparar sozinho.
+    /// </summary>
+    public bool SessionRejected => _retryPolicy.SessionRejected;
 
     public ValueTask DisposeAsync() => _connection.DisposeAsync();
 

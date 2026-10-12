@@ -75,6 +75,16 @@ public sealed class LauncherCatalogContractTests
             .HandleAsync(server.Address, Ct);
 
         catalogo.Failed.ShouldBeTrue("um anônimo não pode listar o catálogo");
+
+        // E a recusa tem de chegar como "sem sessão", não como um erro
+        // qualquer: é por aqui que o launcher sabe que basta entrar de novo.
+        // Esta asserção é também a prova de que o servidor foi CONTACTADO —
+        // durante muito tempo este teste passou sem nunca falar com ele (ver
+        // RealPortAppFactory.Address).
+        var connection = launcher.GetRequiredService<IServerConnection>();
+
+        connection.SessionRejected.ShouldBeTrue(
+            $"o hub tem de responder 401 a quem não tem sessão (canal: {connection.Status}; erro: {catalogo.Error})");
     }
 
     /// <summary>

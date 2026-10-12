@@ -40,6 +40,7 @@ public sealed partial class SignalRServerConnection(
     private readonly SemaphoreSlim _wake = new(0);
 
     private LauncherHubClient? _client;
+    private volatile bool _sessionRejected;
     private volatile LinkStatus _status = LinkStatus.Down;
     private CancellationTokenSource? _watcher;
     private Uri? _watched;
@@ -47,6 +48,8 @@ public sealed partial class SignalRServerConnection(
     public bool IsConnected => _client?.State is HubConnectionState.Connected;
 
     public LinkStatus Status => _status;
+
+    public bool SessionRejected => _sessionRejected;
 
     public event Action? StateChanged;
 
@@ -58,6 +61,7 @@ public sealed partial class SignalRServerConnection(
         {
             await FecharAsync();
 
+            _sessionRejected = false;
             Set(LinkStatus.Connecting);
 
             var cliente = factory.Create(serverUrl);
@@ -67,11 +71,15 @@ public sealed partial class SignalRServerConnection(
             {
                 await cliente.ConnectAsync(ct);
             }
-            catch
+            catch (Exception ex)
             {
                 // O cliente que não ligou não pode ficar vivo: ele segura um
                 // HttpClient e, pior, os eventos que acabamos de assinar.
                 await DiscardAsync(cliente);
+
+                // Antes do Set: quem ouve a mudança de estado já tem de
+                // encontrar o motivo.
+                _sessionRejected = HubErrors.IsUnauthorized(ex);
                 Set(LinkStatus.Down);
 
                 throw;
@@ -95,7 +103,17 @@ public sealed partial class SignalRServerConnection(
         lock (_watcherGate)
         {
             if (_watcher is not null && serverUrl.Equals(_watched))
+            {
+                // Mesmo endereço, mas a sessão tinha sido recusada: quem chama
+                // está a dizer que a renovou. O vigia volta a tentar.
+                if (_sessionRejected)
+                {
+                    _sessionRejected = false;
+                    _wake.Release();
+                }
+
                 return;
+            }
 
             _watcher?.Cancel();
             _watcher?.Dispose();
@@ -179,7 +197,9 @@ public sealed partial class SignalRServerConnection(
         {
             while (!ct.IsCancellationRequested)
             {
-                if (_status is not LinkStatus.Down)
+                // Com a sessão recusada não adianta insistir: fica à espera
+                // de alguém a renovar (ver KeepConnected).
+                if (_status is not LinkStatus.Down || _sessionRejected)
                 {
                     failures = 0;
                     await _wake.WaitAsync(ct);
@@ -195,6 +215,13 @@ public sealed partial class SignalRServerConnection(
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
+                    if (_sessionRejected)
+                    {
+                        LogSessionRejected();
+
+                        continue;
+                    }
+
                     failures++;
                     LogRetryScheduled(ex, ReconnectBackoff.DelayFor(failures));
                 }
@@ -243,8 +270,16 @@ public sealed partial class SignalRServerConnection(
 
         cliente.Closed += () =>
         {
-            if (ReferenceEquals(_client, cliente))
-                Set(LinkStatus.Down);
+            if (!ReferenceEquals(_client, cliente))
+                return;
+
+            if (cliente.SessionRejected)
+            {
+                _sessionRejected = true;
+                LogSessionRejected();
+            }
+
+            Set(LinkStatus.Down);
         };
     }
 
@@ -292,6 +327,10 @@ public sealed partial class SignalRServerConnection(
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "Não foi possível abrir o canal com o servidor; nova tentativa em {Delay}.")]
     private partial void LogRetryScheduled(Exception ex, TimeSpan delay);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "O servidor recusou a sessão no canal; à espera de ela ser renovada.")]
+    private partial void LogSessionRejected();
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao fechar o canal anterior.")]
     private partial void LogFalhaAoFechar(Exception ex);
