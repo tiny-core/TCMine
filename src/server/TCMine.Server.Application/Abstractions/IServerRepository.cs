@@ -1,4 +1,5 @@
 ﻿using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Abstractions;
@@ -14,6 +15,14 @@ public interface IServerRepository
     Task AddAsync(GameServer server, CancellationToken ct);
     [Invalidates(ResourceKind.Servers)]
     Task UpdateAsync(GameServer server, CancellationToken ct);
+
+    /// <summary>
+    ///     Grava SÓ o status. Existe para quem acompanha o Docker: ele lê o
+    ///     servidor e grava um instante depois, e gravar a linha inteira desfaria
+    ///     o que outra pessoa salvou nesse meio tempo.
+    /// </summary>
+    [Invalidates(ResourceKind.Servers)]
+    Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct);
     [Invalidates(ResourceKind.Servers)]
     Task RemoveAsync(Guid id, CancellationToken ct);
 

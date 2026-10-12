@@ -5,6 +5,7 @@ using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Web.Background;
 
 namespace TCMine.Server.Web.Components.Features.Servers;
 
@@ -31,30 +32,12 @@ public sealed class ServerActions(
     /// </summary>
     public async Task SyncStatusesAsync(IEnumerable<GameServer> servers, CancellationToken ct)
     {
+        // Os eventos do Docker já mantêm a coluna em dia (ServerStatusReconciler);
+        // isto continua como rede de segurança para quando eles estão em baixo.
         foreach (var server in servers)
         {
             var real = await orchestrator.GetStatusAsync(server.Id, ct);
-            if (real == server.Status)
-                continue;
-
-            server.Status = real;
-            await repository.UpdateAsync(server, ct);
-
-            // Só na TRANSIÇÃO: o guard acima (real == server.Status) já evita
-            // repetir isto a cada sincronização enquanto o servidor continua
-            // caído. Não há poller contínuo — isto roda quando alguém abre a
-            // tela de Servidores (ver §6 do CLAUDE.md), então "caiu" aqui
-            // significa "percebemos que caiu", não o instante exato da queda.
-            if (real is GameServerStatus.Crashed)
-            {
-                await activity.AddAsync(
-                    new ActivityEvent
-                    {
-                        Kind = ActivityEventKind.ServerCrashed,
-                        Message = $"{server.Name} caiu.",
-                        Href = "/admin/servers"
-                    }, ct);
-            }
+            await ServerStatusTransitions.ApplyAsync(server, real, repository, activity, ct);
         }
     }
 

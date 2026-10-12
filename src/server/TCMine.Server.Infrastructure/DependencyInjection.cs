@@ -183,6 +183,7 @@ public static class DependencyInjection
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();
         services.AddSingleton<DockerApiClient>();
+        services.AddSingleton<IContainerEvents, DockerContainerEvents>();
 
         services.Configure<InstanceOptions>(configuration.GetSection("Instances"));
         services.AddSingleton<IInstanceMaterializer, FileSystemInstanceMaterializer>();

@@ -33,6 +33,14 @@ public sealed partial class LauncherInvalidations(
     public void Touch(ResourceKind kind, Guid? id = null) => _changes.Writer.TryWrite(new ResourceChange(kind, id));
 
     /// <summary>
+    ///     A mesma rajada, para quem está NESTE processo: as telas do painel.
+    ///     Disparado depois de juntar, e não a cada <see cref="Touch" />, pelo
+    ///     mesmo motivo do envio — uma tela a recarregar por cada linha gravada
+    ///     seria pior do que não recarregar. Pode vir de qualquer thread.
+    /// </summary>
+    public event Action<ResourceKind, Guid?>? Sent;
+
+    /// <summary>
     ///     Reduz uma rajada ao mínimo de avisos: um por tipo.
     ///     O id só segue quando a rajada inteira daquele tipo é sobre UM recurso;
     ///     com vários (ou com algum sem id), vai nulo, que quer dizer "vários".
@@ -70,6 +78,8 @@ public sealed partial class LauncherInvalidations(
 
                 foreach (var (kind, id) in Collapse(rajada))
                 {
+                    Sent?.Invoke(kind, id);
+
                     try
                     {
                         await hub.Clients.All.Invalidated(kind, id);

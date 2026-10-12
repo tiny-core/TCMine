@@ -4,48 +4,84 @@ using TCMine.Server.Application.Abstractions;
 namespace TCMine.Server.Web.Background;
 
 /// <summary>
-///     No arranque, acerta a coluna Status com o que os containers realmente
-///     estão fazendo.
-///     O container é a fonte da verdade, a coluna é cache — e o cache não
-///     sobrevive a um reinício do painel: os containers sobem com
-///     <c>unless-stopped</c> e continuam de pé enquanto a coluna guarda o que
-///     valia antes do desligamento. A página conserta ao ser aberta, mas o que
-///     roda sozinho não espera ninguém abrir página: o coletor de métricas pula
-///     servidor que não está marcado como Running, então um servidor no ar
-///     ficaria sem gráfico e sem contagem de jogadores até alguém visitá-lo.
+///     Mantém a coluna Status igual ao que os containers estão fazendo, o tempo
+///     todo.
+///     O container é a fonte da verdade, a coluna é cache. Ela era acertada só
+///     no arranque e ao abrir as telas de servidores; um servidor que caía
+///     continuava "no ar" para o launcher, e o coletor de métricas (que pula
+///     servidor que não está Running) não reparava em nada até alguém olhar.
+///     Agora, a cada ligação com o Docker: uma varredura completa — cobre o que
+///     aconteceu enquanto não se estava a ouvir, inclusive o reinício do painel
+///     — e depois os eventos, um a um. Caiu a ligação, espera e recomeça.
+///     Cada status gravado avisa os launchers sozinho (o repositório avisa).
 /// </summary>
 public sealed partial class ServerStatusReconciler(
     IServiceScopeFactory scopeFactory,
+    IContainerEvents events,
     ILogger<ServerStatusReconciler> logger) : BackgroundService
 {
     private readonly ILogger<ServerStatusReconciler> _logger = logger;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
-        {
-            await using var scope = scopeFactory.CreateAsyncScope();
+        var failures = 0;
 
-            var corrigidos = await ReconcileAsync(
-                scope.ServiceProvider.GetRequiredService<IServerRepository>(),
-                scope.ServiceProvider.GetRequiredService<IServerOrchestrator>(),
-                stoppingToken);
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await using (var scope = scopeFactory.CreateAsyncScope())
+                {
+                    var corrigidos = await ReconcileAsync(
+                        scope.ServiceProvider.GetRequiredService<IServerRepository>(),
+                        scope.ServiceProvider.GetRequiredService<IServerOrchestrator>(),
+                        stoppingToken);
 
-            if (corrigidos > 0)
-                Corrigiu(corrigidos);
-        }
-        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-        {
-            // Desligando antes de terminar: sem problema, a próxima subida faz.
-        }
-        catch (Exception ex)
-        {
-            // Docker fora do ar no arranque é comum (o daemon pode subir depois
-            // do painel). Falhar aqui não pode impedir a aplicação de servir —
-            // o status volta a ser corrigido quando a página for aberta.
-            Falhou(ex);
+                    if (corrigidos > 0)
+                        Corrigiu(corrigidos);
+                }
+
+                await foreach (var serverId in events.WatchAsync(stoppingToken))
+                {
+                    if (failures > 0)
+                        Religou();
+
+                    failures = 0;
+                    await SyncOneAsync(serverId, stoppingToken);
+                }
+
+                // O stream terminou sem erro: o daemon reiniciou. Recomeça já.
+                continue;
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Docker fora do ar é comum (o daemon pode subir depois do
+                // painel, ou nem existir numa máquina de desenvolvimento). Avisa
+                // UMA vez por queda, e não a cada tentativa: o log encheria de
+                // uma mesma linha a cada minuto.
+                if (failures is 0)
+                    Falhou(ex);
+
+                failures++;
+            }
+
+            try
+            {
+                await Task.Delay(RetryDelay(failures), stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
         }
     }
+
+    /// <summary>De 5 s em 5 s até um minuto: o Docker volta, e ninguém o espera por horas.</summary>
+    public static TimeSpan RetryDelay(int failures) => TimeSpan.FromSeconds(Math.Clamp(failures * 5, 5, 60));
 
     /// <summary>
     ///     Devolve quantos registros estavam desatualizados. Método à parte, e
@@ -69,27 +105,63 @@ public sealed partial class ServerStatusReconciler(
             catch (Exception) when (!ct.IsCancellationRequested)
             {
                 // Um container que não responde não pode interromper a varredura
-                // dos outros: o que sobrar desatualizado se conserta ao abrir a
-                // página daquele servidor.
+                // dos outros: o que sobrar desatualizado se conserta no próximo
+                // evento dele, ou ao abrir a página daquele servidor.
                 continue;
             }
 
-            if (server.Status == real)
-                continue;
-
-            server.Status = real;
-            await servers.UpdateAsync(server, ct);
-            corrigidos++;
+            // Sem registro de queda: aqui não se sabe QUANDO caiu, e uma linha
+            // de "caiu" com a hora do arranque do painel mentiria.
+            if (await ServerStatusTransitions.ApplyAsync(server, real, servers, null, ct))
+                corrigidos++;
         }
 
         return corrigidos;
     }
 
+    /// <summary>
+    ///     Um evento: relê o servidor, pergunta o estado ao orquestrador (a mesma
+    ///     regra de sempre) e grava se mudou. Um escopo por evento, como um
+    ///     pedido: o serviço vive tanto quanto o painel, e um escopo único
+    ///     guardaria tudo o que foi resolvido desde o arranque.
+    /// </summary>
+    private async Task SyncOneAsync(Guid serverId, CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var servers = scope.ServiceProvider.GetRequiredService<IServerRepository>();
+
+            // Container de um servidor que já foi apagado: nada a acertar.
+            if (await servers.GetByIdAsync(serverId, ct) is not { } server)
+                return;
+
+            var real = await scope.ServiceProvider.GetRequiredService<IServerOrchestrator>()
+                .GetStatusAsync(serverId, ct);
+
+            await ServerStatusTransitions.ApplyAsync(
+                server, real, servers,
+                scope.ServiceProvider.GetRequiredService<IActivityLogRepository>(), ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Um evento que não se consegue tratar não derruba o acompanhamento
+            // dos outros.
+            FalhouNoEvento(ex, serverId);
+        }
+    }
+
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Status de {Count} servidor(es) corrigido no arranque.")]
+        Message = "Status de {Count} servidor(es) corrigido ao ligar ao Docker.")]
     private partial void Corrigiu(int count);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Não foi possível reconciliar o status dos servidores no arranque.")]
+        Message = "Sem ligação aos eventos do Docker; o status dos servidores fica parado até ela voltar.")]
     private partial void Falhou(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information, Message = "Eventos do Docker de volta.")]
+    private partial void Religou();
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Não foi possível acertar o status do servidor {ServerId}.")]
+    private partial void FalhouNoEvento(Exception ex, Guid serverId);
 }

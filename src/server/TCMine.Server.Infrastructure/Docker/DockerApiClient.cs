@@ -210,6 +210,45 @@ public sealed class DockerApiClient
             await RemoveContainerAsync(match.Id, true, ct);
     }
 
+    /// <summary>
+    ///     Segue o stream de eventos do daemon, só dos containers de jogo do
+    ///     TCMine (pelo label), até a ligação cair.
+    ///     Um evento por linha de JSON. Uma linha que não se lê é pulada: um
+    ///     campo novo numa versão futura do Docker não pode calar todos os
+    ///     eventos seguintes.
+    /// </summary>
+    internal async IAsyncEnumerable<DockerEvent> StreamEventsAsync([EnumeratorCancellation] CancellationToken ct)
+    {
+        var filters = Uri.EscapeDataString("""{"type":["container"],"label":["tcmine.server"]}""");
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{_prefix}/events?filters={filters}");
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        await EnsureAsync(response, "acompanhar os eventos dos containers", ct);
+
+        await using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        while (await reader.ReadLineAsync(ct) is { } line)
+        {
+            if (line.Length is 0)
+                continue;
+
+            DockerEvent? evento;
+
+            try
+            {
+                evento = JsonSerializer.Deserialize<DockerEvent>(line);
+            }
+            catch (JsonException)
+            {
+                continue;
+            }
+
+            if (evento is not null)
+                yield return evento;
+        }
+    }
+
     /// <summary>Estado atual do container, ou null se não existe (404).</summary>
     public async Task<ContainerInspect?> InspectContainerAsync(string id, CancellationToken ct)
     {
@@ -304,6 +343,22 @@ public sealed class DockerApiClient
 
         throw new HttpRequestException(DockerError.Describe(action, detail), null, response.StatusCode);
     }
+}
+
+internal sealed record DockerEvent
+{
+    [JsonPropertyName("Type")] public string Type { get; init; } = "";
+    [JsonPropertyName("Action")] public string Action { get; init; } = "";
+    [JsonPropertyName("Actor")] public DockerEventActor Actor { get; init; } = new();
+}
+
+internal sealed record DockerEventActor
+{
+    [JsonPropertyName("ID")] public string Id { get; init; } = "";
+
+    /// <summary>Os labels do container, entre outros (nome, imagem, código de saída).</summary>
+    [JsonPropertyName("Attributes")]
+    public Dictionary<string, string>? Attributes { get; init; }
 }
 
 internal sealed record ExecCreateRequest

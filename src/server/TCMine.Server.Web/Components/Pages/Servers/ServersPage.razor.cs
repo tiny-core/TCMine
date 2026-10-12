@@ -1,16 +1,18 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using MudBlazor;
+using TCMine.Contracts.Hubs;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Components.Features.Servers;
+using TCMine.Server.Web.Hubs;
 
 namespace TCMine.Server.Web.Components.Pages.Servers;
 
-public partial class ServersPage : ComponentBase
+public partial class ServersPage : ComponentBase, IDisposable
 {
     private readonly HashSet<Guid> _busy = [];
     private bool _isLoading = true;
@@ -27,6 +29,10 @@ public partial class ServersPage : ComponentBase
     [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
     [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
 
+    /// <summary>Os avisos de mudança, os mesmos que vão para os launchers.</summary>
+    [Inject]
+    private LauncherInvalidations Changes { get; set; } = default!;
+
     /// <summary>
     ///     Filtro em memória: servidores são poucos por natureza (um homelab tem
     ///     unidades, não milhares), então paginar no banco aqui seria cerimônia.
@@ -39,12 +45,43 @@ public partial class ServersPage : ComponentBase
                 || r.Server.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)
                 || r.ModpackName.Contains(_search, StringComparison.OrdinalIgnoreCase)));
 
-    protected override async Task OnInitializedAsync() => await LoadAsync();
+    public void Dispose()
+    {
+        Changes.Sent -= OnChangesSent;
+        GC.SuppressFinalize(this);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // A tabela acompanha sozinha: um servidor que cai, liga ou muda de
+        // jogadores aparece sem o admin carregar no botão de atualizar.
+        Changes.Sent += OnChangesSent;
+
+        await LoadAsync();
+    }
+
+    private void OnChangesSent(ResourceKind kind, Guid? id)
+    {
+        if (kind is ResourceKind.Servers or ResourceKind.Modpacks)
+            InvokeAsync(ReloadAsync);
+    }
 
     private async Task LoadAsync()
     {
         _isLoading = true;
 
+        await ReloadAsync();
+
+        _isLoading = false;
+    }
+
+    /// <summary>
+    ///     Relê a tabela sem o esqueleto de carregamento: é o que corre nas
+    ///     atualizações que vêm sozinhas, e a tabela inteira a piscar a cada
+    ///     jogador que entra seria pior do que não atualizar.
+    /// </summary>
+    private async Task ReloadAsync()
+    {
         var servers = await ServerRepository.ListAllAsync(CancellationToken.None);
 
         // O container é a fonte da verdade do status, não a coluna.
@@ -93,7 +130,7 @@ public partial class ServersPage : ComponentBase
         _rows = [.. rows.OrderBy(r => r.ModpackName).ThenBy(r => r.Server.Name)];
         _running = _rows.Count(r => r.Server.Status is GameServerStatus.Running);
 
-        _isLoading = false;
+        StateHasChanged();
     }
 
     private Task Start(GameServer server) =>

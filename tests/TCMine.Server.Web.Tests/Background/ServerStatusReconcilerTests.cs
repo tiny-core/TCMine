@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Background;
 
@@ -40,6 +41,16 @@ public sealed class ServerStatusReconcilerTests
             new FakeServers(server), new FakeOrchestrator(GameServerStatus.Crashed), Ct);
 
         server.Status.ShouldBe(GameServerStatus.Crashed);
+    }
+
+    [Fact]
+    public void Espera_entre_tentativas_cresce_e_tem_teto()
+    {
+        // Docker fora do ar numa máquina de desenvolvimento não pode virar um
+        // laço apertado, nem uma espera de horas quando ele volta.
+        ServerStatusReconciler.RetryDelay(1).ShouldBe(TimeSpan.FromSeconds(5));
+        ServerStatusReconciler.RetryDelay(3).ShouldBe(TimeSpan.FromSeconds(15));
+        ServerStatusReconciler.RetryDelay(1000).ShouldBe(TimeSpan.FromSeconds(60));
     }
 
     [Fact]
@@ -94,6 +105,48 @@ public sealed class ServerStatusReconcilerTests
         Status = status
     };
 
+    [Fact]
+    public async Task Queda_vista_pelos_eventos_fica_no_registro_de_atividade()
+    {
+        var server = Servidor(GameServerStatus.Running);
+        var activity = new FakeActivity();
+
+        var mudou = await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Crashed, new FakeServers(server), activity, Ct);
+
+        mudou.ShouldBeTrue();
+        activity.Registrados.ShouldHaveSingleItem().Kind.ShouldBe(ActivityEventKind.ServerCrashed);
+    }
+
+    [Fact]
+    public async Task Servidor_que_continua_caido_nao_repete_o_registro()
+    {
+        var server = Servidor(GameServerStatus.Crashed);
+        var activity = new FakeActivity();
+        var repo = new FakeServers(server);
+
+        var mudou = await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Crashed, repo, activity, Ct);
+
+        mudou.ShouldBeFalse();
+        activity.Registrados.ShouldBeEmpty();
+        repo.Gravados.ShouldBeEmpty();
+    }
+
+    private sealed class FakeActivity : IActivityLogRepository
+    {
+        public List<ActivityEvent> Registrados { get; } = [];
+
+        public Task AddAsync(ActivityEvent entry, CancellationToken ct)
+        {
+            Registrados.Add(entry);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<ActivityEvent>> ListRecentAsync(int count, CancellationToken ct) =>
+            throw new NotImplementedException();
+    }
+
     private sealed class FakeServers(params GameServer[] seed) : IServerRepository
     {
         public List<Guid> Gravados { get; } = [];
@@ -101,9 +154,12 @@ public sealed class ServerStatusReconcilerTests
         public Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<GameServer>>(seed);
 
-        public Task UpdateAsync(GameServer server, CancellationToken ct)
+        public Task UpdateAsync(GameServer server, CancellationToken ct) =>
+            throw new InvalidOperationException("o status grava só a coluna dele, nunca a linha inteira");
+
+        public Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct)
         {
-            Gravados.Add(server.Id);
+            Gravados.Add(id);
             return Task.CompletedTask;
         }
 

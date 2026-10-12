@@ -1,3 +1,4 @@
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
 
@@ -24,6 +25,9 @@ public abstract class FakeServerRepositoryBase : IServerRepository
         throw new NotImplementedException();
 
     public virtual Task UpdateAsync(GameServer server, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct) =>
         throw new NotImplementedException();
 
     public virtual Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();

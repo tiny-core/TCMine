@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Domain.Servers;
 
@@ -50,6 +51,18 @@ public sealed class ServerRepository(
         // Inclui as mudanças de estado (ligou, parou, caiu): é por aqui que o
         // "no ar" chega ao launcher sem ele ter de perguntar.
         changes.Touch(ResourceKind.Servers, server.Id);
+    }
+
+    public async Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Uma coluna, sem materializar a linha: ver o porquê na interface.
+        await db.GameServers
+            .Where(s => s.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, status), ct);
+
+        changes.Touch(ResourceKind.Servers, id);
     }
 
     public async Task RemoveAsync(Guid id, CancellationToken ct)
