@@ -35,7 +35,17 @@ public partial class ModsInventoryPage : ComponentBase
             _onlyOrphans);
 
         var result = await Repository.ListModInventoryAsync(query, ct);
-        _total = result.TotalCount;
+
+        // A tabela chama isto no ciclo DELA, e o contador do cabeçalho é da
+        // página: sem pedir um render aqui, ele ficava no 0 da primeira
+        // pintura até um clique qualquer redesenhar a página. Só quando muda —
+        // redesenhar a página não recarrega a tabela, mas não há motivo para
+        // pintar o mesmo número duas vezes.
+        if (_total != result.TotalCount)
+        {
+            _total = result.TotalCount;
+            StateHasChanged();
+        }
 
         return new TableData<ModInventoryEntry> { Items = result.Items, TotalItems = result.TotalCount };
     }
