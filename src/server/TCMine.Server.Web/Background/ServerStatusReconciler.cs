@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Servers;
 
 namespace TCMine.Server.Web.Background;
 
@@ -35,6 +36,7 @@ public sealed partial class ServerStatusReconciler(
                     var corrigidos = await ReconcileAsync(
                         scope.ServiceProvider.GetRequiredService<IServerRepository>(),
                         scope.ServiceProvider.GetRequiredService<IServerOrchestrator>(),
+                        scope.ServiceProvider.GetRequiredService<IServerWhitelistSync>(),
                         stoppingToken);
 
                     if (corrigidos > 0)
@@ -91,6 +93,7 @@ public sealed partial class ServerStatusReconciler(
     public static async Task<int> ReconcileAsync(
         IServerRepository servers,
         IServerOrchestrator orchestrator,
+        IServerWhitelistSync? whitelist,
         CancellationToken ct)
     {
         var corrigidos = 0;
@@ -111,8 +114,9 @@ public sealed partial class ServerStatusReconciler(
             }
 
             // Sem registro de queda: aqui não se sabe QUANDO caiu, e uma linha
-            // de "caiu" com a hora do arranque do painel mentiria.
-            if (await ServerStatusTransitions.ApplyAsync(server, real, servers, null, ct))
+            // de "caiu" com a hora do arranque do painel mentiria. A whitelist
+            // sim: um servidor que ficou pronto com o painel fora não a recebeu.
+            if (await ServerStatusTransitions.ApplyAsync(server, real, servers, null, whitelist, ct))
                 corrigidos++;
         }
 
@@ -141,7 +145,8 @@ public sealed partial class ServerStatusReconciler(
 
             await ServerStatusTransitions.ApplyAsync(
                 server, real, servers,
-                scope.ServiceProvider.GetRequiredService<IActivityLogRepository>(), ct);
+                scope.ServiceProvider.GetRequiredService<IActivityLogRepository>(),
+                scope.ServiceProvider.GetRequiredService<IServerWhitelistSync>(), ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

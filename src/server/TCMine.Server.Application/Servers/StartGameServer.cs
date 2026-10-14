@@ -89,10 +89,13 @@ public sealed partial class StartGameServer(
             fresh.UpdatedAt = DateTimeOffset.UtcNow;
             await servers.UpdateAsync(fresh, ct);
 
-            // Depois de o servidor estar de pé: é quando o RCON responde. Um
-            // servidor recriado começa com a whitelist vazia, e sem isto os
+            // Um servidor recriado começa com a whitelist vazia, e sem isto os
             // membros levariam "not white-listed" numa lista que o painel jura
-            // que eles integram.
+            // que eles integram. Com a verificação de saúde o container quase
+            // sempre ainda está Iniciando aqui, e a chamada sai calada: quem
+            // aplica de fato é a transição para Running
+            // (ServerStatusTransitions, no Web). Fica para container sem
+            // verificação de saúde, que já nasce Running e não gera transição.
             await whitelist.HandleAsync(serverId, ct);
 
             progress.Complete(jobId);

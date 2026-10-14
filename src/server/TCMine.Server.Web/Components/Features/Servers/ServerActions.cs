@@ -22,6 +22,7 @@ public sealed class ServerActions(
     StopGameServer stopUseCase,
     DeleteGameServer deleteUseCase,
     IActivityLogRepository activity,
+    IServerWhitelistSync whitelist,
     ISnackbar snackbar)
 {
     /// <summary>
@@ -37,7 +38,7 @@ public sealed class ServerActions(
         foreach (var server in servers)
         {
             var real = await orchestrator.GetStatusAsync(server.Id, ct);
-            await ServerStatusTransitions.ApplyAsync(server, real, repository, activity, ct);
+            await ServerStatusTransitions.ApplyAsync(server, real, repository, activity, whitelist, ct);
         }
     }
 

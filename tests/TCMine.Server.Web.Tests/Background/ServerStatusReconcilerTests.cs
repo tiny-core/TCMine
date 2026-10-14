@@ -1,5 +1,6 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Web.Background;
@@ -25,7 +26,7 @@ public sealed class ServerStatusReconcilerTests
         var repo = new FakeServers(server);
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
-            repo, new FakeOrchestrator(GameServerStatus.Running), Ct);
+            repo, new FakeOrchestrator(GameServerStatus.Running), null, Ct);
 
         corrigidos.ShouldBe(1);
         server.Status.ShouldBe(GameServerStatus.Running);
@@ -38,7 +39,7 @@ public sealed class ServerStatusReconcilerTests
         var server = Servidor(GameServerStatus.Running);
 
         await ServerStatusReconciler.ReconcileAsync(
-            new FakeServers(server), new FakeOrchestrator(GameServerStatus.Crashed), Ct);
+            new FakeServers(server), new FakeOrchestrator(GameServerStatus.Crashed), null, Ct);
 
         server.Status.ShouldBe(GameServerStatus.Crashed);
     }
@@ -61,7 +62,7 @@ public sealed class ServerStatusReconcilerTests
         var repo = new FakeServers(Servidor(GameServerStatus.Running));
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
-            repo, new FakeOrchestrator(GameServerStatus.Running), Ct);
+            repo, new FakeOrchestrator(GameServerStatus.Running), null, Ct);
 
         corrigidos.ShouldBe(0);
         repo.Gravados.ShouldBeEmpty();
@@ -79,7 +80,7 @@ public sealed class ServerStatusReconcilerTests
         var orchestrator = new FakeOrchestrator(GameServerStatus.Running) { FalhaEm = quebrado.Id };
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
-            new FakeServers(quebrado, bom), orchestrator, Ct);
+            new FakeServers(quebrado, bom), orchestrator, null, Ct);
 
         corrigidos.ShouldBe(1);
         bom.Status.ShouldBe(GameServerStatus.Running);
@@ -90,7 +91,7 @@ public sealed class ServerStatusReconcilerTests
     public async Task Sem_servidores_nao_faz_nada()
     {
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
-            new FakeServers(), new FakeOrchestrator(GameServerStatus.Running), Ct);
+            new FakeServers(), new FakeOrchestrator(GameServerStatus.Running), null, Ct);
 
         corrigidos.ShouldBe(0);
     }
@@ -112,7 +113,7 @@ public sealed class ServerStatusReconcilerTests
         var activity = new FakeActivity();
 
         var mudou = await ServerStatusTransitions.ApplyAsync(
-            server, GameServerStatus.Crashed, new FakeServers(server), activity, Ct);
+            server, GameServerStatus.Crashed, new FakeServers(server), activity, null, Ct);
 
         mudou.ShouldBeTrue();
         activity.Registrados.ShouldHaveSingleItem().Kind.ShouldBe(ActivityEventKind.ServerCrashed);
@@ -126,11 +127,76 @@ public sealed class ServerStatusReconcilerTests
         var repo = new FakeServers(server);
 
         var mudou = await ServerStatusTransitions.ApplyAsync(
-            server, GameServerStatus.Crashed, repo, activity, Ct);
+            server, GameServerStatus.Crashed, repo, activity, null, Ct);
 
         mudou.ShouldBeFalse();
         activity.Registrados.ShouldBeEmpty();
         repo.Gravados.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Entrar_em_Running_aplica_a_whitelist()
+    {
+        // Running = passou na verificação de saúde = o RCON responde. Antes a
+        // sincronização só rodava logo após subir o container, ainda Iniciando,
+        // e saía calada: a whitelist nunca entrava.
+        var server = Servidor(GameServerStatus.Starting);
+        var whitelist = new FakeWhitelist();
+
+        await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Running, new FakeServers(server), null, whitelist, Ct);
+
+        whitelist.Sincronizados.ShouldBe([server.Id]);
+    }
+
+    [Fact]
+    public async Task Continuar_em_Running_nao_sincroniza_de_novo()
+    {
+        // Toda tela de servidores reconsulta o status: sincronizar a cada
+        // abertura seria uma rajada de RCON por visita.
+        var server = Servidor(GameServerStatus.Running);
+        var whitelist = new FakeWhitelist();
+
+        await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Running, new FakeServers(server), null, whitelist, Ct);
+
+        whitelist.Sincronizados.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Outras_transicoes_nao_sincronizam()
+    {
+        var server = Servidor(GameServerStatus.Stopped);
+        var whitelist = new FakeWhitelist();
+
+        await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Starting, new FakeServers(server), null, whitelist, Ct);
+
+        whitelist.Sincronizados.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Varredura_do_arranque_aplica_a_whitelist_de_quem_ficou_pronto()
+    {
+        // O servidor terminou de subir com o painel fora: nenhum evento chegou.
+        var server = Servidor(GameServerStatus.Starting);
+        var whitelist = new FakeWhitelist();
+
+        await ServerStatusReconciler.ReconcileAsync(
+            new FakeServers(server), new FakeOrchestrator(GameServerStatus.Running), whitelist, Ct);
+
+        whitelist.Sincronizados.ShouldBe([server.Id]);
+    }
+
+    private sealed class FakeWhitelist : IServerWhitelistSync
+    {
+        public List<Guid> Sincronizados { get; } = [];
+
+        public Task HandleAsync(Guid gameServerId, CancellationToken ct)
+        {
+            Sincronizados.Add(gameServerId);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeActivity : IActivityLogRepository
