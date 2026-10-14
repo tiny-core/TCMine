@@ -143,7 +143,7 @@ public sealed class UpstreamMergeTests
             new Dictionary<string, string>());
 
         Assert.Equal(["config/a.toml"], plano.Overrides.Removed);
-        Assert.Empty(plano.Overrides.Kept);
+        Assert.Empty(plano.Overrides.Conflicts);
     }
 
     [Fact]
@@ -156,10 +156,147 @@ public sealed class UpstreamMergeTests
             new Dictionary<string, string>());
 
         Assert.Empty(plano.Overrides.Removed);
-        Assert.Equal(["config/a.toml"], plano.Overrides.Kept);
+        var conflito = Assert.Single(plano.Overrides.Conflicts);
+        Assert.Equal("config/a.toml", conflito.Path);
+        Assert.Equal(UpstreamConflictKind.ChangedHereRemovedThere, conflito.Kind);
+    }
+
+    [Fact]
+    public void Mod_que_o_admin_removeu_e_o_autor_nao_mexeu_nao_vira_conflito()
+    {
+        // Sem isto, todo mod tirado de propósito voltava à tela a cada
+        // atualização — e todo mod novo recusado uma vez, para sempre.
+        var plano = UpstreamMerge.Plan(
+            Base(("chato", "v1")),
+            Deles(("chato", "v1")),
+            Nossos());
+
+        Assert.True(plano.IsEmpty);
+    }
+
+    [Fact]
+    public void Config_editado_aqui_e_mudado_pelo_autor_vira_conflito_com_o_nosso_hash()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base([], [("config/a.toml", "sha-original")]),
+            Deles(),
+            [Override("config/a.toml", "sha-editado")],
+            new Dictionary<string, string> { ["config/a.toml"] = "sha-do-autor" });
+
+        var conflito = Assert.Single(plano.Overrides.Conflicts);
+        Assert.Equal(UpstreamConflictKind.BothChanged, conflito.Kind);
+        Assert.Equal("sha-editado", conflito.OurSha256);
+        Assert.Empty(plano.Overrides.Updated);
+    }
+
+    [Fact]
+    public void Config_que_o_admin_apagou_nao_volta_como_novo()
+    {
+        // Antes voltava como "config novo" e desfazia a remoção a cada
+        // atualização do autor.
+        var plano = UpstreamMerge.Plan(
+            Base([], [("config/a.toml", "sha-original")]),
+            Deles(),
+            [],
+            new Dictionary<string, string> { ["config/a.toml"] = "sha-do-autor" });
+
+        Assert.Empty(plano.Overrides.Added);
+        var conflito = Assert.Single(plano.Overrides.Conflicts);
+        Assert.Equal(UpstreamConflictKind.RemovedHereKeptThere, conflito.Kind);
+    }
+
+    [Fact]
+    public void Config_que_o_admin_editou_e_o_autor_nao_mexeu_nao_aparece()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base([], [("config/a.toml", "sha-original")]),
+            Deles(),
+            [Override("config/a.toml", "sha-editado")],
+            new Dictionary<string, string> { ["config/a.toml"] = "sha-original" });
+
+        Assert.True(plano.IsEmpty);
+    }
+
+    // ---- Escolha item a item ----
+
+    [Fact]
+    public void Escolha_padrao_aplica_o_que_nao_conflita_e_mantem_o_lado_do_admin()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base(("jei", "v1"), ("briga", "v1"), ("velho", "v1")),
+            Deles(("jei", "v2"), ("briga", "v3"), ("novo", "n1")),
+            Nossos(("jei", "v1"), ("briga", "v2"), ("velho", "v1")));
+
+        var r = UpstreamMerge.Resolve(plano);
+
+        Assert.Equal(["jei", "novo"], r.ModsToIngest.Select(c => c.ProjectId).Order());
+        Assert.Equal(["jei", "velho"], r.ModsToDrop.Order());
+        Assert.DoesNotContain("briga", r.ModsToDrop);
+    }
+
+    [Fact]
+    public void Conflito_marcado_troca_o_mod_do_admin_pelo_do_autor()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base(("jei", "v1")),
+            Deles(("jei", "v3")),
+            Nossos(("jei", "v2")));
+
+        var r = UpstreamMerge.Resolve(plano, Marcados(UpstreamItemKey.Mod("jei")));
+
+        Assert.Contains("jei", r.ModsToDrop);
+        var baixa = Assert.Single(r.ModsToIngest);
+        Assert.Equal("v3", baixa.ToFileId);
+    }
+
+    [Fact]
+    public void Atualizacao_desmarcada_mantem_o_jar_atual()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base(("jei", "v1")),
+            Deles(("jei", "v2")),
+            Nossos(("jei", "v1")));
+
+        var r = UpstreamMerge.Resolve(plano, Marcados());
+
+        Assert.True(r.IsEmpty);
+    }
+
+    [Fact]
+    public void Config_em_conflito_marcado_recebe_o_do_autor_e_o_removido_sai()
+    {
+        var plano = UpstreamMerge.Plan(
+            Base([], [("config/a.toml", "o"), ("config/b.toml", "o")]),
+            Deles(),
+            [Override("config/a.toml", "editado"), Override("config/b.toml", "editado")],
+            new Dictionary<string, string> { ["config/a.toml"] = "autor" });
+
+        var r = UpstreamMerge.Resolve(plano,
+            Marcados(UpstreamItemKey.Override("config/a.toml"), UpstreamItemKey.Override("config/b.toml")));
+
+        Assert.Equal("config/a.toml", Assert.Single(r.OverridesToWrite));
+        Assert.Equal("config/b.toml", Assert.Single(r.OverridesToDrop));
+    }
+
+    [Fact]
+    public void Item_que_o_admin_nao_viu_nao_entra()
+    {
+        // A escolha é do que ENTRA: se o autor publicou outra coisa entre a
+        // simulação e o "Criar rascunho", o que não estava na tela fica de fora.
+        var plano = UpstreamMerge.Plan(
+            Base(("jei", "v1")),
+            Deles(("jei", "v1"), ("surpresa", "s1")),
+            Nossos(("jei", "v1")));
+
+        var r = UpstreamMerge.Resolve(plano, Marcados(UpstreamItemKey.Mod("outro")));
+
+        Assert.True(r.IsEmpty);
     }
 
     // ---- Fixtures ----
+
+    private static UpstreamSelection Marcados(params string[] keys) =>
+        new(keys.ToHashSet(StringComparer.OrdinalIgnoreCase));
 
     private static UpstreamSnapshot Base(params (string Project, string File)[] mods) => new()
     {

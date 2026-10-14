@@ -92,17 +92,20 @@ public sealed class UpdateFromUpstreamTests
     public async Task Em_conflito_o_mod_do_admin_permanece_e_nao_vai_para_a_fila()
     {
         // Autor e admin trocaram o mesmo mod. Aplicar o do autor apagaria a
-        // escolha do admin sem ele pedir.
+        // escolha do admin sem ele pedir. O emi existe para haver rascunho: só
+        // com o conflito desmarcado não sobraria nada a aplicar.
         var scenario = Cenario(
-            [("jei", "v1")],
-            [("jei", "v2")],
-            [("jei", "v3")]);
+            [("jei", "v1"), ("emi", "e1")],
+            [("jei", "v2"), ("emi", "e1")],
+            [("jei", "v3"), ("emi", "e2")]);
 
         await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
 
         var mantido = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
         Assert.Equal("v2", mantido.OriginReference);
-        Assert.Empty(scenario.Queue.Enfileirados);
+
+        var item = Assert.Single(scenario.Queue.Enfileirados);
+        Assert.Equal("emi", item.ProjectId);
     }
 
     [Fact]
@@ -315,7 +318,138 @@ public sealed class UpdateFromUpstreamTests
         Assert.Null(scenario.Repo.Adicionada);
     }
 
+    // ---- Escolha item a item ----
+
+    [Fact]
+    public async Task Conflito_marcado_baixa_o_mod_do_autor_no_lugar_do_seu()
+    {
+        var scenario = Cenario(
+            [("jei", "v1")],
+            [("jei", "v2")],
+            [("jei", "v3")]);
+
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None, selection: Marcados(UpstreamItemKey.Mod("jei")));
+
+        Assert.True(result.Succeeded);
+        Assert.DoesNotContain(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
+        var item = Assert.Single(scenario.Queue.Enfileirados);
+        Assert.Equal("v3", item.FileId);
+    }
+
+    [Fact]
+    public async Task Atualizacao_desmarcada_mantem_o_jar_atual_e_nao_baixa()
+    {
+        var scenario = Cenario(
+            [("jei", "v1"), ("emi", "e1")],
+            [("jei", "v1"), ("emi", "e1")],
+            [("jei", "v2"), ("emi", "e2")]);
+
+        await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None, selection: Marcados(UpstreamItemKey.Mod("emi")));
+
+        var jei = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.ProjectSlug == "jei");
+        Assert.Equal("v1", jei.OriginReference);
+
+        var item = Assert.Single(scenario.Queue.Enfileirados);
+        Assert.Equal("emi", item.ProjectId);
+    }
+
+    [Fact]
+    public async Task Config_editado_marcado_recebe_o_conteudo_do_autor()
+    {
+        var scenario = Cenario(
+            [],
+            [],
+            [],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "editado por mim")],
+            [("config/a.toml", "novo do autor")]);
+
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None,
+            selection: Marcados(UpstreamItemKey.Override("config/a.toml")));
+
+        Assert.True(result.Succeeded);
+        var config = Assert.Single(scenario.Repo.Adicionada!.Files, f => f.Path == "config/a.toml");
+        Assert.Equal(Sha("novo do autor"), config.Sha256);
+    }
+
+    [Fact]
+    public async Task Nada_marcado_nao_cria_rascunho()
+    {
+        var scenario = Cenario(
+            [("jei", "v1")],
+            [("jei", "v1")],
+            [("jei", "v2")]);
+
+        var result = await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None, selection: Marcados());
+
+        Assert.False(result.Succeeded);
+        Assert.Null(scenario.Repo.Adicionada);
+    }
+
+    [Fact]
+    public async Task So_conflito_de_config_sem_escolha_nao_cria_rascunho()
+    {
+        // Antes era "o que o autor mudou, você já tinha personalizado"; agora o
+        // conflito vai para a tela, desmarcado — e sem marcar, não há o que criar.
+        var scenario = Cenario(
+            [],
+            [],
+            [],
+            [("config/a.toml", "original")],
+            [("config/a.toml", "editado por mim")],
+            [("config/a.toml", "novo do autor")]);
+
+        var result = await scenario.UseCase.HandleAsync(scenario.Atual.Id, "1.1.0", CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(scenario.Repo.Adicionada);
+    }
+
+    [Fact]
+    public async Task Recusado_vira_escolha_do_admin_no_retrato()
+    {
+        // O retrato é o pack do autor inteiro, mesmo com a atualização recusada:
+        // na próxima vez o jar velho conta como escolha do admin, e não como
+        // "atualização pendente" que reaparece marcada.
+        var scenario = Cenario(
+            [("jei", "v1"), ("emi", "e1")],
+            [("jei", "v1"), ("emi", "e1")],
+            [("jei", "v2"), ("emi", "e2")]);
+
+        await scenario.UseCase.HandleAsync(
+            scenario.Atual.Id, "1.1.0", CancellationToken.None, selection: Marcados(UpstreamItemKey.Mod("emi")));
+
+        var snapshot = UpstreamSnapshot.FromJson(scenario.Repo.Adicionada!.UpstreamSnapshotJson)!;
+        Assert.Equal("v2", snapshot.Mods["jei"]);
+    }
+
+    [Fact]
+    public async Task DryRun_traz_o_lado_do_autor_dos_configs_em_conflito()
+    {
+        var scenario = Cenario(
+            [],
+            [],
+            [],
+            [("config/a.toml", "original"), ("config/b.toml", "original")],
+            [("config/a.toml", "editado por mim"), ("config/b.toml", "original")],
+            [("config/a.toml", "novo do autor"), ("config/b.toml", "mudou")]);
+
+        var result = await scenario.UseCase.HandleAsync(scenario.Atual.Id, "", CancellationToken.None, true);
+
+        // Só o conflito: o config intocado (b) não precisa dos dois lados.
+        var (path, conteudo) = Assert.Single(result.Value!.TheirConflictContents);
+        Assert.Equal("config/a.toml", path);
+        Assert.Equal("novo do autor", Encoding.UTF8.GetString(conteudo));
+    }
+
     // ---- Fixtures ----
+
+    private static UpstreamSelection Marcados(params string[] keys) =>
+        new(keys.ToHashSet(StringComparer.OrdinalIgnoreCase));
 
     private static string Sha(string content) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));

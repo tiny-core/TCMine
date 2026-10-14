@@ -71,7 +71,7 @@ public class ModpackAuthorizationRules
         "LoaderVersionGuard",
 
         // Lógica pura, sem usuário nenhum na hora.
-        "IngestionWorkPlanner", "LoaderVersionRange", "UpstreamLineage", "UpstreamMerge",
+        "IngestionWorkPlanner", "LoaderVersionRange", "UpstreamItemKey", "UpstreamLineage", "UpstreamMerge",
 
         // Records/DTOs de payload ou retorno — dado, não caso de uso. Tipo
         // aninhado (privado ou não) aparece qualificado com "/", não pelo nome
@@ -81,7 +81,8 @@ public class ModpackAuthorizationRules
         "ModpackIngestionService/IngestedFile",
         "ModUpdateInfo", "OverrideContent", "OverrideUndoService/UndoEntry", "QueueIngestionCommand",
         "ServerPackFillResult", "UpstreamConflictKind", "UpstreamMergePlan", "UpstreamModChange",
-        "UpstreamModConflict", "UpstreamOverridePlan", "UpstreamSnapshot", "UpstreamUpdateResult",
+        "UpstreamModConflict", "UpstreamOverrideConflict", "UpstreamOverridePlan", "UpstreamResolution",
+        "UpstreamSelection", "UpstreamSnapshot", "UpstreamUpdateResult",
         "UpstreamUpdateStatus",
 
         // Serialização — infraestrutura de JSON, não caso de uso.

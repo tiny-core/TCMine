@@ -18,128 +18,94 @@
         }
         else if (_plan is { } plan)
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
                 <b>@CurrentLabel</b> → <b>@_latestLabel</b>. Isto cria uma <b>versão nova em rascunho</b>;
-                a atual não é tocada. O que você mudou por conta própria é preservado.
+                a atual não é tocada.
             </MudText>
 
-            <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
-                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Add">@plan.Add.Count novos
-                </MudChip>
-                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Upgrade">@plan.Update.Count atualizados
-                </MudChip>
-                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Remove">@plan.Remove.Count removidos
-                </MudChip>
+            @* A regra inteira numa frase: quem não entende de merge precisa
+               saber só o que a caixa marcada faz. *@
+            <MudAlert Severity="Severity.Info" Variant="Variant.Text" Dense="true" Class="mb-3">
+                <b>Marcado</b> = entra a mudança do autor. <b>Desmarcado</b> = fica como está aqui.
+                Conflitos (você e o autor mexeram na mesma coisa) vêm desmarcados.
+            </MudAlert>
+
+            <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center">
                 <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined"
-                         Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count seus, mantidos
+                         Icon="@Icons.Material.Filled.Checklist">@_accepted.Count de @TotalItems marcados
                 </MudChip>
+                @if (plan.TotalConflicts > 0)
+                {
+                    <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Outlined"
+                             Icon="@Icons.Material.Filled.CallSplit">@plan.TotalConflicts conflitos
+                    </MudChip>
+                }
+                @if (plan.Kept.Count > 0)
+                {
+                    <MudTooltip Text="Mods que você acrescentou e o autor não tem: ficam sempre, sem pergunta.">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined"
+                                 Icon="@Icons.Material.Filled.Lock">@plan.Kept.Count mods seus, mantidos
+                        </MudChip>
+                    </MudTooltip>
+                }
             </MudStack>
 
-            @if (plan.Overrides.TotalChanges + plan.Overrides.Kept.Count > 0)
-            {
-                @* Configs mudam com muito mais frequência que mods num pack
-                   grande; sem esta linha o admin publicava sem saber que os
-                   scripts tinham mudado. *@
-                <MudStack Row="true" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
-                    <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.NoteAdd">
-                        @plan.Overrides.Added.Count configs novos
-                    </MudChip>
-                    <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text"
-                             Icon="@Icons.Material.Filled.EditNote">
-                        @plan.Overrides.Updated.Count configs atualizados
-                    </MudChip>
-                    @if (plan.Overrides.Removed.Count > 0)
-                    {
-                        <MudTooltip Text="O autor tirou estes do pack e você não os tinha editado — saem do rascunho">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text"
-                                     Icon="@Icons.Material.Filled.DeleteOutline">
-                                @plan.Overrides.Removed.Count configs removidos
-                            </MudChip>
-                        </MudTooltip>
-                    }
-                    @if (plan.Overrides.Kept.Count > 0)
-                    {
-                        <MudTooltip
-                            Text="O autor mudou ou removeu estes configs, mas você já os tinha editado — os seus ficam">
-                            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
-                                     Icon="@Icons.Material.Filled.Lock">
-                                @plan.Overrides.Kept.Count configs seus, preservados
-                            </MudChip>
-                        </MudTooltip>
-                    }
-                </MudStack>
-            }
-
             <MudExpansionPanels Elevation="0" Dense="true" MultiExpansion="true">
-                @if (plan.Conflicts.Count > 0)
+                @foreach (var section in _sections)
                 {
-                    <MudExpansionPanel Text="@($"Conflitos ({plan.Conflicts.Count})")" Expanded="true">
-                        <MudList T="string" Dense="true">
-                            @foreach (var c in plan.Conflicts)
-                            {
-                                <MudListItem T="string" @key="c.ProjectId"
-                                             Icon="@Icons.Material.Filled.CallSplit">
-                                    <MudText Typo="Typo.body2">@c.Name</MudText>
-                                    <MudText Typo="Typo.caption" Style="opacity:.8;">@Explain(c)</MudText>
-                                </MudListItem>
-                            }
-                        </MudList>
-                    </MudExpansionPanel>
-                }
+                    <MudExpansionPanel @key="section.Title" Expanded="@section.IsConflicts"
+                                       Text="@($"{section.Title} — {Marked(section)} de {section.Items.Count} marcados")">
+                        <MudStack Row="true" Spacing="1" Class="mb-1">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="IsBusy"
+                                       OnClick="@(() => SetAll(section, true))">Marcar todos
+                            </MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Disabled="IsBusy"
+                                       OnClick="@(() => SetAll(section, false))">Desmarcar todos
+                            </MudButton>
+                        </MudStack>
 
-                @if (plan.Update.Count > 0)
-                {
-                    <MudExpansionPanel Text="@($"Atualizados ({plan.Update.Count})")">
-                        <MudList T="string" Dense="true">
-                            @foreach (var c in plan.Update)
-                            {
-                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
-                                             Icon="@Icons.Material.Filled.Upgrade"/>
-                            }
-                        </MudList>
-                    </MudExpansionPanel>
-                }
-
-                @if (plan.Add.Count > 0)
-                {
-                    <MudExpansionPanel Text="@($"Novos ({plan.Add.Count})")">
-                        <MudList T="string" Dense="true">
-                            @foreach (var c in plan.Add)
-                            {
-                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
-                                             Icon="@Icons.Material.Filled.Add"/>
-                            }
-                        </MudList>
-                    </MudExpansionPanel>
-                }
-
-                @if (plan.Overrides.Removed.Count > 0)
-                {
-                    <MudExpansionPanel Text="@($"Configs removidos ({plan.Overrides.Removed.Count})")">
-                        <MudList T="string" Dense="true">
-                            @foreach (var caminho in plan.Overrides.Removed)
-                            {
-                                <MudListItem T="string" @key="caminho" Text="@caminho"
-                                             Icon="@Icons.Material.Filled.DeleteOutline"/>
-                            }
-                        </MudList>
-                    </MudExpansionPanel>
-                }
-
-                @if (plan.Remove.Count > 0)
-                {
-                    <MudExpansionPanel Text="@($"Mods removidos ({plan.Remove.Count})")">
-                        <MudList T="string" Dense="true">
-                            @foreach (var c in plan.Remove)
-                            {
-                                <MudListItem T="string" @key="c.ProjectId" Text="@c.Name"
-                                             Icon="@Icons.Material.Filled.Remove"/>
-                            }
-                        </MudList>
+                        @* Virtualize: um pack grande muda centenas de configs de
+                           uma vez, e centenas de caixas de uma vez travam o
+                           circuito. A altura máxima é o que dá a ele a área de
+                           rolagem de que precisa. *@
+                        <div style="max-height:340px; overflow-y:auto;">
+                            <Virtualize Items="section.Items" Context="item" ItemSize="44">
+                                <div @key="item.Key" class="d-flex align-start gap-1 py-1">
+                                    <MudCheckBox T="bool" Value="@_accepted.Contains(item.Key)"
+                                                 ValueChanged="@(v => Toggle(item.Key, v))"
+                                                 Disabled="IsBusy" Dense="true" Size="Size.Small"/>
+                                    <MudIcon Icon="@item.Icon" Size="Size.Small" Class="mt-2"/>
+                                    <div style="min-width:0; flex:1;" class="mt-1">
+                                        <MudText Typo="Typo.body2" Class="text-truncate">@item.Title</MudText>
+                                        @if (item.Detail is { Length: > 0 })
+                                        {
+                                            <MudText Typo="Typo.caption" Style="opacity:.8;">@item.Detail</MudText>
+                                        }
+                                        @if (item.CanCompare)
+                                        {
+                                            <MudButton Size="Size.Small" Variant="Variant.Text"
+                                                       StartIcon="@Icons.Material.Filled.Compare"
+                                                       OnClick="@(() => ToggleCompareAsync(item.Path!))">
+                                                @(_comparing == item.Path ? "Fechar" : "Ver os dois lados")
+                                            </MudButton>
+                                        }
+                                    </div>
+                                </div>
+                                @if (_comparing is { } aberto && aberto == item.Path)
+                                {
+                                    <MudGrid Spacing="2" Class="mb-2">
+                                        <MudItem xs="12" md="6">
+                                            <MudText Typo="Typo.caption"><b>O seu (fica se desmarcado)</b></MudText>
+                                            <pre style="@PreStyle">@(_ourText ?? "Carregando…")</pre>
+                                        </MudItem>
+                                        <MudItem xs="12" md="6">
+                                            <MudText Typo="Typo.caption"><b>O do autor (entra se marcado)</b></MudText>
+                                            <pre style="@PreStyle">@_theirText</pre>
+                                        </MudItem>
+                                    </MudGrid>
+                                }
+                            </Virtualize>
+                        </div>
                     </MudExpansionPanel>
                 }
             </MudExpansionPanels>
@@ -153,12 +119,15 @@
         <MudButton OnClick="Cancel" Disabled="IsBusy">Cancelar</MudButton>
         @if (_plan is { IsEmpty: false })
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
-                       OnClick="Apply"
-                       Disabled="IsBusy || string.IsNullOrWhiteSpace(_newVersion)">
-                Criar rascunho
-            </MudButton>
+            <MudTooltip Text="@(_accepted.Count == 0 ? "Marque ao menos uma mudança." : null)"
+                        Disabled="@(_accepted.Count > 0)">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                           StartIcon="@Icons.Material.Filled.SystemUpdateAlt"
+                           OnClick="Apply"
+                           Disabled="@(IsBusy || _accepted.Count == 0 || string.IsNullOrWhiteSpace(_newVersion))">
+                    Criar rascunho
+                </MudButton>
+            </MudTooltip>
         }
         @if (IsBusy)
         {

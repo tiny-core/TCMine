@@ -12,8 +12,9 @@ namespace TCMine.Server.Application.Modpacks;
 ///     Nunca mexe na versão existente: se ela já estiver publicada é imutável, e
 ///     mesmo em rascunho sobrescrever seria destrutivo. O resultado é uma versão
 ///     nova em Draft, que o admin revisa e publica (ou descarta).
-///     Conflitos NÃO são aplicados — o lado do admin fica, e a lista volta para
-///     ele decidir mod a mod.
+///     O admin escolhe item a item o que entra (<see cref="UpstreamSelection" />).
+///     Sem escolha, vale a padrão: entra o que não conflita, e nos conflitos
+///     fica o lado do admin.
 /// </summary>
 public sealed class UpdateFromUpstream(
     IEnumerable<IUpstreamPackSource> sources,
@@ -23,13 +24,20 @@ public sealed class UpdateFromUpstream(
     IJobProgressReporter progress)
 {
     /// <summary>
+    ///     Os dois lados de um config em conflito vão para a tela; acima disto o
+    ///     arquivo não é texto de editar (o mesmo teto do editor de overrides).
+    /// </summary>
+    private const int MaxConflictPreviewBytes = 512 * 1024;
+
+    /// <summary>
     ///     <paramref name="dryRun" /> calcula e devolve o plano sem gravar nada —
     ///     é o que a tela usa para mostrar "o que vai acontecer" antes de o admin
-    ///     confirmar.
+    ///     confirmar. <paramref name="selection" /> é o que ele marcou; nula = a
+    ///     escolha padrão.
     /// </summary>
     public async Task<Result<UpstreamUpdateResult>> HandleAsync(
         Guid versionId, string newVersionNumber, CancellationToken ct, bool dryRun = false,
-        Guid jobId = default)
+        Guid jobId = default, UpstreamSelection? selection = null)
     {
         void Report(string step, int done = 0, int total = 0)
         {
@@ -93,27 +101,34 @@ public sealed class UpdateFromUpstream(
         if (dryRun)
         {
             progress.Complete(jobId);
-            return Result<UpstreamUpdateResult>.Success(new UpstreamUpdateResult(plan, pack.VersionLabel, null));
+            return Result<UpstreamUpdateResult>.Success(new UpstreamUpdateResult(plan, pack.VersionLabel, null)
+            {
+                TheirConflictContents = ConflictContents(pack, plan)
+            });
         }
 
         if (plan.IsEmpty)
+            return Result<UpstreamUpdateResult>.Fail("Nada mudou em relação à origem.");
+
+        var resolution = UpstreamMerge.Resolve(plan, selection);
+
+        // Tudo desmarcado: um rascunho idêntico ao atual só ocuparia espaço e
+        // confundiria quem olha a lista de versões.
+        if (resolution.IsEmpty)
         {
-            // Distinguir os dois casos importa: "nada mudou" e "mudou, mas você
-            // já tinha personalizado tudo o que mudou" levam o admin a ações
-            // diferentes.
-            return Result<UpstreamUpdateResult>.Fail(plan.Overrides.Kept.Count > 0
-                ? "Não há nada a aplicar: o que o autor mudou, você já tinha personalizado."
-                : "Nada mudou em relação à origem.");
+            return Result<UpstreamUpdateResult>.Fail(
+                "Nenhuma mudança marcada. Marque ao menos um item para criar o rascunho.");
         }
 
         if (string.IsNullOrWhiteSpace(newVersionNumber))
             return Result<UpstreamUpdateResult>.Fail("Informe o número da nova versão.");
 
-        var draft = await BuildDraftAsync(current, pack, plan, newVersionNumber.Trim(), baseSnapshot, Report, ct);
+        var draft = await BuildDraftAsync(
+            current, pack, resolution, theirOverrides, newVersionNumber.Trim(), Report, ct);
 
         // Só os mods que mudam vão para a fila: os demais já estão no rascunho
         // apontando para o mesmo blob, e rebaixá-los seria desperdício.
-        var toIngest = plan.Add.Concat(plan.Update)
+        var toIngest = resolution.ModsToIngest
             .Select(c => new ModIngestionItem(origin, c.ProjectId, c.ToFileId, FileSide.Both))
             .ToList();
 
@@ -127,9 +142,27 @@ public sealed class UpdateFromUpstream(
             new UpstreamUpdateResult(plan, pack.VersionLabel, draft.Id));
     }
 
+    /// <summary>
+    ///     O lado do autor de cada config em conflito, para a tela mostrar os
+    ///     dois. Só os conflitos: um pack tem milhares de configs, e mandar todos
+    ///     para o circuito do Blazor pesaria à toa.
+    /// </summary>
+    private static Dictionary<string, byte[]> ConflictContents(UpstreamPack pack, UpstreamMergePlan plan)
+    {
+        var paths = plan.Overrides.Conflicts
+            .Where(c => c.Kind is not UpstreamConflictKind.ChangedHereRemovedThere)
+            .Select(c => c.Path)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        return pack.Overrides
+            .Where(o => paths.Contains(o.Path) && o.Content.Length <= MaxConflictPreviewBytes)
+            .ToDictionary(o => o.Path, o => o.Content, StringComparer.OrdinalIgnoreCase);
+    }
+
     private async Task<ModpackVersion> BuildDraftAsync(
-        ModpackVersion current, UpstreamPack pack, UpstreamMergePlan plan, string newVersion,
-        UpstreamSnapshot baseSnapshot, Action<string, int, int> report, CancellationToken ct)
+        ModpackVersion current, UpstreamPack pack, UpstreamResolution resolution,
+        IReadOnlyDictionary<string, string> theirOverrides, string newVersion,
+        Action<string, int, int> report, CancellationToken ct)
     {
         var draft = new ModpackVersion
         {
@@ -141,36 +174,31 @@ public sealed class UpdateFromUpstream(
             UpstreamVersionLabel = pack.VersionLabel
         };
 
-        // Removidos pelo autor sem o admin ter mexido: não copiam.
-        var dropped = plan.Remove.Select(r => r.ProjectId).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Mesma coisa para configs: o autor tirou do pack e o admin não tinha
-        // editado. Sem isto, um pack que reorganiza a pasta config/ acumula
-        // lixo a cada atualização — e o launcher instala esse lixo.
-        var droppedPaths = plan.Overrides.Removed.ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // Atualizados também não copiam o arquivo velho — a ingestão traz o novo.
-        foreach (var updated in plan.Update)
-            dropped.Add(updated.ProjectId);
-
+        // Mods que saem (removidos pelo autor, ou trocados pelo do autor) não
+        // copiam — a ingestão traz o novo. Configs que o autor tirou também
+        // não: sem isto, um pack que reorganiza a pasta config/ acumula lixo a
+        // cada atualização, e o launcher instala esse lixo.
         foreach (var file in current.Files)
         {
-            if (file.ProjectSlug is { } slug && dropped.Contains(slug))
+            if (file.Origin is not ModFileOrigin.Override
+                && file.ProjectSlug is { } slug && resolution.ModsToDrop.Contains(slug))
                 continue;
 
-            if (file.Origin is ModFileOrigin.Override && droppedPaths.Contains(file.Path))
+            if (file.Origin is ModFileOrigin.Override && resolution.OverridesToDrop.Contains(file.Path))
                 continue;
 
             draft.UpsertFile(file.CopyTo(draft.Id));
         }
 
-        // Overrides seguem a mesma regra de três vias dos mods.
-        var overrideHashes = await ApplyOverridesAsync(draft, pack, baseSnapshot, report, ct);
+        await ApplyOverridesAsync(draft, pack, resolution.OverridesToWrite, report, ct);
 
+        // O retrato é o pack do autor INTEIRO, inclusive o que o admin recusou:
+        // é o que faz a recusa valer como escolha dele na próxima atualização,
+        // em vez de reaparecer como novidade.
         draft.UpstreamSnapshotJson = new UpstreamSnapshot
         {
             Mods = pack.Mods.ToDictionary(m => m.ProjectId, m => m.FileId),
-            Overrides = overrideHashes,
+            Overrides = new Dictionary<string, string>(theirOverrides, StringComparer.OrdinalIgnoreCase),
             Names = pack.Mods
                 .Where(m => m.Name is { Length: > 0 })
                 .ToDictionary(m => m.ProjectId, m => m.Name!)
@@ -180,20 +208,24 @@ public sealed class UpdateFromUpstream(
         return draft;
     }
 
-    private async Task<Dictionary<string, string>> ApplyOverridesAsync(
-        ModpackVersion draft, UpstreamPack pack, UpstreamSnapshot baseSnapshot,
+    /// <summary>
+    ///     Grava o conteúdo do autor só nos configs marcados. Os demais já vieram
+    ///     da versão atual na cópia, com o conteúdo daqui — inclusive os que o
+    ///     admin editou, que é o trabalho mais caro de refazer.
+    /// </summary>
+    private async Task ApplyOverridesAsync(
+        ModpackVersion draft, UpstreamPack pack, IReadOnlySet<string> toWrite,
         Action<string, int, int> report, CancellationToken ct)
     {
-        var hashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var items = pack.Overrides.Where(o => toWrite.Contains(o.Path)).ToList();
         var done = 0;
 
-        foreach (var item in pack.Overrides)
+        foreach (var item in items)
         {
-            // Milhares de configs: sem contador, minutos de silêncio.
-            report("Aplicando configs e scripts", done++, pack.Overrides.Count);
+            // Centenas de configs: sem contador, minutos de silêncio.
+            report("Aplicando configs e scripts", done++, items.Count);
             using var content = new MemoryStream(item.Content);
             var sha = await blobStore.PutAsync(content, null, "application/octet-stream", ct);
-            hashes[item.Path] = sha;
 
             var existing = draft.Files.FirstOrDefault(f =>
                 f.Origin is ModFileOrigin.Override
@@ -201,17 +233,6 @@ public sealed class UpdateFromUpstream(
 
             if (existing is not null)
             {
-                // Mesmas três vias dos mods, agora por hash. Se o config aqui
-                // ainda é igual ao que veio na importação, o admin não o tocou e
-                // a versão do autor pode entrar. Se difere, ele editou — e config
-                // customizado é o trabalho mais caro de refazer, então o dele
-                // fica e a mudança do autor é descartada em silêncio.
-                var baseSha = baseSnapshot.Overrides.GetValueOrDefault(item.Path);
-                var intocado = baseSha is not null && existing.Sha256 == baseSha;
-
-                if (!intocado || existing.Sha256 == sha)
-                    continue;
-
                 existing.Sha256 = sha;
                 existing.SizeBytes = item.Content.Length;
                 continue;
@@ -228,8 +249,6 @@ public sealed class UpdateFromUpstream(
                 ProjectSlug = $"override:{item.Path}"
             });
         }
-
-        return hashes;
     }
 }
 
@@ -237,4 +256,12 @@ public sealed class UpdateFromUpstream(
 ///     Plano calculado + rótulo da versão do autor. <paramref name="DraftId" /> é
 ///     nulo em simulação (dryRun).
 /// </summary>
-public sealed record UpstreamUpdateResult(UpstreamMergePlan Plan, string LatestLabel, Guid? DraftId);
+public sealed record UpstreamUpdateResult(UpstreamMergePlan Plan, string LatestLabel, Guid? DraftId)
+{
+    /// <summary>
+    ///     Só na simulação: caminho → conteúdo do autor de cada config em
+    ///     conflito (até 512 KB), para a tela mostrar os dois lados.
+    /// </summary>
+    public IReadOnlyDictionary<string, byte[]> TheirConflictContents { get; init; } =
+        new Dictionary<string, byte[]>();
+}
