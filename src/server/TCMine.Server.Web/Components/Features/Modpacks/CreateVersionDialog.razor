@@ -18,29 +18,45 @@
                              HelperText="Opcional. Sugestão exibida ao jogador."
                              Min="512"
                              Class="mt-3"/>
+            @* Dentro do conteúdo, e não junto dos botões: com a lista de versões
+               aqui, a fila de ações do diálogo ficaria com um formulário dentro. *@
+            <MudSwitch T="bool" @bind-Value="_inheritFiles" Color="Color.Primary"
+                       Disabled="@(SourceVersions.Count is 0)"
+                       Label="Copiar mods e overrides de uma versão publicada" Class="mt-2"/>
+            @if (_inheritFiles)
+            {
+                <MudSelect T="Guid?" @bind-Value="_sourceVersionId" Label="Copiar da versão"
+                           Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                    @foreach (var option in SourceVersions)
+                    {
+                        <MudSelectItem T="Guid?" Value="@((Guid?)option.Id)">@option.Label</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                @if (_inheritFiles)
+                {
+                    <text>
+                        Começa igual à versão escolhida, inclusive a ligação com o pack do autor quando
+                        ela veio de uma importação; remova na grade o que não for mais necessário.
+                    </text>
+                }
+                else
+                {
+                    @* O rascunho nasce SEM nenhum mod — e sem isto aqui parece que o
+                       modpack inteiro foi zerado, quando na verdade só esta versão
+                       nova começa vazia. As versões já publicadas são imutáveis e
+                       continuam exatamente como estavam. *@
+                    <text>
+                        Esta versão nasce <strong>sem nenhum mod</strong> — você adiciona do zero na
+                        grade depois de criar. As versões já publicadas não mudam em nada.
+                    </text>
+                }
+            </MudText>
         </MudForm>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Cancelar</MudButton>
-        <MudSwitch T="bool" @bind-Value="_inheritFiles" Color="Color.Primary"
-                   Label="Herdar mods e overrides da última versão publicada" Class="mt-2"/>
-        <MudText Typo="Typo.caption" Class="mud-text-secondary">
-            @if (_inheritFiles)
-            {
-                <text>Começa igual à anterior; remova na grade o que não for mais necessário.</text>
-            }
-            else
-            {
-                @* O rascunho nasce SEM nenhum mod — e sem isto aqui parece que o
-                   modpack inteiro foi zerado, quando na verdade só esta versão
-                   nova começa vazia. As versões já publicadas são imutáveis e
-                   continuam exatamente como estavam. *@
-                <text>
-                    Esta versão nasce <strong>sem nenhum mod</strong> — você adiciona do zero na
-                    grade depois de criar. As versões já publicadas não mudam em nada.
-                </text>
-            }
-        </MudText>
         <MudButton Color="Color.Primary"
                    Variant="Variant.Filled"
                    OnClick="Submit"

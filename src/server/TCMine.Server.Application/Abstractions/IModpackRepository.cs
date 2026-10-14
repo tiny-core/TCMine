@@ -146,6 +146,14 @@ public interface IModpackRepository
     Task SetProjectSlugAsync(Guid fileId, string slug, CancellationToken ct);
 
     /// <summary>
+    ///     Grava só a ligação com o pack do autor (os campos Upstream*),
+    ///     copiada de <paramref name="source" />. Estreito pelo mesmo motivo do
+    ///     <see cref="SetServerPackAsync" />: roda sobre versões publicadas.
+    /// </summary>
+    [NotVisibleToLauncher("A ligação com o autor é do painel; o launcher não a recebe.")]
+    Task SetUpstreamLineageAsync(Guid versionId, ModpackVersion source, CancellationToken ct);
+
+    /// <summary>
     ///     Ingestões que ficaram pela metade quando o processo caiu.
     ///     São duas situações, e as duas contam: a versão presa em Resolving (o
     ///     worker morreu no meio) e o rascunho com mods ainda marcados como

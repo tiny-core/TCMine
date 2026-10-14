@@ -36,6 +36,7 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         // preenchimento falhar em silêncio.
         typeof(BackfillServerPacks),
         typeof(BackfillManualModIdentity),
+        typeof(BackfillUpstreamLineage),
         typeof(ChangeFileSide),
         typeof(IServerWhitelistSync),
 

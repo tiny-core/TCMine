@@ -123,6 +123,15 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>Ligações com o autor gravadas pelo preenchimento retroativo: versão → origem.</summary>
+    public Dictionary<Guid, Guid> LinhagensGravadas { get; } = [];
+
+    public virtual Task SetUpstreamLineageAsync(Guid versionId, ModpackVersion source, CancellationToken ct)
+    {
+        LinhagensGravadas[versionId] = source.Id;
+        return Task.CompletedTask;
+    }
+
     public virtual Task SetFileSideAsync(
         Guid versionId, Guid fileId, FileSide side, CancellationToken ct)
     {

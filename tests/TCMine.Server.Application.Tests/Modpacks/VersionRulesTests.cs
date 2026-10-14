@@ -66,6 +66,87 @@ public sealed class VersionRulesTests
     }
 
     [Fact]
+    public async Task Versao_nova_herda_a_ligacao_com_o_pack_do_autor()
+    {
+        // O defeito: a versão própria copiava os mods mas esquecia de que
+        // release do autor tinha vindo — sumiam a versão do autor, a
+        // verificação e a atualização.
+        var modpack = NovoModpack();
+        var importada = Versao(modpack, "1.0.0");
+        importada.UpstreamFileId = "555";
+        importada.UpstreamVersionLabel = "ATM10 4.2";
+        importada.UpstreamSnapshotJson = """{"mods":{"jei":"1"},"overrides":{}}""";
+        Publicar(importada);
+        modpack.Versions.Add(importada);
+
+        var repo = new FakeRepo(modpack);
+
+        await new CreateModpackVersion(repo, FakeVersionCatalog.PermissiveGuard()).HandleAsync(
+            new CreateModpackVersionCommand(modpack.Id, "1.1.0", "21.1.100", null, true), CancellationToken.None);
+
+        repo.Adicionada!.UpstreamFileId.ShouldBe("555");
+        repo.Adicionada.UpstreamVersionLabel.ShouldBe("ATM10 4.2");
+        repo.Adicionada.UpstreamSnapshotJson.ShouldBe(importada.UpstreamSnapshotJson);
+    }
+
+    [Fact]
+    public async Task Rascunho_vazio_nao_ganha_ligacao_com_o_autor()
+    {
+        // Sem os arquivos do autor, o merge leria cada mod dele como "o admin
+        // tirou". A ligação só vem junto com a cópia.
+        var modpack = NovoModpack();
+        var importada = Versao(modpack, "1.0.0");
+        importada.UpstreamFileId = "555";
+        Publicar(importada);
+        modpack.Versions.Add(importada);
+
+        var repo = new FakeRepo(modpack);
+
+        await new CreateModpackVersion(repo, FakeVersionCatalog.PermissiveGuard()).HandleAsync(
+            new CreateModpackVersionCommand(modpack.Id, "1.1.0", "21.1.100", null, false), CancellationToken.None);
+
+        repo.Adicionada!.HasUpstreamLineage.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Copia_da_versao_escolhida_e_nao_so_da_ultima()
+    {
+        var modpack = NovoModpack();
+        var antiga = Versao(modpack, "1.0.0");
+        antiga.UpsertFile(Arquivo(antiga.Id, "mods/antigo.jar", "antigo"));
+        Publicar(antiga);
+        var nova = Versao(modpack, "1.1.0");
+        nova.UpsertFile(Arquivo(nova.Id, "mods/novo.jar", "novo"));
+        Publicar(nova);
+        modpack.Versions.AddRange([antiga, nova]);
+
+        var repo = new FakeRepo(modpack);
+
+        var result = await new CreateModpackVersion(repo, FakeVersionCatalog.PermissiveGuard()).HandleAsync(
+            new CreateModpackVersionCommand(modpack.Id, "1.2.0", "21.1.100", null, true, antiga.Id),
+            CancellationToken.None);
+
+        result.Succeeded.ShouldBeTrue();
+        repo.Adicionada!.Files.Select(f => f.ProjectSlug).ShouldBe(["antigo"]);
+    }
+
+    [Fact]
+    public async Task Recusa_rascunho_como_origem()
+    {
+        // Um rascunho ainda muda; copiar dele seria copiar o que nunca foi publicado.
+        var modpack = NovoModpack();
+        var publicada = Publicar(Versao(modpack, "1.0.0"));
+        modpack.Versions.Add(publicada);
+
+        var result = await new CreateModpackVersion(new FakeRepo(modpack), FakeVersionCatalog.PermissiveGuard())
+            .HandleAsync(
+                new CreateModpackVersionCommand(modpack.Id, "1.1.0", "21.1.100", null, true, Guid.CreateVersion7()),
+                CancellationToken.None);
+
+        result.Succeeded.ShouldBeFalse();
+    }
+
+    [Fact]
     public async Task Nao_apaga_versao_publicada()
     {
         // Publicada é imutável e pode ter servidor fixado nela: apagá-la

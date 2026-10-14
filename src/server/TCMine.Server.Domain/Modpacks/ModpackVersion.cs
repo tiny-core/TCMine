@@ -100,6 +100,28 @@ public sealed class ModpackVersion : Entity
     /// </summary>
     public string? UpstreamServerPackFileId { get; set; }
 
+    /// <summary>
+    ///     Leva para esta versão a ligação com o pack do autor que
+    ///     <paramref name="source" /> tem: de que release ela veio, o rótulo dela,
+    ///     o retrato da origem e o server pack.
+    ///     Só faz sentido quando esta versão herdou os arquivos da outra — é o
+    ///     retrato que diz ao merge o que o autor mandou e o que o admin mudou, e
+    ///     num rascunho vazio "o admin mudou" seria tudo. Sem isto, a primeira
+    ///     versão própria depois de importar perdia a ligação: sumia a versão do
+    ///     autor na tela, sumia a verificação, e a atualização recusava.
+    /// </summary>
+    public void InheritUpstreamFrom(ModpackVersion source)
+    {
+        UpstreamFileId = source.UpstreamFileId;
+        UpstreamVersionLabel = source.UpstreamVersionLabel;
+        UpstreamSnapshotJson = source.UpstreamSnapshotJson;
+        UpstreamServerPackUrl = source.UpstreamServerPackUrl;
+        UpstreamServerPackFileId = source.UpstreamServerPackFileId;
+    }
+
+    /// <summary>Esta versão sabe de que release do autor descende.</summary>
+    public bool HasUpstreamLineage => UpstreamFileId is { Length: > 0 };
+
     public IReadOnlyList<ModpackFile> Files => _files;
     public IReadOnlyList<PendingMod> PendingMods => _pendingMods;
 

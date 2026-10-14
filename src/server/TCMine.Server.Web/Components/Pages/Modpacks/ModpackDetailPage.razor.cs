@@ -54,6 +54,9 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
     /// <summary>Resultado da consulta à origem. Nulo enquanto não consultou (ou se falhou).</summary>
     private UpstreamUpdateStatus? _upstream;
 
+    /// <summary>"Verificar o autor" em andamento — o botão gira e fica desligado.</summary>
+    private bool _checkingUpstream;
+
     [Parameter] public Guid ModpackId { get; set; }
 
     private ModpackVersionStats SelectedStats =>
@@ -175,7 +178,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
 
     private async Task CheckUpstreamAsync()
     {
-        if (_selectedVersion?.UpstreamFileId is null)
+        if (_selectedVersion?.HasUpstreamLineage is not true)
         {
             _upstream = null;
             return;
@@ -187,6 +190,39 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         // problema do admin que só queria ver a versão.
         _upstream = result.Succeeded ? result.Value : null;
         await InvokeAsync(StateHasChanged);
+    }
+
+    /// <summary>
+    ///     O botão "Verificar o autor": a mesma consulta da abertura, só que a
+    ///     pedido e dizendo o resultado — inclusive "nada novo", que na consulta
+    ///     automática fica calado.
+    /// </summary>
+    private async Task CheckUpstreamNowAsync()
+    {
+        if (_selectedVersion?.HasUpstreamLineage is not true)
+            return;
+
+        _checkingUpstream = true;
+        try
+        {
+            var result = await UpstreamCheck.HandleAsync(_selectedVersionId, CancellationToken.None);
+            if (!result.Succeeded)
+            {
+                Snackbar.Add(result.Error!, Severity.Warning);
+                return;
+            }
+
+            _upstream = result.Value;
+            Snackbar.Add(
+                _upstream!.HasUpdate
+                    ? $"O autor publicou a {_upstream.LatestLabel}."
+                    : $"Esta versão já está na mais recente do autor ({_upstream.LatestLabel}).",
+                _upstream.HasUpdate ? Severity.Info : Severity.Success);
+        }
+        finally
+        {
+            _checkingUpstream = false;
+        }
     }
 
     // Assina o registro de progresso: o worker avisa e a página se redesenha.
@@ -238,7 +274,7 @@ public partial class ModpackDetailPage : ComponentBase, IDisposable
         if (_modpack is null)
             return;
 
-        if (await VersionActions.OpenCreateVersionAsync(_modpack, CancellationToken.None))
+        if (await VersionActions.OpenCreateVersionAsync(_modpack, CancellationToken.None, _selectedVersionId))
             await LoadAsync();
     }
 

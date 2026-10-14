@@ -147,6 +147,7 @@ public static class DependencyInjection
         services.AddScoped<CompleteFromServerPack>();
         services.AddScoped<BackfillServerPacks>();
         services.AddScoped<BackfillManualModIdentity>();
+        services.AddScoped<BackfillUpstreamLineage>();
         services.AddScoped<ChangeFileSide>();
         services.AddScoped<IServerWhitelistSync, SyncServerWhitelist>();
         services.AddScoped<RetryModResolution>();

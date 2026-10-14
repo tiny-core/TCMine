@@ -1,4 +1,5 @@
 using MudBlazor;
+using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Modpacks;
 using TCMine.Server.Domain.Modpacks;
@@ -26,9 +27,32 @@ public sealed class VersionLifecycleActions(
     ///     instalação, se não houver uma de quem herdar). Devolve se criou —
     ///     quem chama decide como recarregar.
     /// </summary>
-    public async Task<bool> OpenCreateVersionAsync(Modpack modpack, CancellationToken ct)
+    /// <param name="preferredSourceId">
+    ///     A versão que o admin está a ver, quando há uma. Se for publicada, é
+    ///     ela que vem marcada como origem — "nova versão a partir desta" é o
+    ///     gesto natural de quem está olhando uma versão específica.
+    /// </param>
+    public async Task<bool> OpenCreateVersionAsync(Modpack modpack, CancellationToken ct, Guid? preferredSourceId = null)
     {
         var latest = modpack.Versions.OrderByDescending(v => v.Id).FirstOrDefault();
+
+        // Só publicadas servem de origem: um rascunho ainda pode mudar, e uma
+        // versão que falhou nunca teve os arquivos completos.
+        var published = modpack.Versions
+            .Where(v => v.State is ModpackVersionState.Ready or ModpackVersionState.Archived)
+            .OrderByDescending(v => v.Id)
+            .Select(v => new SourceVersionOption(
+                v.Id,
+                v.State is ModpackVersionState.Archived ? $"{v.Version} (arquivada)" : v.Version))
+            .ToList();
+
+        var defaultSource = published.Any(p => p.Id == preferredSourceId)
+            ? preferredSourceId
+            : modpack.Versions
+                .Where(v => v.State is ModpackVersionState.Ready)
+                .OrderByDescending(v => v.Id)
+                .Select(v => (Guid?)v.Id)
+                .FirstOrDefault();
 
         // A versão anterior manda mais que o padrão da instalação: se este pack
         // já rodou com 8 GB, repetir 4 GB do padrão seria um passo atrás. O
@@ -43,7 +67,9 @@ public sealed class VersionLifecycleActions(
             ["MinecraftVersion"] = modpack.MinecraftVersion,
             ["Loader"] = modpack.Loader,
             ["DefaultLoaderVersion"] = latest?.LoaderVersion,
-            ["DefaultMemoryMb"] = memoriaPadrao
+            ["DefaultMemoryMb"] = memoriaPadrao,
+            ["SourceVersions"] = published,
+            ["DefaultSourceVersionId"] = defaultSource
         };
 
         var dialog = await dialogService.ShowAsync<CreateVersionDialog>("Nova versão", parameters);
@@ -84,3 +110,6 @@ public sealed class VersionLifecycleActions(
         return true;
     }
 }
+
+/// <summary>Uma versão publicada que pode servir de origem para a próxima.</summary>
+public sealed record SourceVersionOption(Guid Id, string Label);

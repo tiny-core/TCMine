@@ -317,14 +317,23 @@ else
                                     }
                                 </div>
 
-                                @if (_selectedVersion.UpstreamVersionLabel is { Length: > 0 } autorLabel)
+                                @if (_modpack.HasUpstream)
                                 {
                                     @* A numeração do autor é outra coisa da nossa: "1.0.0" é
                                        nossa, "4.2" é dele. Mostrar as duas evita o admin achar
-                                       que publicou a versão errada. *@
+                                       que publicou a versão errada. A linha aparece em todo
+                                       pack importado — sumir junto com a ligação escondia
+                                       justamente o problema. *@
+                                    var autorLabel = _selectedVersion.UpstreamVersionLabel ?? "—";
                                     <div class="tc-kv">
                                         <span>Versão do autor</span>
-                                        @if (_upstream is { HasUpdate: true } atualizacao)
+                                        @if (!_selectedVersion.HasUpstreamLineage)
+                                        {
+                                            <MudTooltip Text="Esta versão foi criada vazia, sem copiar outra que veio do autor. Para receber atualizações dele, crie a próxima copiando uma versão importada.">
+                                                <MudText Typo="Typo.body2" Class="mud-text-secondary">sem ligação</MudText>
+                                            </MudTooltip>
+                                        }
+                                        else if (_upstream is { HasUpdate: true } atualizacao)
                                         {
                                             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
                                                 <b>@autorLabel</b>
@@ -344,7 +353,19 @@ else
                                         }
                                         else
                                         {
-                                            <b>@autorLabel</b>
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <b>@autorLabel</b>
+                                                <MudTooltip Text="Verificar se o autor publicou uma versão nova">
+                                                    <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                                                                   Size="Size.Small"
+                                                                   Disabled="_checkingUpstream"
+                                                                   OnClick="CheckUpstreamNowAsync"/>
+                                                </MudTooltip>
+                                                @if (_checkingUpstream)
+                                                {
+                                                    <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                                                }
+                                            </MudStack>
                                         }
                                     </div>
                                 }

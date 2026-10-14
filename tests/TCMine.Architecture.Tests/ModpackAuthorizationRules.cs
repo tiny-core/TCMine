@@ -62,7 +62,7 @@ public class ModpackAuthorizationRules
     private static readonly string[] EfeitosInternos =
     [
         // Orquestração/background — quem chama já autorizou, ou é um job.
-        "BackfillManualModIdentity", "BackfillServerPacks", "IngestionScheduler", "ModpackIngestionService",
+        "BackfillManualModIdentity", "BackfillServerPacks", "BackfillUpstreamLineage", "IngestionScheduler", "ModpackIngestionService",
         "OverrideUndoService", "RecoverInterruptedImports", "RecoverInterruptedIngestions",
 
         // Regra de consistência (a build existe para aquele Minecraft?), não
@@ -71,7 +71,7 @@ public class ModpackAuthorizationRules
         "LoaderVersionGuard",
 
         // Lógica pura, sem usuário nenhum na hora.
-        "IngestionWorkPlanner", "LoaderVersionRange", "UpstreamMerge",
+        "IngestionWorkPlanner", "LoaderVersionRange", "UpstreamLineage", "UpstreamMerge",
 
         // Records/DTOs de payload ou retorno — dado, não caso de uso. Tipo
         // aninhado (privado ou não) aparece qualificado com "/", não pelo nome

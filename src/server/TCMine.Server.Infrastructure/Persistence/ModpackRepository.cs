@@ -492,6 +492,22 @@ public sealed class ModpackRepository(
             .ExecuteUpdateAsync(s => s.SetProperty(f => f.ProjectSlug, slug), ct);
     }
 
+    public async Task SetUpstreamLineageAsync(Guid versionId, ModpackVersion source, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        await db.ModpackVersions
+            .Where(v => v.Id == versionId)
+            .ExecuteUpdateAsync(
+                s => s
+                    .SetProperty(v => v.UpstreamFileId, source.UpstreamFileId)
+                    .SetProperty(v => v.UpstreamVersionLabel, source.UpstreamVersionLabel)
+                    .SetProperty(v => v.UpstreamSnapshotJson, source.UpstreamSnapshotJson)
+                    .SetProperty(v => v.UpstreamServerPackUrl, source.UpstreamServerPackUrl)
+                    .SetProperty(v => v.UpstreamServerPackFileId, source.UpstreamServerPackFileId),
+                ct);
+    }
+
     public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

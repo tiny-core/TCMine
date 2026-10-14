@@ -48,23 +48,45 @@ public sealed class CreateModpackVersion(IModpackRepository repository, LoaderVe
 
         if (command.InheritFiles)
         {
-            // Herda mods + overrides da última versão publicada. O admin depois
-            // poda na grade o que já não serve — a ausência na nova versão faz o
+            // Herda mods + overrides de uma versão publicada: a que o admin
+            // escolheu ou, sem escolha, a mais recente. O admin depois poda na
+            // grade o que já não serve — a ausência na nova versão faz o
             // launcher apagar o arquivo no update (diff declarativo).
-            var latestReadyId = modpack.Versions
-                .Where(v => v.State is ModpackVersionState.Ready)
-                .OrderByDescending(v => v.Id) // GUID v7 = mais recente primeiro
-                .Select(v => (Guid?)v.Id)
-                .FirstOrDefault();
+            var published = modpack.Versions
+                .Where(v => v.State is ModpackVersionState.Ready or ModpackVersionState.Archived)
+                .ToList();
 
-            if (latestReadyId is { } sourceId)
+            Guid? sourceId;
+            if (command.SourceVersionId is { } chosen)
+            {
+                // Rascunho ou falha como origem copiaria o que nunca foi
+                // publicado; versão de outro pack, mods de outro jogo.
+                if (published.All(v => v.Id != chosen))
+                    return Result<Guid>.Fail("A versão de origem tem de ser uma versão publicada deste modpack.");
+
+                sourceId = chosen;
+            }
+            else
+            {
+                sourceId = published
+                    .Where(v => v.State is ModpackVersionState.Ready)
+                    .OrderByDescending(v => v.Id) // GUID v7 = mais recente primeiro
+                    .Select(v => (Guid?)v.Id)
+                    .FirstOrDefault();
+            }
+
+            if (sourceId is { } id)
             {
                 // GetVersionAsync inclui os Files; modpack.Versions não os traz.
-                var source = await repository.GetVersionAsync(sourceId, ct);
+                var source = await repository.GetVersionAsync(id, ct);
                 if (source is not null)
                 {
                     foreach (var f in source.Files)
                         version.UpsertFile(f.CopyTo(version.Id));
+
+                    // Mesmos arquivos, mesma base do autor: sem isto a versão
+                    // nova esquecia de que pack veio.
+                    version.InheritUpstreamFrom(source);
                 }
             }
         }
@@ -79,4 +101,5 @@ public sealed record CreateModpackVersionCommand(
     string Version,
     string LoaderVersion,
     int? RecommendedMemoryMb,
-    bool InheritFiles);
+    bool InheritFiles,
+    Guid? SourceVersionId = null);

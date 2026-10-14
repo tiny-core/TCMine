@@ -44,6 +44,12 @@ public sealed partial class InterruptedWorkRecovery(
             () => scope.ServiceProvider.GetRequiredService<BackfillManualModIdentity>().HandleAsync(stoppingToken),
             LogManualModsIdentified, LogManualModsFailed);
 
+        // Também local: só lê o banco. Antes do server pack, porque é a ligação
+        // com o autor que diz de qual release buscar o server pack.
+        await RunAsync(
+            () => scope.ServiceProvider.GetRequiredService<BackfillUpstreamLineage>().HandleAsync(stoppingToken),
+            LogLineageRestored, LogLineageFailed);
+
         // Por último, e de propósito: descobrir o server pack de packs já
         // importados é conveniência pura, faz chamadas à origem e não tem pressa
         // nenhuma. O que ficar para trás (origem fora do ar, sem chave de API)
@@ -103,6 +109,13 @@ public sealed partial class InterruptedWorkRecovery(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao dar identidade aos mods enviados à mão.")]
     private partial void LogManualModsFailed(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "{Count} versão(ões) recuperaram a ligação com o pack do autor.")]
+    private partial void LogLineageRestored(int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao recuperar a ligação das versões com o pack do autor.")]
+    private partial void LogLineageFailed(Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao descobrir os server packs das versões já importadas.")]
     private partial void LogServerPacksFailed(Exception ex);
