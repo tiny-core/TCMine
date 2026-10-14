@@ -35,6 +35,23 @@ public sealed class InstallationSettings : Entity
     // ---------- Servidores de jogo ----------
 
     /// <summary>
+    ///     A escolha da aba Rede. Nulo = instalação de antes da escolha existir:
+    ///     o modo é deduzido do que está preenchido (<see cref="EffectiveNetworkMode" />),
+    ///     o mesmo resultado que ela já tinha. Por isso a migration não precisa
+    ///     reescrever nada — o primeiro "Salvar" grava a escolha explícita.
+    ///     Os campos dos outros modos continuam gravados e só deixam de valer:
+    ///     voltar a um modo não pede o token da Cloudflare de novo.
+    /// </summary>
+    public NetworkMode? NetworkMode { get; set; }
+
+    /// <summary>
+    ///     Só no modo Cloudflare (opção avançada): os registros apontam para o
+    ///     <see cref="PublicHost" /> (um DDNS ou IP fixo que o admin já mantém)
+    ///     em vez do registro A que o TCMine atualiza com o IP detectado.
+    /// </summary>
+    public bool CloudflareUsesPublicHost { get; set; }
+
+    /// <summary>
     ///     Faixa de onde sai a porta de um servidor novo (inclusive nas duas
     ///     pontas). Contínua de propósito: um único redirecionamento de faixa no
     ///     roteador cobre os servidores de hoje e os que vierem.
@@ -94,10 +111,65 @@ public sealed class InstallationSettings : Entity
     ///     um, os subdomínios dos servidores ficam guardados mas não são
     ///     publicados nem usados no endereço.
     /// </summary>
-    public bool DnsEnabled =>
+    public bool HasCloudflareCredentials =>
         !string.IsNullOrWhiteSpace(CloudflareApiTokenEncrypted)
         && !string.IsNullOrWhiteSpace(CloudflareZoneId)
         && !string.IsNullOrWhiteSpace(DnsBaseDomain);
+
+    /// <summary>
+    ///     O modo que vale. Sem escolha gravada, a ordem é a que a resolução do
+    ///     endereço já seguia: Cloudflare completa, senão o host escrito, senão
+    ///     o IP detectado.
+    /// </summary>
+    public NetworkMode EffectiveNetworkMode =>
+        NetworkMode ?? (HasCloudflareCredentials ? Settings.NetworkMode.Cloudflare
+            : !string.IsNullOrWhiteSpace(PublicHost) ? Settings.NetworkMode.OwnHost
+            : Settings.NetworkMode.Automatic);
+
+    /// <summary>
+    ///     Sem escolha gravada, um host escrito ao lado da Cloudflare era
+    ///     exatamente para onde os SRV apontavam — o comportamento se mantém.
+    /// </summary>
+    public bool EffectiveCloudflareUsesPublicHost =>
+        NetworkMode is null ? !string.IsNullOrWhiteSpace(PublicHost) : CloudflareUsesPublicHost;
+
+    /// <summary>
+    ///     O host escrito pelo admin, SE o modo o usa. Fora disso ele fica
+    ///     guardado e não vale: é o que acaba com "preenchi o domínio e o IP
+    ///     detectado continua a aparecer" (ou o contrário).
+    /// </summary>
+    public string? EffectivePublicHost
+    {
+        get
+        {
+            var host = string.IsNullOrWhiteSpace(PublicHost) ? null : PublicHost.Trim();
+
+            return EffectiveNetworkMode switch
+            {
+                Settings.NetworkMode.OwnHost => host,
+                Settings.NetworkMode.Cloudflare when EffectiveCloudflareUsesPublicHost => host,
+                _ => null
+            };
+        }
+    }
+
+    /// <summary>
+    ///     A Cloudflare está escolhida E completa. Escolhida sem token, zona ou
+    ///     domínio, nada é publicado: mandar os jogadores a um nome que ninguém
+    ///     mantém seria pior que o IP.
+    /// </summary>
+    public bool DnsEnabled =>
+        EffectiveNetworkMode is Settings.NetworkMode.Cloudflare && HasCloudflareCredentials;
+
+    /// <summary>
+    ///     O registro A que o TCMine mantém ("mc.exemplo.com"), quando é ele o
+    ///     destino. Nulo fora da Cloudflare ou quando os registros apontam para
+    ///     o host do admin.
+    /// </summary>
+    public string? ManagedDnsHost =>
+        DnsEnabled && !EffectiveCloudflareUsesPublicHost
+            ? GameDns.ManagedHost(DnsHostLabel, DnsBaseDomain)
+            : null;
 
     // ---------- Integrações ----------
 

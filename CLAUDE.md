@@ -232,6 +232,12 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   `ContainerId`, `MemoryMb`, `MaxPlayers`, `RconSecret` (**required, NUNCA exposto em DTO nem log** — quem tem a senha
   RCON controla a máquina do jogo),
   `WorldInitializedAt`/`HasWorld` (seam do backup).
+- **O host publicado sai do modo de rede** (`InstallationSettings.NetworkMode`: Automático, Meu domínio,
+  Cloudflare), uma escolha só. Os campos dos outros modos ficam gravados e **não valem**
+  (`EffectivePublicHost`, `DnsEnabled`). Nulo = instalação de antes da escolha: o modo é deduzido do que está
+  preenchido (`EffectiveNetworkMode`). No modo Cloudflare, servidor sem subdomínio sai pelo registro A mantido
+  (`ManagedDnsHost`, "mc.dominio:porta"), não pelo IP. `AddressSettings.From` é a regra única, usada também
+  pela prévia da aba Rede.
 - Só pode ser criado apontando para versão **`Ready` e de canal release** (não alpha). Alpha = `Version` com sufixo `-`
   (pré-release SemVer, `IsPreRelease`).
 

@@ -1417,6 +1417,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
 
+                    b.Property<bool>("CloudflareUsesPublicHost")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CloudflareZoneId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1461,6 +1464,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<string>("LanHost")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
+
+                    b.Property<string>("NetworkMode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<string>("PublicHost")
                         .HasMaxLength(255)

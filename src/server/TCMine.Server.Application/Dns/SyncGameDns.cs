@@ -44,11 +44,12 @@ public sealed class SyncGameDns(
         // Um SRV aponta para um NOME, nunca para um IP. Se o endereço público da
         // instalação já é um nome (DDNS, domínio próprio), é ele. Senão o TCMine
         // mantém um registro A com o IP — o gravado, ou o detectado.
-        var publicHost = string.IsNullOrWhiteSpace(config.PublicHost) ? null : config.PublicHost.Trim();
+        // O host do admin só entra quando a opção avançada do modo Cloudflare o
+        // pede: um domínio guardado de quando o modo era outro não vale mais.
+        var publicHost = config.EffectivePublicHost;
         var publicHostIsName = publicHost is not null && !IPAddress.TryParse(publicHost, out _);
 
-        var hostLabel = GameDns.NormalizeLabel(config.DnsHostLabel) ?? GameDns.DefaultHostLabel;
-        var managedHost = $"{hostLabel}.{baseDomain}";
+        var managedHost = GameDns.ManagedHost(config.DnsHostLabel, baseDomain)!;
         string target;
 
         // O nome gravado pode ser o próprio registro que o TCMine mantém (o admin

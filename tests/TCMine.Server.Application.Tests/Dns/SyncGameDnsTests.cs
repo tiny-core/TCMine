@@ -87,6 +87,48 @@ public sealed class SyncGameDnsTests
     }
 
     [Fact]
+    public async Task Dominio_guardado_de_outro_modo_nao_vira_o_alvo()
+    {
+        // O admin usava "meu domínio" e passou para a Cloudflare sem a opção
+        // avançada: o domínio antigo fica guardado e não pode desviar os SRV
+        // para um nome que ele talvez nem mantenha mais.
+        _settings.NetworkMode = NetworkMode.Cloudflare;
+        _settings.PublicHost = "casa.ddns.exemplo.net";
+        var dns = new FakeDns();
+
+        await New(dns, "1.2.3.4", Servidor("a", 25565)).HandleAsync(CancellationToken.None);
+
+        Assert.Equal("mc.exemplo.com", Assert.Single(dns.Records, r => r.Spec.Type == DnsRecordTypes.Srv).Spec.Target);
+    }
+
+    [Fact]
+    public async Task Opcao_avancada_aponta_os_registros_para_o_ddns()
+    {
+        _settings.NetworkMode = NetworkMode.Cloudflare;
+        _settings.CloudflareUsesPublicHost = true;
+        _settings.PublicHost = "casa.ddns.exemplo.net";
+        var dns = new FakeDns();
+
+        await New(dns, null, Servidor("a", 25565)).HandleAsync(CancellationToken.None);
+
+        Assert.Equal("casa.ddns.exemplo.net", Assert.Single(dns.Records).Spec.Target);
+    }
+
+    [Fact]
+    public async Task Outro_modo_escolhido_nao_mexe_na_zona()
+    {
+        // Credenciais guardadas não bastam: com outro modo escolhido, a
+        // Cloudflare está desligada por decisão do admin.
+        _settings.NetworkMode = NetworkMode.Automatic;
+        var dns = new FakeDns();
+
+        var report = await New(dns, "1.2.3.4", Servidor("a", 25565)).HandleAsync(CancellationToken.None);
+
+        Assert.False(report.Enabled);
+        Assert.Equal(0, dns.Calls);
+    }
+
+    [Fact]
     public async Task Endereco_publico_igual_ao_registro_gerenciado_nao_apaga_o_registro()
     {
         // O admin copiou "mc.exemplo.com" para o endereço público. Tratá-lo

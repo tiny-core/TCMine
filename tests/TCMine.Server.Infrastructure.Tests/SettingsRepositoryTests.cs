@@ -88,6 +88,8 @@ public sealed class SettingsRepositoryTests : IDisposable
         WorldBackupKeepCount = 9,
         GamePortRangeStart = 30000,
         GamePortRangeEnd = 30010,
+        NetworkMode = NetworkMode.Cloudflare,
+        CloudflareUsesPublicHost = true,
         PublicHost = "jogar.exemplo.com",
         LanHost = "192.168.1.100",
         CloudflareApiTokenEncrypted = "token-da-cloudflare",

@@ -302,6 +302,75 @@ public sealed class UpdateSettingsTests
         Assert.Equal(1, signal.Requests);
     }
 
+    // ---- Modo de rede ----
+
+    [Fact]
+    public async Task Meu_dominio_sem_dominio_e_recusado()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { NetworkMode = NetworkMode.OwnHost }, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
+    [Fact]
+    public async Task Cloudflare_incompleta_e_recusada_dizendo_o_que_falta()
+    {
+        // Sem isto a tela gravava "Cloudflare" e os jogadores continuavam a
+        // receber o IP, porque faltava o Zone ID — e nada dizia por quê.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { NetworkMode = NetworkMode.Cloudflare, DnsBaseDomain = "exemplo.com" },
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("token", result.Error);
+        Assert.Contains("Zone ID", result.Error);
+        Assert.DoesNotContain("domínio", result.Error);
+    }
+
+    [Fact]
+    public async Task Cloudflare_aceita_o_token_ja_gravado()
+    {
+        var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token" });
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand
+            {
+                NetworkMode = NetworkMode.Cloudflare,
+                CloudflareZoneId = new string('a', 32),
+                DnsBaseDomain = "exemplo.com"
+            }, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(NetworkMode.Cloudflare, repo.Salvo!.NetworkMode);
+    }
+
+    [Fact]
+    public async Task Trocar_de_modo_guarda_os_campos_do_anterior()
+    {
+        // Voltar para a Cloudflare depois não pode pedir o token de novo.
+        var repo = new FakeSettings(new InstallationSettings { CloudflareApiTokenEncrypted = "token" });
+
+        await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand
+            {
+                NetworkMode = NetworkMode.Automatic,
+                CloudflareZoneId = new string('a', 32),
+                DnsBaseDomain = "exemplo.com"
+            }, CancellationToken.None);
+
+        var salvo = repo.Salvo!;
+        Assert.Equal(NetworkMode.Automatic, salvo.NetworkMode);
+        Assert.Equal("token", salvo.CloudflareApiTokenEncrypted);
+        Assert.Equal("exemplo.com", salvo.DnsBaseDomain);
+        Assert.False(salvo.DnsEnabled);
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeSettings(InstallationSettings settings) : ISettingsRepository

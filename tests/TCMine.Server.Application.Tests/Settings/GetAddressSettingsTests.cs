@@ -64,8 +64,58 @@ public sealed class GetAddressSettingsTests
 
         Assert.Equal("sobrevivencia.exemplo.com", address.For(Servidor("", 25570, "sobrevivencia")));
 
-        // Servidor sem subdomínio continua no automático.
-        Assert.Equal("1.2.3.4:25570", address.For(Servidor("", 25570, null)));
+        // Sem subdomínio sai pelo registro A que o TCMine mantém, e não pelo
+        // IP: o nome continua certo quando o IP de casa muda.
+        Assert.Equal("mc.exemplo.com:25570", address.For(Servidor("", 25570, null)));
+    }
+
+    [Fact]
+    public async Task No_modo_automatico_o_dominio_guardado_nao_vale()
+    {
+        // O admin tinha um domínio e voltou para o automático: o domínio fica
+        // guardado (voltar não pede para redigitar) e os jogadores recebem o IP.
+        var settings = new InstallationSettings { NetworkMode = NetworkMode.Automatic, PublicHost = "jogar.exemplo.com" };
+
+        var address = await New(settings, new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+
+        Assert.Equal("1.2.3.4", address.PublicHost);
+    }
+
+    [Fact]
+    public async Task No_modo_meu_dominio_a_cloudflare_guardada_nao_vale()
+    {
+        var settings = DnsConfigured();
+        settings.NetworkMode = NetworkMode.OwnHost;
+        settings.PublicHost = "jogar.exemplo.com";
+
+        var address = await New(settings, new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+
+        Assert.Null(address.DnsBaseDomain);
+        Assert.Equal("jogar.exemplo.com:25570", address.For(Servidor("", 25570, "sobrevivencia")));
+    }
+
+    [Fact]
+    public async Task Cloudflare_com_a_opcao_avancada_publica_o_ddns()
+    {
+        var settings = DnsConfigured();
+        settings.NetworkMode = NetworkMode.Cloudflare;
+        settings.CloudflareUsesPublicHost = true;
+        settings.PublicHost = "casa.ddns.exemplo.net";
+
+        var address = await New(settings, new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+
+        Assert.Equal("casa.ddns.exemplo.net:25570", address.For(Servidor("", 25570, null)));
+        Assert.Equal("sobrevivencia.exemplo.com", address.For(Servidor("", 25570, "sobrevivencia")));
+    }
+
+    [Fact]
+    public void Sem_escolha_gravada_o_modo_sai_do_que_esta_preenchido()
+    {
+        // Instalações de antes da escolha: o resultado tem de ser o mesmo que
+        // elas já tinham, sem migration reescrever nada.
+        new InstallationSettings().EffectiveNetworkMode.ShouldBe(NetworkMode.Automatic);
+        new InstallationSettings { PublicHost = "x.exemplo.com" }.EffectiveNetworkMode.ShouldBe(NetworkMode.OwnHost);
+        DnsConfigured().EffectiveNetworkMode.ShouldBe(NetworkMode.Cloudflare);
     }
 
     [Fact]

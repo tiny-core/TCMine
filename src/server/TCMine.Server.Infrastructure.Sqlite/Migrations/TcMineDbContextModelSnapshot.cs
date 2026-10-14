@@ -1412,6 +1412,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(1024)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("CloudflareUsesPublicHost")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("CloudflareZoneId")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
@@ -1455,6 +1458,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<string>("LanHost")
                         .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NetworkMode")
+                        .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PublicHost")

@@ -35,8 +35,18 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.DnsBaseDomain).HasMaxLength(255);
         builder.Property(s => s.DnsHostLabel).HasMaxLength(63);
 
-        // Calculado a partir dos três acima — não é coluna.
+        // Nulo de propósito: instalação de antes da escolha deduz o modo do que
+        // está preenchido (InstallationSettings.EffectiveNetworkMode), e a
+        // migration não precisa adivinhar nada.
+        builder.Property(s => s.NetworkMode).HasConversion<string>().HasMaxLength(32);
+
+        // Calculados a partir das colunas acima — não são colunas.
+        builder.Ignore(s => s.HasCloudflareCredentials);
+        builder.Ignore(s => s.EffectiveNetworkMode);
+        builder.Ignore(s => s.EffectiveCloudflareUsesPublicHost);
+        builder.Ignore(s => s.EffectivePublicHost);
         builder.Ignore(s => s.DnsEnabled);
+        builder.Ignore(s => s.ManagedDnsHost);
 
         // Com padrão NO BANCO: a linha de configurações já existe nas
         // instalações em uso, e sem isto a migration a deixaria com a faixa

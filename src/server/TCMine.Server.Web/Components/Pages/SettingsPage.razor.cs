@@ -7,6 +7,7 @@ using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Domain.Settings;
 using TCMine.Server.Web.Background;
 using TCMine.Server.Web.Configuration;
 
@@ -44,6 +45,94 @@ public partial class SettingsPage : ComponentBase
 
     /// <summary>Começa ligado: a detecção só roda depois do primeiro render.</summary>
     private bool _isDetecting = true;
+
+    // ---- Modo de rede ----
+
+    /// <summary>
+    ///     Os três cartões. Uma lista, e não três blocos de markup: título,
+    ///     ícone e explicação mudam juntos, e um cartão a mais é uma linha.
+    /// </summary>
+    private static readonly NetworkOption[] NetworkOptions =
+    [
+        new(NetworkMode.Automatic, Icons.Material.Filled.AutoMode, "Automático",
+            "O IP desta casa, detectado sozinho. Nada a configurar; o endereço muda quando o IP mudar."),
+        new(NetworkMode.OwnHost, Icons.Material.Filled.Language, "Meu domínio ou DDNS",
+            "Um nome que você já mantém apontado para esta casa (ex.: um DDNS). O endereço não muda."),
+        new(NetworkMode.Cloudflare, Icons.Material.Filled.Cloud, "Domínio na Cloudflare",
+            "O TCMine cuida do DNS: cada servidor ganha um nome próprio, sem porta.")
+    ];
+
+    private NetworkMode _networkMode = NetworkMode.Automatic;
+    private bool _cloudflareUsesPublicHost;
+
+    /// <summary>
+    ///     Abre o "Avançado" só se a opção já estava ligada ao carregar. Ligado
+    ///     ao valor vivo, desmarcar a caixa fecharia o painel na mão do admin.
+    /// </summary>
+    private bool _advancedInitiallyOpen;
+
+    private static string CardStyle(bool selected) =>
+        selected
+            ? "cursor:pointer; height:100%; border:2px solid var(--mud-palette-primary);"
+            : "cursor:pointer; height:100%; border:2px solid var(--mud-palette-lines-default);";
+
+    /// <summary>
+    ///     A prévia do cartão "O que os jogadores recebem", com o que está
+    ///     DIGITADO. Monta uma configuração temporária e passa pela mesma
+    ///     <see cref="AddressSettings.From" /> que publica o endereço de verdade.
+    /// </summary>
+    private IEnumerable<PreviewLine> PreviewLines
+    {
+        get
+        {
+            var draft = new InstallationSettings
+            {
+                NetworkMode = _networkMode,
+                CloudflareUsesPublicHost = _cloudflareUsesPublicHost,
+                PublicHost = _publicHost,
+                LanHost = _lanHost,
+
+                // Só importa SE haverá token, não qual: o valor nunca volta à tela.
+                CloudflareApiTokenEncrypted =
+                    !_clearCloudflareToken && (_hasCloudflareToken || !string.IsNullOrWhiteSpace(_cloudflareToken))
+                        ? "token"
+                        : null,
+                CloudflareZoneId = _cloudflareZoneId,
+                DnsBaseDomain = _dnsBaseDomain,
+                DnsHostLabel = _dnsHostLabel
+            };
+
+            var address = AddressSettings.From(draft, _detectedAddress);
+            var port = _gamePortRangeStart;
+
+            // Modo incompleto não cai no IP na prévia: o Salvar o recusaria, e
+            // mostrar o IP faria parecer que está tudo certo.
+            var incomplete = _networkMode switch
+            {
+                NetworkMode.OwnHost when string.IsNullOrWhiteSpace(_publicHost) => "preencha o domínio acima",
+                NetworkMode.Cloudflare when !draft.HasCloudflareCredentials => "complete a Cloudflare acima",
+                NetworkMode.Cloudflare when _cloudflareUsesPublicHost && string.IsNullOrWhiteSpace(_publicHost) =>
+                    "preencha o DDNS ou IP fixo no Avançado",
+                _ => null
+            };
+
+            var missing = incomplete ?? (_isDetecting ? "detectando o IP…" : "IP público não detectado");
+
+            yield return new PreviewLine(
+                $"Servidor na porta {port}", incomplete is null ? address.For(null, port, null) : null, missing);
+
+            if (_networkMode is NetworkMode.Cloudflare)
+            {
+                yield return new PreviewLine(
+                    "Servidor com subdomínio \"sobrevivencia\"",
+                    incomplete is null ? address.For(null, port, "sobrevivencia") : null,
+                    missing);
+            }
+
+            if (address.LanHost is not null)
+                yield return new PreviewLine("Quem está em casa", GameAddress.WithPort(address.LanHost, port), "");
+        }
+    }
 
     // ---- DNS (Cloudflare) ----
     private bool _clearCloudflareToken;
@@ -204,6 +293,13 @@ public partial class SettingsPage : ComponentBase
         (_gamePortRangeStart, _gamePortRangeEnd) =
             GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
 
+        // O modo que VALE, e não o gravado: numa instalação de antes da escolha
+        // o gravado é nulo, e o cartão marcado tem de ser o que os jogadores
+        // estão recebendo hoje.
+        _networkMode = settings.EffectiveNetworkMode;
+        _cloudflareUsesPublicHost = settings.EffectiveCloudflareUsesPublicHost;
+        _advancedInitiallyOpen = _cloudflareUsesPublicHost;
+
         _publicHost = settings.PublicHost ?? "";
         _lanHost = settings.LanHost ?? "";
 
@@ -241,6 +337,8 @@ public partial class SettingsPage : ComponentBase
                 WorldBackupKeepCount = _worldBackupKeepCount,
                 GamePortRangeStart = _gamePortRangeStart,
                 GamePortRangeEnd = _gamePortRangeEnd,
+                NetworkMode = _networkMode,
+                CloudflareUsesPublicHost = _networkMode is NetworkMode.Cloudflare && _cloudflareUsesPublicHost,
                 PublicHost = _publicHost,
                 LanHost = _lanHost,
                 CloudflareApiToken = _cloudflareToken,
@@ -267,4 +365,9 @@ public partial class SettingsPage : ComponentBase
             _isSaving = false;
         }
     }
+
+    private sealed record NetworkOption(NetworkMode Mode, string Icon, string Title, string Description);
+
+    /// <param name="Missing">O que dizer quando ainda não há endereço.</param>
+    private sealed record PreviewLine(string Label, string? Address, string Missing);
 }

@@ -87,6 +87,14 @@ public static class GameDns
     /// <summary>O nome do registro SRV que o Minecraft consulta para um host.</summary>
     public static string SrvName(string serverHost) => $"_minecraft._tcp.{serverHost}";
 
+    /// <summary>
+    ///     O nome do registro A que o TCMine mantém com o IP público
+    ///     ("mc.exemplo.com"). Um lugar só: a sincronização escreve este nome e
+    ///     o endereço dos servidores o publica, e os dois não podem divergir.
+    /// </summary>
+    public static string? ManagedHost(string? hostLabel, string? baseDomain) =>
+        ServerHost(NormalizeLabel(hostLabel) ?? DefaultHostLabel, baseDomain);
+
     /// <summary>O outro servidor que já usa este subdomínio, se houver.</summary>
     public static GameServer? OwnerOf(string label, IEnumerable<GameServer> servers, Guid? exceptServerId) =>
         servers.FirstOrDefault(s =>

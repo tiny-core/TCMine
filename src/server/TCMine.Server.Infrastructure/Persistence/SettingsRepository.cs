@@ -80,6 +80,8 @@ public sealed class SettingsRepository : ISettingsRepository
         // que a próxima propriedade esquecida reprove a suíte.
         stored.GamePortRangeStart = settings.GamePortRangeStart;
         stored.GamePortRangeEnd = settings.GamePortRangeEnd;
+        stored.NetworkMode = settings.NetworkMode;
+        stored.CloudflareUsesPublicHost = settings.CloudflareUsesPublicHost;
         stored.PublicHost = settings.PublicHost;
         stored.LanHost = settings.LanHost;
 

@@ -2,6 +2,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Application.Settings;
 
@@ -114,6 +115,39 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
 
         var settings = await repository.GetAsync(ct);
 
+        // ---- O modo de rede ----
+        // Escolher um modo é prometer que ele funciona: recusar aqui o que
+        // falta é o que impede a tela de dizer "Cloudflare" enquanto os
+        // jogadores recebem o IP, porque faltava o Zone ID.
+        var mode = command.NetworkMode ?? settings.NetworkMode;
+
+        if (mode is NetworkMode.OwnHost && publicHost is null)
+            return Result.Fail("Informe o domínio ou DDNS desta máquina, ou escolha outra forma de os jogadores a encontrarem.");
+
+        if (mode is NetworkMode.Cloudflare)
+        {
+            var willHaveToken = !command.ClearCloudflareApiToken
+                                && (!string.IsNullOrWhiteSpace(command.CloudflareApiToken)
+                                    || !string.IsNullOrWhiteSpace(settings.CloudflareApiTokenEncrypted));
+
+            var missing = new List<string>();
+            if (!willHaveToken)
+                missing.Add("o token da API");
+            if (zoneId is null)
+                missing.Add("o Zone ID");
+            if (dnsBaseDomain is null)
+                missing.Add("o domínio dos servidores");
+
+            if (missing.Count > 0)
+                return Result.Fail($"Para usar a Cloudflare, falta {string.Join(", ", missing)}.");
+
+            if (command.CloudflareUsesPublicHost && publicHost is null)
+                return Result.Fail("Informe o DDNS ou IP fixo para onde os registros devem apontar, ou desmarque a opção.");
+        }
+
+        settings.NetworkMode = mode;
+        settings.CloudflareUsesPublicHost = command.CloudflareUsesPublicHost;
+
         settings.DefaultMinecraftVersion = string.IsNullOrWhiteSpace(command.DefaultMinecraftVersion)
             ? null
             : command.DefaultMinecraftVersion.Trim();
@@ -179,8 +213,18 @@ public sealed record UpdateSettingsCommand
     public int GamePortRangeEnd { get; init; } = GamePortDefaults.Last;
 
     /// <summary>
-    ///     Domínio ou DDNS desta máquina, sem porta. Vazio = limpar, e volta a
-    ///     valer o IP detectado.
+    ///     Como os jogadores encontram esta máquina. Nulo = manter o que está
+    ///     gravado (inclusive "nunca escolhido", que deduz o modo dos campos).
+    /// </summary>
+    public NetworkMode? NetworkMode { get; init; }
+
+    /// <summary>Modo Cloudflare: os registros apontam para o <see cref="PublicHost" />.</summary>
+    public bool CloudflareUsesPublicHost { get; init; }
+
+    /// <summary>
+    ///     Domínio ou DDNS desta máquina, sem porta. Vazio = limpar. Só vale no
+    ///     modo "meu domínio" e na opção avançada da Cloudflare; nos outros
+    ///     modos fica guardado.
     /// </summary>
     public string? PublicHost { get; init; }
 
