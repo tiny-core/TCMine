@@ -47,6 +47,11 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.Ignore(s => s.EffectivePublicHost);
         builder.Ignore(s => s.DnsEnabled);
         builder.Ignore(s => s.ManagedDnsHost);
+        builder.Ignore(s => s.DnsSyncInterval);
+
+        // Padrão no banco pelo mesmo motivo da faixa de portas: a linha já
+        // existe, e sem ele a migration a deixaria com intervalo zero.
+        builder.Property(s => s.DnsSyncIntervalMinutes).HasDefaultValue(5);
 
         // Com padrão NO BANCO: a linha de configurações já existe nas
         // instalações em uso, e sem isto a migration a deixaria com a faixa

@@ -1451,6 +1451,14 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("character varying(63)");
 
+                    b.Property<bool>("DnsManualSyncOnly")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("DnsSyncIntervalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5);
+
                     b.Property<int>("GamePortRangeEnd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")

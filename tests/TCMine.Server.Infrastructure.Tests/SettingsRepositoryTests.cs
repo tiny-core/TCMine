@@ -96,6 +96,8 @@ public sealed class SettingsRepositoryTests : IDisposable
         CloudflareZoneId = "0123456789abcdef0123456789abcdef",
         DnsBaseDomain = "exemplo.com",
         DnsHostLabel = "jogo",
+        DnsManualSyncOnly = true,
+        DnsSyncIntervalMinutes = 30,
         CurseForgeApiKeyEncrypted = "chave-do-curseforge",
         AzureClientId = "55555555-5555-5555-5555-555555555555"
     };

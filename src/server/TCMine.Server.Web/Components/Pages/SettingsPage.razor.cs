@@ -143,6 +143,8 @@ public partial class SettingsPage : ComponentBase
     private string _cloudflareZoneId = "";
     private string _dnsBaseDomain = "";
     private string _dnsHostLabel = "";
+    private bool _dnsManualSyncOnly;
+    private int _dnsSyncIntervalMinutes = 5;
 
     /// <summary>
     ///     A última sincronização — a automática, ou a pedida nesta tela. Nulo =
@@ -307,6 +309,11 @@ public partial class SettingsPage : ComponentBase
         _cloudflareZoneId = settings.CloudflareZoneId ?? "";
         _dnsBaseDomain = settings.DnsBaseDomain ?? "";
         _dnsHostLabel = settings.DnsHostLabel ?? "";
+        _dnsManualSyncOnly = settings.DnsManualSyncOnly;
+
+        // O que vale, não o gravado: um valor fora da lista no banco aparece
+        // como o intervalo que o serviço está de fato usando.
+        _dnsSyncIntervalMinutes = (int)settings.DnsSyncInterval.TotalMinutes;
         _cloudflareToken = "";
         _clearCloudflareToken = false;
         _dnsOutcome = DnsState.Last;
@@ -346,6 +353,8 @@ public partial class SettingsPage : ComponentBase
                 CloudflareZoneId = _cloudflareZoneId,
                 DnsBaseDomain = _dnsBaseDomain,
                 DnsHostLabel = _dnsHostLabel,
+                DnsManualSyncOnly = _dnsManualSyncOnly,
+                DnsSyncIntervalMinutes = _dnsSyncIntervalMinutes,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey

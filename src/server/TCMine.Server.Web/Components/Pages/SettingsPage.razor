@@ -207,6 +207,44 @@ else
                             </MudExpansionPanel>
                         </MudExpansionPanels>
 
+                        <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Atualização do DNS</MudText>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" md="6" Class="d-flex align-center">
+                                <MudSwitch T="bool" Value="@(!_dnsManualSyncOnly)"
+                                           ValueChanged="@(v => _dnsManualSyncOnly = !v)"
+                                           Color="Color.Primary" Label="Atualizar sozinho"/>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSelect T="int" @bind-Value="_dnsSyncIntervalMinutes" Label="De quanto em quanto tempo"
+                                           Variant="Variant.Outlined" Dense="true" Disabled="_dnsManualSyncOnly">
+                                    @foreach (var minutes in InstallationSettings.DnsSyncIntervalChoices)
+                                    {
+                                        <MudSelectItem T="int" Value="minutes">
+                                            @(minutes == 60 ? "A cada hora" : $"A cada {minutes} minutos")@(minutes == 5 ? " (recomendado)" : "")
+                                        </MudSelectItem>
+                                    }
+                                </MudSelect>
+                            </MudItem>
+                        </MudGrid>
+                        @if (_dnsManualSyncOnly)
+                        {
+                            @* Desligar é legítimo (zona mexida à mão, teste), mas o
+                               efeito colateral não é óbvio: servidor novo também
+                               fica sem nome até o clique. *@
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                                Os registros só mudam quando você clicar em <b>Sincronizar agora</b> — também
+                                depois de criar ou editar um servidor, e quando o IP desta casa mudar.
+                            </MudAlert>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                                Também roda logo depois de salvar um servidor ou estas configurações. Quanto
+                                maior o intervalo, mais tempo os amigos ficam sem entrar depois de o IP desta
+                                casa mudar.
+                            </MudText>
+                        }
+
                         <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
                             <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                                        StartIcon="@Icons.Material.Filled.Sync"
@@ -218,7 +256,7 @@ else
                                 Sincronizar agora
                             </MudButton>
                             <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                                Roda sozinha a cada 5 minutos e logo depois de salvar. O botão usa o que está salvo.
+                                Usa o que está salvo.
                             </MudText>
                         </MudStack>
 

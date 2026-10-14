@@ -100,6 +100,12 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
                 "O nome do registro do IP aceita só letras sem acento, números e hífen (ex.: mc).");
         }
 
+        if (!InstallationSettings.DnsSyncIntervalChoices.Contains(command.DnsSyncIntervalMinutes))
+        {
+            return Result.Fail(
+                $"O intervalo da sincronização do DNS é de {string.Join(", ", InstallationSettings.DnsSyncIntervalChoices)} minutos.");
+        }
+
         // Um id malformado só se manifestaria na máquina do jogador, como uma
         // falha de login sem explicação: o handshake entrega o lixo, o MSAL
         // tenta montar a autoridade com ele e desiste. Recusar aqui move o erro
@@ -166,6 +172,8 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         settings.CloudflareZoneId = zoneId;
         settings.DnsBaseDomain = dnsBaseDomain;
         settings.DnsHostLabel = dnsHostLabel;
+        settings.DnsManualSyncOnly = command.DnsManualSyncOnly;
+        settings.DnsSyncIntervalMinutes = command.DnsSyncIntervalMinutes;
 
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
@@ -187,7 +195,10 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         await repository.SaveAsync(settings, ct);
 
         // Token, zona, domínio e endereço público entram todos no que a
-        // sincronização escreve.
+        // sincronização escreve. Também acorda o serviço para ele reler o
+        // intervalo e o interruptor — senão a mudança só valeria na rodada
+        // seguinte, até uma hora depois. Com o "só manual", ele acorda, vê e
+        // volta a dormir sem tocar na zona.
         dnsSync.Request();
 
         return Result.Success();
@@ -258,4 +269,10 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Rótulo do registro A mantido pelo TCMine. Vazio = o padrão ("mc").</summary>
     public string? DnsHostLabel { get; init; }
+
+    /// <summary>Só sincronizar o DNS pelo botão.</summary>
+    public bool DnsManualSyncOnly { get; init; }
+
+    /// <summary>Minutos entre as sincronizações automáticas: 5, 15, 30 ou 60.</summary>
+    public int DnsSyncIntervalMinutes { get; init; } = 5;
 }

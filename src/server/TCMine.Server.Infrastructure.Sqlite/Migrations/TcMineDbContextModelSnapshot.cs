@@ -1446,6 +1446,14 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("DnsManualSyncOnly")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DnsSyncIntervalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(5);
+
                     b.Property<int>("GamePortRangeEnd")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER")

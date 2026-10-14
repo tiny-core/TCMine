@@ -107,6 +107,34 @@ public sealed class InstallationSettings : Entity
     public string? DnsHostLabel { get; set; }
 
     /// <summary>
+    ///     Os intervalos que a tela oferece, em minutos. Lista fechada, e não um
+    ///     número livre: 1 minuto bateria na API da Cloudflare à toa (o IP
+    ///     detectado fica dez minutos em cache), e um dia deixaria os amigos
+    ///     sem entrar um dia inteiro depois de uma troca de IP.
+    /// </summary>
+    public static IReadOnlyList<int> DnsSyncIntervalChoices { get; } = [5, 15, 30, 60];
+
+    /// <summary>
+    ///     Só sincronizar o DNS quando o admin clicar. Negativo de propósito
+    ///     ("só manual", e não "automático ligado"): o padrão de um bool é falso,
+    ///     e um padrão verdadeiro no banco faria o EF engolir o falso num INSERT —
+    ///     ele omite o valor padrão do CLR e o banco põe o dele.
+    /// </summary>
+    public bool DnsManualSyncOnly { get; set; }
+
+    /// <summary>De quanto em quanto tempo a sincronização roda sozinha. Ver <see cref="DnsSyncIntervalChoices" />.</summary>
+    public int DnsSyncIntervalMinutes { get; set; } = DnsSyncIntervalChoices[0];
+
+    /// <summary>
+    ///     O intervalo que vale. Um número fora da lista (gravado à mão no banco)
+    ///     vira o padrão em vez de um laço de um minuto ou de nunca.
+    /// </summary>
+    public TimeSpan DnsSyncInterval =>
+        TimeSpan.FromMinutes(DnsSyncIntervalChoices.Contains(DnsSyncIntervalMinutes)
+            ? DnsSyncIntervalMinutes
+            : DnsSyncIntervalChoices[0]);
+
+    /// <summary>
     ///     Há o bastante para manter registros: token, zona e domínio. Faltando
     ///     um, os subdomínios dos servidores ficam guardados mas não são
     ///     publicados nem usados no endereço.

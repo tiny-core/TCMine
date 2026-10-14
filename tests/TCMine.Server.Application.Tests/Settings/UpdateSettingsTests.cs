@@ -371,6 +371,54 @@ public sealed class UpdateSettingsTests
         Assert.False(salvo.DnsEnabled);
     }
 
+    // ---- Agenda do DNS ----
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(7)]
+    [InlineData(1440)]
+    public async Task Recusa_intervalo_do_dns_fora_da_lista(int minutes)
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { DnsSyncIntervalMinutes = minutes }, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
+    [Fact]
+    public async Task Intervalo_e_so_manual_sao_gravados_e_acordam_o_servico()
+    {
+        // Acordar é o que faz o novo intervalo valer na hora: sem o pedido, o
+        // serviço só releria as configurações no fim da espera antiga.
+        var repo = new FakeSettings(new InstallationSettings());
+        var signal = new FakeDnsSyncSignal();
+
+        await new UpdateSettings(repo, signal).HandleAsync(
+            new UpdateSettingsCommand { DnsSyncIntervalMinutes = 30, DnsManualSyncOnly = true },
+            CancellationToken.None);
+
+        Assert.Equal(30, repo.Salvo!.DnsSyncIntervalMinutes);
+        Assert.True(repo.Salvo.DnsManualSyncOnly);
+        Assert.Equal(1, signal.Requests);
+    }
+
+    [Theory]
+    [InlineData(15, 15)]
+    [InlineData(60, 60)]
+    [InlineData(0, 5)]
+    [InlineData(2, 5)]
+    public void Intervalo_gravado_fora_da_lista_vira_o_padrao(int stored, int expected)
+    {
+        // Um número escrito à mão no banco não pode virar um laço de minuto em
+        // minuto contra a API da Cloudflare, nem um "nunca".
+        new InstallationSettings { DnsSyncIntervalMinutes = stored }.DnsSyncInterval
+            .ShouldBe(TimeSpan.FromMinutes(expected));
+    }
+
     // ---- Fakes ----
 
     private sealed class FakeSettings(InstallationSettings settings) : ISettingsRepository

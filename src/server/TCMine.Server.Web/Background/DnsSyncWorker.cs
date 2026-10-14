@@ -1,4 +1,6 @@
+using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Dns;
+using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Web.Background;
 
@@ -11,19 +13,15 @@ namespace TCMine.Server.Web.Background;
 ///     sincronização recalcula a diferença inteira a cada vez.
 ///     Com o DNS desligado cada rodada é uma leitura das configurações e mais
 ///     nada: nenhuma chamada sai para a Cloudflare.
+///     O intervalo e o "só manual" vêm das configurações, relidas a cada
+///     rodada: salvar a tela acorda o serviço (é um pedido), e a mudança vale
+///     na hora, sem reiniciar.
 /// </summary>
 public sealed partial class DnsSyncWorker(
     DnsSyncState state,
     IServiceScopeFactory scopeFactory,
     ILogger<DnsSyncWorker> logger) : BackgroundService
 {
-    /// <summary>
-    ///     Cinco minutos: com o cache de dez minutos do IP público, uma troca de IP
-    ///     chega ao DNS em até quinze. Cada rodada custa uma listagem na
-    ///     Cloudflare, muito abaixo do limite da API.
-    /// </summary>
-    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(5);
-
     /// <summary>Deixa o resto do arranque (migrations, Docker) passar à frente.</summary>
     private static readonly TimeSpan StartupDelay = TimeSpan.FromSeconds(20);
 
@@ -50,15 +48,41 @@ public sealed partial class DnsSyncWorker(
                 // tem de sobreviver a ela e disparar a seguinte.
                 state.Drain();
 
-                await SyncOnceAsync(stoppingToken);
+                var schedule = await ScheduleAsync(stoppingToken);
 
-                if (await state.WaitAsync(Interval, stoppingToken))
+                // "Só manual": nem a rodada periódica nem a de depois de salvar.
+                // O botão da tela chama a sincronização direto, sem passar
+                // por aqui.
+                if (!schedule.ManualOnly)
+                    await SyncOnceAsync(stoppingToken);
+
+                if (await state.WaitAsync(schedule.Interval, stoppingToken))
                     await Task.Delay(Debounce, stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // Desligando: a próxima subida sincroniza.
+        }
+    }
+
+    /// <summary>
+    ///     Banco fora do ar não pode parar o serviço nem o deixar num laço: na
+    ///     falha vale o padrão (automático, 5 min), e a sincronização em si vai
+    ///     falhar e ficar no log do mesmo jeito.
+    /// </summary>
+    private async Task<(bool ManualOnly, TimeSpan Interval)> ScheduleAsync(CancellationToken ct)
+    {
+        try
+        {
+            await using var scope = scopeFactory.CreateAsyncScope();
+            var settings = await scope.ServiceProvider.GetRequiredService<ISettingsRepository>().GetAsync(ct);
+
+            return (settings.DnsManualSyncOnly, settings.DnsSyncInterval);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return (false, new InstallationSettings().DnsSyncInterval);
         }
     }
 

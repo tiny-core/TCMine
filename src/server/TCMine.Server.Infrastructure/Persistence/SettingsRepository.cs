@@ -88,6 +88,8 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.CloudflareZoneId = settings.CloudflareZoneId;
         stored.DnsBaseDomain = settings.DnsBaseDomain;
         stored.DnsHostLabel = settings.DnsHostLabel;
+        stored.DnsManualSyncOnly = settings.DnsManualSyncOnly;
+        stored.DnsSyncIntervalMinutes = settings.DnsSyncIntervalMinutes;
         stored.CloudflareApiTokenEncrypted = Protect(settings.CloudflareApiTokenEncrypted);
 
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);
