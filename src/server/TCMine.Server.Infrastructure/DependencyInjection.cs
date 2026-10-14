@@ -196,6 +196,7 @@ public static class DependencyInjection
         services.AddScoped<IBlobJanitor, FileSystemBlobJanitor>();
         services.AddScoped<IWorldBackupStore, FileSystemWorldBackupStore>();
         services.AddScoped<IRconClient, DockerRconClient>();
+        services.AddScoped<IPlayerCountProbe, DockerPlayerCountProbe>();
         services.AddSingleton<IModJarInspector, ZipModJarInspector>();
 
         services.AddMemoryCache();

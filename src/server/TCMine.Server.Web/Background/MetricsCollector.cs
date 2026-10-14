@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Web.Background;
@@ -79,17 +78,18 @@ public sealed partial class MetricsCollector(
             .ListAllAsync(ct);
 
         var stats = scope.ServiceProvider.GetRequiredService<IContainerStats>();
-        var rcon = scope.ServiceProvider.GetRequiredService<IRconClient>();
+        var probe = scope.ServiceProvider.GetRequiredService<IPlayerCountProbe>();
         var notifier = scope.ServiceProvider.GetRequiredService<IServerHubNotifier>();
 
         await Parallel.ForEachAsync(
             servers,
             new ParallelOptions { MaxDegreeOfParallelism = MaxConcurrentCollections, CancellationToken = ct },
-            (server, token) => CollectOneAsync(server, stats, rcon, notifier, token));
+            (server, token) => CollectOneAsync(server, stats, probe, notifier, token));
     }
 
     private async ValueTask CollectOneAsync(
-        GameServer server, IContainerStats stats, IRconClient rcon, IServerHubNotifier notifier, CancellationToken ct)
+        GameServer server, IContainerStats stats, IPlayerCountProbe probe, IServerHubNotifier notifier,
+        CancellationToken ct)
     {
         // Servidor parado não tem container para amostrar; grava um ponto
         // zerado para o gráfico mostrar a queda em vez de um buraco.
@@ -110,7 +110,7 @@ public sealed partial class MetricsCollector(
             sample?.MemoryUsedBytes ?? 0,
             sample?.MemoryLimitBytes ?? 0));
 
-        await CollectPlayersAsync(server, rcon, notifier, ct);
+        await CollectPlayersAsync(server, probe, notifier, ct);
     }
 
     /// <summary>
@@ -118,36 +118,27 @@ public sealed partial class MetricsCollector(
     ///     Um <c>docker exec</c> a cada coleta por servidor no ar. Cabe aqui, e
     ///     não num laço próprio, porque este já roda no intervalo certo e já tem
     ///     escopo aberto — um segundo coletor dobraria o custo para amostrar o
-    ///     mesmo conjunto de containers.
+    ///     mesmo conjunto de containers. Pelo <see cref="IPlayerCountProbe" />, e
+    ///     não pelo RCON: ver a porta para o porquê.
     /// </summary>
     private async Task CollectPlayersAsync(
         GameServer server,
-        IRconClient rcon,
+        IPlayerCountProbe probe,
         IServerHubNotifier notifier,
         CancellationToken ct)
     {
-        try
+        // Sem resposta (servidor ainda a subir, ou travado): some com a
+        // contagem e tenta de novo na próxima coleta.
+        if (await probe.GetOnlineAsync(server.Id, ct) is not { } online)
         {
-            var contagem = PlayerListParser.Parse(await rcon.ExecuteAsync(server.Id, "list", ct));
-
-            if (contagem is not { } online)
-            {
-                players.Forget(server.Id);
-                return;
-            }
-
-            // Só empurra quando muda: repetir o mesmo número a cada quinze
-            // segundos para todo launcher conectado é tráfego que não informa.
-            if (players.Set(server.Id, online))
-                await notifier.NotifyPlayerCountChangedAsync(server.Id, online, server.MaxPlayers, ct);
-        }
-        catch (RconUnavailableException)
-        {
-            // O servidor pode estar subindo e ainda não responder ao RCON. É
-            // esperado e passageiro: some com a contagem e tenta de novo daqui a
-            // pouco, sem poluir o log a cada quinze segundos.
             players.Forget(server.Id);
+            return;
         }
+
+        // Só empurra quando muda: repetir o mesmo número a cada quinze
+        // segundos para todo launcher conectado é tráfego que não informa.
+        if (players.Set(server.Id, online))
+            await notifier.NotifyPlayerCountChangedAsync(server.Id, online, server.MaxPlayers, ct);
     }
 
     /// <summary>

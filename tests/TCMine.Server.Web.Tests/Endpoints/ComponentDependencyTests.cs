@@ -38,12 +38,13 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         typeof(ChangeFileSide),
         typeof(IServerWhitelistSync),
 
-        // Portas, e não casos de uso: as três seguintes são resolvidas pelo
+        // Portas, e não casos de uso: as quatro seguintes são resolvidas pelo
         // MetricsCollector, dentro do
         // próprio escopo a cada coleta. Um registro faltando ali não impede a
         // app de subir — só faz a coleta falhar em silêncio de quinze em quinze
         // segundos.
         typeof(IPlayerCountSource),
+        typeof(IPlayerCountProbe),
         typeof(IRconClient),
         typeof(IServerHubNotifier),
         typeof(CreateGameServer),
