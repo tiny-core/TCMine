@@ -29,13 +29,49 @@ public sealed class ModpackFile : Entity
     /// </summary>
     public const int MaxProjectSlugLength = MaxPathLength + 32;
 
+    /// <summary>
+    ///     Prefixo da identidade de um mod enviado à mão, lida de dentro do jar
+    ///     (<c>modId</c> do NeoForge/Forge, <c>id</c> do Fabric/Quilt). Prefixada
+    ///     para nunca colidir com um id do Modrinth ou do CurseForge.
+    /// </summary>
+    public const string JarIdSlugPrefix = "jar:";
+
+    /// <summary>Identidade de reserva, pelo nome do arquivo, quando o jar não declara id.</summary>
+    public const string FileNameSlugPrefix = "file:";
+
+    /// <summary>
+    ///     A identidade de um arquivo enviado à mão. Só mods (<c>mods/*.jar</c>)
+    ///     ganham uma: é pela identidade que a versão nova de um mod SUBSTITUI a
+    ///     antiga, e dois jars do mesmo mod na pasta derrubam o jogo. Um config
+    ///     enviado à mão continua sem identidade, como sempre foi.
+    ///     Sem id no jar, vale o nome do arquivo — não substitui entre versões
+    ///     (o nome muda), mas ao menos o mod aparece no inventário.
+    /// </summary>
+    public static string? ManualSlug(string path, string? modId)
+    {
+        if (!IsModJar(path))
+            return null;
+
+        if (!string.IsNullOrWhiteSpace(modId))
+            return JarIdSlugPrefix + modId.Trim().ToLowerInvariant();
+
+        var fileName = path[(path.LastIndexOf('/') + 1)..];
+        return FileNameSlugPrefix + fileName.ToLowerInvariant();
+    }
+
+    /// <summary>Um jar direto na pasta <c>mods/</c>.</summary>
+    public static bool IsModJar(string path) =>
+        path.StartsWith("mods/", StringComparison.OrdinalIgnoreCase)
+        && path.EndsWith(".jar", StringComparison.OrdinalIgnoreCase)
+        && path.IndexOf('/', "mods/".Length) < 0;
+
     public required Guid ModpackVersionId { get; set; }
 
     /// <summary>
     ///     Identidade estável do mod, independente da versão do arquivo.
     ///     Para mods resolvidos, é o slug do projeto (Modrinth) ou o id do
-    ///     projeto (CurseForge). Para uploads manuais, o admin informa ou
-    ///     derivamos do nome. É por este campo que sabemos que jei-1.2.jar e
+    ///     projeto (CurseForge). Para uploads manuais, a que veio da pendência
+    ///     resolvida ou a lida do jar (ver <see cref="ManualSlug" />). É por este campo que sabemos que jei-1.2.jar e
     ///     jei-1.5.jar são o MESMO mod em versões diferentes — e que só um deles
     ///     pode existir na pasta ao mesmo tempo.
     /// </summary>

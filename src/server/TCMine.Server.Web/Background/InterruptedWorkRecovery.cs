@@ -38,6 +38,12 @@ public sealed partial class InterruptedWorkRecovery(
             () => scope.ServiceProvider.GetRequiredService<ExtendCloudLeasesAfterOutage>().HandleAsync(stoppingToken),
             LogCloudLeasesExtended, LogCloudLeasesFailed);
 
+        // Local e barato (lê jars que já estão no disco): antes do server pack,
+        // que depende da rede.
+        await RunAsync(
+            () => scope.ServiceProvider.GetRequiredService<BackfillManualModIdentity>().HandleAsync(stoppingToken),
+            LogManualModsIdentified, LogManualModsFailed);
+
         // Por último, e de propósito: descobrir o server pack de packs já
         // importados é conveniência pura, faz chamadas à origem e não tem pressa
         // nenhuma. O que ficar para trás (origem fora do ar, sem chave de API)
@@ -90,6 +96,13 @@ public sealed partial class InterruptedWorkRecovery(
         Level = LogLevel.Information,
         Message = "{Count} versão(ões) já importada(s) passaram a conhecer o server pack do autor.")]
     private partial void LogServerPacksBackfilled(int count);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "{Count} mod(s) enviado(s) à mão ganharam identidade e passam a aparecer no inventário.")]
+    private partial void LogManualModsIdentified(int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao dar identidade aos mods enviados à mão.")]
+    private partial void LogManualModsFailed(Exception ex);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao descobrir os server packs das versões já importadas.")]
     private partial void LogServerPacksFailed(Exception ex);

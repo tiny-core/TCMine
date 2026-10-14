@@ -111,6 +111,18 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>Identidades gravadas pelo preenchimento retroativo.</summary>
+    public Dictionary<Guid, string> SlugsGravados { get; } = [];
+
+    public virtual Task<IReadOnlyList<ModpackFile>> ListManualModsWithoutIdentityAsync(CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task SetProjectSlugAsync(Guid fileId, string slug, CancellationToken ct)
+    {
+        SlugsGravados[fileId] = slug;
+        return Task.CompletedTask;
+    }
+
     public virtual Task SetFileSideAsync(
         Guid versionId, Guid fileId, FileSide side, CancellationToken ct)
     {

@@ -62,7 +62,7 @@ public class ModpackAuthorizationRules
     private static readonly string[] EfeitosInternos =
     [
         // Orquestração/background — quem chama já autorizou, ou é um job.
-        "BackfillServerPacks", "IngestionScheduler", "ModpackIngestionService",
+        "BackfillManualModIdentity", "BackfillServerPacks", "IngestionScheduler", "ModpackIngestionService",
         "OverrideUndoService", "RecoverInterruptedImports", "RecoverInterruptedIngestions",
 
         // Regra de consistência (a build existe para aquele Minecraft?), não

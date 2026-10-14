@@ -35,6 +35,7 @@ public sealed class ComponentDependencyTests(AplicacaoDeTeste app) : IClassFixtu
         // escopo: um registro faltando ali não impede a app de subir, só faz o
         // preenchimento falhar em silêncio.
         typeof(BackfillServerPacks),
+        typeof(BackfillManualModIdentity),
         typeof(ChangeFileSide),
         typeof(IServerWhitelistSync),
 

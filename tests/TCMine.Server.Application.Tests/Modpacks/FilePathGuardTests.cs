@@ -98,7 +98,7 @@ public sealed class FilePathGuardTests
     };
 
     private static AddManualFile NewUpload(ModpackVersion version) =>
-        new(new FakeRepo(version), new FakeBlobStore());
+        new(new FakeRepo(version), new FakeBlobStore(), new FakeJarInspector());
 
     private static AddManualFileCommand Comando(Guid versionId, string path) =>
         new(versionId, path, new MemoryStream(Encoding.UTF8.GetBytes("conteudo")),

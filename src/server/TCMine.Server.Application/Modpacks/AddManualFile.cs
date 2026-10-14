@@ -11,7 +11,8 @@ namespace TCMine.Server.Application.Modpacks;
 /// </summary>
 public sealed class AddManualFile(
     IModpackRepository repository,
-    IBlobStore blobStore)
+    IBlobStore blobStore,
+    IModJarInspector jarInspector)
 {
     public async Task<Result<ModpackFileDto>> HandleAsync(AddManualFileCommand command, CancellationToken ct)
     {
@@ -37,10 +38,18 @@ public sealed class AddManualFile(
         await using var stored = await blobStore.OpenAsync(sha256, ct);
         var size = stored.Length;
 
+        // A identidade decide se este arquivo SUBSTITUI outro: sem ela, mandar
+        // o jei-1.5 com o jei-1.2 já na versão deixava os dois na pasta, e o
+        // jogo não abre com dois jars do mesmo mod. Vem da pendência que o
+        // upload resolve, quando há uma; senão, de dentro do jar.
+        var identity = command.ProjectSlug is { Length: > 0 }
+            ? command.ProjectSlug
+            : ModpackFile.ManualSlug(path, await ReadModIdAsync(path, sha256, ct));
+
         var file = new ModpackFile
         {
             ModpackVersionId = version.Id,
-            ProjectSlug = command.ProjectSlug, // null hoje; forward-compatible
+            ProjectSlug = identity,
             Path = path,
             Sha256 = sha256,
             SizeBytes = size,
@@ -74,6 +83,20 @@ public sealed class AddManualFile(
         };
 
         return Result<ModpackFileDto>.Success(dto);
+    }
+
+    /// <summary>
+    ///     O id que o próprio mod declara. Lido do blob já gravado, e não do
+    ///     stream do upload, que a gravação consumiu. Só para jars de mods: abrir
+    ///     um config como zip seria trabalho para dar nulo.
+    /// </summary>
+    private async Task<string?> ReadModIdAsync(string path, string sha256, CancellationToken ct)
+    {
+        if (!ModpackFile.IsModJar(path))
+            return null;
+
+        await using var jar = await blobStore.OpenAsync(sha256, ct);
+        return (await jarInspector.InspectAsync(jar, ct))?.ModId;
     }
 
     // Normaliza e valida o caminho relativo, rejeitando path traversal.

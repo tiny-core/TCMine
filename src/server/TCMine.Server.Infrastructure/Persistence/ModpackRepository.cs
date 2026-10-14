@@ -463,6 +463,35 @@ public sealed class ModpackRepository(
             .ExecuteUpdateAsync(s => s.SetProperty(f => f.Side, side), ct);
     }
 
+    public async Task<IReadOnlyList<ModpackFile>> ListManualModsWithoutIdentityAsync(CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // CA1310: árvore de expressão, vira LIKE no SQL (ver ListVersionFilesAsync).
+#pragma warning disable CA1310
+        var candidatos = await db.ModpackFiles
+            .AsNoTracking()
+            .Where(f => f.Origin == ModFileOrigin.ManualUpload
+                        && f.ProjectSlug == null
+                        && f.Path.StartsWith("mods/")
+                        && f.Path.EndsWith(".jar"))
+            .ToListAsync(ct);
+#pragma warning restore CA1310
+
+        // O LIKE não sabe dizer "sem outra barra depois de mods/"; a regra
+        // exata é a do domínio.
+        return candidatos.Where(f => ModpackFile.IsModJar(f.Path)).ToList();
+    }
+
+    public async Task SetProjectSlugAsync(Guid fileId, string slug, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        await db.ModpackFiles
+            .Where(f => f.Id == fileId)
+            .ExecuteUpdateAsync(s => s.SetProperty(f => f.ProjectSlug, slug), ct);
+    }
+
     public async Task RemovePendingAsync(Guid versionId, Guid pendingId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);

@@ -130,6 +130,22 @@ public interface IModpackRepository
     Task SetFileSideAsync(Guid versionId, Guid fileId, FileSide side, CancellationToken ct);
 
     /// <summary>
+    ///     Mods enviados à mão antes de terem identidade (<c>mods/*.jar</c> com
+    ///     <c>ProjectSlug</c> nulo), de qualquer versão, publicada ou não. Só o
+    ///     necessário para ler o jar: id, caminho e hash.
+    /// </summary>
+    Task<IReadOnlyList<ModpackFile>> ListManualModsWithoutIdentityAsync(CancellationToken ct);
+
+    /// <summary>
+    ///     Grava só a identidade de um arquivo. Estreito como o
+    ///     <see cref="SetServerPackAsync" />, e pelo mesmo motivo: o preenchimento
+    ///     roda sobre versões publicadas, imutáveis em tudo o que o jogador recebe.
+    ///     A identidade não é uma delas — o manifesto do launcher não a leva.
+    /// </summary>
+    [NotVisibleToLauncher("A identidade do mod é do painel; o manifesto do launcher não a leva.")]
+    Task SetProjectSlugAsync(Guid fileId, string slug, CancellationToken ct);
+
+    /// <summary>
     ///     Ingestões que ficaram pela metade quando o processo caiu.
     ///     São duas situações, e as duas contam: a versão presa em Resolving (o
     ///     worker morreu no meio) e o rascunho com mods ainda marcados como

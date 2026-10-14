@@ -97,15 +97,60 @@ public sealed class AddManualFileTests
         result.Succeeded.ShouldBeFalse();
     }
 
+    // ---------- identidade ----------
+
+    [Fact]
+    public async Task Mod_enviado_ganha_a_identidade_que_o_jar_declara()
+    {
+        var (caso, repo, _) = Build(new FakeJarInspector(modId: "JEI"));
+
+        await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/jei-1.2.jar"), Ct);
+
+        repo.Rascunho.Files.Single().ProjectSlug.ShouldBe("jar:jei");
+    }
+
+    [Fact]
+    public async Task Versao_nova_do_mesmo_mod_substitui_a_antiga()
+    {
+        // Dois jars do mesmo mod na pasta mods/ e o jogo não abre.
+        var (caso, repo, _) = Build(new FakeJarInspector(modId: "jei"));
+
+        await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/jei-1.2.jar"), Ct);
+        await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/jei-1.5.jar"), Ct);
+
+        repo.Rascunho.Files.Select(f => f.Path).ShouldBe(["mods/jei-1.5.jar"]);
+        repo.Removidos.Count.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Jar_sem_id_fica_com_a_identidade_pelo_nome()
+    {
+        var (caso, repo, _) = Build(new FakeJarInspector(modId: null));
+
+        await caso.HandleAsync(Comando(repo.Rascunho.Id, "mods/Coisa.jar"), Ct);
+
+        repo.Rascunho.Files.Single().ProjectSlug.ShouldBe("file:coisa.jar");
+    }
+
+    [Fact]
+    public async Task Config_enviado_a_mao_continua_sem_identidade()
+    {
+        var (caso, repo, _) = Build(new FakeJarInspector(modId: "jei"));
+
+        await caso.HandleAsync(Comando(repo.Rascunho.Id, "config/jei.toml"), Ct);
+
+        repo.Rascunho.Files.Single().ProjectSlug.ShouldBeNull();
+    }
+
     private static AddManualFileCommand Comando(Guid versionId, string path) =>
         new(versionId, path, new MemoryStream(Encoding.UTF8.GetBytes("conteudo")),
             "application/java-archive", FileSide.Both, false);
 
-    private static (AddManualFile Caso, FakeRepo Repo, FakeBlobs Blobs) Build()
+    private static (AddManualFile Caso, FakeRepo Repo, FakeBlobs Blobs) Build(FakeJarInspector? jars = null)
     {
         var repo = new FakeRepo();
         var blobs = new FakeBlobs();
-        return (new AddManualFile(repo, blobs), repo, blobs);
+        return (new AddManualFile(repo, blobs, jars ?? new FakeJarInspector()), repo, blobs);
     }
 
     private sealed class FakeRepo : FakeModpackRepositoryBase
@@ -123,6 +168,14 @@ public sealed class AddManualFileTests
 
         public override Task UpdateVersionAsync(ModpackVersion version, CancellationToken ct) =>
             Task.CompletedTask;
+
+        public List<Guid> Removidos { get; } = [];
+
+        public override Task RemoveFileAsync(Guid versionId, Guid fileId, CancellationToken ct)
+        {
+            Removidos.Add(fileId);
+            return Task.CompletedTask;
+        }
 
         private static ModpackVersion Pronta()
         {

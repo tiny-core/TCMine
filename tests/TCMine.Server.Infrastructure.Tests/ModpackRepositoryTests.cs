@@ -406,6 +406,37 @@ public sealed class ModpackRepositoryTests : IDisposable
             .ShouldBe(["resourcepacks/faithful.zip", "shaderpacks/complementary.zip"], true);
     }
 
+    [Fact]
+    public async Task Mod_enviado_a_mao_sem_identidade_e_achado_e_depois_aparece_no_inventario()
+    {
+        var repo = new ModpackRepository(_factory, _changes);
+        var modpack = await SeedModpackAsync(repo);
+
+        var versao = NovaVersao(modpack.Id);
+        var manual = SemIdentidade(Arquivo(versao.Id, "mods/meu-mod.jar", "", ModFileOrigin.ManualUpload));
+        versao.UpsertFile(manual);
+        versao.UpsertFile(SemIdentidade(Arquivo(versao.Id, "mods/config/x.jar", "", ModFileOrigin.ManualUpload)));
+        await repo.AddVersionAsync(versao, Ct);
+
+        // Só o jar direto em mods/: o da subpasta não é carregado pelo loader.
+        var semIdentidade = await repo.ListManualModsWithoutIdentityAsync(Ct);
+        semIdentidade.Select(f => f.Path).ShouldBe(["mods/meu-mod.jar"]);
+
+        await repo.SetProjectSlugAsync(manual.Id, "jar:meumod", Ct);
+
+        var inventario = await repo.ListModInventoryAsync(new ModInventoryQuery(new PageRequest(0, 25)), Ct);
+        inventario.Items.ShouldContain(e => e.ProjectSlug == "jar:meumod" && e.Origin == ModFileOrigin.ManualUpload);
+        (await repo.ListManualModsWithoutIdentityAsync(Ct)).ShouldBeEmpty();
+    }
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static ModpackFile SemIdentidade(ModpackFile file)
+    {
+        file.ProjectSlug = null;
+        return file;
+    }
+
     private static PendingMod Pendencia(Guid versionId, string slug, PendingModReason reason) =>
         new()
         {
