@@ -1,0 +1,98 @@
+@page "/admin/welcome"
+
+<PageTitle>Primeira configuração — TCMine</PageTitle>
+
+<PageHeader Title="Primeira configuração"
+            Subtitle="Três passos para os seus amigos conseguirem entrar. Tudo aqui pode ser mudado depois em Configurações."
+            Icon="@Icons.Material.Filled.RocketLaunch"/>
+
+@if (_form is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="my-4"/>
+}
+else
+{
+    <div class="tc-centered-column tc-fade-in" style="max-width:900px;">
+        @* Passos como fichas, e não um MudStepper: o assistente é curto, e
+           voltar a qualquer passo já visitado é um clique. *@
+        <MudStack Row="true" Spacing="1" Wrap="Wrap.Wrap" Class="mb-4">
+            @for (var i = 0; i < Steps.Length; i++)
+            {
+                var index = i;
+                <MudChip T="string" Size="Size.Small" Icon="@StepIcon(index)"
+                         Color="@(index == _step ? Color.Primary : Color.Default)"
+                         Variant="@(index == _step ? Variant.Filled : Variant.Outlined)"
+                         OnClick="@(() => GoTo(index))" Disabled="@(index > _furthest || _saving)">
+                    @Steps[index]
+                </MudChip>
+            }
+        </MudStack>
+
+        <MudPaper Outlined="true" Class="pa-6">
+            @switch (_step)
+            {
+                case 0:
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Entrar</MudText>
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mb-3">
+                        Você entrou com a sua conta Microsoft e é o administrador desta instalação.
+                    </MudAlert>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Os jogadores entram pelo launcher com a conta Microsoft deles, contra o mesmo
+                        registro do Azure que você informou no primeiro acesso. Ele fica em
+                        Configurações → Login, se precisar trocar.
+                    </MudText>
+                    break;
+
+                case 1:
+                    <NetworkModeEditor Form="_form" Busy="_saving"/>
+                    break;
+
+                case 2:
+                    <HomeNetworkEditor Form="_form"/>
+                    break;
+
+                default:
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Pronto para salvar</MudText>
+                    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                        Confira o que os jogadores vão receber. Depois de concluir, crie um modpack e um
+                        servidor; o endereço de cada servidor sai daqui.
+                    </MudText>
+                    <NetworkPreviewCard Form="_form"/>
+                    break;
+            }
+        </MudPaper>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
+            @* Pular grava o modo que já vale, e só ele: é o que faz o assistente
+               não voltar no próximo login, sem gravar o que foi meio digitado. *@
+            <MudButton Variant="Variant.Text" OnClick="SkipAsync" Disabled="_saving">
+                Pular — decidir depois
+            </MudButton>
+            <MudSpacer/>
+            @if (_saving)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+            }
+            @if (_step > 0)
+            {
+                <MudButton Variant="Variant.Outlined" OnClick="@(() => GoTo(_step - 1))" Disabled="_saving">
+                    Voltar
+                </MudButton>
+            }
+            @if (_step < Steps.Length - 1)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => GoTo(_step + 1))"
+                           Disabled="_saving">
+                    Continuar
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="FinishAsync" Disabled="_saving"
+                           StartIcon="@Icons.Material.Filled.Check">
+                    Concluir
+                </MudButton>
+            }
+        </MudStack>
+    </div>
+}

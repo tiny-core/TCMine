@@ -246,7 +246,9 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Não há login local.** O painel entra pela Microsoft (`AuthenticateMicrosoftUser`, Authorization Code + PKCE
   feito pelo servidor); o launcher, pelo token do Minecraft (`AuthenticateMinecraftUser`). A primeira conta da
   instalação vira `IsInstanceAdmin`. O `/admin/setup` só pede o client id do Entra ID e existe enquanto não há
-  usuário.
+  usuário. Depois do login, a visão geral leva o admin ao assistente `/admin/welcome` (rede → rede de casa e
+  portas) enquanto `NetworkMode` for nulo; "Pular" grava o modo que já vale. A aba Rede e o assistente usam os
+  mesmos componentes (`Components/Features/Network`, sobre um `NetworkForm`).
 - **Uma pessoa, uma conta.** Chaves naturais: `MicrosoftObjectId` e `MinecraftUuid` (índices únicos). Três
   caminhos fecham a duplicata:
     - corrida no primeiro login do launcher → `IUserRepository.TryAddAsync` deixa o **índice** decidir, e quem

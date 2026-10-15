@@ -1,0 +1,51 @@
+@using TCMine.Server.Domain.Servers
+
+@* A rede de casa e as portas: valem em qualquer modo de rede. *@
+
+<MudText Typo="Typo.subtitle1" Class="mb-1">Rede de casa</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    O IP desta máquina na sua rede de casa. Quem joga na mesma rede entra por ele, sem
+    passar pela internet: muitos roteadores não deixam alcançar o próprio IP público
+    por dentro, e aí o endereço público, que funciona para os amigos de fora, falha
+    para quem está em casa. O launcher experimenta este primeiro e só o usa se
+    responder. Vale em qualquer forma de rede.
+</MudText>
+
+<MudTextField @bind-Value="Form.LanHost" Label="IP na rede local"
+              Variant="Variant.Outlined" Placeholder="ex.: 192.168.1.100" Immediate="true"
+              HelperText="Sem porta: cada servidor usa a dele. Está nas configurações de rede da máquina ou na lista de aparelhos do roteador. Vazio = desligado."/>
+
+<MudDivider Class="my-6"/>
+
+<MudText Typo="Typo.subtitle1" Class="mb-1">Portas dos servidores</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    Cada servidor de jogo publica uma porta própria nesta máquina. Um servidor
+    novo recebe a primeira livre desta faixa; quem já existe mantém a sua, mesmo
+    que fique fora dela.
+</MudText>
+
+<MudGrid>
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Form.GamePortRangeStart" Label="Primeira porta"
+                         Variant="Variant.Outlined" Immediate="true"
+                         Min="GamePortRange.Min" Max="GamePortRange.Max"/>
+    </MudItem>
+    <MudItem xs="12" md="6">
+        <MudNumericField @bind-Value="Form.GamePortRangeEnd" Label="Última porta"
+                         Variant="Variant.Outlined"
+                         Min="GamePortRange.Min" Max="GamePortRange.Max"/>
+    </MudItem>
+</MudGrid>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-4">
+    Para jogadores de fora da sua rede entrarem, o roteador precisa redirecionar
+    estas portas (TCP) para esta máquina. Redirecionar a faixa inteira de uma vez
+    evita voltar ao roteador a cada servidor novo.
+</MudAlert>
+
+<MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+    Se nada de fora entra mesmo com tudo certo, a operadora pode estar usando CGNAT: o
+    IP é dividido entre vários clientes e o redirecionamento do roteador não funciona.
+    O sinal mais comum é o IP da WAN mostrado pelo roteador ser diferente do detectado.
+    A saída é pedir um IP público à operadora.
+</MudAlert>

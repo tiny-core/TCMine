@@ -40,6 +40,7 @@ public sealed class PageRenderTests
         "/admin/servers",
         "/admin/storage",
         "/admin/settings",
+        "/admin/welcome",
         "/admin/login"
     };
 

@@ -1,0 +1,232 @@
+@using TCMine.Server.Domain.Servers
+@using TCMine.Server.Domain.Settings
+
+@* Os três cartões do modo de rede, os campos do escolhido e a prévia. Usado
+   pela aba Rede das configurações e pelo assistente de primeira configuração. *@
+<MudText Typo="Typo.subtitle1" Class="mb-1">Como os jogadores encontram esta máquina</MudText>
+<MudText Typo="Typo.body2" Class="mud-text-secondary mb-4">
+    Escolha uma forma. Só os campos dela aparecem; o que você preencheu nas outras
+    fica guardado e volta se você voltar a ela.
+</MudText>
+
+@* Escolha única, e não três grupos de campos: antes os três conviviam
+   e quem vencia dependia do que estava preenchido, sem nada na tela
+   dizer qual. *@
+<MudGrid Spacing="2" Class="mb-4">
+    @foreach (var option in NetworkForm.Options)
+    {
+        var selected = Form.Mode == option.Mode;
+        <MudItem xs="12" md="4" @key="option.Mode">
+            <MudPaper Outlined="true" Class="pa-4 d-flex flex-column gap-1"
+                      Style="@CardStyle(selected)" role="radio" aria-checked="@(selected ? "true" : "false")"
+                      tabindex="0" @onclick="@(() => Form.Mode = option.Mode)">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@option.Icon" Color="@(selected ? Color.Primary : Color.Default)"/>
+                    <MudText Typo="Typo.subtitle2" Style="flex:1;">@option.Title</MudText>
+                    @if (selected)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Primary" Size="Size.Small"/>
+                    }
+                </MudStack>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary">@option.Description</MudText>
+            </MudPaper>
+        </MudItem>
+    }
+</MudGrid>
+
+@switch (Form.Mode)
+{
+    case NetworkMode.Automatic:
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+            @if (Form.IsDetecting)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">Detectando o IP público…</MudText>
+            }
+            else if (Form.DetectedAddress is null)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                    Não foi possível detectar o IP público agora. A detecção tenta de novo sozinha.
+                </MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2">IP público detectado: <b>@Form.DetectedAddress</b></MudText>
+                <MudTooltip Text="Copiar">
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                                   OnClick="CopyDetectedAddress"/>
+                </MudTooltip>
+            }
+        </MudStack>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+            Numa ligação de casa esse IP costuma mudar de vez em quando. Quando mudar, os
+            amigos precisam do endereço novo — um domínio evita isso.
+        </MudText>
+        break;
+
+    case NetworkMode.OwnHost:
+        <MudTextField @bind-Value="Form.PublicHost" Label="Domínio ou DDNS"
+                      Variant="Variant.Outlined" Placeholder="ex.: jogar.meudominio.com"
+                      Immediate="true" Required="true"
+                      HelperText="Sem porta: cada servidor usa a dele. O nome tem de apontar para o IP desta casa — é o que um serviço de DDNS mantém. Também aceita um IP fixo."/>
+        @if (Form.DetectedAddress is not null && !Form.PublicIpDetectionDisabled)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+                Para conferir: o IP desta casa agora é <b>@Form.DetectedAddress</b>.
+            </MudText>
+        }
+        <IpDetectionSwitch @bind-Disabled="Form.PublicIpDetectionDisabled"/>
+        break;
+
+    case NetworkMode.Cloudflare:
+        <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+            O TCMine mantém na sua zona um registro com o IP desta casa e, para cada servidor
+            com subdomínio, um nome próprio sem porta (sobrevivencia.seu-dominio.com). Só mexe
+            nos registros que ele mesmo criou. Funciona no Minecraft Java; o Bedrock não
+            consulta esses registros.
+        </MudText>
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            @if (Form.HasCloudflareToken && !Form.ClearCloudflareToken)
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text"
+                         Icon="@Icons.Material.Filled.CheckCircle">token configurado</MudChip>
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text"
+                         Icon="@Icons.Material.Filled.ErrorOutline">falta o token</MudChip>
+            }
+        </MudStack>
+
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="Form.CloudflareToken" Label="Token da API"
+                              InputType="InputType.Password" Variant="Variant.Outlined"
+                              Disabled="Form.ClearCloudflareToken" Immediate="true"
+                              HelperText="@(Form.HasCloudflareToken ? "Deixe vazio para manter o token atual." : "Crie um token só para isto, com a permissão Zone → DNS → Edit e restrito a esta zona.")"/>
+            </MudItem>
+            @if (Form.HasCloudflareToken)
+            {
+                <MudItem xs="12" md="4" Class="d-flex align-center">
+                    <MudCheckBox @bind-Value="Form.ClearCloudflareToken" Color="Color.Error"
+                                 Label="Remover o token"/>
+                </MudItem>
+            }
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Form.CloudflareZoneId" Label="Zone ID"
+                              Variant="Variant.Outlined" Immediate="true"
+                              HelperText="32 caracteres, na página Overview do domínio na Cloudflare."/>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="Form.DnsBaseDomain" Label="Domínio dos servidores"
+                              Variant="Variant.Outlined" Placeholder="ex.: seu-dominio.com"
+                              Immediate="true"
+                              HelperText="Os servidores ficam um nível abaixo dele. Tem de estar dentro da zona."/>
+            </MudItem>
+        </MudGrid>
+
+        @* O que um leigo não precisa ver para funcionar: fechado por padrão. *@
+        <MudExpansionPanels Elevation="0" Dense="true" Class="mt-3">
+            <MudExpansionPanel Text="Avançado" Expanded="Form.AdvancedInitiallyOpen">
+                <MudTextField @bind-Value="Form.DnsHostLabel" Label="Nome do registro do IP"
+                              Variant="Variant.Outlined" Placeholder="@GameDns.DefaultHostLabel"
+                              Immediate="true" Disabled="Form.CloudflareUsesPublicHost"
+                              HelperText="@($"O TCMine mantém {Form.DnsHostPreview} apontado para o IP desta casa.")"/>
+
+                <MudCheckBox @bind-Value="Form.CloudflareUsesPublicHost" Class="mt-3"
+                             Label="Apontar para um DDNS ou IP fixo que eu já mantenho"/>
+                @if (Form.CloudflareUsesPublicHost)
+                {
+                    <MudTextField @bind-Value="Form.PublicHost" Label="DDNS ou IP fixo"
+                                  Variant="Variant.Outlined" Placeholder="ex.: casa.ddns.net"
+                                  Immediate="true"
+                                  HelperText="Os registros dos servidores apontam para ele, e o TCMine deixa de manter o registro do IP."/>
+                    <IpDetectionSwitch @bind-Disabled="Form.PublicIpDetectionDisabled"/>
+                }
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+
+        <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Atualização do DNS</MudText>
+        <MudGrid Spacing="2">
+            <MudItem xs="12" md="6" Class="d-flex align-center">
+                <MudSwitch T="bool" Value="@(!Form.DnsManualSyncOnly)"
+                           ValueChanged="@(v => Form.DnsManualSyncOnly = !v)"
+                           Color="Color.Primary" Label="Atualizar sozinho"/>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="int" @bind-Value="Form.DnsSyncIntervalMinutes" Label="De quanto em quanto tempo"
+                           Variant="Variant.Outlined" Dense="true" Disabled="Form.DnsManualSyncOnly">
+                    @foreach (var minutes in InstallationSettings.DnsSyncIntervalChoices)
+                    {
+                        <MudSelectItem T="int" Value="minutes">
+                            @(minutes == 60 ? "A cada hora" : $"A cada {minutes} minutos")@(minutes == 5 ? " (recomendado)" : "")
+                        </MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+        </MudGrid>
+        @if (Form.DnsManualSyncOnly)
+        {
+            @* Desligar é legítimo (zona mexida à mão, teste), mas o
+               efeito colateral não é óbvio: servidor novo também
+               fica sem nome até o clique. *@
+            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                Os registros só mudam quando você clicar em <b>Sincronizar agora</b> — também
+                depois de criar ou editar um servidor, e quando o IP desta casa mudar.
+            </MudAlert>
+        }
+        else
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-1">
+                Também roda logo depois de salvar um servidor ou estas configurações. Quanto
+                maior o intervalo, mais tempo os amigos ficam sem entrar depois de o IP desta
+                casa mudar.
+            </MudText>
+        }
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-4">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Sync"
+                       OnClick="SyncDnsAsync" Disabled="_isSyncingDns || Busy">
+                @if (_isSyncingDns)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                }
+                Sincronizar agora
+            </MudButton>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                Usa o que está salvo.
+            </MudText>
+        </MudStack>
+
+        @if (_dnsOutcome is not null)
+        {
+            <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-4">
+                Última sincronização: @DnsOutcomeAge
+            </MudText>
+        }
+
+        @if (_dnsReport is { Enabled: false })
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                Nada foi feito: a Cloudflare não está escolhida e completa nas configurações salvas.
+            </MudAlert>
+        }
+        else if (_dnsReport is not null)
+        {
+            <MudAlert Severity="@(_dnsReport.Succeeded ? Severity.Success : Severity.Warning)"
+                      Variant="Variant.Outlined" Dense="true" Class="mt-2">
+                @_dnsReport.Created criado(s), @_dnsReport.Updated atualizado(s),
+                @_dnsReport.Deleted apagado(s), @_dnsReport.Unchanged já certo(s).
+                @foreach (var problem in _dnsReport.Problems)
+                {
+                    <div>@problem</div>
+                }
+            </MudAlert>
+        }
+        break;
+}
+
+
+<NetworkPreviewCard Form="Form"/>

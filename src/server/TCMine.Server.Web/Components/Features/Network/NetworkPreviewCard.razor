@@ -1,0 +1,28 @@
+@* A prévia sai da MESMA regra que publica o endereço
+   (AddressSettings.From), com os campos ainda não salvos. Uma
+   prévia calculada à parte acabaria dizendo uma coisa e o
+   launcher recebendo outra. *@
+<MudPaper Outlined="true" Class="pa-4 mt-6" Style="border-color:var(--mud-palette-primary);">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudIcon Icon="@Icons.Material.Filled.Visibility" Color="Color.Primary" Size="Size.Small"/>
+        <MudText Typo="Typo.subtitle2">O que os jogadores recebem</MudText>
+    </MudStack>
+    @foreach (var line in Form.Preview())
+    {
+        <MudStack Row="true" Spacing="2" Class="py-1" Wrap="Wrap.Wrap">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary" Style="min-width:220px;">@line.Label</MudText>
+            @if (line.Address is { Length: > 0 } address)
+            {
+                <MudText Typo="Typo.body2"><code>@address</code></MudText>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Warning">@line.Missing</MudText>
+            }
+        </MudStack>
+    }
+    <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
+        Exemplo com a primeira porta da faixa. Vale depois de salvar.
+    </MudText>
+</MudPaper>
+

@@ -34,6 +34,9 @@ public partial class Home : ComponentBase
     [Inject] private ListAccessRequests AccessRequests { get; set; } = default!;
     [Inject] private IActivityLogRepository Activity { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private ICurrentUserScope Scope { get; set; } = default!;
+    [Inject] private ISettingsRepository Settings { get; set; } = default!;
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     /// <summary>Volta do /auth/microsoft/callback depois de vincular o Minecraft.</summary>
     [SupplyParameterFromQuery(Name = "linked")]
@@ -71,6 +74,22 @@ public partial class Home : ComponentBase
             var peaks = _servers.Select(s => Players.PeakToday(s.Id)).Where(p => p is not null).ToList();
             return peaks.Count is 0 ? null : peaks.Sum();
         }
+    }
+
+    /// <summary>
+    ///     Leva o admin ao assistente de primeira configuração enquanto o modo de
+    ///     rede nunca foi escolhido. Depois do primeiro render, e não no
+    ///     carregamento: o pré-render responderia com um redirecionamento, e a
+    ///     visão geral deixaria de ser uma página que se abre por GET (os testes
+    ///     de renderização e o "tc smoke" a abrem assim).
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !Scope.IsInstanceAdmin)
+            return;
+
+        if ((await Settings.GetAsync(CancellationToken.None)).NetworkMode is null)
+            Navigation.NavigateTo("/admin/welcome");
     }
 
     protected override async Task OnInitializedAsync()

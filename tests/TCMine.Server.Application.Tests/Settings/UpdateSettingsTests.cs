@@ -371,6 +371,68 @@ public sealed class UpdateSettingsTests
         Assert.False(salvo.DnsEnabled);
     }
 
+    // ---- Partir do que está gravado ----
+
+    [Fact]
+    public async Task Comando_a_partir_do_gravado_nao_muda_nada()
+    {
+        // É o ponto de partida do assistente: ele só mexe na rede, e todo o
+        // resto tem de sobreviver ao Salvar dele — os segredos inclusive, que
+        // vão vazios ("manter").
+        var original = new InstallationSettings
+        {
+            DefaultMinecraftVersion = "1.20.1",
+            DefaultMemoryMb = 6144,
+            WorldBackupKeepCount = 9,
+            GamePortRangeStart = 30000,
+            GamePortRangeEnd = 30010,
+            NetworkMode = NetworkMode.OwnHost,
+            PublicHost = "jogar.exemplo.com",
+            LanHost = "192.168.1.100",
+            CloudflareApiTokenEncrypted = "token",
+            CloudflareZoneId = new string('a', 32),
+            DnsBaseDomain = "exemplo.com",
+            DnsSyncIntervalMinutes = 30,
+            UpdateCheckDisabled = true,
+            CurseForgeApiKeyEncrypted = "chave",
+            AzureClientId = "55555555-5555-5555-5555-555555555555"
+        };
+        var repo = new FakeSettings(original);
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal())
+            .HandleAsync(UpdateSettingsCommand.From(original), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        var salvo = repo.Salvo!;
+        Assert.Equal("1.20.1", salvo.DefaultMinecraftVersion);
+        Assert.Equal(30000, salvo.GamePortRangeStart);
+        Assert.Equal(NetworkMode.OwnHost, salvo.NetworkMode);
+        Assert.Equal("jogar.exemplo.com", salvo.PublicHost);
+        Assert.Equal("token", salvo.CloudflareApiTokenEncrypted);
+        Assert.Equal("chave", salvo.CurseForgeApiKeyEncrypted);
+        Assert.Equal(30, salvo.DnsSyncIntervalMinutes);
+        Assert.True(salvo.UpdateCheckDisabled);
+        Assert.Equal("55555555-5555-5555-5555-555555555555", salvo.AzureClientId);
+    }
+
+    [Fact]
+    public async Task Comando_a_partir_do_gravado_corrige_o_que_estava_estragado()
+    {
+        // Um intervalo e uma faixa inválidos no banco não podem fazer o próprio
+        // "não mude nada" ser recusado — o assistente ficaria preso.
+        var original = new InstallationSettings
+        {
+            GamePortRangeStart = 30010,
+            GamePortRangeEnd = 30000,
+            DnsSyncIntervalMinutes = 0
+        };
+
+        var result = await new UpdateSettings(new FakeSettings(original), new FakeDnsSyncSignal())
+            .HandleAsync(UpdateSettingsCommand.From(original), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+    }
+
     // ---- Agenda do DNS ----
 
     [Theory]

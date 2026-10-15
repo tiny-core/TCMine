@@ -32,6 +32,7 @@ public sealed class InlineScriptTests(PainelAutenticado painel) : IClassFixture<
             "/admin/servers",
             "/admin/mods",
             "/admin/settings",
+            "/admin/welcome",
             "/admin/storage"
         };
 

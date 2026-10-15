@@ -212,6 +212,42 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
 
 public sealed record UpdateSettingsCommand
 {
+    /// <summary>
+    ///     O comando que regrava a configuração COMO ESTÁ. É o ponto de partida de
+    ///     quem muda só uma parte (o assistente de primeira configuração, que só
+    ///     mexe na rede): com <c>with</c> por cima, nada fora dessa parte se perde.
+    ///     Os segredos vão vazios, que é "manter" (ver <see cref="UpdateSettings" />):
+    ///     o valor em claro não precisa — nem deve — circular pela tela.
+    /// </summary>
+    public static UpdateSettingsCommand From(InstallationSettings settings)
+    {
+        // O que VALE, e não o gravado, nos dois que têm normalização: um valor
+        // estragado no banco faria o próprio comando "não mude nada" ser recusado.
+        var (portStart, portEnd) = GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
+
+        return new UpdateSettingsCommand
+        {
+            DefaultMinecraftVersion = settings.DefaultMinecraftVersion,
+            DefaultLoader = settings.DefaultLoader,
+            DefaultMemoryMb = settings.DefaultMemoryMb,
+            WorldBackupKeepCount = settings.WorldBackupKeepCount,
+            GamePortRangeStart = portStart,
+            GamePortRangeEnd = portEnd,
+            NetworkMode = settings.NetworkMode,
+            CloudflareUsesPublicHost = settings.CloudflareUsesPublicHost,
+            PublicHost = settings.PublicHost,
+            LanHost = settings.LanHost,
+            AzureClientId = settings.AzureClientId,
+            CloudflareZoneId = settings.CloudflareZoneId,
+            DnsBaseDomain = settings.DnsBaseDomain,
+            DnsHostLabel = settings.DnsHostLabel,
+            DnsManualSyncOnly = settings.DnsManualSyncOnly,
+            DnsSyncIntervalMinutes = (int)settings.DnsSyncInterval.TotalMinutes,
+            UpdateCheckDisabled = settings.UpdateCheckDisabled,
+            PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled
+        };
+    }
+
     public string? DefaultMinecraftVersion { get; init; }
     public ModLoader DefaultLoader { get; init; } = ModLoader.NeoForge;
     public int DefaultMemoryMb { get; init; } = 4096;

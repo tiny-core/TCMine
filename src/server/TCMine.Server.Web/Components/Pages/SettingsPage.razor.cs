@@ -1,14 +1,10 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
-using Microsoft.JSInterop;
 using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Settings;
-using TCMine.Server.Domain.Servers;
-using TCMine.Server.Domain.Settings;
-using TCMine.Server.Web.Background;
+using TCMine.Server.Web.Components.Features.Network;
 using TCMine.Server.Web.Configuration;
 
 namespace TCMine.Server.Web.Components.Pages;
@@ -32,163 +28,21 @@ public partial class SettingsPage : ComponentBase
     private ModLoader _defaultLoader = ModLoader.NeoForge;
     private string _defaultMcVersion = "";
     private int _defaultMemoryMb = 4096;
-    private int _gamePortRangeEnd = GamePortDefaults.Last;
-    private int _gamePortRangeStart = GamePortDefaults.First;
 
     private bool _hasAzureClientIdFromFile;
 
     /// <summary>Só sabemos se existe — o valor nunca volta para a tela.</summary>
     private bool _hasCurseForgeKey;
 
-    /// <summary>IP público detectado. Nulo enquanto detecta e quando não se detectou.</summary>
-    private string? _detectedAddress;
-
-    /// <summary>Começa ligado: a detecção só roda depois do primeiro render.</summary>
-    private bool _isDetecting = true;
-
-    // ---- Modo de rede ----
-
-    /// <summary>
-    ///     Os três cartões. Uma lista, e não três blocos de markup: título,
-    ///     ícone e explicação mudam juntos, e um cartão a mais é uma linha.
-    /// </summary>
-    private static readonly NetworkOption[] NetworkOptions =
-    [
-        new(NetworkMode.Automatic, Icons.Material.Filled.AutoMode, "Automático",
-            "O IP desta casa, detectado sozinho. Nada a configurar; o endereço muda quando o IP mudar."),
-        new(NetworkMode.OwnHost, Icons.Material.Filled.Language, "Meu domínio ou DDNS",
-            "Um nome que você já mantém apontado para esta casa (ex.: um DDNS). O endereço não muda."),
-        new(NetworkMode.Cloudflare, Icons.Material.Filled.Cloud, "Domínio na Cloudflare",
-            "O TCMine cuida do DNS: cada servidor ganha um nome próprio, sem porta.")
-    ];
-
-    private NetworkMode _networkMode = NetworkMode.Automatic;
-    private bool _cloudflareUsesPublicHost;
-
-    /// <summary>
-    ///     Abre o "Avançado" só se a opção já estava ligada ao carregar. Ligado
-    ///     ao valor vivo, desmarcar a caixa fecharia o painel na mão do admin.
-    /// </summary>
-    private bool _advancedInitiallyOpen;
-
-    private static string CardStyle(bool selected) =>
-        selected
-            ? "cursor:pointer; height:100%; border:2px solid var(--mud-palette-primary);"
-            : "cursor:pointer; height:100%; border:2px solid var(--mud-palette-lines-default);";
-
-    /// <summary>
-    ///     A prévia do cartão "O que os jogadores recebem", com o que está
-    ///     DIGITADO. Monta uma configuração temporária e passa pela mesma
-    ///     <see cref="AddressSettings.From" /> que publica o endereço de verdade.
-    /// </summary>
-    private IEnumerable<PreviewLine> PreviewLines
-    {
-        get
-        {
-            var draft = new InstallationSettings
-            {
-                NetworkMode = _networkMode,
-                CloudflareUsesPublicHost = _cloudflareUsesPublicHost,
-                PublicHost = _publicHost,
-                LanHost = _lanHost,
-
-                // Só importa SE haverá token, não qual: o valor nunca volta à tela.
-                CloudflareApiTokenEncrypted =
-                    !_clearCloudflareToken && (_hasCloudflareToken || !string.IsNullOrWhiteSpace(_cloudflareToken))
-                        ? "token"
-                        : null,
-                CloudflareZoneId = _cloudflareZoneId,
-                DnsBaseDomain = _dnsBaseDomain,
-                DnsHostLabel = _dnsHostLabel
-            };
-
-            var address = AddressSettings.From(draft, _detectedAddress);
-            var port = _gamePortRangeStart;
-
-            // Modo incompleto não cai no IP na prévia: o Salvar o recusaria, e
-            // mostrar o IP faria parecer que está tudo certo.
-            var incomplete = _networkMode switch
-            {
-                NetworkMode.OwnHost when string.IsNullOrWhiteSpace(_publicHost) => "preencha o domínio acima",
-                NetworkMode.Cloudflare when !draft.HasCloudflareCredentials => "complete a Cloudflare acima",
-                NetworkMode.Cloudflare when _cloudflareUsesPublicHost && string.IsNullOrWhiteSpace(_publicHost) =>
-                    "preencha o DDNS ou IP fixo no Avançado",
-                _ => null
-            };
-
-            var missing = incomplete ?? (_isDetecting ? "detectando o IP…" : "IP público não detectado");
-
-            yield return new PreviewLine(
-                $"Servidor na porta {port}", incomplete is null ? address.For(null, port, null) : null, missing);
-
-            if (_networkMode is NetworkMode.Cloudflare)
-            {
-                yield return new PreviewLine(
-                    "Servidor com subdomínio \"sobrevivencia\"",
-                    incomplete is null ? address.For(null, port, "sobrevivencia") : null,
-                    missing);
-            }
-
-            if (address.LanHost is not null)
-                yield return new PreviewLine("Quem está em casa", GameAddress.WithPort(address.LanHost, port), "");
-        }
-    }
-
-    // ---- DNS (Cloudflare) ----
-    private bool _clearCloudflareToken;
-
-    /// <summary>Novo token digitado. Vazio = manter o que já está gravado.</summary>
-    private string _cloudflareToken = "";
-
-    private string _cloudflareZoneId = "";
-    private string _dnsBaseDomain = "";
-    private string _dnsHostLabel = "";
-    private bool _dnsManualSyncOnly;
     private bool _updateCheckDisabled;
-    private bool _publicIpDetectionDisabled;
+
+    /// <summary>A rede, a Cloudflare, a rede de casa e as portas — a mesma edição do assistente.</summary>
+    private NetworkForm _network = new();
 
     /// <summary>Quantas vezes se salvou: é a chave do painel de versões, que relê ao mudar.</summary>
     private int _savedCount;
-    private int _dnsSyncIntervalMinutes = 5;
-
-    /// <summary>
-    ///     A última sincronização — a automática, ou a pedida nesta tela. Nulo =
-    ///     nenhuma desde que o painel subiu.
-    /// </summary>
-    private DnsSyncOutcome? _dnsOutcome;
-
-    private DnsSyncReport? _dnsReport => _dnsOutcome?.Report;
-
-    /// <summary>"agora mesmo", "há 4 min": o bastante para saber se o resultado é fresco.</summary>
-    private string DnsOutcomeAge
-    {
-        get
-        {
-            if (_dnsOutcome is null)
-                return "";
-
-            var minutes = (int)(DateTimeOffset.UtcNow - _dnsOutcome.At).TotalMinutes;
-
-            return minutes switch
-            {
-                < 1 => "agora mesmo",
-                < 60 => $"há {minutes} min",
-                _ => $"há {minutes / 60} h"
-            };
-        }
-    }
-
-    /// <summary>Só sabemos se existe — o token nunca volta para a tela.</summary>
-    private bool _hasCloudflareToken;
-
-    private bool _isSyncingDns;
-
     private bool _isLoading = true;
     private bool _isSaving;
-
-    /// <summary>Volta preenchido, como o client ID: é público, e o admin precisa conferi-lo.</summary>
-    private string _publicHost = "";
-    private string _lanHost = "";
 
     private int _worldBackupKeepCount = 5;
 
@@ -217,39 +71,6 @@ public partial class SettingsPage : ComponentBase
     [Inject] private UpdateSettings UpdateUseCase { get; set; } = default!;
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
     [Inject] private GetAddressSettings AddressLookup { get; set; } = default!;
-    [Inject] private IJSRuntime JsRuntime { get; set; } = default!;
-    [Inject] private SyncGameDns DnsSync { get; set; } = default!;
-    [Inject] private DnsSyncState DnsState { get; set; } = default!;
-
-    /// <summary>
-    ///     O nome do registro A como ficará, para o admin ver o que vai aparecer
-    ///     na zona dele antes de salvar.
-    /// </summary>
-    private string DnsHostPreview =>
-        GameDns.ServerHost(
-            string.IsNullOrWhiteSpace(_dnsHostLabel) ? GameDns.DefaultHostLabel : _dnsHostLabel,
-            string.IsNullOrWhiteSpace(_dnsBaseDomain) ? "seu-dominio.com" : _dnsBaseDomain)!;
-
-    /// <summary>
-    ///     Sincroniza com o que está GRAVADO, não com o que está digitado: o caso
-    ///     de uso lê a configuração do banco, como fará quando rodar sozinho. Por
-    ///     isso o botão avisa para salvar antes.
-    /// </summary>
-    private async Task SyncDnsAsync()
-    {
-        _isSyncingDns = true;
-        try
-        {
-            // Fica registrado no mesmo lugar que a automática: a tela mostra
-            // sempre a mais recente, venha de onde vier.
-            DnsState.Record(await DnsSync.HandleAsync(CancellationToken.None));
-            _dnsOutcome = DnsState.Last;
-        }
-        finally
-        {
-            _isSyncingDns = false;
-        }
-    }
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -264,24 +85,8 @@ public partial class SettingsPage : ComponentBase
         if (!firstRender)
             return;
 
-        try
-        {
-            _detectedAddress = (await AddressLookup.HandleAsync(true, CancellationToken.None)).DetectedHost;
-        }
-        finally
-        {
-            _isDetecting = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task CopyDetectedAddress()
-    {
-        if (_detectedAddress is null)
-            return;
-
-        await JsRuntime.InvokeVoidAsync("navigator.clipboard.writeText", _detectedAddress);
-        Snackbar.Add("IP copiado.", Severity.Info);
+        await _network.DetectAsync(AddressLookup);
+        StateHasChanged();
     }
 
     private async Task LoadAsync()
@@ -295,35 +100,14 @@ public partial class SettingsPage : ComponentBase
         _defaultMemoryMb = settings.DefaultMemoryMb;
         _worldBackupKeepCount = settings.WorldBackupKeepCount;
 
-        // Normalizada: uma faixa inválida no banco aparece aqui como a padrão,
-        // que é a que o alocador está usando de fato.
-        (_gamePortRangeStart, _gamePortRangeEnd) =
-            GamePortRange.Normalize(settings.GamePortRangeStart, settings.GamePortRangeEnd);
-
-        // O modo que VALE, e não o gravado: numa instalação de antes da escolha
-        // o gravado é nulo, e o cartão marcado tem de ser o que os jogadores
-        // estão recebendo hoje.
-        _networkMode = settings.EffectiveNetworkMode;
-        _cloudflareUsesPublicHost = settings.EffectiveCloudflareUsesPublicHost;
-        _advancedInitiallyOpen = _cloudflareUsesPublicHost;
-
-        _publicHost = settings.PublicHost ?? "";
-        _lanHost = settings.LanHost ?? "";
-
-        _hasCloudflareToken = !string.IsNullOrEmpty(settings.CloudflareApiTokenEncrypted);
-        _cloudflareZoneId = settings.CloudflareZoneId ?? "";
-        _dnsBaseDomain = settings.DnsBaseDomain ?? "";
-        _dnsHostLabel = settings.DnsHostLabel ?? "";
-        _dnsManualSyncOnly = settings.DnsManualSyncOnly;
+        // Relido inteiro a cada carga, mas o IP detectado sobrevive: ele não
+        // muda por salvar, e redetectar a cada Salvar seria uma ida à rede à toa.
+        var detected = _network.DetectedAddress;
+        var detecting = _network.IsDetecting;
+        _network = NetworkForm.From(settings);
+        _network.DetectedAddress = detected;
+        _network.IsDetecting = detecting;
         _updateCheckDisabled = settings.UpdateCheckDisabled;
-        _publicIpDetectionDisabled = settings.PublicIpDetectionDisabled;
-
-        // O que vale, não o gravado: um valor fora da lista no banco aparece
-        // como o intervalo que o serviço está de fato usando.
-        _dnsSyncIntervalMinutes = (int)settings.DnsSyncInterval.TotalMinutes;
-        _cloudflareToken = "";
-        _clearCloudflareToken = false;
-        _dnsOutcome = DnsState.Last;
 
         // Guardamos só a existência; o segredo em si não vai para a UI.
         _hasCurseForgeKey = !string.IsNullOrEmpty(settings.CurseForgeApiKeyEncrypted);
@@ -343,31 +127,17 @@ public partial class SettingsPage : ComponentBase
         _isSaving = true;
         try
         {
-            var command = new UpdateSettingsCommand
+            var command = _network.ApplyTo(new UpdateSettingsCommand
             {
                 DefaultMinecraftVersion = _defaultMcVersion,
                 DefaultLoader = _defaultLoader,
                 DefaultMemoryMb = _defaultMemoryMb,
                 WorldBackupKeepCount = _worldBackupKeepCount,
-                GamePortRangeStart = _gamePortRangeStart,
-                GamePortRangeEnd = _gamePortRangeEnd,
-                NetworkMode = _networkMode,
-                CloudflareUsesPublicHost = _networkMode is NetworkMode.Cloudflare && _cloudflareUsesPublicHost,
-                PublicHost = _publicHost,
-                LanHost = _lanHost,
-                CloudflareApiToken = _cloudflareToken,
-                ClearCloudflareApiToken = _clearCloudflareToken,
-                CloudflareZoneId = _cloudflareZoneId,
-                DnsBaseDomain = _dnsBaseDomain,
-                DnsHostLabel = _dnsHostLabel,
-                DnsManualSyncOnly = _dnsManualSyncOnly,
-                DnsSyncIntervalMinutes = _dnsSyncIntervalMinutes,
                 UpdateCheckDisabled = _updateCheckDisabled,
-                PublicIpDetectionDisabled = _publicIpDetectionDisabled,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey
-            };
+            });
 
             var result = await UpdateUseCase.HandleAsync(command, CancellationToken.None);
             if (result.Succeeded)
@@ -384,9 +154,4 @@ public partial class SettingsPage : ComponentBase
             _isSaving = false;
         }
     }
-
-    private sealed record NetworkOption(NetworkMode Mode, string Icon, string Title, string Description);
-
-    /// <param name="Missing">O que dizer quando ainda não há endereço.</param>
-    private sealed record PreviewLine(string Label, string? Address, string Missing);
 }
