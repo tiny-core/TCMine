@@ -131,12 +131,13 @@ else
                                       Variant="Variant.Outlined" Placeholder="ex.: jogar.meudominio.com"
                                       Immediate="true" Required="true"
                                       HelperText="Sem porta: cada servidor usa a dele. O nome tem de apontar para o IP desta casa — é o que um serviço de DDNS mantém. Também aceita um IP fixo."/>
-                        @if (_detectedAddress is not null)
+                        @if (_detectedAddress is not null && !_publicIpDetectionDisabled)
                         {
                             <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mt-2">
                                 Para conferir: o IP desta casa agora é <b>@_detectedAddress</b>.
                             </MudText>
                         }
+                        <IpDetectionSwitch @bind-Disabled="_publicIpDetectionDisabled"/>
                         break;
 
                     case NetworkMode.Cloudflare:
@@ -203,6 +204,7 @@ else
                                                   Variant="Variant.Outlined" Placeholder="ex.: casa.ddns.net"
                                                   Immediate="true"
                                                   HelperText="Os registros dos servidores apontam para ele, e o TCMine deixa de manter o registro do IP."/>
+                                    <IpDetectionSwitch @bind-Disabled="_publicIpDetectionDisabled"/>
                                 }
                             </MudExpansionPanel>
                         </MudExpansionPanels>
@@ -521,10 +523,20 @@ else
                 </MudAlert>
             </MudTabPanel>
 
-            @* Não é configuração e não passa pelo Salvar: é onde o admin confere
-               a versão sem esperar o aviso do topo, que responde do cache. *@
+            @* O interruptor passa pelo Salvar, como o resto da tela; o painel
+               abaixo não — é onde o admin confere a versão sem esperar o aviso
+               do topo, que responde do cache. *@
             <MudTabPanel Text="Atualizações" Icon="@Icons.Material.Filled.SystemUpdateAlt" Class="pa-6">
-                <ServerUpdatePanel/>
+                <MudSwitch T="bool" Value="@(!_updateCheckDisabled)" ValueChanged="@(v => _updateCheckDisabled = !v)"
+                           Color="Color.Primary" Label="Avisar quando houver versão nova do TCMine"/>
+                <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-4">
+                    Consulta as versões publicadas no GitHub, no máximo uma vez por hora. Desligado,
+                    nenhuma consulta sai daqui — você confere as versões por conta própria. Vale depois de salvar.
+                </MudText>
+                <MudDivider Class="mb-4"/>
+                @* A chave muda a cada salvar: o painel relê o estado em vez de
+                   continuar a mostrar o de antes de o interruptor mudar. *@
+                <ServerUpdatePanel @key="_savedCount"/>
             </MudTabPanel>
 
         </MudTabs>

@@ -144,6 +144,11 @@ public partial class SettingsPage : ComponentBase
     private string _dnsBaseDomain = "";
     private string _dnsHostLabel = "";
     private bool _dnsManualSyncOnly;
+    private bool _updateCheckDisabled;
+    private bool _publicIpDetectionDisabled;
+
+    /// <summary>Quantas vezes se salvou: é a chave do painel de versões, que relê ao mudar.</summary>
+    private int _savedCount;
     private int _dnsSyncIntervalMinutes = 5;
 
     /// <summary>
@@ -310,6 +315,8 @@ public partial class SettingsPage : ComponentBase
         _dnsBaseDomain = settings.DnsBaseDomain ?? "";
         _dnsHostLabel = settings.DnsHostLabel ?? "";
         _dnsManualSyncOnly = settings.DnsManualSyncOnly;
+        _updateCheckDisabled = settings.UpdateCheckDisabled;
+        _publicIpDetectionDisabled = settings.PublicIpDetectionDisabled;
 
         // O que vale, não o gravado: um valor fora da lista no banco aparece
         // como o intervalo que o serviço está de fato usando.
@@ -355,6 +362,8 @@ public partial class SettingsPage : ComponentBase
                 DnsHostLabel = _dnsHostLabel,
                 DnsManualSyncOnly = _dnsManualSyncOnly,
                 DnsSyncIntervalMinutes = _dnsSyncIntervalMinutes,
+                UpdateCheckDisabled = _updateCheckDisabled,
+                PublicIpDetectionDisabled = _publicIpDetectionDisabled,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,
                 ClearCurseForgeApiKey = _clearCurseForgeKey
@@ -364,6 +373,7 @@ public partial class SettingsPage : ComponentBase
             if (result.Succeeded)
             {
                 Snackbar.Add("Configurações salvas.", Severity.Success);
+                _savedCount++;
                 await LoadAsync(); // relê: os campos de segredo voltam vazios
             }
             else

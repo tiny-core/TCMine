@@ -1,0 +1,9 @@
+@* Aparece só nos modos que não dependem do IP detectado (meu domínio, e a
+   Cloudflare apontando para um DDNS): nos outros, desligar a detecção
+   deixaria os jogadores sem endereço, e a configuração ignora o pedido. *@
+<MudSwitch T="bool" Value="@(!Disabled)" ValueChanged="OnChanged" Color="Color.Primary" Class="mt-3"
+           Label="Detectar o IP desta casa"/>
+<MudText Typo="Typo.caption" Class="mud-text-secondary d-block">
+    Pergunta a serviços de fora (Cloudflare, ipify) qual é o IP desta casa, só para mostrar aqui. Com o
+    endereço acima, os jogadores não dependem disso — desligue se preferir que nada saia daqui.
+</MudText>

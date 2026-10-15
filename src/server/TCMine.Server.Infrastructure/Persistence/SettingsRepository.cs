@@ -90,6 +90,8 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.DnsHostLabel = settings.DnsHostLabel;
         stored.DnsManualSyncOnly = settings.DnsManualSyncOnly;
         stored.DnsSyncIntervalMinutes = settings.DnsSyncIntervalMinutes;
+        stored.UpdateCheckDisabled = settings.UpdateCheckDisabled;
+        stored.PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled;
         stored.CloudflareApiTokenEncrypted = Protect(settings.CloudflareApiTokenEncrypted);
 
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);

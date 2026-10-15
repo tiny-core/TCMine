@@ -109,6 +109,45 @@ public sealed class GetAddressSettingsTests
     }
 
     [Fact]
+    public async Task Deteccao_desligada_no_modo_meu_dominio_nao_sai_para_a_rede()
+    {
+        // Nem a tela de configurações, que pede os dois lado a lado.
+        var detector = new FakeDetector("1.2.3.4");
+        var settings = new InstallationSettings
+        {
+            NetworkMode = NetworkMode.OwnHost,
+            PublicHost = "jogar.exemplo.com",
+            PublicIpDetectionDisabled = true
+        };
+
+        var address = await New(settings, detector).HandleAsync(true, CancellationToken.None);
+
+        Assert.Null(address.DetectedHost);
+        Assert.Equal("jogar.exemplo.com", address.PublicHost);
+        Assert.Equal(0, detector.Calls);
+    }
+
+    [Theory]
+    [InlineData(NetworkMode.Automatic, false, true)]
+    [InlineData(NetworkMode.Cloudflare, false, true)] // o registro A é escrito com o IP detectado
+    [InlineData(NetworkMode.Cloudflare, true, false)] // apontando para o DDNS do admin
+    [InlineData(NetworkMode.OwnHost, false, false)]
+    public void Desligar_a_deteccao_so_vale_onde_o_modo_nao_depende_dela(
+        NetworkMode mode, bool usesPublicHost, bool stillDetects)
+    {
+        // Guardado de quando o modo era outro, o "desligado" não pode deixar o
+        // automático sem endereço.
+        var settings = new InstallationSettings
+        {
+            NetworkMode = mode,
+            CloudflareUsesPublicHost = usesPublicHost,
+            PublicIpDetectionDisabled = true
+        };
+
+        settings.PublicIpDetectionEnabled.ShouldBe(stillDetects);
+    }
+
+    [Fact]
     public void Sem_escolha_gravada_o_modo_sai_do_que_esta_preenchido()
     {
         // Instalações de antes da escolha: o resultado tem de ser o mesmo que

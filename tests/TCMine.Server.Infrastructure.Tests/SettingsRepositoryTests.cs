@@ -98,6 +98,8 @@ public sealed class SettingsRepositoryTests : IDisposable
         DnsHostLabel = "jogo",
         DnsManualSyncOnly = true,
         DnsSyncIntervalMinutes = 30,
+        UpdateCheckDisabled = true,
+        PublicIpDetectionDisabled = true,
         CurseForgeApiKeyEncrypted = "chave-do-curseforge",
         AzureClientId = "55555555-5555-5555-5555-555555555555"
     };

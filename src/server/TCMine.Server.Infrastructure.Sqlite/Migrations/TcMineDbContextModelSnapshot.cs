@@ -1476,6 +1476,12 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("PublicIpDetectionDisabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("UpdateCheckDisabled")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 

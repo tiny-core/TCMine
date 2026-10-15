@@ -51,6 +51,12 @@
                 </MudAlert>
                 break;
 
+            case ServerUpdateState.TurnedOff:
+                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">
+                    O aviso de versão nova está desligado. Nenhuma consulta sai para o GitHub.
+                </MudAlert>
+                break;
+
             case ServerUpdateState.LocalBuild:
                 <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined" Dense="true">
                     Build local: não há número para comparar.
@@ -73,7 +79,7 @@
     <div>
         <MudButton Variant="Variant.Outlined" Color="Color.Primary"
                    StartIcon="@Icons.Material.Filled.Refresh"
-                   OnClick="CheckNowAsync" Disabled="@(_checking || _status is { State: ServerUpdateState.Disabled })">
+                   OnClick="CheckNowAsync" Disabled="@(_checking || _status is { State: ServerUpdateState.Disabled or ServerUpdateState.TurnedOff })">
             @if (_checking)
             {
                 <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>

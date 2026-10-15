@@ -1481,6 +1481,12 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
+                    b.Property<bool>("PublicIpDetectionDisabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("UpdateCheckDisabled")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 

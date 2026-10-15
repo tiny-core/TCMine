@@ -174,6 +174,8 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         settings.DnsHostLabel = dnsHostLabel;
         settings.DnsManualSyncOnly = command.DnsManualSyncOnly;
         settings.DnsSyncIntervalMinutes = command.DnsSyncIntervalMinutes;
+        settings.UpdateCheckDisabled = command.UpdateCheckDisabled;
+        settings.PublicIpDetectionDisabled = command.PublicIpDetectionDisabled;
 
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
         // público, volta para a tela preenchido, e portanto apagá-lo é um gesto
@@ -275,4 +277,10 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Minutos entre as sincronizações automáticas: 5, 15, 30 ou 60.</summary>
     public int DnsSyncIntervalMinutes { get; init; } = 5;
+
+    /// <summary>Não consultar o GitHub atrás de versão nova.</summary>
+    public bool UpdateCheckDisabled { get; init; }
+
+    /// <summary>Não perguntar a serviços de fora o IP desta casa (onde o modo de rede deixa).</summary>
+    public bool PublicIpDetectionDisabled { get; init; }
 }

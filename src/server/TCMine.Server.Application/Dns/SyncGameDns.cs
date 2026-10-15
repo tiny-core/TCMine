@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Application.Dns;
@@ -63,7 +64,9 @@ public sealed class SyncGameDns(
         {
             target = managedHost;
 
-            var ip = publicHostIsName ? await detector.GetAsync(ct) : publicHost ?? await detector.GetAsync(ct);
+            var ip = publicHostIsName
+                ? await detector.DetectAsync(config, ct)
+                : publicHost ?? await detector.DetectAsync(config, ct);
 
             if (ip is not null
                 && IPAddress.TryParse(ip, out var parsed)

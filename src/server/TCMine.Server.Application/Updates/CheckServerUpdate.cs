@@ -9,7 +9,10 @@ namespace TCMine.Server.Application.Updates;
 ///     Só o admin da instalação vê — é ele quem pode atualizar, e para os outros
 ///     o aviso seria ruído sem ação possível.
 /// </summary>
-public sealed class CheckServerUpdate(IServerReleaseFeed feed, ICurrentUserScope scope)
+public sealed class CheckServerUpdate(
+    IServerReleaseFeed feed,
+    ICurrentUserScope scope,
+    ISettingsRepository settings)
 {
     /// <summary>Para o aviso no topo do painel: pode responder do cache.</summary>
     /// <param name="currentVersion">A versão desta build ("dev" fora de uma imagem publicada).</param>
@@ -30,6 +33,11 @@ public sealed class CheckServerUpdate(IServerReleaseFeed feed, ICurrentUserScope
     {
         if (!scope.IsInstanceAdmin)
             return null;
+
+        // Antes do feed: desligado pelo admin, nenhuma consulta sai — nem a do
+        // "Verificar agora", que passaria por cima do cache.
+        if ((await settings.GetAsync(ct)).UpdateCheckDisabled)
+            return new ServerUpdateStatus(ServerUpdateState.TurnedOff, currentVersion, null, null);
 
         var lookup = await feed.LookupAsync(refresh, ct);
 
@@ -68,7 +76,11 @@ public enum ServerUpdateState
     UpToDate,
     Available,
     Unreachable,
+    /// <summary>Desligado pelo arquivo de configuração (<c>Updates__Enabled=false</c>).</summary>
     Disabled,
+
+    /// <summary>Desligado pelo admin, em Configurações.</summary>
+    TurnedOff,
     LocalBuild
 }
 

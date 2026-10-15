@@ -1,6 +1,7 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Tests.Fakes;
 using TCMine.Server.Application.Updates;
+using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Application.Tests.Updates;
 
@@ -28,7 +29,8 @@ public sealed class CheckServerUpdateTests
     [Fact]
     public async Task Quem_nao_e_admin_da_instalacao_nao_ve()
     {
-        var caso = new CheckServerUpdate(Feed.Publicada("9.9.9"), new FakeUserScope { IsInstanceAdmin = false });
+        var caso = new CheckServerUpdate(
+            Feed.Publicada("9.9.9"), new FakeUserScope { IsInstanceAdmin = false }, new InMemorySettings());
 
         (await caso.HandleAsync("0.1.0", Ct)).ShouldBeNull();
         (await caso.CheckAsync("0.1.0", refresh: true, Ct)).ShouldBeNull();
@@ -82,7 +84,21 @@ public sealed class CheckServerUpdateTests
     }
 
     private static CheckServerUpdate Admin(IServerReleaseFeed feed) =>
-        new(feed, new FakeUserScope { IsInstanceAdmin = true });
+        new(feed, new FakeUserScope { IsInstanceAdmin = true }, new InMemorySettings());
+
+    [Fact]
+    public async Task Desligado_pelo_admin_nao_consulta_o_github()
+    {
+        // Nem o "Verificar agora": desligado quer dizer que nada sai daqui.
+        var feed = Feed.Publicada("9.9.9");
+        var caso = new CheckServerUpdate(
+            feed, new FakeUserScope { IsInstanceAdmin = true },
+            new InMemorySettings(new InstallationSettings { UpdateCheckDisabled = true }));
+
+        (await caso.CheckAsync("0.1.0", refresh: true, Ct))!.State.ShouldBe(ServerUpdateState.TurnedOff);
+        (await caso.HandleAsync("0.1.0", Ct)).ShouldBeNull();
+        feed.UltimoRefresh.ShouldBeNull();
+    }
 
     private sealed class Feed(ServerReleaseLookup lookup) : IServerReleaseFeed
     {

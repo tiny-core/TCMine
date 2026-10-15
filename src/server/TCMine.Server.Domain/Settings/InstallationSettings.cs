@@ -199,6 +199,42 @@ public sealed class InstallationSettings : Entity
             ? GameDns.ManagedHost(DnsHostLabel, DnsBaseDomain)
             : null;
 
+    // ---------- Consultas que saem para a internet ----------
+
+    /// <summary>
+    ///     O admin desligou o aviso de versão nova (a consulta ao GitHub).
+    ///     Negativo pelo mesmo motivo de <see cref="DnsManualSyncOnly" />. A
+    ///     variável <c>Updates__Enabled=false</c> continua desligando por cima
+    ///     disto, para quem nem quer que a tela ofereça a opção.
+    /// </summary>
+    public bool UpdateCheckDisabled { get; set; }
+
+    /// <summary>
+    ///     O admin pediu para não perguntar a serviços de fora (trace da
+    ///     Cloudflare, ipify) qual é o IP desta casa. Só vale onde a detecção
+    ///     não é necessária: ver <see cref="PublicIpDetectionEnabled" />.
+    /// </summary>
+    public bool PublicIpDetectionDisabled { get; set; }
+
+    /// <summary>
+    ///     O modo de rede precisa do IP detectado: o automático publica o IP, e
+    ///     a Cloudflare sem a opção avançada escreve o IP no registro A.
+    /// </summary>
+    public bool NeedsPublicIpDetection =>
+        EffectiveNetworkMode switch
+        {
+            Settings.NetworkMode.Automatic => true,
+            Settings.NetworkMode.Cloudflare => !EffectiveCloudflareUsesPublicHost,
+            _ => false
+        };
+
+    /// <summary>
+    ///     Se a detecção roda. O desligar só vale onde o modo não depende dela:
+    ///     guardado de quando o modo era outro, ele não pode deixar o automático
+    ///     sem endereço — a mesma regra dos campos dos outros modos.
+    /// </summary>
+    public bool PublicIpDetectionEnabled => !PublicIpDetectionDisabled || NeedsPublicIpDetection;
+
     // ---------- Integrações ----------
 
     /// <summary>

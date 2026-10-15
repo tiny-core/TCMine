@@ -26,7 +26,7 @@ public sealed class GetAddressSettings(ISettingsRepository settings, IPublicAddr
         var config = await settings.GetAsync(ct);
 
         var detected = AddressSettings.HostFor(config) is null || alwaysDetect
-            ? await detector.GetAsync(ct)
+            ? await detector.DetectAsync(config, ct)
             : null;
 
         return AddressSettings.From(config, detected);
