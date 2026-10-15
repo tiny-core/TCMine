@@ -39,6 +39,13 @@ public sealed class UpdateGameServer(
         // Nulo = não mexe no subdomínio; vazio = tira. Como a porta abaixo, a
         // recusa vem antes de qualquer campo ser alterado.
         var label = GameDns.NormalizeLabel(subdomain);
+
+        // Uma forma só (ver CreateGameServer). Só confere o que VEIO: um
+        // subdomínio nulo é "não mexe", e servidores de antes da escolha única
+        // com os dois continuam a salvar até alguém escolher no formulário.
+        if (label is not null && !string.IsNullOrWhiteSpace(connectAddress))
+            return Result.Fail(GameAddress.BothAddressesMessage);
+
         if (label is not null && label != server.Subdomain)
         {
             if (!GameDns.IsValidLabel(label))

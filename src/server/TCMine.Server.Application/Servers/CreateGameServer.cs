@@ -63,6 +63,12 @@ public sealed class CreateGameServer(
         // Opcional. Conferido aqui, e não só pelo índice único do banco, para o
         // erro dizer QUAL servidor já tem o nome.
         var label = GameDns.NormalizeLabel(subdomain);
+
+        // Uma forma só: com os dois, o escrito venceria em silêncio e o
+        // subdomínio viraria um registro na Cloudflare que ninguém usa.
+        if (label is not null && !string.IsNullOrWhiteSpace(connectAddress))
+            return Result<Guid>.Fail(GameAddress.BothAddressesMessage);
+
         if (label is not null)
         {
             if (!GameDns.IsValidLabel(label))

@@ -199,10 +199,46 @@ public sealed class ServerRulesTests
         server.Subdomain = "sobrevivencia";
 
         var result = await NewUpdate(server)
-            .HandleAsync(server.Id, "Servidor", "jogo", 4096, 20, true, CancellationToken.None, 0, "sobrevivencia");
+            .HandleAsync(server.Id, "Servidor", "", 4096, 20, true, CancellationToken.None, 0, "sobrevivencia");
 
         Assert.True(result.Succeeded);
         Assert.Equal("sobrevivencia", server.Subdomain);
+    }
+
+    [Fact]
+    public async Task Endereco_escrito_e_subdominio_juntos_sao_recusados_ao_criar()
+    {
+        // Com os dois, o escrito vencia em silêncio — e quem preenche os dois
+        // quase sempre queria o subdomínio.
+        var servers = new FakeServers();
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Servidor", "jogo.exemplo.com", 4096, 20, Guid.Empty, CancellationToken.None, 0, "sobrevivencia");
+
+        Assert.False(result.Succeeded);
+        Assert.Null(servers.Adicionado);
+    }
+
+    [Fact]
+    public async Task Endereco_escrito_e_subdominio_juntos_sao_recusados_ao_editar()
+    {
+        var server = Servidor();
+
+        var result = await NewUpdate(server)
+            .HandleAsync(server.Id, "Servidor", "jogo.exemplo.com", 4096, 20, true, CancellationToken.None, 0, "sobrevivencia");
+
+        Assert.False(result.Succeeded);
+        Assert.Null(server.Subdomain);
+    }
+
+    [Theory]
+    [InlineData("", null, ServerAddressKind.Installation)]
+    [InlineData("  ", "sobrevivencia", ServerAddressKind.Subdomain)]
+    [InlineData("jogo.exemplo.com", null, ServerAddressKind.Manual)]
+    [InlineData("jogo.exemplo.com", "sobrevivencia", ServerAddressKind.Manual)] // de antes: o escrito sempre venceu
+    public void A_forma_do_endereco_sai_dos_campos(string address, string? subdomain, ServerAddressKind expected)
+    {
+        GameAddress.KindOf(address, subdomain).ShouldBe(expected);
     }
 
     [Fact]

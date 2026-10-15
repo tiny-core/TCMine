@@ -27,6 +27,26 @@ public partial class ServerFormDialog
 
     private string _subdomain = "";
 
+    /// <summary>A forma escolhida. Só o campo dela vai para o Salvar.</summary>
+    private ServerAddressKind _addressKind = ServerAddressKind.Installation;
+
+    /// <summary>A Cloudflare está escolhida e completa: subdomínio publica de verdade.</summary>
+    private bool CanUseSubdomain => _address.DnsBaseDomain is not null;
+
+    /// <summary>O endereço escrito, se é a forma escolhida; senão vazio — o que o Salvar grava.</summary>
+    private string EffectiveConnectAddress =>
+        _addressKind is ServerAddressKind.Manual ? _connectAddress : "";
+
+    /// <summary>
+    ///     O subdomínio, se é a forma escolhida. Em branco vale a sugestão do
+    ///     placeholder: escolher "nome próprio" e não digitar nada não pode
+    ///     salvar um servidor sem nome nenhum.
+    /// </summary>
+    private string EffectiveSubdomain =>
+        _addressKind is not ServerAddressKind.Subdomain ? ""
+        : string.IsNullOrWhiteSpace(_subdomain) ? GameDns.Suggest(_name)
+        : _subdomain;
+
     /// <summary>
     ///     As opções de jogo definidas no formulário: variável do itzg → valor.
     ///     Só as definidas — uma opção em "padrão do modpack" não está aqui.
@@ -127,7 +147,7 @@ public partial class ServerFormDialog
     ///     formulário avisa em vez de calar.
     /// </summary>
     private int? ExplicitAddressPort =>
-        GamePortRange.IsValid(_gamePort) ? GameAddress.ExplicitPort(_connectAddress) : null;
+        GamePortRange.IsValid(_gamePort) ? GameAddress.ExplicitPort(EffectiveConnectAddress) : null;
 
     /// <summary>
     ///     O endereço como será publicado. Com a porta em zero (faixa esgotada, e
@@ -136,9 +156,9 @@ public partial class ServerFormDialog
     /// </summary>
     private string PublishedAddress =>
         _address.For(
-            _connectAddress,
+            EffectiveConnectAddress,
             GamePortRange.IsValid(_gamePort) ? _gamePort : GamePortDefaults.First,
-            _subdomain);
+            EffectiveSubdomain);
 
     /// <summary>
     ///     O que o campo Subdomínio vai fazer, dito no próprio campo: com o DNS
@@ -148,17 +168,8 @@ public partial class ServerFormDialog
     /// </summary>
     private string SubdomainHelp =>
         _address.DnsBaseDomain is { } domain
-            ? $"Opcional. Publica este servidor como nome.{domain}, sem porta (só Minecraft Java)."
-            : "Opcional. Só é publicado com a Cloudflare configurada em Configurações → Rede.";
-
-    /// <summary>
-    ///     Os dois preenchidos: o endereço escrito vence, e o subdomínio é criado
-    ///     na Cloudflare mas não é o que os jogadores recebem. Vale avisar, porque
-    ///     quem preenche os dois quase sempre queria o subdomínio.
-    /// </summary>
-    private bool AddressHidesSubdomain =>
-        !string.IsNullOrWhiteSpace(_connectAddress)
-        && GameDns.ServerHost(_subdomain, _address.DnsBaseDomain) is not null;
+            ? $"Vira nome.{domain}, sem porta (só Minecraft Java). Em branco, vale a sugestão."
+            : "Só é publicado com a Cloudflare escolhida em Configurações → Rede.";
 
     private ModpackVersion? _selected => _versions.FirstOrDefault(v => v.Id == _selectedVersionId);
     private int SelectedModCount => _selected?.Files.Count(f => f.Origin != ModFileOrigin.Override) ?? 0;
@@ -181,6 +192,10 @@ public partial class ServerFormDialog
             _gamePort = Existing.GamePort;
             _subdomain = Existing.Subdomain ?? "";
 
+            // Servidor de antes da escolha única com os dois preenchidos abre
+            // no escrito, que é o que ele publica hoje.
+            _addressKind = GameAddress.KindOf(Existing.ConnectAddress, Existing.Subdomain);
+
             foreach (var (key, value) in GameOptions.Parse(Existing.OptionsJson))
                 _options[key] = value;
             _memoryMb = Existing.MemoryMb;
@@ -188,6 +203,10 @@ public partial class ServerFormDialog
             _whitelistEnabled = Existing.WhitelistEnabled;
             return;
         }
+
+        // Novo com a Cloudflare pronta: nome próprio por padrão — é o endereço
+        // mais fácil de passar aos amigos, e o subdomínio sugerido sai do nome.
+        _addressKind = CanUseSubdomain ? ServerAddressKind.Subdomain : ServerAddressKind.Installation;
 
         // Novo: só publicadas; a mais recente já vem selecionada.
         _versions =
@@ -237,13 +256,13 @@ public partial class ServerFormDialog
         if (!_isNew)
         {
             return await UpdateUseCase.HandleAsync(
-                Existing!.Id, _name, _connectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
-                CancellationToken.None, _gamePort, _subdomain, _options);
+                Existing!.Id, _name, EffectiveConnectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
+                CancellationToken.None, _gamePort, EffectiveSubdomain, _options);
         }
 
         var created = await CreateUseCase.HandleAsync(
-            ModpackId, _name, _connectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
-            CancellationToken.None, _gamePort, _subdomain, _options);
+            ModpackId, _name, EffectiveConnectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
+            CancellationToken.None, _gamePort, EffectiveSubdomain, _options);
         return created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
     }
 }

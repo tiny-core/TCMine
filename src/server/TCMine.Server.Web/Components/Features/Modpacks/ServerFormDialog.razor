@@ -14,11 +14,6 @@
         <MudTabs Elevation="0" Rounded="true" KeepPanelsAlive="true">
             <MudTabPanel Text="Servidor" Icon="@Icons.Material.Filled.Dns" Class="pt-4">
                 <MudTextField @bind-Value="_name" Label="Nome" Immediate="true" Class="mb-2"/>
-                <MudTextField @bind-Value="_connectAddress" Label="Endereço de conexão"
-                              Placeholder="automático"
-                              HelperText="Vazio = automático: o endereço público da instalação. Preencha para usar um domínio próprio deste servidor; a porta entra sozinha."
-                              Immediate="true" Class="mb-2"/>
-
                 @* Value + ValueChanged em vez de @bind: trocar a porta precisa levar o
                    endereço junto, e isso só dá para fazer vendo o valor ANTIGO. *@
                 @* Lista, e não caixa de texto: só aparecem portas que servem — dentro
@@ -39,26 +34,70 @@
                         @_portSuggestionError
                     </MudAlert>
                 }
-                else if (ExplicitAddressPort is { } addressPort && addressPort != _gamePort)
-                {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                        O endereço aponta para a porta @addressPort e o servidor publica a @_gamePort. Só
-                        funciona se o roteador redirecionar uma para a outra. Para o endereço seguir a
-                        porta do servidor, apague o ":@(addressPort)" dele.
-                    </MudAlert>
-                }
 
-                <MudTextField @bind-Value="_subdomain" Label="Subdomínio"
-                              Placeholder="@GameDns.Suggest(_name)"
-                              HelperText="@SubdomainHelp"
-                              Immediate="true" Class="mb-2"/>
+                @* Uma forma só: antes o endereço escrito e o subdomínio conviviam, e o
+                   escrito vencia em silêncio. Os valores digitados nas outras opções
+                   ficam enquanto o formulário está aberto; o Salvar grava só o da
+                   escolhida. *@
+                <MudText Typo="Typo.subtitle2" Class="mt-2">Como os jogadores chegam a este servidor</MudText>
+                <MudRadioGroup T="ServerAddressKind" @bind-Value="_addressKind">
+                    <MudRadio T="ServerAddressKind" Value="ServerAddressKind.Installation" Color="Color.Primary"
+                              Dense="true" Class="d-block">
+                        Pelo endereço desta instalação
+                    </MudRadio>
+                    <MudRadio T="ServerAddressKind" Value="ServerAddressKind.Subdomain" Color="Color.Primary"
+                              Dense="true" Class="d-block"
+                              Disabled="@(!CanUseSubdomain && _addressKind != ServerAddressKind.Subdomain)">
+                        Por um nome próprio, sem porta
+                    </MudRadio>
+                    <MudRadio T="ServerAddressKind" Value="ServerAddressKind.Manual" Color="Color.Primary"
+                              Dense="true" Class="d-block">
+                        Por um endereço que eu escrevo
+                    </MudRadio>
+                </MudRadioGroup>
 
-                @if (AddressHidesSubdomain)
+                @switch (_addressKind)
                 {
-                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                        Com o endereço de conexão preenchido, é ele que os jogadores recebem. Para
-                        publicar o subdomínio, deixe o endereço em branco.
-                    </MudAlert>
+                    case ServerAddressKind.Installation:
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                            O que está em Configurações → Rede, mais a porta deste servidor.
+                            @if (!CanUseSubdomain)
+                            {
+                                <span>Um nome próprio sem porta precisa da Cloudflare configurada lá.</span>
+                            }
+                        </MudText>
+                        break;
+
+                    case ServerAddressKind.Subdomain:
+                        <MudTextField @bind-Value="_subdomain" Label="Subdomínio"
+                                      Placeholder="@GameDns.Suggest(_name)"
+                                      HelperText="@SubdomainHelp"
+                                      Immediate="true" Class="mb-2"/>
+                        @if (!CanUseSubdomain)
+                        {
+                            @* Só um servidor que já tinha subdomínio chega aqui sem a
+                               Cloudflare: o nome fica guardado, e não é publicado. *@
+                            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                                A Cloudflare não está escolhida e completa em Configurações → Rede: o nome
+                                fica guardado, mas os jogadores recebem o endereço da instalação.
+                            </MudAlert>
+                        }
+                        break;
+
+                    case ServerAddressKind.Manual:
+                        <MudTextField @bind-Value="_connectAddress" Label="Endereço de conexão"
+                                      Placeholder="ex.: jogo.outrodominio.com"
+                                      HelperText="Outro domínio só deste servidor, ou uma porta que o roteador redireciona. Sem porta, entra a deste servidor."
+                                      Immediate="true" Class="mb-2"/>
+                        @if (ExplicitAddressPort is { } addressPort && addressPort != _gamePort)
+                        {
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="mb-2">
+                                O endereço aponta para a porta @addressPort e o servidor publica a @_gamePort. Só
+                                funciona se o roteador redirecionar uma para a outra. Para o endereço seguir a
+                                porta do servidor, apague o ":@(addressPort)" dele.
+                            </MudAlert>
+                        }
+                        break;
                 }
 
                 @* O que os jogadores recebem de fato — o mesmo cálculo que vai ao launcher. *@
@@ -71,8 +110,9 @@
                 else
                 {
                     <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="mb-2">
-                        Sem endereço para publicar: o IP público não foi detectado e não há endereço
-                        público em Configurações → Rede. Escreva um endereço aqui ou preencha lá.
+                        @(_addressKind is ServerAddressKind.Manual
+                            ? "Escreva o endereço acima."
+                            : "Sem endereço para publicar: o IP público não foi detectado e não há domínio em Configurações → Rede.")
                     </MudAlert>
                 }
                 <MudGrid>

@@ -48,6 +48,20 @@ public static class GameAddress
     public static int? ExplicitPort(string? address) => Split(address).Port;
 
     /// <summary>
+    ///     Qual das formas de endereço um servidor usa. Com os dois campos
+    ///     preenchidos (só em servidores de antes da escolha única), vale o
+    ///     escrito — é o que <see cref="Resolve" /> sempre publicou.
+    /// </summary>
+    public static ServerAddressKind KindOf(string? connectAddress, string? subdomain) =>
+        !string.IsNullOrWhiteSpace(connectAddress) ? ServerAddressKind.Manual
+        : !string.IsNullOrWhiteSpace(subdomain) ? ServerAddressKind.Subdomain
+        : ServerAddressKind.Installation;
+
+    /// <summary>A mensagem dos casos de uso quando os dois chegam preenchidos.</summary>
+    public const string BothAddressesMessage =
+        "Escolha uma forma de os jogadores chegarem a este servidor: o endereço escrito ou o subdomínio, não os dois.";
+
+    /// <summary>
     ///     O mesmo host apontando para <paramref name="port" />. A porta padrão
     ///     fica implícita ("play.exemplo.com"), como os jogadores a digitam.
     ///     Endereço vazio continua vazio: sem host não há o que completar.
