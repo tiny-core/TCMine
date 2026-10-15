@@ -39,16 +39,16 @@
                         <MudTooltip Text="@WhyCannotJoin(server)" Disabled="@(WhyCannotJoin(server) is null)">
                             <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small"
                                        Class="mt-1"
-                                       StartIcon="@(NeedsUpdate(server)
-                                                      ? Icons.Material.Filled.SystemUpdateAlt
-                                                      : Icons.Material.Filled.Login)"
+                                       StartIcon="@Icons.Material.Filled.Login"
                                        Disabled="@(WhyCannotJoin(server) is not null)"
                                        OnClick="@(() => OnJoin.InvokeAsync(server))">
                                 @if (Joining == server.Id)
                                 {
                                     <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
                                 }
-                                @(NeedsUpdate(server) ? "Atualizar e entrar" : "Entrar")
+                                @* Um rótulo só: instalar ou alinhar a versão é
+                                   parte do "Entrar", e o andamento diz qual. *@
+                                Entrar
                             </MudButton>
                         </MudTooltip>
                     }

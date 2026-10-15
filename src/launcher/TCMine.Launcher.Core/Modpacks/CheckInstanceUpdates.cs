@@ -35,7 +35,12 @@ public sealed class CheckInstanceUpdates(IServerConnection connection)
         // Em paralelo, como no LoadCatalog: são consultas independentes no
         // mesmo canal, e um jogador com vários packs instalados esperava uma
         // ida-e-volta de rede de cada vez só para abrir a tela de instâncias.
+        //
+        // Instância de servidor fica de fora: quem escolhe a versão dela é o
+        // servidor, no "Entrar". Oferecer a mais nova do pack levaria a pasta
+        // para à frente dele, e o "Entrar" seguinte a traria de volta.
         var grupos = instances
+            .Where(i => !i.Manifest.IsServerInstance)
             .GroupBy(i => (i.Manifest.ModpackId, Canal: ReleaseChannels.Of(i.Manifest.Version)))
             .ToArray();
 

@@ -64,6 +64,14 @@ else
 
                     <MudStack Spacing="0" Style="min-width:0;flex:1;">
                         <MudText Typo="Typo.subtitle1">@instancia.Manifest.ModpackName</MudText>
+                        @* De servidor: a versão é a dele, e por isso não há
+                           "Atualizar" aqui — o "Entrar" é que a alinha. *@
+                        @if (instancia.Manifest.ServerName is { } serverName)
+                        {
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary">
+                                Instância do servidor @serverName
+                            </MudText>
+                        }
                         <MudText Typo="Typo.caption" Class="mud-text-secondary">
                             v@(instancia.Manifest.Version)
                             · @HumanSize.Bytes(instancia.SizeBytes)

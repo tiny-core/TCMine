@@ -25,9 +25,9 @@ public class ModpackVersionOrderTests
 
     [Theory]
     [InlineData("1.0.0", "1.1.0", JoinStep.Update)] // servidor à frente
-    [InlineData("1.1.0", "1.0.1", JoinStep.Refuse)] // hotfix antigo publicado depois: é descer
+    [InlineData("1.1.0", "1.0.1", JoinStep.Downgrade)] // hotfix antigo publicado depois: é descer
     [InlineData("1.0.0", "1.0.0", JoinStep.Update)] // mesmo número, outra publicação: alinha
-    [InlineData("1.0.0", "inverno", JoinStep.Refuse)] // sem como comparar: o lado seguro
-    public void Entrar_atualiza_ou_recusa(string installed, string server, JoinStep expected) =>
+    [InlineData("1.0.0", "inverno", JoinStep.Downgrade)] // sem como comparar: o lado que avisa
+    public void Entrar_sobe_ou_desce(string installed, string server, JoinStep expected) =>
         JoinServer.Decide(installed, server).ShouldBe(expected);
 }

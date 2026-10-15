@@ -234,88 +234,160 @@ public class LaunchGameTests
     [Fact]
     public async Task Entrar_na_mesma_versao_abre_direto_no_servidor()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
-        var join = Join(motor, out var installer);
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
+        var key = entrada.InstanciaDoServidor(server, "1.0.0");
 
-        var result = await join.HandleAsync(instance, Servidor(instance.Manifest), Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
         result.Launch.Started.ShouldBeTrue(result.Launch.Message);
-        motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
-        installer.Chamadas.ShouldBe(0);
-        result.Updated.ShouldBeNull();
+        entrada.Motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
+        entrada.Installer.Chamadas.ShouldBe(0);
+        result.Instance!.Key.ShouldBe(key);
     }
 
     [Fact]
-    public async Task Servidor_a_frente_atualiza_a_instancia_e_entra()
+    public async Task A_primeira_entrada_instala_uma_instancia_do_servidor()
     {
-        var instance = Instalada();
-        var nova = Versao(instance.Manifest.ModpackId, "1.1.0");
-        var motor = new MotorFalso();
-        var join = Join(motor, out var installer, nova);
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
 
-        var result = await join.HandleAsync(
-            instance, Servidor(instance.Manifest) with { ModpackVersionId = nova.Id }, Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
         result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        entrada.Installer.Chamadas.ShouldBe(1);
+        entrada.Installer.Alvo.ShouldBeNull(); // nova, nunca por cima de outra
 
-        // A MESMA instância, para o mundo ir junto — nunca uma nova ao lado.
-        installer.Alvo.ShouldBe(instance.Key);
-        installer.Versao.ShouldBe(nova.Id);
-        result.Updated!.Manifest.Version.ShouldBe("1.1.0");
-        motor.Recebido!.Server.ShouldNotBeNull();
+        var stored = entrada.Store.Manifests[result.Instance!.Key];
+        stored.ServerId.ShouldBe(server.Id);
+        stored.ServerName.ShouldBe("Survival");
+        stored.ModpackVersionId.ShouldBe(server.ModpackVersionId);
     }
 
     [Fact]
-    public async Task Servidor_atras_recusa_sem_tocar_na_instancia()
+    public async Task Instancia_pessoal_do_mesmo_pack_nunca_entra_no_servidor()
     {
-        var instance = Instalada();
-        var antiga = Versao(instance.Manifest.ModpackId, "0.9.0");
-        var motor = new MotorFalso();
-        var join = Join(motor, out var installer, antiga);
+        // A pessoal é do jogador: a versão é a que ele escolheu, e alinhá-la ao
+        // servidor desceria ou subiria um mundo que não é do servidor.
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
+        var pessoal = InstanceKey.New();
+        entrada.Store.Manifests[pessoal] = entrada.Manifesto(server.ModpackVersionId, "1.0.0");
 
-        var result = await join.HandleAsync(
-            instance, Servidor(instance.Manifest) with { ModpackVersionId = antiga.Id }, Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
-        result.Launch.Started.ShouldBeFalse();
-        result.Launch.Message!.ShouldContain("v0.9.0");
-        installer.Chamadas.ShouldBe(0);
-        motor.Recebido.ShouldBeNull();
+        result.Instance!.Key.ShouldNotBe(pessoal);
+        entrada.Installer.Chamadas.ShouldBe(1);
+        entrada.Installer.Alvo.ShouldBeNull();
+        entrada.Store.Manifests[pessoal].IsServerInstance.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Servidor_a_frente_atualiza_a_mesma_instancia()
+    {
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor("1.1.0");
+        var key = entrada.InstanciaDoServidor(server, "1.0.0");
+
+        var result = await entrada.JoinAsync(server);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        entrada.Installer.Alvo.ShouldBe(key);
+        result.Instance!.Manifest.Version.ShouldBe("1.1.0");
+        result.Warning.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Servidor_atras_desce_a_instancia_em_vez_de_recusar()
+    {
+        // O mundo é do servidor: a pasta local só tem mods e configs, e precisa
+        // de casar com os dele para o jogo aceitar entrar.
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor("0.9.0");
+        var key = entrada.InstanciaDoServidor(server, "1.0.0");
+
+        var result = await entrada.JoinAsync(server);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        entrada.Installer.Alvo.ShouldBe(key);
+        result.Instance!.Manifest.Version.ShouldBe("0.9.0");
+        result.Warning.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Descer_com_mundo_solo_na_instancia_avisa_e_segue()
+    {
+        await using var entrada = new Entrada { TemMundo = true };
+        var server = entrada.Servidor("0.9.0");
+        entrada.InstanciaDoServidor(server, "1.0.0");
+
+        var result = await entrada.JoinAsync(server);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        result.Warning!.ShouldContain("v0.9.0");
+    }
+
+    [Fact]
+    public async Task Servidor_que_trocou_de_pack_libera_a_instancia_antiga()
+    {
+        // Outro pack é outro Minecraft: a pasta não serve de base. Mas pode ter
+        // um mundo solo, e por isso vira pessoal em vez de sumir.
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
+        var antiga = InstanceKey.New();
+        entrada.Store.Manifests[antiga] = entrada.Manifesto(Guid.CreateVersion7(), "3.0.0") with
+        {
+            ModpackId = Guid.CreateVersion7(), ServerId = server.Id, ServerName = server.Name
+        };
+
+        var result = await entrada.JoinAsync(server);
+
+        result.Instance!.Key.ShouldNotBe(antiga);
+        entrada.Store.Manifests[antiga].ServerId.ShouldBeNull();
+        entrada.Store.Manifests[result.Instance.Key].ServerId.ShouldBe(server.Id);
+    }
+
+    [Fact]
+    public async Task Servidor_renomeado_atualiza_o_nome_na_instancia()
+    {
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
+        var key = entrada.InstanciaDoServidor(server, "1.0.0");
+
+        await entrada.JoinAsync(server with { Name = "Survival 2" });
+
+        entrada.Store.Manifests[key].ServerName.ShouldBe("Survival 2");
     }
 
     [Fact]
     public async Task Em_casa_o_jogo_abre_apontando_para_a_rede_local()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
         var local = new ServerAddress("192.168.1.100", 25570);
-        var join = Join(motor, new FakeEndpointProbe(local), out _);
+        await using var entrada = new Entrada(new FakeEndpointProbe(local));
+        var server = entrada.Servidor() with { LocalAddress = "192.168.1.100:25570" };
+        entrada.InstanciaDoServidor(server, "1.0.0");
 
-        var result = await join.HandleAsync(
-            instance, Servidor(instance.Manifest) with { LocalAddress = "192.168.1.100:25570" }, Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
         result.Launch.Started.ShouldBeTrue(result.Launch.Message);
-        motor.Recebido!.Server.ShouldBe(local);
+        entrada.Motor.Recebido!.Server.ShouldBe(local);
     }
 
     [Fact]
     public async Task Pelo_tunel_o_jogo_abre_na_porta_local_e_o_tunel_vive_com_ele()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
         var tunnel = new FakeGameTunnel();
-        var join = Join(motor, new FakeEndpointProbe(), tunnel, out _);
+        await using var entrada = new Entrada(tunnel: tunnel);
+        var server = entrada.Servidor() with
+        {
+            ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
+        };
+        entrada.InstanciaDoServidor(server, "1.0.0");
 
-        var result = await join.HandleAsync(
-            instance,
-            Servidor(instance.Manifest) with
-            {
-                ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
-            },
-            Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
         result.Launch.Started.ShouldBeTrue(result.Launch.Message);
-        motor.Recebido!.Server.ShouldBe(FakeGameTunnel.Local);
+        entrada.Motor.Recebido!.Server.ShouldBe(FakeGameTunnel.Local);
         tunnel.Opened.ShouldBe(["survival-tunel.exemplo.com"]);
 
         // Fechado só quando o jogo fecha — antes disso, o jogo perderia a conexão.
@@ -327,103 +399,131 @@ public class LaunchGameTests
     [Fact]
     public async Task Tunel_fora_do_ar_tenta_o_endereco_publicado()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
-        var join = Join(motor, new FakeEndpointProbe(), new FakeGameTunnel(answers: false), out _);
+        await using var entrada = new Entrada(tunnel: new FakeGameTunnel(answers: false));
+        var server = entrada.Servidor() with
+        {
+            ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
+        };
+        entrada.InstanciaDoServidor(server, "1.0.0");
 
-        var result = await join.HandleAsync(
-            instance,
-            Servidor(instance.Manifest) with
-            {
-                ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
-            },
-            Config(), null, Ct);
+        var result = await entrada.JoinAsync(server);
 
         result.Launch.Started.ShouldBeTrue(result.Launch.Message);
-        motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
+        entrada.Motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
     }
 
     [Fact]
     public async Task Servidor_sem_endereco_nenhum_explica_em_vez_de_abrir()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
-        var join = Join(motor, out _);
+        await using var entrada = new Entrada();
 
-        var result = await join.HandleAsync(
-            instance, Servidor(instance.Manifest) with { ConnectAddress = null }, Config(), null, Ct);
+        var result = await entrada.JoinAsync(entrada.Servidor() with { ConnectAddress = null });
 
         result.Launch.Started.ShouldBeFalse();
         result.Launch.Message!.ShouldContain("endereço");
-        motor.Recebido.ShouldBeNull();
+        entrada.Motor.Recebido.ShouldBeNull();
+        entrada.Installer.Chamadas.ShouldBe(0);
     }
 
     [Fact]
-    public async Task Sem_acesso_nao_abre_o_jogo()
+    public async Task Sem_acesso_nao_abre_o_jogo_nem_instala()
     {
-        var instance = Instalada();
-        var motor = new MotorFalso();
-        var join = Join(motor, out _);
+        await using var entrada = new Entrada();
 
-        var result = await join.HandleAsync(
-            instance,
-            Servidor(instance.Manifest) with { AccessState = ServerAccessState.None, ConnectAddress = null },
-            Config(), null, Ct);
+        var result = await entrada.JoinAsync(
+            entrada.Servidor() with { AccessState = ServerAccessState.None, ConnectAddress = null });
 
         result.Launch.Started.ShouldBeFalse();
-        motor.Recebido.ShouldBeNull();
+        entrada.Motor.Recebido.ShouldBeNull();
+        entrada.Installer.Chamadas.ShouldBe(0);
     }
 
-    private static JoinServer Join(
-        MotorFalso motor, out InstaladorFalso installer, params ModpackVersionDto[] versions) =>
-        Join(motor, null, out installer, versions);
-
-    private static JoinServer Join(
-        MotorFalso motor, FakeEndpointProbe? probe, out InstaladorFalso installer, params ModpackVersionDto[] versions) =>
-        Join(motor, probe, new FakeGameTunnel(), out installer, versions);
-
-    private static JoinServer Join(
-        MotorFalso motor, FakeEndpointProbe? probe, FakeGameTunnel tunnel, out InstaladorFalso installer,
-        params ModpackVersionDto[] versions)
+    /// <summary>
+    ///     Um pack, as versões publicadas dele e o disco do jogador — o que o
+    ///     "Entrar" consulta. O instalador falso grava no mesmo disco, como o
+    ///     real, para a marca de servidor ser verificada onde ela mora.
+    /// </summary>
+    private sealed class Entrada : IAsyncDisposable
     {
-        var connection = new FakeServerConnection();
-        foreach (var v in versions)
-            connection.Versions[v.Id] = v;
+        private readonly FakeServerConnection _connection = new();
+        private readonly FakeEndpointProbe _probe;
+        private readonly FakeGameTunnel _tunnel;
 
-        var instalador = new InstaladorFalso(versions);
-        installer = instalador;
+        public Entrada(FakeEndpointProbe? probe = null, FakeGameTunnel? tunnel = null)
+        {
+            _probe = probe ?? new FakeEndpointProbe();
+            _tunnel = tunnel ?? new FakeGameTunnel();
+            Installer = new InstaladorFalso(_connection, Store);
+        }
 
-        return new JoinServer(
-            connection,
-            new UpdateInstance(instalador, new SemMundo()),
-            Build(motor: motor),
-            probe ?? new FakeEndpointProbe(),
-            tunnel);
+        public ModpackDto Pack { get; } = new()
+        {
+            Id = Guid.CreateVersion7(),
+            Slug = "pack",
+            Name = "Pack de Teste",
+            MinecraftVersion = "1.21.1",
+            Loader = ModLoader.NeoForge
+        };
+
+        public FakeInstanceStore Store { get; } = new();
+
+        public MotorFalso Motor { get; } = new();
+
+        public InstaladorFalso Installer { get; }
+
+        public bool TemMundo { get; init; }
+
+        /// <summary>Um servidor do pack, na versão pedida (publicada no catálogo falso).</summary>
+        public GameServerDto Servidor(string version = "1.0.0")
+        {
+            var published = Versao(Pack.Id, version);
+            _connection.Versions[published.Id] = published;
+
+            return new GameServerDto
+            {
+                Id = Guid.CreateVersion7(),
+                Name = "Survival",
+                ModpackId = Pack.Id,
+                ModpackVersionId = published.Id,
+                ConnectAddress = "mc.exemplo:25570",
+                Status = GameServerStatus.Running,
+                Role = ServerRoleDto.Member,
+                AccessState = ServerAccessState.Granted
+            };
+        }
+
+        /// <summary>
+        ///     A instância deste servidor já no disco, na versão dada. Na mesma
+        ///     do servidor quando o número bate, noutra quando não — é o que faz
+        ///     o "Entrar" ter ou não de alinhar.
+        /// </summary>
+        public InstanceKey InstanciaDoServidor(GameServerDto server, string version)
+        {
+            var current = _connection.Versions[server.ModpackVersionId];
+            var versionId = current.Version == version ? current.Id : Guid.CreateVersion7();
+
+            var key = InstanceKey.New();
+            Store.Manifests[key] = Manifesto(versionId, version) with
+            {
+                ServerId = server.Id, ServerName = server.Name
+            };
+
+            return key;
+        }
+
+        public InstanceManifest Manifesto(Guid versionId, string version) =>
+            LaunchGameTests.Manifesto() with
+            {
+                ModpackId = Pack.Id, ModpackVersionId = versionId, Version = version
+            };
+
+        public ValueTask DisposeAsync() => _connection.DisposeAsync();
+
+        public Task<JoinServerResult> JoinAsync(GameServerDto server) =>
+            new JoinServer(_connection, Store, Installer, new MundoFalso(TemMundo), Build(motor: Motor), _probe,
+                    _tunnel)
+                .HandleAsync(Pack, server, Config(), null, Ct);
     }
-
-    private static GameServerDto Servidor(InstanceManifest manifest) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        Name = "Survival",
-        ModpackId = manifest.ModpackId,
-        ModpackVersionId = manifest.ModpackVersionId,
-        ConnectAddress = "mc.exemplo:25570",
-        Status = GameServerStatus.Running,
-        Role = ServerRoleDto.Member,
-        AccessState = ServerAccessState.Granted
-    };
-
-    private static ModpackVersionDto Versao(Guid modpackId, string version) => new()
-    {
-        Id = Guid.CreateVersion7(),
-        ModpackId = modpackId,
-        Version = version,
-        LoaderVersion = "21.1.0",
-        State = ModpackVersionState.Ready,
-        PublishedAt = DateTimeOffset.UtcNow,
-        RecommendedMemoryMb = 4096,
-        Files = []
-    };
 
     // ---------- apoio ----------
 
@@ -471,23 +571,37 @@ public class LaunchGameTests
             0,
             "/instancias/teste");
 
-    private sealed class SemMundo : IWorldBackup
+    private static ModpackVersionDto Versao(Guid modpackId, string version) => new()
     {
-        public bool HasWorld(InstanceKey key) => false;
+        Id = Guid.CreateVersion7(),
+        ModpackId = modpackId,
+        Version = version,
+        LoaderVersion = "21.1.0",
+        State = ModpackVersionState.Ready,
+        PublishedAt = DateTimeOffset.UtcNow,
+        RecommendedMemoryMb = 4096,
+        Files = []
+    };
+
+    private sealed class MundoFalso(bool temMundo) : IWorldBackup
+    {
+        public bool HasWorld(InstanceKey key) => temMundo;
 
         public Task<string> CreateAsync(InstanceKey key, CancellationToken ct) => Task.FromResult("");
     }
 
-    /// <summary>Instala gravando o número da versão pedida no manifesto, como o real.</summary>
-    private sealed class InstaladorFalso(IReadOnlyList<ModpackVersionDto> versions) : IInstanceInstaller
+    /// <summary>
+    ///     Instala como o real no que importa aqui: chave nova quando não há
+    ///     alvo, o número da versão pedida no manifesto, e o dono preservado.
+    /// </summary>
+    private sealed class InstaladorFalso(FakeServerConnection connection, FakeInstanceStore store)
+        : IInstanceInstaller
     {
         public int Chamadas { get; private set; }
 
         public InstanceKey? Alvo { get; private set; }
 
-        public Guid? Versao { get; private set; }
-
-        public Task<InstallResult> HandleAsync(
+        public async Task<InstallResult> HandleAsync(
             Uri serverUrl,
             ModpackDto modpack,
             Guid versionId,
@@ -497,14 +611,22 @@ public class LaunchGameTests
         {
             Chamadas++;
             Alvo = target;
-            Versao = versionId;
+
+            var key = target ?? InstanceKey.New();
+            var local = await store.ReadManifestAsync(key, ct);
+            var version = await connection.GetModpackVersionAsync(versionId, ct);
 
             var manifest = Manifesto() with
             {
-                ModpackVersionId = versionId, Version = versions.First(v => v.Id == versionId).Version
+                ModpackId = modpack.Id,
+                ModpackVersionId = versionId,
+                Version = version.Version,
+                ServerId = local?.ServerId,
+                ServerName = local?.ServerName
             };
 
-            return Task.FromResult(InstallResult.Success(target!.Value, manifest));
+            await store.WriteManifestAsync(key, manifest, ct);
+            return InstallResult.Success(key, manifest);
         }
     }
 

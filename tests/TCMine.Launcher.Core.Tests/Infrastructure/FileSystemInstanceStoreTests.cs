@@ -45,6 +45,25 @@ public sealed class FileSystemInstanceStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task Acha_a_instancia_do_servidor_pelo_id_gravado()
+    {
+        // Pelo disco de verdade: é também o que prova que o gerador de JSON
+        // grava e lê os campos novos do manifesto.
+        var store = Criar();
+        var server = Guid.CreateVersion7();
+        var pessoal = InstanceKey.New();
+
+        await store.WriteManifestAsync(pessoal, Manifesto(new Dictionary<string, string>()), Ct);
+        await store.WriteManifestAsync(
+            _chave, Manifesto(new Dictionary<string, string>()) with { ServerId = server, ServerName = "Survival" },
+            Ct);
+
+        (await store.FindServerInstanceAsync(server, Ct)).ShouldBe(_chave);
+        (await store.FindServerInstanceAsync(Guid.CreateVersion7(), Ct)).ShouldBeNull();
+        (await store.ReadManifestAsync(_chave, Ct))!.ServerName.ShouldBe("Survival");
+    }
+
+    [Fact]
     public async Task Manifesto_corrompido_e_tratado_como_ausente()
     {
         // A consequência é deliberada: o diff seguinte vê uma instância vazia,

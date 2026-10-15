@@ -108,6 +108,26 @@ public sealed partial class FileSystemInstanceStore(
         return [.. manifestos.OfType<InstanceManifest>()];
     }
 
+    public async Task<InstanceKey?> FindServerInstanceAsync(Guid serverId, CancellationToken ct)
+    {
+        var raiz = Path.Combine(paths.RootDirectory, "instances");
+
+        if (!Directory.Exists(raiz))
+            return null;
+
+        // Por nome de pasta, para o resultado não depender da ordem do disco
+        // no caso (que não deveria existir) de duas pastas com o mesmo dono.
+        foreach (var folder in Directory.EnumerateDirectories(raiz).Order(StringComparer.Ordinal))
+        {
+            var manifest = await LerAsync(Path.Combine(folder, InstanceManifest.FileName), ct);
+
+            if (manifest?.ServerId == serverId)
+                return new InstanceKey(Path.GetFileName(folder));
+        }
+
+        return null;
+    }
+
     public Task DeleteFilesAsync(InstanceKey key, IEnumerable<string> relativePaths, CancellationToken ct)
     {
         var raiz = PathFor(key);

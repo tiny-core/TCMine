@@ -40,6 +40,23 @@ public sealed record InstanceManifest
     /// <summary>RAM escolhida pelo jogador. Nulo usa a recomendada do pack.</summary>
     public int? MemoryMb { get; init; }
 
+    // ---------- Pessoal ou de servidor ----------
+    //
+    // Nulo = PESSOAL: o jogador escolheu a versão, ela só anda para a frente e
+    // tem backup do mundo (§7.0). Preenchido = DE SERVIDOR: segue a versão
+    // pinada nele, para cima ou para baixo, e é a única que entra nele. Campo
+    // opcional e não Schema novo: toda instância de antes disto lê nulo, e
+    // nulo é exatamente o que ela é.
+
+    /// <summary>O servidor dono desta instância, ou nulo se ela é pessoal.</summary>
+    public Guid? ServerId { get; init; }
+
+    /// <summary>Nome do servidor, para a tela de instâncias não depender da rede.</summary>
+    public string? ServerName { get; init; }
+
+    /// <summary>Instância de servidor (ver <see cref="ServerId" />).</summary>
+    public bool IsServerInstance => ServerId is not null;
+
     // ---------- O que é preciso para ABRIR o jogo ----------
     //
     // Gravado na instalação, e aqui — ao contrário do endereço de um servidor —

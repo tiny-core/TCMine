@@ -32,6 +32,10 @@ public sealed class FakeInstanceStore : IInstanceStore
     public Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<InstanceManifest>>([.. Manifests.Values]);
 
+    public Task<InstanceKey?> FindServerInstanceAsync(Guid serverId, CancellationToken ct) =>
+        Task.FromResult<InstanceKey?>(
+            Manifests.Where(p => p.Value.ServerId == serverId).Select(p => (InstanceKey?)p.Key).FirstOrDefault());
+
     public Task DeleteFilesAsync(InstanceKey key, IEnumerable<string> relativePaths, CancellationToken ct)
     {
         Deleted.AddRange(relativePaths);

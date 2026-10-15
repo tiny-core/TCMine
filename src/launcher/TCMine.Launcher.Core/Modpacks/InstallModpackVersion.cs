@@ -115,7 +115,13 @@ public sealed partial class InstallModpackVersion(
                 ManagedFiles = manifest.Files
                     .Where(f => f.Side is not FileSide.ServerOnly && !f.Optional)
                     .ToDictionary(f => f.Path, f => f.Sha256),
-                MemoryMb = local?.MemoryMb ?? manifest.RecommendedMemoryMb
+                MemoryMb = local?.MemoryMb ?? manifest.RecommendedMemoryMb,
+
+                // Atualizar não muda o dono: sem isto, a primeira atualização
+                // de uma instância de servidor a tornava pessoal, e o servidor
+                // instalava outra ao lado no próximo "Entrar".
+                ServerId = local?.ServerId,
+                ServerName = local?.ServerName
             };
 
             await instances.WriteManifestAsync(key, installed, ct);

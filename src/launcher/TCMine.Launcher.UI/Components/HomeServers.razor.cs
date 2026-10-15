@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Components;
 using MudBlazor;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
-using TCMine.Launcher.Core.Modpacks;
 
 namespace TCMine.Launcher.UI.Components;
 
@@ -32,8 +31,9 @@ public partial class HomeServers : ComponentBase
     public EventCallback OnRedeemInvite { get; set; }
 
     /// <summary>
-    ///     Abrir o jogo já dentro do servidor. É da tela: é ela que sabe a
-    ///     instância ativa e mostra o andamento da abertura.
+    ///     Abrir o jogo já dentro do servidor. É da tela: é ela que mostra o
+    ///     andamento — que inclui instalar a instância do servidor, se ainda
+    ///     não houver.
     /// </summary>
     [Parameter]
     [EditorRequired]
@@ -47,30 +47,9 @@ public partial class HomeServers : ComponentBase
     [Parameter]
     public Guid? Joining { get; set; }
 
-    /// <summary>
-    ///     Versão instalada da instância ativa, para decidir "Entrar" ou
-    ///     "Atualizar e entrar" sem esperar o clique — e para recusar de
-    ///     antemão o servidor que está para trás (JoinServer recusaria do
-    ///     mesmo jeito, mas só depois do clique).
-    /// </summary>
-    [Parameter]
-    public string? ActiveVersion { get; set; }
-
     [Inject] private IServerConnection Connection { get; set; } = default!;
 
     [Inject] private ISnackbar Snackbar { get; set; } = default!;
-
-    /// <summary>
-    ///     Negativo se o servidor está atrás, positivo se está na frente, nulo
-    ///     se não dá para comparar (versão apagada, ou alguma das duas não é
-    ///     SemVer).
-    /// </summary>
-    private int? OrderVersusActive(GameServerDto server) =>
-        server.ModpackVersionLabel is { } label && ActiveVersion is { } active
-            ? ModpackVersionOrder.Compare(label, active)
-            : null;
-
-    private bool NeedsUpdate(GameServerDto server) => OrderVersusActive(server) > 0;
 
     private string? WhyCannotJoin(GameServerDto server)
     {
@@ -84,12 +63,6 @@ public partial class HomeServers : ComponentBase
 
         if (server.Status is not GameServerStatus.Running)
             return "O servidor não está no ar agora.";
-
-        // Descer de versão por cima de uma instância partiria o mundo (mods
-        // que somem levam os blocos e itens que registraram) — a mesma regra
-        // do JoinServer, só que aqui dita o botão ANTES do clique.
-        if (OrderVersusActive(server) < 0)
-            return "Este servidor está numa versão anterior à da sua instância instalada.";
 
         return null;
     }

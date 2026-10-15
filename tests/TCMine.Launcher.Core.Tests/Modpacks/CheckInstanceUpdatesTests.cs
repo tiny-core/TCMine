@@ -126,6 +126,22 @@ public class CheckInstanceUpdatesTests
             [(pack, ReleaseChannel.Release), (pack, ReleaseChannel.Alpha)], true);
     }
 
+    [Fact]
+    public async Task Instancia_de_servidor_nao_recebe_oferta_de_atualizacao()
+    {
+        // Quem escolhe a versão dela é o servidor, no "Entrar". Oferecer a mais
+        // nova do pack a poria à frente dele, e entrar a traria de volta.
+        var pack = Guid.CreateVersion7();
+        var connection = new FakeServerConnection { Latest = { [(pack, ReleaseChannel.Release)] = Versao(pack) } };
+        var instance = Instalada(pack, Guid.CreateVersion7());
+        instance = instance with { Manifest = instance.Manifest with { ServerId = Guid.CreateVersion7() } };
+
+        var news = await new CheckInstanceUpdates(connection).HandleAsync([instance], Ct);
+
+        news.ShouldBeEmpty();
+        connection.LatestQueries.ShouldBeEmpty();
+    }
+
     // ---------- apoio ----------
 
     private static CheckInstanceUpdates Build(params (Guid Pack, ModpackVersionDto Versao)[] ultimas)

@@ -146,43 +146,69 @@ public partial class HomePage : ComponentBase, IDisposable
     ///     aconteceu.
     /// </summary>
     private Task PlayAsync() =>
-        RunLaunchAsync((active, config, progress) =>
-            Launch.HandleAsync(active, config, progress, CancellationToken.None));
+        _active is not { } active
+            ? Task.CompletedTask
+            : RunLaunchAsync((config, progress) =>
+                Launch.HandleAsync(active, config, progress, CancellationToken.None));
 
     /// <summary>
-    ///     Abre o jogo já dentro do servidor, alinhando antes a versão da
-    ///     instância com a dele — o andamento e o erro aparecem no mesmo sítio do
-    ///     "Jogar", porque é a mesma abertura.
+    ///     Abre o jogo já dentro do servidor, pela instância DELE — achada ou
+    ///     instalada no caminho, e alinhada à versão do servidor. O andamento e
+    ///     o erro aparecem no mesmo sítio do "Jogar", porque é a mesma abertura.
     /// </summary>
     private async Task JoinAsync(GameServerDto server)
     {
+        if (Catalog.Current?.Entries.FirstOrDefault(e => e.Modpack.Id == server.ModpackId)?.Modpack
+            is not { } modpack)
+        {
+            _error = $"O modpack de {server.Name} não está no catálogo agora. Tente de novo quando a ligação voltar.";
+            return;
+        }
+
         _joining = server.Id;
+        JoinServerResult? joined = null;
 
         try
         {
-            await RunLaunchAsync(async (active, config, progress) =>
+            await RunLaunchAsync(async (config, progress) =>
             {
-                var result = await Join.HandleAsync(active, server, config, progress, CancellationToken.None);
-
-                // Atualizada no caminho: o cabeçalho mostra a versão, e
-                // continuar com a antiga em memória faria o "Jogar" seguinte
-                // abrir com o manifesto velho.
-                if (result.Updated is { } updated)
-                    _active = updated;
-
-                return result.Launch;
+                joined = await Join.HandleAsync(modpack, server, config, progress, CancellationToken.None);
+                return joined.Launch;
             });
         }
         finally
         {
             _joining = null;
         }
+
+        if (joined is null)
+            return;
+
+        // Não impediu a entrada, mas o jogador tem de o ler: fica no mesmo
+        // lugar do erro, que não some sozinho.
+        if (joined.Warning is { } warning && _error is null)
+            _error = warning;
+
+        // A instância do servidor passa a ser a ativa: é nela que o jogador
+        // acabou de entrar, e o "Jogar" seguinte tem de abrir a mesma pasta.
+        // Relida do disco, e não a do resultado, para o cabeçalho ter o
+        // tamanho de verdade.
+        if (joined.Instance is { } instance)
+        {
+            await Active.SetAsync(instance.Key, CancellationToken.None);
+            _active = (await Active.CurrentAsync(CancellationToken.None)).Active ?? instance;
+        }
     }
 
+    /// <summary>
+    ///     "Jogar" e "Entrar" partilham isto: andamento, erro e a trava contra
+    ///     dois cliques. A instância NÃO entra aqui: "Jogar" usa a ativa, mas
+    ///     "Entrar" usa a do servidor, que pode nem existir ainda.
+    /// </summary>
     private async Task RunLaunchAsync(
-        Func<InstalledInstance, LauncherConfig, IProgress<GameLaunchProgress>, Task<GameLaunchResult>> launch)
+        Func<LauncherConfig, IProgress<GameLaunchProgress>, Task<GameLaunchResult>> launch)
     {
-        if (_active is null || Shell.Pairing?.Config is not { } config || _launching)
+        if (Shell.Pairing?.Config is not { } config || _launching)
             return;
 
         _launching = true;
@@ -201,7 +227,7 @@ public partial class HomePage : ComponentBase, IDisposable
 
         try
         {
-            var result = await launch(_active, config, progress);
+            var result = await launch(config, progress);
 
             if (!result.Started)
                 _error = result.Message;

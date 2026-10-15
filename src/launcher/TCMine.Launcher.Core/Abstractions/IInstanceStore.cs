@@ -30,6 +30,13 @@ public interface IInstanceStore
     Task<IReadOnlyList<InstanceManifest>> ListManifestsAsync(CancellationToken ct);
 
     /// <summary>
+    ///     A instância do servidor, ou nula se ele ainda não tem nenhuma aqui.
+    ///     Só lê manifestos, como <see cref="ListManifestsAsync" />: é o caminho
+    ///     de cada "Entrar", e somar o tamanho das pastas o atrasaria à toa.
+    /// </summary>
+    Task<InstanceKey?> FindServerInstanceAsync(Guid serverId, CancellationToken ct);
+
+    /// <summary>
     ///     Apaga arquivos GERENCIADOS que sobraram da versão anterior. Recebe
     ///     caminhos relativos e nunca decide sozinho o que remover: quem decide é
     ///     o diff, a partir do manifesto local.

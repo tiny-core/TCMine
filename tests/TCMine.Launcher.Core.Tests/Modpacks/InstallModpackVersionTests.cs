@@ -182,6 +182,27 @@ public class InstallModpackVersionTests
     }
 
     [Fact]
+    public async Task A_instancia_de_servidor_continua_dele_depois_de_atualizar()
+    {
+        // Sem a marca, o "Entrar" seguinte não a acharia e instalaria outra.
+        var pack = Modpack();
+        var version = Versao(pack.Id, Arquivo("mods/jei.jar", "aa"));
+        var key = InstanceKey.New();
+        var server = Guid.CreateVersion7();
+
+        var scenario = new Cenario(pack, version);
+        scenario.Instances.Manifests[key] = Manifesto(pack, version, []) with
+        {
+            ServerId = server, ServerName = "Survival"
+        };
+
+        await scenario.Instalar(key);
+
+        scenario.Instances.Manifests[key].ServerId.ShouldBe(server);
+        scenario.Instances.Manifests[key].ServerName.ShouldBe("Survival");
+    }
+
+    [Fact]
     public async Task Modpack_sem_versao_publicada_explica_em_vez_de_falhar()
     {
         var pack = Modpack();

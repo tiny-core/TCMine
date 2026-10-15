@@ -352,7 +352,7 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   tira a chave do diretório, não do manifesto.
 - **Quem instala decide o alvo**: chave existente atualiza, `null` cria. O
   catálogo passa `null`; a tela de atualização passa a chave da instância.
-- **Uma instância existente só anda para a FRENTE.** Escolher versão é coisa da
+- **Uma instância PESSOAL só anda para a FRENTE** (a de servidor segue o servidor, §7.1). Escolher versão é coisa da
   instalação, nunca da atualização: descer para uma versão antiga por cima de
   uma instalação parte os mundos jogados — os mods que somem levam consigo os
   blocos e itens que registaram.
@@ -599,12 +599,18 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   sobrar folga a ícones e Java. A fila é deduplicada por hash: o mesmo
   conteúdo em dois caminhos gravaria o mesmo `.tmp` do store ao mesmo tempo.
   Fakes de teste que a instalação toca têm de ser seguros entre threads.
-- **Entrar num servidor** é `JoinServer`: a versão é pinada no SERVIDOR, então
-  a instância é alinhada antes de abrir — servidor à frente atualiza (via
-  `UpdateInstance`, com backup), servidor atrás RECUSA (§7.0), e sem como
-  comparar os números (`ModpackVersionOrder`, SemVer) também recusa. O endereço
-  vai ao CmlLib como `ServerIp`/`ServerPort`, que gera `--quickPlayMultiplayer`
-  ou `--server` conforme a versão do jogo.
+- **Instância pessoal ou de servidor** (`InstanceManifest.ServerId`/`ServerName`; nulo = pessoal, e é o que
+  toda instância de antes disto lê). A pessoal é do jogador: ele escolhe a versão, ela só anda para a frente,
+  tem backup (§7.0) e **nunca entra em servidor**. A de servidor é achada pelo id dele
+  (`IInstanceStore.FindServerInstanceAsync`), segue a versão pinada no servidor **para cima ou para baixo, sem
+  backup** (o mundo mora no servidor), fica fora da verificação de atualização e não muda de dono ao atualizar
+  (`InstallModpackVersion` preserva a marca). Mesmo pack nas duas = duas pastas; o armazém de conteúdo evita
+  o download duplo.
+- **Entrar num servidor** é `JoinServer`: acha ou instala a instância do servidor e a alinha antes de abrir.
+  Descer com mundo solo em `saves/` avisa e segue (`JoinServerResult.Warning`); sem como comparar os
+  números (`ModpackVersionOrder`, SemVer), conta como descer. Servidor que trocou de pack: a pasta antiga
+  vira pessoal (pode ter um mundo solo) e o servidor ganha outra. O endereço vai ao CmlLib como
+  `ServerIp`/`ServerPort`, que gera `--quickPlayMultiplayer` ou `--server` conforme a versão do jogo.
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

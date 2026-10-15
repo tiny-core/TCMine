@@ -39,6 +39,12 @@ else
                         <MudText Typo="Typo.h4" Class="tc-hero-name">
                             @_active.Manifest.ModpackName
                         </MudText>
+                        @if (_active.Manifest.ServerName is { } serverName)
+                        {
+                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                                Instância do servidor @serverName
+                            </MudText>
+                        }
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">
                             v@(_active.Manifest.Version)
                             · @(_active.Manifest.MinecraftVersion ?? "?")
@@ -167,8 +173,7 @@ else
                está no disco e continua à esquerda. *@
             <HomeServers Servers="Servers" OnRedeemInvite="RedeemInviteAsync"
                          OnJoin="JoinAsync" Joining="_joining"
-                         JoinBlockedReason="@JoinBlockedReason"
-                         ActiveVersion="@_active.Manifest.Version"/>
+                         JoinBlockedReason="@JoinBlockedReason"/>
             <HomeNews Posts="NewsPosts"/>
         </aside>
     </div>
