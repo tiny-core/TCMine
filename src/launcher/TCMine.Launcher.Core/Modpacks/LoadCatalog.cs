@@ -93,6 +93,14 @@ public sealed record CatalogView
 
     public bool IsEmpty => !Failed && Entries.Count is 0;
 
+    /// <summary>
+    ///     O pack de um servidor, ou nulo se o catálogo não o tem (acabou de
+    ///     sair, ou a conta deixou de o ver). Instalar a pasta do servidor
+    ///     precisa dele, e ele já está aqui em memória.
+    /// </summary>
+    public ModpackDto? ModpackOf(GameServerDto server) =>
+        Entries.FirstOrDefault(e => e.Modpack.Id == server.ModpackId)?.Modpack;
+
     public static CatalogView Of(IReadOnlyList<CatalogEntry> entries) => new() { Entries = entries };
 
     public static CatalogView Failure(string error) => new() { Entries = [], Error = error };

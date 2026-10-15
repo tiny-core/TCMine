@@ -19,12 +19,13 @@ namespace TCMine.Launcher.UI.State;
 public sealed class InstallOperationState
 {
     /// <summary>
-    ///     Modpack alvo, quando a operação nasceu no catálogo — é por ele que
-    ///     <c>ModpacksPage</c> sabe em qual card mostrar a barra ao reabrir a
-    ///     tela. Null quando a operação é uma atualização de instância já
-    ///     existente (essa não tem um card de catálogo para apontar).
+    ///     O card que mostra a barra ao reabrir a tela: o modpack, quando a
+    ///     operação nasceu no catálogo, ou o servidor, quando nasceu na aba
+    ///     Servidores (os ids são GUIDs v7, então não colidem). Null quando a
+    ///     operação é uma atualização de instância já existente (essa não tem
+    ///     um card para apontar).
     /// </summary>
-    public Guid? ModpackId { get; private set; }
+    public Guid? SubjectId { get; private set; }
 
     public InstallProgress? Progress { get; private set; }
 
@@ -32,9 +33,9 @@ public sealed class InstallOperationState
 
     public event Action? Changed;
 
-    public void Begin(Guid? modpackId)
+    public void Begin(Guid? subjectId)
     {
-        ModpackId = modpackId;
+        SubjectId = subjectId;
         Progress = InstallProgress.Planning;
         Changed?.Invoke();
     }
@@ -47,7 +48,7 @@ public sealed class InstallOperationState
 
     public void Finish()
     {
-        ModpackId = null;
+        SubjectId = null;
         Progress = null;
         Changed?.Invoke();
     }

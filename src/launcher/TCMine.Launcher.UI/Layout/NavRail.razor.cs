@@ -16,6 +16,7 @@ public partial class NavRail : ComponentBase, IDisposable
     private static readonly NavItem[] Primary =
     [
         new("Jogar", Icons.Material.Filled.PlayArrow, "/"),
+        new("Servidores", Icons.Material.Filled.Dns, "/servers", true),
         new("Instâncias", Icons.Material.Filled.Layers, "/instances"),
         new("Modpacks", Icons.Material.Filled.Widgets, "/modpacks", true),
         new("Novidades", Icons.Material.Filled.Campaign, "/news", true)

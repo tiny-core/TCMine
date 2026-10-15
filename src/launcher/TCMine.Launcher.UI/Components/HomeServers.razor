@@ -52,23 +52,9 @@
                             </MudButton>
                         </MudTooltip>
                     }
-                    else if (EstaPendente(server))
-                    {
-                        <MudText Typo="Typo.caption" Class="mud-text-secondary">
-                            Pedido enviado — aguardando aprovação
-                        </MudText>
-                    }
                     else
                     {
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small"
-                                   Disabled="_pedindo.Contains(server.Id)"
-                                   OnClick="@(() => PedirAcessoAsync(server))">
-                            @if (_pedindo.Contains(server.Id))
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                            }
-                            Pedir acesso
-                        </MudButton>
+                        <ServerAccessButton @key="server.Id" Server="server"/>
                     }
                 </div>
             }

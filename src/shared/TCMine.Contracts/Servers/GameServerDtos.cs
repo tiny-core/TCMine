@@ -77,6 +77,14 @@ public sealed record GameServerDto
 
     /// <summary>Se o jogador já pode entrar, já pediu, ou ainda nem pediu.</summary>
     public required ServerAccessState AccessState { get; init; }
+
+    /// <summary>
+    ///     Sem whitelist: qualquer conta da instalação entra, sem pedir. Só para
+    ///     a tela dizer "aberto" ou "com convite" — o acesso em si já vem
+    ///     resolvido em <see cref="AccessState" />. Campo opcional: um launcher
+    ///     antigo o ignora.
+    /// </summary>
+    public bool IsOpen { get; init; }
 }
 
 /// <summary>

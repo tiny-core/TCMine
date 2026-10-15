@@ -1,0 +1,167 @@
+@page "/servers"
+@using TCMine.Contracts.Servers
+
+<PageTitle>Servidores</PageTitle>
+
+<PageHeader Title="Servidores" Subtitle="Onde jogar com os outros. Cada servidor tem a sua própria instalação.">
+    <MudButton Variant="Variant.Text" Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.CardGiftcard"
+               OnClick="RedeemInviteAsync">
+        Tenho um convite
+    </MudButton>
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.Refresh"
+               Disabled="@Catalog.IsLoading"
+               OnClick="LoadAsync">
+        Atualizar
+    </MudButton>
+</PageHeader>
+
+@if (_message is not null)
+{
+    <MudAlert Severity="_messageSeverity" Variant="Variant.Outlined" Dense="true" Class="mb-4"
+              ShowCloseIcon="true" CloseIconClicked="@(() => _message = null)">
+        @_message
+    </MudAlert>
+}
+
+@if (Shown is null)
+{
+    <LoadingCards Count="3"/>
+}
+else if (Shown.Failed)
+{
+    <EmptyState Icon="@Icons.Material.Filled.CloudOff"
+                Title="Não foi possível carregar os servidores"
+                Description="@Shown.Error">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync">
+            Tentar de novo
+        </MudButton>
+    </EmptyState>
+}
+else if (!Rows.Any())
+{
+    <EmptyState Icon="@Icons.Material.Filled.Dns"
+                Title="Nenhum servidor ainda"
+                Description="Se alguém te convidou, resgate o código para o servidor aparecer aqui.">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="RedeemInviteAsync">
+            Tenho um convite
+        </MudButton>
+    </EmptyState>
+}
+else
+{
+    <MudGrid>
+        @foreach (var (modpack, server) in Rows)
+        {
+            var action = ActionFor(server);
+            var why = WhyDisabled(server);
+
+            <MudItem xs="12" sm="6" md="4" @key="server.Id">
+                <MudCard Class="tc-card tc-fade-in" Elevation="0" Outlined="true">
+                    <MudCardContent>
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                            <ServerStatusChip Status="server.Status"/>
+                            <MudText Typo="Typo.subtitle1" Class="tc-server-name">@server.Name</MudText>
+                        </MudStack>
+
+                        <MudText Typo="Typo.body2" Class="mud-text-secondary mt-2">
+                            @modpack.Name
+                            @if (server.ModpackVersionLabel is { } label)
+                            {
+                                <text> · v@(label)</text>
+                            }
+                        </MudText>
+
+                        <MudStack Row="true" Spacing="2" Class="mt-2" Wrap="Wrap.Wrap">
+                            @* Aberto é coisa do servidor; o acesso é do jogador. Um
+                               servidor com convite onde ele já entrou continua a
+                               dizer "com convite": é o que explica a outros porque
+                               não o veem como aberto. *@
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@(server.IsOpen ? Icons.Material.Filled.Public : Icons.Material.Filled.Lock)">
+                                @(server.IsOpen ? "Aberto" : "Com convite")
+                            </MudChip>
+                            <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined"
+                                     Icon="@Icons.Material.Filled.People">
+                                @server.OnlinePlayers / @server.MaxPlayers
+                            </MudChip>
+                        </MudStack>
+
+                        @if (server.AccessState is ServerAccessState.Granted && server.ConnectAddress is { } address)
+                        {
+                            @* Selecionável: quem quiser adicioná-lo à mão no jogo
+                               copia daqui, sem ter de o digitar. *@
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary tc-server-address mt-2">
+                                @address
+                            </MudText>
+                        }
+
+                        @if (_joining == server.Id)
+                        {
+                            @* A fase em texto, e a barra só quando há fração: uma
+                               barra a fingir progresso num passo que não sabe
+                               medir ensina o jogador a desconfiar dela. *@
+                            <MudProgressLinear Color="Color.Primary" Class="mt-4"
+                                               Indeterminate="@(_fraction is null)"
+                                               Value="@((_fraction ?? 0) * 100)"/>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                                @(_phase ?? "A preparar…")
+                            </MudText>
+                        }
+                        else if (Operation.SubjectId == server.Id)
+                        {
+                            <MudProgressLinear Color="Color.Primary" Class="mt-4"
+                                               Indeterminate="@(Operation.Progress?.Fraction is null)"
+                                               Value="@((Operation.Progress?.Fraction ?? 0) * 100)"/>
+                            <MudText Typo="Typo.caption" Class="mud-text-secondary mt-1">
+                                @InstallPhaseText.Of(Operation.Progress)
+                            </MudText>
+                        }
+                        else
+                        {
+                            <div class="mt-4">
+                                @switch (action)
+                                {
+                                    case ServerEntryAction.RequestAccess:
+                                    case ServerEntryAction.Pending:
+                                        <ServerAccessButton Server="server" Variant="Variant.Outlined" Size="Size.Medium"/>
+                                        break;
+
+                                    case ServerEntryAction.Install:
+                                        @* Só instalar: com o servidor desligado, é o que
+                                           deixa tudo pronto para quando ele voltar. *@
+                                        <MudTooltip Text="@why" Disabled="@(why is null)">
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                                       StartIcon="@Icons.Material.Filled.Download"
+                                                       Disabled="@(why is not null)"
+                                                       OnClick="@(() => InstallAsync(modpack, server))">
+                                                Instalar
+                                            </MudButton>
+                                        </MudTooltip>
+                                        break;
+
+                                    default:
+                                        @* Desligado com o motivo à vista, nunca escondido:
+                                           um servidor parado continua na lista, e o jogador
+                                           tem de saber porque não dá para entrar agora. *@
+                                        <MudTooltip Text="@why" Disabled="@(why is null)">
+                                            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                                                       StartIcon="@(action is ServerEntryAction.Play
+                                                                      ? Icons.Material.Filled.PlayArrow
+                                                                      : Icons.Material.Filled.SystemUpdateAlt)"
+                                                       Disabled="@(why is not null)"
+                                                       OnClick="@(() => PlayAsync(modpack, server))">
+                                                @(action is ServerEntryAction.Play ? "Jogar" : "Atualizar e jogar")
+                                            </MudButton>
+                                        </MudTooltip>
+                                        break;
+                                }
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}

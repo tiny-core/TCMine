@@ -76,6 +76,8 @@ public partial class HomePage : ComponentBase, IDisposable
 
     [Inject] private JoinServer Join { get; set; } = default!;
 
+    [Inject] private InstallOperationState Operation { get; set; } = default!;
+
     [Inject] private LauncherShellState Shell { get; set; } = default!;
 
     [Inject] private IDialogService Dialogs { get; set; } = default!;
@@ -158,8 +160,7 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private async Task JoinAsync(GameServerDto server)
     {
-        if (Catalog.Current?.Entries.FirstOrDefault(e => e.Modpack.Id == server.ModpackId)?.Modpack
-            is not { } modpack)
+        if (Catalog.Current?.ModpackOf(server) is not { } modpack)
         {
             _error = $"O modpack de {server.Name} não está no catálogo agora. Tente de novo quando a ligação voltar.";
             return;
@@ -167,6 +168,10 @@ public partial class HomePage : ComponentBase, IDisposable
 
         _joining = server.Id;
         JoinServerResult? joined = null;
+
+        // A trava de instalação fica presa durante a preparação da pasta do
+        // servidor, senão o catálogo deixaria começar outra por baixo.
+        Operation.Begin(server.Id);
 
         try
         {
@@ -178,6 +183,7 @@ public partial class HomePage : ComponentBase, IDisposable
         }
         finally
         {
+            Operation.Finish();
             _joining = null;
         }
 
@@ -189,15 +195,11 @@ public partial class HomePage : ComponentBase, IDisposable
         if (joined.Warning is { } warning && _error is null)
             _error = warning;
 
-        // A instância do servidor passa a ser a ativa: é nela que o jogador
-        // acabou de entrar, e o "Jogar" seguinte tem de abrir a mesma pasta.
-        // Relida do disco, e não a do resultado, para o cabeçalho ter o
-        // tamanho de verdade.
+        // Entrar faz da instância do servidor a ativa (o JoinServer grava a
+        // escolha). Relida do disco, e não a do resultado, para o cabeçalho ter
+        // o tamanho de verdade.
         if (joined.Instance is { } instance)
-        {
-            await Active.SetAsync(instance.Key, CancellationToken.None);
             _active = (await Active.CurrentAsync(CancellationToken.None)).Active ?? instance;
-        }
     }
 
     /// <summary>

@@ -606,11 +606,19 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   backup** (o mundo mora no servidor), fica fora da verificação de atualização e não muda de dono ao atualizar
   (`InstallModpackVersion` preserva a marca). Mesmo pack nas duas = duas pastas; o armazém de conteúdo evita
   o download duplo.
-- **Entrar num servidor** é `JoinServer`: acha ou instala a instância do servidor e a alinha antes de abrir.
-  Descer com mundo solo em `saves/` avisa e segue (`JoinServerResult.Warning`); sem como comparar os
-  números (`ModpackVersionOrder`, SemVer), conta como descer. Servidor que trocou de pack: a pasta antiga
-  vira pessoal (pode ter um mundo solo) e o servidor ganha outra. O endereço vai ao CmlLib como
-  `ServerIp`/`ServerPort`, que gera `--quickPlayMultiplayer` ou `--server` conforme a versão do jogo.
+- **Entrar num servidor** é `JoinServer`, sobre o `PrepareServerInstance` (achar, criar e alinhar a pasta do
+  servidor — a mesma regra do "Instalar" da aba Servidores, que prepara sem abrir o jogo). Descer com mundo
+  solo em `saves/` avisa e segue (`Warning` no resultado); sem como comparar os números
+  (`ModpackVersionOrder`, SemVer), conta como descer. Servidor que trocou de pack: a pasta antiga vira pessoal
+  (pode ter um mundo solo) e o servidor ganha outra. Entrar com sucesso torna a instância do servidor a
+  ativa. A preparação segura a trava de instalação (`InstallOperationState`, pelo id do servidor). O endereço
+  vai ao CmlLib como `ServerIp`/`ServerPort`, que gera `--quickPlayMultiplayer` ou `--server` conforme a
+  versão do jogo.
+- **Aba Servidores** (`/servers`): todo servidor que a conta vê, com o botão que `ServerEntry.Of` decide
+  (pedir acesso, aguardando, instalar, jogar, atualizar e jogar) e `ServerEntry.Unavailable` desliga (só
+  entrar exige o servidor no ar; instalar não). `GameServerDto.IsOpen` (sem whitelist) é só para o rótulo
+  "Aberto"/"Com convite" — o acesso já vem em `AccessState`. O catálogo (Modpacks) conta só as instâncias
+  pessoais como "Instalado".
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

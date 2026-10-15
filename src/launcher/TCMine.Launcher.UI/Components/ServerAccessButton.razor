@@ -1,0 +1,23 @@
+@using TCMine.Contracts.Servers
+@* Pedir acesso a um servidor com whitelist, ou o aviso de que o pedido já foi.
+   É um clique só, sem diálogo nem estado que a tela precise de guardar — por
+   isso o componente fala com o canal sozinho, nas duas telas que o usam. *@
+
+@if (IsPending)
+{
+    <MudText Typo="Typo.caption" Class="mud-text-secondary">
+        Pedido enviado — aguardando aprovação
+    </MudText>
+}
+else
+{
+    <MudButton Variant="Variant" Color="Color.Primary" Size="Size"
+               Disabled="_requesting"
+               OnClick="RequestAsync">
+        @if (_requesting)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+        }
+        Pedir acesso
+    </MudButton>
+}

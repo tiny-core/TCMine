@@ -84,7 +84,12 @@ public partial class ModpacksPage : ComponentBase, IDisposable
     {
         // Light: esta tela nunca mostra tamanho de instância, só se ela existe.
         // A variante cheia soma o disco de cada mundo instalado à toa.
-        var manifestos = await Instances.HandleLightAsync(CancellationToken.None);
+        // Só as PESSOAIS: a pasta de um servidor é dele (segue a versão dele,
+        // e não se escolhe por aqui). Contá-la marcaria o pack como
+        // "Instalado" para quem nunca o instalou pelo catálogo.
+        var manifestos = (await Instances.HandleLightAsync(CancellationToken.None))
+            .Where(m => !m.IsServerInstance)
+            .ToArray();
 
         _installed = [.. manifestos.Select(m => m.ModpackId)];
         _installedVersions = [.. manifestos.Select(m => m.ModpackVersionId)];

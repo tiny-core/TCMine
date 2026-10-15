@@ -64,7 +64,8 @@ public static class ServerMappings
             OnlinePlayers = players.TryGet(server.Id) ?? 0,
             MaxPlayers = server.MaxPlayers,
             Role = accessible.Role,
-            AccessState = accessible.AccessState
+            AccessState = accessible.AccessState,
+            IsOpen = !server.WhitelistEnabled
         };
     }
 }

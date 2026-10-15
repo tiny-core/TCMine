@@ -8,30 +8,20 @@ namespace TCMine.Launcher.Core.Modpacks;
 
 /// <summary>
 ///     Abre o jogo já entrando num servidor, pela instância DO SERVIDOR.
-///     A versão é pinada NO SERVIDOR, não no modpack (CLAUDE.md §5), e a
-///     instância de servidor existe para segui-la: para cima ou para baixo, sem
-///     backup. O mundo de quem joga num servidor mora no servidor; a pasta local
-///     só leva mods e configs, e descer de versão nela não parte nada — o
-///     contrário da instância pessoal (§7.0), que só anda para a frente e nunca
-///     entra em servidor. Mundo próprio em <c>saves/</c> é exceção (alguém abriu
-///     um mundo solo nela): segue, com aviso.
-///     Uma instância por servidor, achada pelo id dele no manifesto. Não há:
-///     instala uma nova. O armazém de conteúdo partilhado faz o segundo download
-///     do mesmo pack ser só materialização.
+///     Achar, criar e alinhar essa instância é do <see cref="PrepareServerInstance" />
+///     (a mesma regra do "Instalar" da aba Servidores); daqui para a frente é
+///     escolher o caminho, abrir o jogo e deixar a instância como a ativa.
 /// </summary>
 public sealed class JoinServer(
-    IServerConnection connection,
-    IInstanceStore instances,
-    IInstanceInstaller installer,
-    IWorldBackup worlds,
+    PrepareServerInstance prepare,
+    IActiveInstanceStore active,
     LaunchGame launch,
     IEndpointProbe probe,
     IGameTunnel tunnel)
 {
     /// <summary>
-    ///     <paramref name="modpack" /> é o do servidor, vindo do catálogo que a
-    ///     tela já tem: é o que cria a instância quando ainda não há nenhuma, e
-    ///     pedi-lo ao servidor de novo seria uma ida à rede por dado em memória.
+    ///     <paramref name="modpack" /> é o do servidor (ver
+    ///     <see cref="PrepareServerInstance.HandleAsync" />).
     /// </summary>
     public async Task<JoinServerResult> HandleAsync(
         ModpackDto modpack,
@@ -43,6 +33,8 @@ public sealed class JoinServer(
         if (server.AccessState is not ServerAccessState.Granted)
             return JoinServerResult.Failed("Você ainda não tem acesso a este servidor.");
 
+        // Antes de instalar: baixar centenas de megabytes para então descobrir
+        // que não há por onde entrar seria fazer esperar à toa.
         if (ServerAddress.Parse(server.ConnectAddress) is null
             && ServerAddress.Parse(server.LocalAddress) is null
             && string.IsNullOrWhiteSpace(server.TunnelAddress))
@@ -52,84 +44,24 @@ public sealed class JoinServer(
                 + "das configurações do painel.");
         }
 
-        if (modpack.Id != server.ModpackId)
-            return JoinServerResult.Failed($"{server.Name} roda outro modpack.");
+        var prepared = await prepare.HandleAsync(
+            config.ServerUrl,
+            modpack,
+            server,
+            progress is null
+                ? null
+                : new SyncProgress<InstallProgress>(p =>
+                {
+                    if (p.Label is { } label)
+                        progress.Report(new GameLaunchProgress($"Preparando a instância de {server.Name}: {label}",
+                            p.Fraction));
+                }),
+            ct);
 
-        var key = await instances.FindServerInstanceAsync(server.Id, ct);
-        var manifest = key is { } found ? await instances.ReadManifestAsync(found, ct) : null;
+        if (prepared.Instance is not { } instance)
+            return JoinServerResult.Failed(prepared.Error);
 
-        // O admin trocou o pack do servidor. A pasta antiga não serve de base
-        // (outro Minecraft, outro loader), mas pode ter um mundo solo: vira
-        // pessoal em vez de ser apagada, e o servidor ganha uma instância nova.
-        if (key is { } previous && manifest is not null && manifest.ModpackId != server.ModpackId)
-        {
-            await instances.WriteManifestAsync(previous, manifest with { ServerId = null, ServerName = null }, ct);
-            key = null;
-            manifest = null;
-        }
-
-        string? warning = null;
-
-        if (manifest is null || manifest.ModpackVersionId != server.ModpackVersionId)
-        {
-            progress?.Report(new GameLaunchProgress("Conferindo a versão do servidor"));
-
-            ModpackVersionDto target;
-
-            try
-            {
-                target = await connection.GetModpackVersionAsync(server.ModpackVersionId, ct);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                return JoinServerResult.Failed($"Não foi possível consultar a versão de {server.Name}: {ex.Message}");
-            }
-
-            if (key is { } existing && manifest is not null
-                && Decide(manifest.Version, target.Version) is JoinStep.Downgrade
-                && worlds.HasWorld(existing))
-            {
-                warning = $"{server.Name} voltou para a v{target.Version}. O mundo solo guardado nesta "
-                          + "instância (pasta saves) pode não abrir nesta versão — o do servidor não é afetado.";
-            }
-
-            var verb = manifest is null ? "Instalando" : "Atualizando para";
-
-            var install = await installer.HandleAsync(
-                config.ServerUrl,
-                modpack,
-                target.Id,
-                key,
-                progress is null
-                    ? null
-                    : new SyncProgress<InstallProgress>(p =>
-                    {
-                        if (p.Label is { } label)
-                            progress.Report(new GameLaunchProgress($"{verb} v{target.Version}: {label}", p.Fraction));
-                    }),
-                ct);
-
-            if (!install.Succeeded)
-                return JoinServerResult.Failed(install.Error);
-
-            key = install.Key!.Value;
-            manifest = install.Instance!;
-        }
-
-        // A marca de servidor vai logo após a instalação, que grava o manifesto
-        // sem ela numa instância nova. O nome acompanha um servidor renomeado no
-        // painel: é o que a tela de instâncias mostra.
-        var instanceKey = key!.Value;
-
-        if (manifest.ServerId != server.Id || manifest.ServerName != server.Name)
-        {
-            manifest = manifest with { ServerId = server.Id, ServerName = server.Name };
-            await instances.WriteManifestAsync(instanceKey, manifest, ct);
-        }
-
-        // Tamanho zero: somar a pasta é varrer um mundo inteiro, e quem abre o
-        // jogo não o mostra. A tela relê a instância quando precisa dele.
-        var instance = new InstalledInstance(instanceKey, manifest, 0, instances.PathFor(instanceKey));
+        var warning = prepared.Warning;
 
         // Escolhido só agora, depois de uma eventual atualização: ela pode
         // levar minutos, e o jogador pode ter mudado de rede nesse meio-tempo.
@@ -168,11 +100,17 @@ public sealed class JoinServer(
                 await session.DisposeAsync(); // o jogo nem abriu: nada a carregar
         }
 
+        // A ativa passa a ser a do servidor: é nela que o jogador acabou de
+        // entrar, e o "Jogar" seguinte tem de abrir a mesma pasta. Só com o jogo
+        // aberto — uma entrada que falhou não muda o que a tela inicial mostra.
+        if (result.Started)
+            await active.WriteAsync(instance.Key, ct);
+
         return new JoinServerResult(result, instance, warning);
     }
 
     /// <summary>
-    ///     Para que lado a instância do servidor anda. Os dois seguem; descer só
+    ///     Para que lado a instância do servidor anda (ver <see cref="PrepareServerInstance" />). Os dois seguem; descer só
     ///     decide se há aviso. Sem como comparar os números, conta como descer:
     ///     na dúvida, avisar custa uma linha, e calar pode custar um mundo.
     /// </summary>

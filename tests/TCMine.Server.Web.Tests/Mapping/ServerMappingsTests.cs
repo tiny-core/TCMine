@@ -44,6 +44,17 @@ public sealed class ServerMappingsTests
     }
 
     [Fact]
+    public void Servidor_sem_whitelist_sai_como_aberto()
+    {
+        var server = Servidor("94.63.98.255", 25566);
+
+        Granted(server).ToDto(new NoPlayers(), NoLabels, Address(null)).IsOpen.ShouldBeFalse();
+
+        server.WhitelistEnabled = false;
+        Granted(server).ToDto(new NoPlayers(), NoLabels, Address(null)).IsOpen.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Sem_acesso_concedido_o_endereco_nao_sai()
     {
         var pending = new AccessibleServer(

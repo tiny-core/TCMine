@@ -360,6 +360,45 @@ public class LaunchGameTests
     }
 
     [Fact]
+    public async Task Entrar_torna_a_instancia_do_servidor_a_ativa()
+    {
+        // O "Jogar" seguinte tem de abrir a mesma pasta em que se acabou de entrar.
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor();
+
+        var result = await entrada.JoinAsync(server);
+
+        entrada.Active.Chosen.ShouldBe(result.Instance!.Key);
+    }
+
+    [Fact]
+    public async Task Entrada_que_falha_nao_troca_a_ativa()
+    {
+        await using var entrada = new Entrada();
+        entrada.Motor.Falha = true;
+
+        var result = await entrada.JoinAsync(entrada.Servidor());
+
+        result.Launch.Started.ShouldBeFalse();
+        entrada.Active.Chosen.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Instalar_prepara_a_pasta_mesmo_com_o_servidor_desligado_e_nao_abre_o_jogo()
+    {
+        // Deixar tudo pronto enquanto o servidor está fora é o que poupa a
+        // espera quando ele voltar.
+        await using var entrada = new Entrada();
+        var server = entrada.Servidor() with { Status = GameServerStatus.Stopped, ConnectAddress = null };
+
+        var result = await entrada.PrepareAsync(server);
+
+        result.Succeeded.ShouldBeTrue(result.Error);
+        entrada.Store.Manifests[result.Instance!.Key].ServerId.ShouldBe(server.Id);
+        entrada.Motor.Recebido.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Em_casa_o_jogo_abre_apontando_para_a_rede_local()
     {
         var local = new ServerAddress("192.168.1.100", 25570);
@@ -519,10 +558,18 @@ public class LaunchGameTests
 
         public ValueTask DisposeAsync() => _connection.DisposeAsync();
 
+        public FakeActiveInstanceStore Active { get; } = new();
+
         public Task<JoinServerResult> JoinAsync(GameServerDto server) =>
-            new JoinServer(_connection, Store, Installer, new MundoFalso(TemMundo), Build(motor: Motor), _probe,
-                    _tunnel)
+            new JoinServer(Prepare(), Active, Build(motor: Motor), _probe, _tunnel)
                 .HandleAsync(Pack, server, Config(), null, Ct);
+
+        /// <summary>Só a preparação — o "Instalar" da aba Servidores.</summary>
+        public Task<ServerInstanceResult> PrepareAsync(GameServerDto server) =>
+            Prepare().HandleAsync(Config().ServerUrl, Pack, server, null, Ct);
+
+        private PrepareServerInstance Prepare() =>
+            new(_connection, Store, Installer, new MundoFalso(TemMundo));
     }
 
     // ---------- apoio ----------
@@ -675,13 +722,18 @@ public class LaunchGameTests
     {
         public GameLaunchRequest? Recebido { get; private set; }
 
+        /// <summary>O jogo não abre (Java quebrado, por exemplo).</summary>
+        public bool Falha { get; set; }
+
         public Task<GameLaunchResult> LaunchAsync(
             GameLaunchRequest request,
             IProgress<GameLaunchProgress>? progress,
             CancellationToken ct)
         {
             Recebido = request;
-            return Task.FromResult(GameLaunchResult.Ok(new FakeGameProcess()));
+            return Task.FromResult(Falha
+                ? GameLaunchResult.Failed("o jogo não abriu")
+                : GameLaunchResult.Ok(new FakeGameProcess()));
         }
     }
 }
