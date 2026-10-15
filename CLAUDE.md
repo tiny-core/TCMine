@@ -619,6 +619,11 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   entrar exige o servidor no ar; instalar não). `GameServerDto.IsOpen` (sem whitelist) é só para o rótulo
   "Aberto"/"Com convite" — o acesso já vem em `AccessState`. O catálogo (Modpacks) conta só as instâncias
   pessoais como "Instalado".
+- **Tela inicial** (`/`): a instância ativa — cabeçalho, ficha do pack (`HomeOverview`: quase tudo do manifesto,
+  só a descrição do catálogo, para servir sem rede) e, à direita, o cartão do servidor dela e as novidades. A
+  lista de servidores saiu daqui para a aba Servidores. Numa instância de servidor o botão principal é
+  **"Entrar no servidor"** (`JoinServer`) e espera o servidor no ar; sem o servidor no catálogo (sem rede),
+  abre o jogo como uma pessoal.
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

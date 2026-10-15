@@ -15,7 +15,7 @@ else if (_active is null)
                 Title="@(_needsChoice ? "Escolha o que jogar" : "Nada para jogar ainda")"
                 Description="@(_needsChoice
                                  ? "Você tem mais de uma instância instalada. Marque uma como ativa para ela aparecer aqui."
-                                 : "Instale um modpack para ele aparecer aqui, com o botão de jogar e o servidor a que ele pertence.")">
+                                 : "Instale um modpack, ou um servidor pela aba Servidores, para ele aparecer aqui com o botão de jogar.")">
         <MudButton Variant="Variant.Filled" Color="Color.Primary"
                    Href="@(_needsChoice ? "/instances" : "/modpacks")">
             @(_needsChoice ? "Ver instâncias" : "Ver modpacks")
@@ -39,34 +39,17 @@ else
                         <MudText Typo="Typo.h4" Class="tc-hero-name">
                             @_active.Manifest.ModpackName
                         </MudText>
-                        @if (_active.Manifest.ServerName is { } serverName)
-                        {
-                            <MudText Typo="Typo.body2" Class="mud-text-secondary">
-                                Instância do servidor @serverName
-                            </MudText>
-                        }
                         <MudText Typo="Typo.body2" Class="mud-text-secondary">
                             v@(_active.Manifest.Version)
-                            · @(_active.Manifest.MinecraftVersion ?? "?")
-                            @if (_active.Manifest.Loader is { } loader)
+                            @if (_active.Manifest.ServerName is { } serverName)
                             {
-                                <text> · @loader</text>
+                                <text> · instância do servidor @serverName</text>
                             }
-                            · @HumanSize.Bytes(_active.SizeBytes)
                         </MudText>
                     </div>
                 </div>
 
                 <div class="tc-hero-action">
-                    @* Desligado sem motivo à vista é o pior dos dois mundos: o
-                       jogador vê o botão e não sabe se a culpa é dele. *@
-                    @if (!CanPlay && !Game.IsRunning)
-                    {
-                        <MudTooltip Text="@WhyCannotPlay" Placement="Placement.Left">
-                            <MudIcon Icon="@Icons.Material.Outlined.Info" Color="Color.Warning"/>
-                        </MudTooltip>
-                    }
-
                     @* Com o jogo aberto o botão troca de papel em vez de ficar
                        cinzento: um botão morto não diz nada, e quando o jogo
                        pendura fechá-lo pela janela pode já não ser possível. *@
@@ -80,17 +63,24 @@ else
                     }
                     else
                     {
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
-                                   Class="tc-play"
-                                   StartIcon="@Icons.Material.Filled.PlayArrow"
-                                   Disabled="@(_launching || !CanPlay || Lock.IsLocked)"
-                                   OnClick="PlayAsync">
-                            @if (_launching)
-                            {
-                                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                            }
-                            Jogar
-                        </MudButton>
+                        @* Desligado com o motivo à vista: o jogador vê o botão e
+                           tem de saber se a culpa é dele ou do servidor. *@
+                        <MudTooltip Text="@PlayBlockedReason" Disabled="@(PlayBlockedReason is null)"
+                                    Placement="Placement.Left">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large"
+                                       Class="tc-play"
+                                       StartIcon="@(Server is null
+                                                      ? Icons.Material.Filled.PlayArrow
+                                                      : Icons.Material.Filled.Login)"
+                                       Disabled="@(PlayBlockedReason is not null)"
+                                       OnClick="PlayAsync">
+                                @if (_launching)
+                                {
+                                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                                }
+                                @(Server is null ? "Jogar" : "Entrar no servidor")
+                            </MudButton>
+                        </MudTooltip>
                     }
                 </div>
             </section>
@@ -120,6 +110,8 @@ else
                     @_error
                 </MudAlert>
             }
+
+            <HomeOverview Instance="_active" Modpack="Modpack" ModCount="ModCount"/>
 
             @* Saída diferente de zero é a única pista de que o jogo não fechou
                sozinho. Sem isto, um crash é indistinguível de fechar pela janela. *@
@@ -168,12 +160,14 @@ else
         </div>
 
         <aside class="tc-home-side">
-            @* Servidores e novidades vêm do catálogo. Sem rede a coluna some
+            @* O servidor e as novidades vêm do catálogo. Sem rede a coluna some
                inteira em vez de mostrar caixas vazias: o que importa nesta tela
-               está no disco e continua à esquerda. *@
-            <HomeServers Servers="Servers" OnRedeemInvite="RedeemInviteAsync"
-                         OnJoin="JoinAsync" Joining="_joining"
-                         JoinBlockedReason="@JoinBlockedReason"/>
+               está no disco e continua à esquerda. A lista de servidores mora na
+               aba Servidores; aqui só o desta instância. *@
+            @if (Server is { } server)
+            {
+                <HomeServerCard Server="server"/>
+            }
             <HomeNews Posts="NewsPosts"/>
         </aside>
     </div>

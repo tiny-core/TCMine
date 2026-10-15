@@ -1,0 +1,15 @@
+/* A descrição vem do painel e pode ter parágrafos: as quebras do autor ficam. */
+.tc-overview-summary {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/*
+    Os dados em grade: em colunas cabem seis de relance, e numa lista vertical
+    a ficha empurraria o registro do jogo para fora da tela.
+*/
+.tc-overview-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem 1.5rem;
+}

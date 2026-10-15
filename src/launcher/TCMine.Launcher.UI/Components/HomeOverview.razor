@@ -1,0 +1,39 @@
+@* A ficha do pack da instância ativa. Quase tudo vem do manifesto, no disco —
+   é o que deixa a ficha de pé sem rede; só a descrição vem do catálogo, e some
+   quando ele não está. *@
+
+<MudPaper Class="pa-4 mt-4" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.overline" Class="mud-text-secondary">Sobre o modpack</MudText>
+
+    @if (Summary is { } summary)
+    {
+        <MudText Typo="Typo.body2" Class="tc-overview-summary mt-2">@summary</MudText>
+    }
+
+    <div class="tc-overview-facts mt-3">
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Versão</MudText>
+            <MudText Typo="Typo.body2">v@(Instance.Manifest.Version)</MudText>
+        </div>
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Minecraft</MudText>
+            <MudText Typo="Typo.body2">@(Instance.Manifest.MinecraftVersion ?? "?")</MudText>
+        </div>
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Loader</MudText>
+            <MudText Typo="Typo.body2">@LoaderText</MudText>
+        </div>
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Mods</MudText>
+            <MudText Typo="Typo.body2">@ModCount</MudText>
+        </div>
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">Memória</MudText>
+            <MudText Typo="Typo.body2">@MemoryText</MudText>
+        </div>
+        <div>
+            <MudText Typo="Typo.caption" Class="mud-text-secondary">No disco</MudText>
+            <MudText Typo="Typo.body2">@HumanSize.Bytes(Instance.SizeBytes)</MudText>
+        </div>
+    </div>
+</MudPaper>

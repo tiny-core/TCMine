@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Components;
-using MudBlazor;
 using TCMine.Contracts;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
-using TCMine.Launcher.UI.Components;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
@@ -18,7 +16,6 @@ public partial class HomePage : ComponentBase, IDisposable
     private InstalledInstance? _active;
     private string? _error;
     private double? _fraction;
-    private Guid? _joining;
 
     private bool _launching;
     private bool _loading = true;
@@ -40,11 +37,17 @@ public partial class HomePage : ComponentBase, IDisposable
     /// </summary>
     private bool CanPlay => Shell.Pairing?.Config is not null;
 
-    private string? JoinBlockedReason =>
+    /// <summary>
+    ///     Por que o botão principal está desligado, ou nulo. Numa instância de
+    ///     servidor ele ENTRA no servidor, então também espera o servidor estar
+    ///     no ar — a mesma regra da aba Servidores.
+    /// </summary>
+    private string? PlayBlockedReason =>
         Lock.Reason
         ?? (_launching ? "Abrindo o jogo…"
-            : CanPlay ? null
-            : WhyCannotPlay);
+            : !CanPlay ? WhyCannotPlay
+            : Server is { } server ? ServerEntry.Unavailable(server)
+            : null);
 
     /// <summary>Jogo aberto ou instalação em curso (ver <see cref="ActionLock" />).</summary>
     [Inject]
@@ -57,15 +60,31 @@ public partial class HomePage : ComponentBase, IDisposable
     [Inject] private NewsStore NewsFeed { get; set; } = default!;
 
     /// <summary>
-    ///     Os servidores do pack ativo, lidos do catálogo guardado a cada
-    ///     desenho. Calculados e não copiados para um campo: a cópia era o que
-    ///     ficava velha quando o catálogo mudava com a tela aberta.
+    ///     O pack da instância ativa no catálogo guardado, lido a cada desenho.
+    ///     Calculado e não copiado para um campo: a cópia era o que ficava velha
+    ///     quando o catálogo mudava com a tela aberta. Nulo sem rede — a ficha
+    ///     continua, só sem a descrição.
     /// </summary>
-    private IReadOnlyList<GameServerDto> Servers =>
+    private ModpackDto? Modpack =>
         _active is null
-            ? []
-            : Catalog.Current?.Entries.FirstOrDefault(e => e.Modpack.Id == _active.Manifest.ModpackId)?.Servers
-              ?? [];
+            ? null
+            : Catalog.Current?.Entries.FirstOrDefault(e => e.Modpack.Id == _active.Manifest.ModpackId)?.Modpack;
+
+    /// <summary>
+    ///     O servidor dono da instância ativa, ou nulo se ela é pessoal ou se o
+    ///     catálogo não o tem agora (sem rede, ou o acesso caiu). Procurado em
+    ///     todo o catálogo, e não só no pack da instância: o servidor pode ter
+    ///     trocado de pack, e entrar é o que o leva à pasta nova.
+    /// </summary>
+    private GameServerDto? Server =>
+        _active?.Manifest.ServerId is { } serverId
+            ? Catalog.Current?.Entries.SelectMany(e => e.Servers).FirstOrDefault(s => s.Id == serverId)
+            : null;
+
+    /// <summary>Quantos mods a instância tem: os arquivos gerenciados em <c>mods/</c>.</summary>
+    private int ModCount =>
+        _active?.Manifest.ManagedFiles.Keys.Count(k => k.StartsWith("mods/", StringComparison.OrdinalIgnoreCase))
+        ?? 0;
 
     private IReadOnlyList<ModpackNewsDto> NewsPosts =>
         _active is null ? [] : NewsFeed.For(_active.Manifest.ModpackId);
@@ -79,8 +98,6 @@ public partial class HomePage : ComponentBase, IDisposable
     [Inject] private InstallOperationState Operation { get; set; } = default!;
 
     [Inject] private LauncherShellState Shell { get; set; } = default!;
-
-    [Inject] private IDialogService Dialogs { get; set; } = default!;
 
     /// <summary>
     ///     Deixa de ouvir a sessão ao sair da tela.
@@ -122,7 +139,8 @@ public partial class HomePage : ComponentBase, IDisposable
         }
 
         // Depois de a tela já poder desenhar: o card da instância é o que
-        // importa e vem do disco, enquanto os servidores dependem de rede. Sem
+        // importa e vem do disco, enquanto o servidor e as novidades dependem
+        // de rede. Sem
         // esta ordem, um servidor lento deixaria a tela de jogar em branco.
         await LoadSideAsync();
     }
@@ -147,16 +165,27 @@ public partial class HomePage : ComponentBase, IDisposable
     ///     voltar a olhar — justamente quando ela é a única explicação do que
     ///     aconteceu.
     /// </summary>
-    private Task PlayAsync() =>
-        _active is not { } active
+    /// <summary>
+    ///     Numa instância de servidor, "Jogar" é entrar nele: abrir sem servidor
+    ///     só serviria para criar mundos solo numa pasta que segue a versão de
+    ///     outro, e que pode descer de versão por baixo deles. Sem o servidor no
+    ///     catálogo (sem rede), abre o jogo como uma pessoal — melhor do que
+    ///     não deixar jogar.
+    /// </summary>
+    private Task PlayAsync()
+    {
+        if (Server is { } server)
+            return JoinAsync(server);
+
+        return _active is not { } active
             ? Task.CompletedTask
             : RunLaunchAsync((config, progress) =>
                 Launch.HandleAsync(active, config, progress, CancellationToken.None));
+    }
 
     /// <summary>
-    ///     Abre o jogo já dentro do servidor, pela instância DELE — achada ou
-    ///     instalada no caminho, e alinhada à versão do servidor. O andamento e
-    ///     o erro aparecem no mesmo sítio do "Jogar", porque é a mesma abertura.
+    ///     Abre o jogo já dentro do servidor, pela instância DELE, alinhada à
+    ///     versão do servidor no caminho.
     /// </summary>
     private async Task JoinAsync(GameServerDto server)
     {
@@ -166,7 +195,6 @@ public partial class HomePage : ComponentBase, IDisposable
             return;
         }
 
-        _joining = server.Id;
         JoinServerResult? joined = null;
 
         // A trava de instalação fica presa durante a preparação da pasta do
@@ -184,7 +212,6 @@ public partial class HomePage : ComponentBase, IDisposable
         finally
         {
             Operation.Finish();
-            _joining = null;
         }
 
         if (joined is null)
@@ -203,9 +230,9 @@ public partial class HomePage : ComponentBase, IDisposable
     }
 
     /// <summary>
-    ///     "Jogar" e "Entrar" partilham isto: andamento, erro e a trava contra
-    ///     dois cliques. A instância NÃO entra aqui: "Jogar" usa a ativa, mas
-    ///     "Entrar" usa a do servidor, que pode nem existir ainda.
+    ///     Abrir e entrar partilham isto: andamento, erro e a trava contra dois
+    ///     cliques. A instância NÃO entra aqui: abrir usa a ativa, mas entrar
+    ///     usa a do servidor, que o JoinServer acha (ou instala) sozinho.
     /// </summary>
     private async Task RunLaunchAsync(
         Func<LauncherConfig, IProgress<GameLaunchProgress>, Task<GameLaunchResult>> launch)
@@ -243,7 +270,7 @@ public partial class HomePage : ComponentBase, IDisposable
     }
 
     /// <summary>
-    ///     A coluna da direita: servidores e novidades do pack ativo.
+    ///     O que vem da rede: a descrição do pack, o servidor e as novidades.
     ///     Falhar aqui é silencioso de propósito. Esta tela tem de servir
     ///     offline, e um erro vermelho sobre o catálogo faria parecer que a
     ///     instância instalada também está com problema — quando ela está inteira
@@ -256,23 +283,9 @@ public partial class HomePage : ComponentBase, IDisposable
 
         await Catalog.EnsureLoadedAsync();
 
-        // Depois dos servidores, e numa chamada à parte: as novidades são o que
-        // menos importa nesta tela, e falhar a buscá-las não pode levar os
-        // servidores consigo.
+        // Depois do catálogo, e numa chamada à parte: as novidades são o que
+        // menos importa nesta tela, e falhar a buscá-las não pode levar o
+        // catálogo consigo.
         await NewsFeed.RefreshAsync(_active.Manifest.ModpackId);
-    }
-
-    /// <summary>
-    ///     Abre o diálogo de resgate e, se um convite entrar, recarrega a
-    ///     coluna lateral — é só assim que o servidor recém-liberado aparece
-    ///     sem o jogador precisar reabrir a tela.
-    /// </summary>
-    private async Task RedeemInviteAsync()
-    {
-        var dialog = await Dialogs.ShowAsync<RedeemInviteDialog>("Resgatar convite");
-        var result = await dialog.Result;
-
-        if (result is { Canceled: false })
-            await Catalog.RefreshAsync();
     }
 }

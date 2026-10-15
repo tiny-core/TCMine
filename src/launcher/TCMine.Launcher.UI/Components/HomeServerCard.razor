@@ -1,0 +1,33 @@
+@using TCMine.Contracts.Servers
+@* O servidor da instância ativa: está no ar, quantos jogam, por onde se entra.
+   Só leitura — entrar é o botão principal da tela; a lista de todos os
+   servidores, com as outras ações, é a aba Servidores. *@
+
+<MudPaper Class="pa-4" Elevation="0" Outlined="true">
+    <MudText Typo="Typo.overline" Class="mud-text-secondary">Servidor</MudText>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mt-2">
+        <ServerStatusChip Status="Server.Status"/>
+        <MudText Typo="Typo.body2" Class="tc-server-card-name">@Server.Name</MudText>
+    </MudStack>
+
+    @* Lotação: o mesmo número que a página pública já mostra. Parado, seria
+       sempre zero e pareceria um servidor vazio em vez de desligado. *@
+    @if (Server.Status is GameServerStatus.Running)
+    {
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            @Server.OnlinePlayers / @Server.MaxPlayers jogadores
+        </MudText>
+    }
+
+    @if (Server.ConnectAddress is { } address)
+    {
+        @* Selecionável: quem quiser adicioná-lo à mão no jogo copia daqui. *@
+        <MudText Typo="Typo.caption" Class="mud-text-secondary tc-server-card-address">@address</MudText>
+    }
+
+    <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" Class="mt-2"
+               Href="/servers" StartIcon="@Icons.Material.Filled.Dns">
+        Todos os servidores
+    </MudButton>
+</MudPaper>
