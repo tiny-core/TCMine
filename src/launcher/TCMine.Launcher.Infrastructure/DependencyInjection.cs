@@ -109,6 +109,7 @@ public static class DependencyInjection
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
         services.AddSingleton<IEndpointProbe, TcpEndpointProbe>();
+        services.AddSingleton<IGameTunnel, CloudflareGameTunnel>();
 
         services.AddHttpClient<IPlayerProfileSource, MinecraftServicesProfileSource>(client =>
         {

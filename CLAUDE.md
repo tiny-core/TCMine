@@ -610,7 +610,10 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço
   público. De dentro de casa o público costuma falhar (roteador sem NAT loopback); de fora, o local não
   responde — a ordem acerta os dois sem perguntar nada ao jogador. O público não é sondado: pode ser um nome
-  com SRV, que só o jogo resolve.
+  com SRV, que só o jogo resolve. Com `TunnelAddress` (túnel da Cloudflare, a reserva), o direto é sondado no
+  `ProbeAddress` (host:porta de verdade) e, sem resposta, o `CloudflareGameTunnel` abre uma porta em
+  127.0.0.1 ligada por wss ao nome do túnel (o que o `cloudflared access tcp` faz); o jogo entra nela, e o
+  `TunneledGameProcess` fecha o túnel quando o jogo sai. Sem túnel configurado no painel, nada disso roda.
 - **Rodar**: `dotnet run --project src/launcher/TCMine.Launcher.App`. Exige o
   runtime do WebView2 (Evergreen, já presente em Win10/11 atualizados).
 

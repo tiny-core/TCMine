@@ -18,7 +18,8 @@ public sealed class JoinServer(
     IServerConnection connection,
     UpdateInstance updater,
     LaunchGame launch,
-    IEndpointProbe probe)
+    IEndpointProbe probe,
+    IGameTunnel tunnel)
 {
     public async Task<JoinServerResult> HandleAsync(
         InstalledInstance instance,
@@ -30,7 +31,9 @@ public sealed class JoinServer(
         if (server.AccessState is not ServerAccessState.Granted)
             return JoinServerResult.Failed("Você ainda não tem acesso a este servidor.");
 
-        if (ServerAddress.Parse(server.ConnectAddress) is null && ServerAddress.Parse(server.LocalAddress) is null)
+        if (ServerAddress.Parse(server.ConnectAddress) is null
+            && ServerAddress.Parse(server.LocalAddress) is null
+            && string.IsNullOrWhiteSpace(server.TunnelAddress))
         {
             return JoinServerResult.Failed(
                 $"{server.Name} ainda não tem endereço. Peça ao administrador para conferir a aba Rede "
@@ -92,9 +95,39 @@ public sealed class JoinServer(
         // Escolhido só agora, depois de uma eventual atualização: ela pode
         // levar minutos, e o jogador pode ter mudado de rede nesse meio-tempo.
         progress?.Report(new GameLaunchProgress("Procurando o caminho até o servidor"));
-        var address = await ServerRoute.ChooseAsync(server, probe, ct);
+        var route = await ServerRoute.ChooseAsync(server, probe, ct);
+        var address = route.Address;
+        IGameTunnelSession? session = null;
 
-        var result = await launch.HandleAsync(instance, config, address, progress, ct);
+        if (route.TunnelHost is { } tunnelHost)
+        {
+            progress?.Report(new GameLaunchProgress("Abrindo o túnel até o servidor"));
+            session = await tunnel.OpenAsync(tunnelHost, ct);
+
+            // Túnel fora do ar: o endereço publicado ainda pode funcionar (a
+            // sonda pode ter errado), e se não funcionar, o jogo diz porquê.
+            address = session?.LocalAddress ?? ServerAddress.Parse(server.ConnectAddress);
+        }
+
+        GameLaunchResult result;
+        try
+        {
+            result = await launch.HandleAsync(instance, config, address, progress, ct);
+        }
+        catch
+        {
+            if (session is not null)
+                await session.DisposeAsync();
+            throw;
+        }
+
+        if (session is not null)
+        {
+            if (result.Process is { } process)
+                result = result with { Process = new TunneledGameProcess(process, session) };
+            else
+                await session.DisposeAsync(); // o jogo nem abriu: nada a carregar
+        }
 
         return new JoinServerResult(result, updated ? instance : null);
     }

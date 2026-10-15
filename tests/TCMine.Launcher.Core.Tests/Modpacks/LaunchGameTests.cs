@@ -299,6 +299,51 @@ public class LaunchGameTests
     }
 
     [Fact]
+    public async Task Pelo_tunel_o_jogo_abre_na_porta_local_e_o_tunel_vive_com_ele()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var tunnel = new FakeGameTunnel();
+        var join = Join(motor, new FakeEndpointProbe(), tunnel, out _);
+
+        var result = await join.HandleAsync(
+            instance,
+            Servidor(instance.Manifest) with
+            {
+                ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
+            },
+            Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        motor.Recebido!.Server.ShouldBe(FakeGameTunnel.Local);
+        tunnel.Opened.ShouldBe(["survival-tunel.exemplo.com"]);
+
+        // Fechado só quando o jogo fecha — antes disso, o jogo perderia a conexão.
+        tunnel.Last!.Closes.ShouldBe(0);
+        result.Launch.Process!.Dispose();
+        tunnel.Last.Closes.ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Tunel_fora_do_ar_tenta_o_endereco_publicado()
+    {
+        var instance = Instalada();
+        var motor = new MotorFalso();
+        var join = Join(motor, new FakeEndpointProbe(), new FakeGameTunnel(answers: false), out _);
+
+        var result = await join.HandleAsync(
+            instance,
+            Servidor(instance.Manifest) with
+            {
+                ProbeAddress = "mc.exemplo:25570", TunnelAddress = "survival-tunel.exemplo.com"
+            },
+            Config(), null, Ct);
+
+        result.Launch.Started.ShouldBeTrue(result.Launch.Message);
+        motor.Recebido!.Server.ShouldBe(new ServerAddress("mc.exemplo", 25570));
+    }
+
+    [Fact]
     public async Task Servidor_sem_endereco_nenhum_explica_em_vez_de_abrir()
     {
         var instance = Instalada();
@@ -334,7 +379,12 @@ public class LaunchGameTests
         Join(motor, null, out installer, versions);
 
     private static JoinServer Join(
-        MotorFalso motor, FakeEndpointProbe? probe, out InstaladorFalso installer, params ModpackVersionDto[] versions)
+        MotorFalso motor, FakeEndpointProbe? probe, out InstaladorFalso installer, params ModpackVersionDto[] versions) =>
+        Join(motor, probe, new FakeGameTunnel(), out installer, versions);
+
+    private static JoinServer Join(
+        MotorFalso motor, FakeEndpointProbe? probe, FakeGameTunnel tunnel, out InstaladorFalso installer,
+        params ModpackVersionDto[] versions)
     {
         var connection = new FakeServerConnection();
         foreach (var v in versions)
@@ -347,7 +397,8 @@ public class LaunchGameTests
             connection,
             new UpdateInstance(instalador, new SemMundo()),
             Build(motor: motor),
-            probe ?? new FakeEndpointProbe());
+            probe ?? new FakeEndpointProbe(),
+            tunnel);
     }
 
     private static GameServerDto Servidor(InstanceManifest manifest) => new()
