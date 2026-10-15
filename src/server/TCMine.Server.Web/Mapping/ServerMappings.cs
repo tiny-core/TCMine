@@ -48,6 +48,12 @@ public static class ServerMappings
             LocalAddress = accessible.AccessState is ServerAccessState.Granted
                 ? address.LocalFor(server)
                 : null,
+            ProbeAddress = accessible.AccessState is ServerAccessState.Granted
+                ? address.ProbeFor(server)
+                : null,
+            TunnelAddress = accessible.AccessState is ServerAccessState.Granted
+                ? address.TunnelFor(server)
+                : null,
             Status = server.Status,
 
             // Última contagem amostrada. Zero quando ainda não se sabe — o

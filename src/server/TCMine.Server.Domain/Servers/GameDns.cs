@@ -92,6 +92,60 @@ public static class GameDns
     ///     ("mc.exemplo.com"). Um lugar só: a sincronização escreve este nome e
     ///     o endereço dos servidores o publica, e os dois não podem divergir.
     /// </summary>
+    /// <summary>
+    ///     Para onde o nome de um túnel aponta: o CNAME que a Cloudflare espera
+    ///     para entregar o tráfego àquele túnel.
+    /// </summary>
+    public static string TunnelTarget(string tunnelId) => $"{tunnelId.Trim().ToLowerInvariant()}.cfargotunnel.com";
+
+    /// <summary>A entrada do túnel: a porta do servidor, vista de onde o cloudflared roda.</summary>
+    public static string TunnelService(string originHost, int gamePort) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"tcp://{originHost}:{gamePort}");
+
+    /// <summary>
+    ///     O nome sugerido para o túnel de um servidor: o do subdomínio (ou do
+    ///     nome) com "-tunel". Diferente do subdomínio de propósito — o
+    ///     subdomínio é um SRV, e o túnel é um CNAME pela nuvem da Cloudflare.
+    /// </summary>
+    public static string SuggestTunnel(string? subdomain, string? serverName)
+    {
+        var baseLabel = NormalizeLabel(subdomain) ?? Suggest(serverName);
+        if (baseLabel.Length == 0)
+            return "";
+
+        const string suffix = "-tunel";
+        var room = MaxLabelLength - suffix.Length;
+
+        return (baseLabel.Length > room ? baseLabel[..room].TrimEnd('-') : baseLabel) + suffix;
+    }
+
+    /// <summary>
+    ///     Por que um nome de túnel não serve, ou nulo se serve. Num lugar só:
+    ///     criar e editar servidor conferem o mesmo, e as mensagens dizem QUAL
+    ///     servidor já usa o nome.
+    /// </summary>
+    public static string? TunnelLabelProblem(string label, IReadOnlyList<GameServer> servers, Guid? exceptServerId)
+    {
+        if (!IsValidLabel(label))
+        {
+            return "O nome do túnel aceita só letras sem acento, números e hífen, sem começar nem terminar "
+                   + "em hífen (ex.: sobrevivencia-tunel).";
+        }
+
+        var others = servers.Where(s => s.Id != exceptServerId).ToList();
+
+        if (others.FirstOrDefault(s => string.Equals(s.TunnelLabel, label, StringComparison.Ordinal)) is { } taken)
+            return $"O nome de túnel \"{label}\" já é usado pelo servidor \"{taken.Name}\".";
+
+        // O subdomínio é um SRV e o túnel um CNAME no mesmo domínio: com o mesmo
+        // rótulo os dois funcionariam, mas o jogador que digitasse o nome do
+        // túnel no jogo cairia no SRV — melhor não deixar parecerem o mesmo.
+        if (servers.FirstOrDefault(s => string.Equals(s.Subdomain, label, StringComparison.Ordinal)) is { } sub)
+            return $"\"{label}\" já é o subdomínio do servidor \"{sub.Name}\". Use outro nome para o túnel.";
+
+        return null;
+    }
+
     public static string? ManagedHost(string? hostLabel, string? baseDomain) =>
         ServerHost(NormalizeLabel(hostLabel) ?? DefaultHostLabel, baseDomain);
 

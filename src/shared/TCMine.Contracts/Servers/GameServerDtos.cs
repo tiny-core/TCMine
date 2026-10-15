@@ -44,6 +44,25 @@ public sealed record GameServerDto
     /// </summary>
     public string? LocalAddress { get; init; }
 
+    /// <summary>
+    ///     Onde sondar o caminho direto ("mc.exemplo.com:25570"): sempre host
+    ///     com porta de verdade, porque <see cref="ConnectAddress" /> pode ser um
+    ///     nome com registro SRV, que uma sonda TCP não sabe ler. Só serve para
+    ///     decidir se cai no <see cref="TunnelAddress" />; o jogo continua a
+    ///     entrar pelo <see cref="ConnectAddress" />. Mesmas condições de acesso.
+    /// </summary>
+    public string? ProbeAddress { get; init; }
+
+    /// <summary>
+    ///     O nome do servidor no túnel da Cloudflare ("atm10-tunel.exemplo.com"),
+    ///     sem porta: o launcher abre uma conexão segura (wss) até ele e entrega
+    ///     o jogo a uma porta local. É a RESERVA — usado só quando nem a rede de
+    ///     casa nem o caminho direto respondem (CGNAT, porta fechada). Nulo sem
+    ///     túnel, e nas mesmas condições de acesso de <see cref="ConnectAddress" />.
+    ///     Campo opcional novo: launchers antigos o ignoram.
+    /// </summary>
+    public string? TunnelAddress { get; init; }
+
     public required GameServerStatus Status { get; init; }
     public int OnlinePlayers { get; init; }
     public int MaxPlayers { get; init; }

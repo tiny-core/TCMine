@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
 using TCMine.Server.Domain.Servers;
+using TCMine.Server.Domain.Settings;
 
 namespace TCMine.Server.Application.Dns;
 
@@ -21,7 +22,8 @@ public sealed class SyncGameDns(
     ISettingsRepository settings,
     IServerRepository servers,
     IPublicAddressProvider detector,
-    ICloudflareDns dns)
+    ICloudflareDns dns,
+    ICloudflareTunnel tunnel)
 {
     public async Task<DnsSyncReport> HandleAsync(CancellationToken ct)
     {
@@ -86,17 +88,33 @@ public sealed class SyncGameDns(
         }
 
         // ---- Um SRV por servidor com subdomínio ----
+        var tunnelComment = prefix + "tunnel:";
+        var tunnelServices = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
         foreach (var server in await servers.ListAllAsync(ct))
         {
-            if (GameDns.ServerHost(server.Subdomain, baseDomain) is not { } host)
-                continue;
+            if (GameDns.ServerHost(server.Subdomain, baseDomain) is { } host)
+            {
+                desired.Add(new DnsRecordSpec(
+                    DnsRecordTypes.Srv,
+                    GameDns.SrvName(host),
+                    target,
+                    server.GamePort,
+                    $"{prefix}srv:{server.Id:N}"));
+            }
 
-            desired.Add(new DnsRecordSpec(
-                DnsRecordTypes.Srv,
-                GameDns.SrvName(host),
-                target,
-                server.GamePort,
-                $"{prefix}srv:{server.Id:N}"));
+            // ---- E um CNAME pela nuvem por servidor com túnel ----
+            if (config.TunnelEnabled && GameDns.ServerHost(server.TunnelLabel, baseDomain) is { } tunnelHost)
+            {
+                desired.Add(new DnsRecordSpec(
+                    DnsRecordTypes.Cname,
+                    tunnelHost,
+                    GameDns.TunnelTarget(config.CloudflareTunnelId!),
+                    0,
+                    $"{tunnelComment}{server.Id:N}"));
+
+                tunnelServices[tunnelHost] = GameDns.TunnelService(config.TunnelOrigin, server.GamePort);
+            }
         }
 
         IReadOnlyList<DnsRecord> existing;
@@ -108,6 +126,20 @@ public sealed class SyncGameDns(
         {
             // Sem a lista não há diferença a calcular: nada é tocado.
             return DnsSyncReport.Failed(ex.Message);
+        }
+
+        // As entradas do túnel ANTES dos CNAMEs: um nome que já resolve para o
+        // túnel sem a entrada dele daria 404 ao primeiro jogador. Sem o túnel
+        // informado nada se mexe nele — os CNAMEs marcados somem pelo plano, e
+        // a entrada órfã responde 404, que é inofensivo.
+        if (config.TunnelEnabled)
+        {
+            var managed = existing
+                .Where(r => r.Spec.Comment.StartsWith(tunnelComment, StringComparison.Ordinal))
+                .Select(r => r.Spec.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            problems.AddRange(await SyncIngressAsync(config, zone, tunnelServices, managed, ct));
         }
 
         var plan = DnsPlan.Build(desired, existing, keepComment);
@@ -177,6 +209,47 @@ public sealed class SyncGameDns(
         }
 
         return new DnsSyncReport(true, created, replaced, deleted, plan.Unchanged, problems);
+    }
+
+    /// <summary>
+    ///     Lê as entradas do túnel, troca só as deste TCMine e grava se mudou.
+    ///     Devolve os problemas; uma falha aqui não impede o resto da zona.
+    /// </summary>
+    private async Task<IReadOnlyList<string>> SyncIngressAsync(
+        InstallationSettings config,
+        DnsZone zone,
+        IReadOnlyDictionary<string, string> services,
+        IReadOnlySet<string> managed,
+        CancellationToken ct)
+    {
+        var account = new TunnelAccount(
+            config.CloudflareAccountId!.Trim(), config.CloudflareTunnelId!.Trim(), zone.ApiToken);
+
+        try
+        {
+            var current = await tunnel.GetIngressAsync(account, ct);
+
+            if (!current.RemotelyManaged)
+            {
+                return
+                [
+                    "O túnel é configurado por arquivo (config.yml) onde o cloudflared roda, e aí a Cloudflare "
+                    + "não deixa outro programa mexer nas entradas. Migre o túnel para o painel Zero Trust "
+                    + "(botão Migrate) ou crie as entradas à mão."
+                ];
+            }
+
+            var merged = TunnelIngressPlan.Merge(current.Rules, services, managed);
+
+            if (merged.Changed)
+                await tunnel.PutIngressAsync(account, current with { Rules = merged.Rules }, ct);
+
+            return merged.Problems;
+        }
+        catch (DnsProviderException ex)
+        {
+            return [$"Túnel: {ex.Message}"];
+        }
     }
 }
 

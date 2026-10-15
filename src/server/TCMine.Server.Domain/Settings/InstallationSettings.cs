@@ -106,6 +106,41 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public string? DnsHostLabel { get; set; }
 
+    // ---------- Túnel (Cloudflare Tunnel, entrada TCP) ----------
+
+    /// <summary>
+    ///     Conta da Cloudflare dona do túnel (32 hexadecimais). Não é segredo.
+    ///     O túnel é uma RESERVA: o launcher só entra por ele quando a rede de
+    ///     casa e o endereço direto não respondem (CGNAT, porta fechada).
+    /// </summary>
+    public string? CloudflareAccountId { get; set; }
+
+    /// <summary>Id do túnel já criado no painel Zero Trust (um GUID). O TCMine não cria túneis, só as entradas.</summary>
+    public string? CloudflareTunnelId { get; set; }
+
+    /// <summary>
+    ///     Por onde o cloudflared alcança as portas dos servidores. Nulo =
+    ///     <see cref="DefaultTunnelOriginHost" />, o caso do cloudflared com a rede
+    ///     do host. As entradas viram <c>tcp://{host}:{porta do servidor}</c>.
+    /// </summary>
+    public string? TunnelOriginHost { get; set; }
+
+    public const string DefaultTunnelOriginHost = "localhost";
+
+    /// <summary>
+    ///     A Cloudflare está em uso (<see cref="DnsEnabled" />) e o túnel está
+    ///     informado. Só no modo Cloudflare: o túnel usa o mesmo token e a mesma
+    ///     zona, e mora no mesmo cartão da tela.
+    /// </summary>
+    public bool TunnelEnabled =>
+        DnsEnabled
+        && !string.IsNullOrWhiteSpace(CloudflareAccountId)
+        && !string.IsNullOrWhiteSpace(CloudflareTunnelId);
+
+    /// <summary>O host de origem que vale.</summary>
+    public string TunnelOrigin =>
+        string.IsNullOrWhiteSpace(TunnelOriginHost) ? DefaultTunnelOriginHost : TunnelOriginHost.Trim();
+
     /// <summary>
     ///     Os intervalos que a tela oferece, em minutos. Lista fechada, e não um
     ///     número livre: 1 minuto bateria na API da Cloudflare à toa (o IP

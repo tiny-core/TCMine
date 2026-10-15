@@ -147,6 +147,40 @@
             </MudExpansionPanel>
         </MudExpansionPanels>
 
+        @* O túnel é RESERVA: o launcher só entra por ele quando a rede de casa
+           e o caminho direto não respondem. O TCMine não cria o túnel — só as
+           entradas e os nomes dele, pelo mesmo token. *@
+        <MudExpansionPanels Elevation="0" Dense="true" Class="mt-3">
+            <MudExpansionPanel Text="Túnel da Cloudflare (reserva para quem não consegue entrar direto)"
+                               Expanded="Form.TunnelInitiallyOpen">
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-3">
+                    Para amigos atrás de CGNAT ou de redes que bloqueiam a porta: o launcher entra pelo
+                    túnel quando o caminho direto não responde. Crie o túnel uma vez no painel Zero Trust
+                    (Redes → Túneis) e rode o cloudflared nesta máquina; daí em diante o TCMine cria o
+                    nome e a entrada de cada servidor que pedir. O token precisa também da permissão
+                    Conta → Cloudflare Tunnel → Editar.
+                </MudText>
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="Form.CloudflareAccountId" Label="Account ID"
+                                      Variant="Variant.Outlined" Immediate="true"
+                                      HelperText="32 caracteres, na página Overview do domínio, abaixo do Zone ID."/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="Form.CloudflareTunnelId" Label="ID do túnel"
+                                      Variant="Variant.Outlined" Immediate="true"
+                                      HelperText="Em Redes → Túneis, na linha do túnel. Vazio = sem túnel."/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="Form.TunnelOriginHost" Label="Origem"
+                                      Variant="Variant.Outlined" Immediate="true"
+                                      Placeholder="@InstallationSettings.DefaultTunnelOriginHost"
+                                      HelperText="Por onde o cloudflared alcança as portas dos servidores. Com ele nesta máquina, localhost."/>
+                    </MudItem>
+                </MudGrid>
+            </MudExpansionPanel>
+        </MudExpansionPanels>
+
         <MudText Typo="Typo.subtitle2" Class="mt-6 mb-1">Atualização do DNS</MudText>
         <MudGrid Spacing="2">
             <MudItem xs="12" md="6" Class="d-flex align-center">

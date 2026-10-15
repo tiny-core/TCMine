@@ -42,6 +42,9 @@ public static class DnsRecordTypes
 {
     public const string A = "A";
     public const string Srv = "SRV";
+
+    /// <summary>O nome do túnel: aponta para &lt;id&gt;.cfargotunnel.com, com a nuvem laranja.</summary>
+    public const string Cname = "CNAME";
 }
 
 public sealed class DnsProviderException : Exception

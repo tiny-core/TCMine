@@ -202,6 +202,76 @@ public sealed class SyncGameDnsTests
         Assert.Equal(0, dns.Writes);
     }
 
+    // ---- Túnel ----
+
+    [Fact]
+    public async Task Servidor_com_tunel_ganha_cname_pela_nuvem_e_entrada_tcp()
+    {
+        LigarTunel();
+        var dns = new FakeDns();
+        var server = Servidor(null, 25570);
+        server.TunnelLabel = "atm10-tunel";
+
+        var report = await New(dns, "1.2.3.4", server).HandleAsync(CancellationToken.None);
+
+        Assert.True(report.Succeeded);
+        var cname = Assert.Single(dns.Records, r => r.Spec.Type == DnsRecordTypes.Cname);
+        Assert.Equal("atm10-tunel.exemplo.com", cname.Spec.Name);
+        Assert.Equal("11111111-2222-3333-4444-555555555555.cfargotunnel.com", cname.Spec.Target);
+
+        var entrada = Assert.Single(_tunnel.Rules, r => r.Hostname is not null);
+        Assert.Equal("atm10-tunel.exemplo.com", entrada.Hostname);
+        Assert.Equal("tcp://localhost:25570", entrada.Service);
+        Assert.Equal(TunnelIngressPlan.CatchAllService, _tunnel.Rules[^1].Service);
+    }
+
+    [Fact]
+    public async Task Entrada_do_admin_no_tunel_sobrevive()
+    {
+        // O mesmo túnel serve o próprio painel: a API troca a lista inteira, e
+        // perder a entrada do painel derrubaria o TCMine.
+        LigarTunel();
+        _tunnel.Rules =
+        [
+            new TunnelIngressRule("tcmine.exemplo.com", "http://localhost:8080", null, "{}"),
+            new TunnelIngressRule(null, TunnelIngressPlan.CatchAllService, null, "{}")
+        ];
+        var server = Servidor(null, 25570);
+        server.TunnelLabel = "atm10-tunel";
+
+        await New(new FakeDns(), "1.2.3.4", server).HandleAsync(CancellationToken.None);
+
+        Assert.Contains(_tunnel.Rules, r => r.Hostname == "tcmine.exemplo.com");
+        Assert.Contains(_tunnel.Rules, r => r.Hostname == "atm10-tunel.exemplo.com");
+    }
+
+    [Fact]
+    public async Task Tunel_por_arquivo_vira_aviso_e_nao_e_gravado()
+    {
+        LigarTunel();
+        _tunnel.RemotelyManaged = false;
+        var server = Servidor(null, 25570);
+        server.TunnelLabel = "atm10-tunel";
+
+        var report = await New(new FakeDns(), "1.2.3.4", server).HandleAsync(CancellationToken.None);
+
+        Assert.Contains(report.Problems, p => p.Contains("config.yml", StringComparison.Ordinal));
+        Assert.Equal(0, _tunnel.Puts);
+    }
+
+    [Fact]
+    public async Task Sem_os_ids_do_tunel_nada_vai_para_ele()
+    {
+        var server = Servidor(null, 25570);
+        server.TunnelLabel = "atm10-tunel";
+        var dns = new FakeDns();
+
+        await New(dns, "1.2.3.4", server).HandleAsync(CancellationToken.None);
+
+        Assert.Equal(0, _tunnel.Gets);
+        Assert.DoesNotContain(dns.Records, r => r.Spec.Type == DnsRecordTypes.Cname);
+    }
+
     [Fact]
     public async Task Falha_num_registro_nao_impede_os_outros()
     {
@@ -214,8 +284,16 @@ public sealed class SyncGameDnsTests
         Assert.Equal(2, report.Created); // o A e o SRV de "b"
     }
 
+    private readonly FakeTunnel _tunnel = new();
+
     private SyncGameDns New(FakeDns dns, string? detectedIp, params GameServer[] servers) =>
-        new(new FakeSettings(_settings), new FakeServers(servers), new FakeDetector(detectedIp), dns);
+        new(new FakeSettings(_settings), new FakeServers(servers), new FakeDetector(detectedIp), dns, _tunnel);
+
+    private void LigarTunel()
+    {
+        _settings.CloudflareAccountId = new string('b', 32);
+        _settings.CloudflareTunnelId = "11111111-2222-3333-4444-555555555555";
+    }
 
     private static GameServer Servidor(string? subdomain, int port) => new()
     {
@@ -288,6 +366,28 @@ public sealed class SyncGameDnsTests
             Calls++;
             Writes++;
             Records.RemoveAll(r => r.Id == recordId);
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary>Um túnel em memória: lê e grava a lista inteira, como a API.</summary>
+    private sealed class FakeTunnel : ICloudflareTunnel
+    {
+        public IReadOnlyList<TunnelIngressRule> Rules { get; set; } = [];
+        public bool RemotelyManaged { get; set; } = true;
+        public int Gets { get; private set; }
+        public int Puts { get; private set; }
+
+        public Task<TunnelIngress> GetIngressAsync(TunnelAccount account, CancellationToken ct)
+        {
+            Gets++;
+            return Task.FromResult(new TunnelIngress(Rules, RemotelyManaged, "{}"));
+        }
+
+        public Task PutIngressAsync(TunnelAccount account, TunnelIngress ingress, CancellationToken ct)
+        {
+            Puts++;
+            Rules = ingress.Rules;
             return Task.CompletedTask;
         }
     }

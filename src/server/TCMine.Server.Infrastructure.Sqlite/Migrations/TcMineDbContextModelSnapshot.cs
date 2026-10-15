@@ -1321,6 +1321,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("TunnelLabel")
+                        .HasMaxLength(63)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
@@ -1344,6 +1348,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("Subdomain")
+                        .IsUnique();
+
+                    b.HasIndex("TunnelLabel")
                         .IsUnique();
 
                     b.ToTable("game_servers", (string)null);
@@ -1408,8 +1415,16 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CloudflareAccountId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CloudflareApiTokenEncrypted")
                         .HasMaxLength(1024)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CloudflareTunnelId")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("CloudflareUsesPublicHost")
@@ -1478,6 +1493,10 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<bool>("PublicIpDetectionDisabled")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("TunnelOriginHost")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
 
                     b.Property<bool>("UpdateCheckDisabled")
                         .HasColumnType("INTEGER");

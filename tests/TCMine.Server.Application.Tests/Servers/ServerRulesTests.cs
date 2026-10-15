@@ -231,6 +231,34 @@ public sealed class ServerRulesTests
         Assert.Null(server.Subdomain);
     }
 
+    [Fact]
+    public async Task Nome_de_tunel_igual_ao_subdominio_de_outro_e_recusado()
+    {
+        var outro = Servidor();
+        outro.Subdomain = "sobrevivencia";
+        var servers = new FakeServers(outro);
+
+        var result = await NewCreate(Versao("1.0.0", ModpackVersionState.Ready), servers).HandleAsync(
+            _modpackId, "Novo", "", 4096, 20, Guid.Empty, CancellationToken.None, 0, null, null, "sobrevivencia");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(outro.Name, result.Error);
+    }
+
+    [Fact]
+    public async Task Nome_de_tunel_e_gravado_normalizado_e_vazio_tira()
+    {
+        var server = Servidor();
+
+        await NewUpdate(server).HandleAsync(
+            server.Id, "Servidor", "", 4096, 20, true, CancellationToken.None, 0, null, null, " ATM10-Tunel ");
+        Assert.Equal("atm10-tunel", server.TunnelLabel);
+
+        await NewUpdate(server).HandleAsync(
+            server.Id, "Servidor", "", 4096, 20, true, CancellationToken.None, 0, null, null, "");
+        Assert.Null(server.TunnelLabel);
+    }
+
     [Theory]
     [InlineData("", null, ServerAddressKind.Installation)]
     [InlineData("  ", "sobrevivencia", ServerAddressKind.Subdomain)]

@@ -42,12 +42,37 @@ public sealed class GetAddressSettings(ISettingsRepository settings, IPublicAddr
 ///     Nulo = subdomínios não são publicados.
 /// </param>
 /// <param name="LanHost">O IP da máquina na rede de casa. Nulo = não informado.</param>
+/// <param name="TunnelBaseDomain">O domínio dos nomes de túnel, só com o túnel configurado. Nulo = sem túnel.</param>
 public sealed record AddressSettings(
     string? ConfiguredHost,
     string? DetectedHost,
     string? DnsBaseDomain,
-    string? LanHost = null)
+    string? LanHost = null,
+    string? TunnelBaseDomain = null)
 {
+    /// <summary>O nome do túnel deste servidor ("atm10-tunel.exemplo.com"). Nulo sem túnel.</summary>
+    public string? TunnelFor(GameServer server) => GameDns.ServerHost(server.TunnelLabel, TunnelBaseDomain);
+
+    /// <summary>
+    ///     Onde o launcher SONDA se o caminho direto responde, antes de cair no
+    ///     túnel. Não é o endereço publicado: um subdomínio é um registro SRV, e
+    ///     uma sonda TCP não sabe ler SRV — bateria no nome sem porta e
+    ///     concluiria que nada responde. Aqui vai sempre um host com a porta de
+    ///     verdade: o escrito pelo admin, ou o host da instalação (o registro A
+    ///     que o SRV também usa) mais a porta do servidor.
+    /// </summary>
+    public string? ProbeFor(GameServer server)
+    {
+        if (GameAddress.KindOf(server.ConnectAddress, server.Subdomain) is ServerAddressKind.Manual)
+        {
+            return GameAddress.ExplicitPort(server.ConnectAddress) is null
+                ? GameAddress.WithPort(server.ConnectAddress, server.GamePort)
+                : server.ConnectAddress.Trim();
+        }
+
+        return PublicHost is { } host ? GameAddress.WithPort(host, server.GamePort) : null;
+    }
+
     /// <summary>
     ///     O host fixo que o modo de rede publica: o do admin, ou o registro A
     ///     que o TCMine mantém na Cloudflare. Nulo = vale o IP detectado.
@@ -67,7 +92,8 @@ public sealed record AddressSettings(
         HostFor(config),
         detected,
         config.DnsEnabled ? GameDns.NormalizeLabel(config.DnsBaseDomain) : null,
-        string.IsNullOrWhiteSpace(config.LanHost) ? null : config.LanHost.Trim());
+        string.IsNullOrWhiteSpace(config.LanHost) ? null : config.LanHost.Trim(),
+        config.TunnelEnabled ? GameDns.NormalizeLabel(config.DnsBaseDomain) : null);
 
     /// <summary>O host público que vale: o gravado e, na falta dele, o detectado.</summary>
     public string? PublicHost => ConfiguredHost ?? DetectedHost;

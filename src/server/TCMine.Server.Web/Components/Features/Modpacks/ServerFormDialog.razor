@@ -100,6 +100,29 @@
                         break;
                 }
 
+                @* A reserva pelo túnel não é uma quarta forma: vale ao lado de
+                   qualquer uma das três, e o launcher só a usa quando o caminho
+                   direto não responde. Aparece só com o túnel configurado (ou num
+                   servidor que já tinha nome de túnel). *@
+                @if (CanUseTunnel || _tunnelEnabled)
+                {
+                    <MudSwitch T="bool" @bind-Value="_tunnelEnabled" Color="Color.Primary" Class="mt-1"
+                               Label="Reserva pelo túnel da Cloudflare"/>
+                    @if (_tunnelEnabled)
+                    {
+                        <MudTextField @bind-Value="_tunnelLabel" Label="Nome no túnel"
+                                      Placeholder="@GameDns.SuggestTunnel(EffectiveSubdomain, _name)"
+                                      HelperText="@TunnelHelp" Immediate="true" Class="mb-2"/>
+                    }
+                    else
+                    {
+                        <MudText Typo="Typo.caption" Class="mud-text-secondary d-block mb-2">
+                            Para amigos atrás de CGNAT ou de redes que bloqueiam a porta: o launcher entra pelo
+                            túnel quando o caminho direto não responde.
+                        </MudText>
+                    }
+                }
+
                 @* O que os jogadores recebem de fato — o mesmo cálculo que vai ao launcher. *@
                 @if (PublishedAddress.Length > 0)
                 {

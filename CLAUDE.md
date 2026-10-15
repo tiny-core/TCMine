@@ -238,6 +238,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   preenchido (`EffectiveNetworkMode`). No modo Cloudflare, servidor sem subdomínio sai pelo registro A mantido
   (`ManagedDnsHost`, "mc.dominio:porta"), não pelo IP. `AddressSettings.From` é a regra única, usada também
   pela prévia da aba Rede.
+- **Túnel da Cloudflare é RESERVA, não modo** (`GameServer.TunnelLabel`, `InstallationSettings.TunnelEnabled`, só
+  no modo Cloudflare). A sincronização do DNS mantém um CNAME pela nuvem (`<id>.cfargotunnel.com`) e a entrada
+  TCP no túnel (`tcp://{origem}:{porta}`). A API troca a configuração do túnel INTEIRA: `TunnelIngressPlan`
+  só mexe nas entradas cujo nome tem CNAME com a marca desta instalação, e o cliente devolve o JSON das outras
+  intacto. O launcher recebe `ProbeAddress` (host:porta de verdade, para sondar) e `TunnelAddress`.
 - Só pode ser criado apontando para versão **`Ready` e de canal release** (não alpha). Alpha = `Version` com sufixo `-`
   (pré-release SemVer, `IsPreRelease`).
 

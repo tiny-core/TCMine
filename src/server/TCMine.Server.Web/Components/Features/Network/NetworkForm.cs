@@ -43,6 +43,12 @@ public sealed class NetworkForm
     public bool DnsManualSyncOnly { get; set; }
     public int DnsSyncIntervalMinutes { get; set; } = 5;
     public bool PublicIpDetectionDisabled { get; set; }
+    public string CloudflareAccountId { get; set; } = "";
+    public string CloudflareTunnelId { get; set; } = "";
+    public string TunnelOriginHost { get; set; } = "";
+
+    /// <summary>Abre o painel do túnel quando ele já está informado.</summary>
+    public bool TunnelInitiallyOpen { get; private set; }
     public int GamePortRangeStart { get; set; } = GamePortDefaults.First;
     public int GamePortRangeEnd { get; set; } = GamePortDefaults.Last;
 
@@ -96,6 +102,10 @@ public sealed class NetworkForm
             // intervalo que o serviço está de fato usando.
             DnsSyncIntervalMinutes = (int)settings.DnsSyncInterval.TotalMinutes,
             PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled,
+            CloudflareAccountId = settings.CloudflareAccountId ?? "",
+            CloudflareTunnelId = settings.CloudflareTunnelId ?? "",
+            TunnelOriginHost = settings.TunnelOriginHost ?? "",
+            TunnelInitiallyOpen = !string.IsNullOrWhiteSpace(settings.CloudflareTunnelId),
             GamePortRangeStart = start,
             GamePortRangeEnd = end
         };
@@ -138,7 +148,10 @@ public sealed class NetworkForm
         DnsHostLabel = DnsHostLabel,
         DnsManualSyncOnly = DnsManualSyncOnly,
         DnsSyncIntervalMinutes = DnsSyncIntervalMinutes,
-        PublicIpDetectionDisabled = PublicIpDetectionDisabled
+        PublicIpDetectionDisabled = PublicIpDetectionDisabled,
+        CloudflareAccountId = CloudflareAccountId,
+        CloudflareTunnelId = CloudflareTunnelId,
+        TunnelOriginHost = TunnelOriginHost
     };
 
     /// <summary>

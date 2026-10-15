@@ -55,6 +55,15 @@ public sealed class GameServer : Entity, IOwnedEntity
     public string? Subdomain { get; set; }
 
     /// <summary>
+    ///     Rótulo do nome deste servidor no túnel da Cloudflare ("atm10-tunel"),
+    ///     já normalizado. Nulo = sem reserva pelo túnel. Com o domínio da
+    ///     instalação vira um CNAME para o túnel e uma entrada TCP nele, mantidos
+    ///     pela sincronização do DNS. Único entre os servidores, e diferente de
+    ///     todo subdomínio.
+    /// </summary>
+    public string? TunnelLabel { get; set; }
+
+    /// <summary>
     ///     As opções de jogo definidas para este servidor (dificuldade, distância
     ///     de visão…), em JSON: só as que o admin definiu. Nulo = nenhuma, e vale
     ///     tudo o que o modpack traz. Ler e gravar sempre por

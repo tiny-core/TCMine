@@ -1326,6 +1326,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("character varying(63)");
 
+                    b.Property<string>("TunnelLabel")
+                        .HasMaxLength(63)
+                        .HasColumnType("character varying(63)");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -1349,6 +1353,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasIndex("OwnerId");
 
                     b.HasIndex("Subdomain")
+                        .IsUnique();
+
+                    b.HasIndex("TunnelLabel")
                         .IsUnique();
 
                     b.ToTable("game_servers", (string)null);
@@ -1413,9 +1420,17 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
+                    b.Property<string>("CloudflareAccountId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("CloudflareApiTokenEncrypted")
                         .HasMaxLength(1024)
                         .HasColumnType("character varying(1024)");
+
+                    b.Property<string>("CloudflareTunnelId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.Property<bool>("CloudflareUsesPublicHost")
                         .HasColumnType("boolean");
@@ -1483,6 +1498,10 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
 
                     b.Property<bool>("PublicIpDetectionDisabled")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("TunnelOriginHost")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("UpdateCheckDisabled")
                         .HasColumnType("boolean");

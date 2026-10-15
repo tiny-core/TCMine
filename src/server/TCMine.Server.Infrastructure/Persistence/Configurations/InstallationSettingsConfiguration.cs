@@ -50,6 +50,14 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.Ignore(s => s.DnsSyncInterval);
         builder.Ignore(s => s.NeedsPublicIpDetection);
         builder.Ignore(s => s.PublicIpDetectionEnabled);
+        builder.Ignore(s => s.TunnelEnabled);
+        builder.Ignore(s => s.TunnelOrigin);
+
+        // Túnel: o Account ID tem 32 caracteres e o do túnel é um GUID (36); a
+        // folga é a mesma do Zone ID. O host de origem segue o limite de DNS.
+        builder.Property(s => s.CloudflareAccountId).HasMaxLength(64);
+        builder.Property(s => s.CloudflareTunnelId).HasMaxLength(64);
+        builder.Property(s => s.TunnelOriginHost).HasMaxLength(255);
 
         // Padrão no banco pelo mesmo motivo da faixa de portas: a linha já
         // existe, e sem ele a migration a deixaria com intervalo zero.

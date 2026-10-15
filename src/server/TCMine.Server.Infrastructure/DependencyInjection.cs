@@ -182,6 +182,15 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
         });
 
+        // As entradas do túnel: mesma API, mesmo token, mesmo motivo para não
+        // ter resiliência padrão — quem tenta de novo é a sincronização seguinte.
+        services.AddHttpClient<ICloudflareTunnel, CloudflareTunnelClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://api.cloudflare.com/client/v4/");
+            client.Timeout = TimeSpan.FromSeconds(15);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("TCMine/1.0 (github.com/tiny-core/TCMine)");
+        });
+
         services.Configure<DockerOptions>(configuration.GetSection("Docker"));
         services.AddSingleton<DockerHttpClientFactory>();
         services.AddSingleton<DockerApiClient>();

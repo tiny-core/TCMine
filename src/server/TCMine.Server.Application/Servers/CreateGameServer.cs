@@ -19,7 +19,7 @@ public sealed class CreateGameServer(
     public async Task<Result<Guid>> HandleAsync(
         Guid modpackId, string name, string connectAddress, int memoryMb, int maxPlayers,
         Guid modpackVersionId, CancellationToken ct, int gamePort = 0, string? subdomain = null,
-        IReadOnlyDictionary<string, string>? options = null)
+        IReadOnlyDictionary<string, string>? options = null, string? tunnelLabel = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             return Result<Guid>.Fail("Informe o nome do servidor.");
@@ -78,6 +78,12 @@ public sealed class CreateGameServer(
                 return Result<Guid>.Fail($"O subdomínio \"{label}\" já é usado pelo servidor \"{taken.Name}\".");
         }
 
+        // Opcional, como o subdomínio: a reserva pelo túnel.
+        var tunnel = GameDns.NormalizeLabel(tunnelLabel);
+        if (tunnel is not null
+            && GameDns.TunnelLabelProblem(tunnel, await servers.ListAllAsync(ct), null) is { } tunnelProblem)
+            return Result<Guid>.Fail(tunnelProblem);
+
         // Zero = "escolha por mim": a primeira livre da faixa. Um número
         // explícito vem do formulário e é conferido contra os outros servidores
         // e contra o Docker antes de qualquer coisa ser gravada.
@@ -106,6 +112,7 @@ public sealed class CreateGameServer(
             ConnectAddress = connectAddress.Trim(),
             GamePort = port,
             Subdomain = label,
+            TunnelLabel = tunnel,
             OptionsJson = GameOptions.Serialize(gameOptions),
             MemoryMb = memoryMb,
             MaxPlayers = maxPlayers,

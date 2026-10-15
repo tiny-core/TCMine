@@ -148,6 +148,35 @@ public sealed class GetAddressSettingsTests
     }
 
     [Fact]
+    public async Task Sonda_do_caminho_direto_tem_sempre_host_e_porta()
+    {
+        // O subdomínio é um SRV, que a sonda TCP do launcher não lê: ela vai ao
+        // registro A com a porta do servidor.
+        var address = await New(DnsConfigured(), new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+
+        Assert.Equal("mc.exemplo.com:25570", address.ProbeFor(Servidor("", 25570, "sobrevivencia")));
+        Assert.Equal("jogo.outro.com:30000", address.ProbeFor(Servidor("jogo.outro.com:30000", 25570, null)));
+        Assert.Equal("jogo.outro.com:25570", address.ProbeFor(Servidor("jogo.outro.com", 25570, null)));
+    }
+
+    [Fact]
+    public async Task Nome_do_tunel_so_sai_com_o_tunel_configurado()
+    {
+        var server = Servidor("", 25570, null);
+        server.TunnelLabel = "atm10-tunel";
+
+        var semTunel = await New(DnsConfigured(), new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+        Assert.Null(semTunel.TunnelFor(server));
+
+        var settings = DnsConfigured();
+        settings.CloudflareAccountId = new string('b', 32);
+        settings.CloudflareTunnelId = "11111111-2222-3333-4444-555555555555";
+        var comTunel = await New(settings, new FakeDetector("1.2.3.4")).HandleAsync(false, CancellationToken.None);
+
+        Assert.Equal("atm10-tunel.exemplo.com", comTunel.TunnelFor(server));
+    }
+
+    [Fact]
     public void Sem_escolha_gravada_o_modo_sai_do_que_esta_preenchido()
     {
         // Instalações de antes da escolha: o resultado tem de ser o mesmo que

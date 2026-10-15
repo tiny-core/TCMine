@@ -151,7 +151,9 @@ public sealed class CloudflareDnsClient(HttpClient http) : ICloudflareDns
     ///     O corpo de um registro. TTL 1 é "automático" na Cloudflare.
     ///     <c>proxied: false</c> no A é obrigatório para o jogo: o proxy da
     ///     Cloudflare só passa HTTP, e um registro A com a nuvem laranja deixaria
-    ///     o nome a apontar para um IP que não fala Minecraft.
+    ///     o nome a apontar para um IP que não fala Minecraft. O CNAME do túnel é
+    ///     o contrário: SÓ funciona com a nuvem laranja — é ela que entrega a
+    ///     conexão ao túnel.
     /// </summary>
     private static object Body(DnsRecordSpec record) =>
         string.Equals(record.Type, DnsRecordTypes.Srv, StringComparison.OrdinalIgnoreCase)
@@ -161,7 +163,10 @@ public sealed class CloudflareDnsClient(HttpClient http) : ICloudflareDns
                 1,
                 record.Comment,
                 new SrvData(0, 0, record.Port, record.Target))
-            : new AddressBody(record.Type, record.Name, record.Target, 1, false, record.Comment);
+            : new AddressBody(
+                record.Type, record.Name, record.Target, 1,
+                string.Equals(record.Type, DnsRecordTypes.Cname, StringComparison.OrdinalIgnoreCase),
+                record.Comment);
 
     private static DnsRecord ToRecord(RecordDto dto) =>
         new(dto.Id!,

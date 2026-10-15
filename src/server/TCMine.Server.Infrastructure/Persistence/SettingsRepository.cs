@@ -92,6 +92,9 @@ public sealed class SettingsRepository : ISettingsRepository
         stored.DnsSyncIntervalMinutes = settings.DnsSyncIntervalMinutes;
         stored.UpdateCheckDisabled = settings.UpdateCheckDisabled;
         stored.PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled;
+        stored.CloudflareAccountId = settings.CloudflareAccountId;
+        stored.CloudflareTunnelId = settings.CloudflareTunnelId;
+        stored.TunnelOriginHost = settings.TunnelOriginHost;
         stored.CloudflareApiTokenEncrypted = Protect(settings.CloudflareApiTokenEncrypted);
 
         stored.CurseForgeApiKeyEncrypted = Protect(settings.CurseForgeApiKeyEncrypted);

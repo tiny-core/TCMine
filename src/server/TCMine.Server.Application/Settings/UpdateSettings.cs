@@ -100,6 +100,41 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
                 "O nome do registro do IP aceita só letras sem acento, números e hífen (ex.: mc).");
         }
 
+        // ---- Túnel ----
+        // Os dois ids juntos ou nenhum: um sozinho não chega a túnel nenhum, e
+        // a tela diria "túnel" sem que ele existisse.
+        var accountId = Trimmed(command.CloudflareAccountId);
+        var tunnelId = Trimmed(command.CloudflareTunnelId);
+
+        if (accountId is not null && !(accountId.Length == 32 && accountId.All(Uri.IsHexDigit)))
+        {
+            return Result.Fail(
+                "O Account ID da Cloudflare tem 32 caracteres hexadecimais — está na página Overview do "
+                + "domínio, logo abaixo do Zone ID.");
+        }
+
+        if (tunnelId is not null && !Guid.TryParse(tunnelId, out _))
+        {
+            return Result.Fail(
+                "O ID do túnel é um GUID (00000000-0000-0000-0000-000000000000) — está no painel Zero Trust, "
+                + "em Redes → Túneis, na linha do túnel.");
+        }
+
+        if ((accountId is null) != (tunnelId is null))
+            return Result.Fail("Para o túnel, informe o Account ID e o ID do túnel — os dois, ou nenhum.");
+
+        var tunnelOrigin = Trimmed(command.TunnelOriginHost);
+
+        if (tunnelOrigin is not null && !GameAddress.IsBareHost(tunnelOrigin))
+        {
+            return Result.Fail(
+                "A origem do túnel é só o host por onde o cloudflared alcança esta máquina (ex.: localhost), "
+                + "sem tcp:// e sem porta. A porta é a de cada servidor.");
+        }
+
+        if (tunnelOrigin is { Length: > PublicHostMaxLength })
+            return Result.Fail($"A origem do túnel pode ter no máximo {PublicHostMaxLength} caracteres.");
+
         if (!InstallationSettings.DnsSyncIntervalChoices.Contains(command.DnsSyncIntervalMinutes))
         {
             return Result.Fail(
@@ -175,6 +210,9 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         settings.DnsManualSyncOnly = command.DnsManualSyncOnly;
         settings.DnsSyncIntervalMinutes = command.DnsSyncIntervalMinutes;
         settings.UpdateCheckDisabled = command.UpdateCheckDisabled;
+        settings.CloudflareAccountId = accountId;
+        settings.CloudflareTunnelId = tunnelId?.ToLowerInvariant();
+        settings.TunnelOriginHost = tunnelOrigin;
         settings.PublicIpDetectionDisabled = command.PublicIpDetectionDisabled;
 
         // Não segue a regra "vazio = manter" do segredo abaixo: este valor é
@@ -244,7 +282,10 @@ public sealed record UpdateSettingsCommand
             DnsManualSyncOnly = settings.DnsManualSyncOnly,
             DnsSyncIntervalMinutes = (int)settings.DnsSyncInterval.TotalMinutes,
             UpdateCheckDisabled = settings.UpdateCheckDisabled,
-            PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled
+            PublicIpDetectionDisabled = settings.PublicIpDetectionDisabled,
+            CloudflareAccountId = settings.CloudflareAccountId,
+            CloudflareTunnelId = settings.CloudflareTunnelId,
+            TunnelOriginHost = settings.TunnelOriginHost
         };
     }
 
@@ -319,4 +360,13 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Não perguntar a serviços de fora o IP desta casa (onde o modo de rede deixa).</summary>
     public bool PublicIpDetectionDisabled { get; init; }
+
+    /// <summary>Conta da Cloudflare dona do túnel. Vazio = sem túnel.</summary>
+    public string? CloudflareAccountId { get; init; }
+
+    /// <summary>Id do túnel criado no painel Zero Trust. Vazio = sem túnel.</summary>
+    public string? CloudflareTunnelId { get; init; }
+
+    /// <summary>Por onde o cloudflared alcança as portas. Vazio = localhost.</summary>
+    public string? TunnelOriginHost { get; init; }
 }

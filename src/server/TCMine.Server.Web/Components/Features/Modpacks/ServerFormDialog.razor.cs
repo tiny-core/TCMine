@@ -27,6 +27,26 @@ public partial class ServerFormDialog
 
     private string _subdomain = "";
 
+    private bool _tunnelEnabled;
+    private string _tunnelLabel = "";
+
+    /// <summary>O túnel está configurado na instalação (Cloudflare + ids do túnel).</summary>
+    private bool CanUseTunnel => _address.TunnelBaseDomain is not null;
+
+    /// <summary>
+    ///     O que vai para o Salvar: vazio tira o túnel; em branco com a reserva
+    ///     ligada vale a sugestão, como no subdomínio.
+    /// </summary>
+    private string EffectiveTunnelLabel =>
+        !_tunnelEnabled ? ""
+        : string.IsNullOrWhiteSpace(_tunnelLabel) ? GameDns.SuggestTunnel(EffectiveSubdomain, _name)
+        : _tunnelLabel;
+
+    private string TunnelHelp =>
+        _address.TunnelBaseDomain is { } domain
+            ? $"Vira nome.{domain}, pela nuvem da Cloudflare. Em branco, vale a sugestão."
+            : "O túnel não está configurado em Configurações → Rede: o nome fica guardado e não é publicado.";
+
     /// <summary>A forma escolhida. Só o campo dela vai para o Salvar.</summary>
     private ServerAddressKind _addressKind = ServerAddressKind.Installation;
 
@@ -191,6 +211,8 @@ public partial class ServerFormDialog
             _connectAddress = Existing.ConnectAddress;
             _gamePort = Existing.GamePort;
             _subdomain = Existing.Subdomain ?? "";
+            _tunnelLabel = Existing.TunnelLabel ?? "";
+            _tunnelEnabled = Existing.TunnelLabel is not null;
 
             // Servidor de antes da escolha única com os dois preenchidos abre
             // no escrito, que é o que ele publica hoje.
@@ -257,12 +279,12 @@ public partial class ServerFormDialog
         {
             return await UpdateUseCase.HandleAsync(
                 Existing!.Id, _name, EffectiveConnectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
-                CancellationToken.None, _gamePort, EffectiveSubdomain, _options);
+                CancellationToken.None, _gamePort, EffectiveSubdomain, _options, EffectiveTunnelLabel);
         }
 
         var created = await CreateUseCase.HandleAsync(
             ModpackId, _name, EffectiveConnectAddress, _memoryMb, _maxPlayers, _selectedVersionId,
-            CancellationToken.None, _gamePort, EffectiveSubdomain, _options);
+            CancellationToken.None, _gamePort, EffectiveSubdomain, _options, EffectiveTunnelLabel);
         return created.Succeeded ? Result.Success() : Result.Fail(created.Error!);
     }
 }

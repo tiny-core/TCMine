@@ -433,6 +433,53 @@ public sealed class UpdateSettingsTests
         Assert.True(result.Succeeded);
     }
 
+    // ---- Túnel ----
+
+    [Theory]
+    [InlineData("0123456789abcdef0123456789abcdef", null)]
+    [InlineData(null, "11111111-2222-3333-4444-555555555555")]
+    [InlineData("curto", "11111111-2222-3333-4444-555555555555")]
+    [InlineData("0123456789abcdef0123456789abcdef", "nao-e-guid")]
+    public async Task Recusa_ids_do_tunel_incompletos_ou_malformados(string? account, string? tunnel)
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { CloudflareAccountId = account, CloudflareTunnelId = tunnel },
+            CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Null(repo.Salvo);
+    }
+
+    [Fact]
+    public async Task Recusa_origem_do_tunel_com_esquema_ou_porta()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { TunnelOriginHost = "tcp://localhost:25565" }, CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Ids_do_tunel_sao_gravados()
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand
+            {
+                CloudflareAccountId = " 0123456789abcdef0123456789abcdef ",
+                CloudflareTunnelId = "11111111-2222-3333-4444-555555555555"
+            }, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("0123456789abcdef0123456789abcdef", repo.Salvo!.CloudflareAccountId);
+        Assert.Equal("11111111-2222-3333-4444-555555555555", repo.Salvo.CloudflareTunnelId);
+    }
+
     // ---- Agenda do DNS ----
 
     [Theory]

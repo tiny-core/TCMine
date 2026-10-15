@@ -100,6 +100,9 @@ public sealed class SettingsRepositoryTests : IDisposable
         DnsSyncIntervalMinutes = 30,
         UpdateCheckDisabled = true,
         PublicIpDetectionDisabled = true,
+        CloudflareAccountId = "0123456789abcdef0123456789abcdef",
+        CloudflareTunnelId = "11111111-2222-3333-4444-555555555555",
+        TunnelOriginHost = "192.168.1.100",
         CurseForgeApiKeyEncrypted = "chave-do-curseforge",
         AzureClientId = "55555555-5555-5555-5555-555555555555"
     };

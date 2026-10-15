@@ -15,7 +15,7 @@ public sealed class UpdateGameServer(
     public async Task<Result> HandleAsync(
         Guid id, string name, string connectAddress, int memoryMb, int maxPlayers,
         bool whitelistEnabled, CancellationToken ct, int gamePort = 0, string? subdomain = null,
-        IReadOnlyDictionary<string, string>? options = null)
+        IReadOnlyDictionary<string, string>? options = null, string? tunnelLabel = null)
     {
         // Antes da validação do nome: responder "informe o nome" a quem nem
         // deveria enxergar este servidor já confirma que ele existe.
@@ -55,6 +55,12 @@ public sealed class UpdateGameServer(
                 return Result.Fail($"O subdomínio \"{label}\" já é usado pelo servidor \"{taken.Name}\".");
         }
 
+        // Nulo = não mexe no túnel; vazio = tira. Mesma regra do subdomínio.
+        var tunnel = GameDns.NormalizeLabel(tunnelLabel);
+        if (tunnel is not null && tunnel != server.TunnelLabel
+            && GameDns.TunnelLabelProblem(tunnel, await servers.ListAllAsync(ct), id) is { } tunnelProblem)
+            return Result.Fail(tunnelProblem);
+
         // Zero = não mexe na porta. Só confere quando ela MUDA: reconferir a
         // própria porta a cada salvamento seria uma ida ao Docker por um ajuste
         // de nome. A troca chega ao container no próximo start (a porta entra
@@ -72,6 +78,9 @@ public sealed class UpdateGameServer(
 
         if (subdomain is not null)
             server.Subdomain = label;
+
+        if (tunnelLabel is not null)
+            server.TunnelLabel = tunnel;
 
         // Chegam ao jogo no próximo início: entram na impressão digital do
         // container, que é recriado com o mundo intacto.

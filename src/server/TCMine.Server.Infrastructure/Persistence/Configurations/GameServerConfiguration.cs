@@ -49,6 +49,11 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
         builder.Property(s => s.OptionsJson).HasMaxLength(4000);
         builder.HasIndex(s => s.Subdomain).IsUnique();
 
+        // Mesma regra do subdomínio: dois servidores no mesmo nome de túnel
+        // disputariam o mesmo CNAME e a mesma entrada.
+        builder.Property(s => s.TunnelLabel).HasMaxLength(63);
+        builder.HasIndex(s => s.TunnelLabel).IsUnique();
+
         builder.HasIndex(s => s.OwnerId);
         builder.HasIndex(s => s.ModpackVersionId);
         builder.HasIndex(s => s.ModpackId);
