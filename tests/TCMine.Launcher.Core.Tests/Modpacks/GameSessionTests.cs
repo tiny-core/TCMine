@@ -45,6 +45,23 @@ public class GameSessionTests
     }
 
     [Fact]
+    public async Task A_ultima_instancia_fica_depois_de_o_jogo_fechar()
+    {
+        // É depois do crash que o console precisa de saber de que pasta abrir
+        // os logs.
+        var session = new GameSession();
+        var instance = Instalada();
+        var process = new FakeGameProcess();
+
+        session.Attach(instance, process);
+        process.Terminar();
+
+        await EsperarAsync(() => !session.IsRunning);
+
+        session.LastInstance.ShouldBe(instance);
+    }
+
+    [Fact]
     public async Task Depois_de_fechar_da_para_abrir_outra_vez()
     {
         var session = new GameSession();

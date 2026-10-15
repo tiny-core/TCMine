@@ -1,0 +1,12 @@
+@* Raiz da janela do console. Os provedores do MudBlazor de novo porque é outra
+   árvore de componentes, noutro WebView — e SEM o ShellLayout: ele faria o
+   arranque (handshake, sessão, ligação), e este WebView tem o seu próprio
+   escopo de DI, então seria uma segunda ligação ao servidor. O console só lê o
+   GameSession, que é singleton e por isso é o mesmo das duas janelas. *@
+
+<MudThemeProvider Theme="TcMineTheme.Default" IsDarkMode="true" ObserveSystemDarkModeChange="false"/>
+<MudPopoverProvider/>
+<MudSnackbarProvider/>
+<TcMineTokens/>
+
+<GameConsole/>

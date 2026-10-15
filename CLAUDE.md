@@ -624,6 +624,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   lista de servidores saiu daqui para a aba Servidores. Numa instância de servidor o botão principal é
   **"Entrar no servidor"** (`JoinServer`) e espera o servidor no ar; sem o servidor no catálogo (sem rede),
   abre o jogo como uma pessoal.
+- **Console em janela própria** (`IConsoleWindow`, aberto pelo botão "Console" do rodapé): uma segunda janela
+  WPF com outro `BlazorWebView`, raiz `ConsoleRoot` (provedores do MudBlazor + `GameConsole`), o mesmo
+  `index.html`. **Sem o `ShellLayout`**: cada WebView tem o seu escopo de DI, e o layout faria o arranque e
+  abriria uma segunda ligação ao servidor — o console só lê o `GameSession` (singleton). Sem `Owner` (senão
+  minimizaria junto com a principal); fechar esconde (criar um WebView2 custa ~1 s), e fechar a principal a
+  fecha de verdade (`ShutdownMode=OnMainWindowClose`).
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

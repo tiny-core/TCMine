@@ -4,6 +4,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Modpacks;
+using TCMine.Launcher.UI.Abstractions;
 using TCMine.Launcher.UI.State;
 
 namespace TCMine.Launcher.UI.Pages;
@@ -90,6 +91,8 @@ public partial class HomePage : ComponentBase, IDisposable
         _active is null ? [] : NewsFeed.For(_active.Manifest.ModpackId);
 
     [Inject] private GameSession Game { get; set; } = default!;
+
+    [Inject] private IConsoleWindow ConsoleWindow { get; set; } = default!;
 
     [Inject] private LaunchGame Launch { get; set; } = default!;
 

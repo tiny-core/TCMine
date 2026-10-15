@@ -118,44 +118,12 @@ else
             @if (!Game.IsRunning && Game.LastExitCode is { } exitCode && exitCode != 0)
             {
                 <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Dense="true" Class="mt-4">
-                    O jogo fechou com erro (código @exitCode). O registro abaixo tem a causa.
+                    O jogo fechou com erro (código @exitCode). O console tem a causa.
+                    <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" Class="ml-2"
+                               StartIcon="@Icons.Material.Filled.Terminal" OnClick="ConsoleWindow.Show">
+                        Abrir o console
+                    </MudButton>
                 </MudAlert>
-            }
-
-            @* O log fica disponível depois de o jogo fechar, e não só enquanto
-               corre: é justamente depois que alguém vai procurá-lo. *@
-            @if (Game.Log.Count > 0)
-            {
-                <MudExpansionPanels Class="mt-4" Elevation="0">
-                    <MudExpansionPanel Expanded="@(Game.LastExitCode is not null and not 0)">
-                        <TitleContent>
-                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
-                                <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
-                                <MudText Typo="Typo.body2">
-                                    Registro do jogo (@Game.Log.Count @(Game.Log.Count is 1 ? "linha" : "linhas"))
-                                </MudText>
-                                @if (Game.IsRunning)
-                                {
-                                    <MudChip T="string" Size="Size.Small" Color="Color.Success"
-                                             Variant="Variant.Text">
-                                        a jogar
-                                    </MudChip>
-                                }
-                            </MudStack>
-                        </TitleContent>
-                        <ChildContent>
-                            <div class="tc-game-log">
-                                @* As últimas primeiro: a causa de um crash está
-                                   no fim, e rolar mil linhas para a encontrar é
-                                   trabalho que a tela pode poupar. *@
-                                @foreach (var line in Game.Log.Reverse())
-                                {
-                                    <div>@line</div>
-                                }
-                            </div>
-                        </ChildContent>
-                    </MudExpansionPanel>
-                </MudExpansionPanels>
             }
         </div>
 

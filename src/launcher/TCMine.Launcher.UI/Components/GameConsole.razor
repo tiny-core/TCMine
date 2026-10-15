@@ -1,0 +1,54 @@
+@* O registro do jogo, ao vivo. As últimas linhas primeiro: a causa de um crash
+   está no fim, e rolar mil linhas para a encontrar é trabalho que a tela pode
+   poupar. *@
+
+<div class="tc-console">
+    <header class="tc-console-head">
+        <MudIcon Icon="@Icons.Material.Filled.Terminal" Size="Size.Small"/>
+        <MudText Typo="Typo.subtitle2" Class="tc-console-title">@Title</MudText>
+
+        @if (Game.IsRunning)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">a jogar</MudChip>
+        }
+        else if (Game.LastExitCode is { } exitCode && exitCode != 0)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">
+                fechou com erro (código @exitCode)
+            </MudChip>
+        }
+
+        <span class="tc-console-spacer"></span>
+
+        <MudTooltip Text="Copiar o registro">
+            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Size="Size.Small"
+                           Disabled="@(Game.Log.Count is 0)" OnClick="CopyAsync"/>
+        </MudTooltip>
+
+        @* A pasta logs/ tem o latest.log inteiro e os crash-reports, que são o
+           que um pedido de ajuda precisa — o console guarda só as últimas
+           linhas. *@
+        <MudTooltip Text="Abrir a pasta de logs">
+            <MudIconButton Icon="@Icons.Material.Filled.FolderOpen" Size="Size.Small"
+                           Disabled="@(Game.LastInstance is null)" OnClick="OpenLogs"/>
+        </MudTooltip>
+    </header>
+
+    @if (Game.Log.Count is 0)
+    {
+        <div class="tc-console-empty">
+            <MudText Typo="Typo.body2" Class="mud-text-secondary">
+                O registro aparece aqui quando o jogo abrir.
+            </MudText>
+        </div>
+    }
+    else
+    {
+        <div class="tc-console-log">
+            @foreach (var line in Game.Log.Reverse())
+            {
+                <div>@line</div>
+            }
+        </div>
+    }
+</div>

@@ -34,6 +34,13 @@ public sealed class GameSession
     public bool IsRunning => Running is not null;
 
     /// <summary>
+    ///     A instância do último jogo aberto, e continua depois de ele fechar:
+    ///     é depois do crash que alguém vai procurar a pasta de logs dele, e a
+    ///     janela do console tem de saber qual é.
+    /// </summary>
+    public InstalledInstance? LastInstance { get; private set; }
+
+    /// <summary>
     ///     Código de saída da ÚLTIMA execução, quando ela já terminou.
     ///     Fica disponível depois de o jogo fechar de propósito: um código
     ///     diferente de zero é a única pista de que o jogo não fechou sozinho, e
@@ -59,6 +66,7 @@ public sealed class GameSession
 
             _processo = process;
             Running = instance;
+            LastInstance = instance;
             LastExitCode = null;
         }
 

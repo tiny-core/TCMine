@@ -1,0 +1,50 @@
+/* A janela inteira é o console: cabeçalho fixo, registro rolando por baixo. */
+.tc-console {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--tc-bg-page);
+}
+
+.tc-console-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid var(--tc-border);
+}
+
+.tc-console-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc-console-spacer {
+  flex: 1 1 auto;
+}
+
+.tc-console-empty {
+  display: grid;
+  place-items: center;
+  flex: 1 1 auto;
+}
+
+/*
+    Monoespaçado porque o Minecraft alinha timestamps e níveis em colunas, e uma
+    fonte proporcional desfaz esse alinhamento — que é o que torna um log legível
+    de relance. Selecionável: o casco desliga a seleção na janela principal, mas
+    copiar um trecho é metade do uso de um console.
+*/
+.tc-console-log {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}

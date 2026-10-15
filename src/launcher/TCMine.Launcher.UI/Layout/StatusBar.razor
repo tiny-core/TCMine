@@ -8,6 +8,16 @@
 
     <span class="tc-statusbar-spacer"></span>
 
+    @* O console mora numa janela à parte, e o botão fica aqui, no rodapé, para
+       estar à mão em qualquer tela. O ponto verde diz que há jogo a escrever. *@
+    <button type="button" class="tc-statusbar-console" @onclick="ConsoleWindow.Show">
+        @if (Game.IsRunning)
+        {
+            <span class="tc-dot tc-dot-online" aria-hidden="true"></span>
+        }
+        Console
+    </button>
+
     <MudTooltip Text="Versão instalada do launcher" Placement="Placement.Top">
         <span class="tc-statusbar-version">@AppInfo.Version</span>
     </MudTooltip>

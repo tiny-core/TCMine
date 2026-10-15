@@ -39,3 +39,22 @@
 .tc-dot-offline {
   background: var(--tc-text-muted);
 }
+
+/* Discreto como o resto do rodapé: texto, sem moldura de botão. */
+.tc-statusbar-console {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tc-statusbar-console:hover {
+  background: var(--tc-surface-raised);
+  color: var(--tc-text-primary);
+}
