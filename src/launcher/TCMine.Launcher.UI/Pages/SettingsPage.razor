@@ -3,7 +3,7 @@
 <PageTitle>Definições</PageTitle>
 
 <PageHeader Title="Definições"
-            Subtitle="Conta e servidor. A memória é de cada instância."/>
+            Subtitle="Conta, servidor e opções do jogo. A memória é de cada instância."/>
 
 @* Só o que já é verdade nesta build. Uma tela de definições cheia de campos
    desligados ensina o jogador a desconfiar do que ela mostra. *@
@@ -41,6 +41,24 @@
             }
         </MudPaper>
     }
+
+    <MudPaper Class="pa-6" Elevation="0" Outlined="true">
+        <MudText Typo="Typo.subtitle1" GutterBottom="true">Opções do jogo</MudText>
+        <MudText Typo="Typo.body2" Class="mud-text-secondary">
+            As teclas de cada modpack ficam guardadas na sua conta: voltam em qualquer PC e em
+            qualquer instância do mesmo modpack, de servidor ou sua.
+        </MudText>
+
+        @* Desligado por padrão: gráficos e som são do computador (um notebook
+           e um PC de mesa raramente querem os mesmos), as teclas são da pessoa. *@
+        <MudSwitch T="bool" Class="mt-3" Color="Color.Primary"
+                   Value="SyncAll" ValueChanged="SetSyncAllAsync"
+                   Disabled="@(_preferences is null)"
+                   Label="Levar também gráficos, som e o resto das opções"/>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Vale para este PC. Num PC com isto desligado, só as teclas são trocadas com a conta.
+        </MudText>
+    </MudPaper>
 
     @if (Shell.Pairing?.Config is { } config)
     {

@@ -109,6 +109,8 @@ public static class DependencyInjection
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
         services.AddSingleton<IRunningGameStore, FileRunningGameStore>();
         services.AddSingleton<IGameProcessFinder, SystemGameProcessFinder>();
+        services.AddSingleton<IPlayerOptionsStore, FilePlayerOptionsStore>();
+        services.AddSingleton<ILauncherPreferences, FileLauncherPreferences>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
         services.AddSingleton<IEndpointProbe, TcpEndpointProbe>();
         services.AddSingleton<IGameTunnel, CloudflareGameTunnel>();

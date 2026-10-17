@@ -26,6 +26,8 @@ namespace TCMine.Launcher.Infrastructure.Serialization;
 [JsonSerializable(typeof(InstanceManifest))]
 [JsonSerializable(typeof(ActiveInstanceFile))]
 [JsonSerializable(typeof(RunningGameFile))]
+[JsonSerializable(typeof(OptionsSyncFile))]
+[JsonSerializable(typeof(LauncherPreferences))]
 [JsonSerializable(typeof(PlayerProfile))]
 public sealed partial class LauncherJsonContext : JsonSerializerContext
 {

@@ -650,6 +650,14 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   sessão. Vale a gravação mais recente; `options` nulo mantém o que havia (PC que só sincroniza teclas). O
   `MainHub` aceita mensagens de até 512 KB (`MaximumReceiveMessageSize`): acima do teto o SignalR não devolve
   erro, derruba a conexão. A fusão de contas re-aponta as opções (na colisão fica a gravada por último).
+  No launcher, `SyncPlayerOptions` (Core/Options, singleton) baixa antes de abrir o jogo (no `LaunchGame`,
+  depois de conta e Java) e envia quando ele fecha (`PlayerOptionsCoordinator`, que ouve o `GameSession`).
+  "Mudou" é contra a ÚLTIMA SINCRONIZAÇÃO da instância (`.tcmine-options-sync.json`: impressão digital +
+  hora do servidor), não contra o servidor: um jogo fechado sem rede deixa o arquivo à frente, e a abertura
+  seguinte ENVIA em vez de o atropelar; mudou dos dois lados, vence o mais recente. A fusão
+  (`OptionsFile.Merge`, pura) troca no lugar, acrescenta o que falta, nunca apaga tecla que só existe aqui e
+  mantém a `version:` local. O resto do arquivo só viaja com `LauncherPreferences.SyncAllOptions`
+  (Definições, `preferences.json`, por PC). Nunca impede de jogar.
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

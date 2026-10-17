@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using TCMine.Launcher.Core.Abstractions;
 using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.UI.State;
 
@@ -6,6 +7,9 @@ namespace TCMine.Launcher.UI.Pages;
 
 public partial class SettingsPage : ComponentBase, IDisposable
 {
+    /// <summary>Nulo até ler o disco, para o interruptor não nascer na posição errada.</summary>
+    private LauncherPreferences? _preferences;
+
     private bool _signingOut;
 
     /// <summary>
@@ -21,13 +25,34 @@ public partial class SettingsPage : ComponentBase, IDisposable
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 
+    [Inject] private ILauncherPreferences Preferences { get; set; } = default!;
+
+    private bool SyncAll => _preferences?.SyncAllOptions ?? false;
+
     public void Dispose()
     {
         Lock.Changed -= OnLockChanged;
         GC.SuppressFinalize(this);
     }
 
-    protected override void OnInitialized() => Lock.Changed += OnLockChanged;
+    protected override async Task OnInitializedAsync()
+    {
+        Lock.Changed += OnLockChanged;
+        _preferences = await Preferences.ReadAsync(CancellationToken.None);
+    }
+
+    /// <summary>
+    ///     Grava na hora: é um interruptor, e um botão "Guardar" à parte seria
+    ///     um passo a esquecer. Vale a partir da próxima abertura do jogo.
+    /// </summary>
+    private async Task SetSyncAllAsync(bool value)
+    {
+        if (_preferences is null)
+            return;
+
+        _preferences = _preferences with { SyncAllOptions = value };
+        await Preferences.WriteAsync(_preferences, CancellationToken.None);
+    }
 
     private void OnLockChanged() => InvokeAsync(StateHasChanged);
 

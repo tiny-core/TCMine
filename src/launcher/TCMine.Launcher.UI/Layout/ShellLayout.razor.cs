@@ -37,6 +37,10 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     [Inject]
     private GameWindowCoordinator WindowCoordinator { get; set; } = default!;
 
+    /// <summary>Pedido só para nascer, como o de cima (ver <see cref="PlayerOptionsCoordinator" />).</summary>
+    [Inject]
+    private PlayerOptionsCoordinator OptionsCoordinator { get; set; } = default!;
+
     // TEMPORÁRIO (linha de base, sai no fim da fase 8).
     [Inject] private ILogger<ShellLayout> Logger { get; set; } = default!;
 

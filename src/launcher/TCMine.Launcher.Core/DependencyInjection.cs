@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using TCMine.Launcher.Core.Connectivity;
 using TCMine.Launcher.Core.Identity;
 using TCMine.Launcher.Core.Modpacks;
+using TCMine.Launcher.Core.Options;
 using TCMine.Launcher.Core.Runtime;
 
 namespace TCMine.Launcher.Core;
@@ -42,6 +43,12 @@ public static class DependencyInjection
         // Singleton: o jogo aberto tem de sobreviver à navegação entre telas, do
         // mesmo modo que o estado do casco.
         services.AddSingleton<GameSession>();
+
+        // Singleton, ao contrário dos outros casos de uso: quem envia as teclas
+        // quando o jogo fecha é um coordenador que vive a aplicação inteira, e
+        // um singleton não pode depender de algo com escopo. Tudo de que ele
+        // depende (canal, disco, preferências) já é singleton.
+        services.AddSingleton<SyncPlayerOptions>();
 
         return services;
     }

@@ -1,5 +1,6 @@
 using TCMine.Contracts;
 using TCMine.Launcher.Core.Abstractions;
+using TCMine.Launcher.Core.Options;
 using TCMine.Launcher.Core.Runtime;
 
 namespace TCMine.Launcher.Core.Modpacks;
@@ -20,7 +21,8 @@ public sealed class LaunchGame(
     IJavaLocator java,
     IJavaRequirementSource javaRequirement,
     IGameLauncher launcher,
-    GameSession game)
+    GameSession game,
+    SyncPlayerOptions? options = null)
 {
     public Task<GameLaunchResult> HandleAsync(
         InstalledInstance instance,
@@ -106,6 +108,15 @@ public sealed class LaunchGame(
             // Rede fora, Adoptium fora, disco cheio. A causa real vale mais do
             // que uma mensagem nossa: é o que diz se adianta tentar de novo.
             return GameLaunchResult.Failed($"Não foi possível preparar o Java {major}. {ex.Message}");
+        }
+
+        // Por último antes do processo: as teclas que vêm da conta têm de estar
+        // no options.txt quando o jogo o ler, e tudo o que podia falhar antes
+        // (conta, Java) já passou. Nunca impede de abrir — ver SyncPlayerOptions.
+        if (options is not null)
+        {
+            progress?.Report(new GameLaunchProgress("Trazendo as suas teclas"));
+            await options.BeforeLaunchAsync(instance, ct);
         }
 
         var result = await launcher.LaunchAsync(
