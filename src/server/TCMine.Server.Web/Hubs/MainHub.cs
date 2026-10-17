@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Players;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Application.Settings;
@@ -35,7 +37,9 @@ public sealed class MainHub(
     RequestServerAccess requestAccess,
     ConsoleBroadcaster broadcaster,
     IPlayerCountSource players,
-    GetAddressSettings addressSettings) : Hub<ILauncherClient>, IServerHub
+    GetAddressSettings addressSettings,
+    GetPlayerModpackSettings getPlayerSettings,
+    SavePlayerModpackSettings savePlayerSettings) : Hub<ILauncherClient>, IServerHub
 {
     /// <summary>
     ///     ToArray(), e NÃO uma expressão de coleção.
@@ -186,6 +190,29 @@ public sealed class MainHub(
     public async Task RequestServerAccessAsync(Guid gameServerId)
     {
         var result = await requestAccess.HandleAsync(gameServerId, Context.ConnectionAborted);
+
+        if (!result.Succeeded)
+            throw new HubException(result.Error);
+    }
+
+    public async Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId)
+    {
+        var result = await getPlayerSettings.HandleAsync(modpackId, Context.ConnectionAborted);
+
+        if (!result.Succeeded)
+            throw new HubException(result.Error);
+
+        return result.Value is { } settings
+            ? new PlayerModpackSettingsDto
+            {
+                KeyBindings = settings.KeyBindings, Options = settings.Options, UpdatedAt = settings.LastSavedAt
+            }
+            : null;
+    }
+
+    public async Task SaveModpackSettingsAsync(Guid modpackId, string keyBindings, string? options)
+    {
+        var result = await savePlayerSettings.HandleAsync(modpackId, keyBindings, options, Context.ConnectionAborted);
 
         if (!result.Succeeded)
             throw new HubException(result.Error);

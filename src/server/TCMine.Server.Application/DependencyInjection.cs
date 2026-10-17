@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Dns;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Players;
 using TCMine.Server.Application.Public;
 using TCMine.Server.Application.Security;
 using TCMine.Server.Application.Servers;
@@ -135,6 +136,8 @@ public static class DependencyInjection
         services.AddScoped<ListUsers>();
         services.AddScoped<SetInstanceAdmin>();
         services.AddScoped<RequestServerAccess>();
+        services.AddScoped<GetPlayerModpackSettings>();
+        services.AddScoped<SavePlayerModpackSettings>();
         services.AddScoped<ListAccessRequests>();
         services.AddScoped<ApproveAccessRequest>();
         services.AddScoped<DenyAccessRequest>();

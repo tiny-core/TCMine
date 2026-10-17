@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
@@ -137,6 +138,12 @@ public sealed partial class LauncherHubClient : IServerHub, IAsyncDisposable
 
     public Task RequestServerAccessAsync(Guid gameServerId) =>
         _connection.InvokeAsync(nameof(IServerHub.RequestServerAccessAsync), gameServerId);
+
+    public Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId) =>
+        _connection.InvokeAsync<PlayerModpackSettingsDto?>(nameof(IServerHub.GetModpackSettingsAsync), modpackId);
+
+    public Task SaveModpackSettingsAsync(Guid modpackId, string keyBindings, string? options) =>
+        _connection.InvokeAsync(nameof(IServerHub.SaveModpackSettingsAsync), modpackId, keyBindings, options);
 
     // Eventos do servidor viram eventos .NET. A UI assina; o transporte
     // fica escondido.

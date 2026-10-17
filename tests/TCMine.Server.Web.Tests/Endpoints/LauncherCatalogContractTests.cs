@@ -192,6 +192,46 @@ public sealed class LauncherCatalogContractTests
     }
 
     [Fact]
+    public async Task As_teclas_da_conta_atravessam_o_hub_nos_dois_sentidos()
+    {
+        // Um DTO novo e uma string anulável no caminho: é o tipo de coisa que o
+        // MessagePack só recusa em runtime, e que só o cliente de verdade vê.
+        await using var server = new RealPortAppFactory
+        {
+            Servicos = services => services.AddSingleton<IMinecraftProfileSource>(
+                new PerfilFixo(new MinecraftProfile("abc123", "ana")))
+        };
+
+        var modpackId = await SemearComNovidadesAsync(server);
+
+        await using var launcher = MontarLauncher();
+
+        var config = new LauncherConfig
+        {
+            Schema = 1, ServerUrl = server.Address, AzureClientId = "client-id-de-teste"
+        };
+
+        await launcher.GetRequiredService<SignIn>().InteractiveAsync(config, Ct);
+
+        var connection = launcher.GetRequiredService<IServerConnection>();
+        await connection.ConnectAsync(server.Address, Ct);
+
+        (await connection.GetModpackSettingsAsync(modpackId, Ct)).ShouldBeNull();
+
+        // Maior que o teto padrão do SignalR (32 KB): sem o teto próprio do hub,
+        // a mensagem derrubaria a conexão em vez de chegar.
+        var options = string.Join('\n', Enumerable.Range(0, 4000).Select(i => $"opcao_{i}:true"));
+
+        await connection.SaveModpackSettingsAsync(modpackId, "key_key.jump:key.keyboard.space", options, Ct);
+        await connection.SaveModpackSettingsAsync(modpackId, "key_key.jump:key.keyboard.j", null, Ct);
+
+        var lido = await connection.GetModpackSettingsAsync(modpackId, Ct);
+
+        lido!.KeyBindings.ShouldBe("key_key.jump:key.keyboard.j");
+        lido.Options.ShouldBe(options);
+    }
+
+    [Fact]
     public async Task As_novidades_publicadas_atravessam_o_hub()
     {
         await using var server = new RealPortAppFactory

@@ -17,7 +17,7 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -837,6 +837,43 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("modpack_memberships", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.PlayerModpackSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("KeyBindings")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Options")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackId");
+
+                    b.HasIndex("UserId", "ModpackId")
+                        .IsUnique();
+
+                    b.ToTable("player_modpack_settings", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1651,6 +1688,21 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .WithMany()
                         .HasForeignKey("VaultId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.PlayerModpackSettings", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
+                        .WithMany()
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TCMine.Server.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

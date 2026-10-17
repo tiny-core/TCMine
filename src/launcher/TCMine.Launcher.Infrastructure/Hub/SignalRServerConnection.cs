@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
@@ -172,6 +173,13 @@ public sealed partial class SignalRServerConnection(
 
     public Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct) =>
         Require().RequestServerAccessAsync(gameServerId);
+
+    public Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId, CancellationToken ct) =>
+        Require().GetModpackSettingsAsync(modpackId);
+
+    public Task SaveModpackSettingsAsync(
+        Guid modpackId, string keyBindings, string? options, CancellationToken ct) =>
+        Require().SaveModpackSettingsAsync(modpackId, keyBindings, options);
 
     public async ValueTask DisposeAsync()
     {

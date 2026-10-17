@@ -1,4 +1,5 @@
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
@@ -90,4 +91,13 @@ public interface IServerConnection : IAsyncDisposable
     ///     qualquer outra falha de ação, não como desfecho normal.
     /// </summary>
     Task RequestServerAccessAsync(Guid gameServerId, CancellationToken ct);
+
+    /// <summary>As opções (teclas) que a conta gravou neste modpack, ou nulo se nunca gravou.</summary>
+    Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId, CancellationToken ct);
+
+    /// <summary>
+    ///     Grava as opções da conta neste modpack. <paramref name="options" />
+    ///     nulo mantém o que o servidor tinha (este PC só sincroniza teclas).
+    /// </summary>
+    Task SaveModpackSettingsAsync(Guid modpackId, string keyBindings, string? options, CancellationToken ct);
 }

@@ -644,6 +644,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
 - **O túnel embrulha o processo ANTES de a sessão o tomar** (`LaunchGame.HandleAsync(..., decorate, ...)`). Até a
   4E.6 o `JoinServer` embrulhava depois: a sessão lia o processo de dentro, o `TunneledGameProcess` nunca era
   lido e o túnel nunca fechava ao sair do jogo.
+- **Teclas pela conta** (4F). O servidor guarda, por (conta, modpack), as linhas `key_*` do `options.txt` e,
+  opcionalmente, o resto dele (`PlayerModpackSettings`, tabela `player_modpack_settings`; casos de uso em
+  `Application/Players`; hub `GetModpackSettingsAsync`/`SaveModpackSettingsAsync`). A conta vem SEMPRE da
+  sessão. Vale a gravação mais recente; `options` nulo mantém o que havia (PC que só sincroniza teclas). O
+  `MainHub` aceita mensagens de até 512 KB (`MaximumReceiveMessageSize`): acima do teto o SignalR não devolve
+  erro, derruba a conexão. A fusão de contas re-aponta as opções (na colisão fica a gravada por último).
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

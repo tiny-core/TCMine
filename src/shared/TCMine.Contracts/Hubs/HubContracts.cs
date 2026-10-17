@@ -1,3 +1,4 @@
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 
@@ -66,6 +67,16 @@ public interface IServerHub
     ///     falar consigo mesmo.
     /// </summary>
     Task RequestServerAccessAsync(Guid gameServerId);
+
+    /// <summary>As opções do jogador neste modpack, ou nulo se ele nunca gravou nenhuma.</summary>
+    Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId);
+
+    /// <summary>
+    ///     Grava as opções do jogador neste modpack. <paramref name="options" />
+    ///     nulo mantém o que estava gravado: quer dizer "este PC não sincroniza o
+    ///     resto", e não "apague o que os outros PCs mandaram".
+    /// </summary>
+    Task SaveModpackSettingsAsync(Guid modpackId, string keyBindings, string? options);
 }
 
 /// <summary>

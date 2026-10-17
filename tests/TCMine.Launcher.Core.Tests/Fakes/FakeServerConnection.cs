@@ -1,4 +1,5 @@
 using TCMine.Contracts.Hubs;
+using TCMine.Contracts.Identity;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
 using TCMine.Launcher.Core.Connectivity;
@@ -141,6 +142,30 @@ public class FakeServerConnection : IServerConnection
     {
         AccessRequested.Add(gameServerId);
         return Throws is null ? Task.CompletedTask : Task.FromException(Throws);
+    }
+
+    /// <summary>As opções gravadas por modpack, como o servidor as devolveria.</summary>
+    public Dictionary<Guid, PlayerModpackSettingsDto> Settings { get; } = [];
+
+    public Task<PlayerModpackSettingsDto?> GetModpackSettingsAsync(Guid modpackId, CancellationToken ct) =>
+        Throws is not null
+            ? Task.FromException<PlayerModpackSettingsDto?>(Throws)
+            : Task.FromResult(Settings.GetValueOrDefault(modpackId));
+
+    public Task SaveModpackSettingsAsync(Guid modpackId, string keyBindings, string? options, CancellationToken ct)
+    {
+        if (Throws is not null)
+            return Task.FromException(Throws);
+
+        // A mesma regra do servidor: opções nulas mantêm as gravadas.
+        Settings[modpackId] = new PlayerModpackSettingsDto
+        {
+            KeyBindings = keyBindings,
+            Options = options ?? Settings.GetValueOrDefault(modpackId)?.Options,
+            UpdatedAt = DateTimeOffset.UtcNow
+        };
+
+        return Task.CompletedTask;
     }
 
     public ValueTask DisposeAsync()

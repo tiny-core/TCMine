@@ -29,7 +29,8 @@ public class LauncherInvalidationRules
         typeof(IInviteRepository),
         typeof(IMembershipRepository),
         typeof(IAccessRequestRepository),
-        typeof(ISettingsRepository)
+        typeof(ISettingsRepository),
+        typeof(IPlayerSettingsRepository)
     ];
 
     [Fact]

@@ -110,6 +110,7 @@ public static class DependencyInjection
         services.AddScoped<IInviteRepository, InviteRepository>();
         services.AddScoped<IMembershipRepository, MembershipRepository>();
         services.AddScoped<IAccessRequestRepository, AccessRequestRepository>();
+        services.AddScoped<IPlayerSettingsRepository, PlayerSettingsRepository>();
         services.AddScoped<ICloudCredentialRepository, CloudCredentialRepository>();
         services.AddScoped<ICloudStorageRepository, CloudStorageRepository>();
         services.AddScoped<ICloudAdminRepository, CloudAdminRepository>();

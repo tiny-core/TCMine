@@ -121,7 +121,15 @@ builder.Services
     // servidor sumiu sem fechar o socket. O ClientTimeoutInterval fica no
     // padrão (30 s) de propósito: um launcher antigo manda o sinal dele a cada
     // 15 s, e apertar o prazo aqui o derrubaria a toda hora.
-    .AddHubOptions<MainHub>(options => options.KeepAliveInterval = TimeSpan.FromSeconds(5))
+    // O teto de mensagem sobe só aqui, pelo mesmo motivo: o padrão de 32 KB
+    // não cabe as opções completas de um pack grande (SavePlayerModpackSettings
+    // aceita até 64 KB de teclas + 256 KB do resto), e uma mensagem acima do
+    // teto não volta como erro — derruba a conexão do launcher.
+    .AddHubOptions<MainHub>(options =>
+    {
+        options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+        options.MaximumReceiveMessageSize = 512 * 1024;
+    })
     // MessagePack é binário: mensagens menores e serialização mais rápida
     // que JSON. Vale principalmente no stream de console, que é constante.
     .AddMessagePackProtocol();

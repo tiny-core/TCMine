@@ -102,6 +102,24 @@ public sealed class UserRepository(IDbContextFactory<TcMineDbContext> factory) :
                 m.UserId = keepId;
         }
 
+        // As opções do jogador por pack (teclas) têm o mesmo índice único. Na
+        // colisão fica a gravada por último — é a do último jogo fechado, a
+        // mesma regra de quando o jogador troca de PC. Quase sempre é a conta
+        // ABSORVIDA (a do launcher) que as tem, e perdê-las aqui seria o
+        // jogador reconfigurar tudo por ter entrado no painel.
+        var keptSettings = await db.PlayerModpackSettings.Where(p => p.UserId == keepId).ToListAsync(ct);
+        foreach (var p in await db.PlayerModpackSettings.Where(p => p.UserId == absorbedId).ToListAsync(ct))
+        {
+            if (keptSettings.FirstOrDefault(k => k.ModpackId == p.ModpackId) is { } kept)
+            {
+                if (p.LastSavedAt > kept.LastSavedAt)
+                    kept.Replace(p.KeyBindings, p.Options);
+                db.PlayerModpackSettings.Remove(p);
+            }
+            else
+                p.UserId = keepId;
+        }
+
         await db.SaveChangesAsync(ct);
 
         // O resto é ponteiro simples, sem índice único: UPDATE direto.

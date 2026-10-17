@@ -15,7 +15,7 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.12");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
 
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudAdminAuditEntry", b =>
                 {
@@ -832,6 +832,43 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.ToTable("modpack_memberships", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.PlayerModpackSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("KeyBindings")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ModpackId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Options")
+                        .HasMaxLength(512)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModpackId");
+
+                    b.HasIndex("UserId", "ModpackId")
+                        .IsUnique();
+
+                    b.ToTable("player_modpack_settings", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Identity.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1646,6 +1683,21 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .WithMany()
                         .HasForeignKey("VaultId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.PlayerModpackSettings", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
+                        .WithMany()
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TCMine.Server.Domain.Identity.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
