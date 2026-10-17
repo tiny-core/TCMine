@@ -32,6 +32,8 @@ public sealed class TunneledGameProcess(IGameProcess inner, IGameTunnelSession t
 
     public void Kill() => inner.Kill();
 
+    public GameProcessIdentity? Identity => inner.Identity;
+
     public void Dispose()
     {
         inner.Dispose();

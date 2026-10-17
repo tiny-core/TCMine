@@ -630,6 +630,20 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   abriria uma segunda ligação ao servidor — o console só lê o `GameSession` (singleton). Sem `Owner` (senão
   minimizaria junto com a principal); fechar esconde (criar um WebView2 custa ~1 s), e fechar a principal a
   fecha de verdade (`ShutdownMode=OnMainWindowClose`).
+- **Jogo em segundo plano.** `GameWindowCoordinator` (UI/State, singleton criado pelo `ShellLayout`) minimiza a
+  janela quando o jogo abre e a restaura (`IWindowChrome.Restore`) quando ele fecha — só nas transições, nunca
+  por linha de log; jogo REENCONTRADO não minimiza. Fechar a janela com o jogo aberto a manda para a bandeja
+  (`WpfBackgroundTray`, `NotifyIcon` do WinForms: `UseWindowsForms` no host, com os usings globais dele
+  removidos); sair pela bandeja só pergunta quando a entrada foi pelo túnel (`GameSession.UsesTunnel`), porque
+  ele vive dentro do processo do launcher.
+- **Reencontrar o jogo.** Enquanto corre, o jogo fica em `running-game.json` (`IRunningGameStore`: instância,
+  PID e HORA DE INÍCIO — o Windows reaproveita PIDs). No arranque, antes de qualquer tela, o `ShellLayout` roda
+  `ResumeRunningGame`: processo vivo e com a mesma hora → `GameSession.Reattach`; senão o registo é apagado. A
+  saída do processo morreu com o launcher antigo, então o `ReattachedGameProcess` segue `logs/latest.log` (os
+  últimos 256 KB, depois como `tail -f`). O túnel não volta.
+- **O túnel embrulha o processo ANTES de a sessão o tomar** (`LaunchGame.HandleAsync(..., decorate, ...)`). Até a
+  4E.6 o `JoinServer` embrulhava depois: a sessão lia o processo de dentro, o `TunneledGameProcess` nunca era
+  lido e o túnel nunca fechava ao sair do jogo.
 - **Por onde entrar é decidido na hora** (`ServerRoute`): o servidor manda o `LocalAddress` (IP da máquina na
   rede de casa, de Configurações → Rede, mais a `GamePort`) além do `ConnectAddress`, e o launcher sonda o local
   por TCP (`IEndpointProbe`, 1,5 s) antes de abrir o jogo. Responde → entra por ele; não responde → endereço

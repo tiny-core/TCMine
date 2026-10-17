@@ -23,6 +23,9 @@ public sealed class FakeGameProcess : IGameProcess
 
     public int ExitCode => CodigoDeSaida;
 
+    /// <summary>Nulo por padrão: a maioria dos testes não grava o jogo no disco.</summary>
+    public GameProcessIdentity? Identity { get; init; }
+
     public async IAsyncEnumerable<string> ReadOutputAsync([EnumeratorCancellation] CancellationToken ct)
     {
         await foreach (var line in _linhas.Reader.ReadAllAsync(ct))

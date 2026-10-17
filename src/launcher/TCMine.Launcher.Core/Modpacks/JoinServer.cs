@@ -83,7 +83,12 @@ public sealed class JoinServer(
         GameLaunchResult result;
         try
         {
-            result = await launch.HandleAsync(instance, config, address, progress, ct);
+            // O embrulho vai PARA DENTRO do LaunchGame, para a sessão ler o
+            // processo embrulhado: é ao fim dessa leitura que o túnel fecha.
+            result = await launch.HandleAsync(
+                instance, config, address,
+                session is null ? null : process => new TunneledGameProcess(process, session),
+                progress, ct);
         }
         catch
         {
@@ -92,13 +97,9 @@ public sealed class JoinServer(
             throw;
         }
 
-        if (session is not null)
-        {
-            if (result.Process is { } process)
-                result = result with { Process = new TunneledGameProcess(process, session) };
-            else
-                await session.DisposeAsync(); // o jogo nem abriu: nada a carregar
-        }
+        // O jogo nem abriu: nada a carregar.
+        if (session is not null && result.Process is null)
+            await session.DisposeAsync();
 
         // A ativa passa a ser a do servidor: é nela que o jogador acabou de
         // entrar, e o "Jogar" seguinte tem de abrir a mesma pasta. Só com o jogo

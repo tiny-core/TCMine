@@ -33,6 +33,27 @@ internal sealed class SystemGameProcess : IGameProcess
     public int ExitCode => _processo.ExitCode;
 
     /// <summary>
+    ///     Lida uma vez e guardada: a hora de início não muda, e depois de o
+    ///     processo sair o sistema já não a dá. O <c>field</c> do C# 14 é o
+    ///     campo da própria propriedade, sem um campo à parte ao lado.
+    /// </summary>
+    public GameProcessIdentity? Identity => field ??= ReadIdentity();
+
+    private GameProcessIdentity? ReadIdentity()
+    {
+        try
+        {
+            return new GameProcessIdentity(_processo.Id, new DateTimeOffset(_processo.StartTime));
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or SystemException)
+        {
+            // Já saiu, ou o sistema recusou a consulta: sem identidade, só não
+            // se reencontra o jogo depois.
+            return null;
+        }
+    }
+
+    /// <summary>
     ///     Começa a bombear e devolve as linhas até o jogo fechar.
     ///     O <c>BeginOutputReadLine</c> fica aqui, e não no construtor, porque só
     ///     pode ser chamado depois do <c>Start</c> — e chamá-lo duas vezes atira.

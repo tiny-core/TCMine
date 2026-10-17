@@ -429,6 +429,10 @@ public class LaunchGameTests
         entrada.Motor.Recebido!.Server.ShouldBe(FakeGameTunnel.Local);
         tunnel.Opened.ShouldBe(["survival-tunel.exemplo.com"]);
 
+        // A sessão segura o processo COM o túnel: é ao fim da leitura dele que
+        // o túnel fecha. Embrulhado depois, ele ficava aberto para sempre.
+        entrada.Session.UsesTunnel.ShouldBeTrue();
+
         // Fechado só quando o jogo fecha — antes disso, o jogo perderia a conexão.
         tunnel.Last!.Closes.ShouldBe(0);
         result.Launch.Process!.Dispose();
@@ -560,8 +564,10 @@ public class LaunchGameTests
 
         public FakeActiveInstanceStore Active { get; } = new();
 
+        public GameSession Session { get; } = new();
+
         public Task<JoinServerResult> JoinAsync(GameServerDto server) =>
-            new JoinServer(Prepare(), Active, Build(motor: Motor), _probe, _tunnel)
+            new JoinServer(Prepare(), Active, Build(motor: Motor, session: Session), _probe, _tunnel)
                 .HandleAsync(Pack, server, Config(), null, Ct);
 
         /// <summary>Só a preparação — o "Instalar" da aba Servidores.</summary>

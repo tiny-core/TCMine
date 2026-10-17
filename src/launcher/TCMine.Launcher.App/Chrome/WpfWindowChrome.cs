@@ -38,6 +38,25 @@ internal sealed partial class WpfWindowChrome(Window window) : IWindowChrome
     public void Minimize() =>
         window.Dispatcher.Invoke(() => window.WindowState = WindowState.Minimized);
 
+    /// <summary>
+    ///     Mostra (se estava na bandeja), desminimiza e traz para a frente. O
+    ///     Topmost ligado e desligado é o jeito de furar a regra do Windows que
+    ///     só deixa a janela em foco roubar o primeiro plano — sem ele, o
+    ///     launcher piscaria na barra de tarefas em vez de aparecer.
+    /// </summary>
+    public void Restore() => window.Dispatcher.Invoke(() =>
+    {
+        if (!window.IsVisible)
+            window.Show();
+
+        if (window.WindowState is WindowState.Minimized)
+            window.WindowState = WindowState.Normal;
+
+        window.Activate();
+        window.Topmost = true;
+        window.Topmost = false;
+    });
+
     public void Close() => window.Dispatcher.Invoke(window.Close);
 
     // ---------- P/Invoke ----------

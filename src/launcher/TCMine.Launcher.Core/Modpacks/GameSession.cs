@@ -12,8 +12,11 @@ namespace TCMine.Launcher.Core.Modpacks;
 ///     A que mais importa: enquanto há jogo aberto, não se abre outro. Duas
 ///     cópias na mesma pasta escrevem o mesmo mundo ao mesmo tempo e corrompem-no
 ///     — e o jogador que clica duas vezes não faz ideia de que foi isso.
+///     O jogo aberto também fica gravado no disco (<see cref="IRunningGameStore" />)
+///     enquanto corre: é o que deixa um launcher reaberto reencontrá-lo.
 /// </summary>
-public sealed class GameSession
+/// <param name="records">Nulo nos testes que não se importam com o disco.</param>
+public sealed class GameSession(IRunningGameStore? records = null)
 {
     /// <summary>
     ///     Quantas linhas guardar. Um modpack grande escreve dezenas de milhares
@@ -28,10 +31,36 @@ public sealed class GameSession
 
     private IGameProcess? _processo;
 
+    /// <summary>
+    ///     As gravações do registo em fila, uma de cada vez: um jogo que fecha
+    ///     logo depois de abrir não pode ter o "apagar" a correr antes do
+    ///     "gravar", senão o disco ficaria a dizer que há jogo aberto.
+    /// </summary>
+    private Task _recording = Task.CompletedTask;
+
     /// <summary>A instância a correr, ou nulo quando não há jogo aberto.</summary>
     public InstalledInstance? Running { get; private set; }
 
     public bool IsRunning => Running is not null;
+
+    /// <summary>
+    ///     O jogo foi reencontrado ao reabrir o launcher, e não aberto por ele.
+    ///     A janela não minimiza nesse caso: quem acabou de abrir o launcher quer
+    ///     vê-lo.
+    /// </summary>
+    public bool IsReattached { get; private set; }
+
+    /// <summary>
+    ///     A ligação ao servidor passa pelo túnel deste launcher. Fechá-lo
+    ///     derrubaria o jogo do servidor — é o que decide se sair avisa.
+    /// </summary>
+    public bool UsesTunnel
+    {
+        get
+        {
+            lock (_porta) return _processo is TunneledGameProcess;
+        }
+    }
 
     /// <summary>
     ///     A instância do último jogo aberto, e continua depois de ele fechar:
@@ -57,7 +86,16 @@ public sealed class GameSession
     ///     Devolve falso se já havia jogo aberto — quem chama tem de fechar o
     ///     processo novo, porque nesse caso ele não é de ninguém.
     /// </summary>
-    public bool Attach(InstalledInstance instance, IGameProcess process)
+    public bool Attach(InstalledInstance instance, IGameProcess process) => Take(instance, process, false);
+
+    /// <summary>
+    ///     Toma conta de um jogo que outro launcher abriu (ver
+    ///     <see cref="ResumeRunningGame" />). O registo no disco já é o dele, e
+    ///     fica.
+    /// </summary>
+    public bool Reattach(InstalledInstance instance, IGameProcess process) => Take(instance, process, true);
+
+    private bool Take(InstalledInstance instance, IGameProcess process, bool reattached)
     {
         lock (_porta)
         {
@@ -68,10 +106,17 @@ public sealed class GameSession
             Running = instance;
             LastInstance = instance;
             LastExitCode = null;
+            IsReattached = reattached;
         }
 
         _log.Clear();
         Changed?.Invoke();
+
+        // Gravado ANTES de a bomba arrancar: um jogo que fecha logo a seguir
+        // enfileira o "apagar" depois deste "gravar", e o disco não fica a dizer
+        // que há jogo aberto.
+        if (!reattached && process.Identity is { } identity)
+            Record(store => store.WriteAsync(new RunningGameRecord(instance.Key, identity), CancellationToken.None));
 
         // Sem await de propósito: a bomba vive enquanto o jogo viver, e quem
         // abriu o jogo não pode ficar preso até ele fechar.
@@ -116,7 +161,36 @@ public sealed class GameSession
             }
 
             process.Dispose();
+            Record(store => store.ClearAsync(CancellationToken.None));
             Changed?.Invoke();
+        }
+    }
+
+    /// <summary>
+    ///     Grava no disco sem prender quem chama, e sem deixar uma falha subir:
+    ///     o registo é conveniência (reencontrar o jogo), e um disco cheio não
+    ///     pode impedir de jogar.
+    /// </summary>
+    private void Record(Func<IRunningGameStore, Task> write)
+    {
+        if (records is null)
+            return;
+
+        lock (_porta)
+            _recording = Chain(_recording, write, records);
+    }
+
+    private static async Task Chain(Task previous, Func<IRunningGameStore, Task> write, IRunningGameStore store)
+    {
+        await previous;
+
+        try
+        {
+            await write(store);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Ver Record: sem registo, só não se reencontra o jogo.
         }
     }
 

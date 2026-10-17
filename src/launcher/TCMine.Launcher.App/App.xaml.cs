@@ -122,6 +122,9 @@ public partial class App : Application
         // O console é outra janela, criada só quando pedida (ver WpfConsoleWindow).
         builder.Services.AddSingleton<IConsoleWindow, WpfConsoleWindow>();
 
+        // Fechar com o jogo aberto vai para a bandeja (ver WpfBackgroundTray).
+        builder.Services.AddSingleton<WpfBackgroundTray>();
+
         // O pai do diálogo do broker. Mesma resolução tardia da moldura, e pelo
         // mesmo motivo: a janela é resolvida pelo contêiner e só existe depois.
         builder.Services.AddSingleton<IParentWindowHandle>(sp =>
@@ -145,6 +148,11 @@ public partial class App : Application
         await _host.StartAsync();
 
         MainWindow = _host.Services.GetRequiredService<MainWindow>();
+
+        // Antes de mostrar: tem de estar a ouvir o fecho da janela desde o
+        // primeiro instante.
+        _host.Services.GetRequiredService<WpfBackgroundTray>();
+
         MainWindow.Show();
 
         // TEMPORÁRIO (linha de base, sai no fim da fase 8).

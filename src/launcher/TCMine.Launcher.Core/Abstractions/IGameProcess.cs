@@ -25,4 +25,17 @@ public interface IGameProcess : IDisposable
 
     /// <summary>Mata o processo. Para quando o jogo pendura e não há mais saída.</summary>
     void Kill();
+
+    /// <summary>
+    ///     Quem é este processo no sistema, para o launcher o reencontrar se for
+    ///     reaberto com o jogo ainda a correr. Nulo quando não dá para saber.
+    /// </summary>
+    GameProcessIdentity? Identity { get; }
 }
+
+/// <summary>
+///     O PID sozinho não identifica um processo: o Windows reaproveita números, e
+///     um PID gravado ontem pode ser hoje o do navegador. Com a hora de início, só
+///     o mesmo processo casa.
+/// </summary>
+public sealed record GameProcessIdentity(int ProcessId, DateTimeOffset StartedAt);

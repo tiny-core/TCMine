@@ -116,6 +116,39 @@ public class GameSessionTests
     }
 
     [Fact]
+    public async Task O_jogo_aberto_fica_gravado_ate_fechar()
+    {
+        // É o que deixa um launcher reaberto reencontrá-lo.
+        var store = new FakeRunningGameStore();
+        var session = new GameSession(store);
+        var instance = Instalada();
+        var identity = new GameProcessIdentity(4242, DateTimeOffset.UtcNow);
+        var process = new FakeGameProcess { Identity = identity };
+
+        session.Attach(instance, process);
+        await EsperarAsync(() => store.Record is not null);
+
+        store.Record.ShouldBe(new RunningGameRecord(instance.Key, identity));
+
+        process.Terminar();
+        await EsperarAsync(() => store.Clears is 1);
+
+        store.Record.ShouldBeNull();
+    }
+
+    [Fact]
+    public void Reencontrado_nao_e_aberto_pelo_launcher()
+    {
+        // A janela não minimiza: quem acabou de abrir o launcher quer vê-lo.
+        var session = new GameSession();
+
+        session.Reattach(Instalada(), new FakeGameProcess()).ShouldBeTrue();
+
+        session.IsRunning.ShouldBeTrue();
+        session.IsReattached.ShouldBeTrue();
+    }
+
+    [Fact]
     public void Matar_sem_jogo_aberto_nao_estoura()
     {
         // A tela pode pedir isto numa corrida com o fecho do próprio jogo.

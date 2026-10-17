@@ -33,10 +33,25 @@ public sealed class LaunchGame(
     ///     Igual, mas o jogo abre já a entrar em <paramref name="server" /> em vez
     ///     do menu principal.
     /// </summary>
+    public Task<GameLaunchResult> HandleAsync(
+        InstalledInstance instance,
+        LauncherConfig config,
+        ServerAddress? server,
+        IProgress<GameLaunchProgress>? progress,
+        CancellationToken ct) =>
+        HandleAsync(instance, config, server, null, progress, ct);
+
+    /// <summary>
+    ///     Igual, e com o processo embrulhado ANTES de a sessão tomar conta dele
+    ///     (o túnel, que tem de viver e morrer com o jogo). Embrulhar depois não
+    ///     serve: a sessão já estaria a ler o processo de dentro, o embrulho
+    ///     nunca seria lido, e o túnel nunca fecharia.
+    /// </summary>
     public async Task<GameLaunchResult> HandleAsync(
         InstalledInstance instance,
         LauncherConfig config,
         ServerAddress? server,
+        Func<IGameProcess, IGameProcess>? decorate,
         IProgress<GameLaunchProgress>? progress,
         CancellationToken ct)
     {
@@ -113,18 +128,20 @@ public sealed class LaunchGame(
         if (!result.Started || result.Process is null)
             return result;
 
+        var process = decorate is null ? result.Process : decorate(result.Process);
+
         // Perdeu a corrida com outro arranque: o processo que acabou de abrir não
         // é de ninguém, e deixá-lo correr daria as duas cópias que o guard acima
         // existe para impedir.
-        if (!game.Attach(instance, result.Process))
+        if (!game.Attach(instance, process))
         {
-            result.Process.Kill();
-            result.Process.Dispose();
+            process.Kill();
+            process.Dispose();
 
             return GameLaunchResult.Failed("O jogo já está aberto.");
         }
 
-        return result;
+        return result with { Process = process };
     }
 
     /// <summary>

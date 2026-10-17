@@ -107,6 +107,8 @@ public static class DependencyInjection
         services.AddSingleton<IWorldBackup, ZipWorldBackup>();
         services.AddSingleton<ILauncherUpdater, VelopackLauncherUpdater>();
         services.AddSingleton<IActiveInstanceStore, FileActiveInstanceStore>();
+        services.AddSingleton<IRunningGameStore, FileRunningGameStore>();
+        services.AddSingleton<IGameProcessFinder, SystemGameProcessFinder>();
         services.AddSingleton<IPlayerProfileCache, FilePlayerProfileCache>();
         services.AddSingleton<IEndpointProbe, TcpEndpointProbe>();
         services.AddSingleton<IGameTunnel, CloudflareGameTunnel>();

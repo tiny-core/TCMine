@@ -24,5 +24,11 @@ public interface IWindowChrome
 
     void Minimize();
 
+    /// <summary>
+    ///     Traz a janela de volta para a frente — de minimizada, ou de escondida
+    ///     na bandeja. É o que o jogo a fechar faz, para um crash aparecer na hora.
+    /// </summary>
+    void Restore();
+
     void Close();
 }

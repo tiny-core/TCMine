@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddSingleton<LauncherShellState>();
         services.AddSingleton<InstallOperationState>();
         services.AddSingleton<ActionLock>();
+        services.AddSingleton<GameWindowCoordinator>();
         services.AddScoped<PostPairingRoute>();
         services.AddScoped<LinkSupervisor>();
 

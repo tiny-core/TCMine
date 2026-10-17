@@ -27,8 +27,34 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
 
     [Inject] private UpdateLauncher Updater { get; set; } = default!;
 
+    [Inject] private ResumeRunningGame ResumeGame { get; set; } = default!;
+
+    /// <summary>
+    ///     Pedido só para nascer: o coordenador ouve o jogo sozinho (ver
+    ///     <see cref="GameWindowCoordinator" />), e o layout é o primeiro a
+    ///     existir na janela.
+    /// </summary>
+    [Inject]
+    private GameWindowCoordinator WindowCoordinator { get; set; } = default!;
+
     // TEMPORÁRIO (linha de base, sai no fim da fase 8).
     [Inject] private ILogger<ShellLayout> Logger { get; set; } = default!;
+
+    /// <summary>
+    ///     Falhar aqui nunca impede o arranque: no pior caso, o launcher só não
+    ///     sabe do jogo que ficou aberto.
+    /// </summary>
+    private async Task TryResumeGameAsync()
+    {
+        try
+        {
+            await ResumeGame.HandleAsync(CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            LogResumeFailed(Logger, ex);
+        }
+    }
 
     public void Dispose()
     {
@@ -55,6 +81,11 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
         // sessão, e a sessão pode ser retomada já nos passos abaixo.
         Link.NavigationRequested += OnNavigationRequested;
         Link.Attach();
+
+        // Antes de tudo o resto, e sem rede: um jogo deixado aberto por um
+        // launcher anterior tem de ser reencontrado ANTES de qualquer tela
+        // oferecer "Jogar" — senão um clique abriria uma segunda cópia.
+        await TryResumeGameAsync();
 
         Shell.BeginCheck();
 
@@ -161,4 +192,8 @@ public partial class ShellLayout : LayoutComponentBase, IDisposable
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Arranque: primeira tela utilizável em {ElapsedMs} ms ({Outcome}).")]
     private static partial void LogStartupFinished(ILogger logger, long elapsedMs, string outcome);
+
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "Não foi possível reencontrar o jogo deixado aberto; o arranque segue.")]
+    private static partial void LogResumeFailed(ILogger logger, Exception ex);
 }
