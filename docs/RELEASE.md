@@ -130,7 +130,7 @@ versão — o instalador velho apontaria para o endereço velho.
 
 ### A versão: `src/launcher/VERSION`
 
-Um arquivo, uma linha (`0.8.0`). É lido pelo MSBuild (`src/launcher/Directory.Build.props` → `Version` dos assemblies),
+Um arquivo, uma linha (`0.9.0`). É lido pelo MSBuild (`src/launcher/Directory.Build.props` → `Version` dos assemblies),
 pelo
 `Dockerfile`, pelo `release-launcher.ps1` e pela guarda da release. Ninguém
 passa a versão por parâmetro.

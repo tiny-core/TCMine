@@ -16,6 +16,115 @@ número de estável e renumeradas na 0.11.0 para seguir a linha 0.x: 1.X.Y virou
 As entradas abaixo já usam os números novos. As releases no GitHub começam na
 0.11.0.
 
+## [0.12.0] — 2026-10-17
+
+Launcher **0.9.0**.
+
+**Antes de atualizar:** faça backup do banco — esta versão traz oito migrations.
+Os containers de jogo NÃO são recriados. O launcher 0.8.0 continua funcionando
+com este servidor (o protocolo continua o **2**), e quem já o tem recebe o
+0.9.0 sozinho na abertura seguinte.
+
+### Adicionado
+
+- **Uma escolha só para "como os jogadores chegam aqui".** Configurações → Rede
+  passa a pedir um modo: *Automático* (o IP público detectado), *Meu domínio*
+  (um domínio, DDNS ou IP fixo) ou *Cloudflare* (subdomínio por servidor, com
+  o DNS mantido pelo painel). Os campos dos outros modos ficam guardados, mas
+  não valem. Uma instalação antiga continua no modo que os campos já
+  preenchidos indicam.
+- **Assistente de primeira configuração.** Depois do primeiro login, o painel
+  leva o admin pela rede, pela rede de casa e pela faixa de portas. *Pular*
+  grava o modo que já vale.
+- **No formulário do servidor, uma escolha só** para o endereço dele:
+  subdomínio (no modo Cloudflare) ou endereço próprio, com a prévia do que os
+  jogadores vão receber.
+- **Entrada pela rede de casa.** Com o *IP na rede local* preenchido em
+  Configurações → Rede, o launcher tenta primeiro esse endereço (1,5 s) e só
+  depois o público. Quem joga na mesma casa do servidor entra mesmo com um
+  roteador que não deixa voltar pelo endereço público.
+- **Túnel da Cloudflare como reserva.** Para quem não consegue entrar direto
+  (CGNAT, rede que bloqueia a porta), cada servidor pode ganhar um nome no
+  túnel. O painel mantém o registro e a entrada no túnel; o launcher só o usa
+  quando o endereço direto não responde, e o fecha quando o jogo sai. Exige um
+  túnel já criado na Cloudflare e, no token, também a permissão *Conta →
+  Cloudflare Tunnel → Editar*.
+- **Controle do que o painel consulta na internet:** a sincronização do DNS da
+  Cloudflare pode ser desligada ou espaçada, e o aviso de versão nova e a
+  detecção do IP público podem ser desligados.
+- **Atualizar um pack importado escolhendo item a item.** O diálogo do autor
+  lista mods e configs adicionados, atualizados, removidos e em conflito, cada
+  um com a sua caixa. Vem marcado o que não conflita; um conflito mostra os
+  dois lados. O que for recusado volta a ser oferecido na atualização seguinte.
+- **Launcher: aba Servidores.** Todo servidor que a conta vê, com o botão que
+  cabe: pedir acesso, aguardando, instalar, jogar ou atualizar e jogar.
+  Instalar funciona com o servidor desligado.
+- **Launcher: cada servidor tem a sua instalação.** Ela segue a versão do
+  servidor, para cima ou para baixo, sem backup (o mundo mora no servidor). A
+  instalação pessoal de um pack nunca entra em servidor e só anda para a
+  frente. O mesmo pack nas duas não baixa nada duas vezes.
+- **Launcher: tela inicial com a instalação ativa** — a ficha do pack, o
+  cartão do servidor dela e as novidades. Numa instalação de servidor, o botão
+  principal é *Entrar no servidor*.
+- **Launcher: console em janela própria**, aberto pelo botão *Console* do
+  rodapé.
+- **Launcher: jogo em segundo plano.** O launcher minimiza quando o jogo abre e
+  volta quando ele fecha. Fechar a janela com o jogo aberto o manda para a
+  bandeja do Windows. Reabrir o launcher com o jogo ainda aberto o reencontra e
+  volta a mostrar o console.
+- **Teclas pela conta.** As teclas de cada modpack ficam guardadas na conta e
+  valem em todas as instalações dele, em qualquer computador: o launcher traz
+  antes de abrir o jogo e envia quando ele fecha. Um jogo fechado sem internet
+  envia na abertura seguinte; se as teclas mudaram nos dois lados, vale a
+  mudança mais recente. Em Definições, *Levar também gráficos, som e o resto
+  das opções* sincroniza o `options.txt` inteiro (vale só para aquele
+  computador). A sincronização nunca impede de jogar.
+
+### Alterado
+
+- **Contagem de jogadores sem RCON.** O painel abria uma conexão RCON a cada
+  15 segundos por servidor, e o console enchia de "RCON Client started". Agora
+  pergunta pelo protocolo normal do jogo.
+- **Launcher:** a borda da janela no Windows 11 acompanha o tema; sai a dica de
+  versão do rodapé.
+- **Pacotes do .NET em 10.0.13**, por avisos de segurança no SignalR e no
+  MessagePack.
+
+### Corrigido
+
+- **Mods enviados à mão não apareciam no inventário**, e enviar a versão nova
+  de um deles deixava os dois jars na pasta (o jogo não abre). Agora o mod é
+  identificado pelo id lido de dentro do jar. Os já enviados são corrigidos no
+  arranque.
+- **Criar uma versão de um pack importado perdia a ligação ao autor:** sumia o
+  rótulo, a verificação de atualização e a atualização recusava. A versão nova
+  herda a ligação da versão de origem, que agora pode ser escolhida
+  (*Copiar da versão*). As versões já criadas são religadas no arranque quando
+  guardam pelo menos metade dos mods do autor.
+- **A whitelist era aplicada cedo demais**, com o jogo ainda carregando e o
+  RCON fora do ar. Agora é aplicada quando o servidor passa a aceitar
+  jogadores.
+- **O contador do inventário de mods** aparecia vazio ao abrir a página.
+- **Apagar um servidor ou um modpack deixava vínculos, convites e novidades
+  para trás**, e *Ver vínculos* mostrava "(servidor removido)". Agora vão
+  juntos; os que já tinham ficado são apagados na migração.
+- **Launcher: o túnel não fechava** quando o jogo saía.
+
+### Migração
+
+- `AddLanHost`, `AddNetworkMode`, `AddDnsSyncSchedule`, `AddOutboundSwitches`
+  e `AddCloudflareTunnel` acrescentam as configurações de rede, todas com o
+  comportamento de antes por omissão.
+- `AddPlayerModpackSettings` cria a tabela das teclas.
+- `DeleteOrphanLinks` apaga vínculos, convites e novidades que apontam para
+  servidores e modpacks que já não existem, e `AddMissingLinkForeignKeys` cria
+  as chaves que impedem que voltem a ficar. Não há como desfazer a limpeza, e
+  não há o que desfazer: as linhas apagadas não levavam a lugar nenhum.
+- No arranque, duas correções rodam uma vez sozinhas: a identidade dos mods
+  enviados à mão e a ligação ao autor das versões de packs importados.
+- O launcher passa a guardar `preferences.json` na pasta dele e um
+  `.tcmine-options-sync.json` em cada instalação.
+
 ## [0.11.0] — 2026-10-12
 
 Launcher **0.8.0**.
