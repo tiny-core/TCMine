@@ -1686,6 +1686,33 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.Invite", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("GameServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.Membership", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("GameServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Identity.ModpackMembership", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
+                        .WithMany()
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Identity.PlayerModpackSettings", b =>
                 {
                     b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
@@ -1714,6 +1741,15 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                 {
                     b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
                         .WithMany("Versions")
+                        .HasForeignKey("ModpackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Modpacks.News", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Modpacks.Modpack", null)
+                        .WithMany()
                         .HasForeignKey("ModpackId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

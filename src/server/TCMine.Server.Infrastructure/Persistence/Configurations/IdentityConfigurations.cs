@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TCMine.Server.Domain.Identity;
+using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Domain.Servers;
 
 namespace TCMine.Server.Infrastructure.Persistence.Configurations;
 
@@ -52,6 +54,14 @@ public sealed class MembershipConfiguration : IEntityTypeConfiguration<Membershi
         // A pergunta mais frequente do sistema: qual o papel deste usuário
         // neste servidor? Roda em toda checagem de permissão.
         builder.HasIndex(m => m.GameServerId);
+
+        // O vínculo morre com o servidor. Sem a chave estrangeira, apagar um
+        // servidor deixava a linha para trás, e "Ver vínculos" mostrava
+        // "(servidor removido)" para sempre.
+        builder.HasOne<GameServer>()
+            .WithMany()
+            .HasForeignKey(m => m.GameServerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -75,6 +85,13 @@ public sealed class ModpackMembershipConfiguration : IEntityTypeConfiguration<Mo
         // A pergunta mais frequente do sistema: qual o papel deste usuário
         // neste modpack? Roda em toda checagem de permissão.
         builder.HasIndex(m => m.ModpackId);
+
+        // Mesmo motivo do vínculo de servidor: apagar o modpack leva os
+        // donos e editores dele junto.
+        builder.HasOne<Modpack>()
+            .WithMany()
+            .HasForeignKey(m => m.ModpackId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
 
@@ -103,5 +120,12 @@ public sealed class InviteConfiguration : IEntityTypeConfiguration<Invite>
         // Estar usável é derivado das três datas (ver Invite.IsUsable) e não
         // vira coluna: é método, então o EF não tenta mapeá-lo.
         builder.HasIndex(i => i.GameServerId);
+
+        // Convite de servidor apagado não leva a lugar nenhum: resgatá-lo
+        // criaria um vínculo para um servidor que não existe.
+        builder.HasOne<GameServer>()
+            .WithMany()
+            .HasForeignKey(i => i.GameServerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

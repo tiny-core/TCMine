@@ -16,5 +16,12 @@ internal sealed class NewsConfiguration : IEntityTypeConfiguration<News>
         builder.Property(n => n.Body).HasMaxLength(20_000);
 
         builder.HasIndex(n => n.ModpackId);
+
+        // A novidade é do modpack: apagar o pack apaga as dele, em vez de as
+        // deixar órfãs na tabela.
+        builder.HasOne<Modpack>()
+            .WithMany()
+            .HasForeignKey(n => n.ModpackId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

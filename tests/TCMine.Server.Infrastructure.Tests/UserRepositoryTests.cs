@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
+using TCMine.Server.Domain.Servers;
 using TCMine.Server.Infrastructure.Persistence;
 
 namespace TCMine.Server.Infrastructure.Tests;
@@ -38,11 +39,15 @@ public sealed class UserRepositoryTests : IDisposable
         await repo.AddAsync(painel, Ct);
         await repo.AddAsync(launcher, Ct);
 
-        var servidorComum = Guid.CreateVersion7();
-        var soDoLauncher = Guid.CreateVersion7();
+        // Servidores de verdade: o vínculo tem chave estrangeira para eles.
+        var comum = Servidor("comum", 25565);
+        var doLauncher = Servidor("so-do-launcher", 25566);
+        var servidorComum = comum.Id;
+        var soDoLauncher = doLauncher.Id;
 
         await using (var db = await _factory.CreateDbContextAsync(Ct))
         {
+            db.GameServers.AddRange(comum, doLauncher);
             db.Memberships.AddRange(
                 new Membership { UserId = painel.Id, GameServerId = servidorComum, Role = ServerRole.Member },
                 new Membership { UserId = launcher.Id, GameServerId = servidorComum, Role = ServerRole.Admin },
@@ -98,6 +103,16 @@ public sealed class UserRepositoryTests : IDisposable
         dela.Single(p => p.ModpackId == comum.Id).KeyBindings.ShouldBe("key_key.jump:key.keyboard.j");
         dela.Single(p => p.ModpackId == soDoLauncher.Id).KeyBindings.ShouldBe("key_key.sneak:key.keyboard.c");
     }
+
+    private static GameServer Servidor(string name, int port) => new()
+    {
+        Name = name,
+        ModpackId = Guid.CreateVersion7(),
+        ModpackVersionId = Guid.CreateVersion7(),
+        ConnectAddress = $"jogo:{port}",
+        GamePort = port,
+        RconSecret = "segredo"
+    };
 
     private static Modpack Pack(string slug) => new()
     {

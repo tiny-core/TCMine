@@ -801,6 +801,12 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   (`DbSet` + `IEntityTypeConfiguration`) exige as duas migrations (§10) ANTES de rodar `tc test` — sem elas, dezenas
   de testes de `Server.Web.Tests` falham com "no such table: modpacks" e a causa real fica escondida atrás do
   catch do arranque.
+- **Coluna que aponta para outra linha leva chave estrangeira.** `memberships`, `invites`,
+  `modpack_memberships` e `news` guardavam o id do servidor/modpack sem FK: apagar um deles deixava as
+  linhas para trás, e "Ver vínculos" mostrava "(servidor removido)" para sempre. Hoje são `Cascade`, e a
+  migration à mão `DeleteOrphanLinks` limpou o que já estava órfão ANTES da que cria as chaves (com órfãos, o
+  Postgres recusa a chave). Ficam de fora, de propósito, as tabelas da nuvem (`ServerId` em lotes,
+  incidentes e operações em dúvida): são histórico do ledger, e apagar o servidor não apaga o que aconteceu.
 
 ---
 

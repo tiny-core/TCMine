@@ -38,7 +38,9 @@ public sealed class InviteFlowTests
         };
 
         var client = factory.CreateClient();
-        var servidorId = Guid.CreateVersion7();
+
+        // Um servidor de verdade: o convite tem chave estrangeira para ele.
+        var servidorId = await SemearServidorAsync(factory);
 
         // O jogador entra: conta criada, sessão válida, acesso a nada.
         var login = await client.PostAsJsonAsync(
