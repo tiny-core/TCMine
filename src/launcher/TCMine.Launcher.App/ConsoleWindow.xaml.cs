@@ -21,6 +21,9 @@ public partial class ConsoleWindow : Window
         Resources.Add("services", services);
 
         InitializeComponent();
+
+        // A mesma borda da principal: as duas são do mesmo produto.
+        Chrome.WindowBorder.MatchTheme(this);
     }
 
     /// <summary>Fecha de verdade — a aplicação está a sair.</summary>

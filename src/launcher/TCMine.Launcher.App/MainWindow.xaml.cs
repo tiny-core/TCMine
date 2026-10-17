@@ -18,6 +18,8 @@ public partial class MainWindow : Window
         Resources.Add("services", services);
 
         InitializeComponent();
+
+        Chrome.WindowBorder.MatchTheme(this);
     }
 
     /// <summary>
