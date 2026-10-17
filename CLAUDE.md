@@ -99,7 +99,9 @@ Domain  ←  Application (Contracts + Abstractions/portas + Casos de uso)  ←  
 ## 3. Stack técnica
 
 - **.NET 10**, C# com recursos modernos (primary constructors, collection expressions, `required`, pattern matching).
-- **Blazor Server** (`@rendermode InteractiveServer`) + **MudBlazor 9.7**.
+- **Blazor Server** (`@rendermode InteractiveServer`) + **MudBlazor 9.8** (a versão vale o que está em
+  `Directory.Packages.props`; confira lá antes de usar uma API dela — `MudTabs.ActivatePanel` já virou
+  `ActivatePanelAsync`, e o nome antigo só aparece no erro de compilação).
 - **EF Core 10**, dual provider **SQLite (dev) / PostgreSQL (prod)**.
 - **BlazorMonaco** (editor de overrides).
 - **SignalR** (comunicação em tempo real com o launcher/painel).
@@ -688,7 +690,7 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   Navegue para
   a página do editor com
   `forceLoad: true` (ou `data-enhance-nav="false"` em links).
-- **MudBlazor 9.7**: para customizar linha de árvore, o par é `ItemTemplate` (no
+- **MudBlazor 9.x**: para customizar linha de árvore, o par é `ItemTemplate` (no
   `MudTreeView`) → `BodyContent` (no `MudTreeViewItem`); o `Context` do
   `ItemTemplate` é `ITreeItemData<T>` (interface). O `MudTreeView` não reconstrói ao reatribuir `Items` — force com
   `@key` que muda a cada rebuild.

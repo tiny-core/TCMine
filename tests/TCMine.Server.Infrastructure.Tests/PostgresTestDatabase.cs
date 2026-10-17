@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using TCMine.Server.Infrastructure.Persistence;
 
@@ -55,12 +57,14 @@ public sealed class PostgresTestDatabase : IAsyncDisposable, IDbContextFactory<T
     }
 
     /// <summary>
-    ///     Cria um banco só para este teste e aplica as migrations.
+    ///     Cria um banco só para este teste e aplica as migrations — todas, ou
+    ///     até <paramref name="upToMigration" /> (inclusive), para o teste que
+    ///     semeia o estado de antes de uma migration de dados e confere o depois.
     ///     Um banco por teste, e não um compartilhado: migrations rodando em
     ///     paralelo sobre o mesmo banco produzem falhas que não têm nada a ver
     ///     com o que se está testando.
     /// </summary>
-    public static async Task<PostgresTestDatabase> CreateAsync(CancellationToken ct)
+    public static async Task<PostgresTestDatabase> CreateAsync(CancellationToken ct, string? upToMigration = null)
     {
         var server = ServerConnectionString
                      ?? throw new InvalidOperationException(
@@ -79,10 +83,15 @@ public sealed class PostgresTestDatabase : IAsyncDisposable, IDbContextFactory<T
 #pragma warning restore EF1002
         }
 
-        await using var db = instance.CreateContext();
-        await db.Database.MigrateAsync(ct);
-
+        await instance.MigrateAsync(upToMigration, ct);
         return instance;
+    }
+
+    /// <summary>Aplica as migrations até <paramref name="target" /> (nulo = todas).</summary>
+    public async Task MigrateAsync(string? target, CancellationToken ct)
+    {
+        await using var db = CreateContext();
+        await db.GetService<IMigrator>().MigrateAsync(target, ct);
     }
 
     public TcMineDbContext CreateContext() => new(Opcoes(ConnectionStringDoBanco()));

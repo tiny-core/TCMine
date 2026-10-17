@@ -102,6 +102,27 @@ public sealed class CloudAuditQueryTests
         primeira.Items.Concat(segunda.Items).ShouldNotContain(a => a.Action == "alheia");
     }
 
+    [Fact]
+    public async Task Migration_de_preenchimento_da_a_nuvem_do_canal_as_linhas_antigas()
+    {
+        // As linhas gravadas antes da coluna nascem com o GUID vazio, e sem a
+        // BackfillLedgerVaultId elas somem da auditoria da nuvem inteira. O banco
+        // para na AddLedgerVaultId, ganha linhas "antigas", e só então sobe o
+        // resto — o mesmo caminho da produção.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct, "20261017141452_AddLedgerVaultId");
+        var cenario = await SemearNuvens(postgres);
+        var antigas = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalAna.Channel), 2);
+        var daOutra = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalDeOutraNuvem.Channel), 1);
+
+        await postgres.MigrateAsync(null, Ct);
+
+        await using var db = postgres.CreateContext();
+        var linhas = await db.CloudLedger.AsNoTracking().ToDictionaryAsync(l => l.Id, l => l.VaultId, Ct);
+        antigas.ShouldAllBe(id => linhas[id] == cenario.Nuvem);
+        daOutra.ShouldAllBe(id => linhas[id] == cenario.OutraNuvem, "a nuvem vem do canal de cada linha");
+    }
+
     private static async Task PaginasCobremTudo(IDbContextFactory<TcMineDbContext> factory)
     {
         var cenario = await SemearNuvens(factory);
