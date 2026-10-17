@@ -419,6 +419,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
@@ -426,6 +429,8 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.HasIndex("ItemTypeId");
 
                     b.HasIndex("ChannelId", "Id");
+
+                    b.HasIndex("VaultId", "Id");
 
                     b.ToTable("cloud_ledger", (string)null);
                 });

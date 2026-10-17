@@ -20,12 +20,12 @@ else
         </MudButton>
     </PageHeader>
 
-    <MudTabs Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
+    <MudTabs @ref="_tabs" Elevation="0" Rounded="true" ApplyEffectsToContainer="true" Class="tc-fade-in">
         <MudTabPanel Text="Servidores" Icon="@Icons.Material.Filled.Dns">
             <CloudServersPanel VaultId="VaultId" ServersChanged="ReloadServersAsync"/>
         </MudTabPanel>
         <MudTabPanel Text="Jogadores" Icon="@Icons.Material.Filled.People">
-            <CloudPlayersPanel VaultId="VaultId" ServerNames="_serverNames"/>
+            <CloudPlayersPanel VaultId="VaultId" ServerNames="_serverNames" ShowHistory="ShowHistory"/>
         </MudTabPanel>
         <MudTabPanel Text="Regras" Icon="@Icons.Material.Filled.Rule" BadgeData="@Badge(_counts.Suspects)"
                      BadgeColor="Color.Warning">
@@ -43,8 +43,8 @@ else
                      BadgeColor="Color.Error">
             <CloudIncidentsPanel VaultId="VaultId" ServerNames="_serverNames" Changed="LoadCountsAsync"/>
         </MudTabPanel>
-        <MudTabPanel Text="Auditoria" Icon="@Icons.Material.Filled.ReceiptLong">
-            <CloudAuditPanel VaultId="VaultId"/>
+        <MudTabPanel @ref="_auditTab" Text="Auditoria" Icon="@Icons.Material.Filled.ReceiptLong">
+            <CloudAuditPanel VaultId="VaultId" InitialPlayer="@_historyPlayer"/>
         </MudTabPanel>
         <MudTabPanel Text="Configurações" Icon="@Icons.Material.Filled.Tune">
             <CloudVaultSettingsPanel Vault="_vault" Saved="LoadAsync"/>

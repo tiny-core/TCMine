@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Infrastructure.Persistence;
@@ -68,57 +69,87 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
         ];
     }
 
-    public async Task<IReadOnlyList<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, int limit,
+    public async Task<PagedResult<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, PageRequest page,
         CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var channels = await db.CloudChannels.AsNoTracking().Where(c => c.VaultId == vaultId).ToListAsync(ct);
-        var uuids = channels.Select(c => c.PlayerUuid).Distinct().ToArray();
 
-        // Nome pela conta do TCMine quando o jogador tem uma (o UUID do
-        // Minecraft fica em User.MinecraftUuid, sem hífens).
-        var names = (await db.Users.AsNoTracking()
-                .Where(u => u.MinecraftUuid != null && uuids.Contains(u.MinecraftUuid))
-                .Select(u => new { u.MinecraftUuid, u.DisplayName })
-                .ToListAsync(ct))
-            .GroupBy(u => u.MinecraftUuid!)
-            .ToDictionary(g => g.Key, g => g.First().DisplayName);
+        // Um jogador = um UUID com pelo menos um canal nesta nuvem. O nome vem
+        // da conta do TCMine numa subconsulta (MinecraftUuid é único, então
+        // cada UUID dá no máximo um nome). Filtro, ordem e página no banco:
+        // antes, todos os canais da nuvem vinham para a memória a cada busca.
+        var players = db.CloudChannels.AsNoTracking()
+            .Where(c => c.VaultId == vaultId)
+            .Select(c => c.PlayerUuid)
+            .Distinct()
+            .Select(uuid => new
+            {
+                Uuid = uuid,
+                Name = db.Users.Where(u => u.MinecraftUuid == uuid).Select(u => u.DisplayName).FirstOrDefault()
+            });
 
-        var selected = uuids
-            .Where(uuid => search is null
-                           || uuid.Contains(search.Replace("-", ""), StringComparison.OrdinalIgnoreCase)
-                           || (names.TryGetValue(uuid, out var n) &&
-                               n.Contains(search, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(uuid => names.GetValueOrDefault(uuid) ?? "~" + uuid, StringComparer.CurrentCultureIgnoreCase)
-            .Take(limit)
-            .ToHashSet();
+        if (search is not null)
+        {
+            // UUID sem hífens e em minúsculas, como o canal guarda; nome com
+            // lower() dos dois lados, porque o LIKE do PostgreSQL diferencia
+            // maiúsculas e "ana" tem de achar "Ana".
+            // ToLower() sem cultura de propósito: vira lower() no SQL (as
+            // sobrecargas com StringComparison/cultura não têm tradução).
+            var uuidPart = search.Replace("-", "", StringComparison.Ordinal).ToLowerInvariant();
+            var namePart = search.ToLowerInvariant();
+#pragma warning disable CA1304, CA1311, CA1862
+            players = players.Where(p => p.Uuid.Contains(uuidPart)
+                                         || (p.Name != null && p.Name.ToLower().Contains(namePart)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
 
-        var channelIds = channels.Where(c => selected.Contains(c.PlayerUuid)).Select(c => c.Id).ToArray();
+        var total = await players.CountAsync(ct);
+
+        // Quem tem conta primeiro, por nome; os sem conta depois, por UUID. O
+        // UUID desempata nomes iguais — sem desempate, a mesma linha podia
+        // aparecer em duas páginas.
+#pragma warning disable CA1304, CA1311
+        var pageRows = await players
+            .OrderBy(p => p.Name == null)
+            .ThenBy(p => p.Name!.ToLower())
+            .ThenBy(p => p.Uuid)
+            .Skip(page.Skip)
+            .Take(page.PageSize)
+            .ToListAsync(ct);
+#pragma warning restore CA1304, CA1311
+        if (pageRows.Count == 0)
+            return new PagedResult<CloudPlayerView>([], total);
+
+        var uuids = pageRows.Select(p => p.Uuid).ToArray();
+        var channels = await db.CloudChannels.AsNoTracking()
+            .Where(c => c.VaultId == vaultId && uuids.Contains(c.PlayerUuid))
+            .ToListAsync(ct);
+        var channelIds = channels.Select(c => c.Id).ToArray();
         var totals = await db.CloudBalances.AsNoTracking()
             .Where(b => channelIds.Contains(b.ChannelId) && b.Amount > 0)
             .GroupBy(b => b.ChannelId)
             .Select(g => new { Channel = g.Key, Types = g.Count(), Total = g.Sum(b => b.Amount) })
             .ToDictionaryAsync(x => x.Channel, ct);
         var leases = await db.CloudLeases.AsNoTracking()
-            .Where(l => l.VaultId == vaultId && selected.Contains(l.PlayerUuid))
+            .Where(l => l.VaultId == vaultId && uuids.Contains(l.PlayerUuid))
             .ToDictionaryAsync(l => l.PlayerUuid, ct);
 
-        return
+        return new PagedResult<CloudPlayerView>(
         [
-            .. selected.Select(uuid =>
+            .. pageRows.Select(p =>
             {
-                var lease = leases.GetValueOrDefault(uuid);
-                var views = channels.Where(c => c.PlayerUuid == uuid).OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
+                var lease = leases.GetValueOrDefault(p.Uuid);
+                var views = channels.Where(c => c.PlayerUuid == p.Uuid).OrderBy(c => c.CreatedAt).ThenBy(c => c.Id)
                     .Select(c =>
                     {
                         var t = totals.GetValueOrDefault(c.Id);
                         return new CloudChannelView(c.Id, c.Name, c.IsFrozen, c.FrozenReason, t?.Types ?? 0,
                             t?.Total ?? 0);
                     }).ToArray();
-                return new CloudPlayerView(uuid, names.GetValueOrDefault(uuid), views, lease?.HolderServerId,
-                    lease?.Epoch ?? 0, lease?.ExpiresAt);
-            }).OrderBy(p => p.DisplayName ?? "~" + p.PlayerUuid, StringComparer.CurrentCultureIgnoreCase)
-        ];
+                return new CloudPlayerView(p.Uuid, p.Name, views, lease?.HolderServerId, lease?.Epoch ?? 0,
+                    lease?.ExpiresAt);
+            })
+        ], total);
     }
 
     public async Task<IReadOnlyList<CloudBalanceView>> ListChannelBalancesAsync(Guid channelId, CancellationToken ct)

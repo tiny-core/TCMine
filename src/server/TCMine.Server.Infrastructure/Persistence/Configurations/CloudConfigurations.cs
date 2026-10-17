@@ -150,6 +150,13 @@ public sealed class CloudLedgerEntryConfiguration : IEntityTypeConfiguration<Clo
         builder.HasIndex(e => new { e.ChannelId, e.Id });
         builder.HasIndex(e => e.BatchId);
 
+        // Auditoria da nuvem inteira, página por página (cursor no Id). Sem
+        // chave estrangeira de propósito: a coluna é cópia da nuvem do canal
+        // (a FK do canal já garante a ligação), e uma FK aqui seria recusada
+        // pelo PostgreSQL ao criar a coluna em tabela com linhas antigas, que
+        // nascem com o GUID vazio até a migration de preenchimento rodar.
+        builder.HasIndex(e => new { e.VaultId, e.Id });
+
         builder.HasOne<CloudChannel>().WithMany().HasForeignKey(e => e.ChannelId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<CloudItemType>().WithMany().HasForeignKey(e => e.ItemTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<CloudBatch>().WithMany().HasForeignKey(e => e.BatchId).OnDelete(DeleteBehavior.Restrict);

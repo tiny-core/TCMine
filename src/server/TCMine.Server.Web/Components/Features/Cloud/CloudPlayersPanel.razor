@@ -66,6 +66,10 @@ else
                 }
             </MudTd>
             <MudTd Style="text-align:right;">
+                <MudTooltip Text="Ver os movimentos deste jogador na Auditoria">
+                    <MudIconButton Icon="@Icons.Material.Filled.ReceiptLong" Size="Size.Small"
+                                   OnClick="@(() => ShowHistory.InvokeAsync(context.PlayerUuid))"/>
+                </MudTooltip>
                 @if (context.HolderServerId is not null)
                 {
                     <MudTooltip Text="Liberar o lease à força">
@@ -76,10 +80,15 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
-    @if (_players.Count >= ListLimit)
-    {
-        <MudText Typo="Typo.caption" Class="mud-text-secondary mt-2">
-            Mostrando os primeiros @ListLimit. Use a busca para achar um jogador.
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-2">
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            @_players.Count de @_total jogador@(_total == 1 ? "" : "es")
         </MudText>
-    }
+        @if (_players.Count < _total)
+        {
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="LoadMoreAsync" Disabled="_isBusy">
+                Carregar mais
+            </MudButton>
+        }
+    </MudStack>
 }

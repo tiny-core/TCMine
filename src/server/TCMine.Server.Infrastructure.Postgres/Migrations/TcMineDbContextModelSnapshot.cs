@@ -424,6 +424,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BatchId");
@@ -431,6 +434,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.HasIndex("ItemTypeId");
 
                     b.HasIndex("ChannelId", "Id");
+
+                    b.HasIndex("VaultId", "Id");
 
                     b.ToTable("cloud_ledger", (string)null);
                 });

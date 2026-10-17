@@ -135,6 +135,11 @@ public sealed class CloudApiContractTests
 
         (await env.SaldoAsync(Diamante)).ShouldBe(10);
         (await env.ContarLedgerAsync()).ShouldBe(1);
+
+        // A linha do lote leva a nuvem: é por ela que a auditoria lista a
+        // nuvem inteira, e uma linha sem nuvem sumiria da visão geral.
+        await using var db = await env.DbAsync();
+        (await db.CloudLedger.SingleAsync(Ct)).VaultId.ShouldBe(env.Nuvem);
     }
 
     [Fact]

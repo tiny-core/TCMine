@@ -26,14 +26,25 @@ public sealed class PlayerOptionsCoordinatorTests
         var process = new FakeGameProcess();
         game.Attach(instance, process);
 
+        // Espera o AVISO de fechado, e não o IsRunning: o GameSession zera o
+        // Running antes de avisar (ainda limpa o processo e o registo no meio),
+        // e o teste que olhava o IsRunning às vezes esperava o Pending antigo,
+        // já concluído, antes de o envio começar. Este ouvinte entra depois do
+        // coordenador, e os ouvintes de um evento correm na ordem em que
+        // entraram: quando ele dispara, o Pending já é o envio novo.
+        var fechou = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        game.Changed += () =>
+        {
+            if (!game.IsRunning)
+                fechou.TrySetResult();
+        };
+
         // O jogador mudou a tecla durante o jogo.
         store.Files[instance.Key] = new LocalOptions("key_key.jump:key.keyboard.j", DateTimeOffset.UtcNow);
 
         process.Terminar();
 
-        for (var i = 0; i < 200 && game.IsRunning; i++)
-            await Task.Delay(10, Ct);
-
+        await fechou.Task.WaitAsync(TimeSpan.FromSeconds(5), Ct);
         await coordinator.Pending;
 
         connection.Settings[instance.Manifest.ModpackId].KeyBindings.ShouldBe("key_key.jump:key.keyboard.j");

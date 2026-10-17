@@ -979,6 +979,13 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
 - **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA
   transação do ledger. Correção do admin = nova linha no ledger (Source=Admin, motivo obrigatório),
   nunca UPDATE direto em saldo.
+- **Cada linha do ledger leva o `VaultId`** (cópia da nuvem do canal; sem FK, de propósito). Quem grava
+  linha nova preenche: o lote pela nuvem do lote, a decisão do painel pela nuvem do próprio canal.
+  É o que deixa a auditoria listar a nuvem inteira pelo índice `(VaultId, Id)`.
+- **Auditoria pagina por cursor no `Id`** (`CursorPage<T>`: "as N anteriores a este Id", buscando uma
+  a mais para saber se há próxima), nunca por "pular N" com total — o histórico só cresce. Período
+  também vai pelo `Id` (`IdTime.Floor`), porque o SQLite não compara `DateTimeOffset`. Busca de texto
+  em consulta usa `ToLower()` dos dois lados: o LIKE do PostgreSQL diferencia maiúsculas.
 - **Lote idempotente:** índice único (VaultId, PlayerUuid, Epoch, Seq). Reenvio do mesmo lote
   devolve "já aplicado", não aplica duas vezes. Lote de época velha → quarentena, nunca aplicado
   automaticamente. Saldo nunca fica negativo: o lote inteiro vai para a quarentena.

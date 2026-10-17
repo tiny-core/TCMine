@@ -7,18 +7,19 @@ namespace TCMine.Server.Application.Cloud;
 /// <summary>Jogadores de uma nuvem (aba "Jogadores"), com busca por nome ou UUID.</summary>
 public sealed class ListCloudPlayers(ICloudAdminRepository repo, ICurrentUserScope scope)
 {
-    /// <summary>Teto da lista: a tela busca, não pagina milhares de linhas.</summary>
-    public const int Limit = 200;
+    /// <summary>Jogadores por página; a tela pede a seguinte com "Carregar mais".</summary>
+    public const int PageSize = 50;
 
-    public async Task<Result<IReadOnlyList<CloudPlayerView>>> HandleAsync(Guid vaultId, string? search,
+    public async Task<Result<PagedResult<CloudPlayerView>>> HandleAsync(Guid vaultId, string? search, int page,
         CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         if (!access.Succeeded)
-            return Result<IReadOnlyList<CloudPlayerView>>.Fail(access.Error!);
+            return Result<PagedResult<CloudPlayerView>>.Fail(access.Error!);
 
         var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim();
-        return Result<IReadOnlyList<CloudPlayerView>>.Success(await repo.ListPlayersAsync(vaultId, term, Limit, ct));
+        return Result<PagedResult<CloudPlayerView>>.Success(
+            await repo.ListPlayersAsync(vaultId, term, new PageRequest(Math.Max(0, page), PageSize), ct));
     }
 }
 

@@ -139,7 +139,7 @@ public sealed class PostgresColumnLimitsTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new FabricaFixa(postgres), new RecordingResourceChanges());
+        var repo = new ModpackRepository(postgres, new RecordingResourceChanges());
 
         var modpack = new Modpack
         {
@@ -210,11 +210,5 @@ public sealed class PostgresColumnLimitsTests
         await db.SaveChangesAsync(Ct);
 
         return version.Id;
-    }
-
-    /// <summary>O repositório pede uma fábrica; aqui todas as chamadas vão ao mesmo banco.</summary>
-    private sealed class FabricaFixa(PostgresTestDatabase db) : IDbContextFactory<TcMineDbContext>
-    {
-        public TcMineDbContext CreateDbContext() => db.CreateContext();
     }
 }

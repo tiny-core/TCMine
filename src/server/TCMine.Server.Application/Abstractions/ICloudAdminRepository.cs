@@ -1,3 +1,4 @@
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Abstractions;
@@ -48,12 +49,14 @@ public interface ICloudAdminRepository
         CancellationToken ct);
 
     /// <summary>
-    ///     Jogadores da nuvem (agrupados pelos canais), com nome quando o UUID
-    ///     bate com uma conta do TCMine. <paramref name="search" /> filtra por
-    ///     nome ou UUID.
+    ///     Uma página dos jogadores da nuvem (agrupados pelos canais), com nome
+    ///     quando o UUID bate com uma conta do TCMine; os com conta primeiro, por
+    ///     nome. <paramref name="search" /> filtra por trecho do nome (sem
+    ///     diferenciar maiúsculas) ou do UUID (com ou sem hífens). Filtro, ordem
+    ///     e página acontecem no banco.
     /// </summary>
-    Task<IReadOnlyList<CloudPlayerView>>
-        ListPlayersAsync(Guid vaultId, string? search, int limit, CancellationToken ct);
+    Task<PagedResult<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, PageRequest page,
+        CancellationToken ct);
 
     Task<IReadOnlyList<CloudBalanceView>> ListChannelBalancesAsync(Guid channelId, CancellationToken ct);
 

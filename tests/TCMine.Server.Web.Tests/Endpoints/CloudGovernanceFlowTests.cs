@@ -38,7 +38,9 @@ public sealed class CloudGovernanceFlowTests
 
         (await env.SaldoAsync(Diamante)).ShouldBe(10);
         await using var db = await env.DbAsync();
-        (await db.CloudLedger.SingleAsync(Ct)).Source.ShouldBe(CloudLedgerSource.QuarantineApply);
+        var linha = await db.CloudLedger.SingleAsync(Ct);
+        linha.Source.ShouldBe(CloudLedgerSource.QuarantineApply);
+        linha.VaultId.ShouldBe(env.Nuvem, "a decisão do painel também grava a nuvem da linha (vem do canal)");
         (await db.CloudQuarantine.SingleAsync(Ct)).Resolution.ShouldBe(CloudQuarantineResolution.Applied);
         (await db.CloudAdminAudit.CountAsync(a => a.Action == "quarantine.apply", Ct)).ShouldBe(1);
     }

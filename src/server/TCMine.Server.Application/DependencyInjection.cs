@@ -93,7 +93,8 @@ public static class DependencyInjection
         services.AddScoped<ResolveCloudDoubtful>();
         services.AddScoped<ListCloudIncidents>();
         services.AddScoped<ResolveCloudIncident>();
-        services.AddScoped<ListCloudAudit>();
+        services.AddScoped<ListCloudAdminActions>();
+        services.AddScoped<ListCloudLedger>();
 
         services.AddScoped<CreateGameServer>();
         services.AddScoped<UpdateGameServer>();

@@ -1,4 +1,5 @@
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
 
 namespace TCMine.Server.Application.Tests.Fakes;
@@ -30,8 +31,8 @@ internal sealed class FakeCloudAdminRepository : ICloudAdminRepository
     public Task<IReadOnlyList<CloudServerKeyView>> ListActiveKeysAsync(IReadOnlyCollection<Guid> serverIds,
         CancellationToken ct) => Task.FromResult<IReadOnlyList<CloudServerKeyView>>([]);
 
-    public Task<IReadOnlyList<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, int limit,
-        CancellationToken ct) => Task.FromResult<IReadOnlyList<CloudPlayerView>>([]);
+    public Task<PagedResult<CloudPlayerView>> ListPlayersAsync(Guid vaultId, string? search, PageRequest page,
+        CancellationToken ct) => Task.FromResult(new PagedResult<CloudPlayerView>([], 0));
 
     public Task<IReadOnlyList<CloudBalanceView>> ListChannelBalancesAsync(Guid channelId, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<CloudBalanceView>>([]);
@@ -153,9 +154,15 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
     public Task<IReadOnlyDictionary<Guid, (string ItemId, string DisplayName)>> ItemNamesAsync(
         IReadOnlyCollection<Guid> ids, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct) =>
-        throw new NotImplementedException();
+    public Task<CursorPage<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, Guid? before, int pageSize,
+        CancellationToken ct) => Task.FromResult(new CursorPage<CloudAdminAuditEntry>([], null));
 
-    public Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit,
-        CancellationToken ct) => throw new NotImplementedException();
+    /// <summary>Última consulta do histórico que chegou ao repositório (nula = nenhuma chegou).</summary>
+    public CloudLedgerQuery? LastLedgerQuery { get; private set; }
+
+    public Task<CursorPage<CloudLedgerView>> ListLedgerAsync(CloudLedgerQuery query, CancellationToken ct)
+    {
+        LastLedgerQuery = query;
+        return Task.FromResult(new CursorPage<CloudLedgerView>([], null));
+    }
 }

@@ -143,6 +143,9 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
 
             db.CloudLedger.Add(new CloudLedgerEntry
             {
+                // Os canais de um lote são sempre da nuvem do lote: a aplicação
+                // os busca pela nuvem derivada da chave do servidor.
+                VaultId = batch.VaultId,
                 ChannelId = change.ChannelId,
                 ItemTypeId = change.ItemTypeId,
                 Delta = change.Delta,
@@ -175,6 +178,13 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
         var existing = await db.CloudBalances
             .Where(b => channelIds.Contains(b.ChannelId) && itemIds.Contains(b.ItemTypeId))
             .ToDictionaryAsync(b => (b.ChannelId, b.ItemTypeId), ct);
+
+        // A nuvem de cada linha sai do PRÓPRIO canal, e não de um parâmetro de
+        // quem chama: assim a cópia no ledger nunca diverge do canal. Decisão
+        // do painel é rara; uma consulta a mais aqui não pesa.
+        var vaultOf = await db.CloudChannels.AsNoTracking()
+            .Where(c => channelIds.Contains(c.Id))
+            .ToDictionaryAsync(c => c.Id, c => c.VaultId, ct);
         foreach (var change in commit.Changes)
         {
             if (!existing.TryGetValue((change.ChannelId, change.ItemTypeId), out var balance))
@@ -192,6 +202,7 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
 
             db.CloudLedger.Add(new CloudLedgerEntry
             {
+                VaultId = vaultOf[change.ChannelId],
                 ChannelId = change.ChannelId,
                 ItemTypeId = change.ItemTypeId,
                 Delta = change.Delta,

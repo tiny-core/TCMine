@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using TCMine.Contracts.Modpacks;
 using TCMine.Contracts.Servers;
@@ -42,8 +41,8 @@ public sealed class ImportEndToEndTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new Fabrica(postgres), new RecordingResourceChanges());
-        var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
+        var repo = new ModpackRepository(postgres, new RecordingResourceChanges());
+        var memberships = new ModpackMembershipRepository(postgres);
         var blobs = new BlobsEmMemoria();
 
         var pack = PackGrande();
@@ -118,8 +117,8 @@ public sealed class ImportEndToEndTests
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
 
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
-        var repo = new ModpackRepository(new Fabrica(postgres), new RecordingResourceChanges());
-        var memberships = new ModpackMembershipRepository(new Fabrica(postgres));
+        var repo = new ModpackRepository(postgres, new RecordingResourceChanges());
+        var memberships = new ModpackMembershipRepository(postgres);
         var blobs = new BlobsEmMemoria();
         var downloader = new DownloaderFixo();
         var fila = new FilaQueGuarda();
@@ -188,11 +187,6 @@ public sealed class ImportEndToEndTests
     }
 
     // ---- Fakes ----
-
-    private sealed class Fabrica(PostgresTestDatabase db) : IDbContextFactory<TcMineDbContext>
-    {
-        public TcMineDbContext CreateDbContext() => db.CreateContext();
-    }
 
     private sealed class OrigemFixa(UpstreamPack pack) : IUpstreamPackSource
     {

@@ -7,18 +7,25 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 
 /// <summary>
 ///     Aba "Jogadores": canais de cada jogador, totais e quem está com o lease.
-///     Daqui o dono abre os itens de um canal, descongela e libera lease preso.
+///     Daqui o dono abre os itens de um canal, descongela, libera lease preso e
+///     pula para o histórico do jogador na Auditoria. A lista vem por página.
 /// </summary>
 public partial class CloudPlayersPanel : ComponentBase
 {
-    private const int ListLimit = ListCloudPlayers.Limit;
     private bool _isBusy;
+
+    /// <summary>Próxima página a pedir (base zero).</summary>
+    private int _nextPage;
 
     private List<CloudPlayerView>? _players;
     private string? _search;
+    private int _total;
 
     [Parameter] [EditorRequired] public Guid VaultId { get; set; }
     [Parameter] public IReadOnlyDictionary<Guid, string> ServerNames { get; set; } = new Dictionary<Guid, string>();
+
+    /// <summary>"Ver histórico": a página da nuvem abre a Auditoria filtrada por este UUID.</summary>
+    [Parameter] public EventCallback<string> ShowHistory { get; set; }
 
     [Inject] private ListCloudPlayers ListUseCase { get; set; } = default!;
     [Inject] private ForceReleaseCloudLease ForceReleaseUseCase { get; set; } = default!;
@@ -27,16 +34,34 @@ public partial class CloudPlayersPanel : ComponentBase
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
-    private async Task LoadAsync()
+    // Busca nova (ou recarga depois de uma ação) volta para a primeira página:
+    // as páginas já abertas podiam ter mudado de ordem ou de conteúdo.
+    private Task LoadAsync()
+    {
+        _nextPage = 0;
+        return LoadPageAsync(replace: true);
+    }
+
+    private Task LoadMoreAsync() => LoadPageAsync(replace: false);
+
+    private async Task LoadPageAsync(bool replace)
     {
         _isBusy = true;
         try
         {
-            var result = await ListUseCase.HandleAsync(VaultId, _search, CancellationToken.None);
-            if (result.Succeeded)
-                _players = [.. result.Value!];
-            else
+            var result = await ListUseCase.HandleAsync(VaultId, _search, _nextPage, CancellationToken.None);
+            if (!result.Succeeded)
+            {
                 Snackbar.Add(result.Error!, Severity.Error);
+                return;
+            }
+
+            if (replace || _players is null)
+                _players = [.. result.Value!.Items];
+            else
+                _players.AddRange(result.Value!.Items);
+            _total = result.Value.TotalCount;
+            _nextPage++;
         }
         finally
         {

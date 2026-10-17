@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Application.Abstractions;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Infrastructure.Persistence;
 
@@ -235,29 +237,105 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, int limit, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.CloudAdminAudit.AsNoTracking()
-            .Where(a => a.VaultId == vaultId)
-            .OrderByDescending(a => a.Id)
-            .Take(limit)
-            .ToListAsync(ct);
-    }
+    // As duas listas da auditoria paginam por cursor no Id (GUID v7, então
+    // "Id menor" = "mais velho"): a página seguinte é "as N anteriores ao
+    // último Id visto", que o índice (VaultId, Id) responde sem varrer o que
+    // ficou para trás. Busca-se UMA linha a mais só para saber se há próxima.
+    // CompareTo, e não "<": é a forma que o EF traduz para comparação no SQL.
 
-    public async Task<IReadOnlyList<CloudLedgerView>> ListLedgerAsync(Guid vaultId, string? playerUuid, int limit,
+    public async Task<CursorPage<CloudAdminAuditEntry>> ListAuditAsync(Guid vaultId, Guid? before, int pageSize,
         CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
+        var query = db.CloudAdminAudit.AsNoTracking().Where(a => a.VaultId == vaultId);
+        if (before is { } cursor)
+            query = query.Where(a => a.Id.CompareTo(cursor) < 0);
+
+        var rows = await query.OrderByDescending(a => a.Id).Take(pageSize + 1).ToListAsync(ct);
+        return CursorPage.From(rows, pageSize, a => a.Id);
+    }
+
+    public async Task<CursorPage<CloudLedgerView>> ListLedgerAsync(CloudLedgerQuery query, CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // Filtra pela coluna da nuvem na própria linha (índice VaultId, Id); os
+        // joins com canal e item ficam só para as linhas da página.
+        var entries = db.CloudLedger.AsNoTracking().Where(e => e.VaultId == query.VaultId);
+
+        if (query.PlayerUuid is { } player)
+        {
+            var channels = db.CloudChannels
+                .Where(c => c.VaultId == query.VaultId && c.PlayerUuid == player)
+                .Select(c => c.Id);
+            entries = entries.Where(e => channels.Contains(e.ChannelId));
+        }
+
+        if (query.Source is { } source)
+            entries = entries.Where(e => e.Source == source);
+
+        // Período pelo Id, não pelo CreatedAt: o SQLite não compara
+        // DateTimeOffset, e o Id já carrega o instante (ver IdTime).
+        if (query.From is { } periodStart)
+        {
+            var lower = IdTime.Floor(periodStart);
+            entries = entries.Where(e => e.Id.CompareTo(lower) >= 0);
+        }
+
+        if (query.Until is { } periodEnd)
+        {
+            var upper = IdTime.Floor(periodEnd);
+            entries = entries.Where(e => e.Id.CompareTo(upper) < 0);
+        }
+
+        if (query.Before is { } cursor)
+            entries = entries.Where(e => e.Id.CompareTo(cursor) < 0);
+
+        if (query.Item is { } item)
+        {
+            // lower() dos dois lados: o LIKE do PostgreSQL diferencia
+            // maiúsculas, e "diamond" tem de achar "Diamond".
+            var term = item.ToLowerInvariant();
+            // ToLower() sem cultura de propósito: vira lower() no SQL. As
+            // sobrecargas com StringComparison ou cultura que os analisadores
+            // pedem não têm tradução e quebrariam a consulta.
+#pragma warning disable CA1304, CA1311, CA1862
+            var items = db.CloudItemTypes
+                .Where(i => i.ItemId.ToLower().Contains(term) || i.DisplayName.ToLower().Contains(term))
+                .Select(i => i.Id);
+#pragma warning restore CA1304, CA1311, CA1862
+            entries = entries.Where(e => items.Contains(e.ItemTypeId));
+        }
+
         var rows = await (
-            from e in db.CloudLedger.AsNoTracking()
+            from e in entries
             join c in db.CloudChannels.AsNoTracking() on e.ChannelId equals c.Id
             join i in db.CloudItemTypes.AsNoTracking() on e.ItemTypeId equals i.Id
-            where c.VaultId == vaultId && (playerUuid == null || c.PlayerUuid == playerUuid)
             orderby e.Id descending
-            select new CloudLedgerView(e.Id, e.CreatedAt, c.PlayerUuid, c.Name, i.ItemId, i.DisplayName, e.Delta,
-                e.BalanceAfter, e.Source, e.Reason)
-        ).Take(limit).ToListAsync(ct);
-        return rows;
+            select new
+            {
+                e.Id,
+                e.CreatedAt,
+                c.PlayerUuid,
+                ChannelName = c.Name,
+                i.ItemId,
+                i.DisplayName,
+                e.Delta,
+                e.BalanceAfter,
+                e.Source,
+                e.Reason
+            }
+        ).Take(query.PageSize + 1).ToListAsync(ct);
+
+        // Nome da conta do TCMine de cada jogador da página (MinecraftUuid é
+        // único e tem o mesmo formato do canal: 32 hex, sem hífens).
+        var uuids = rows.Select(r => r.PlayerUuid).Distinct().ToArray();
+        var names = await db.Users.AsNoTracking()
+            .Where(u => u.MinecraftUuid != null && uuids.Contains(u.MinecraftUuid))
+            .ToDictionaryAsync(u => u.MinecraftUuid!, u => u.DisplayName, ct);
+        var views = rows.Select(r => new CloudLedgerView(r.Id, r.CreatedAt, r.PlayerUuid,
+            names.GetValueOrDefault(r.PlayerUuid), r.ChannelName, r.ItemId, r.DisplayName, r.Delta, r.BalanceAfter,
+            r.Source, r.Reason)).ToList();
+        return CursorPage.From(views, query.PageSize, v => v.Id);
     }
 }

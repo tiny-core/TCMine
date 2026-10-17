@@ -10,6 +10,14 @@ namespace TCMine.Server.Domain.Cloud;
 /// </summary>
 public sealed class CloudLedgerEntry : Entity
 {
+    /// <summary>
+    ///     A nuvem do canal, repetida na linha. É cópia, não fonte: o canal já diz
+    ///     a nuvem. Existe para a auditoria listar a nuvem inteira pelo índice
+    ///     (VaultId, Id) sem juntar cada linha com o canal; a cópia não fica
+    ///     velha porque a linha nunca muda e um canal nunca troca de nuvem.
+    /// </summary>
+    public required Guid VaultId { get; init; }
+
     public required Guid ChannelId { get; init; }
 
     public required Guid ItemTypeId { get; init; }

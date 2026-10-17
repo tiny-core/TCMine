@@ -1,7 +1,9 @@
+@using TCMine.Server.Domain.Cloud
+
 <MudText Typo="Typo.subtitle1" Class="mb-2">Decisões no painel</MudText>
-@if (_actions is null)
+@if (!_actionsLoaded)
 {
-    <MudProgressLinear Indeterminate="true"/>
+    <MudProgressLinear Indeterminate="true" Class="mb-6"/>
 }
 else if (_actions.Count == 0)
 {
@@ -9,7 +11,7 @@ else if (_actions.Count == 0)
 }
 else
 {
-    <MudTable Items="_actions" Dense="true" Hover="true" Height="280px" FixedHeader="true" Class="mb-6">
+    <MudTable Items="_actions" Dense="true" Hover="true" Height="280px" FixedHeader="true">
         <HeaderContent>
             <MudTh>Quando</MudTh>
             <MudTh>Ação</MudTh>
@@ -17,7 +19,7 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM HH:mm")</MudText>
+                <MudText Typo="Typo.caption">@context.CreatedAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</MudText>
             </MudTd>
             <MudTd Style="font-family:monospace;">
                 <MudText Typo="Typo.caption">@context.Action</MudText>
@@ -27,18 +29,58 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1 mb-6">
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@_actions.Count decisões carregadas</MudText>
+        @if (_actionsNext is not null)
+        {
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="LoadMoreActionsAsync"
+                       Disabled="_actionsBusy">
+                Carregar mais
+            </MudButton>
+        }
+        @if (_actionsBusy)
+        {
+            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+        }
+    </MudStack>
 }
 
-<MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-2">
-    <MudText Typo="Typo.subtitle1">Histórico de saldos</MudText>
-    <MudTextField @bind-Value="_player" Placeholder="UUID do jogador (opcional)" Variant="Variant.Outlined"
-                  Margin="Margin.Dense"
-                  Style="max-width:360px;" OnKeyDown="@(e => e.Key == "Enter" ? LoadAsync() : Task.CompletedTask)"/>
-    <MudButton Variant="Variant.Outlined" OnClick="LoadAsync">Filtrar</MudButton>
+<MudText Typo="Typo.subtitle1" Class="mb-2">Movimentos de itens</MudText>
+<MudStack Row="true" Wrap="Wrap.Wrap" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+    <MudTextField @bind-Value="_player" Label="Jogador (UUID)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Clearable="true" OnKeyDown="OnFilterKeyDown" Style="width:320px;"/>
+    <MudTextField @bind-Value="_item" Label="Item (id ou nome)" Variant="Variant.Outlined" Margin="Margin.Dense"
+                  Clearable="true" OnKeyDown="OnFilterKeyDown" Style="width:220px;"/>
+    <MudSelect T="CloudLedgerSource?" @bind-Value="_source" Label="Origem" Variant="Variant.Outlined"
+               Margin="Margin.Dense" Dense="true" Clearable="true" Style="width:160px;">
+        @foreach (var source in Sources)
+        {
+            <MudSelectItem T="CloudLedgerSource?" Value="@source">@SourceLabel(source)</MudSelectItem>
+        }
+    </MudSelect>
+    <MudDateRangePicker @bind-DateRange="_period" Label="Período" Variant="Variant.Outlined"
+                        Margin="Margin.Dense" Clearable="true" Style="width:240px;"/>
+    <MudButton Variant="Variant.Outlined" OnClick="ReloadLedgerAsync" Disabled="_ledgerBusy">Filtrar</MudButton>
+    @if (HasFilter)
+    {
+        <MudButton Variant="Variant.Text" OnClick="ClearFiltersAsync" Disabled="_ledgerBusy">Limpar</MudButton>
+    }
 </MudStack>
-@if (_ledger is not null)
+
+@if (!_ledgerLoaded)
 {
-    <MudTable Items="_ledger" Dense="true" Hover="true" Height="420px" FixedHeader="true">
+    <MudProgressLinear Indeterminate="true"/>
+}
+else if (_ledger.Count == 0)
+{
+    <MudText Typo="Typo.body2" Class="mud-text-secondary">
+        @(HasFilter ? "Nenhum movimento com esses filtros." : "Nenhum movimento ainda.")
+    </MudText>
+}
+else
+{
+    <MudTable Items="_ledger" Dense="true" Hover="true" Height="420px" FixedHeader="true"
+              Loading="_ledgerBusy" LoadingProgressColor="Color.Primary">
         <HeaderContent>
             <MudTh>Quando</MudTh>
             <MudTh>Jogador</MudTh>
@@ -50,14 +92,21 @@ else
         </HeaderContent>
         <RowTemplate>
             <MudTd>
-                <MudText Typo="Typo.caption">@context.At.ToLocalTime().ToString("dd/MM HH:mm:ss")</MudText>
+                <MudText Typo="Typo.caption">@context.At.ToLocalTime().ToString("dd/MM/yy HH:mm:ss")</MudText>
             </MudTd>
-            <MudTd Style="font-family:monospace;">
-                <MudText Typo="Typo.caption">@context.PlayerUuid</MudText>
+            <MudTd>
+                @if (context.PlayerName is not null)
+                {
+                    <MudText Typo="Typo.body2">@context.PlayerName</MudText>
+                }
+                <MudText Typo="Typo.caption" Class="mud-text-secondary"
+                         Style="font-family:monospace;">@context.PlayerUuid</MudText>
             </MudTd>
             <MudTd>@context.ChannelName</MudTd>
             <MudTd>
-                <MudText Typo="Typo.caption">@context.DisplayName</MudText>
+                <MudTooltip Text="@context.ItemId">
+                    <MudText Typo="Typo.caption">@context.DisplayName</MudText>
+                </MudTooltip>
             </MudTd>
             <MudTd Style="text-align:right;">@context.Delta.ToString("+#,0;-#,0;0")</MudTd>
             <MudTd Style="text-align:right;">@context.BalanceAfter.ToString("N0")</MudTd>
@@ -68,4 +117,13 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1">
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">@_ledger.Count movimentos carregados</MudText>
+        @if (_ledgerNext is not null)
+        {
+            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="LoadLedgerPageAsync" Disabled="_ledgerBusy">
+                Carregar mais
+            </MudButton>
+        }
+    </MudStack>
 }

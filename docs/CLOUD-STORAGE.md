@@ -24,7 +24,7 @@ disco ("débito cedo, crédito tarde"). Isso torna crash, rollback e restauraç�
 | `CloudBalance`                | PK (`ChannelId`, `ItemTypeId`), `Amount` (long ≥ 0)                                                                                                                                                                             | linha removida quando chega a 0                                                   |
 | `CloudLease`                  | PK (`VaultId`, `PlayerUuid`), `HolderServerId?`, `Epoch` (long, nunca diminui), `LastSeq`, `State` (`Free`/`Held`/`Releasing`), `HeartbeatAt`, `ExpiresAt`, `Version` (token de concorrência)                                   | linha nunca apagada: a época precisa sobreviver                                   |
 | `CloudBatch`                  | `VaultId`, `PlayerUuid`, `ServerId`, `Epoch`, `Seq`, `Status` (`Applied`/`Quarantined`/`Discarded`/`Reverted`), `PayloadHash`, `ReceivedAt`                                                                                     | único (VaultId, PlayerUuid, Epoch, Seq)                                           |
-| `CloudLedgerEntry`            | `ChannelId`, `ItemTypeId`, `Delta`, `BalanceAfter`, `Source` (`Game`/`Admin`/`Revert`/`QuarantineApply`), `BatchId?`, `ActorUserId?`, `Reason?`, `CreatedAt`                                                                    | append-only: o código não tem método de Update/Delete                             |
+| `CloudLedgerEntry`            | `VaultId` (cópia da nuvem do canal), `ChannelId`, `ItemTypeId`, `Delta`, `BalanceAfter`, `Source` (`Game`/`Admin`/`Revert`/`QuarantineApply`), `BatchId?`, `ActorUserId?`, `Reason?`, `CreatedAt`                                                                    | append-only: o código não tem método de Update/Delete                             |
 | `CloudQuarantine`             | `BatchId`, `Reason` (`StaleEpoch`/`NegativeBalance`/`Divergence`/`QuotaExceeded`), `Payload` (JSON), `ResolvedAt?`, `ResolvedBy?`, `Resolution?`                                                                                | aplicar só se o lease estiver livre                                               |
 | `CloudItemRule`               | `VaultId`, `Scope` (`Item`/`Mod`/`Tag`), `Pattern`, `Action` (`Allow`/`Block`), `Note`, `CreatedBy`                                                                                                                             | —                                                                                 |
 | `CloudSuspectItem`            | `VaultId`, `ItemId`, `Reason`, `Count`, `FirstSeenAt`, `LastSeenAt`, `Status` (`Pending`/`Allowed`/`Blocked`)                                                                                                                   | decidir cria um `CloudItemRule`                                                   |
@@ -44,7 +44,7 @@ Tabelas: `cloud_vaults`, `cloud_server_credentials`, `cloud_channels`, `cloud_it
 `cloud_balances`, `cloud_leases`, `cloud_batches`, `cloud_ledger`, `cloud_quarantine`,
 `cloud_item_rules`, `cloud_suspect_items`, `cloud_rollback_incidents`, `cloud_doubtful_operations`,
 `cloud_admin_audit`.
-Índices: `cloud_ledger(ChannelId, Id)`, `cloud_batches(ServerId, Epoch, Seq)`,
+Índices: `cloud_ledger(ChannelId, Id)`, `cloud_ledger(VaultId, Id)` (auditoria da nuvem inteira), `cloud_batches(ServerId, Epoch, Seq)`,
 `cloud_balances(ChannelId)`, `cloud_channels(VaultId, PlayerUuid)`.
 `Amount`/`Delta` como `bigint` e testados no `PostgresColumnLimitsTests`.
 

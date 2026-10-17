@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using MudBlazor;
 using TCMine.Server.Application.Cloud;
 using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Web.Diagnostics;
@@ -11,11 +12,16 @@ public partial class CloudVaultPage : ComponentBase
     /// <summary>Pendências por aba: o dono vê de longe onde há algo para decidir.</summary>
     private (int Suspects, int Quarantine, int Doubtful, int Incidents) _counts;
 
+    private MudTabPanel _auditTab = default!;
     private string? _error;
+
+    /// <summary>Jogador do último "Ver histórico": a aba Auditoria abre filtrada por ele.</summary>
+    private string? _historyPlayer;
 
     /// <summary>Nome dos servidores do dono, para a aba de jogadores dizer quem segura cada lease.</summary>
     private IReadOnlyDictionary<Guid, string> _serverNames = new Dictionary<Guid, string>();
 
+    private MudTabs _tabs = default!;
     private CloudVault? _vault;
 
     [Parameter] public Guid VaultId { get; set; }
@@ -65,6 +71,14 @@ public partial class CloudVaultPage : ComponentBase
         var incidents = await IncidentsUseCase.HandleAsync(VaultId, true, ct);
         _counts = (suspects.Value?.Count ?? 0, quarantine.Value?.Count ?? 0, doubtful.Value?.Count ?? 0,
             incidents.Value?.Count ?? 0);
+    }
+
+    // Pelo painel (@ref), e não pelo índice da aba: reordenar as abas não
+    // pode fazer o botão abrir outra.
+    private Task ShowHistory(string playerUuid)
+    {
+        _historyPlayer = playerUuid;
+        return _tabs.ActivatePanelAsync(_auditTab);
     }
 
     private async Task ReloadServersAsync()

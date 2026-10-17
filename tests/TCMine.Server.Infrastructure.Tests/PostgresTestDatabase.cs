@@ -15,8 +15,10 @@ namespace TCMine.Server.Infrastructure.Tests;
 ///     não falhados: quem roda a suíte na própria máquina não deve precisar
 ///     subir um banco para ver o resto passar. No CI a variável está definida, e
 ///     lá eles rodam de verdade.
+///     É também a fábrica que os repositórios pedem: todo contexto vai ao banco
+///     deste teste. Antes, cada classe de teste tinha a sua cópia dessa ponte.
 /// </summary>
-public sealed class PostgresTestDatabase : IAsyncDisposable
+public sealed class PostgresTestDatabase : IAsyncDisposable, IDbContextFactory<TcMineDbContext>
 {
     public const string ConnectionVariable = "TCMINE_TEST_POSTGRES";
 
@@ -84,6 +86,8 @@ public sealed class PostgresTestDatabase : IAsyncDisposable
     }
 
     public TcMineDbContext CreateContext() => new(Opcoes(ConnectionStringDoBanco()));
+
+    TcMineDbContext IDbContextFactory<TcMineDbContext>.CreateDbContext() => CreateContext();
 
     private string ConnectionStringDoBanco() =>
         new NpgsqlConnectionStringBuilder(_servidor) { Database = _database }.ConnectionString;

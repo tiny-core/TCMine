@@ -156,25 +156,3 @@ public sealed class ResolveCloudIncident(
         IReadOnlyList<CloudBatch>? Batches = null,
         IReadOnlyList<CloudRevertLine>? Lines = null);
 }
-
-public sealed class ListCloudAudit(
-    ICloudAdminRepository repo,
-    ICloudGovernanceRepository governance,
-    ICurrentUserScope scope)
-{
-    public const int Limit = 300;
-
-    public async Task<Result<(IReadOnlyList<CloudAdminAuditEntry> Actions, IReadOnlyList<CloudLedgerView> Ledger)>>
-        HandleAsync(
-            Guid vaultId, string? playerUuid, CancellationToken ct)
-    {
-        var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
-        if (!access.Succeeded)
-            return Result<(IReadOnlyList<CloudAdminAuditEntry>, IReadOnlyList<CloudLedgerView>)>.Fail(access.Error!);
-
-        var player = string.IsNullOrWhiteSpace(playerUuid) ? null : CloudChannel.NormalizePlayerUuid(playerUuid);
-        return Result<(IReadOnlyList<CloudAdminAuditEntry>, IReadOnlyList<CloudLedgerView>)>.Success((
-            await governance.ListAuditAsync(vaultId, Limit, ct),
-            await governance.ListLedgerAsync(vaultId, player, Limit, ct)));
-    }
-}

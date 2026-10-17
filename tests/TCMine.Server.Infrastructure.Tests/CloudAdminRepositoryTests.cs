@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
 using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Servers;
@@ -14,6 +16,9 @@ public sealed class CloudAdminRepositoryTests
 {
     private const string Ana = "069a79f444e94726a5befca90e38aaf5";
     private const string Beto = "11111111222233334444555566667777";
+
+    private const string MotivoDoSkip =
+        "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
@@ -38,7 +43,9 @@ public sealed class CloudAdminRepositoryTests
         var cenario = await Semear(factory);
         var repo = new CloudAdminRepository(factory);
 
-        var todos = await repo.ListPlayersAsync(cenario.Nuvem, null, 50, Ct);
+        var pagina = await repo.ListPlayersAsync(cenario.Nuvem, null, new PageRequest(0, 50), Ct);
+        pagina.TotalCount.ShouldBe(2);
+        var todos = pagina.Items;
         todos.Count.ShouldBe(2);
         var ana = todos.Single(p => p.PlayerUuid == Ana);
         ana.DisplayName.ShouldBe("Ana");
@@ -49,8 +56,53 @@ public sealed class CloudAdminRepositoryTests
         ana.Channels.Single(c => c.Name == "Minérios").TotalItems.ShouldBe(0);
         ana.HolderServerId.ShouldBe(cenario.Servidor);
 
-        (await repo.ListPlayersAsync(cenario.Nuvem, "an", 50, Ct)).Single().PlayerUuid.ShouldBe(Ana);
-        (await repo.ListPlayersAsync(cenario.Nuvem, "1111-2222", 50, Ct)).Single().PlayerUuid.ShouldBe(Beto);
+        (await Buscar(repo, cenario.Nuvem, "an")).ShouldBe([Ana]);
+        (await Buscar(repo, cenario.Nuvem, "1111-2222")).ShouldBe([Beto]);
+    }
+
+    [Fact]
+    public async Task Jogadores_vem_por_pagina_com_conta_primeiro_e_o_total_da_busca()
+    {
+        using var factory = new SqliteTestFactory();
+        var cenario = await Semear(factory);
+        var repo = new CloudAdminRepository(factory);
+
+        var primeira = await repo.ListPlayersAsync(cenario.Nuvem, null, new PageRequest(0, 1), Ct);
+        var segunda = await repo.ListPlayersAsync(cenario.Nuvem, null, new PageRequest(1, 1), Ct);
+        var alem = await repo.ListPlayersAsync(cenario.Nuvem, null, new PageRequest(2, 1), Ct);
+
+        primeira.TotalCount.ShouldBe(2);
+        primeira.Items.Single().PlayerUuid.ShouldBe(Ana, "quem tem conta no TCMine vem antes");
+        segunda.Items.Single().PlayerUuid.ShouldBe(Beto);
+        segunda.Items.Single().Channels.Single().TotalItems.ShouldBe(1, "a página traz os canais só dos seus jogadores");
+        alem.Items.ShouldBeEmpty();
+        alem.TotalCount.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task Busca_de_jogador_ignora_maiusculas_no_sqlite()
+    {
+        using var factory = new SqliteTestFactory();
+        var cenario = await Semear(factory);
+
+        (await Buscar(new CloudAdminRepository(factory), cenario.Nuvem, "ANA")).ShouldBe([Ana]);
+        (await Buscar(new CloudAdminRepository(factory), cenario.Nuvem, "1111-2222-3333-4444-555566667777"))
+            .ShouldBe([Beto], ignoreOrder: false, "UUID colado com hífens");
+    }
+
+    [Fact]
+    public async Task Busca_de_jogador_ignora_maiusculas_no_postgres()
+    {
+        // O LIKE do PostgreSQL diferencia maiúsculas (o do SQLite também, via
+        // instr): sem lower() dos dois lados, "ana" não achava "Ana" em produção.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
+        var cenario = await Semear(postgres);
+        var repo = new CloudAdminRepository(postgres);
+
+        (await Buscar(repo, cenario.Nuvem, "aNa")).ShouldBe([Ana]);
+        (await repo.ListPlayersAsync(cenario.Nuvem, null, new PageRequest(0, 1), Ct)).Items.Single().PlayerUuid
+            .ShouldBe(Ana);
     }
 
     [Fact]
@@ -65,9 +117,12 @@ public sealed class CloudAdminRepositoryTests
         itens.Select(i => i.ItemId).ShouldBe(["minecraft:cobblestone", "minecraft:diamond"]);
     }
 
-    private static async Task<Cenario> Semear(SqliteTestFactory factory)
+    private static async Task<IReadOnlyList<string>> Buscar(CloudAdminRepository repo, Guid nuvem, string busca) =>
+        [.. (await repo.ListPlayersAsync(nuvem, busca, new PageRequest(0, 50), Ct)).Items.Select(p => p.PlayerUuid)];
+
+    private static async Task<Cenario> Semear(IDbContextFactory<TcMineDbContext> factory)
     {
-        await using var db = factory.CreateDbContext();
+        await using var db = await factory.CreateDbContextAsync(Ct);
         var dono = Guid.CreateVersion7();
         var nuvem = new CloudVault { Name = "N", OwnerId = dono };
         var servidor = new GameServer
