@@ -118,12 +118,46 @@ public sealed class CloudGovernanceFlowTests
         (await env.SaldoAsync(Diamante)).ShouldBe(64);
         await using var db = await env.DbAsync();
         (await db.CloudBatches.SingleAsync(b => b.Seq == 2, Ct)).Status.ShouldBe(CloudBatchStatus.Reverted);
+        var marca = await db.CloudWatermarks.SingleAsync(Ct);
+        (marca.Epoch, marca.Seq).ShouldBe((1L, 1L), "a marca desce até o checkpoint do mundo restaurado");
         (await db.CloudLeases.SingleAsync(Ct)).HolderServerId.ShouldBeNull(
             "o servidor do incidente pega saldos novos no próximo acquire");
         // O mundo restaurado continua declarando o ponto em que está (lote 1): sem incidente novo.
         (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello",
                 HelloDoMundo(mundo, new Dictionary<string, CloudSeqPosition> { [Jogador] = new(1, 1) }))).ReadOnly
             .ShouldBeFalse("incidente resolvido destrava a nuvem");
+    }
+
+    [Fact]
+    public async Task Aceitar_o_mundo_restaurado_nao_reabre_o_incidente_no_hello_seguinte()
+    {
+        // O bug: aceitar fechava o incidente mas a régua continuava nos lotes de
+        // antes do backup, e o próximo hello do mesmo mundo abria tudo de novo.
+        await using var env = await CloudAmbiente.CriarAsync();
+        var mundo = Guid.CreateVersion7();
+        var a = env.Cliente(env.ChaveA);
+        await PostAsync<CloudHelloReply>(a, "/api/cloud/v1/hello", HelloDoMundo(mundo, null));
+        var canal = (await Acquire(a)).Channels.Single().Id;
+        await Lote(a, Credito(canal, 1, 64, 64));
+        await Lote(a, Debito(canal, 2, -14, 50));
+
+        var restaurado = new Dictionary<string, CloudSeqPosition> { [Jogador] = new(1, 1) };
+        var reiniciado = env.Cliente(await env.RotacionarChaveAAsync());
+        (await PostAsync<CloudHelloReply>(reiniciado, "/api/cloud/v1/hello", HelloDoMundo(mundo, restaurado)))
+            .ReadOnly.ShouldBeTrue();
+        var incidente = await IncidenteAsync(env);
+
+        (await env.PainelAsync<ResolveCloudIncident, Result>(u =>
+            u.HandleAsync(env.Nuvem, incidente, false, Ct))).Succeeded.ShouldBeTrue();
+
+        (await env.SaldoAsync(Diamante)).ShouldBe(50, "aceitar não estorna nada");
+        var outraVez = env.Cliente(await env.RotacionarChaveAAsync());
+        (await PostAsync<CloudHelloReply>(outraVez, "/api/cloud/v1/hello", HelloDoMundo(mundo, restaurado)))
+            .ReadOnly.ShouldBeFalse("o mundo aceito é o novo ponto confirmado");
+        await using var db = await env.DbAsync();
+        (await db.CloudRollbackIncidents.CountAsync(Ct)).ShouldBe(1, "nenhum incidente novo para o mesmo mundo");
+        var marca = await db.CloudWatermarks.SingleAsync(Ct);
+        (marca.Epoch, marca.Seq).ShouldBe((1L, 1L));
     }
 
     [Fact]

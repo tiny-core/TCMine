@@ -13,10 +13,34 @@ public sealed record CloudBalanceChange(Guid ChannelId, Guid ItemTypeId, long De
 public sealed record CloudAdminChange(Guid ChannelId, Guid ItemTypeId, long Delta, long BalanceAfter, Guid? BatchId);
 
 /// <summary>
+///     Mover a marca d'água de um jogador num servidor (ver <c>CloudWatermark</c>):
+///     <see cref="CloudWatermarkMoveKind.Raise" /> só sobe, <see cref="CloudWatermarkMoveKind.LowerTo" />
+///     só desce. Quem decide o sentido é o caso de uso, por isso o nome explícito em
+///     vez de "grava este valor": um valor solto não diz se pode descer.
+/// </summary>
+public sealed record CloudWatermarkMove(
+    Guid VaultId,
+    Guid ServerId,
+    string PlayerUuid,
+    long Epoch,
+    long Seq,
+    CloudWatermarkMoveKind Kind);
+
+public enum CloudWatermarkMoveKind
+{
+    /// <summary>Lote aplicado: a marca sobe até ele (se estiver abaixo).</summary>
+    Raise,
+
+    /// <summary>O dono estornou ou aceitou o mundo restaurado: a marca desce até o checkpoint dele.</summary>
+    LowerTo
+}
+
+/// <summary>
 ///     Uma decisão do painel que mexe em saldos, gravada numa transação só.
 ///     <c>Leases</c>: os leases dos jogadores tocados com a versão LIDA (nula =
 ///     lease novo); todos ganham versão nova, então um acquire concorrente perde a
 ///     corrida. <c>AlsoUpdate</c>: o que muda junto (quarentena, lote, incidente...).
+///     <c>Watermarks</c>: as marcas d'água que a decisão move, na mesma transação.
 /// </summary>
 public sealed record CloudAdminCommit(
     IReadOnlyList<(CloudLease Lease, long? ReadVersion)> Leases,
@@ -25,7 +49,8 @@ public sealed record CloudAdminCommit(
     CloudLedgerSource Source,
     Guid ActorUserId,
     string Reason,
-    IReadOnlyList<Entity> AlsoUpdate);
+    IReadOnlyList<Entity> AlsoUpdate,
+    IReadOnlyList<CloudWatermarkMove>? Watermarks = null);
 
 /// <summary>
 ///     Persistência da nuvem do lado do protocolo (lease, lotes, saldos).
@@ -68,8 +93,8 @@ public interface ICloudStorageRepository
 
     /// <summary>
     ///     Aplica um lote numa transação só: itens novos, saldos, ledger, o
-    ///     registro do lote e o avanço do lease. False em conflito de
-    ///     concorrência (nada foi gravado).
+    ///     registro do lote, o avanço do lease e a marca d'água do servidor. False
+    ///     em conflito de concorrência (nada foi gravado).
     /// </summary>
     Task<bool> CommitAppliedAsync(CloudLease lease, long expectedLeaseVersion, CloudBatch batch,
         IReadOnlyList<CloudItemType> newItemTypes, IReadOnlyList<CloudBalanceChange> changes, CancellationToken ct);

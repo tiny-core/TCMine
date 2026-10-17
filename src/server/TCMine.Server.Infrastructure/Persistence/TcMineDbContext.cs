@@ -40,6 +40,7 @@ public sealed class TcMineDbContext(DbContextOptions<TcMineDbContext> options)
     public DbSet<CloudLease> CloudLeases => Set<CloudLease>();
     public DbSet<CloudBatch> CloudBatches => Set<CloudBatch>();
     public DbSet<CloudLedgerEntry> CloudLedger => Set<CloudLedgerEntry>();
+    public DbSet<CloudWatermark> CloudWatermarks => Set<CloudWatermark>();
     public DbSet<CloudQuarantine> CloudQuarantine => Set<CloudQuarantine>();
     public DbSet<CloudItemRule> CloudItemRules => Set<CloudItemRule>();
     public DbSet<CloudSuspectItem> CloudSuspectItems => Set<CloudSuspectItem>();

@@ -698,6 +698,45 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.ToTable("cloud_vaults", (string)null);
                 });
 
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudWatermark", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("Epoch")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("PlayerUuid")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<long>("Seq")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ServerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VaultId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ServerId");
+
+                    b.HasIndex("VaultId", "ServerId", "PlayerUuid")
+                        .IsUnique();
+
+                    b.ToTable("cloud_watermarks", (string)null);
+                });
+
             modelBuilder.Entity("TCMine.Server.Domain.Common.ActivityEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1693,6 +1732,21 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
 
             modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudSuspectItem", b =>
                 {
+                    b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
+                        .WithMany()
+                        .HasForeignKey("VaultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TCMine.Server.Domain.Cloud.CloudWatermark", b =>
+                {
+                    b.HasOne("TCMine.Server.Domain.Servers.GameServer", null)
+                        .WithMany()
+                        .HasForeignKey("ServerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("TCMine.Server.Domain.Cloud.CloudVault", null)
                         .WithMany()
                         .HasForeignKey("VaultId")

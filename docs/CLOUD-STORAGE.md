@@ -29,6 +29,7 @@ disco ("débito cedo, crédito tarde"). Isso torna crash, rollback e restauraç�
 | `CloudItemRule`               | `VaultId`, `Scope` (`Item`/`Mod`/`Tag`), `Pattern`, `Action` (`Allow`/`Block`), `Note`, `CreatedBy`                                                                                                                             | —                                                                                 |
 | `CloudSuspectItem`            | `VaultId`, `ItemId`, `Reason`, `Count`, `FirstSeenAt`, `LastSeenAt`, `Status` (`Pending`/`Allowed`/`Blocked`)                                                                                                                   | decidir cria um `CloudItemRule`                                                   |
 | `CloudRollbackIncident`       | `VaultId`, `ServerId`, `WorldId`, `Checkpoint` (JSON), `DetectedAt`, `Origin` (`Restore`/`Hello`), `Status` (`Open`/`Reverted`/`Accepted`), `ResolvedBy?`                                                                       | aberto = servidor em somente leitura na nuvem                                     |
+| `CloudWatermark`              | `VaultId`, `ServerId`, `PlayerUuid`, `Epoch`, `Seq` (único por nuvem+servidor+jogador)                                                                                                                                          | régua do rollback no `hello`: sobe com lote aplicado, desce só quando o dono estorna ou aceita|
 | `CloudDoubtfulOperation`      | `VaultId`, `ServerId`, `PlayerUuid`, `ChannelId`, `ItemTypeId`, `Kind` (`PendingCredit`/`RecentDebit`), `Amount`, `OccurredAt`, `Status` (`Open`/`Refunded`/`Dismissed`), `ResolvedBy?`                                         | reportadas pelo mod no boot após crash; devolver = linha no ledger (Source=Admin) |
 | `CloudAdminAuditEntry`        | `ActorUserId`, `Action`, `TargetType`, `TargetId`, `Details` (JSON), `CreatedAt`                                                                                                                                                | toda ação do painel                                                               |
 
@@ -43,7 +44,7 @@ Mudanças em entidades existentes:
 Tabelas: `cloud_vaults`, `cloud_server_credentials`, `cloud_channels`, `cloud_item_types`,
 `cloud_balances`, `cloud_leases`, `cloud_batches`, `cloud_ledger`, `cloud_quarantine`,
 `cloud_item_rules`, `cloud_suspect_items`, `cloud_rollback_incidents`, `cloud_doubtful_operations`,
-`cloud_admin_audit`.
+`cloud_admin_audit`, `cloud_watermarks`.
 Índices: `cloud_ledger(ChannelId, Id)`, `cloud_ledger(VaultId, Id)` (auditoria da nuvem inteira), `cloud_batches(ServerId, Epoch, Seq)`,
 `cloud_balances(ChannelId)`, `cloud_channels(VaultId, PlayerUuid)`.
 `Amount`/`Delta` como `bigint` e testados no `PostgresColumnLimitsTests`.

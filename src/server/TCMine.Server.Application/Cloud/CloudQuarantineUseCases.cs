@@ -106,7 +106,11 @@ public sealed class ResolveCloudQuarantine(
                 .. accepted.Changes.Select(c =>
                     new CloudAdminChange(c.ChannelId, ids[c.Fingerprint], c.Delta, c.After, batch.Id))
             ],
-            CloudLedgerSource.QuarantineApply, userId, reason, [quarantine, batch]), ct);
+            CloudLedgerSource.QuarantineApply, userId, reason, [quarantine, batch],
+            // O lote passa a contar como aplicado pelo servidor que o mandou, como
+            // se tivesse entrado direto: a marca dele sobe até o lote.
+            [new CloudWatermarkMove(vaultId, batch.ServerId, batch.PlayerUuid, batch.Epoch, batch.Seq,
+                CloudWatermarkMoveKind.Raise)]), ct);
         if (!committed)
             return Result.Fail("Um servidor pegou os canais deste jogador agora; tente de novo.");
 

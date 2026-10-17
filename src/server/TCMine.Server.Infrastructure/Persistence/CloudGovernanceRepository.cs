@@ -162,24 +162,15 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         return await db.CloudRollbackIncidents.AsNoTracking().FirstOrDefaultAsync(i => i.Id == id, ct);
     }
 
-    public async Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        db.CloudRollbackIncidents.Update(incident);
-        await db.SaveChangesAsync(ct);
-    }
-
-    public async Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId,
+    public async Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> WorldWatermarksAsync(Guid vaultId,
         Guid serverId, CancellationToken ct)
     {
+        // Uma linha por jogador, pelo índice (VaultId, ServerId, PlayerUuid).
+        // Antes eram TODOS os lotes aplicados do servidor, reduzidos em memória.
         await using var db = await factory.CreateDbContextAsync(ct);
-        var batches = await db.CloudBatches.AsNoTracking()
-            .Where(b => b.VaultId == vaultId && b.ServerId == serverId && b.Status == CloudBatchStatus.Applied)
-            .Select(b => new { b.PlayerUuid, b.Epoch, b.Seq })
-            .ToListAsync(ct);
-        return batches
-            .GroupBy(b => b.PlayerUuid)
-            .ToDictionary(g => g.Key, g => g.Select(b => (b.Epoch, b.Seq)).Max());
+        return await db.CloudWatermarks.AsNoTracking()
+            .Where(w => w.VaultId == vaultId && w.ServerId == serverId)
+            .ToDictionaryAsync(w => w.PlayerUuid, w => (w.Epoch, w.Seq), ct);
     }
 
     // ---------------------------------------------------------------- quarentena

@@ -80,10 +80,12 @@ public interface ICloudGovernanceRepository
     Task AddIncidentAsync(CloudRollbackIncident incident, CancellationToken ct);
     Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly, CancellationToken ct);
     Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct);
-    Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct);
 
-    /// <summary>Maior (época, seq) aplicada deste servidor, por jogador.</summary>
-    Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId, Guid serverId,
+    /// <summary>
+    ///     Até onde o mundo deste servidor está confirmado, por jogador: as marcas
+    ///     d'água (<c>CloudWatermark</c>). Uma linha por jogador, sem ler lotes.
+    /// </summary>
+    Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> WorldWatermarksAsync(Guid vaultId, Guid serverId,
         CancellationToken ct);
 
     // Quarentena

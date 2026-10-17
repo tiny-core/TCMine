@@ -996,10 +996,16 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   incrementa `Version`. `DbUpdateConcurrencyException` → o mod reenvia.
 - **O TCMine nunca decodifica item.** Guarda `EncodedItem` (blob opaco) + `ItemId` + nome de
   exibição que o servidor de jogo mandou.
-- **Mundo que voltou no tempo abre um `CloudRollbackIncident` no `hello`** (checkpoint atrás de lotes
-  já aplicados, MESMO mundo da conexão anterior) e deixa a nuvem em somente leitura naquele servidor.
+- **Mundo que voltou no tempo abre um `CloudRollbackIncident` no `hello`** (checkpoint atrás da marca
+  d'água, MESMO mundo da conexão anterior) e deixa a nuvem em somente leitura naquele servidor.
   Cobre restaurar backup pelo painel e cópia manual. Estorno = linhas compensatórias no ledger (origem `Revert`),
   parando em zero e registrando o que não voltou.
+- **A régua do rollback é a marca d'água** (`CloudWatermark`, `cloud_watermarks`: por nuvem, servidor e
+  jogador), não os lotes. Sobe na MESMA transação que aplica um lote (`CommitAppliedAsync`, e a quarentena
+  aplicada pelo dono); desce só por decisão do dono no incidente — estornar OU aceitar põem a marca no
+  checkpoint do mundo restaurado (`CloudAdminCommit.Watermarks`). Antes o hello lia todos os lotes do
+  servidor, e aceitar não mudava a régua: o hello seguinte reabria o mesmo incidente. Apagar o servidor
+  apaga as marcas dele (FK em cascata: é estado, não histórico).
 - **Decisão do painel que mexe em saldo** (aplicar quarentena, devolver operação em dúvida, estornar)
   só com o lease LIVRE (`CloudLeaseGuard`) e via `CommitAdminAsync`, que aumenta a versão do lease:
   um acquire concorrente perde a corrida e pega os saldos novos.

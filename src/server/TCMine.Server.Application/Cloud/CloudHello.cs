@@ -70,8 +70,10 @@ public sealed partial class CloudHello(
             .Where(x => x.Player is not null)
             .ToDictionary(x => x.Player!, x => (x.Value.Epoch, x.Value.Seq));
 
+        // A régua é a marca d'água: até onde o mundo deste servidor já estava
+        // confirmado (lotes aplicados, ajustada pelas decisões do dono).
         var behind = new List<string>();
-        foreach (var (player, applied) in await governance.LastAppliedByServerAsync(ctx.VaultId, ctx.ServerId, ct))
+        foreach (var (player, applied) in await governance.WorldWatermarksAsync(ctx.VaultId, ctx.ServerId, ct))
         {
             var mine = declared.GetValueOrDefault(player);
             if (mine.CompareTo(applied) < 0)

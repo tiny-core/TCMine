@@ -136,10 +136,7 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
     public Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) =>
-        throw new NotImplementedException();
-
-    public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId,
+    public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> WorldWatermarksAsync(Guid vaultId,
         Guid serverId, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly,

@@ -155,6 +155,14 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             });
         }
 
+        // A marca d'água do servidor sobe no MESMO SaveChanges: um lote aplicado
+        // sem a marca seria um rollback que o próximo hello não enxerga.
+        await MoveWatermarksAsync(db,
+            [
+                new CloudWatermarkMove(batch.VaultId, batch.ServerId, batch.PlayerUuid, batch.Epoch, batch.Seq,
+                    CloudWatermarkMoveKind.Raise)
+            ], ct);
+
         return await TrySaveAsync(db, ct);
     }
 
@@ -214,7 +222,47 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             });
         }
 
+        await MoveWatermarksAsync(db, commit.Watermarks ?? [], ct);
         return await TrySaveAsync(db, ct);
+    }
+
+    /// <summary>
+    ///     Aplica as mudanças de marca d'água no contexto (o SaveChanges é de quem
+    ///     chama, para entrarem na transação dele). Sem linha ainda: Raise cria;
+    ///     LowerTo não faz nada (sem marca, a régua já está no zero). Duas
+    ///     primeiras marcas do mesmo jogador ao mesmo tempo esbarram no índice
+    ///     único, e o <see cref="TrySaveAsync" /> trata como conflito: o mod reenvia.
+    /// </summary>
+    private static async Task MoveWatermarksAsync(TcMineDbContext db, IReadOnlyCollection<CloudWatermarkMove> moves,
+        CancellationToken ct)
+    {
+        if (moves.Count == 0)
+            return;
+
+        var servers = moves.Select(m => m.ServerId).Distinct().ToArray();
+        var players = moves.Select(m => m.PlayerUuid).Distinct().ToArray();
+        var marks = (await db.CloudWatermarks
+                .Where(w => servers.Contains(w.ServerId) && players.Contains(w.PlayerUuid))
+                .ToListAsync(ct))
+            .ToDictionary(w => (w.VaultId, w.ServerId, w.PlayerUuid));
+
+        foreach (var move in moves)
+        {
+            var key = (move.VaultId, move.ServerId, move.PlayerUuid);
+            if (marks.TryGetValue(key, out var mark))
+            {
+                if (move.Kind == CloudWatermarkMoveKind.Raise)
+                    mark.Raise(move.Epoch, move.Seq);
+                else
+                    mark.LowerTo(move.Epoch, move.Seq);
+            }
+            else if (move.Kind == CloudWatermarkMoveKind.Raise)
+            {
+                mark = CloudWatermark.At(move.VaultId, move.ServerId, move.PlayerUuid, move.Epoch, move.Seq);
+                db.CloudWatermarks.Add(mark);
+                marks[key] = mark;
+            }
+        }
     }
 
     public async Task<IReadOnlyList<CloudBatch>> ListAppliedBatchesAsync(Guid vaultId, Guid serverId,

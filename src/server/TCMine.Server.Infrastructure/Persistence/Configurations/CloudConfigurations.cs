@@ -163,6 +163,27 @@ public sealed class CloudLedgerEntryConfiguration : IEntityTypeConfiguration<Clo
     }
 }
 
+public sealed class CloudWatermarkConfiguration : IEntityTypeConfiguration<CloudWatermark>
+{
+    public void Configure(EntityTypeBuilder<CloudWatermark> builder)
+    {
+        builder.ToTable("cloud_watermarks");
+        builder.HasKey(w => w.Id);
+        builder.Property(w => w.PlayerUuid).HasMaxLength(32).IsRequired();
+
+        // Uma marca por jogador em cada servidor de cada nuvem; o hello lê as do
+        // par (nuvem, servidor), que é o começo deste índice.
+        builder.HasIndex(w => new { w.VaultId, w.ServerId, w.PlayerUuid }).IsUnique();
+
+        builder.HasOne<CloudVault>().WithMany().HasForeignKey(w => w.VaultId).OnDelete(DeleteBehavior.Restrict);
+
+        // Cascade, ao contrário dos lotes e do ledger: aqueles são histórico, e
+        // apagar o servidor não apaga o que aconteceu; a marca é estado DELE, e
+        // sem o servidor não há mundo para comparar.
+        builder.HasOne<GameServer>().WithMany().HasForeignKey(w => w.ServerId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 public sealed class CloudQuarantineConfiguration : IEntityTypeConfiguration<CloudQuarantine>
 {
     public void Configure(EntityTypeBuilder<CloudQuarantine> builder)

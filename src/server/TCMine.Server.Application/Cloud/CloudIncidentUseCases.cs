@@ -42,6 +42,10 @@ public sealed record CloudRevertLine(
 ///     registrada (é a duplicação que o rollback causou e que não há como
 ///     desfazer daqui) — a prévia mostra isso antes de confirmar.
 ///     Aceitar: nada é estornado; o dono assume que o mundo restaurado vale.
+///     Nas DUAS saídas a marca d'água do servidor desce até o checkpoint do
+///     mundo restaurado: é ele o ponto confirmado daqui em diante. Sem isso o
+///     aceitar não valia — a régua ficava nos lotes de antes do backup, e o
+///     hello seguinte abria o mesmo incidente de novo.
 /// </summary>
 public sealed class ResolveCloudIncident(
     ICloudAdminRepository repo,
@@ -71,7 +75,15 @@ public sealed class ResolveCloudIncident(
         if (!revert)
         {
             incident.Resolve(CloudIncidentStatus.Accepted, userId, now);
-            await governance.UpdateIncidentAsync(incident, ct);
+
+            // Fechar o incidente e baixar as marcas numa transação só: fechado sem
+            // as marcas, o próximo hello o reabriria. Sem saldos nem leases, o
+            // commit do painel só grava o incidente e as marcas.
+            var accepted = await storage.CommitAdminAsync(new CloudAdminCommit([], [], [],
+                CloudLedgerSource.Admin, userId, incident.Detail, [incident], load.Watermarks), ct);
+            if (!accepted)
+                return Result.Fail("O incidente mudou agora; abra-o de novo.");
+
             await CloudAudit.WriteAsync(governance, vaultId, userId, "incident.accept", incident.Detail, ct);
             return Result.Success();
         }
@@ -96,7 +108,7 @@ public sealed class ResolveCloudIncident(
                 .. lines.Where(l => l.Delta != 0).Select(l =>
                     new CloudAdminChange(l.ChannelId, l.ItemTypeId, l.Delta, l.After, null))
             ],
-            CloudLedgerSource.Revert, userId, reason, [incident, .. load.Batches]), ct);
+            CloudLedgerSource.Revert, userId, reason, [incident, .. load.Batches], load.Watermarks), ct);
         if (!committed)
             return Result.Fail("Um servidor pegou os canais de um destes jogadores agora; tente de novo.");
 
@@ -121,6 +133,15 @@ public sealed class ResolveCloudIncident(
             .Select(kv => (Player: CloudChannel.NormalizePlayerUuid(kv.Key), kv.Value))
             .Where(x => x.Player is not null)
             .ToDictionary(x => x.Player!, x => (x.Value.Epoch, x.Value.Seq));
+
+        // Marcas acima do checkpoint descem até ele (o jogador ausente do
+        // checkpoint vale (0, 0): o mundo restaurado não o conhecia).
+        var watermarks = (await governance.WorldWatermarksAsync(vaultId, incident.ServerId, ct))
+            .Select(w => (Player: w.Key, Mark: w.Value, World: declared.GetValueOrDefault(w.Key)))
+            .Where(w => w.World.CompareTo(w.Mark) < 0)
+            .Select(w => new CloudWatermarkMove(vaultId, incident.ServerId, w.Player, w.World.Epoch, w.World.Seq,
+                CloudWatermarkMoveKind.LowerTo))
+            .ToList();
 
         var batches = (await storage.ListAppliedBatchesAsync(vaultId, incident.ServerId, ct))
             .Where(b => (b.Epoch, b.Seq).CompareTo(declared.GetValueOrDefault(b.PlayerUuid)) > 0)
@@ -147,12 +168,13 @@ public sealed class ResolveCloudIncident(
                 current, current + delta, wanted < 0 ? -wanted : 0);
         }).ToList();
 
-        return new Loaded(null, incident, batches, lines);
+        return new Loaded(null, incident, batches, lines, watermarks);
     }
 
     private sealed record Loaded(
         string? Error,
         CloudRollbackIncident? Incident = null,
         IReadOnlyList<CloudBatch>? Batches = null,
-        IReadOnlyList<CloudRevertLine>? Lines = null);
+        IReadOnlyList<CloudRevertLine>? Lines = null,
+        IReadOnlyList<CloudWatermarkMove>? Watermarks = null);
 }
