@@ -53,10 +53,8 @@ internal sealed class FakeCloudCredentialRepository : ICloudCredentialRepository
     public Task<CloudServerCredential?> FindByIdAsync(Guid id, CancellationToken ct) =>
         Task.FromResult(Credentials.FirstOrDefault(c => c.Id == id));
 
-    public Task<IReadOnlyList<CloudServerCredential>>
-        ListActiveByServerAsync(Guid gameServerId, CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<CloudServerCredential>>(
-            [.. Credentials.Where(c => c.GameServerId == gameServerId && c.IsActive)]);
+    public Task<CloudServerCredential?> FindByServerAsync(Guid gameServerId, CancellationToken ct) =>
+        Task.FromResult(Credentials.FirstOrDefault(c => c.GameServerId == gameServerId));
 
     public Task AddAsync(CloudServerCredential credential, CancellationToken ct)
     {
@@ -65,6 +63,20 @@ internal sealed class FakeCloudCredentialRepository : ICloudCredentialRepository
     }
 
     public Task UpdateAsync(CloudServerCredential credential, CancellationToken ct) => Task.CompletedTask;
+
+    public Task RevokeAsync(Guid gameServerId, DateTimeOffset now, CancellationToken ct)
+    {
+        foreach (var credential in Credentials.Where(c => c.GameServerId == gameServerId))
+            credential.Revoke(now);
+        return Task.CompletedTask;
+    }
+
+    public Task RecordContactAsync(Guid credentialId, DateTimeOffset now, string? modVersion, Guid? worldId,
+        CancellationToken ct)
+    {
+        Credentials.FirstOrDefault(c => c.Id == credentialId)?.RecordContact(now, modVersion, worldId);
+        return Task.CompletedTask;
+    }
 
     public Task<CloudVault?> GetVaultAsync(Guid vaultId, CancellationToken ct) => Task.FromResult<CloudVault?>(null);
 }
@@ -124,9 +136,6 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
         throw new NotImplementedException();
 
     public Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) =>
-        throw new NotImplementedException();
-
-    public Task<Guid?> PreviousWorldAsync(Guid serverId, Guid currentCredentialId, CancellationToken ct) =>
         throw new NotImplementedException();
 
     public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId,

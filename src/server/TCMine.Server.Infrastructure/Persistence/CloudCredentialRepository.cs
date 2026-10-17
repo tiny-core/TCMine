@@ -18,13 +18,11 @@ public sealed class CloudCredentialRepository(IDbContextFactory<TcMineDbContext>
         return await db.CloudServerCredentials.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
     }
 
-    public async Task<IReadOnlyList<CloudServerCredential>> ListActiveByServerAsync(Guid gameServerId,
-        CancellationToken ct)
+    public async Task<CloudServerCredential?> FindByServerAsync(Guid gameServerId, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         return await db.CloudServerCredentials.AsNoTracking()
-            .Where(c => c.GameServerId == gameServerId && c.RevokedAt == null)
-            .ToListAsync(ct);
+            .FirstOrDefaultAsync(c => c.GameServerId == gameServerId, ct);
     }
 
     public async Task AddAsync(CloudServerCredential credential, CancellationToken ct)
@@ -39,6 +37,36 @@ public sealed class CloudCredentialRepository(IDbContextFactory<TcMineDbContext>
         await using var db = await factory.CreateDbContextAsync(ct);
         db.CloudServerCredentials.Update(credential);
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task RevokeAsync(Guid gameServerId, DateTimeOffset now, CancellationToken ct)
+    {
+        // A conversão explícita: as colunas são anuláveis, e sem ela a
+        // inferência do SetProperty fica entre DateTimeOffset e DateTimeOffset?.
+        DateTimeOffset? at = now;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.CloudServerCredentials
+            .Where(c => c.GameServerId == gameServerId && c.RevokedAt == null)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(c => c.RevokedAt, at)
+                .SetProperty(c => c.UpdatedAt, at), ct);
+    }
+
+    public async Task RecordContactAsync(Guid credentialId, DateTimeOffset now, string? modVersion, Guid? worldId,
+        CancellationToken ct)
+    {
+        var version = CloudServerCredential.TrimModVersion(modVersion);
+        DateTimeOffset? at = now;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.CloudServerCredentials
+            .Where(c => c.Id == credentialId)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(c => c.LastSeenAt, at)
+                .SetProperty(c => c.ModVersion, c => version ?? c.ModVersion)
+                .SetProperty(c => c.WorldId, c => worldId ?? c.WorldId)
+                .SetProperty(c => c.UpdatedAt, at), ct);
     }
 
     public async Task<CloudVault?> GetVaultAsync(Guid vaultId, CancellationToken ct)

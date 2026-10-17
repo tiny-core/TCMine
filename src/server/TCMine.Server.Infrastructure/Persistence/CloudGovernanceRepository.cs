@@ -167,17 +167,6 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<Guid?> PreviousWorldAsync(Guid serverId, Guid currentCredentialId, CancellationToken ct)
-    {
-        await using var db = await factory.CreateDbContextAsync(ct);
-        var credentials = await db.CloudServerCredentials.AsNoTracking()
-            .Where(c => c.GameServerId == serverId && c.Id != currentCredentialId && c.WorldId != null)
-            .Select(c => new { c.Id, c.CreatedAt, c.WorldId })
-            .ToListAsync(ct);
-        // Em memória: o SQLite não ordena DateTimeOffset; o Id desempata.
-        return credentials.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id).FirstOrDefault()?.WorldId;
-    }
-
     public async Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId,
         Guid serverId, CancellationToken ct)
     {

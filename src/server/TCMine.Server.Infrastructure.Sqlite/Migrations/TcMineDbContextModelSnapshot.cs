@@ -560,6 +560,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTimeOffset?>("ReissuedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("TEXT");
 
@@ -574,7 +577,8 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameServerId");
+                    b.HasIndex("GameServerId")
+                        .IsUnique();
 
                     b.HasIndex("KeyPrefix")
                         .IsUnique();

@@ -565,6 +565,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
 
+                    b.Property<DateTimeOffset?>("ReissuedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -579,7 +582,8 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GameServerId");
+                    b.HasIndex("GameServerId")
+                        .IsUnique();
 
                     b.HasIndex("KeyPrefix")
                         .IsUnique();

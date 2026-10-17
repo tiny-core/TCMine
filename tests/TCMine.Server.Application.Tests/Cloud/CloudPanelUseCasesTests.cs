@@ -96,10 +96,7 @@ public sealed class CloudPanelUseCasesTests
         repo.Vaults.Add(nuvem);
         servidor.AttachToCloudVault(nuvem);
         var chaves = new FakeCloudCredentialRepository();
-        chaves.Credentials.Add(new CloudServerCredential
-        {
-            GameServerId = servidor.Id, VaultId = nuvem.Id, KeyPrefix = "abcdefghijkm", KeyHash = "h"
-        });
+        chaves.Credentials.Add(CloudServerCredential.Issue(servidor.Id, nuvem.Id, "abcdefghijkm", "h"));
 
         var governanca = new FakeCloudGovernance();
         var setVault = new SetServerCloudVault(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(),

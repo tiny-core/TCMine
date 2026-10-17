@@ -4,34 +4,32 @@ using TCMine.Server.Domain.Cloud;
 namespace TCMine.Server.Application.Cloud;
 
 /// <summary>
-///     Revoga as chaves ativas de um servidor e, se pedido, emite uma nova. Num
-///     lugar só porque toda troca de chave tem de revogar a anterior: duas chaves
-///     válidas para o mesmo servidor seriam uma porta esquecida aberta.
+///     Revoga a chave de um servidor e, se pedido, emite uma nova. Num lugar só
+///     porque toda troca de chave tem de matar a anterior: duas chaves válidas
+///     para o mesmo servidor seriam uma porta esquecida aberta.
+///     Há uma linha por servidor, e a chave nova SOBRESCREVE a velha nela — é a
+///     mesma gravação que revoga, então não existe instante com as duas.
 /// </summary>
 public static class CloudKeyRotation
 {
-    public static async Task RevokeAllAsync(ICloudCredentialRepository credentials, TimeProvider clock, Guid serverId,
-        CancellationToken ct)
-    {
-        var now = clock.GetUtcNow();
-        foreach (var key in await credentials.ListActiveByServerAsync(serverId, ct))
-        {
-            key.Revoke(now);
-            await credentials.UpdateAsync(key, ct);
-        }
-    }
+    public static Task RevokeAsync(ICloudCredentialRepository credentials, TimeProvider clock, Guid serverId,
+        CancellationToken ct) =>
+        credentials.RevokeAsync(serverId, clock.GetUtcNow(), ct);
 
-    /// <summary>Revoga as anteriores e devolve a chave nova em claro (só existe neste instante).</summary>
+    /// <summary>Emite a chave nova no lugar da anterior e a devolve em claro (só existe neste instante).</summary>
     public static async Task<string> RotateAsync(ICloudCredentialRepository credentials, TimeProvider clock,
         Guid serverId, Guid vaultId, CancellationToken ct)
     {
-        await RevokeAllAsync(credentials, clock, serverId, ct);
         var (key, prefix, hash) = CloudServerKey.Generate();
-        await credentials.AddAsync(
-            new CloudServerCredential
-            {
-                GameServerId = serverId, VaultId = vaultId, KeyPrefix = prefix, KeyHash = hash
-            }, ct);
+
+        if (await credentials.FindByServerAsync(serverId, ct) is { } current)
+        {
+            current.Reissue(vaultId, prefix, hash, clock.GetUtcNow());
+            await credentials.UpdateAsync(current, ct);
+        }
+        else
+            await credentials.AddAsync(CloudServerCredential.Issue(serverId, vaultId, prefix, hash), ct);
+
         return key;
     }
 }

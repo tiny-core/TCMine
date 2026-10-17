@@ -962,11 +962,18 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   MESMO dono. Toda consulta da API do mod deriva o `CloudVaultId` da CHAVE do servidor, nunca de
   um campo do corpo. Instance admin vê tudo no painel; a API do mod nunca.
 - **Chave do servidor = segredo como o `RconSecret`:** gerada pelo TCMine a CADA start do servidor
-  (`ProvisionServerCloudKey`, a anterior é revogada), gravada em `tccloud-server.json` na raiz da
+  (`ProvisionServerCloudKey`), gravada em `tccloud-server.json` na raiz da
   pasta da instância (`/data` no container) e guardada no banco só como hash SHA-256. Nunca em DTO,
   log ou tela (a tela mostra só o prefixo). Arquivo e não variável de ambiente: a chave muda a
   CADA start, e uma variável mudaria a impressão digital da spec (§6) — o container seria recriado a
   cada arranque, e a senha da nuvem iria parar no `docker inspect`.
+- **Uma linha de chave por servidor** (`cloud_server_credentials`, `GameServerId` único). A chave nova
+  SOBRESCREVE a velha na mesma linha (`CloudServerCredential.Reissue`, via `CloudKeyRotation.RotateAsync`);
+  antes, cada start deixava uma revogada para sempre. A linha guarda o último mundo visto (`WorldId`), que
+  sobrevive à troca de chave: é contra ele que o hello seguinte decide entre "mesmo mundo" (confere o
+  checkpoint) e "mapa novo". Hello e revogação gravam SÓ as colunas deles (`RecordContactAsync`,
+  `RevokeAsync`, por `ExecuteUpdate`): a linha inteira, gravada a partir de uma cópia lida antes, podia
+  devolver o hash de uma chave que acabou de ser trocada.
 - **Só servidores orquestrados pelo TCMine** recebem chave. URL: `Server:CloudUrl` ou, sem ela,
   `Server:PublicUrl`. O `online-mode` é conferido pelo mod (recusa a nuvem em modo offline).
 - **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA

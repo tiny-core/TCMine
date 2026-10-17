@@ -9,7 +9,7 @@ public sealed record CloudVaultSummary(Guid Id, string Name, Guid OwnerId, bool 
 public sealed record CloudServerKeyView(
     Guid ServerId,
     string Prefix,
-    DateTimeOffset CreatedAt,
+    DateTimeOffset IssuedAt,
     DateTimeOffset? LastSeenAt,
     string? ModVersion);
 

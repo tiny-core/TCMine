@@ -64,7 +64,7 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
         return
         [
             .. keys.Select(k =>
-                new CloudServerKeyView(k.GameServerId, k.KeyPrefix, k.CreatedAt, k.LastSeenAt, k.ModVersion))
+                new CloudServerKeyView(k.GameServerId, k.KeyPrefix, k.IssuedAt, k.LastSeenAt, k.ModVersion))
         ];
     }
 

@@ -37,10 +37,14 @@ public sealed class CloudServerCredentialConfiguration : IEntityTypeConfiguratio
         builder.Property(c => c.KeyHash).HasMaxLength(64).IsRequired();
         builder.Property(c => c.ModVersion).HasMaxLength(32);
         builder.Ignore(c => c.IsActive);
+        builder.Ignore(c => c.IssuedAt);
 
         // Toda requisição do mod começa por aqui: achar a chave pelo prefixo.
         builder.HasIndex(c => c.KeyPrefix).IsUnique();
-        builder.HasIndex(c => c.GameServerId);
+
+        // Uma linha por servidor: a chave nova sobrescreve a velha (Reissue).
+        // O índice é o que garante isso, e não só o código que reemite.
+        builder.HasIndex(c => c.GameServerId).IsUnique();
 
         builder.HasOne<GameServer>().WithMany().HasForeignKey(c => c.GameServerId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne<CloudVault>().WithMany().HasForeignKey(c => c.VaultId).OnDelete(DeleteBehavior.Restrict);

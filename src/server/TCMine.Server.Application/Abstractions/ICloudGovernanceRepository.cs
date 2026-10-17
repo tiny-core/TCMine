@@ -59,13 +59,6 @@ public interface ICloudGovernanceRepository
     Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct);
     Task UpdateIncidentAsync(CloudRollbackIncident incident, CancellationToken ct);
 
-    /// <summary>
-    ///     Mundo que o servidor declarou na conexão ANTERIOR (a credencial mais
-    ///     recente, fora a atual, com mundo conhecido). Base para distinguir
-    ///     "mapa novo" (outro mundo, normal) de "mundo que voltou no tempo".
-    /// </summary>
-    Task<Guid?> PreviousWorldAsync(Guid serverId, Guid currentCredentialId, CancellationToken ct);
-
     /// <summary>Maior (época, seq) aplicada deste servidor, por jogador.</summary>
     Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> LastAppliedByServerAsync(Guid vaultId, Guid serverId,
         CancellationToken ct);

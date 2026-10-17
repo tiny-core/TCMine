@@ -28,15 +28,15 @@ public sealed partial class CloudHello(
         if (vault is null)
             return CloudCallResult<CloudHelloReply>.Forbidden("Nuvem não encontrada.");
 
-        var incident = await governance.GetOpenIncidentAsync(ctx.ServerId, ct)
-                       ?? await DetectRollbackAsync(ctx, request.Checkpoint, ct);
+        // O mundo do contato ANTERIOR: a linha da chave guarda o último mundo
+        // visto e sobrevive às trocas de chave. Lido antes de gravar o deste.
+        var previousWorld = (await credentials.FindByIdAsync(ctx.CredentialId, ct))?.WorldId;
 
-        var credential = await credentials.FindByIdAsync(ctx.CredentialId, ct);
-        if (credential is not null)
-        {
-            credential.RecordContact(clock.GetUtcNow(), request.ModVersion, request.Checkpoint.WorldId);
-            await credentials.UpdateAsync(credential, ct);
-        }
+        var incident = await governance.GetOpenIncidentAsync(ctx.ServerId, ct)
+                       ?? await DetectRollbackAsync(ctx, previousWorld, request.Checkpoint, ct);
+
+        await credentials.RecordContactAsync(ctx.CredentialId, clock.GetUtcNow(), request.ModVersion,
+            request.Checkpoint.WorldId, ct);
 
         LogHello(ctx.ServerId, request.ModVersion ?? "?", request.Checkpoint.WorldId,
             request.Checkpoint.Players?.Count ?? 0);
@@ -59,10 +59,9 @@ public sealed partial class CloudHello(
             readOnlyReason));
     }
 
-    private async Task<CloudRollbackIncident?> DetectRollbackAsync(CloudServerContext ctx, CloudCheckpoint checkpoint,
-        CancellationToken ct)
+    private async Task<CloudRollbackIncident?> DetectRollbackAsync(CloudServerContext ctx, Guid? previousWorld,
+        CloudCheckpoint checkpoint, CancellationToken ct)
     {
-        var previousWorld = await governance.PreviousWorldAsync(ctx.ServerId, ctx.CredentialId, ct);
         if (previousWorld != checkpoint.WorldId)
             return null; // primeiro contato ou mapa novo: nada a comparar
 

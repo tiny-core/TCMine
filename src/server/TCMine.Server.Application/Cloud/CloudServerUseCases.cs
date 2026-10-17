@@ -93,7 +93,7 @@ public sealed class SetServerCloudVault(
 
         // A chave e o arquivo saem já; a chave nova (da nuvem nova) vem no
         // próximo start do servidor (ProvisionServerCloudKey).
-        await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
+        await CloudKeyRotation.RevokeAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
         await servers.UpdateAsync(server, ct);
 
@@ -133,7 +133,7 @@ public sealed class RevokeCloudServerKey(
         if (!auth.Succeeded)
             return auth;
 
-        await CloudKeyRotation.RevokeAllAsync(credentials, clock, serverId, ct);
+        await CloudKeyRotation.RevokeAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
         if (await servers.GetByIdAsync(serverId, ct) is { CloudVaultId: { } vaultId } server)
         {

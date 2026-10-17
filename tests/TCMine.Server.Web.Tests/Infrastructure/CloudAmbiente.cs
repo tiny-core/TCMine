@@ -104,10 +104,8 @@ internal sealed class CloudAmbiente : IAsyncDisposable
     }
 
     private static CloudServerCredential Credencial(GameServer servidor, CloudVault nuvem,
-        (string Key, string Prefix, string Hash) chave) => new()
-    {
-        GameServerId = servidor.Id, VaultId = nuvem.Id, KeyPrefix = chave.Prefix, KeyHash = chave.Hash
-    };
+        (string Key, string Prefix, string Hash) chave) =>
+        CloudServerCredential.Issue(servidor.Id, nuvem.Id, chave.Prefix, chave.Hash);
 
     public HttpClient Cliente(string chave)
     {
@@ -124,19 +122,16 @@ internal sealed class CloudAmbiente : IAsyncDisposable
         await db.SaveChangesAsync(Ct);
     }
 
-    /// <summary>Simula um reinício do servidor A: chave nova, a anterior revogada (ProvisionServerCloudKey).</summary>
+    /// <summary>
+    ///     Um reinício do servidor A: a mesma rotação do ProvisionServerCloudKey,
+    ///     sobre o repositório real — a chave nova sobrescreve a anterior na linha
+    ///     do servidor, e o mundo do último hello fica.
+    /// </summary>
     public async Task<string> RotacionarChaveAAsync()
     {
-        await using var db = await Dbs().CreateDbContextAsync(Ct);
-        foreach (var antiga in await db.CloudServerCredentials.Where(c => c.GameServerId == ServidorA).ToListAsync(Ct))
-            antiga.Revoke(Relogio.GetUtcNow());
-        var (key, prefix, hash) = CloudServerKey.Generate();
-        db.CloudServerCredentials.Add(new CloudServerCredential
-        {
-            GameServerId = ServidorA, VaultId = Nuvem, KeyPrefix = prefix, KeyHash = hash
-        });
-        await db.SaveChangesAsync(Ct);
-        return key;
+        using var escopo = Factory.Services.CreateScope();
+        var credenciais = escopo.ServiceProvider.GetRequiredService<ICloudCredentialRepository>();
+        return await CloudKeyRotation.RotateAsync(credenciais, Relogio, ServidorA, Nuvem, Ct);
     }
 
     public async Task CriarRegraAsync(CloudRuleScope scope, string pattern, CloudRuleAction action)

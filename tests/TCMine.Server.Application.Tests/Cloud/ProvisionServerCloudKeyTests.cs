@@ -34,9 +34,39 @@ public sealed class ProvisionServerCloudKeyTests
 
         segunda.ShouldNotBe(primeira);
         files.Files[servidor.Id].Url.ShouldBe(Url);
-        chaves.Credentials.Count(c => c.IsActive).ShouldBe(1, "só a chave do último start vale");
-        CloudServerKey.Matches(segunda, chaves.Credentials.Single(c => c.IsActive).KeyHash).ShouldBeTrue();
-        chaves.Credentials.Single(c => c.IsActive).VaultId.ShouldBe(servidor.CloudVaultId!.Value);
+
+        // Uma linha por servidor: a chave nova sobrescreve a velha, que deixa
+        // de existir — antes cada start deixava uma revogada para sempre.
+        var linha = chaves.Credentials.ShouldHaveSingleItem();
+        linha.IsActive.ShouldBeTrue();
+        CloudServerKey.Matches(segunda, linha.KeyHash).ShouldBeTrue();
+        CloudServerKey.Matches(primeira, linha.KeyHash).ShouldBeFalse();
+        linha.VaultId.ShouldBe(servidor.CloudVaultId!.Value);
+    }
+
+    [Fact]
+    public async Task Chave_reemitida_reativa_a_linha_e_guarda_o_ultimo_mundo()
+    {
+        // O mundo do último hello é o que a detecção de rollback compara no
+        // hello seguinte; perdê-lo na troca de chave tornaria todo reinício
+        // um "mapa novo", e um mundo restaurado passaria sem incidente.
+        var (servidor, repo) = ServidorNaNuvem();
+        var chaves = new FakeCloudCredentialRepository();
+        var provision = FakeCloud.Provisioner(repo, new FakeCloudServerFiles(), chaves, Url);
+        var mundo = Guid.CreateVersion7();
+
+        await provision.HandleAsync(servidor.Id, Ct);
+        var linha = chaves.Credentials.Single();
+        await chaves.RecordContactAsync(linha.Id, DateTimeOffset.UtcNow, "1.0.0", mundo, Ct);
+        await chaves.RevokeAsync(servidor.Id, DateTimeOffset.UtcNow, Ct);
+
+        await provision.HandleAsync(servidor.Id, Ct);
+
+        chaves.Credentials.ShouldHaveSingleItem().Id.ShouldBe(linha.Id);
+        linha.IsActive.ShouldBeTrue();
+        linha.WorldId.ShouldBe(mundo);
+        linha.LastSeenAt.ShouldBeNull("o contato era da chave anterior");
+        linha.ModVersion.ShouldBeNull();
     }
 
     [Fact]
