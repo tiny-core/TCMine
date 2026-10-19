@@ -1,3 +1,4 @@
+using System.Reflection;
 using TCMine.Server.Domain.Modpacks;
 
 namespace TCMine.Server.Infrastructure.Tests;
@@ -43,5 +44,32 @@ public sealed class ColumnLengthConventionTests
 
         pendente.FindProperty(nameof(PendingMod.PageUrl))!.GetMaxLength()!.Value
             .ShouldBeGreaterThanOrEqualTo(1024);
+    }
+    [Fact]
+    public void Todo_teto_do_dominio_cabe_na_coluna()
+    {
+        // A mesma armadilha três vezes (arquivo, snapshot, teclas do jogador):
+        // o domínio declara um teto MAIOR que 512, o caso de uso o aplica, e a
+        // coluna herda os 512 da convenção — passa no SQLite, quebra no
+        // Postgres. Regra geral, para a próxima: uma constante
+        // Max{Propriedade}Length na entidade vale como o tamanho que a coluna
+        // tem de aceitar (sem limite também serve).
+        using var factory = new SqliteTestFactory();
+        using var db = factory.CreateDbContext();
+
+        var curtas = (
+            from entity in db.Model.GetEntityTypes()
+            from field in entity.ClrType.GetFields(BindingFlags.Public | BindingFlags.Static)
+            where field.IsLiteral && field.FieldType == typeof(int)
+                  && field.Name.StartsWith("Max", StringComparison.Ordinal)
+                  && field.Name.EndsWith("Length", StringComparison.Ordinal)
+            let property = entity.FindProperty(field.Name["Max".Length..^"Length".Length])
+            where property is not null && property.ClrType == typeof(string)
+            let ceiling = (int)field.GetRawConstantValue()!
+            where property.GetMaxLength() is { } column && column < ceiling
+            select $"{entity.ClrType.Name}.{property.Name}: coluna {property.GetMaxLength()}, domínio {ceiling}"
+        ).ToList();
+
+        curtas.ShouldBeEmpty();
     }
 }

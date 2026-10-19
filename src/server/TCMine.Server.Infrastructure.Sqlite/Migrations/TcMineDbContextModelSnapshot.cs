@@ -896,14 +896,12 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
 
                     b.Property<string>("KeyBindings")
                         .IsRequired()
-                        .HasMaxLength(512)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("ModpackId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Options")
-                        .HasMaxLength(512)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")

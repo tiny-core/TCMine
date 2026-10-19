@@ -13,11 +13,14 @@ public sealed class PlayerModpackSettingsConfiguration : IEntityTypeConfiguratio
 
         builder.HasKey(s => s.Id);
 
-        // Sem HasMaxLength: as duas colunas são texto livre (text no Postgres),
-        // e o teto vive no caso de uso — um varchar(n) curto demais é o tipo de
-        // erro que o SQLite esconde e só aparece em produção (§9).
-        builder.Property(s => s.KeyBindings).IsRequired();
-        builder.Property(s => s.Options);
+        // Texto livre (text no Postgres): o teto vive no caso de uso. O limite
+        // tem de ser DESFEITO, e não só omitido — a convenção global dá 512 a
+        // toda string, e Property() pelado o herda. Foi o que aconteceu aqui:
+        // o comentário dizia "sem limite", a coluna saiu varchar(512), e as
+        // teclas de qualquer pack de verdade (KB de linhas key_*) estouravam
+        // no Postgres a cada gravação, enquanto o SQLite dos testes aceitava.
+        builder.Property(s => s.KeyBindings).IsRequired().Metadata.SetMaxLength(null);
+        builder.Property(s => s.Options).Metadata.SetMaxLength(null);
 
         builder.Ignore(s => s.LastSavedAt);
 

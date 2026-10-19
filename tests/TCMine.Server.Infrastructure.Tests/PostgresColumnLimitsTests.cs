@@ -3,6 +3,7 @@ using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Domain.Identity;
 using TCMine.Server.Domain.Modpacks;
 using TCMine.Server.Infrastructure.Persistence;
 
@@ -129,6 +130,40 @@ public sealed class PostgresColumnLimitsTests
     }
 
     [Fact]
+    public async Task Opcoes_do_jogador_de_um_pack_grande_cabem_no_banco()
+    {
+        // O bug relatado: o launcher nunca conseguiu gravar as teclas. As colunas
+        // saíram varchar(512) e as linhas key_* de um pack como o All the Mods
+        // somam kilobytes; o hub devolvia só "unexpected error" e a tabela
+        // ficava vazia. Grava no teto do domínio, pelo repositório, e lê de volta.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
+
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
+        var modpackId = await SemearModpackAsync(postgres);
+        var user = new User { DisplayName = "Ana" };
+        await using (var db = postgres.CreateContext())
+        {
+            db.Users.Add(user);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var teclas = new string('k', PlayerModpackSettings.MaxKeyBindingsLength);
+        var opcoes = new string('o', PlayerModpackSettings.MaxOptionsLength);
+        var settings = new PlayerModpackSettings { UserId = user.Id, ModpackId = modpackId };
+        settings.Replace(teclas, opcoes);
+        var repo = new PlayerSettingsRepository(postgres);
+
+        // As duas gravações: a primeira do jogador (INSERT) e as seguintes (UPDATE).
+        await repo.AddAsync(settings, Ct);
+        settings.Replace(teclas, opcoes);
+        await repo.UpdateAsync(settings, Ct);
+
+        var lido = (await repo.GetAsync(user.Id, modpackId, Ct)).ShouldNotBeNull();
+        lido.KeyBindings.Length.ShouldBe(PlayerModpackSettings.MaxKeyBindingsLength);
+        lido.Options!.Length.ShouldBe(PlayerModpackSettings.MaxOptionsLength);
+    }
+
+    [Fact]
     public async Task A_consulta_de_recursos_traduz_no_postgres()
     {
         // A aba Recursos ficava carregando para sempre: a consulta usava
@@ -191,6 +226,13 @@ public sealed class PostgresColumnLimitsTests
 
         (await db.Database.GetPendingMigrationsAsync(Ct)).ShouldBeEmpty();
         (await db.Database.CanConnectAsync(Ct)).ShouldBeTrue();
+    }
+
+    private static async Task<Guid> SemearModpackAsync(PostgresTestDatabase postgres)
+    {
+        await using var db = postgres.CreateContext();
+        var versionId = await SemearVersaoAsync(db);
+        return (await db.ModpackVersions.SingleAsync(v => v.Id == versionId, Ct)).ModpackId;
     }
 
     private static async Task<Guid> SemearVersaoAsync(TcMineDbContext db)

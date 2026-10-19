@@ -901,15 +901,13 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
 
                     b.Property<string>("KeyBindings")
                         .IsRequired()
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<Guid>("ModpackId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Options")
-                        .HasMaxLength(512)
-                        .HasColumnType("character varying(512)");
+                        .HasColumnType("text");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

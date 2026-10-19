@@ -843,6 +843,11 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   ```
 
   No `release.yml` a variável está definida e eles rodam sempre.
+- **Coluna de texto sem limite se DESFAZ, não se omite.** A convenção dá 512 a toda string, e
+  `builder.Property(x => x.Campo)` pelado o herda — foram três colunas assim (arquivo, snapshot da origem,
+  teclas do jogador), todas com um comentário dizendo "sem limite". Use `.Metadata.SetMaxLength(null)`. E
+  declare o teto no domínio como `Max{Propriedade}Length`: `ColumnLengthConventionTests` confere que toda
+  constante dessas cabe na coluna, sem precisar de PostgreSQL.
 - **Ao corrigir um bug, escreva o teste de regressão** que o trava. Foi assim que blindamos o `UpdateVersionAsync`.
 
 ---
