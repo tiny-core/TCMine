@@ -16,6 +16,71 @@ número de estável e renumeradas na 0.11.0 para seguir a linha 0.x: 1.X.Y virou
 As entradas abaixo já usam os números novos. As releases no GitHub começam na
 0.11.0.
 
+## [0.13.0] — 2026-10-19
+
+Launcher **0.9.0** (sem mudança).
+
+**Antes de atualizar:** faça backup do banco — esta versão traz oito migrations,
+três delas escritas à mão para corrigir dados antes das que mudam a estrutura.
+Os containers de jogo NÃO são recriados, e o launcher não muda. A limpeza de
+histórico (veja *Adicionado*) roda pela primeira vez dez minutos depois do
+arranque, com prazo de 90 dias; como a nuvem existe há menos tempo que isso,
+ela ainda não acha nada para apagar. Quem quiser guardar tudo põe 0 no prazo
+de cada nuvem.
+
+### Adicionado
+
+- **Auditoria da nuvem em duas partes:** *Decisões do painel* (quem decidiu o
+  quê) e *Movimentos de itens* (o ledger), com filtros de jogador, item, origem
+  e período, e páginas que carregam sob demanda em vez da tabela inteira. Na
+  aba Jogadores, um botão leva direto ao histórico daquele jogador.
+- **Retenção.** Uma vez por dia o painel apaga o que venceu:
+  - o histórico de jogo de cada nuvem (movimentos que vieram do jogo e os lotes
+    deles), pelo prazo da nuvem — 90 dias por padrão, em Configurações da
+    nuvem;
+  - o log de atividade, pelo prazo da instalação — 90 dias por padrão, em
+    Configurações;
+  - convites mortos e pedidos de acesso resolvidos, 30 dias depois.
+
+  Nunca sai: ajustes, estornos e quarentenas decididos no painel, a auditoria,
+  incidentes e operações em dúvida. Nada sai de um servidor com incidente de
+  rollback aberto, nem nada mais novo que o backup de mundo mais antigo dele.
+  Os saldos não mudam. Prazo 0 guarda para sempre.
+
+### Alterado
+
+- **Uma chave da nuvem por servidor.** Cada start trocava a chave e deixava a
+  anterior revogada para sempre; agora a chave nova substitui a velha na mesma
+  linha, e o último mundo visto passa de uma chave para a outra.
+- **A régua do rollback é uma marca por servidor e jogador**, que sobe a cada
+  lote aplicado. Antes o hello relia todos os lotes do servidor.
+- **A API do mod ficou mais leve:** a autenticação de cada chamada é uma
+  consulta só, e o heartbeat renova todos os leases numa leitura e numa
+  gravação. O heartbeat deixou de mexer na versão do lease, então um lote que
+  chega junto com ele não precisa mais ser reenviado.
+
+### Corrigido
+
+- **Aceitar um incidente de rollback não resolvia nada:** o hello seguinte
+  reabria o mesmo incidente. Agora aceitar põe a marca no mundo restaurado.
+- **As teclas do jogador nunca eram gravadas no PostgreSQL.** As colunas
+  tinham 512 caracteres, e as teclas de um pack de verdade passam disso; o
+  launcher registrava a falha no log e seguia. Agora cabem, e quem já jogou
+  envia as suas na próxima abertura do jogo, sem fazer nada.
+
+### Migração
+
+- `KeepOneCloudKeyPerServer` (à mão) deixa uma chave por servidor — a ativa,
+  ou a mais recente — levando para ela o último mundo conhecido; depois
+  `OneCloudKeyPerServer` torna o servidor único na tabela.
+- `AddLedgerVaultId` e `BackfillLedgerVaultId` (à mão) dão a cada linha do
+  ledger a nuvem do seu canal, para a auditoria listar a nuvem inteira.
+- `AddCloudWatermarks` e `BackfillCloudWatermarks` (à mão) criam as marcas do
+  rollback a partir dos lotes já aplicados. Um incidente aceito antes desta
+  versão pode reabrir uma vez; aceite de novo e ele não volta.
+- `AddRetentionSettings` acrescenta os dois prazos, com 90 dias.
+- `WidenPlayerSettingsColumns` tira o limite das colunas das teclas.
+
 ## [0.12.0] — 2026-10-17
 
 Launcher **0.9.0**.
