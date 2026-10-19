@@ -73,6 +73,7 @@ public sealed class SettingsRepository : ISettingsRepository
         // "Salvar". É a armadilha desta cópia campo a campo — acrescentar
         // propriedade no domínio não quebra nada aqui, o valor só some.
         stored.WorldBackupKeepCount = settings.WorldBackupKeepCount;
+        stored.ActivityRetentionDays = settings.ActivityRetentionDays;
 
         // A mesma armadilha, outra vez: a faixa de portas entrou na 0.8.0 sem
         // esta cópia, e a tela dizia "salvo" enquanto o banco ficava com a

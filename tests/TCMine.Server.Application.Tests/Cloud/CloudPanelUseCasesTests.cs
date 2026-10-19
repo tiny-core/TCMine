@@ -71,6 +71,39 @@ public sealed class CloudPanelUseCasesTests
     }
 
     [Fact]
+    public async Task Prazo_do_historico_fora_da_regra_recusa_sem_mexer_em_nada()
+    {
+        // A recusa vem antes dos limites: sem isso, o TTL abaixo já teria sido
+        // trocado na entidade quando o prazo fosse recusado.
+        var repo = new FakeCloudAdminRepository();
+        var eu = new FakeUserScope();
+        var nuvem = new CloudVault { Name = "N", OwnerId = eu.OwnerId };
+        repo.Vaults.Add(nuvem);
+
+        var result = await new UpdateCloudVault(repo, new FakeCloudGovernance(), eu).HandleAsync(nuvem.Id,
+            new CloudVaultSettings("N", true, CloudPolicyMode.Blocklist, 60, 8192, 5, 100, 1000, 3), Ct);
+
+        result.Succeeded.ShouldBeFalse();
+        nuvem.LeaseTtlMinutes.ShouldBe(30);
+        nuvem.GameHistoryDays.ShouldBe(CloudVault.DefaultGameHistoryDays);
+    }
+
+    [Fact]
+    public async Task Prazo_do_historico_zero_e_para_sempre()
+    {
+        var repo = new FakeCloudAdminRepository();
+        var eu = new FakeUserScope();
+        var nuvem = new CloudVault { Name = "N", OwnerId = eu.OwnerId };
+        repo.Vaults.Add(nuvem);
+
+        (await new UpdateCloudVault(repo, new FakeCloudGovernance(), eu).HandleAsync(nuvem.Id,
+            new CloudVaultSettings("N", true, CloudPolicyMode.Blocklist, 30, 8192, 5, 100, 1000, 0), Ct))
+            .Succeeded.ShouldBeTrue();
+
+        nuvem.GameHistoryDays.ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Ligar_servidor_a_nuvem_de_outro_dono_e_recusado()
     {
         var repo = new FakeCloudAdminRepository();

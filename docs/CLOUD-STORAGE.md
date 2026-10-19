@@ -24,7 +24,7 @@ disco ("débito cedo, crédito tarde"). Isso torna crash, rollback e restauraç�
 | `CloudBalance`                | PK (`ChannelId`, `ItemTypeId`), `Amount` (long ≥ 0)                                                                                                                                                                             | linha removida quando chega a 0                                                   |
 | `CloudLease`                  | PK (`VaultId`, `PlayerUuid`), `HolderServerId?`, `Epoch` (long, nunca diminui), `LastSeq`, `State` (`Free`/`Held`/`Releasing`), `HeartbeatAt`, `ExpiresAt`, `Version` (token de concorrência)                                   | linha nunca apagada: a época precisa sobreviver                                   |
 | `CloudBatch`                  | `VaultId`, `PlayerUuid`, `ServerId`, `Epoch`, `Seq`, `Status` (`Applied`/`Quarantined`/`Discarded`/`Reverted`), `PayloadHash`, `ReceivedAt`                                                                                     | único (VaultId, PlayerUuid, Epoch, Seq)                                           |
-| `CloudLedgerEntry`            | `VaultId` (cópia da nuvem do canal), `ChannelId`, `ItemTypeId`, `Delta`, `BalanceAfter`, `Source` (`Game`/`Admin`/`Revert`/`QuarantineApply`), `BatchId?`, `ActorUserId?`, `Reason?`, `CreatedAt`                                                                    | append-only: o código não tem método de Update/Delete                             |
+| `CloudLedgerEntry`            | `VaultId` (cópia da nuvem do canal), `ChannelId`, `ItemTypeId`, `Delta`, `BalanceAfter`, `Source` (`Game`/`Admin`/`Revert`/`QuarantineApply`), `BatchId?`, `ActorUserId?`, `Reason?`, `CreatedAt`                                                                    | append-only: o código não tem método de Update; só a retenção (§12) apaga         |
 | `CloudQuarantine`             | `BatchId`, `Reason` (`StaleEpoch`/`NegativeBalance`/`Divergence`/`QuotaExceeded`), `Payload` (JSON), `ResolvedAt?`, `ResolvedBy?`, `Resolution?`                                                                                | aplicar só se o lease estiver livre                                               |
 | `CloudItemRule`               | `VaultId`, `Scope` (`Item`/`Mod`/`Tag`), `Pattern`, `Action` (`Allow`/`Block`), `Note`, `CreatedBy`                                                                                                                             | —                                                                                 |
 | `CloudSuspectItem`            | `VaultId`, `ItemId`, `Reason`, `Count`, `FirstSeenAt`, `LastSeenAt`, `Status` (`Pending`/`Allowed`/`Blocked`)                                                                                                                   | decidir cria um `CloudItemRule`                                                   |
@@ -209,3 +209,31 @@ incidentes, em dúvida) no menu.
 - **Ajuste manual de saldo (`AdjustBalance`) ficou de fora**: as três decisões cobrem os casos previstos e
   um campo livre de "somar N itens" é a porta mais fácil para criar itens do nada. Fica para quando houver
   um caso real.
+
+## 12. Retenção (Fase 5.4)
+
+O ledger crescia para sempre: cada lote de jogo deixa linhas, e um servidor movimentado grava milhares por
+dia. A retenção apaga o **histórico de jogo velho** e mantém tudo o que é decisão do dono. Roda uma vez por
+dia (`RetentionWorker` → `RunRetention`), dez minutos depois do arranque, em blocos de 5.000 linhas por
+transação, para não segurar a tabela que o jogo usa.
+
+- **Dois prazos só**, ambos com 0 = para sempre ou de 7 a 3.650 dias (`RetentionPeriod`):
+  - **histórico de jogo**, por nuvem (`CloudVault.GameHistoryDays`, padrão 90): linhas do ledger com
+    origem `Game` e os lotes que ficaram sem ninguém apontando;
+  - **log de atividade**, por instalação (`InstallationSettings.ActivityRetentionDays`, padrão 90).
+  - Fixo, sem tela: convites mortos (usados, revogados ou vencidos) e pedidos de acesso resolvidos saem
+    30 dias depois (`RunRetention.HousekeepingDays`). Pedido pendente e convite válido nunca saem.
+- **Nunca sai**: linhas `Admin`, `Revert` e `QuarantineApply`, a auditoria do painel, a quarentena
+  (resolvida ou não), incidentes, operações em dúvida — e os lotes que alguma delas referencia. Lote
+  estornado (`Reverted`) também fica: é parte de um incidente. A linha de jogo dele sai; o lote, não.
+- **Servidor com incidente aberto não perde nada**: a prévia do estorno ainda vai ler os lotes posteriores
+  ao checkpoint.
+- **O backup de mundo mais antigo puxa o corte para trás.** Restaurar um backup de 120 dias abre um
+  incidente cujo estorno precisa dos lotes desde ele; com prazo de 90, o corte daquele servidor fica na
+  data do backup. Apagar o backup libera o corte na rodada seguinte.
+- **Apagar lote velho é seguro para a idempotência**: quem barra o reenvio é o lease (época e última
+  sequência), não a linha do lote. Um lote apagado que voltasse 90 dias depois está atrás do lease e não é
+  aplicado de novo.
+- **O saldo não muda**: `cloud_balances` é derivado mas guardado, e o `BalanceAfter` das linhas que ficam
+  continua valendo. O que se perde é "de onde veio" um saldo antigo, não o saldo.
+- **Corte pelo `Id`** (`IdTime.Floor`), como a auditoria: o SQLite não compara `DateTimeOffset`.

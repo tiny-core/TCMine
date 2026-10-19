@@ -654,6 +654,11 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("GameHistoryDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -1500,6 +1505,11 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<int>("ActivityRetentionDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
 
                     b.Property<string>("AzureClientId")
                         .HasMaxLength(64)

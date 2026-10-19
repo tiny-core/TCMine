@@ -1,6 +1,7 @@
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
+using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 using TCMine.Server.Domain.Settings;
 
@@ -24,6 +25,9 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
 
         if (command.WorldBackupKeepCount is < 0)
             return Result.Fail("A retenção de backups não pode ser negativa.");
+
+        if (!RetentionPeriod.IsValid(command.ActivityRetentionDays))
+            return Result.Fail($"Log de atividade: {RetentionPeriod.Rule}");
 
         // A faixa só decide a porta SUGERIDA a servidores novos. Uma faixa
         // inválida não quebraria nada à vista — o alocador cairia na padrão em
@@ -195,6 +199,7 @@ public sealed class UpdateSettings(ISettingsRepository repository, IDnsSyncSigna
         settings.DefaultLoader = command.DefaultLoader;
         settings.DefaultMemoryMb = command.DefaultMemoryMb;
         settings.WorldBackupKeepCount = command.WorldBackupKeepCount;
+        settings.ActivityRetentionDays = command.ActivityRetentionDays;
         settings.GamePortRangeStart = command.GamePortRangeStart;
         settings.GamePortRangeEnd = command.GamePortRangeEnd;
 
@@ -269,6 +274,7 @@ public sealed record UpdateSettingsCommand
             DefaultLoader = settings.DefaultLoader,
             DefaultMemoryMb = settings.DefaultMemoryMb,
             WorldBackupKeepCount = settings.WorldBackupKeepCount,
+            ActivityRetentionDays = settings.ActivityRetentionDays,
             GamePortRangeStart = portStart,
             GamePortRangeEnd = portEnd,
             NetworkMode = settings.NetworkMode,
@@ -295,6 +301,9 @@ public sealed record UpdateSettingsCommand
 
     /// <summary>Backups automáticos a manter por servidor. Zero = ilimitado.</summary>
     public int WorldBackupKeepCount { get; init; } = 5;
+
+    /// <summary>Dias do feed de atividade. Zero = para sempre.</summary>
+    public int ActivityRetentionDays { get; init; } = InstallationSettings.DefaultActivityRetentionDays;
 
     /// <summary>Primeira porta oferecida a um servidor novo.</summary>
     public int GamePortRangeStart { get; init; } = GamePortDefaults.First;

@@ -6,13 +6,15 @@ using TCMine.Server.Domain.Cloud;
 namespace TCMine.Server.Web.Components.Features.Cloud;
 
 /// <summary>
-///     Aba "Configurações": nome, liga/desliga, modo da política e limites. Os
+///     Aba "Configurações": nome, liga/desliga, modo da política, limites e o
+///     prazo do histórico de jogo. Os
 ///     servidores de jogo recebem os valores novos no próximo hello (reinício);
 ///     o TCMine já os aplica na hora ao conferir os lotes.
 /// </summary>
 public partial class CloudVaultSettingsPanel : ComponentBase
 {
     private bool _enabled;
+    private int _gameHistoryDays;
     private bool _isBusy;
     private int _leaseTtl;
     private int _maxChannels;
@@ -38,6 +40,7 @@ public partial class CloudVaultSettingsPanel : ComponentBase
         _maxChannels = Vault.MaxChannelsPerPlayer;
         _maxTypes = Vault.MaxTypesPerChannel;
         _maxTotal = Vault.MaxTotalPerChannel;
+        _gameHistoryDays = Vault.GameHistoryDays;
     }
 
     private async Task SaveAsync()
@@ -48,7 +51,7 @@ public partial class CloudVaultSettingsPanel : ComponentBase
         try
         {
             var settings = new CloudVaultSettings(_name, _enabled, _mode, _leaseTtl, _maxItemBytes, _maxChannels,
-                _maxTypes, _maxTotal);
+                _maxTypes, _maxTotal, _gameHistoryDays);
             var result = await UseCase.HandleAsync(Vault.Id, settings, CancellationToken.None);
             Snackbar.Add(result.Succeeded ? "Configurações salvas." : result.Error!,
                 result.Succeeded ? Severity.Success : Severity.Error);

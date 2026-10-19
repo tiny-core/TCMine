@@ -4,6 +4,7 @@ using MudBlazor;
 using TCMine.Contracts.Modpacks;
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Settings;
+using TCMine.Server.Domain.Settings;
 using TCMine.Server.Web.Components.Features.Network;
 using TCMine.Server.Web.Configuration;
 
@@ -45,6 +46,7 @@ public partial class SettingsPage : ComponentBase
     private bool _isSaving;
 
     private int _worldBackupKeepCount = 5;
+    private int _activityRetentionDays = InstallationSettings.DefaultActivityRetentionDays;
 
     /// <summary>
     ///     O que mostrar no URI do broker enquanto ninguém digitou nada. Um
@@ -99,6 +101,7 @@ public partial class SettingsPage : ComponentBase
         _defaultLoader = settings.DefaultLoader;
         _defaultMemoryMb = settings.DefaultMemoryMb;
         _worldBackupKeepCount = settings.WorldBackupKeepCount;
+        _activityRetentionDays = settings.ActivityRetentionDays;
 
         // Relido inteiro a cada carga, mas o IP detectado sobrevive: ele não
         // muda por salvar, e redetectar a cada Salvar seria uma ida à rede à toa.
@@ -133,6 +136,7 @@ public partial class SettingsPage : ComponentBase
                 DefaultLoader = _defaultLoader,
                 DefaultMemoryMb = _defaultMemoryMb,
                 WorldBackupKeepCount = _worldBackupKeepCount,
+                ActivityRetentionDays = _activityRetentionDays,
                 UpdateCheckDisabled = _updateCheckDisabled,
                 AzureClientId = _azureClientId,
                 CurseForgeApiKey = _curseForgeKey,

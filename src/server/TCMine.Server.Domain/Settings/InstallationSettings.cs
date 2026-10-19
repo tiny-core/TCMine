@@ -32,6 +32,16 @@ public sealed class InstallationSettings : Entity
     /// </summary>
     public int WorldBackupKeepCount { get; set; } = 5;
 
+    public const int DefaultActivityRetentionDays = 90;
+
+    /// <summary>
+    ///     Dias que o feed de atividade do painel guarda. Zero = para sempre
+    ///     (<see cref="Common.RetentionPeriod" />). Convites mortos e pedidos de
+    ///     acesso resolvidos têm prazo fixo, fora daqui: ninguém precisa de
+    ///     ajuste para limpeza doméstica.
+    /// </summary>
+    public int ActivityRetentionDays { get; set; } = DefaultActivityRetentionDays;
+
     // ---------- Servidores de jogo ----------
 
     /// <summary>

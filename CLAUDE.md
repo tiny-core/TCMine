@@ -981,6 +981,12 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
 - **O ledger é append-only e é a verdade.** `cloud_balances` é derivado e atualizado na MESMA
   transação do ledger. Correção do admin = nova linha no ledger (Source=Admin, motivo obrigatório),
   nunca UPDATE direto em saldo.
+- **"A verdade" vale dentro da janela de retenção** (`docs/CLOUD-STORAGE.md` §12). O histórico de JOGO
+  (linhas `Game` e lotes sem referência) expira pelo prazo da nuvem (`GameHistoryDays`, padrão 90; 0 = para
+  sempre); decisão do dono (`Admin`, `Revert`, `QuarantineApply`, auditoria, quarentena, incidentes, em
+  dúvida) nunca expira. Servidor com incidente aberto não perde nada, e o backup de mundo mais antigo puxa
+  o corte para trás — o estorno de um restore precisa dos lotes desde o backup. Quem acrescentar uma
+  origem nova ao ledger decide se ela é histórico de jogo ou decisão: por padrão, decisão (fica).
 - **Cada linha do ledger leva o `VaultId`** (cópia da nuvem do canal; sem FK, de propósito). Quem grava
   linha nova preenche: o lote pela nuvem do lote, a decisão do painel pela nuvem do próprio canal.
   É o que deixa a auditoria listar a nuvem inteira pelo índice `(VaultId, Id)`.

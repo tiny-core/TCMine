@@ -13,6 +13,38 @@ namespace TCMine.Server.Application.Tests.Settings;
 /// </summary>
 public sealed class UpdateSettingsTests
 {
+    [Theory]
+    [InlineData(1)]
+    [InlineData(-5)]
+    [InlineData(5000)]
+    public async Task Prazo_do_log_de_atividade_fora_da_regra_e_recusado(int dias)
+    {
+        // Um prazo de 1 dia digitado por engano apagaria o feed de ontem na
+        // próxima rodada; retenção não tem desfazer.
+        var repo = new FakeSettings(new InstallationSettings());
+
+        var result = await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, ActivityRetentionDays = dias }, CancellationToken.None);
+
+        result.Succeeded.ShouldBeFalse();
+        repo.Salvo.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    [InlineData(90)]
+    public async Task Prazo_do_log_de_atividade_valido_e_gravado(int dias)
+    {
+        var repo = new FakeSettings(new InstallationSettings());
+
+        (await new UpdateSettings(repo, new FakeDnsSyncSignal()).HandleAsync(
+            new UpdateSettingsCommand { DefaultMemoryMb = 4096, ActivityRetentionDays = dias },
+            CancellationToken.None)).Succeeded.ShouldBeTrue();
+
+        repo.Salvo!.ActivityRetentionDays.ShouldBe(dias);
+    }
+
     [Fact]
     public async Task Campo_de_segredo_vazio_mantem_o_valor_atual()
     {

@@ -30,7 +30,9 @@ public class LauncherInvalidationRules
         typeof(IMembershipRepository),
         typeof(IAccessRequestRepository),
         typeof(ISettingsRepository),
-        typeof(IPlayerSettingsRepository)
+        typeof(IPlayerSettingsRepository),
+        // Apaga convites e pedidos de acesso vencidos: decide, como os outros.
+        typeof(IRetentionRepository)
     ];
 
     [Fact]

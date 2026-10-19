@@ -1,6 +1,7 @@
 using TCMine.Server.Application.Abstractions;
 using TCMine.Server.Application.Common;
 using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Domain.Common;
 
 namespace TCMine.Server.Application.Cloud;
 
@@ -46,7 +47,8 @@ public sealed record CloudVaultSettings(
     int MaxItemBytes,
     int MaxChannelsPerPlayer,
     int MaxTypesPerChannel,
-    long MaxTotalPerChannel);
+    long MaxTotalPerChannel,
+    int GameHistoryDays = CloudVault.DefaultGameHistoryDays);
 
 public sealed class GetCloudVault(ICloudAdminRepository repo, ICurrentUserScope scope)
 {
@@ -75,10 +77,16 @@ public sealed class UpdateCloudVault(
         if (name.Length is 0 or > CloudVault.NameMaxLength)
             return Result.Fail($"O nome deve ter de 1 a {CloudVault.NameMaxLength} caracteres.");
 
+        // Antes de qualquer mudança: recusado aqui, nada na entidade mudou (os
+        // limites abaixo já teriam sido trocados se a recusa viesse depois).
+        if (!RetentionPeriod.IsValid(settings.GameHistoryDays))
+            return Result.Fail($"Histórico de jogo: {RetentionPeriod.Rule}");
+
         try
         {
             vault.UpdateLimits(settings.LeaseTtlMinutes, settings.MaxItemBytes, settings.MaxChannelsPerPlayer,
                 settings.MaxTypesPerChannel, settings.MaxTotalPerChannel);
+            vault.SetGameHistoryDays(settings.GameHistoryDays);
         }
         catch (ArgumentOutOfRangeException e)
         {
@@ -93,7 +101,8 @@ public sealed class UpdateCloudVault(
         await CloudAudit.WriteAsync(governance, vaultId, scope.UserId, "vault.update",
             $"{name}; {(settings.IsEnabled ? "ligada" : "somente leitura")}; {settings.PolicyMode}; TTL {settings.LeaseTtlMinutes} min; "
             + $"item {settings.MaxItemBytes} B; {settings.MaxChannelsPerPlayer} canais; {settings.MaxTypesPerChannel} tipos; "
-            + $"{settings.MaxTotalPerChannel} itens", ct);
+            + $"{settings.MaxTotalPerChannel} itens; histórico de jogo "
+            + (settings.GameHistoryDays == 0 ? "para sempre" : $"{settings.GameHistoryDays} dias"), ct);
         return Result.Success();
     }
 }

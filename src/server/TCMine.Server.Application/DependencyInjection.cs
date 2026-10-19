@@ -160,6 +160,7 @@ public static class DependencyInjection
 
         services.AddScoped<ScanStorage>();
         services.AddScoped<DeleteOrphanBlobs>();
+        services.AddScoped<RunRetention>();
 
         return services;
     }

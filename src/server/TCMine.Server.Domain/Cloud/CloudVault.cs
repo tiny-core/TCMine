@@ -40,6 +40,17 @@ public sealed class CloudVault : Entity, IOwnedEntity
     /// <summary>Desligada: os servidores veem a nuvem em somente leitura.</summary>
     public bool IsEnabled { get; private set; } = true;
 
+    public const int DefaultGameHistoryDays = 90;
+
+    /// <summary>
+    ///     Dias que o histórico de JOGO fica guardado: as linhas do ledger que os
+    ///     lotes geraram e os próprios lotes. Zero = para sempre (ver
+    ///     <see cref="RetentionPeriod" />). O que vem de decisão do dono (ajuste,
+    ///     estorno, quarentena) não expira nunca, e os saldos não dependem disto:
+    ///     são o estado atual, guardado à parte.
+    /// </summary>
+    public int GameHistoryDays { get; private set; } = DefaultGameHistoryDays;
+
     public TimeSpan LeaseTtl => TimeSpan.FromMinutes(LeaseTtlMinutes);
 
     public Guid OwnerId { get; set; }
@@ -67,6 +78,14 @@ public sealed class CloudVault : Entity, IOwnedEntity
         MaxChannelsPerPlayer = maxChannelsPerPlayer;
         MaxTypesPerChannel = maxTypesPerChannel;
         MaxTotalPerChannel = maxTotalPerChannel;
+        Touch();
+    }
+
+    public void SetGameHistoryDays(int days)
+    {
+        if (!RetentionPeriod.IsValid(days))
+            throw new ArgumentOutOfRangeException(nameof(days), $"Histórico de jogo: {RetentionPeriod.Rule}");
+        GameHistoryDays = days;
         Touch();
     }
 

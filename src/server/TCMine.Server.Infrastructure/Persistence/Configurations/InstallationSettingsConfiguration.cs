@@ -15,6 +15,12 @@ public sealed class InstallationSettingsConfiguration : IEntityTypeConfiguration
         builder.Property(s => s.DefaultMinecraftVersion).HasMaxLength(32);
         builder.Property(s => s.DefaultLoader).HasConversion<string>().HasMaxLength(32).IsRequired();
 
+        // Mesmo desenho do histórico da nuvem (CloudVaultConfiguration): a
+        // instalação que já existe ganha 90 dias, e o 0 continua gravável.
+        builder.Property(s => s.ActivityRetentionDays)
+            .HasDefaultValue(InstallationSettings.DefaultActivityRetentionDays)
+            .HasSentinel(-1);
+
         // Texto cifrado: o tamanho cresce com o algoritmo, então folga.
         builder.Property(s => s.CurseForgeApiKeyEncrypted).HasMaxLength(1024);
 

@@ -1,5 +1,7 @@
 @page "/admin/settings"
 @using TCMine.Contracts.Modpacks
+@using TCMine.Server.Application.Storage
+@using TCMine.Server.Domain.Common
 
 <PageTitle>Configurações — TCMine</PageTitle>
 
@@ -58,6 +60,12 @@ else
                                          Label="Backups automáticos a manter"
                                          HelperText="Por servidor. Zero = ilimitado. Backups manuais nunca expiram."
                                          Variant="Variant.Outlined" Min="0" Max="50"/>
+                    </MudItem>
+                    <MudItem xs="12" md="6">
+                        <MudNumericField @bind-Value="_activityRetentionDays"
+                                         Label="Log de atividade (dias)"
+                                         HelperText="@($"0 = para sempre; senão, de {RetentionPeriod.MinDays} a {RetentionPeriod.MaxDays}. Convites mortos e pedidos resolvidos saem em {RunRetention.HousekeepingDays} dias.")"
+                                         Variant="Variant.Outlined" Min="0" Max="@RetentionPeriod.MaxDays"/>
                     </MudItem>
                 </MudGrid>
             </MudTabPanel>

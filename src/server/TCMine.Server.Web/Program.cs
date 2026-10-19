@@ -256,6 +256,10 @@ builder.Services.AddHostedService<DnsSyncWorker>();
 // O launcher embutido na imagem vai para o feed, com o endereço desta instalação.
 builder.Services.AddHostedService<LauncherBundlePublisher>();
 
+// Retenção (fase 5.4): uma vez por dia apaga o histórico de jogo vencido de cada
+// nuvem, o feed de atividade antigo e convites/pedidos mortos.
+builder.Services.AddHostedService<RetentionWorker>();
+
 var app = builder.Build();
 
 // Aplica migrations pendentes no arranque.

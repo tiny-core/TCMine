@@ -649,6 +649,11 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("GameHistoryDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(90);
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("INTEGER");
 
@@ -1495,6 +1500,11 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("ActivityRetentionDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(90);
 
                     b.Property<string>("AzureClientId")
                         .HasMaxLength(64)

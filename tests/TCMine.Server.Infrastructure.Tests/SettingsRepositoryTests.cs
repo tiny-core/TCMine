@@ -86,6 +86,7 @@ public sealed class SettingsRepositoryTests : IDisposable
         DefaultLoader = ModLoader.Fabric,
         DefaultMemoryMb = 6144,
         WorldBackupKeepCount = 9,
+        ActivityRetentionDays = 45,
         GamePortRangeStart = 30000,
         GamePortRangeEnd = 30010,
         NetworkMode = NetworkMode.Cloudflare,

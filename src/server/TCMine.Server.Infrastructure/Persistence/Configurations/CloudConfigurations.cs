@@ -24,6 +24,12 @@ public sealed class CloudVaultConfiguration : IEntityTypeConfiguration<CloudVaul
         builder.Property(v => v.PolicyMode).HasConversion<string>().HasMaxLength(16).IsRequired();
         builder.Ignore(v => v.LeaseTtl);
         builder.HasIndex(v => v.OwnerId);
+
+        // O padrão também no banco, para a migration dar 90 às nuvens que já
+        // existem (sem ele, a coluna nova nasceria 0 = "para sempre" nelas). O
+        // sentinela -1 mantém o 0 gravável: com o padrão do CLR (0) como
+        // sentinela, o EF omitiria o 0 no INSERT e o banco poria 90 no lugar.
+        builder.Property(v => v.GameHistoryDays).HasDefaultValue(CloudVault.DefaultGameHistoryDays).HasSentinel(-1);
     }
 }
 

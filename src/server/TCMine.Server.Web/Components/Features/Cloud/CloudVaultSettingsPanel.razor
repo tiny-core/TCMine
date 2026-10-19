@@ -1,4 +1,5 @@
 @using TCMine.Server.Domain.Cloud
+@using TCMine.Server.Domain.Common
 <MudGrid Spacing="3" Style="max-width:900px;">
     <MudItem xs="12" sm="8">
         <MudTextField @bind-Value="_name" Label="Nome" Variant="Variant.Outlined" MaxLength="64"/>
@@ -34,6 +35,16 @@
     </MudItem>
     <MudItem xs="12" sm="4">
         <MudNumericField @bind-Value="_maxTotal" Label="Itens por canal" Variant="Variant.Outlined" Min="1"/>
+    </MudItem>
+    <MudItem xs="12" sm="6">
+        <MudNumericField @bind-Value="_gameHistoryDays" Label="Histórico de jogo (dias)" Variant="Variant.Outlined"
+                         Min="0" Max="@RetentionPeriod.MaxDays"
+                         HelperText="@($"Movimentos que vieram do jogo. 0 = para sempre; senão, de {RetentionPeriod.MinDays} a {RetentionPeriod.MaxDays}.")"/>
+        <MudText Typo="Typo.caption" Class="mud-text-secondary">
+            Ajustes, estornos e quarentenas decididos no painel nunca expiram, e os saldos não dependem disto.
+            Nada mais novo que o backup de mundo mais antigo de um servidor é apagado, nem o de um servidor com
+            incidente aberto.
+        </MudText>
     </MudItem>
     <MudItem xs="12" Class="d-flex align-center gap-3">
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="_isBusy">Salvar
