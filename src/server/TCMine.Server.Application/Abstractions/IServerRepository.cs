@@ -13,8 +13,31 @@ public interface IServerRepository
     Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct);
     [Invalidates(ResourceKind.Servers)]
     Task AddAsync(GameServer server, CancellationToken ct);
+    /// <summary>
+    ///     Grava o que o formulário do servidor edita (nome, endereço, porta,
+    ///     memória, opções…). NÃO grava as colunas que têm escritor próprio —
+    ///     status, container, versão fixada, nuvem e marca de mundo —, mesmo que a
+    ///     cópia passada as traga diferentes: quem chama leu o servidor antes, e
+    ///     a cópia dele pode estar atrás do que esses escritores gravaram.
+    /// </summary>
     [Invalidates(ResourceKind.Servers)]
     Task UpdateAsync(GameServer server, CancellationToken ct);
+
+    /// <summary>Grava SÓ o container do servidor, depois de o orquestrador criá-lo.</summary>
+    [NotVisibleToLauncher("O launcher não sabe qual container roda o servidor.")]
+    Task SetContainerIdAsync(Guid id, string? containerId, CancellationToken ct);
+
+    /// <summary>Grava SÓ a versão fixada no servidor (a troca de versão, depois do backup).</summary>
+    [Invalidates(ResourceKind.Servers)]
+    Task SetPinnedVersionAsync(Guid id, Guid modpackVersionId, CancellationToken ct);
+
+    /// <summary>
+    ///     Grava SÓ a nuvem ligada ao servidor (nula = desligado). A regra de quem
+    ///     pode ligar a quê fica na entidade (<c>AttachToCloudVault</c>); isto só
+    ///     persiste o resultado.
+    /// </summary>
+    [NotVisibleToLauncher("O launcher não vê a nuvem do servidor; o mod a lê pela chave.")]
+    Task SetCloudVaultAsync(Guid id, Guid? cloudVaultId, CancellationToken ct);
 
     /// <summary>
     ///     Grava SÓ o status. Existe para quem acompanha o Docker: ele lê o

@@ -76,26 +76,24 @@ public sealed partial class StartGameServer(
             await orchestrator.StartAsync(serverId, ct);
             var containerMs = (long)Stopwatch.GetElapsedTime(containerStartedAt).TotalMilliseconds;
 
-            // Recarrega: o StartAsync gravou o ContainerId numa instância própria.
-            // A nossa cópia 'server' está velha (ContainerId ainda null) — gravar
-            // por cima dela apagaria o ID recém-persistido, porque Update marca
-            // todas as colunas.
-            var fresh = await servers.GetByIdAsync(serverId, ct);
-            if (fresh is null)
-                return Result.Fail("Servidor não encontrado após iniciar.");
-
+            // Só o status, pela regra única das transições (que também marca o
+            // mundo quando já entra Running). Antes isto relia o servidor e
+            // gravava a linha inteira, porque a cópia daqui não tinha o
+            // ContainerId que o StartAsync acabara de gravar; com a gravação de
+            // uma coluna só, a cópia velha não atropela nada.
             Report("Conferindo o estado do container…");
-            fresh.Status = await orchestrator.GetStatusAsync(serverId, ct);
-            fresh.UpdatedAt = DateTimeOffset.UtcNow;
-            await servers.UpdateAsync(fresh, ct);
+            var real = await orchestrator.GetStatusAsync(serverId, ct);
+            await ServerStatusTransitions.ApplyAsync(server, real, servers, null, null, ct);
 
             // Um servidor recriado começa com a whitelist vazia, e sem isto os
             // membros levariam "not white-listed" numa lista que o painel jura
             // que eles integram. Com a verificação de saúde o container quase
             // sempre ainda está Iniciando aqui, e a chamada sai calada: quem
-            // aplica de fato é a transição para Running
-            // (ServerStatusTransitions, no Web). Fica para container sem
-            // verificação de saúde, que já nasce Running e não gera transição.
+            // aplica de fato é a transição para Running, vinda dos eventos do
+            // Docker. Fica para container sem verificação de saúde, que já nasce
+            // Running. Por isso a whitelist NÃO vai na chamada acima: o status
+            // gravado pode estar velho (dizer Running de antes), a transição não
+            // acontecer, e só esta chamada garante a lista no container novo.
             await whitelist.HandleAsync(serverId, ct);
 
             progress.Complete(jobId);

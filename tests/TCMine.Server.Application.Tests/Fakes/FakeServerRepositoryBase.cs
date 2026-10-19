@@ -30,6 +30,15 @@ public abstract class FakeServerRepositoryBase : IServerRepository
     public virtual Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task SetContainerIdAsync(Guid id, string? containerId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task SetPinnedVersionAsync(Guid id, Guid modpackVersionId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task SetCloudVaultAsync(Guid id, Guid? cloudVaultId, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public virtual Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct) =>
         throw new NotImplementedException();
 

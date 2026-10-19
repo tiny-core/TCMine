@@ -132,7 +132,13 @@ public sealed class ProvisionServerCloudKeyTests
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<GameServer?>(id == servidor.Id ? servidor : null);
 
-        public override Task UpdateAsync(GameServer server, CancellationToken ct) => Task.CompletedTask;
+        // Ligar grava o status (e a marca de mundo, ao entrar em Running) pelas
+        // transições; o que importa aqui é a chave, então só aceita.
+        public override Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct) =>
+            Task.CompletedTask;
+
+        public override Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct) =>
+            Task.FromResult(true);
     }
 
     private sealed class StartRecorder : IServerOrchestrator

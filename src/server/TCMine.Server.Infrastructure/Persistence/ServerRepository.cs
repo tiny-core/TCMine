@@ -47,11 +47,17 @@ public sealed class ServerRepository(
         await using var db = await factory.CreateDbContextAsync(ct);
         db.GameServers.Update(server);
 
-        // A marca de mundo tem um escritor só (MarkWorldInitializedAsync).
-        // Quem grava a linha inteira leu o servidor antes, e a cópia dele pode
-        // ser de antes da marca: sem isto, salvar o formulário ou trocar a
-        // versão desfaria a marca, e com ela o backup antes da troca.
-        db.Entry(server).Property(s => s.WorldInitializedAt).IsModified = false;
+        // Colunas com escritor próprio ficam de fora. Quem grava a linha
+        // inteira (o formulário) leu o servidor antes, e a cópia dele pode
+        // estar atrás: sem isto, salvar o formulário enquanto o servidor sobe
+        // devolveria o status antigo, apagaria o container recém-criado, ou
+        // desfaria a marca de mundo — e com ela o backup antes da troca.
+        var entry = db.Entry(server);
+        entry.Property(s => s.Status).IsModified = false;
+        entry.Property(s => s.ContainerId).IsModified = false;
+        entry.Property(s => s.ModpackVersionId).IsModified = false;
+        entry.Property(s => s.CloudVaultId).IsModified = false;
+        entry.Property(s => s.WorldInitializedAt).IsModified = false;
 
         await db.SaveChangesAsync(ct);
 
@@ -70,6 +76,50 @@ public sealed class ServerRepository(
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, status), ct);
 
         changes.Touch(ResourceKind.Servers, id);
+    }
+
+    // Os três abaixo gravam uma coluna (mais o UpdatedAt) sem materializar a
+    // linha, pelo mesmo motivo do UpdateStatusAsync: quem chama leu o servidor
+    // um instante antes, e gravar a cópia inteira desfaria o que outro fluxo
+    // gravou nesse meio tempo.
+
+    public async Task SetContainerIdAsync(Guid id, string? containerId, CancellationToken ct)
+    {
+        DateTimeOffset? now = DateTimeOffset.UtcNow;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.GameServers
+            .Where(s => s.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.ContainerId, containerId)
+                .SetProperty(x => x.UpdatedAt, now), ct);
+    }
+
+    public async Task SetPinnedVersionAsync(Guid id, Guid modpackVersionId, CancellationToken ct)
+    {
+        DateTimeOffset? now = DateTimeOffset.UtcNow;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.GameServers
+            .Where(s => s.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.ModpackVersionId, modpackVersionId)
+                .SetProperty(x => x.UpdatedAt, now), ct);
+
+        // A instância de servidor do launcher segue a versão fixada (4E.1).
+        changes.Touch(ResourceKind.Servers, id);
+    }
+
+    public async Task SetCloudVaultAsync(Guid id, Guid? cloudVaultId, CancellationToken ct)
+    {
+        DateTimeOffset? now = DateTimeOffset.UtcNow;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.GameServers
+            .Where(s => s.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(x => x.CloudVaultId, cloudVaultId)
+                .SetProperty(x => x.UpdatedAt, now), ct);
     }
 
     public async Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct)

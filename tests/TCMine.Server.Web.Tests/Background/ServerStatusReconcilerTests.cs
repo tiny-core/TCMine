@@ -287,6 +287,15 @@ public sealed class ServerStatusReconcilerTests
             return Task.CompletedTask;
         }
 
+        public Task SetContainerIdAsync(Guid id, string? containerId, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task SetPinnedVersionAsync(Guid id, Guid modpackVersionId, CancellationToken ct) =>
+            throw new NotImplementedException();
+
+        public Task SetCloudVaultAsync(Guid id, Guid? cloudVaultId, CancellationToken ct) =>
+            throw new NotImplementedException();
+
         public List<Guid> MundosMarcados { get; } = [];
 
         public Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct)

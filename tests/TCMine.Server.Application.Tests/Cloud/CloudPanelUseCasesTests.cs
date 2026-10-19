@@ -132,12 +132,14 @@ public sealed class CloudPanelUseCasesTests
         chaves.Credentials.Add(CloudServerCredential.Issue(servidor.Id, nuvem.Id, "abcdefghijkm", "h"));
 
         var governanca = new FakeCloudGovernance();
-        var setVault = new SetServerCloudVault(repo, new UmServidor(servidor), chaves, new FakeCloudServerFiles(),
+        var servidores = new UmServidor(servidor);
+        var setVault = new SetServerCloudVault(repo, servidores, chaves, new FakeCloudServerFiles(),
             governanca, eu, TimeProvider.System);
         (await setVault.HandleAsync(servidor.Id, null, Ct)).Succeeded.ShouldBeTrue();
         governanca.Audit.Single().Action.ShouldBe("server.detach");
 
         servidor.CloudVaultId.ShouldBeNull();
+        servidores.NuvemGravada.ShouldBe((true, (Guid?)null), "grava só a coluna da nuvem, já vazia");
         chaves.Credentials.Single().IsActive.ShouldBeFalse();
     }
 
@@ -195,6 +197,13 @@ public sealed class CloudPanelUseCasesTests
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<GameServer?>(id == servidor.Id ? servidor : null);
 
-        public override Task UpdateAsync(GameServer server, CancellationToken ct) => Task.CompletedTask;
+        /// <summary>Se a gravação estreita da nuvem aconteceu, e com que valor.</summary>
+        public (bool Gravou, Guid? Nuvem) NuvemGravada { get; private set; }
+
+        public override Task SetCloudVaultAsync(Guid id, Guid? cloudVaultId, CancellationToken ct)
+        {
+            NuvemGravada = (true, cloudVaultId);
+            return Task.CompletedTask;
+        }
     }
 }

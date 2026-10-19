@@ -55,7 +55,26 @@ public sealed class ServerLifecycleTests
 
         Assert.True(result.Succeeded);
         Assert.Contains("Start", orchestrator.Chamadas);
-        Assert.Equal(GameServerStatus.Running, repo.Saved?.Status);
+        Assert.Equal(GameServerStatus.Running, repo.StatusGravado);
+        Assert.Null(repo.Saved); // só a coluna do status, nunca a linha inteira
+        Assert.True(repo.MundoMarcado, "entrar em Running marca que o servidor tem mundo");
+    }
+
+    [Fact]
+    public async Task Parar_grava_so_o_status()
+    {
+        // Antes o stop gravava a linha inteira com a cópia lida no começo:
+        // uma edição do admin feita no minuto em que o mundo salvava sumia.
+        var server = NovoServidor();
+        server.Status = GameServerStatus.Running;
+        var repo = new FakeServerRepo(server);
+
+        await new StopGameServer(new FakeOrchestrator(), repo, new FakeJobProgress(), new FakeUserScope(),
+                NullLogger<StopGameServer>.Instance)
+            .HandleAsync(server.Id, CancellationToken.None);
+
+        Assert.Equal(GameServerStatus.Stopped, repo.StatusGravado);
+        Assert.Null(repo.Saved);
     }
 
     // ---- Fixtures ----
@@ -164,6 +183,21 @@ public sealed class ServerLifecycleTests
         {
             Saved = s;
             return Task.CompletedTask;
+        }
+
+        public GameServerStatus? StatusGravado { get; private set; }
+        public bool MundoMarcado { get; private set; }
+
+        public override Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct)
+        {
+            StatusGravado = status;
+            return Task.CompletedTask;
+        }
+
+        public override Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct)
+        {
+            MundoMarcado = true;
+            return Task.FromResult(true);
         }
     }
 }

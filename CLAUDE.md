@@ -298,9 +298,14 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **O container é a fonte da verdade do status, não a coluna.** A coluna `Status`
   é cache. O `ServerStatusReconciler` faz uma varredura completa a cada ligação ao Docker e depois segue o
   stream `/events` (`IContainerEvents`, filtrado pelo label `tcmine.server`; os `exec_*` do RCON e do
-  `mc-health` são ignorados). Toda gravação de status passa por `ServerStatusTransitions` →
-  `IServerRepository.UpdateStatusAsync`, que escreve **só a coluna**: gravar a linha inteira atropelaria uma
-  edição do admin feita ao mesmo tempo. Um container `unless-stopped` sobrevive a reinícios do TCMine — não há
+  `mc-health` são ignorados). Toda gravação de status passa por `ServerStatusTransitions`
+  (Application/Servers, usado também por ligar e parar) → `IServerRepository.UpdateStatusAsync`, que escreve
+  **só a coluna**: gravar a linha inteira atropelaria uma edição do admin feita ao mesmo tempo.
+- **Coluna com escritor próprio não passa pelo `UpdateAsync`** (fase 6.1): status (`UpdateStatusAsync`),
+  container (`SetContainerIdAsync`), versão fixada (`SetPinnedVersionAsync`), nuvem (`SetCloudVaultAsync`) e
+  marca de mundo (`MarkWorldInitializedAsync`), cada um por `ExecuteUpdate`. O `UpdateAsync` é só do
+  formulário e deixa essas cinco colunas de fora mesmo que a cópia as traga diferentes. Coluna nova com
+  escritor próprio entra nas duas listas: método estreito e exclusão no `UpdateAsync`. Um container `unless-stopped` sobrevive a reinícios do TCMine — não há
   "attach", só reconsulta pelo `ContainerId`.
 - **Running quer dizer "aceita jogadores", não "container de pé".** O container leva a verificação de saúde de
   `ItzgEnv.Healthcheck` (o `mc-health` da imagem, 15 min de arranque) e `DockerServerOrchestrator.StatusOf`

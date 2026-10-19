@@ -176,6 +176,7 @@ public sealed class WorldBackupTests
         Assert.True(result.Succeeded);
         Assert.True(store.Criou);
         Assert.Equal(target.Id, server.ModpackVersionId);
+        Assert.Equal(target.Id, repo.VersaoGravada); // só o ponteiro, sem a linha inteira
         Assert.Equal(WorldBackupReason.BeforeVersionChange, repo.Adicionado!.Reason);
     }
 
@@ -196,6 +197,7 @@ public sealed class WorldBackupTests
 
         Assert.False(result.Succeeded);
         Assert.Equal(original, server.ModpackVersionId);
+        Assert.Null(repo.VersaoGravada);
     }
 
     [Fact]
@@ -571,7 +573,13 @@ public sealed class WorldBackupTests
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<GameServer?>(server);
 
-        public override Task UpdateAsync(GameServer s, CancellationToken ct) => Task.CompletedTask;
+        public Guid? VersaoGravada { get; private set; }
+
+        public override Task SetPinnedVersionAsync(Guid id, Guid modpackVersionId, CancellationToken ct)
+        {
+            VersaoGravada = modpackVersionId;
+            return Task.CompletedTask;
+        }
 
         public override Task<WorldBackup?> GetBackupAsync(Guid backupId, CancellationToken ct) =>
             Task.FromResult(backup);

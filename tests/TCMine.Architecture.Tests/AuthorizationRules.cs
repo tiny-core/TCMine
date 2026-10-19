@@ -42,11 +42,15 @@ public class AuthorizationRules
     ///     O BackfillWorldInitialized roda no arranque, sem usuário nenhum: é o
     ///     mesmo caso dos Backfill* de modpack. Só marca o que o disco já prova
     ///     (o mundo existe) e não expõe nada a ninguém.
+    ///     O ServerStatusTransitions é lógica estática chamada por quem já decidiu
+    ///     (ligar e parar autorizam antes) ou por quem segue o Docker, sem usuário.
+    ///     Ele grava o status que o container TEM; não é uma ação de alguém.
     ///     A lista é curta de propósito. Se ela crescer, o cheiro é de que a
     ///     fronteira entre "caso de uso" e "efeito" se perdeu, e alguém está
     ///     usando-a para fugir da regra em vez de descrever o desenho.
     /// </summary>
-    private static readonly string[] EfeitosInternos = ["SyncServerWhitelist", "BackfillWorldInitialized"];
+    private static readonly string[] EfeitosInternos =
+        ["SyncServerWhitelist", "BackfillWorldInitialized", "ServerStatusTransitions"];
 
     [Fact]
     public void Caso_de_uso_de_servidor_novo_nasce_autorizando()

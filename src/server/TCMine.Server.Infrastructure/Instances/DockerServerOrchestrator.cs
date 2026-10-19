@@ -183,10 +183,11 @@ public sealed partial class DockerServerOrchestrator(
 
         var containerId = await docker.CreateContainerAsync(containerName, spec, ct);
 
-        // Persiste o ContainerId para os próximos ciclos o reencontrarem.
+        // Persiste o ContainerId para os próximos ciclos o reencontrarem. Só
+        // ele: a cópia 'server' foi lida antes do download da imagem, que pode
+        // levar minutos, e gravar a linha inteira atropelaria o que mudou.
         server.ContainerId = containerId;
-        server.UpdatedAt = DateTimeOffset.UtcNow;
-        await servers.UpdateAsync(server, ct);
+        await servers.SetContainerIdAsync(gameServerId, containerId, ct);
 
         return containerId;
     }

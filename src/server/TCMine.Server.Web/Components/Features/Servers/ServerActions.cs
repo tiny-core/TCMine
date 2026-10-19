@@ -5,7 +5,6 @@ using TCMine.Server.Application.Common;
 using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
-using TCMine.Server.Web.Background;
 
 namespace TCMine.Server.Web.Components.Features.Servers;
 

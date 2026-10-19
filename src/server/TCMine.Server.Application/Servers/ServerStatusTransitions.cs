@@ -1,16 +1,18 @@
 using TCMine.Contracts.Servers;
 using TCMine.Server.Application.Abstractions;
-using TCMine.Server.Application.Servers;
 using TCMine.Server.Domain.Common;
 using TCMine.Server.Domain.Servers;
 
-namespace TCMine.Server.Web.Background;
+namespace TCMine.Server.Application.Servers;
 
 /// <summary>
 ///     Grava a mudança de status de um servidor, e só ela.
-///     Um lugar só para três chamadores que faziam isto cada um à sua maneira —
-///     o reconciliador do arranque, o acompanhamento dos eventos do Docker e as
-///     telas de servidores —, e que agora concordam no registro de "caiu".
+///     Um lugar só para todos os que gravam status — o reconciliador do
+///     arranque, o acompanhamento dos eventos do Docker, as telas de servidores
+///     e, desde a 6.1, ligar e parar —, que agora concordam no registro de
+///     "caiu". Mora na Application (antes ficava no Web) justamente para o
+///     <see cref="StartGameServer" /> e o <see cref="StopGameServer" /> o usarem:
+///     eles gravavam a linha inteira por conta própria e pulavam a marca de mundo.
 ///     Grava SÓ a coluna do status (<see cref="IServerRepository.UpdateStatusAsync" />),
 ///     nunca a linha inteira: quem chama leu o servidor um instante antes, e
 ///     gravar a cópia toda por cima desfaria o que outra pessoa salvou nesse

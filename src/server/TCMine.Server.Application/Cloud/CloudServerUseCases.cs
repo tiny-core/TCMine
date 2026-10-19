@@ -95,7 +95,11 @@ public sealed class SetServerCloudVault(
         // próximo start do servidor (ProvisionServerCloudKey).
         await CloudKeyRotation.RevokeAsync(credentials, clock, serverId, ct);
         await files.DeleteAsync(serverId, ct);
-        await servers.UpdateAsync(server, ct);
+
+        // Só a coluna da nuvem: a entidade já decidiu se a ligação vale
+        // (AttachToCloudVault), e gravar a linha inteira desfaria o que outro
+        // fluxo gravou desde a leitura — o status de um servidor que subia.
+        await servers.SetCloudVaultAsync(serverId, server.CloudVaultId, ct);
 
         // Registrado nas duas nuvens envolvidas: cada dono vê a sua história inteira.
         if (previous is { } from)

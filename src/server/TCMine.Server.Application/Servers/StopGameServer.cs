@@ -43,9 +43,11 @@ public sealed partial class StopGameServer(
             Report("Salvando o mundo e desligando…");
             await orchestrator.StopAsync(serverId, StopTimeout, ct);
 
-            server.Status = await orchestrator.GetStatusAsync(serverId, ct);
-            server.UpdatedAt = DateTimeOffset.UtcNow;
-            await servers.UpdateAsync(server, ct);
+            // Só o status, pela regra única das transições. Gravar a linha
+            // inteira (como antes) desfaria uma edição do admin feita durante o
+            // minuto que o servidor leva para salvar o mundo e sair.
+            var real = await orchestrator.GetStatusAsync(serverId, ct);
+            await ServerStatusTransitions.ApplyAsync(server, real, servers, null, null, ct);
 
             progress.Complete(jobId);
             return Result.Success();

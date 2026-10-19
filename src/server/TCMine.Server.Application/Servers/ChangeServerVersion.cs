@@ -71,10 +71,11 @@ public sealed class ChangeServerVersion(
                 return Result.Fail($"A troca foi cancelada: não deu para salvar o mundo. {snapshot.Error}");
         }
 
+        // Só o ponteiro. A cópia 'server' foi lida antes do backup, que num
+        // mundo grande leva minutos: gravar a linha inteira desfaria o que
+        // mudou nesse tempo (o status, a marca de mundo, uma edição do admin).
+        await servers.SetPinnedVersionAsync(serverId, targetVersionId, ct);
         server.ModpackVersionId = targetVersionId;
-        server.UpdatedAt = DateTimeOffset.UtcNow;
-
-        await servers.UpdateAsync(server, ct);
         return Result.Success();
     }
 }
