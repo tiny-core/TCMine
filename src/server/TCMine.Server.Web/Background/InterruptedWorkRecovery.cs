@@ -1,5 +1,6 @@
 ﻿using TCMine.Server.Application.Cloud;
 using TCMine.Server.Application.Modpacks;
+using TCMine.Server.Application.Servers;
 
 namespace TCMine.Server.Web.Background;
 
@@ -37,6 +38,13 @@ public sealed partial class InterruptedWorkRecovery(
         await RunAsync(
             () => scope.ServiceProvider.GetRequiredService<ExtendCloudLeasesAfterOutage>().HandleAsync(stoppingToken),
             LogCloudLeasesExtended, LogCloudLeasesFailed);
+
+        // Local e barato (um arquivo por servidor), e é proteção, não
+        // conveniência: sem a marca, trocar a versão de um servidor parado com
+        // mundo não faz backup. Por isso vem antes dos outros preenchimentos.
+        await RunAsync(
+            () => scope.ServiceProvider.GetRequiredService<BackfillWorldInitialized>().HandleAsync(stoppingToken),
+            LogWorldsMarked, LogWorldsFailed);
 
         // Local e barato (lê jars que já estão no disco): antes do server pack,
         // que depende da rede.
@@ -102,6 +110,13 @@ public sealed partial class InterruptedWorkRecovery(
         Level = LogLevel.Information,
         Message = "{Count} versão(ões) já importada(s) passaram a conhecer o server pack do autor.")]
     private partial void LogServerPacksBackfilled(int count);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "{Count} servidor(es) com mundo no disco ganharam a marca: a troca de versão passa a fazer backup.")]
+    private partial void LogWorldsMarked(int count);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Falha ao marcar os servidores que já têm mundo.")]
+    private partial void LogWorldsFailed(Exception ex);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "{Count} mod(s) enviado(s) à mão ganharam identidade e passam a aparecer no inventário.")]

@@ -97,6 +97,13 @@ public sealed partial class FileSystemWorldBackupStore(
             new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read));
     }
 
+    // O level.dat, e não só a pasta world/: o itzg cria a pasta antes de o
+    // jogo gerar alguma coisa, e um primeiro boot que caiu cedo deixa uma
+    // pasta vazia que não é mundo nenhum. "world" é o nome que o TCMine usa
+    // (não há opção de LEVEL no catálogo), o mesmo do snapshot acima.
+    public bool HasWorld(Guid gameServerId) =>
+        File.Exists(Path.Combine(materializer.GetInstancePath(gameServerId), "world", "level.dat"));
+
     private static void Compress(
         string instancePath, List<string> itens, string destination,
         Action<int, int>? onProgress, CancellationToken ct)

@@ -46,6 +46,13 @@ public sealed class ServerRepository(
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         db.GameServers.Update(server);
+
+        // A marca de mundo tem um escritor só (MarkWorldInitializedAsync).
+        // Quem grava a linha inteira leu o servidor antes, e a cópia dele pode
+        // ser de antes da marca: sem isto, salvar o formulário ou trocar a
+        // versão desfaria a marca, e com ela o backup antes da troca.
+        db.Entry(server).Property(s => s.WorldInitializedAt).IsModified = false;
+
         await db.SaveChangesAsync(ct);
 
         // Inclui as mudanças de estado (ligou, parou, caiu): é por aqui que o
@@ -63,6 +70,23 @@ public sealed class ServerRepository(
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.Status, status), ct);
 
         changes.Touch(ResourceKind.Servers, id);
+    }
+
+    public async Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct)
+    {
+        // Anulável como a coluna, pelo mesmo motivo do CloudCredentialRepository:
+        // sem isto a inferência do SetProperty fica entre os dois tipos.
+        DateTimeOffset? value = at;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+
+        // O filtro "ainda vazia" é o que torna a chamada repetível: o segundo a
+        // chegar atualiza zero linhas e a primeira data fica.
+        var rows = await db.GameServers
+            .Where(s => s.Id == id && s.WorldInitializedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.WorldInitializedAt, value), ct);
+
+        return rows > 0;
     }
 
     public async Task RemoveAsync(Guid id, CancellationToken ct)

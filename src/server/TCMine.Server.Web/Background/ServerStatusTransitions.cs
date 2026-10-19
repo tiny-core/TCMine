@@ -17,7 +17,8 @@ namespace TCMine.Server.Web.Background;
 ///     meio tempo — o admin mudando a memória enquanto o servidor caía.
 ///     É também onde a whitelist é aplicada: a entrada em Running é o primeiro
 ///     instante em que o RCON responde (Running = passou na verificação de
-///     saúde, ver <c>DockerServerOrchestrator.StatusOf</c>).
+///     saúde, ver <c>DockerServerOrchestrator.StatusOf</c>). Pelo mesmo motivo
+///     é onde o servidor ganha a marca de que tem mundo.
 /// </summary>
 public static class ServerStatusTransitions
 {
@@ -32,6 +33,12 @@ public static class ServerStatusTransitions
         IServerWhitelistSync? whitelist,
         CancellationToken ct)
     {
+        // Antes da guarda de "nada mudou", de propósito: um servidor que já
+        // estava Running quando esta regra entrou (o de produção, por exemplo)
+        // nunca mais passaria por uma transição. A marca só é gravada uma vez,
+        // então repetir a checagem a cada evento custa um if.
+        await MarkWorldAsync(server, real, servers, ct);
+
         if (server.Status == real)
             return false;
 
@@ -62,5 +69,25 @@ public static class ServerStatusTransitions
             await whitelist.HandleAsync(server.Id, ct);
 
         return true;
+    }
+
+    /// <summary>
+    ///     Running quer dizer que passou na verificação de saúde, e ela só passa
+    ///     com o mundo carregado: é o primeiro instante em que se sabe que o
+    ///     level.dat existe. Sem esta marca, <c>ChangeServerVersion</c> trata o
+    ///     servidor como "sem mundo" e troca a versão sem backup.
+    /// </summary>
+    private static async Task MarkWorldAsync(
+        GameServer server, GameServerStatus real, IServerRepository servers, CancellationToken ct)
+    {
+        if (real is not GameServerStatus.Running || server.HasWorld)
+            return;
+
+        var now = DateTimeOffset.UtcNow;
+        await servers.MarkWorldInitializedAsync(server.Id, now, ct);
+
+        // A cópia de quem chamou passa a concordar com o banco. Se outro já
+        // tinha marcado, a data dele é a que ficou lá; aqui só importa o "tem".
+        server.WorldInitializedAt ??= now;
     }
 }

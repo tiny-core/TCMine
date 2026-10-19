@@ -30,6 +30,14 @@ public interface IWorldBackupStore
 
     /// <summary>Abre o arquivo para download. Null se não existe.</summary>
     Task<Stream?> OpenAsync(Guid gameServerId, string fileName, CancellationToken ct);
+
+    /// <summary>
+    ///     A pasta da instância tem um mundo gerado (o level.dat do mundo
+    ///     principal). Mora aqui porque é esta porta que já decide o que é o
+    ///     mundo de um servidor; o preenchimento do arranque a usa para marcar
+    ///     servidores que geraram mundo antes de o TCMine passar a registrar.
+    /// </summary>
+    bool HasWorld(Guid gameServerId);
 }
 
 public sealed record StoredWorldBackup(string FileName, long SizeBytes);

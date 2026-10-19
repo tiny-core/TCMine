@@ -30,6 +30,9 @@ public abstract class FakeServerRepositoryBase : IServerRepository
     public virtual Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    public virtual Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct) =>
+        throw new NotImplementedException();
+
     public virtual Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
 
     public virtual Task<IReadOnlyList<WorldBackup>> ListBackupsAsync(Guid gameServerId, CancellationToken ct) =>

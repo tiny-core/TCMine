@@ -23,6 +23,16 @@ public interface IServerRepository
     /// </summary>
     [Invalidates(ResourceKind.Servers)]
     Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct);
+
+    /// <summary>
+    ///     Registra que o servidor tem mundo, gravando SÓ essa coluna e só se
+    ///     ela ainda estiver vazia. Verdadeiro quando gravou agora.
+    ///     O "só se vazia" fica na própria consulta, não num if de quem chama:
+    ///     o acompanhamento do Docker e o preenchimento do arranque podem chegar
+    ///     ao mesmo servidor ao mesmo tempo, e a primeira data é a que vale.
+    /// </summary>
+    [NotVisibleToLauncher("O launcher não sabe se o servidor tem mundo; só o painel usa.")]
+    Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct);
     [Invalidates(ResourceKind.Servers)]
     Task RemoveAsync(Guid id, CancellationToken ct);
 

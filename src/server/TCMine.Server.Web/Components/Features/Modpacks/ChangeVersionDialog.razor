@@ -5,24 +5,34 @@
         <DialogTitle Icon="@Icons.Material.Filled.Tune" Text="Versão do servidor"/>
     </TitleContent>
     <DialogContent>
-        @if (Server.HasWorld)
-        {
-            <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined">
-                Este servidor já tem mundo gerado. Trocar a versão agora pode corromper o save —
-                mods removidos deixam registros órfãos, e rebaixar mods pode quebrar o formato dos dados.
-                A troca segura (backup do mundo + recriação do container) fica disponível quando a
-                orquestração estiver ativa.
-            </MudAlert>
-        }
-        else if (_isLoading)
+        @if (_isLoading)
         {
             <MudProgressLinear Indeterminate="true" Color="Color.Primary"/>
         }
         else
         {
-            <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
-                Servidor sem mundo — a troca é imediata e segura.
-            </MudText>
+            if (!Server.HasWorld)
+            {
+                <MudText Typo="Typo.body2" Class="mud-text-secondary mb-2">
+                    Servidor sem mundo — a troca é imediata e segura.
+                </MudText>
+            }
+            else if (!IsStopped)
+            {
+                <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mb-3">
+                    Este servidor tem mundo e está @Server.Status. Pare o servidor antes de trocar a versão:
+                    o mundo precisa ser salvo, e trocar mods debaixo de quem está jogando quebra a sessão.
+                </MudAlert>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mb-3">
+                    Este servidor tem mundo. Antes da troca, o TCMine faz um backup automático do mundo
+                    (pode levar alguns minutos num mundo grande); se o backup falhar, nada muda.
+                    Mods removidos ou rebaixados podem estragar o save — o backup é o caminho de volta.
+                </MudAlert>
+            }
+
             <MudRadioGroup T="Guid" @bind-Value="_selectedVersionId">
                 @foreach (var v in _versions)
                 {
@@ -44,17 +54,18 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel" Disabled="IsBusy">Fechar</MudButton>
-        @if (!Server.HasWorld)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary"
-                       OnClick="Apply"
-                       Disabled="IsBusy || _selectedVersionId == Server.ModpackVersionId || _selectedVersionId == Guid.Empty">
-                @if (IsBusy)
-                {
-                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
-                }
-                Aplicar
-            </MudButton>
-        }
+        <MudButton Variant="Variant.Filled" Color="Color.Primary"
+                   OnClick="Apply"
+                   Disabled="IsBusy || !CanApply">
+            @if (IsBusy)
+            {
+                <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2"/>
+                <text>@(Server.HasWorld ? "Salvando o mundo…" : "Aplicando…")</text>
+            }
+            else
+            {
+                <text>@(Server.HasWorld ? "Fazer backup e trocar" : "Aplicar")</text>
+            }
+        </MudButton>
     </DialogActions>
 </MudDialog>

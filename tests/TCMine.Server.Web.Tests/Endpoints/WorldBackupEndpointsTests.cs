@@ -155,5 +155,7 @@ public class WorldBackupEndpointsTests
 
         public Task<bool> DeleteAsync(Guid gameServerId, string fileName, CancellationToken ct) =>
             throw new NotImplementedException();
+
+        public bool HasWorld(Guid gameServerId) => throw new NotImplementedException();
     }
 }

@@ -524,6 +524,8 @@ public sealed class WorldBackupTests
 
         public Task<Stream?> OpenAsync(Guid gameServerId, string fileName, CancellationToken ct) =>
             throw new NotImplementedException();
+
+        public bool HasWorld(Guid gameServerId) => throw new NotImplementedException();
     }
 
     private sealed class FakeOrchestrator(GameServerStatus status) : IServerOrchestrator

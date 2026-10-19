@@ -100,12 +100,17 @@ public sealed class GameServer : Entity, IOwnedEntity
     public required string RconSecret { get; set; }
 
     /// <summary>
-    ///     Quando o mundo deste servidor foi inicializado (primeiro boot que gerou
-    ///     o level.dat). Null = nunca ligou, ainda nao tem mundo.
-    ///     E o seam do backup: trocar a versao de um servidor COM mundo exige
+    ///     Quando o TCMine viu pela primeira vez que este servidor tem mundo.
+    ///     Null = ainda não tem.
+    ///     É o seam do backup: trocar a versão de um servidor COM mundo exige
     ///     snapshot antes (mods removidos/rebaixados podem corromper o save). Sem
-    ///     mundo, a troca e o re-apontar simples e imediato. Nada preenche isto na
-    ///     fatia 1 — so a orquestracao (fatia 3) o fara ao subir o container.
+    ///     mundo, a troca é o re-apontar simples e imediato.
+    ///     Quem grava (só por <c>IServerRepository.MarkWorldInitializedAsync</c>,
+    ///     uma vez): a primeira entrada em Running, que é quando o jogo já gerou o
+    ///     level.dat, e o preenchimento do arranque, que olha a pasta. Até a 0.13.0
+    ///     ninguém gravava, e a troca de versão rodava sem backup em servidor com
+    ///     mundo. Num servidor de antes disso a data é a da descoberta, não a do
+    ///     primeiro boot.
     /// </summary>
     public DateTimeOffset? WorldInitializedAt { get; set; }
 

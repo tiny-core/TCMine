@@ -39,11 +39,14 @@ public class AuthorizationRules
     ///     resgatar convite, remover membro, subir o servidor —, e no primeiro
     ///     deles o jogador ainda NÃO é membro do servidor. Exigir
     ///     CanManageMembers faria o próprio resgate do convite falhar.
+    ///     O BackfillWorldInitialized roda no arranque, sem usuário nenhum: é o
+    ///     mesmo caso dos Backfill* de modpack. Só marca o que o disco já prova
+    ///     (o mundo existe) e não expõe nada a ninguém.
     ///     A lista é curta de propósito. Se ela crescer, o cheiro é de que a
     ///     fronteira entre "caso de uso" e "efeito" se perdeu, e alguém está
     ///     usando-a para fugir da regra em vez de descrever o desenho.
     /// </summary>
-    private static readonly string[] EfeitosInternos = ["SyncServerWhitelist"];
+    private static readonly string[] EfeitosInternos = ["SyncServerWhitelist", "BackfillWorldInitialized"];
 
     [Fact]
     public void Caso_de_uso_de_servidor_novo_nasce_autorizando()

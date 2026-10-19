@@ -58,14 +58,15 @@ public sealed class ServerStatusReconcilerTests
     public async Task Status_que_ja_estava_certo_nao_gera_escrita()
     {
         // Sem esta guarda, todo arranque reescreveria a tabela inteira sem ter
-        // mudado nada.
-        var repo = new FakeServers(Servidor(GameServerStatus.Running));
+        // mudado nada. Com mundo já marcado: senão a marca seria a escrita.
+        var repo = new FakeServers(Servidor(GameServerStatus.Running, comMundo: true));
 
         var corrigidos = await ServerStatusReconciler.ReconcileAsync(
             repo, new FakeOrchestrator(GameServerStatus.Running), null, Ct);
 
         corrigidos.ShouldBe(0);
         repo.Gravados.ShouldBeEmpty();
+        repo.MundosMarcados.ShouldBeEmpty();
     }
 
     [Fact]
@@ -96,15 +97,72 @@ public sealed class ServerStatusReconcilerTests
         corrigidos.ShouldBe(0);
     }
 
-    private static GameServer Servidor(GameServerStatus status) => new()
+    private static GameServer Servidor(GameServerStatus status, bool comMundo = false) => new()
     {
         Name = "Survival",
         ModpackId = Guid.CreateVersion7(),
         ModpackVersionId = Guid.CreateVersion7(),
         ConnectAddress = "jogo:25565",
         RconSecret = "segredo",
-        Status = status
+        Status = status,
+        WorldInitializedAt = comMundo ? DateTimeOffset.UtcNow.AddDays(-1) : null
     };
+
+    [Fact]
+    public async Task Entrar_em_Running_marca_que_o_servidor_tem_mundo()
+    {
+        // Regressão: nada gravava a marca, HasWorld era sempre falso e a troca
+        // de versão rodava sem backup. Running = passou na verificação de
+        // saúde = o jogo já gerou o mundo.
+        var server = Servidor(GameServerStatus.Starting);
+        var repo = new FakeServers(server);
+
+        await ServerStatusTransitions.ApplyAsync(server, GameServerStatus.Running, repo, null, null, Ct);
+
+        repo.MundosMarcados.ShouldBe([server.Id]);
+        server.HasWorld.ShouldBeTrue("a cópia de quem chamou passa a concordar com o banco");
+    }
+
+    [Fact]
+    public async Task Servidor_que_ja_estava_no_ar_sem_marca_tambem_a_ganha()
+    {
+        // O servidor de produção: está Running desde antes desta regra e nunca
+        // mais passa por uma transição. A marca não pode depender de "mudou".
+        var server = Servidor(GameServerStatus.Running);
+        var repo = new FakeServers(server);
+
+        var mudou = await ServerStatusTransitions.ApplyAsync(
+            server, GameServerStatus.Running, repo, null, null, Ct);
+
+        mudou.ShouldBeFalse("o status não mudou");
+        repo.MundosMarcados.ShouldBe([server.Id]);
+    }
+
+    [Fact]
+    public async Task Servidor_que_ja_tem_a_marca_nao_grava_de_novo()
+    {
+        var server = Servidor(GameServerStatus.Starting, comMundo: true);
+        var repo = new FakeServers(server);
+
+        await ServerStatusTransitions.ApplyAsync(server, GameServerStatus.Running, repo, null, null, Ct);
+
+        repo.MundosMarcados.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task So_Running_marca_o_mundo()
+    {
+        // Iniciando ainda pode cair antes de gerar o mundo; parado e caído não
+        // provam nada.
+        var server = Servidor(GameServerStatus.Stopped);
+        var repo = new FakeServers(server);
+
+        await ServerStatusTransitions.ApplyAsync(server, GameServerStatus.Starting, repo, null, null, Ct);
+        await ServerStatusTransitions.ApplyAsync(server, GameServerStatus.Crashed, repo, null, null, Ct);
+
+        repo.MundosMarcados.ShouldBeEmpty();
+        server.HasWorld.ShouldBeFalse();
+    }
 
     [Fact]
     public async Task Queda_vista_pelos_eventos_fica_no_registro_de_atividade()
@@ -227,6 +285,14 @@ public sealed class ServerStatusReconcilerTests
         {
             Gravados.Add(id);
             return Task.CompletedTask;
+        }
+
+        public List<Guid> MundosMarcados { get; } = [];
+
+        public Task<bool> MarkWorldInitializedAsync(Guid id, DateTimeOffset at, CancellationToken ct)
+        {
+            MundosMarcados.Add(id);
+            return Task.FromResult(true);
         }
 
         public Task<IReadOnlyList<GameServer>> ListByModpackAsync(Guid modpackId, CancellationToken ct) =>

@@ -233,7 +233,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   subdomínio), `GamePort`, `Subdomain` (rótulo de DNS; o SRV é mantido na Cloudflare por `SyncGameDns`), `Status`,
   `ContainerId`, `MemoryMb`, `MaxPlayers`, `RconSecret` (**required, NUNCA exposto em DTO nem log** — quem tem a senha
   RCON controla a máquina do jogo),
-  `WorldInitializedAt`/`HasWorld` (seam do backup).
+  `WorldInitializedAt`/`HasWorld` (seam do backup: com mundo, trocar a versão faz backup antes e exige
+  parado). A marca tem UM escritor, `MarkWorldInitializedAsync` (só a coluna, só se vazia): a entrada em
+  Running (`ServerStatusTransitions`) e, no arranque, `BackfillWorldInitialized` (pasta com
+  `world/level.dat`). O `UpdateAsync` da linha inteira nunca a regrava. Até a 0.13.0 ninguém a gravava e a
+  troca rodava sem backup.
 - **O host publicado sai do modo de rede** (`InstallationSettings.NetworkMode`: Automático, Meu domínio,
   Cloudflare), uma escolha só. Os campos dos outros modos ficam gravados e **não valem**
   (`EffectivePublicHost`, `DnsEnabled`). Nulo = instalação de antes da escolha: o modo é deduzido do que está
