@@ -25,30 +25,30 @@ public sealed class CloudWatermarkMigrationTests
             "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).");
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct, "20261017152407_AddCloudWatermarks");
 
-        Guid nuvem, servidorA, servidorB;
-        await using (var db = postgres.CreateContext())
-        {
-            var dono = Guid.CreateVersion7();
-            var vault = new CloudVault { Name = "N", OwnerId = dono };
-            var a = Servidor("A", 25565, dono);
-            var b = Servidor("B", 25566, dono);
-            db.AddRange(vault, a, b);
-            (nuvem, servidorA, servidorB) = (vault.Id, a.Id, b.Id);
+        var dono = Guid.CreateVersion7();
+        var vault = new CloudVault { Name = "N", OwnerId = dono };
+        var a = Servidor("A", 25565, dono);
+        var b = Servidor("B", 25566, dono);
+        var (nuvem, servidorA, servidorB) = (vault.Id, a.Id, b.Id);
 
+        // Pelas colunas que o banco tem NESTA migration, e não pelo modelo de
+        // hoje: coluna nova em cloud_vaults ou game_servers não pode quebrar o
+        // teste de uma migration antiga.
+        await postgres.InsertAsOfSchemaAsync(
+        [
+            vault, a, b,
             // Ana no A: a época 2 vence a sequência alta da época 1; o estornado
             // e o em quarentena, mesmo maiores, não contam.
-            db.AddRange(
-                Lote(nuvem, servidorA, Ana, 1, 9),
-                Lote(nuvem, servidorA, Ana, 2, 3),
-                Lote(nuvem, servidorA, Ana, 2, 4, l => l.MarkReverted()),
-                Lote(nuvem, servidorA, Ana, 3, 1, l => l.MarkQuarantined()),
-                // Ana no B tem a marca dela, separada da do A.
-                Lote(nuvem, servidorB, Ana, 5, 1),
-                Lote(nuvem, servidorA, Beto, 1, 2),
-                // Servidor apagado: lote sem servidor não vira marca.
-                Lote(nuvem, Guid.CreateVersion7(), Beto, 7, 7));
-            await db.SaveChangesAsync(Ct);
-        }
+            Lote(nuvem, servidorA, Ana, 1, 9),
+            Lote(nuvem, servidorA, Ana, 2, 3),
+            Lote(nuvem, servidorA, Ana, 2, 4, l => l.MarkReverted()),
+            Lote(nuvem, servidorA, Ana, 3, 1, l => l.MarkQuarantined()),
+            // Ana no B tem a marca dela, separada da do A.
+            Lote(nuvem, servidorB, Ana, 5, 1),
+            Lote(nuvem, servidorA, Beto, 1, 2),
+            // Servidor apagado: lote sem servidor não vira marca.
+            Lote(nuvem, Guid.CreateVersion7(), Beto, 7, 7)
+        ], Ct);
 
         await postgres.MigrateAsync(null, Ct);
 

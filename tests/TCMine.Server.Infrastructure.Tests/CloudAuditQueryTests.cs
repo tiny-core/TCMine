@@ -111,9 +111,13 @@ public sealed class CloudAuditQueryTests
         // resto — o mesmo caminho da produção.
         Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null, MotivoDoSkip);
         await using var postgres = await PostgresTestDatabase.CreateAsync(Ct, "20261017141452_AddLedgerVaultId");
-        var cenario = await SemearNuvens(postgres);
-        var antigas = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalAna.Channel), 2);
-        var daOutra = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalDeOutraNuvem.Channel), 1);
+        // Pelas colunas que o banco tem NESTA migration (ver InsertAsOfSchemaAsync):
+        // o modelo de hoje já tem colunas que a tabela ainda não ganhou.
+        Func<object[], Task> antigo = linhas => postgres.InsertAsOfSchemaAsync(linhas, Ct);
+        var cenario = await SemearNuvens(postgres, antigo);
+        var antigas = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalAna.Channel), 2, gravar: antigo);
+        var daOutra = await GravarAsync(postgres, cenario, (Guid.Empty, cenario.CanalDeOutraNuvem.Channel), 1,
+            gravar: antigo);
 
         await postgres.MigrateAsync(null, Ct);
 
@@ -190,9 +194,8 @@ public sealed class CloudAuditQueryTests
 
     private static async Task<IReadOnlyList<Guid>> GravarAsync(IDbContextFactory<TcMineDbContext> factory,
         Cenario cenario, (Guid Vault, Guid Channel) canal, int quantas, Guid? item = null,
-        CloudLedgerSource origem = CloudLedgerSource.Game)
+        CloudLedgerSource origem = CloudLedgerSource.Game, Func<object[], Task>? gravar = null)
     {
-        await using var db = await factory.CreateDbContextAsync(Ct);
         var linhas = Enumerable.Range(1, quantas).Select(i => new CloudLedgerEntry
         {
             VaultId = canal.Vault,
@@ -202,14 +205,21 @@ public sealed class CloudAuditQueryTests
             BalanceAfter = i,
             Source = origem
         }).ToList();
-        db.CloudLedger.AddRange(linhas);
-        await db.SaveChangesAsync(Ct);
+        await (gravar ?? PeloEf(factory))([.. linhas]);
         return [.. linhas.Select(l => l.Id)];
     }
 
-    private static async Task<Cenario> SemearNuvens(IDbContextFactory<TcMineDbContext> factory)
+    /// <summary>O caminho normal: o SaveChanges, numa ida só.</summary>
+    private static Func<object[], Task> PeloEf(IDbContextFactory<TcMineDbContext> factory) => async linhas =>
     {
         await using var db = await factory.CreateDbContextAsync(Ct);
+        db.AddRange(linhas);
+        await db.SaveChangesAsync(Ct);
+    };
+
+    private static async Task<Cenario> SemearNuvens(IDbContextFactory<TcMineDbContext> factory,
+        Func<object[], Task>? gravar = null)
+    {
         var dono = Guid.CreateVersion7();
         var nuvem = new CloudVault { Name = "N", OwnerId = dono };
         var outra = new CloudVault { Name = "Outra", OwnerId = dono };
@@ -218,9 +228,9 @@ public sealed class CloudAuditQueryTests
         var anaNaOutra = new CloudChannel { VaultId = outra.Id, PlayerUuid = Ana, Name = "Principal" };
         var diamante = Item("minecraft:diamond", "Diamante", 'd');
         var pedra = Item("minecraft:cobblestone", "Pedregulho", 'c');
-        db.AddRange(nuvem, outra, new User { DisplayName = "Ana", MinecraftUuid = Ana });
-        db.AddRange(ana, beto, anaNaOutra, diamante, pedra);
-        await db.SaveChangesAsync(Ct);
+        // Na ordem das chaves estrangeiras: o caminho por SQL grava uma a uma.
+        await (gravar ?? PeloEf(factory))(
+            [nuvem, outra, new User { DisplayName = "Ana", MinecraftUuid = Ana }, ana, beto, anaNaOutra, diamante, pedra]);
         return new Cenario(nuvem.Id, outra.Id, (nuvem.Id, ana.Id), (nuvem.Id, beto.Id), (outra.Id, anaNaOutra.Id),
             diamante.Id, pedra.Id);
     }

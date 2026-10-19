@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql;
 using TCMine.Server.Infrastructure.Persistence;
@@ -95,6 +96,71 @@ public sealed class PostgresTestDatabase : IAsyncDisposable, IDbContextFactory<T
     }
 
     public TcMineDbContext CreateContext() => new(Opcoes(ConnectionStringDoBanco()));
+
+    /// <summary>
+    ///     Grava as entidades, na ordem dada, só nas colunas que a tabela TEM
+    ///     agora — para o teste que parou numa migration antiga e semeia o "antes"
+    ///     de uma migration de dados.
+    ///     O SaveChanges não serve aí: ele monta o INSERT pelo modelo ATUAL, e
+    ///     qualquer coluna acrescentada depois (a da retenção, por exemplo)
+    ///     derruba o teste com "column does not exist" — sem que a migration
+    ///     testada tenha mudado nada. Aqui a lista de colunas vem do próprio banco
+    ///     (information_schema), e os valores, do modelo, com a mesma conversão
+    ///     (enum como texto) que o EF aplicaria.
+    /// </summary>
+    public async Task InsertAsOfSchemaAsync(IEnumerable<object> entities, CancellationToken ct)
+    {
+        await using var db = CreateContext();
+        await db.Database.OpenConnectionAsync(ct);
+        var connection = (NpgsqlConnection)db.Database.GetDbConnection();
+        var columnsByTable = new Dictionary<string, HashSet<string>>();
+
+        foreach (var entity in entities)
+        {
+            var entry = db.Entry(entity);
+            var table = entry.Metadata.GetTableName()!;
+            var store = StoreObjectIdentifier.Table(table, entry.Metadata.GetSchema());
+            if (!columnsByTable.TryGetValue(table, out var existing))
+                columnsByTable[table] = existing = await ColumnsAsync(connection, table, ct);
+
+            await using var command = connection.CreateCommand();
+            var names = new List<string>();
+            foreach (var property in entry.Metadata.GetProperties())
+            {
+                if (property.GetColumnName(store) is not { } column || !existing.Contains(column))
+                    continue;
+
+                var value = entry.Property(property.Name).CurrentValue;
+                if (value is not null && property.GetTypeMapping().Converter is { } converter)
+                    value = converter.ConvertToProvider(value);
+
+                names.Add(column);
+                command.Parameters.Add(new NpgsqlParameter($"p{names.Count}", value ?? DBNull.Value));
+            }
+
+            // Nomes de tabela e coluna saem do modelo e do information_schema,
+            // nunca de fora; os valores vão por parâmetro.
+#pragma warning disable CA2100
+            command.CommandText =
+                $"INSERT INTO \"{table}\" ({string.Join(", ", names.Select(n => $"\"{n}\""))}) " +
+                $"VALUES ({string.Join(", ", names.Select((_, i) => $"@p{i + 1}"))})";
+#pragma warning restore CA2100
+            await command.ExecuteNonQueryAsync(ct);
+        }
+    }
+
+    private static async Task<HashSet<string>> ColumnsAsync(NpgsqlConnection connection, string table,
+        CancellationToken ct)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT column_name FROM information_schema.columns WHERE table_name = @table";
+        command.Parameters.Add(new NpgsqlParameter("table", table));
+        var columns = new HashSet<string>(StringComparer.Ordinal);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+            columns.Add(reader.GetString(0));
+        return columns;
+    }
 
     TcMineDbContext IDbContextFactory<TcMineDbContext>.CreateDbContext() => CreateContext();
 

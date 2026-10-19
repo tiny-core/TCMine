@@ -843,6 +843,11 @@ TCMine.Launcher.App   (WPF, net10.0-windows…) ← a janela, o WebView2, o P/In
   ```
 
   No `release.yml` a variável está definida e eles rodam sempre.
+- **Teste de migration de dados semeia pelo `InsertAsOfSchemaAsync`, nunca pelo `SaveChanges`.** Ele para o
+  banco numa migration antiga (`PostgresTestDatabase.CreateAsync(ct, "<migration>")`) e grava o "antes"; o
+  `SaveChanges` monta o INSERT pelo modelo de HOJE, e a primeira coluna acrescentada depois derruba o teste
+  com "column does not exist" — foi o que a `GameHistoryDays` fez na 0.13.0, só no CI, porque sem
+  `TCMINE_TEST_POSTGRES` esses testes se pulam. O helper grava só as colunas que a tabela tem naquele ponto.
 - **Coluna de texto sem limite se DESFAZ, não se omite.** A convenção dá 512 a toda string, e
   `builder.Property(x => x.Campo)` pelado o herda — foram três colunas assim (arquivo, snapshot da origem,
   teclas do jogador), todas com um comentário dizendo "sem limite". Use `.Metadata.SetMaxLength(null)`. E
