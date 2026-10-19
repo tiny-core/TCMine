@@ -1005,6 +1005,14 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
 - **Concorrência sem SELECT FOR UPDATE** (o SQLite não tem): o `CloudLease` tem token de
   concorrência (`Version`); aplicar lote = transação que lê o lease, valida época/seq, aplica e
   incrementa `Version`. `DbUpdateConcurrencyException` → o mod reenvia.
+- **O heartbeat NÃO mexe na `Version`** (fase 5.5): renovar só muda o prazo, e a versão protege dono,
+  época e sequência. É uma leitura de todos os leases do pedido e um UPDATE só
+  (`RenewLeasesAsync`, filtrado por "quem segura é este servidor"); a decisão de quem perdeu sai da
+  leitura (`CloudLease.CanRenew`). Antes era um par leitura/gravação por jogador, e cada heartbeat fazia
+  o lote que chegasse no mesmo instante perder a corrida.
+- **A autenticação do mod é UMA consulta e não tem cache** (`FindKeyAsync`: chave + nuvem atual do
+  servidor). Um cache abriria uma janela em que chave revogada ou servidor desligado ainda entra — e
+  fechá-la exigiria invalidar em quatro lugares. Só volta à mesa com medição.
 - **O TCMine nunca decodifica item.** Guarda `EncodedItem` (blob opaco) + `ItemId` + nome de
   exibição que o servidor de jogo mandou.
 - **Mundo que voltou no tempo abre um `CloudRollbackIncident` no `hello`** (checkpoint atrás da marca

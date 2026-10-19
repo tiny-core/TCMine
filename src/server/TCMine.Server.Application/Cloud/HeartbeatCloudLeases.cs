@@ -7,6 +7,11 @@ namespace TCMine.Server.Application.Cloud;
 ///     Renova os leases que o servidor de jogo diz segurar. Os que não renovam
 ///     (outro servidor tomou, época antiga) voltam em <c>Lost</c>: o mod trava
 ///     aqueles canais, porque continuar mexendo neles só geraria quarentena.
+///     Uma leitura e um UPDATE para o heartbeat inteiro, e não um par por
+///     jogador (fase 5.5): a decisão de quem perdeu é tomada sobre a leitura, e
+///     o UPDATE só toca o que ainda é deste servidor — se outro tomou um lease
+///     no meio do caminho, ele não casa e é renovado por ninguém, e o próximo
+///     heartbeat o devolve como perdido.
 /// </summary>
 public sealed class HeartbeatCloudLeases(
     ICloudStorageRepository storage,
@@ -23,26 +28,24 @@ public sealed class HeartbeatCloudLeases(
         if (vault is null)
             return CloudCallResult<CloudHeartbeatReply>.Forbidden("Nuvem não encontrada.");
 
-        var now = clock.GetUtcNow();
-        var lost = new List<string>();
-        foreach (var held in request.Leases)
-        {
-            var player = CloudChannel.NormalizePlayerUuid(held.PlayerUuid);
-            var lease = player is null ? null : await storage.GetLeaseAsync(ctx.VaultId, player, ct);
-            if (lease is null)
-            {
-                lost.Add(held.PlayerUuid);
-                continue;
-            }
+        var asked = request.Leases
+            .Select(held => (Held: held, Player: CloudChannel.NormalizePlayerUuid(held.PlayerUuid)))
+            .ToList();
+        var players = asked.Where(a => a.Player is not null).Select(a => a.Player!).Distinct().ToList();
+        var leases = (await storage.GetLeasesAsync(ctx.VaultId, players, ct)).ToDictionary(l => l.PlayerUuid);
 
-            var read = lease.Version;
-            // Conflito aqui não é perda: alguém (um lote) mexeu no lease agora,
-            // e o próximo heartbeat renova. Só "não é mais seu" vira Lost.
-            if (!lease.Renew(ctx.ServerId, held.Epoch, now, vault.LeaseTtl))
-                lost.Add(held.PlayerUuid);
+        var lost = new List<string>();
+        var renew = new List<string>();
+        foreach (var (held, player) in asked)
+        {
+            if (player is not null && leases.TryGetValue(player, out var lease)
+                                   && lease.CanRenew(ctx.ServerId, held.Epoch))
+                renew.Add(player);
             else
-                await storage.SaveLeaseAsync(lease, read, ct);
+                lost.Add(held.PlayerUuid);
         }
+
+        await storage.RenewLeasesAsync(ctx.VaultId, ctx.ServerId, renew, clock.GetUtcNow(), vault.LeaseTtl, ct);
 
         return CloudCallResult<CloudHeartbeatReply>.Ok(new CloudHeartbeatReply(lost, vault.PolicyVersion));
     }

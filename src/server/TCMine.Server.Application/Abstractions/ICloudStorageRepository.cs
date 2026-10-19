@@ -62,6 +62,20 @@ public interface ICloudStorageRepository
 {
     Task<CloudLease?> GetLeaseAsync(Guid vaultId, string playerUuid, CancellationToken ct);
 
+    /// <summary>Os leases destes jogadores nesta nuvem, numa consulta (os que não existem não voltam).</summary>
+    Task<IReadOnlyList<CloudLease>> GetLeasesAsync(Guid vaultId, IReadOnlyCollection<string> playerUuids,
+        CancellationToken ct);
+
+    /// <summary>
+    ///     Renova o prazo dos leases destes jogadores que <paramref name="serverId" />
+    ///     ainda segura, num UPDATE só. Não mexe na versão (ver
+    ///     <c>CloudLease.CanRenew</c>), e o filtro pelo dono fecha a corrida com
+    ///     um acquire de outro servidor entre a leitura e esta gravação: o lease
+    ///     que mudou de mãos simplesmente não casa. Devolve quantos renovou.
+    /// </summary>
+    Task<int> RenewLeasesAsync(Guid vaultId, Guid serverId, IReadOnlyCollection<string> playerUuids,
+        DateTimeOffset now, TimeSpan ttl, CancellationToken ct);
+
     /// <summary>
     ///     Grava o lease. <paramref name="expectedVersion" /> é a versão LIDA
     ///     (antes das mudanças); nulo = lease novo. False em conflito.

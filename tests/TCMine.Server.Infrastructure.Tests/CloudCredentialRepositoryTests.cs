@@ -30,8 +30,38 @@ public sealed class CloudCredentialRepositoryTests : IDisposable
         await using var db = await _factory.CreateDbContextAsync(Ct);
         var linha = await db.CloudServerCredentials.SingleAsync(Ct);
         CloudServerKey.Matches(segunda, linha.KeyHash).ShouldBeTrue();
-        (await repo.FindByPrefixAsync(CloudServerKey.PrefixOf(primeira)!, Ct)).ShouldBeNull(
+        (await repo.FindKeyAsync(CloudServerKey.PrefixOf(primeira)!, Ct)).ShouldBeNull(
             "a chave anterior some junto com o prefixo dela");
+    }
+
+    [Fact]
+    public async Task A_chave_vem_com_a_nuvem_que_o_servidor_tem_agora()
+    {
+        // A autenticação do mod lê chave e servidor numa consulta só (5.5), e
+        // é ela que faz desligar da nuvem e revogar valerem na hora: não há
+        // cache entre o painel e a próxima requisição.
+        var (servidor, nuvem) = await SemearAsync();
+        var repo = new CloudCredentialRepository(_factory);
+        var chave = await CloudKeyRotation.RotateAsync(repo, TimeProvider.System, servidor, nuvem, Ct);
+        var prefixo = CloudServerKey.PrefixOf(chave)!;
+
+        var ligado = (await repo.FindKeyAsync(prefixo, Ct)).ShouldNotBeNull();
+        ligado.GameServerId.ShouldBe(servidor);
+        ligado.ServerVaultId.ShouldBe(nuvem);
+        ligado.IsActive.ShouldBeTrue();
+        CloudServerKey.Matches(chave, ligado.KeyHash).ShouldBeTrue();
+
+        await using (var db = await _factory.CreateDbContextAsync(Ct))
+        {
+            var linha = await db.GameServers.SingleAsync(s => s.Id == servidor, Ct);
+            linha.DetachFromCloudVault();
+            await db.SaveChangesAsync(Ct);
+        }
+
+        (await repo.FindKeyAsync(prefixo, Ct))!.ServerVaultId.ShouldBeNull("desligado no painel");
+
+        await repo.RevokeAsync(servidor, DateTimeOffset.UtcNow, Ct);
+        (await repo.FindKeyAsync(prefixo, Ct))!.IsActive.ShouldBeFalse();
     }
 
     [Fact]

@@ -135,9 +135,9 @@ public sealed class CloudLeaseTests
         lease.TryAcquire(ServidorA, T0, Ttl);
         lease.TryAcquire(ServidorA, T0.AddMinutes(1), Ttl); // época 2
 
-        lease.Renew(ServidorA, 1, T0.AddMinutes(2), Ttl).ShouldBeFalse();
-        lease.Renew(ServidorA, 2, T0.AddMinutes(2), Ttl).ShouldBeTrue();
-        lease.ExpiresAt.ShouldBe(T0.AddMinutes(2) + Ttl);
+        lease.CanRenew(ServidorA, 1).ShouldBeFalse();
+        lease.CanRenew(ServidorA, 2).ShouldBeTrue();
+        lease.CanRenew(ServidorB, 2).ShouldBeFalse("é de outro servidor");
     }
 
     [Fact]

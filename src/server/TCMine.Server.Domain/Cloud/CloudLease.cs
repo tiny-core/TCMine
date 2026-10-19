@@ -57,15 +57,16 @@ public sealed class CloudLease : Entity
         return true;
     }
 
-    /// <summary>Heartbeat: só renova se ainda é do servidor e da época informados.</summary>
-    public bool Renew(Guid serverId, long epoch, DateTimeOffset now, TimeSpan ttl)
-    {
-        if (HolderServerId != serverId || Epoch != epoch) return false;
-        HeartbeatAt = now;
-        ExpiresAt = now + ttl;
-        Changed();
-        return true;
-    }
+    /// <summary>
+    ///     Heartbeat: só renova se ainda é do servidor E da época informados — a
+    ///     época velha é o servidor que perdeu o lease e ainda não sabe.
+    ///     Só a decisão: renovar é um UPDATE em lote no repositório
+    ///     (<c>RenewLeasesAsync</c>), que mexe no prazo e NÃO na versão. A versão
+    ///     protege dono, época e sequência, que renovar não muda; aumentá-la a
+    ///     cada heartbeat fazia o lote que chegasse no mesmo instante perder a
+    ///     corrida e ser reenviado à toa.
+    /// </summary>
+    public bool CanRenew(Guid serverId, long epoch) => HolderServerId == serverId && Epoch == epoch;
 
     /// <summary>
     ///     O que fazer com um lote. Não muda nada: quem aplica chama

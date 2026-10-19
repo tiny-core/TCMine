@@ -11,7 +11,7 @@ namespace TCMine.Server.Application.Cloud;
 ///     Recusa também a chave de um servidor que foi desligado da nuvem depois de
 ///     recebê-la: desligar no painel tem de valer na próxima requisição.
 /// </summary>
-public sealed class AuthenticateCloudServer(ICloudCredentialRepository credentials, IServerRepository servers)
+public sealed class AuthenticateCloudServer(ICloudCredentialRepository credentials)
 {
     public async Task<Result<CloudServerContext>> HandleAsync(string? key, CancellationToken ct)
     {
@@ -19,14 +19,14 @@ public sealed class AuthenticateCloudServer(ICloudCredentialRepository credentia
         if (prefix is null)
             return Result<CloudServerContext>.Fail("Chave ausente ou mal formada.");
 
-        var credential = await credentials.FindByPrefixAsync(prefix, ct);
-        if (credential is null || !credential.IsActive || !CloudServerKey.Matches(key!, credential.KeyHash))
+        var found = await credentials.FindKeyAsync(prefix, ct);
+        if (found is null || !found.IsActive || !CloudServerKey.Matches(key!, found.KeyHash))
             return Result<CloudServerContext>.Fail("Chave inválida.");
 
-        var server = await servers.GetByIdAsync(credential.GameServerId, ct);
-        if (server is null || server.CloudVaultId != credential.VaultId)
+        if (found.ServerVaultId != found.VaultId)
             return Result<CloudServerContext>.Fail("Este servidor não está ligado a esta nuvem.");
 
-        return Result<CloudServerContext>.Success(new CloudServerContext(server.Id, credential.VaultId, credential.Id));
+        return Result<CloudServerContext>.Success(
+            new CloudServerContext(found.GameServerId, found.VaultId, found.CredentialId));
     }
 }

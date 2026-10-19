@@ -48,8 +48,14 @@ internal sealed class FakeCloudCredentialRepository : ICloudCredentialRepository
 {
     public List<CloudServerCredential> Credentials { get; } = [];
 
-    public Task<CloudServerCredential?> FindByPrefixAsync(string prefix, CancellationToken ct) =>
-        Task.FromResult(Credentials.FirstOrDefault(c => c.KeyPrefix == prefix));
+    /// <summary>A nuvem a que cada servidor está ligado (ausente = desligado ou apagado).</summary>
+    public Dictionary<Guid, Guid> ServerVaults { get; } = [];
+
+    public Task<CloudKeyLookup?> FindKeyAsync(string prefix, CancellationToken ct) =>
+        Task.FromResult(Credentials.FirstOrDefault(c => c.KeyPrefix == prefix) is { } c
+            ? new CloudKeyLookup(c.Id, c.GameServerId, c.VaultId, c.KeyHash, c.IsActive,
+                ServerVaults.TryGetValue(c.GameServerId, out var vault) ? vault : null)
+            : null);
 
     public Task<CloudServerCredential?> FindByIdAsync(Guid id, CancellationToken ct) =>
         Task.FromResult(Credentials.FirstOrDefault(c => c.Id == id));

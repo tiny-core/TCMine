@@ -6,10 +6,17 @@ namespace TCMine.Server.Infrastructure.Persistence;
 
 public sealed class CloudCredentialRepository(IDbContextFactory<TcMineDbContext> factory) : ICloudCredentialRepository
 {
-    public async Task<CloudServerCredential?> FindByPrefixAsync(string prefix, CancellationToken ct)
+    public async Task<CloudKeyLookup?> FindKeyAsync(string prefix, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        return await db.CloudServerCredentials.AsNoTracking().FirstOrDefaultAsync(c => c.KeyPrefix == prefix, ct);
+        // A nuvem do servidor vem de uma subconsulta, que dá nulo quando o
+        // servidor não existe mais: a chave dele ainda é achada, e a recusa diz
+        // "não está ligado" em vez de "chave inválida". Continua uma ida só ao banco.
+        return await db.CloudServerCredentials.AsNoTracking()
+            .Where(c => c.KeyPrefix == prefix)
+            .Select(c => new CloudKeyLookup(c.Id, c.GameServerId, c.VaultId, c.KeyHash, c.RevokedAt == null,
+                db.GameServers.Where(s => s.Id == c.GameServerId).Select(s => s.CloudVaultId).FirstOrDefault()))
+            .FirstOrDefaultAsync(ct);
     }
 
     public async Task<CloudServerCredential?> FindByIdAsync(Guid id, CancellationToken ct)

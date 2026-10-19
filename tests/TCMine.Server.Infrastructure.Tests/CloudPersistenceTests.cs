@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using TCMine.Server.Domain.Cloud;
+using TCMine.Server.Infrastructure.Persistence;
 
 namespace TCMine.Server.Infrastructure.Tests;
 
@@ -106,6 +107,64 @@ public sealed class CloudPersistenceTests
             .FindProperty(nameof(CloudQuarantine.PayloadJson))!
             .GetMaxLength()
             .ShouldBeNull("o lote cresce com o número de operações");
+    }
+
+    [Fact]
+    public async Task Heartbeat_renova_so_o_que_e_do_servidor_e_nao_mexe_na_versao_no_sqlite()
+    {
+        using var factory = new SqliteTestFactory();
+        await HeartbeatEmLote(factory);
+    }
+
+    [Fact]
+    public async Task Heartbeat_renova_so_o_que_e_do_servidor_e_nao_mexe_na_versao_no_postgres()
+    {
+        // O "jogador está na lista" vira json_each no SQLite e array no
+        // PostgreSQL: é na tradução que o UPDATE em lote quebraria.
+        Assert.SkipWhen(PostgresTestDatabase.ServerConnectionString is null,
+            "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).");
+        await using var postgres = await PostgresTestDatabase.CreateAsync(Ct);
+        await HeartbeatEmLote(postgres);
+    }
+
+    private static async Task HeartbeatEmLote(IDbContextFactory<TcMineDbContext> factory)
+    {
+        var meu = Guid.CreateVersion7();
+        var outro = Guid.CreateVersion7();
+        var vault = new CloudVault { Name = "Nuvem", OwnerId = Guid.CreateVersion7() };
+        var ana = Lease(vault.Id, 'a', meu);
+        var beto = Lease(vault.Id, 'b', meu);
+        var tomado = Lease(vault.Id, 'c', outro);
+        await using (var db = await factory.CreateDbContextAsync(Ct))
+        {
+            db.CloudVaults.Add(vault);
+            db.CloudLeases.AddRange(ana, beto, tomado);
+            await db.SaveChangesAsync(Ct);
+        }
+
+        var repo = new CloudStorageRepository(factory);
+        var lidos = await repo.GetLeasesAsync(vault.Id, [ana.PlayerUuid, tomado.PlayerUuid, new string('f', 32)], Ct);
+        var agora = T0.AddMinutes(5);
+        var renovados = await repo.RenewLeasesAsync(vault.Id, meu,
+            [ana.PlayerUuid, tomado.PlayerUuid], agora, TimeSpan.FromMinutes(30), Ct);
+
+        lidos.Select(l => l.PlayerUuid).ShouldBe([ana.PlayerUuid, tomado.PlayerUuid], ignoreOrder: true,
+            "o jogador sem lease simplesmente não volta");
+        renovados.ShouldBe(1, "o lease que outro servidor segura não casa com o filtro do dono");
+        await using var depois = await factory.CreateDbContextAsync(Ct);
+        var porJogador = await depois.CloudLeases.AsNoTracking().ToDictionaryAsync(l => l.PlayerUuid, Ct);
+        porJogador[ana.PlayerUuid].ExpiresAt.ShouldBe(agora.AddMinutes(30));
+        porJogador[ana.PlayerUuid].Version.ShouldBe(ana.Version,
+            "renovar não muda dono, época nem sequência: um lote que leu antes ainda grava");
+        porJogador[beto.PlayerUuid].ExpiresAt.ShouldBe(beto.ExpiresAt, "não estava no heartbeat");
+        porJogador[tomado.PlayerUuid].ExpiresAt.ShouldBe(tomado.ExpiresAt);
+    }
+
+    private static CloudLease Lease(Guid vaultId, char jogador, Guid servidor)
+    {
+        var lease = new CloudLease { VaultId = vaultId, PlayerUuid = new string(jogador, 32) };
+        lease.TryAcquire(servidor, T0, TimeSpan.FromMinutes(30));
+        return lease;
     }
 
     private static async Task<CloudVault> NovaNuvem(SqliteTestFactory factory)

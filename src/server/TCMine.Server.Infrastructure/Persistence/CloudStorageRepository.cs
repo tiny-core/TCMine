@@ -21,6 +21,34 @@ public sealed class CloudStorageRepository(IDbContextFactory<TcMineDbContext> fa
             .FirstOrDefaultAsync(l => l.VaultId == vaultId && l.PlayerUuid == playerUuid, ct);
     }
 
+    public async Task<IReadOnlyList<CloudLease>> GetLeasesAsync(Guid vaultId, IReadOnlyCollection<string> playerUuids,
+        CancellationToken ct)
+    {
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.CloudLeases.AsNoTracking()
+            .Where(l => l.VaultId == vaultId && playerUuids.Contains(l.PlayerUuid))
+            .ToListAsync(ct);
+    }
+
+    public async Task<int> RenewLeasesAsync(Guid vaultId, Guid serverId, IReadOnlyCollection<string> playerUuids,
+        DateTimeOffset now, TimeSpan ttl, CancellationToken ct)
+    {
+        if (playerUuids.Count == 0)
+            return 0;
+
+        // Tipados como as colunas (anuláveis), para a inferência do SetProperty
+        // não ter de escolher entre DateTimeOffset e DateTimeOffset?.
+        DateTimeOffset? at = now;
+        DateTimeOffset? expires = now + ttl;
+        await using var db = await factory.CreateDbContextAsync(ct);
+        return await db.CloudLeases
+            .Where(l => l.VaultId == vaultId && l.HolderServerId == serverId && playerUuids.Contains(l.PlayerUuid))
+            .ExecuteUpdateAsync(set => set
+                .SetProperty(l => l.HeartbeatAt, at)
+                .SetProperty(l => l.ExpiresAt, expires)
+                .SetProperty(l => l.UpdatedAt, at), ct);
+    }
+
     public async Task<bool> SaveLeaseAsync(CloudLease lease, long? expectedVersion, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
