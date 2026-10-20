@@ -16,6 +16,51 @@ número de estável e renumeradas na 0.11.0 para seguir a linha 0.x: 1.X.Y virou
 As entradas abaixo já usam os números novos. As releases no GitHub começam na
 0.11.0.
 
+## [0.14.0] — 2026-10-20
+
+Launcher **0.9.0** (sem mudança).
+
+**Antes de atualizar:** faça backup do banco — esta versão traz duas migrations,
+as duas só acrescentam uma coluna. Os containers de jogo NÃO são recriados, e o
+launcher não muda. No primeiro arranque o painel marca os servidores que já têm
+mundo na pasta (veja *Corrigido*); o log diz quantos.
+
+### Alterado
+
+- **Duas pessoas salvando o mesmo servidor:** a segunda recebe um aviso para
+  reabrir o formulário, em vez de apagar em silêncio o que a primeira salvou.
+  Ligar ou parar o servidor com o formulário aberto não conta como edição.
+- **Cada fluxo grava só o que é dele.** Ligar, parar, trocar a versão, ligar a
+  nuvem e criar o container gravam só o campo que mudam; antes regravavam o
+  servidor inteiro com uma cópia lida antes e podiam desfazer uma edição feita
+  no meio. Renomear um modpack ou trocar a capa não regrava mais as versões.
+- **Filas da nuvem paginadas:** quarentena, operações em dúvida e incidentes
+  carregam 50 de cada vez, com "Carregar mais"; os suspeitos mostram os 100
+  mais tentados. Os números nas abas são contados no banco.
+- **A fila de ingestão tem teto** e junta pedidos repetidos da mesma versão
+  numa passada só. O pedido continua gravado no banco antes de entrar na fila.
+
+### Corrigido
+
+- **Trocar a versão de um servidor com mundo não fazia backup.** O painel nunca
+  registrava que o servidor tinha mundo, então a troca rodava direto, sem a
+  cópia de segurança e sem exigir o servidor parado. Agora o servidor é marcado
+  quando fica pronto, ou no arranque se já há mundo na pasta, e a troca faz o
+  backup antes. O diálogo de troca, que recusava todo servidor com mundo, passa
+  a deixar trocar com ele parado.
+- **Mods opcionais de um pack importado voltavam obrigatórios** quando o painel
+  reiniciava no meio da importação. O "opcional" agora fica gravado junto com o
+  pedido.
+- **Renomear um modpack durante uma ingestão** podia devolver a versão a
+  rascunho no meio do trabalho, ou falhar com erro.
+
+### Migração
+
+- `AddGameServerRowVersion` acrescenta a versão da linha do servidor (o aviso
+  de edição simultânea), começando em 0.
+- `AddPendingModOptional` acrescenta o "opcional" às pendências; as que já
+  existem ficam como obrigatórias, que era como a fila as tratava ao recuperar.
+
 ## [0.13.0] — 2026-10-19
 
 Launcher **0.9.0** (sem mudança).

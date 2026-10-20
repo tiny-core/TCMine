@@ -13,7 +13,7 @@ namespace TCMine.Server.Web.Configuration;
 public static class BuildInfo
 {
     /// <summary>
-    ///     Ex.: "0.13.0". Sai "dev" quando o assembly não traz versão nenhuma.
+    ///     Ex.: "0.14.0". Sai "dev" quando o assembly não traz versão nenhuma.
     ///     O 1.0.0 padrão do SDK também virava "dev", para o caso de a build
     ///     perder o arquivo de versão; deixou de virar porque o
     ///     <c>Directory.Build.props</c> falha a build sem o arquivo, e o
