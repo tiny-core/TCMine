@@ -24,7 +24,7 @@ public abstract class FakeServerRepositoryBase : IServerRepository
     public virtual Task AddAsync(GameServer server, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public virtual Task UpdateAsync(GameServer server, CancellationToken ct) =>
+    public virtual Task<bool> UpdateAsync(GameServer server, CancellationToken ct) =>
         throw new NotImplementedException();
 
     public virtual Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct) =>

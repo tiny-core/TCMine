@@ -42,7 +42,7 @@ public sealed class ServerRepository(
         changes.Touch(ResourceKind.Servers, server.Id);
     }
 
-    public async Task UpdateAsync(GameServer server, CancellationToken ct)
+    public async Task<bool> UpdateAsync(GameServer server, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         db.GameServers.Update(server);
@@ -59,11 +59,30 @@ public sealed class ServerRepository(
         entry.Property(s => s.CloudVaultId).IsModified = false;
         entry.Property(s => s.WorldInitializedAt).IsModified = false;
 
-        await db.SaveChangesAsync(ct);
+        // O token: o WHERE leva o número que a cópia leu, e a linha grava o
+        // seguinte. Mesmo desenho do AttachLease da nuvem — o Update() de uma
+        // entidade destacada toma a cópia como "original", e sem fixar o
+        // original aqui o UPDATE nunca conferiria nada.
+        var seen = server.RowVersion;
+        var token = entry.Property(s => s.RowVersion);
+        token.OriginalValue = seen;
+        token.CurrentValue = seen + 1;
 
-        // Inclui as mudanças de estado (ligou, parou, caiu): é por aqui que o
-        // "no ar" chega ao launcher sem ele ter de perguntar.
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Outra gravação do formulário chegou antes. Nada foi gravado, e a
+            // cópia de quem chamou volta a dizer o que leu.
+            token.CurrentValue = seen;
+            return false;
+        }
+
+        // Mudou nome, endereço, porta, memória ou acesso, que o launcher mostra.
         changes.Touch(ResourceKind.Servers, server.Id);
+        return true;
     }
 
     public async Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct)

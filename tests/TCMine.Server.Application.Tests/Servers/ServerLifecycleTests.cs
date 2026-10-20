@@ -179,10 +179,10 @@ public sealed class ServerLifecycleTests
         public override Task<GameServer?> GetByIdAsync(Guid id, CancellationToken ct) =>
             Task.FromResult<GameServer?>(server);
 
-        public override Task UpdateAsync(GameServer s, CancellationToken ct)
+        public override Task<bool> UpdateAsync(GameServer s, CancellationToken ct)
         {
             Saved = s;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
 
         public GameServerStatus? StatusGravado { get; private set; }

@@ -19,9 +19,12 @@ public interface IServerRepository
     ///     status, container, versão fixada, nuvem e marca de mundo —, mesmo que a
     ///     cópia passada as traga diferentes: quem chama leu o servidor antes, e
     ///     a cópia dele pode estar atrás do que esses escritores gravaram.
+    ///     Só grava se a linha ainda tiver o <c>RowVersion</c> da cópia, e então o
+    ///     sobe (também na cópia). Falso = outra gravação do formulário chegou
+    ///     antes, e nada foi gravado.
     /// </summary>
     [Invalidates(ResourceKind.Servers)]
-    Task UpdateAsync(GameServer server, CancellationToken ct);
+    Task<bool> UpdateAsync(GameServer server, CancellationToken ct);
 
     /// <summary>Grava SÓ o container do servidor, depois de o orquestrador criá-lo.</summary>
     [NotVisibleToLauncher("O launcher não sabe qual container roda o servidor.")]

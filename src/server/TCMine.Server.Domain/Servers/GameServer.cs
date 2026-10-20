@@ -118,6 +118,19 @@ public sealed class GameServer : Entity, IOwnedEntity
     public bool HasWorld => WorldInitializedAt is not null;
 
     /// <summary>
+    ///     Token de concorrência do formulário do servidor (fase 6.3). Sobe a cada
+    ///     gravação do formulário; o repositório só grava se a linha ainda tiver o
+    ///     número que o formulário leu. Assim, de duas pessoas salvando ao mesmo
+    ///     tempo, a segunda recebe um aviso em vez de apagar o que a primeira
+    ///     salvou. As gravações de uma coluna (status, container, versão fixada,
+    ///     nuvem, mundo) NÃO o sobem: ligar o servidor com o formulário aberto
+    ///     não faz o salvar falhar, porque nada do que o formulário edita mudou.
+    ///     Chama-se RowVersion, e não Version, para não se confundir com a
+    ///     versão do modpack fixada no servidor.
+    /// </summary>
+    public long RowVersion { get; private set; }
+
+    /// <summary>
     ///     Nuvem de itens (mod tccloud) que este servidor usa. Nulo = nuvem
     ///     desligada aqui (ex.: servidor de testes).
     /// </summary>

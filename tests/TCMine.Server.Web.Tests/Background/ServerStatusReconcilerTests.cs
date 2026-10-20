@@ -278,7 +278,7 @@ public sealed class ServerStatusReconcilerTests
         public Task<IReadOnlyList<GameServer>> ListAllAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<GameServer>>(seed);
 
-        public Task UpdateAsync(GameServer server, CancellationToken ct) =>
+        public Task<bool> UpdateAsync(GameServer server, CancellationToken ct) =>
             throw new InvalidOperationException("o status grava só a coluna dele, nunca a linha inteira");
 
         public Task UpdateStatusAsync(Guid id, GameServerStatus status, CancellationToken ct)

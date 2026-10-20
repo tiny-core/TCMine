@@ -309,7 +309,11 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
   container (`SetContainerIdAsync`), versão fixada (`SetPinnedVersionAsync`), nuvem (`SetCloudVaultAsync`) e
   marca de mundo (`MarkWorldInitializedAsync`), cada um por `ExecuteUpdate`. O `UpdateAsync` é só do
   formulário e deixa essas cinco colunas de fora mesmo que a cópia as traga diferentes. Coluna nova com
-  escritor próprio entra nas duas listas: método estreito e exclusão no `UpdateAsync`. Um container `unless-stopped` sobrevive a reinícios do TCMine — não há
+  escritor próprio entra nas duas listas: método estreito e exclusão no `UpdateAsync`.
+- **O formulário do servidor tem token de concorrência** (`GameServer.RowVersion`, fase 6.3). O diálogo manda
+  o `RowVersion` que mostrou; `UpdateGameServer` recusa se a linha já mudou, e o `UpdateAsync` confere de novo
+  no WHERE e devolve falso se perdeu a corrida. Só o `UpdateAsync` sobe o token: as gravações de uma coluna
+  não, senão ligar o servidor com o formulário aberto faria o salvar falhar. Um container `unless-stopped` sobrevive a reinícios do TCMine — não há
   "attach", só reconsulta pelo `ContainerId`.
 - **Running quer dizer "aceita jogadores", não "container de pé".** O container leva a verificação de saúde de
   `ItzgEnv.Healthcheck` (o `mc-health` da imagem, 15 min de arranque) e `DockerServerOrchestrator.StatusOf`

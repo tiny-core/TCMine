@@ -63,7 +63,7 @@ public sealed class ServerNarrowWritesTests : IDisposable
 
         formulario!.Name = "Nome novo";
         formulario.MemoryMb = 8192;
-        await repo.UpdateAsync(formulario, Ct);
+        (await repo.UpdateAsync(formulario, Ct)).ShouldBeTrue("as gravações de uma coluna não sobem o token");
 
         var lido = (await repo.GetByIdAsync(server.Id, Ct))!;
         lido.Name.ShouldBe("Nome novo");

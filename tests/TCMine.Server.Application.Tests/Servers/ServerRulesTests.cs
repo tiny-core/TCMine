@@ -395,6 +395,69 @@ public sealed class ServerRulesTests
             new FakeDnsSyncSignal());
 
     [Fact]
+    public async Task Formulario_aberto_antes_de_outro_salvar_e_recusado()
+    {
+        // O formulário mostrou a versão 3 da linha; enquanto estava aberto,
+        // outra pessoa salvou (a linha está na 4). Gravar agora apagaria o que
+        // ela salvou, em silêncio.
+        var server = Servidor();
+        SetRowVersion(server, 4);
+        var servers = new FakeServers(server);
+        var dns = new FakeDnsSyncSignal();
+
+        var result = await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(),
+                new FakePorts(), dns)
+            .HandleAsync(server.Id, "nome novo", "", 4096, 20, true, CancellationToken.None,
+                expectedRowVersion: 3);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(UpdateGameServer.ConcurrentEditMessage, result.Error);
+        Assert.Equal(0, servers.Gravacoes);
+        Assert.Equal("Servidor", server.Name); // recusa antes de mexer em qualquer campo
+        Assert.Equal(0, dns.Requests);
+    }
+
+    [Fact]
+    public async Task Salvar_que_perde_a_corrida_no_banco_e_recusado_sem_efeitos()
+    {
+        // A conferência de cima passou, mas outro salvar entrou entre a leitura
+        // e a gravação: o banco não grava, e DNS e whitelist não podem andar
+        // como se tivesse gravado.
+        var server = Servidor();
+        var servers = new FakeServers(server) { Conflito = true };
+        var dns = new FakeDnsSyncSignal();
+
+        var result = await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(),
+                new FakePorts(), dns)
+            .HandleAsync(server.Id, "nome novo", "", 4096, 20, true, CancellationToken.None,
+                expectedRowVersion: server.RowVersion);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(UpdateGameServer.ConcurrentEditMessage, result.Error);
+        Assert.Equal(0, dns.Requests);
+    }
+
+    [Fact]
+    public async Task Formulario_com_a_versao_atual_salva()
+    {
+        var server = Servidor();
+        var servers = new FakeServers(server);
+
+        var result = await new UpdateGameServer(servers, new FakeWhitelistSync(), new FakeUserScope(),
+                new FakePorts(), new FakeDnsSyncSignal())
+            .HandleAsync(server.Id, "nome novo", "", 4096, 20, true, CancellationToken.None,
+                expectedRowVersion: server.RowVersion);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, servers.Gravacoes);
+    }
+
+    // O RowVersion só muda pelo banco (setter privado, como no domínio). Para o
+    // teste montar "a linha já está na versão N", vai por reflexão.
+    private static void SetRowVersion(GameServer server, long value) =>
+        typeof(GameServer).GetProperty(nameof(GameServer.RowVersion))!.SetValue(server, value);
+
+    [Fact]
     public async Task Apagar_servidor_exige_Owner_e_Admin_nao_basta()
     {
         // A única ação da lista sem volta: leva o mundo junto e nenhum backup
@@ -576,7 +639,19 @@ public sealed class ServerRulesTests
             return Task.CompletedTask;
         }
 
-        public override Task UpdateAsync(GameServer server, CancellationToken ct) => Task.CompletedTask;
+        /// <summary>Simula o banco recusando: outro salvar passou entre a leitura e a gravação.</summary>
+        public bool Conflito { get; init; }
+
+        public int Gravacoes { get; private set; }
+
+        public override Task<bool> UpdateAsync(GameServer server, CancellationToken ct)
+        {
+            if (Conflito)
+                return Task.FromResult(false);
+
+            Gravacoes++;
+            return Task.FromResult(true);
+        }
 
         public override Task RemoveAsync(Guid id, CancellationToken ct)
         {

@@ -102,7 +102,7 @@ public sealed class ServerWorldMarkTests : IDisposable
         await repo.MarkWorldInitializedAsync(server.Id, DateTimeOffset.UtcNow, Ct);
 
         copiaVelha!.MemoryMb = 6144;
-        await repo.UpdateAsync(copiaVelha, Ct);
+        (await repo.UpdateAsync(copiaVelha, Ct)).ShouldBeTrue();
 
         var lido = await repo.GetByIdAsync(server.Id, Ct);
         lido!.MemoryMb.ShouldBe(6144, "o resto da linha grava normalmente");

@@ -279,7 +279,10 @@ public partial class ServerFormDialog
         {
             return await UpdateUseCase.HandleAsync(
                 Existing!.Id, _name, EffectiveConnectAddress, _memoryMb, _maxPlayers, _whitelistEnabled,
-                CancellationToken.None, _gamePort, EffectiveSubdomain, _options, EffectiveTunnelLabel);
+                CancellationToken.None, _gamePort, EffectiveSubdomain, _options, EffectiveTunnelLabel,
+                // A versão da linha que este formulário mostrou: se outra pessoa
+                // salvou depois, o caso de uso recusa em vez de apagar o que ela fez.
+                Existing.RowVersion);
         }
 
         var created = await CreateUseCase.HandleAsync(

@@ -12,10 +12,15 @@ public sealed class UpdateGameServer(
     IGamePortAllocator ports,
     IDnsSyncSignal dnsSync)
 {
+    public const string ConcurrentEditMessage =
+        "Outra pessoa salvou este servidor enquanto o formulário estava aberto. "
+        + "Feche e abra de novo para ver o que mudou; nada do que você editou foi gravado.";
+
     public async Task<Result> HandleAsync(
         Guid id, string name, string connectAddress, int memoryMb, int maxPlayers,
         bool whitelistEnabled, CancellationToken ct, int gamePort = 0, string? subdomain = null,
-        IReadOnlyDictionary<string, string>? options = null, string? tunnelLabel = null)
+        IReadOnlyDictionary<string, string>? options = null, string? tunnelLabel = null,
+        long? expectedRowVersion = null)
     {
         // Antes da validação do nome: responder "informe o nome" a quem nem
         // deveria enxergar este servidor já confirma que ele existe.
@@ -29,6 +34,14 @@ public sealed class UpdateGameServer(
         var server = await servers.GetByIdAsync(id, ct);
         if (server is null)
             return Result.Fail("Servidor não encontrado.");
+
+        // O formulário manda o RowVersion do servidor que ele mostrou. Diferente
+        // do banco = alguém salvou o formulário depois disso, e gravar agora
+        // apagaria o que essa pessoa salvou. Nulo = quem chama não tem a versão
+        // que o usuário viu (sem formulário no meio): vale só a conferência do
+        // banco, logo abaixo, contra a leitura daqui.
+        if (expectedRowVersion is { } seen && seen != server.RowVersion)
+            return Result.Fail(ConcurrentEditMessage);
 
         // Nulo = não mexe nas opções de jogo; um dicionário (mesmo vazio)
         // substitui todas. Como as demais conferências, antes de alterar algo.
@@ -94,7 +107,11 @@ public sealed class UpdateGameServer(
         server.WhitelistEnabled = whitelistEnabled;
         server.UpdatedAt = DateTimeOffset.UtcNow;
 
-        await servers.UpdateAsync(server, ct);
+        // O banco confere de novo: entre a leitura acima e esta linha, outro
+        // salvar pode ter passado. Antes de pedir DNS e whitelist, que só fazem
+        // sentido se a gravação valeu.
+        if (!await servers.UpdateAsync(server, ct))
+            return Result.Fail(ConcurrentEditMessage);
 
         // Porta ou subdomínio podem ter mudado, e os dois estão no SRV. Pedir
         // sempre é mais barato do que decidir aqui o que conta como mudança.

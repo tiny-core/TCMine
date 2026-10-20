@@ -18,6 +18,10 @@ public sealed class GameServerConfiguration : IEntityTypeConfiguration<GameServe
         // HasWorld é computado (deriva de WorldInitializedAt) — não é coluna.
         builder.Ignore(s => s.HasWorld);
 
+        // Token do formulário (ver GameServer.RowVersion): entra no WHERE do
+        // UPDATE, e uma linha que mudou desde a leitura não é atualizada.
+        builder.Property(s => s.RowVersion).IsConcurrencyToken();
+
         builder.Property(s => s.Name).HasMaxLength(128).IsRequired();
         builder.Property(s => s.ConnectAddress).HasMaxLength(256).IsRequired();
         builder.Property(s => s.ContainerId).HasMaxLength(128);
