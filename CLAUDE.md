@@ -197,6 +197,12 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 - **Release fixada se resolve PELO ID**, nunca a procurando na lista das compatíveis: essa lista é paginada (50 no
   CurseForge), e o código antigo trocava em silêncio pela mais recente quando não a achava.
 - Copiar um arquivo para outra versão é `ModpackFile.CopyTo(versionId)` — as cópias à mão já tinham divergido.
+- **A pendência `Queued` É o pedido; a fila só diz qual versão tem pedido** (fase 6.5). O
+  `IngestionScheduler` grava cada item como pendência (com origem, release, lado e `Optional`) e então
+  avisa a `IngestionQueue` só com o id da versão. A fila junta repetidos e tem teto (espera a vaga, não
+  descarta); o worker roda `IngestQueuedAsync`, que monta o trabalho das pendências (`IngestionWorkPlanner.Queued`).
+  Campo novo num `ModIngestionItem` tem de ir também para a `PendingMod`, senão some na fila e na recuperação
+  do arranque — foi o que aconteceu com o "opcional do pack".
 
 ---
 

@@ -47,7 +47,7 @@ public sealed class DeleteAndQueueTests
         version.MarkResolving();
         version.MarkReady();
 
-        var queue = new FakeQueue();
+        var queue = new FakeIngestionQueue(_ => version);
 
         var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, [Item("jei")]), CancellationToken.None);
@@ -60,7 +60,7 @@ public sealed class DeleteAndQueueTests
     public async Task Recusa_ingestao_sem_itens()
     {
         var version = Rascunho();
-        var queue = new FakeQueue();
+        var queue = new FakeIngestionQueue(_ => version);
 
         var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, []), CancellationToken.None);
@@ -75,7 +75,7 @@ public sealed class DeleteAndQueueTests
         // Retornar assim que enfileira é o contrato: o trabalho pesado roda no
         // worker, e a tela acompanha pelo estado da versão.
         var version = Rascunho();
-        var queue = new FakeQueue();
+        var queue = new FakeIngestionQueue(_ => version);
 
         var result = await CriarQueueIngestion(version, queue).HandleAsync(
             new QueueIngestionCommand(version.Id, [Item("jei"), Item("create")]), CancellationToken.None);
@@ -120,7 +120,7 @@ public sealed class DeleteAndQueueTests
     };
 
     /// <summary>O agendador entra no meio: e ele que grava o pedido antes de enfileirar.</summary>
-    private static QueueIngestion CriarQueueIngestion(ModpackVersion version, FakeQueue queue)
+    private static QueueIngestion CriarQueueIngestion(ModpackVersion version, FakeIngestionQueue queue)
     {
         var repo = new FakeModpacks(version);
         return new QueueIngestion(repo, new IngestionScheduler(repo, queue));
@@ -155,17 +155,6 @@ public sealed class DeleteAndQueueTests
         {
             Removido = true;
             return Task.CompletedTask;
-        }
-    }
-
-    private sealed class FakeQueue : IIngestionQueue
-    {
-        public List<ModIngestionItem> Enfileirados { get; } = [];
-
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
-        {
-            Enfileirados.AddRange(items);
-            return ValueTask.CompletedTask;
         }
     }
 

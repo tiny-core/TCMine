@@ -31,6 +31,7 @@ public sealed partial class ModpackIngestionService(
 
     private readonly ILogger<ModpackIngestionService> _logger = logger;
 
+    /// <summary>Ingere os itens dados (testes e chamadas diretas).</summary>
     public async Task IngestAsync(
         Guid versionId,
         IReadOnlyList<ModIngestionItem> items,
@@ -42,6 +43,42 @@ public sealed partial class ModpackIngestionService(
             LogVersionMissing(versionId);
             return;
         }
+
+        await IngestLoadedAsync(version, items, ct);
+    }
+
+    /// <summary>
+    ///     O que o worker roda: ingere os pedidos gravados como pendência
+    ///     <c>Queued</c> (<see cref="IngestionWorkPlanner.Queued" />). Desde a fase
+    ///     6.5 a fila guarda só a versão, então dois pedidos seguidos viram uma
+    ///     passada com os dois, e uma passada que chega depois de outra já ter
+    ///     feito tudo não acha nada e sai sem tocar na versão.
+    /// </summary>
+    public async Task IngestQueuedAsync(Guid versionId, CancellationToken ct)
+    {
+        var version = await repository.GetVersionAsync(versionId, ct);
+        if (version is null)
+        {
+            LogVersionMissing(versionId);
+            return;
+        }
+
+        var items = IngestionWorkPlanner.Queued(version);
+        if (items.Count is 0)
+        {
+            LogNothingQueued(versionId);
+            return;
+        }
+
+        await IngestLoadedAsync(version, items, ct);
+    }
+
+    private async Task IngestLoadedAsync(
+        ModpackVersion version,
+        IReadOnlyList<ModIngestionItem> items,
+        CancellationToken ct)
+    {
+        var versionId = version.Id;
 
         // MC e loader vêm do modpack agora. Carrega uma vez; o loop reusa.
         var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
@@ -292,6 +329,7 @@ public sealed partial class ModpackIngestionService(
                     Origin = item.Origin,
                     FileId = item.FileId,
                     Side = item.Side,
+                    Optional = item.Optional,
                     Reason = PendingModReason.DistributionDenied,
                     Detail = "O autor não permite redistribuição automática.",
                     PageUrl = denied.ProjectPage.ToString(),
@@ -315,6 +353,7 @@ public sealed partial class ModpackIngestionService(
                     Origin = item.Origin,
                     FileId = item.FileId,
                     Side = item.Side,
+                    Optional = item.Optional,
                     Reason = PendingModReason.NoCompatibleFile,
                     Detail = notFound.Reason,
                     PageUrl = UpstreamLinks.ProjectPage(item.Origin, item.ProjectId),
@@ -566,6 +605,7 @@ public sealed partial class ModpackIngestionService(
             Origin = item.Origin,
             FileId = item.FileId,
             Side = item.Side,
+            Optional = item.Optional,
             Reason = PendingModReason.NoCompatibleFile,
             Detail = $"Exige loader {exigido}; esta versão usa {loaderVersion}.",
             Folder = folder
@@ -574,6 +614,10 @@ public sealed partial class ModpackIngestionService(
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Versão {VersionId} não encontrada para ingestão.")]
     private partial void LogVersionMissing(Guid versionId);
+
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Ingestão da versão {VersionId}: nada pedido (outra passada já fez o que havia).")]
+    private partial void LogNothingQueued(Guid versionId);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Transição inválida na versão {VersionId}: {Reason}")]
     private partial void LogInvalidTransition(Guid versionId, string reason);

@@ -91,7 +91,7 @@ public sealed class RetryModResolutionTests
 
     // ---- Fixtures ----
 
-    private static (FakeRepo Repo, FakeQueue Queue, ModpackVersion Version) Cenario(
+    private static (FakeRepo Repo, FakeIngestionQueue Queue, ModpackVersion Version) Cenario(
         string[] baixados, bool falhou = true)
     {
         var modpack = new Modpack
@@ -136,21 +136,10 @@ public sealed class RetryModResolutionTests
         if (falhou)
             version.MarkFailed("timeout na API");
 
-        return (new FakeRepo(modpack, version), new FakeQueue(), version);
+        return (new FakeRepo(modpack, version), new FakeIngestionQueue(_ => version), version);
     }
 
     // ---- Fakes ----
-
-    private sealed class FakeQueue : IIngestionQueue
-    {
-        public List<ModIngestionItem> Enfileirados { get; } = [];
-
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
-        {
-            Enfileirados.AddRange(items);
-            return ValueTask.CompletedTask;
-        }
-    }
 
     /// <summary>Devolve a MESMA instância, para as transições ficarem visíveis ao teste.</summary>
     private sealed class FakeRepo(Modpack modpack, ModpackVersion version) : FakeModpackRepositoryBase

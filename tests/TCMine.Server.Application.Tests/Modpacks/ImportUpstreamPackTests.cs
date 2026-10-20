@@ -40,7 +40,7 @@ public sealed class ImportUpstreamPackTests
     public async Task Grava_overrides_e_enfileira_os_mods()
     {
         var repo = new FakeRepo();
-        var queue = new FakeQueue();
+        var queue = new FakeIngestionQueue(_ => repo.AddedVersion);
         var useCase = Build(repo, PackComDoisModsEUmOverride(), queue);
 
         await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
@@ -53,6 +53,25 @@ public sealed class ImportUpstreamPackTests
         // ...e os mods vão para a fila, que baixa em background.
         Assert.Equal(2, queue.Enfileirados.Count);
         Assert.All(queue.Enfileirados, i => Assert.Equal(ModFileOrigin.CurseForge, i.Origin));
+    }
+
+    [Fact]
+    public async Task Mod_opcional_do_pack_chega_opcional_ao_worker()
+    {
+        // O "required = false" do manifesto do CurseForge é opcional DO PACK. Com
+        // a fila levando só a versão (6.5), ele precisa estar na pendência, senão
+        // o worker o ingere como obrigatório.
+        var repo = new FakeRepo();
+        var queue = new FakeIngestionQueue(_ => repo.AddedVersion);
+        var pack = PackComDoisModsEUmOverride() with
+        {
+            Mods = [new UpstreamPackMod("1", "111", true), new UpstreamPackMod("2", "222", false)]
+        };
+
+        await Build(repo, pack, queue).HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
+
+        Assert.False(queue.Enfileirados.Single(i => i.ProjectId == "1").Optional);
+        Assert.True(queue.Enfileirados.Single(i => i.ProjectId == "2").Optional);
     }
 
     [Fact]
@@ -119,7 +138,7 @@ public sealed class ImportUpstreamPackTests
         var source = new FakeSource(PackComDoisModsEUmOverride()) { Disponivel = false };
         var useCase = new ImportUpstreamPack(
             [source], repo, new FakeMemberships(), new FakeBlobStore(),
-            new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
+            new IngestionScheduler(repo, new FakeIngestionQueue(_ => repo.AddedVersion)), new FakeJobProgress(),
             new FakeDownloader(), new FakeScope());
 
         var result = await useCase.HandleAsync(ModFileOrigin.CurseForge, "999", null, CancellationToken.None);
@@ -139,7 +158,7 @@ public sealed class ImportUpstreamPackTests
         var memberships = new FakeMemberships();
         var useCase = new ImportUpstreamPack(
             [new FakeSource(PackComDoisModsEUmOverride())], repo, memberships, new FakeBlobStore(),
-            new IngestionScheduler(repo, new FakeQueue()), new FakeJobProgress(),
+            new IngestionScheduler(repo, new FakeIngestionQueue(_ => repo.AddedVersion)), new FakeJobProgress(),
             new FakeDownloader(), new BackgroundScope());
 
         var result = await useCase.HandleAsync(
@@ -156,9 +175,9 @@ public sealed class ImportUpstreamPackTests
 
     // ---- Fixtures ----
 
-    private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeQueue? queue = null) =>
+    private static ImportUpstreamPack Build(FakeRepo repo, UpstreamPack pack, FakeIngestionQueue? queue = null) =>
         new([new FakeSource(pack)], repo, new FakeMemberships(), new FakeBlobStore(),
-            new IngestionScheduler(repo, queue ?? new FakeQueue()),
+            new IngestionScheduler(repo, queue ?? new FakeIngestionQueue(_ => repo.AddedVersion)),
             new FakeJobProgress(), new FakeDownloader(), new FakeScope());
 
     private static UpstreamPack PackComDoisModsEUmOverride() => new()
@@ -208,17 +227,6 @@ public sealed class ImportUpstreamPackTests
     {
         public Task<Stream> OpenAsync(Uri url, CancellationToken ct) =>
             Task.FromResult<Stream>(new MemoryStream([1, 2, 3, 4]));
-    }
-
-    private sealed class FakeQueue : IIngestionQueue
-    {
-        public List<ModIngestionItem> Enfileirados { get; } = [];
-
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
-        {
-            Enfileirados.AddRange(items);
-            return ValueTask.CompletedTask;
-        }
     }
 
     private sealed class FakeScope : ICurrentUserScope

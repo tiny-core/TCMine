@@ -532,7 +532,8 @@ public sealed class UpdateFromUpstreamTests
         };
 
         var repo = new FakeRepo(modpack, atual);
-        var queue = new FakeQueue();
+        // O rascunho é a versão que o caso de uso acabou de criar.
+        var queue = new FakeIngestionQueue(_ => repo.Adicionada);
 
         var useCase = new UpdateFromUpstream(
             [new FakeSource(pack)], repo, new FakeBlobStore(), new IngestionScheduler(repo, queue),
@@ -544,7 +545,7 @@ public sealed class UpdateFromUpstreamTests
     private sealed record Contexto(
         UpdateFromUpstream UseCase,
         FakeRepo Repo,
-        FakeQueue Queue,
+        FakeIngestionQueue Queue,
         ModpackVersion Atual);
 
     // ---- Fakes ----
@@ -564,17 +565,6 @@ public sealed class UpdateFromUpstreamTests
             using var buffer = new MemoryStream();
             await content.CopyToAsync(buffer, ct);
             return Convert.ToHexStringLower(SHA256.HashData(buffer.ToArray()));
-        }
-    }
-
-    private sealed class FakeQueue : IIngestionQueue
-    {
-        public List<ModIngestionItem> Enfileirados { get; } = [];
-
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
-        {
-            Enfileirados.AddRange(items);
-            return ValueTask.CompletedTask;
         }
     }
 

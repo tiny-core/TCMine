@@ -31,7 +31,7 @@ public static class IngestionWorkPlanner
                      .Where(p => p.Reason is not PendingModReason.DistributionDenied))
         {
             items[pending.ProjectSlug] = new ModIngestionItem(
-                pending.Origin, pending.ProjectSlug, pending.FileId, pending.Side);
+                pending.Origin, pending.ProjectSlug, pending.FileId, pending.Side, pending.Optional);
         }
 
         // Numa versão importada, o snapshot diz o que "deveria existir": pega o
@@ -44,10 +44,29 @@ public static class IngestionWorkPlanner
                 if (present.Contains(projectId) || items.ContainsKey(projectId))
                     continue;
 
+                // Sem o "opcional": o snapshot guarda só projeto e arquivo. É o
+                // caso raro de um mod que nem chegou a virar pendência (queda
+                // entre gravar a versão e agendar a ingestão).
                 items[projectId] = new ModIngestionItem(origin, projectId, fileId, FileSide.Both);
             }
         }
 
         return [.. items.Values];
     }
+
+    /// <summary>
+    ///     O trabalho de uma passada da fila: as pendências <see cref="PendingModReason.Queued" />,
+    ///     que são os pedidos gravados pelo <see cref="IngestionScheduler" /> e
+    ///     ainda não tentados. Desde a fase 6.5 a fila guarda só a versão, e é
+    ///     daqui que o worker tira o que ingerir — dois pedidos seguidos para a
+    ///     mesma versão viram uma passada só, com os dois.
+    ///     Diferente do <see cref="PlanRetry" />, NÃO pega as que falharam: essas
+    ///     só voltam quando alguém pede (o reparo as passa a Queued antes).
+    /// </summary>
+    public static List<ModIngestionItem> Queued(ModpackVersion version) =>
+    [
+        .. version.PendingMods
+            .Where(p => p.Reason is PendingModReason.Queued)
+            .Select(p => new ModIngestionItem(p.Origin, p.ProjectSlug, p.FileId, p.Side, p.Optional))
+    ];
 }

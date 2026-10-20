@@ -32,6 +32,22 @@ public sealed class IngestionSchedulerTests
     }
 
     [Fact]
+    public async Task Mod_opcional_continua_opcional_na_pendencia()
+    {
+        // Regressão (6.5): o "opcional do pack" vivia só na fila em memória. Com
+        // a fila levando só a versão, e na recuperação depois de uma queda, o
+        // trabalho sai da pendência — e sem isto o mod voltaria obrigatório.
+        var (repo, queue, version) = Cenario();
+
+        await new IngestionScheduler(repo, queue).ScheduleAsync(
+            version, [Item("jei"), Item("shaders") with { Optional = true }], CancellationToken.None);
+
+        version.PendingMods.Single(p => p.ProjectSlug == "shaders").Optional.ShouldBeTrue();
+        version.PendingMods.Single(p => p.ProjectSlug == "jei").Optional.ShouldBeFalse();
+        queue.Enfileirados.Single(i => i.ProjectId == "shaders").Optional.ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task Grava_antes_de_enfileirar_e_nao_depois()
     {
         var (repo, queue, version) = Cenario();
@@ -90,7 +106,7 @@ public sealed class IngestionSchedulerTests
         };
 
         var repo = new FakeRepo();
-        return (repo, new FakeQueue(repo), version);
+        return (repo, new FakeQueue(repo, version), version);
     }
 
     /// <summary>Registra a ordem das duas operações que precisam acontecer nesta sequência.</summary>
@@ -105,14 +121,18 @@ public sealed class IngestionSchedulerTests
         }
     }
 
-    private sealed class FakeQueue(FakeRepo repo) : IIngestionQueue
+    /// <summary>
+    ///     A fila leva só a versão (fase 6.5); o que entraria no worker é o que o
+    ///     agendador deixou como pendência Queued no instante do aviso.
+    /// </summary>
+    private sealed class FakeQueue(FakeRepo repo, ModpackVersion version) : IIngestionQueue
     {
         public List<ModIngestionItem> Enfileirados { get; } = [];
 
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
+        public ValueTask EnqueueAsync(Guid versionId, CancellationToken ct)
         {
             repo.Eventos.Add("enfileirou");
-            Enfileirados.AddRange(items);
+            Enfileirados.AddRange(IngestionWorkPlanner.Queued(version));
             return ValueTask.CompletedTask;
         }
     }

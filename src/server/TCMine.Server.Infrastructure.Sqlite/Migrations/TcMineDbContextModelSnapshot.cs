@@ -1274,6 +1274,9 @@ namespace TCMine.Server.Infrastructure.Sqlite.Migrations
                     b.Property<Guid>("ModpackVersionId")
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("Optional")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Origin")
                         .IsRequired()
                         .HasMaxLength(32)

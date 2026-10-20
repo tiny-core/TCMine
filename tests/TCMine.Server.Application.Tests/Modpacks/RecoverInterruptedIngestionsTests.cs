@@ -138,13 +138,13 @@ public sealed class RecoverInterruptedIngestionsTests
         queue.Enfileirados.Select(i => i.ProjectId).ShouldBe(["3"]);
     }
 
-    private static Task<int> Executar(FakeRepo repo, FakeQueue queue) =>
+    private static Task<int> Executar(FakeRepo repo, FakeIngestionQueue queue) =>
         new RecoverInterruptedIngestions(repo, new IngestionScheduler(repo, queue))
             .HandleAsync(CancellationToken.None);
 
     /// <param name="naFila">Mods pedidos e ainda não tentados (pendência Queued).</param>
     /// <param name="baixados">Mods que já viraram arquivo na versão.</param>
-    private static (FakeRepo Repo, FakeQueue Queue, ModpackVersion Version) Cenario(
+    private static (FakeRepo Repo, FakeIngestionQueue Queue, ModpackVersion Version) Cenario(
         string[] naFila, string[]? baixados = null)
     {
         var modpack = new Modpack
@@ -180,18 +180,7 @@ public sealed class RecoverInterruptedIngestionsTests
             });
         }
 
-        return (new FakeRepo(modpack, version), new FakeQueue(), version);
-    }
-
-    private sealed class FakeQueue : IIngestionQueue
-    {
-        public List<ModIngestionItem> Enfileirados { get; } = [];
-
-        public ValueTask EnqueueAsync(Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
-        {
-            Enfileirados.AddRange(items);
-            return ValueTask.CompletedTask;
-        }
+        return (new FakeRepo(modpack, version), new FakeIngestionQueue(_ => version), version);
     }
 
     /// <summary>Devolve a MESMA instância, para as transições ficarem visíveis ao teste.</summary>

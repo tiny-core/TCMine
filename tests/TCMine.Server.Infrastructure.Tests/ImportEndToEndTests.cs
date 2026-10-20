@@ -30,6 +30,11 @@ public sealed class ImportEndToEndTests
     /// <summary>Perto do All the Mods 10 (481), que é o pack que quebrou tudo.</summary>
     private const int Mods = 300;
 
+    // Um a cada sete é opcional do pack (o jogador escolhe): o "opcional" tem
+    // de atravessar a pendência no banco até o arquivo (fase 6.5).
+    private const int OpcionalACada = 7;
+    private const int Opcionais = (Mods + OpcionalACada - 1) / OpcionalACada;
+
     private const string MotivoDoSkip =
         "Sem PostgreSQL: defina TCMINE_TEST_POSTGRES para rodar (o CI define).";
 
@@ -78,14 +83,18 @@ public sealed class ImportEndToEndTests
 
         // ---- A ingestão, sobre o que a importação enfileirou ----
 
-        fila.Itens.Count.ShouldBe(Mods);
+        // A fila leva só a versão (fase 6.5); o pedido está nas pendências.
+        fila.Versoes.ShouldBe([version.Id]);
+        comSnapshot.PendingMods.Count(p => p.Reason == PendingModReason.Queued).ShouldBe(Mods);
+        comSnapshot.PendingMods.Count(p => p.Optional).ShouldBe(Opcionais, "o opcional do pack vai para o banco");
 
         var ingestao = new ModpackIngestionService(
             repo, blobs, [new ResolverDeTeste()], new DownloaderFixo(),
             new InspetorMudo(), new ProgressoMudo(),
             NullLogger<ModpackIngestionService>.Instance);
 
-        await ingestao.IngestAsync(version.Id, fila.Itens, Ct);
+        // O caminho do worker: o trabalho sai das pendências gravadas no banco.
+        await ingestao.IngestQueuedAsync(version.Id, Ct);
 
         var depois = await repo.GetVersionAsync(version.Id, Ct);
 
@@ -104,8 +113,9 @@ public sealed class ImportEndToEndTests
         // real. Uma sobrando significaria que a substituição por slug falhou.
         depois.PendingMods.ShouldNotContain(p => p.Reason == PendingModReason.Queued);
 
-        // E os mods que vieram, vieram.
+        // E os mods que vieram, vieram — os opcionais, como opcionais.
         depois.Files.Count(f => f.Origin == ModFileOrigin.CurseForge).ShouldBeGreaterThan(200);
+        depois.Files.ShouldContain(f => f.Optional, "o opcional sobrevive à ida e volta pelo banco");
     }
 
     [Fact]
@@ -139,14 +149,16 @@ public sealed class ImportEndToEndTests
                 NullLogger<ModpackIngestionService>.Instance);
         }
 
-        await Servico().IngestAsync(version.Id, fila.Itens, Ct);
+        // A primeira passada é a do worker; a segunda repete o MESMO pedido de
+        // propósito (já não há pendência Queued para o worker remontar).
+        await Servico().IngestQueuedAsync(version.Id, Ct);
 
         var primeiraPassada = downloader.Baixados;
         var apos = await repo.GetVersionAsync(version.Id, Ct);
         var arquivosDepoisDaPrimeira = apos!.Files.Count;
 
         // Volta a Draft entre as duas: a ingestão exige rascunho.
-        await Should.NotThrowAsync(() => Servico().IngestAsync(version.Id, fila.Itens, Ct));
+        await Should.NotThrowAsync(() => Servico().IngestAsync(version.Id, ItensDoPack(), Ct));
 
         var final = await repo.GetVersionAsync(version.Id, Ct);
 
@@ -158,11 +170,18 @@ public sealed class ImportEndToEndTests
     ///     Um pack com o formato do que quebra: centenas de mods e um override
     ///     com o caminho no tamanho máximo que o domínio aceita.
     /// </summary>
+    /// <summary>O mesmo pedido que a importação faz, para a segunda passada.</summary>
+    private static List<ModIngestionItem> ItensDoPack() =>
+    [
+        .. PackGrande().Mods.Select(m =>
+            new ModIngestionItem(ModFileOrigin.CurseForge, m.ProjectId, m.FileId, FileSide.Both, !m.Required))
+    ];
+
     private static UpstreamPack PackGrande()
     {
         var mods = Enumerable.Range(0, Mods)
             .Select(i => new UpstreamPackMod(
-                $"{100000 + i}", $"{900000 + i}", true, $"Mod de Exemplo Número {i}"))
+                $"{100000 + i}", $"{900000 + i}", i % OpcionalACada != 0, $"Mod de Exemplo Número {i}"))
             .ToList();
 
         var caminhoLongo = "config/" + new string('x', ModpackFile.MaxPathLength - "config/".Length - 5) + ".toml";
@@ -289,14 +308,14 @@ public sealed class ImportEndToEndTests
         }
     }
 
+    /// <summary>Guarda só as versões avisadas: o pedido em si está no banco (fase 6.5).</summary>
     private sealed class FilaQueGuarda : IIngestionQueue
     {
-        public List<ModIngestionItem> Itens { get; } = [];
+        public List<Guid> Versoes { get; } = [];
 
-        public ValueTask EnqueueAsync(
-            Guid versionId, IReadOnlyList<ModIngestionItem> items, CancellationToken ct)
+        public ValueTask EnqueueAsync(Guid versionId, CancellationToken ct)
         {
-            Itens.AddRange(items);
+            Versoes.Add(versionId);
             return ValueTask.CompletedTask;
         }
     }

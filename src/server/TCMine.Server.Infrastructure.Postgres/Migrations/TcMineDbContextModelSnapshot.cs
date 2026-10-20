@@ -1279,6 +1279,9 @@ namespace TCMine.Server.Infrastructure.Postgres.Migrations
                     b.Property<Guid>("ModpackVersionId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("Optional")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("Origin")
                         .IsRequired()
                         .HasMaxLength(32)

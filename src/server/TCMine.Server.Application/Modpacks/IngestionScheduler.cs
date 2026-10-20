@@ -42,6 +42,7 @@ public sealed class IngestionScheduler(
                 Origin = item.Origin,
                 FileId = item.FileId,
                 Side = item.Side,
+                Optional = item.Optional,
                 Reason = PendingModReason.Queued
             });
         }
@@ -51,6 +52,9 @@ public sealed class IngestionScheduler(
         // registrado (que a recuperação re-enfileira) do que faltar.
         await repository.UpdateVersionAsync(version, ct);
 
-        await queue.EnqueueAsync(version.Id, items, ct);
+        // Só a versão: o pedido completo já está nas pendências que acabaram de
+        // ser gravadas, e é delas que o worker monta o trabalho (fase 6.5). Dois
+        // pedidos para a mesma versão antes de o worker chegar viram uma passada.
+        await queue.EnqueueAsync(version.Id, ct);
     }
 }

@@ -19,12 +19,12 @@ public sealed partial class IngestionWorker(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await foreach (var job in queue.ReadAllAsync(stoppingToken))
+        await foreach (var versionId in queue.ReadAllAsync(stoppingToken))
         {
             // O token do JOB, e não o da aplicação: é o que permite cancelar
             // uma ingestão sem derrubar o worker nem as outras da fila. Fica
             // ligado ao desligamento para um deploy não esperar por ela.
-            var jobToken = progress.BeginCancellable(job.VersionId, stoppingToken);
+            var jobToken = progress.BeginCancellable(versionId, stoppingToken);
 
             try
             {
@@ -33,7 +33,9 @@ public sealed partial class IngestionWorker(
                 await using var scope = scopeFactory.CreateAsyncScope();
                 var service = scope.ServiceProvider.GetRequiredService<ModpackIngestionService>();
 
-                await service.IngestAsync(job.VersionId, job.Items, jobToken);
+                // O trabalho sai das pendências Queued da versão (fase 6.5): a
+                // fila só diz QUAL versão tem pedidos.
+                await service.IngestQueuedAsync(versionId, jobToken);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
@@ -46,24 +48,24 @@ public sealed partial class IngestionWorker(
                 // e é a recuperação do arranque que a devolveria ao rascunho —
                 // esperar por um reinício seria deixá-la travada. Devolvemos
                 // agora, mantendo o que já baixou.
-                LogCancelled(job.VersionId);
-                await ReturnToDraftAsync(job.VersionId, stoppingToken);
-                progress.Complete(job.VersionId, "Cancelado.");
+                LogCancelled(versionId);
+                await ReturnToDraftAsync(versionId, stoppingToken);
+                progress.Complete(versionId, "Cancelado.");
             }
             catch (Exception ex)
             {
                 // Um job com erro não pode derrubar o worker inteiro, senão a
                 // fila trava para todos os próximos.
-                LogJobFailed(ex, job.VersionId);
+                LogJobFailed(ex, versionId);
 
                 // Rede de segurança: se o serviço não encerrou o acompanhamento
                 // (porque estourou antes), a barra de progresso ficaria girando
                 // para sempre e a versão presa em "Resolvendo".
-                progress.Complete(job.VersionId, ex.Message);
+                progress.Complete(versionId, ex.Message);
             }
             finally
             {
-                progress.EndCancellable(job.VersionId);
+                progress.EndCancellable(versionId);
             }
         }
     }

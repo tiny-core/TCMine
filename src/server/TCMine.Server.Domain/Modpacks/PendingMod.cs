@@ -38,6 +38,17 @@ public sealed class PendingMod : Entity
     public FileSide Side { get; set; } = FileSide.Both;
 
     /// <summary>
+    ///     Opcional DO PACK (o jogador escolhe se instala), como o
+    ///     <see cref="ModpackFile.Optional" /> que o arquivo recebe ao resolver.
+    ///     Gravado aqui desde a fase 6.5, para a pendência ser o pedido inteiro:
+    ///     a fila de ingestão passou a guardar só a versão, e a ingestão (e a
+    ///     recuperação do arranque) remontam o trabalho a partir das pendências.
+    ///     Antes o "opcional" vivia só na fila em memória, e uma queda no meio de
+    ///     uma importação fazia os mods opcionais voltarem como obrigatórios.
+    /// </summary>
+    public bool Optional { get; set; }
+
+    /// <summary>
     ///     Pasta da instância a que este arquivo pertence — a mesma que o
     ///     arquivo teria se tivesse resolvido.
     ///     Vale ser mostrada: "sem versão compatível" para um shaderpack e para
