@@ -10,14 +10,17 @@ public sealed class ListCloudIncidents(
     ICloudGovernanceRepository governance,
     ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudRollbackIncident>>> HandleAsync(Guid vaultId, bool openOnly,
+    public const int PageSize = 50;
+
+    /// <param name="before">Cursor da página seguinte (<c>CursorPage.Next</c>); nulo = a primeira.</param>
+    public async Task<Result<CursorPage<CloudRollbackIncident>>> HandleAsync(Guid vaultId, bool openOnly, Guid? before,
         CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudRollbackIncident>>.Success(
-                await governance.ListIncidentsAsync(vaultId, openOnly, ct))
-            : Result<IReadOnlyList<CloudRollbackIncident>>.Fail(access.Error!);
+            ? Result<CursorPage<CloudRollbackIncident>>.Success(
+                await governance.ListIncidentsAsync(vaultId, openOnly, before, PageSize, ct))
+            : Result<CursorPage<CloudRollbackIncident>>.Fail(access.Error!);
     }
 }
 

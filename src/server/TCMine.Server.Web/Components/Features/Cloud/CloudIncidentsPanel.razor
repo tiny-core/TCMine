@@ -46,4 +46,6 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
+    <LoadMoreBar Summary="@($"{_items.Count} incidente(s) na lista")" HasMore="_next is not null"
+                 Busy="_loadingMore" OnLoadMore="LoadMoreAsync"/>
 }

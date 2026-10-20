@@ -29,20 +29,8 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1 mb-6">
-        <MudText Typo="Typo.caption" Class="mud-text-secondary">@_actions.Count decisões carregadas</MudText>
-        @if (_actionsNext is not null)
-        {
-            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="LoadMoreActionsAsync"
-                       Disabled="_actionsBusy">
-                Carregar mais
-            </MudButton>
-        }
-        @if (_actionsBusy)
-        {
-            <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
-        }
-    </MudStack>
+    <LoadMoreBar Summary="@($"{_actions.Count} decisões carregadas")" HasMore="_actionsNext is not null"
+                 Busy="_actionsBusy" OnLoadMore="LoadMoreActionsAsync" Class="mt-1 mb-6"/>
 }
 
 <MudText Typo="Typo.subtitle1" Class="mb-2">Movimentos de itens</MudText>
@@ -117,13 +105,6 @@ else
             </MudTd>
         </RowTemplate>
     </MudTable>
-    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mt-1">
-        <MudText Typo="Typo.caption" Class="mud-text-secondary">@_ledger.Count movimentos carregados</MudText>
-        @if (_ledgerNext is not null)
-        {
-            <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="LoadLedgerPageAsync" Disabled="_ledgerBusy">
-                Carregar mais
-            </MudButton>
-        }
-    </MudStack>
+    <LoadMoreBar Summary="@($"{_ledger.Count} movimentos carregados")" HasMore="_ledgerNext is not null"
+                 Busy="_ledgerBusy" OnLoadMore="LoadLedgerPageAsync"/>
 }

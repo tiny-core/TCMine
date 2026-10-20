@@ -9,14 +9,17 @@ public sealed class ListCloudDoubtful(
     ICloudGovernanceRepository governance,
     ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudDoubtfulOperation>>> HandleAsync(Guid vaultId, bool openOnly,
+    public const int PageSize = 50;
+
+    /// <param name="before">Cursor da página seguinte (<c>CursorPage.Next</c>); nulo = a primeira.</param>
+    public async Task<Result<CursorPage<CloudDoubtfulOperation>>> HandleAsync(Guid vaultId, bool openOnly, Guid? before,
         CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudDoubtfulOperation>>.Success(
-                await governance.ListDoubtfulAsync(vaultId, openOnly, ct))
-            : Result<IReadOnlyList<CloudDoubtfulOperation>>.Fail(access.Error!);
+            ? Result<CursorPage<CloudDoubtfulOperation>>.Success(
+                await governance.ListDoubtfulAsync(vaultId, openOnly, before, PageSize, ct))
+            : Result<CursorPage<CloudDoubtfulOperation>>.Fail(access.Error!);
     }
 }
 

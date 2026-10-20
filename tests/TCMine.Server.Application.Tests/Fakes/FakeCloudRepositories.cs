@@ -110,7 +110,7 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
         DateTimeOffset now, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status,
-        CancellationToken ct) => throw new NotImplementedException();
+        int limit, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
@@ -121,8 +121,8 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
     public Task AddDoubtfulAsync(IReadOnlyList<CloudDoubtfulOperation> operations, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public Task<IReadOnlyList<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct) => throw new NotImplementedException();
+    public Task<CursorPage<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<CloudDoubtfulOperation?> GetDoubtfulAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
@@ -136,8 +136,8 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
     public Task AddIncidentAsync(CloudRollbackIncident incident, CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct) => throw new NotImplementedException();
+    public Task<CursorPage<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct) => throw new NotImplementedException();
 
     public Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
@@ -145,8 +145,11 @@ internal sealed class FakeCloudGovernance : ICloudGovernanceRepository
     public Task<IReadOnlyDictionary<string, (long Epoch, long Seq)>> WorldWatermarksAsync(Guid vaultId,
         Guid serverId, CancellationToken ct) => throw new NotImplementedException();
 
-    public Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct) => throw new NotImplementedException();
+    public Task<CursorPage<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct) => throw new NotImplementedException();
+
+    public Task<CloudOpenCounts> CountOpenAsync(Guid vaultId, CancellationToken ct) =>
+        throw new NotImplementedException();
 
     public Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();

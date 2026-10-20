@@ -95,14 +95,37 @@ public sealed class ListCloudSuspects(
     ICloudGovernanceRepository governance,
     ICurrentUserScope scope)
 {
+    /// <summary>Teto da fila na tela: os mais tentados primeiro, decidir um faz o próximo subir.</summary>
+    public const int Limit = 100;
+
     public async Task<Result<IReadOnlyList<CloudSuspectItem>>> HandleAsync(Guid vaultId, bool pendingOnly,
         CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
             ? Result<IReadOnlyList<CloudSuspectItem>>.Success(
-                await governance.ListSuspectsAsync(vaultId, pendingOnly ? CloudSuspectStatus.Pending : null, ct))
+                await governance.ListSuspectsAsync(vaultId, pendingOnly ? CloudSuspectStatus.Pending : null,
+                    Limit, ct))
             : Result<IReadOnlyList<CloudSuspectItem>>.Fail(access.Error!);
+    }
+}
+
+/// <summary>
+///     Quantos itens esperam decisão em cada fila da nuvem, para os selos das
+///     abas. Contado no banco: com as listas paginadas, o tamanho de uma página
+///     já não diz quantos há.
+/// </summary>
+public sealed class GetCloudOpenCounts(
+    ICloudAdminRepository repo,
+    ICloudGovernanceRepository governance,
+    ICurrentUserScope scope)
+{
+    public async Task<Result<CloudOpenCounts>> HandleAsync(Guid vaultId, CancellationToken ct)
+    {
+        var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
+        return access.Succeeded
+            ? Result<CloudOpenCounts>.Success(await governance.CountOpenAsync(vaultId, ct))
+            : Result<CloudOpenCounts>.Fail(access.Error!);
     }
 }
 

@@ -10,14 +10,17 @@ public sealed class ListCloudQuarantine(
     ICloudGovernanceRepository governance,
     ICurrentUserScope scope)
 {
-    public async Task<Result<IReadOnlyList<CloudQuarantineView>>> HandleAsync(Guid vaultId, bool openOnly,
+    public const int PageSize = 50;
+
+    /// <param name="before">Cursor da página seguinte (<c>CursorPage.Next</c>); nulo = a primeira.</param>
+    public async Task<Result<CursorPage<CloudQuarantineView>>> HandleAsync(Guid vaultId, bool openOnly, Guid? before,
         CancellationToken ct)
     {
         var access = await CloudVaultAccess.RequireAsync(repo, scope, vaultId, ct);
         return access.Succeeded
-            ? Result<IReadOnlyList<CloudQuarantineView>>.Success(
-                await governance.ListQuarantineAsync(vaultId, openOnly, ct))
-            : Result<IReadOnlyList<CloudQuarantineView>>.Fail(access.Error!);
+            ? Result<CursorPage<CloudQuarantineView>>.Success(
+                await governance.ListQuarantineAsync(vaultId, openOnly, before, PageSize, ct))
+            : Result<CursorPage<CloudQuarantineView>>.Fail(access.Error!);
     }
 }
 

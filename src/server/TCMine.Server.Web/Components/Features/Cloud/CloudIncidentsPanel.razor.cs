@@ -9,6 +9,8 @@ namespace TCMine.Server.Web.Components.Features.Cloud;
 public partial class CloudIncidentsPanel : ComponentBase
 {
     private List<CloudRollbackIncident>? _items;
+    private bool _loadingMore;
+    private Guid? _next;
     private bool _showResolved;
 
     [Parameter] [EditorRequired] public Guid VaultId { get; set; }
@@ -22,8 +24,32 @@ public partial class CloudIncidentsPanel : ComponentBase
 
     private async Task LoadAsync()
     {
-        var result = await ListUseCase.HandleAsync(VaultId, !_showResolved, CancellationToken.None);
-        _items = result.Succeeded ? [.. result.Value!] : [];
+        // Do começo: trocar o filtro (ou decidir um item) recomeça a lista.
+        var result = await ListUseCase.HandleAsync(VaultId, !_showResolved, null, CancellationToken.None);
+        _items = result.Succeeded ? [.. result.Value!.Items] : [];
+        _next = result.Value?.Next;
+    }
+
+    /// <summary>A página seguinte, a partir do último Id da que está na tela.</summary>
+    private async Task LoadMoreAsync()
+    {
+        if (_next is not { } before || _loadingMore)
+            return;
+
+        _loadingMore = true;
+        try
+        {
+            var result = await ListUseCase.HandleAsync(VaultId, !_showResolved, before, CancellationToken.None);
+            if (!result.Succeeded)
+                return;
+
+            _items = [.. _items ?? [], .. result.Value!.Items];
+            _next = result.Value.Next;
+        }
+        finally
+        {
+            _loadingMore = false;
+        }
     }
 
     private async Task OpenAsync(CloudRollbackIncident incident)

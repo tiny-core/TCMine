@@ -159,6 +159,8 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
             from b in db.CloudBalances.AsNoTracking()
             join i in db.CloudItemTypes.AsNoTracking() on b.ItemTypeId equals i.Id
             where b.ChannelId == channelId && b.Amount > 0
+            // Quantidade é número: os dois bancos ordenam. Antes era em memória.
+            orderby b.Amount descending
             select new
             {
                 i.Fingerprint,
@@ -170,8 +172,7 @@ public sealed class CloudAdminRepository(IDbContextFactory<TcMineDbContext> fact
         ).ToListAsync(ct);
         return
         [
-            .. rows.OrderByDescending(r => r.Amount)
-                .Select(r => new CloudBalanceView(r.Fingerprint, r.ItemId, r.ModId, r.DisplayName, r.Amount))
+            .. rows.Select(r => new CloudBalanceView(r.Fingerprint, r.ItemId, r.ModId, r.DisplayName, r.Amount))
         ];
     }
 

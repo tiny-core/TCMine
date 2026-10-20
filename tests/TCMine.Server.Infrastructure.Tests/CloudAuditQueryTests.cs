@@ -148,7 +148,7 @@ public sealed class CloudAuditQueryTests
         } while (cursor is not null && paginas < 10);
 
         paginas.ShouldBe(3, "7 linhas em páginas de 3");
-        vistos.ShouldBe(daNuvem.OrderByDescending(BancoOrdena, StringComparer.Ordinal), ignoreOrder: false,
+        vistos.ShouldBe(daNuvem.OrderByDescending(DatabaseGuidOrder.Key, StringComparer.Ordinal), ignoreOrder: false,
             "do mais novo ao mais velho, sem repetir, sem pular e sem linha de outra nuvem");
     }
 
@@ -178,9 +178,6 @@ public sealed class CloudAuditQueryTests
         var betoSemNome = await repo.ListLedgerAsync(Consulta(cenario.Nuvem) with { PlayerUuid = Beto }, Ct);
         betoSemNome.Items.ShouldAllBe(l => l.PlayerName == null);
     }
-
-    /// <summary>A ordem em que o banco compara GUIDs: bytes big-endian (o texto do SQLite segue a mesma).</summary>
-    private static string BancoOrdena(Guid id) => Convert.ToHexString(id.ToByteArray(bigEndian: true));
 
     private static CloudLedgerQuery Consulta(Guid nuvem) => new(nuvem, null, null, null, null, null, null, 50);
 

@@ -1021,6 +1021,11 @@ decisões em `docs/CLOUD-STORAGE.md` — ler antes de mexer em qualquer coisa de
   a mais para saber se há próxima), nunca por "pular N" com total — o histórico só cresce. Período
   também vai pelo `Id` (`IdTime.Floor`), porque o SQLite não compara `DateTimeOffset`. Busca de texto
   em consulta usa `ToLower()` dos dois lados: o LIKE do PostgreSQL diferencia maiúsculas.
+- **As filas de decisão também paginam por cursor** (fase 6.4): quarentena, em dúvida e incidentes
+  (`CursorPage`, 50 por página, "Carregar mais" pelo `LoadMoreBar`); os suspeitos vêm os 100 mais
+  tentados, cortados no banco. Os selos das abas são `CountOpenAsync` (quatro COUNT), nunca o tamanho de
+  uma lista. Ordenação fica no SQL quando é por número ou pelo `Id`; as regras ficam em memória de
+  propósito (o escopo é gravado como texto e a ordem de texto muda com a collation do banco).
 - **Lote idempotente:** índice único (VaultId, PlayerUuid, Epoch, Seq). Reenvio do mesmo lote
   devolve "já aplicado", não aplica duas vezes. Lote de época velha → quarentena, nunca aplicado
   automaticamente. Saldo nunca fica negativo: o lote inteiro vai para a quarentena.

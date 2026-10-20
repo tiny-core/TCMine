@@ -86,6 +86,7 @@ public static class DependencyInjection
         services.AddScoped<AddCloudRule>();
         services.AddScoped<RemoveCloudRule>();
         services.AddScoped<ListCloudSuspects>();
+        services.AddScoped<GetCloudOpenCounts>();
         services.AddScoped<ResolveCloudSuspect>();
         services.AddScoped<ListCloudQuarantine>();
         services.AddScoped<ResolveCloudQuarantine>();

@@ -14,6 +14,11 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
     {
         await using var db = await factory.CreateDbContextAsync(ct);
         var rules = await db.CloudItemRules.AsNoTracking().Where(r => r.VaultId == vaultId).ToListAsync(ct);
+
+        // Em memória DE PROPÓSITO (fase 6.4): o Scope é gravado como texto, então
+        // no banco a ordem seria a alfabética do nome e não a do enum, e a
+        // ordenação de texto muda com a collation de cada banco. A política do
+        // mod precisa de todas as regras de qualquer forma, e são poucas.
         return [.. rules.OrderBy(r => r.Scope).ThenBy(r => r.Pattern, StringComparer.Ordinal)];
     }
 
@@ -67,13 +72,17 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
     }
 
     public async Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status,
-        CancellationToken ct)
+        int limit, CancellationToken ct)
     {
+        // Ordem e corte no banco: Attempts é número, que os dois bancos ordenam.
+        // Antes vinha a tabela inteira e a ordem era feita aqui.
         await using var db = await factory.CreateDbContextAsync(ct);
-        var list = await db.CloudSuspectItems.AsNoTracking()
+        return await db.CloudSuspectItems.AsNoTracking()
             .Where(s => s.VaultId == vaultId && (status == null || s.Status == status))
+            .OrderByDescending(s => s.Attempts)
+            .ThenByDescending(s => s.Id)
+            .Take(limit)
             .ToListAsync(ct);
-        return [.. list.OrderByDescending(s => s.Attempts)];
     }
 
     public async Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct)
@@ -107,14 +116,22 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct)
+    // As três listas de decisão (em dúvida, incidentes, quarentena) paginam
+    // como a auditoria logo abaixo: cursor no Id, uma linha a mais para saber
+    // se há próxima, ordem no banco. Antes cada uma trazia a tabela inteira e
+    // ordenava aqui — e o que já foi decidido nunca expira.
+
+    public async Task<CursorPage<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly,
+        Guid? before, int pageSize, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var list = await db.CloudDoubtfulOperations.AsNoTracking()
-            .Where(d => d.VaultId == vaultId && (!openOnly || d.Status == CloudDoubtfulStatus.Open))
-            .ToListAsync(ct);
-        return [.. list.OrderByDescending(d => d.Id)];
+        var query = db.CloudDoubtfulOperations.AsNoTracking()
+            .Where(d => d.VaultId == vaultId && (!openOnly || d.Status == CloudDoubtfulStatus.Open));
+        if (before is { } cursor)
+            query = query.Where(d => d.Id.CompareTo(cursor) < 0);
+
+        var rows = await query.OrderByDescending(d => d.Id).Take(pageSize + 1).ToListAsync(ct);
+        return CursorPage.From(rows, pageSize, d => d.Id);
     }
 
     public async Task<CloudDoubtfulOperation?> GetDoubtfulAsync(Guid id, CancellationToken ct)
@@ -146,14 +163,17 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
         await db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct)
+    public async Task<CursorPage<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly,
+        Guid? before, int pageSize, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var list = await db.CloudRollbackIncidents.AsNoTracking()
-            .Where(i => i.VaultId == vaultId && (!openOnly || i.Status == CloudIncidentStatus.Open))
-            .ToListAsync(ct);
-        return [.. list.OrderByDescending(i => i.Id)];
+        var query = db.CloudRollbackIncidents.AsNoTracking()
+            .Where(i => i.VaultId == vaultId && (!openOnly || i.Status == CloudIncidentStatus.Open));
+        if (before is { } cursor)
+            query = query.Where(i => i.Id.CompareTo(cursor) < 0);
+
+        var rows = await query.OrderByDescending(i => i.Id).Take(pageSize + 1).ToListAsync(ct);
+        return CursorPage.From(rows, pageSize, i => i.Id);
     }
 
     public async Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct)
@@ -175,17 +195,37 @@ public sealed class CloudGovernanceRepository(IDbContextFactory<TcMineDbContext>
 
     // ---------------------------------------------------------------- quarentena
 
-    public async Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly,
-        CancellationToken ct)
+    public async Task<CursorPage<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly,
+        Guid? before, int pageSize, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        var rows = await (
+        var query =
             from q in db.CloudQuarantine.AsNoTracking()
             join b in db.CloudBatches.AsNoTracking() on q.BatchId equals b.Id
             where q.VaultId == vaultId && (!openOnly || q.ResolvedAt == null)
-            select new { q, b }
-        ).ToListAsync(ct);
-        return [.. rows.OrderByDescending(r => r.q.Id).Select(r => new CloudQuarantineView(r.q, r.b))];
+            select new { q, b };
+        if (before is { } cursor)
+            query = query.Where(r => r.q.Id.CompareTo(cursor) < 0);
+
+        var rows = await query.OrderByDescending(r => r.q.Id).Take(pageSize + 1).ToListAsync(ct);
+        return CursorPage.From([.. rows.Select(r => new CloudQuarantineView(r.q, r.b))], pageSize,
+            v => v.Quarantine.Id);
+    }
+
+    public async Task<CloudOpenCounts> CountOpenAsync(Guid vaultId, CancellationToken ct)
+    {
+        // Quatro COUNT pelos índices (VaultId, Status/ResolvedAt), no mesmo
+        // contexto, um depois do outro (um DbContext não roda consultas em paralelo).
+        await using var db = await factory.CreateDbContextAsync(ct);
+        var suspects = await db.CloudSuspectItems
+            .CountAsync(s => s.VaultId == vaultId && s.Status == CloudSuspectStatus.Pending, ct);
+        var quarantine = await db.CloudQuarantine
+            .CountAsync(q => q.VaultId == vaultId && q.ResolvedAt == null, ct);
+        var doubtful = await db.CloudDoubtfulOperations
+            .CountAsync(d => d.VaultId == vaultId && d.Status == CloudDoubtfulStatus.Open, ct);
+        var incidents = await db.CloudRollbackIncidents
+            .CountAsync(i => i.VaultId == vaultId && i.Status == CloudIncidentStatus.Open, ct);
+        return new CloudOpenCounts(suspects, quarantine, doubtful, incidents);
     }
 
     public async Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct)

@@ -1,0 +1,13 @@
+<MudStack Row="true" AlignItems="AlignItems.Center" Class="@Class">
+    <MudText Typo="Typo.caption" Class="mud-text-secondary">@Summary</MudText>
+    @if (HasMore)
+    {
+        <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="OnLoadMore" Disabled="Busy">
+            Carregar mais
+        </MudButton>
+    }
+    @if (Busy)
+    {
+        <MudProgressCircular Size="Size.Small" Indeterminate="true"/>
+    }
+</MudStack>

@@ -7,6 +7,13 @@ namespace TCMine.Server.Application.Abstractions;
 public sealed record CloudQuarantineView(CloudQuarantine Quarantine, CloudBatch Batch);
 
 /// <summary>
+///     Quantos itens esperam decisão do dono em cada fila, contados no banco. É
+///     o que os selos das abas mostram; antes eles carregavam as quatro listas
+///     inteiras só para ler o tamanho.
+/// </summary>
+public sealed record CloudOpenCounts(int Suspects, int Quarantine, int Doubtful, int Incidents);
+
+/// <summary>
 ///     Linha do histórico de saldos para a aba de auditoria.
 ///     <paramref name="PlayerName" />: nome da conta do TCMine com esse UUID, se houver.
 /// </summary>
@@ -61,7 +68,12 @@ public interface ICloudGovernanceRepository
     Task RecordSuspectsAsync(Guid vaultId, IReadOnlyList<(string ItemId, string Evidence, long Attempts)> items,
         DateTimeOffset now, CancellationToken ct);
 
-    Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status,
+    /// <summary>
+    ///     Os <paramref name="limit" /> mais tentados primeiro (desempate pelo mais
+    ///     novo), ordenados e cortados no banco. Sem cursor: a fila é de decisão,
+    ///     e decidir um suspeito o tira dela — o seguinte sobe sozinho.
+    /// </summary>
+    Task<IReadOnlyList<CloudSuspectItem>> ListSuspectsAsync(Guid vaultId, CloudSuspectStatus? status, int limit,
         CancellationToken ct);
 
     Task<CloudSuspectItem?> GetSuspectAsync(Guid id, CancellationToken ct);
@@ -71,14 +83,19 @@ public interface ICloudGovernanceRepository
     /// <summary>Grava as que ainda não existem (mesmo ReportId/Index = reenvio, ignorado).</summary>
     Task AddDoubtfulAsync(IReadOnlyList<CloudDoubtfulOperation> operations, CancellationToken ct);
 
-    Task<IReadOnlyList<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly, CancellationToken ct);
+    // As três listas abaixo paginam por cursor no Id, do mais novo ao mais velho,
+    // como a auditoria: o que já foi decidido nunca expira (fase 5.4), então o
+    // histórico delas só cresce.
+    Task<CursorPage<CloudDoubtfulOperation>> ListDoubtfulAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct);
     Task<CloudDoubtfulOperation?> GetDoubtfulAsync(Guid id, CancellationToken ct);
     Task UpdateDoubtfulAsync(CloudDoubtfulOperation operation, CancellationToken ct);
 
     // Incidentes de rollback
     Task<CloudRollbackIncident?> GetOpenIncidentAsync(Guid serverId, CancellationToken ct);
     Task AddIncidentAsync(CloudRollbackIncident incident, CancellationToken ct);
-    Task<IReadOnlyList<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly, CancellationToken ct);
+    Task<CursorPage<CloudRollbackIncident>> ListIncidentsAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct);
     Task<CloudRollbackIncident?> GetIncidentAsync(Guid id, CancellationToken ct);
 
     /// <summary>
@@ -89,7 +106,10 @@ public interface ICloudGovernanceRepository
         CancellationToken ct);
 
     // Quarentena
-    Task<IReadOnlyList<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly, CancellationToken ct);
+    Task<CursorPage<CloudQuarantineView>> ListQuarantineAsync(Guid vaultId, bool openOnly, Guid? before,
+        int pageSize, CancellationToken ct);
+
+    Task<CloudOpenCounts> CountOpenAsync(Guid vaultId, CancellationToken ct);
     Task<CloudQuarantineView?> GetQuarantineAsync(Guid id, CancellationToken ct);
     Task UpdateQuarantineAsync(CloudQuarantine quarantine, CloudBatch batch, CancellationToken ct);
 

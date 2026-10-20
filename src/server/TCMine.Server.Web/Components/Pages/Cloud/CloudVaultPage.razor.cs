@@ -28,10 +28,7 @@ public partial class CloudVaultPage : ComponentBase
 
     [Inject] private GetCloudVault GetUseCase { get; set; } = default!;
     [Inject] private ListCloudVaultServers ServersUseCase { get; set; } = default!;
-    [Inject] private ListCloudSuspects SuspectsUseCase { get; set; } = default!;
-    [Inject] private ListCloudQuarantine QuarantineUseCase { get; set; } = default!;
-    [Inject] private ListCloudDoubtful DoubtfulUseCase { get; set; } = default!;
-    [Inject] private ListCloudIncidents IncidentsUseCase { get; set; } = default!;
+    [Inject] private GetCloudOpenCounts CountsUseCase { get; set; } = default!;
 
     // TEMPORÁRIO (linha de base, sai no fim da fase 8).
     [Inject] private PageLoadTimer LoadTimer { get; set; } = default!;
@@ -64,13 +61,10 @@ public partial class CloudVaultPage : ComponentBase
 
     private async Task LoadCountsAsync()
     {
-        var ct = CancellationToken.None;
-        var suspects = await SuspectsUseCase.HandleAsync(VaultId, true, ct);
-        var quarantine = await QuarantineUseCase.HandleAsync(VaultId, true, ct);
-        var doubtful = await DoubtfulUseCase.HandleAsync(VaultId, true, ct);
-        var incidents = await IncidentsUseCase.HandleAsync(VaultId, true, ct);
-        _counts = (suspects.Value?.Count ?? 0, quarantine.Value?.Count ?? 0, doubtful.Value?.Count ?? 0,
-            incidents.Value?.Count ?? 0);
+        // Contados no banco: antes eram as quatro listas inteiras só para ler o
+        // tamanho, e com as listas paginadas o tamanho já nem seria o total.
+        var counts = await CountsUseCase.HandleAsync(VaultId, CancellationToken.None);
+        _counts = counts.Value is { } c ? (c.Suspects, c.Quarantine, c.Doubtful, c.Incidents) : default;
     }
 
     // Pelo painel (@ref), e não pelo índice da aba: reordenar as abas não
