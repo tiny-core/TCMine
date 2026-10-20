@@ -18,13 +18,13 @@ public sealed class SetModpackIcon(IModpackRepository repository, IBlobStore blo
         if (!auth.Succeeded)
             return auth;
 
-        var modpack = await repository.GetByIdAsync(modpackId, ct);
-        if (modpack is null)
+        // Antes de gravar o blob: um modpack que não existe não deixa imagem
+        // órfã no store.
+        if (await repository.GetHeaderAsync(modpackId, ct) is null)
             return Result.Fail("Modpack não encontrado.");
 
         var sha = await blobStore.PutAsync(icon, null, contentType, ct);
-        modpack.IconBlobSha256 = sha;
-        await repository.UpdateAsync(modpack, ct);
+        await repository.SetIconAsync(modpackId, sha, ct);
 
         return Result.Success();
     }

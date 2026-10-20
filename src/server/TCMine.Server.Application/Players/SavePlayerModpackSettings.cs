@@ -27,7 +27,7 @@ public sealed class SavePlayerModpackSettings(
 
         // A chave estrangeira recusaria na mesma, mas com uma exceção de banco
         // em vez de uma mensagem.
-        if (await modpacks.GetByIdAsync(modpackId, ct) is null)
+        if (await modpacks.GetHeaderAsync(modpackId, ct) is null)
             return Result.Fail("Modpack não encontrado.");
 
         var existing = await settings.GetAsync(userId, modpackId, ct);

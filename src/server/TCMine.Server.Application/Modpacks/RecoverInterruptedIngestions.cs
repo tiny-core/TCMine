@@ -40,7 +40,7 @@ public sealed class RecoverInterruptedIngestions(
         if (version is null)
             return false;
 
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack is null)
             return false;
 

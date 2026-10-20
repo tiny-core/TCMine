@@ -206,6 +206,10 @@ Estas não são preferências — são regras do projeto. Segui-las sempre.
 
 - **`Modpack`** — dono do catálogo. Fixa **`MinecraftVersion` e `Loader`**
   (imutáveis após criação — mods não migram entre versões de MC/loader; travar isso evita crash).
+  Quem só lê nome, Minecraft, loader ou origem carrega `GetHeaderAsync` (só a linha, `Versions` VAZIA);
+  `GetByIdAsync` traz as versões e é para quem decide sobre elas. Não há gravação do modpack inteiro:
+  nome e resumo vão por `UpdateDetailsAsync`, a capa por `SetIconAsync` (fase 6.2). O `Update()` antigo, com
+  o modpack carregado com as versões, regravava o grafo inteiro por cima de uma ingestão em curso.
 - **`ModpackVersion`** — uma versão publicável. Fixa a **`LoaderVersion`** (essa sim pode subir entre versões). Máquina
   de estados:
 

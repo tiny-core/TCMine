@@ -39,7 +39,7 @@ public sealed class UpdateModpackVersion(IModpackRepository repository, LoaderVe
         // travado por uma build antiga que o catálogo deixou de listar. A que
         // ficou é conferida de novo ao publicar.
         if (!loaderVersion.Trim().Equals(current.LoaderVersion, StringComparison.OrdinalIgnoreCase)
-            && await repository.GetByIdAsync(current.ModpackId, ct) is { } modpack)
+            && await repository.GetHeaderAsync(current.ModpackId, ct) is { } modpack)
         {
             var loaderCheck = await loaderGuard.CheckAsync(
                 modpack.Loader, modpack.MinecraftVersion, loaderVersion, ct);

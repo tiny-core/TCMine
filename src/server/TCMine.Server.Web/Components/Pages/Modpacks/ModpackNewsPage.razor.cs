@@ -44,7 +44,7 @@ public partial class ModpackNewsPage : ComponentBase
             return;
 
         _loaded = ModpackId;
-        _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
+        _modpack = await ModpackRepository.GetHeaderAsync(ModpackId, CancellationToken.None);
         await LoadPostsAsync();
         _isLoading = false;
     }

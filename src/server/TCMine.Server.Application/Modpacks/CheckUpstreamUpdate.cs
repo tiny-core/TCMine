@@ -21,7 +21,7 @@ public sealed class CheckUpstreamUpdate(
         if (version is null)
             return Result<UpstreamUpdateStatus>.Fail("Versão não encontrada.");
 
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack?.UpstreamProvider is not { } origin || modpack.UpstreamProjectId is not { } projectId)
             return Result<UpstreamUpdateStatus>.Fail("Este modpack não veio de uma origem externa.");
 

@@ -18,14 +18,14 @@ public sealed class UpdateModpack(IModpackRepository repository, ICurrentUserSco
         if (string.IsNullOrWhiteSpace(name))
             return Result.Fail("Informe um nome.");
 
-        var modpack = await repository.GetByIdAsync(modpackId, ct);
-        if (modpack is null)
+        // Só para saber que existe: a linha do modpack, sem as versões.
+        if (await repository.GetHeaderAsync(modpackId, ct) is null)
             return Result.Fail("Modpack não encontrado.");
 
-        modpack.Name = name.Trim();
-        modpack.Summary = string.IsNullOrWhiteSpace(summary) ? null : summary.Trim();
-
-        await repository.UpdateAsync(modpack, ct);
+        // Só as duas colunas que esta tela edita. Gravar o modpack inteiro
+        // regravava todas as versões dele (ver IModpackRepository.UpdateDetailsAsync).
+        await repository.UpdateDetailsAsync(
+            modpackId, name.Trim(), string.IsNullOrWhiteSpace(summary) ? null : summary.Trim(), ct);
         return Result.Success();
     }
 }

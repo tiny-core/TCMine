@@ -44,7 +44,7 @@ public sealed partial class ModpackIngestionService(
         }
 
         // MC e loader vêm do modpack agora. Carrega uma vez; o loop reusa.
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack is null)
         {
             LogVersionMissing(versionId);

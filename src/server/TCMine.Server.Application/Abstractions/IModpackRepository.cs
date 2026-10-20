@@ -28,7 +28,22 @@ public interface IModpackRepository
     Task<IReadOnlyDictionary<Guid, ModpackVersionStats>> GetVersionStatsAsync(
         Guid modpackId, CancellationToken ct);
 
+    /// <summary>
+    ///     O modpack COM as versões (e as pendências delas, sem os arquivos).
+    ///     Para quem olha as versões: a tela de detalhe e quem cria versão nova.
+    ///     Quem só quer nome, Minecraft, loader ou origem usa <see cref="GetHeaderAsync" />.
+    /// </summary>
     Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct);
+
+    /// <summary>
+    ///     Só a linha do modpack: <c>Versions</c> volta VAZIA, mesmo que o pack
+    ///     tenha versões. É o que a maioria quer (o orquestrador lê o Minecraft e
+    ///     o loader; a ingestão, a origem) e custa uma consulta de uma linha, em
+    ///     vez de todas as versões e pendências a cada chamada. Não use para
+    ///     decidir nada sobre as versões — a lista vazia não quer dizer "sem
+    ///     versões".
+    /// </summary>
+    Task<Modpack?> GetHeaderAsync(Guid id, CancellationToken ct);
 
     Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct);
 
@@ -164,8 +179,18 @@ public interface IModpackRepository
     /// </summary>
     Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct);
 
+    /// <summary>
+    ///     Grava SÓ o nome e o resumo do modpack. Substitui o antigo
+    ///     <c>UpdateAsync(Modpack)</c>, que gravava o grafo inteiro: o modpack
+    ///     vinha com as versões e as pendências, e renomear regravava todas elas
+    ///     — por cima do que uma ingestão em curso tinha acabado de gravar.
+    /// </summary>
     [Invalidates(ResourceKind.Modpacks)]
-    Task UpdateAsync(Modpack modpack, CancellationToken ct);
+    Task UpdateDetailsAsync(Guid id, string name, string? summary, CancellationToken ct);
+
+    /// <summary>Grava SÓ o ponteiro da capa (o hash no content store).</summary>
+    [Invalidates(ResourceKind.Modpacks)]
+    Task SetIconAsync(Guid id, string iconBlobSha256, CancellationToken ct);
 
     /// <summary>
     ///     Inventário de mods do sistema inteiro, agregado e paginado no banco.

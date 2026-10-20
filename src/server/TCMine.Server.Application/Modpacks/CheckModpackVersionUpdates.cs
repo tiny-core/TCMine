@@ -39,7 +39,7 @@ public sealed class CheckModpackVersionUpdates(
             return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Versão não encontrada.");
 
         // MC e loader agora vivem no modpack (fixos para todas as versões).
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack is null)
             return Result<IReadOnlyList<ModUpdateInfo>>.Fail("Modpack não encontrado.");
 

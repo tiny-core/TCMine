@@ -49,7 +49,7 @@ public sealed class UpdateFromUpstream(
         if (current is null)
             return Result<UpstreamUpdateResult>.Fail("Versão não encontrada.");
 
-        var modpack = await repository.GetByIdAsync(current.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(current.ModpackId, ct);
         if (modpack?.UpstreamProvider is not { } origin || modpack.UpstreamProjectId is not { } projectId)
             return Result<UpstreamUpdateResult>.Fail("Este modpack não veio de uma origem externa.");
 

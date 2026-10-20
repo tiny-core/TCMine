@@ -96,13 +96,49 @@ public sealed class ModpackRepository(
         changes.Touch(ResourceKind.Modpacks);
     }
 
-    public async Task UpdateAsync(Modpack modpack, CancellationToken ct)
+    public async Task<Modpack?> GetHeaderAsync(Guid id, CancellationToken ct)
     {
         await using var db = await factory.CreateDbContextAsync(ct);
-        db.Modpacks.Update(modpack);
-        await db.SaveChangesAsync(ct);
 
-        changes.Touch(ResourceKind.Modpacks, modpack.Id);
+        // Sem Include: o GetByIdAsync traz todas as versões e pendências, e
+        // quase todo chamador só lia o Minecraft, o loader ou a origem.
+        return await db.Modpacks.AsNoTracking().FirstOrDefaultAsync(m => m.Id == id, ct);
+    }
+
+    // Os dois abaixo gravam colunas do modpack sem materializá-lo. O
+    // UpdateAsync que existia fazia Update() num modpack carregado com as
+    // versões, e o EF marca o GRAFO inteiro como alterado: renomear regravava
+    // cada versão e cada pendência com a cópia lida antes. Com uma ingestão em
+    // curso, isso devolvia a versão a um estado antigo. E nome e capa,
+    // gravados pela linha inteira, também se desfaziam um ao outro.
+
+    public async Task UpdateDetailsAsync(Guid id, string name, string? summary, CancellationToken ct)
+    {
+        DateTimeOffset? now = DateTimeOffset.UtcNow;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.Modpacks
+            .Where(m => m.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(m => m.Name, name)
+                .SetProperty(m => m.Summary, summary)
+                .SetProperty(m => m.UpdatedAt, now), ct);
+
+        changes.Touch(ResourceKind.Modpacks, id);
+    }
+
+    public async Task SetIconAsync(Guid id, string iconBlobSha256, CancellationToken ct)
+    {
+        DateTimeOffset? now = DateTimeOffset.UtcNow;
+
+        await using var db = await factory.CreateDbContextAsync(ct);
+        await db.Modpacks
+            .Where(m => m.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(m => m.IconBlobSha256, iconBlobSha256)
+                .SetProperty(m => m.UpdatedAt, now), ct);
+
+        changes.Touch(ResourceKind.Modpacks, id);
     }
 
     public async Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct)

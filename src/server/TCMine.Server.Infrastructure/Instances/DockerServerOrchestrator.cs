@@ -30,7 +30,7 @@ public sealed partial class DockerServerOrchestrator(
                      ?? throw new InvalidOperationException($"Servidor {gameServerId} não encontrado.");
 
         // MC e loader agora vivem no modpack. Carrega para o itzg (TYPE/VERSION).
-        var modpack = await modpacks.GetByIdAsync(server.ModpackId, ct)
+        var modpack = await modpacks.GetHeaderAsync(server.ModpackId, ct)
                       ?? throw new InvalidOperationException($"Modpack {server.ModpackId} não encontrado.");
 
         var version = await modpacks.GetVersionAsync(server.ModpackVersionId, ct)

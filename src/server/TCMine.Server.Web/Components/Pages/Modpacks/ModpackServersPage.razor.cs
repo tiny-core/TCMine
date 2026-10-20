@@ -98,7 +98,7 @@ public partial class ModpackServersPage
 
         _address = await AddressLookup.HandleAsync(false, CancellationToken.None);
 
-        _modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
+        _modpack = await ModpackRepository.GetHeaderAsync(ModpackId, CancellationToken.None);
         _isLoading = false;
     }
 

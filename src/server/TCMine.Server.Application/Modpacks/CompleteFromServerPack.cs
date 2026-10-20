@@ -44,7 +44,7 @@ public sealed partial class CompleteFromServerPack(
         if (version.UpstreamServerPackFileId is not { Length: > 0 } serverPackFileId)
             return Result<ServerPackFillResult>.Fail("Esta versão não tem um server pack na origem.");
 
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack?.UpstreamProjectId is not { Length: > 0 } projectId)
             return Result<ServerPackFillResult>.Fail("O modpack não guarda a origem de onde foi importado.");
 

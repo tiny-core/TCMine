@@ -21,7 +21,7 @@ public sealed class DeleteModpack(
         if (!auth.Succeeded)
             return auth;
 
-        var modpack = await modpacks.GetByIdAsync(modpackId, ct);
+        var modpack = await modpacks.GetHeaderAsync(modpackId, ct);
         if (modpack is null)
             return Result.Fail("Modpack não encontrado.");
 

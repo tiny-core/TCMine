@@ -251,7 +251,7 @@ public partial class ServerFormDialog
         // A versão do Minecraft é do modpack (fixa, imutável), não da versão
         // publicada — a legenda mostrava LoaderVersion rotulado de "Minecraft",
         // que é outro número (ex.: a build do NeoForge).
-        var modpack = await ModpackRepository.GetByIdAsync(ModpackId, CancellationToken.None);
+        var modpack = await ModpackRepository.GetHeaderAsync(ModpackId, CancellationToken.None);
         _minecraftVersion = modpack?.MinecraftVersion ?? "";
     }
 

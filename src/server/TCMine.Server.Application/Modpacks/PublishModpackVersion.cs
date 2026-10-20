@@ -35,7 +35,7 @@ public sealed class PublishModpackVersion(
         // A última conferência antes de a versão ficar imutável. Pega o que as
         // outras portas não viram: um pack importado, ou um rascunho criado
         // antes de esta regra existir.
-        if (await repository.GetByIdAsync(version.ModpackId, ct) is { } modpack)
+        if (await repository.GetHeaderAsync(version.ModpackId, ct) is { } modpack)
         {
             var loaderCheck = await loaderGuard.CheckAsync(
                 modpack.Loader, modpack.MinecraftVersion, version.LoaderVersion, ct);

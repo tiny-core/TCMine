@@ -23,7 +23,7 @@ public sealed class RetryModResolution(
         if (version is null)
             return Result<int>.Fail("Versão não encontrada.");
 
-        var modpack = await repository.GetByIdAsync(version.ModpackId, ct);
+        var modpack = await repository.GetHeaderAsync(version.ModpackId, ct);
         if (modpack is null)
             return Result<int>.Fail("Modpack não encontrado.");
 

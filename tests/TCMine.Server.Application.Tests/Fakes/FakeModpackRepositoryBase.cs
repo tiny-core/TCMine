@@ -34,6 +34,14 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) =>
         throw new NotImplementedException();
 
+    /// <summary>
+    ///     Por padrão, o mesmo modpack do <see cref="GetByIdAsync" />: o cabeçalho é
+    ///     o modpack sem as versões, e um fake que devolve as versões junto não
+    ///     muda a resposta de quem só lê nome, Minecraft ou loader. Assim os
+    ///     testes que já sobrescreviam o GetByIdAsync continuam valendo.
+    /// </summary>
+    public virtual Task<Modpack?> GetHeaderAsync(Guid id, CancellationToken ct) => GetByIdAsync(id, ct);
+
     public virtual Task<IReadOnlyList<Modpack>> ListAsync(CancellationToken ct) =>
         throw new NotImplementedException();
 
@@ -92,7 +100,11 @@ public abstract class FakeModpackRepositoryBase : IModpackRepository
     public virtual Task<IReadOnlyList<Guid>> ListInterruptedIngestionIdsAsync(CancellationToken ct) =>
         throw new NotImplementedException();
 
-    public virtual Task UpdateAsync(Modpack modpack, CancellationToken ct) => throw new NotImplementedException();
+    public virtual Task UpdateDetailsAsync(Guid id, string name, string? summary, CancellationToken ct) =>
+        throw new NotImplementedException();
+
+    public virtual Task SetIconAsync(Guid id, string iconBlobSha256, CancellationToken ct) =>
+        throw new NotImplementedException();
 
     public virtual Task<PagedResult<ModInventoryEntry>> ListModInventoryAsync(
         ModInventoryQuery query, CancellationToken ct) => throw new NotImplementedException();

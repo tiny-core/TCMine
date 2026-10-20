@@ -178,9 +178,25 @@ public sealed class ModpackCrudTests
         };
 
         public override Task<Modpack?> GetByIdAsync(Guid id, CancellationToken ct) =>
+            throw new InvalidOperationException("editar nome ou capa só precisa do cabeçalho, sem as versões");
+
+        public override Task<Modpack?> GetHeaderAsync(Guid id, CancellationToken ct) =>
             Task.FromResult(id == Modpack.Id ? Modpack : null);
 
-        public override Task UpdateAsync(Modpack modpack, CancellationToken ct) => Task.CompletedTask;
+        // Os dois aplicam a gravação no modpack do fake, como o banco faria:
+        // as asserções conferem o que foi GRAVADO, e não uma cópia em memória.
+        public override Task UpdateDetailsAsync(Guid id, string name, string? summary, CancellationToken ct)
+        {
+            Modpack.Name = name;
+            Modpack.Summary = summary;
+            return Task.CompletedTask;
+        }
+
+        public override Task SetIconAsync(Guid id, string iconBlobSha256, CancellationToken ct)
+        {
+            Modpack.IconBlobSha256 = iconBlobSha256;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeBlobs : FakeBlobStoreBase
